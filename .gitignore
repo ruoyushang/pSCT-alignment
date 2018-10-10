@@ -26,3 +26,11 @@
 *.swo
 =======
 *.o
+
+# IDE Files
+.idea
+.vs
+
+# Doxygen-generated Files
+doxygen/html
+doxygen/latex
