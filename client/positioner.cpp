@@ -1,3 +1,8 @@
+/**
+ * @file positioner.cpp
+ * @brief Source file for PositionerObject class inheriting from the PasObject class.
+ */
+
 #include <iostream>
 #include "positioner.h"
 #include "pasnodemanager.h"
@@ -7,8 +12,11 @@
 #include "uaserver/methodhandleuanode.h"
 #include "uaserver/opcua_analogitemtype.h"
 
-// -------------------------------------------------------------------
-// Specialization: PositionerObject Implementation
+/// @details Inherits from the PasObject constructor. Uses a UaMutexRefCounted
+/// shared mutex to allow only one thread to access the object at a time and to
+/// clean up the object once all references to it are deleted. Gets the
+/// namespace index from the PasNodeManager, then creates all OPC UA variable
+///and method nodes as children of the object using the PasNodeManager.
 PositionerObject::PositionerObject(
     const UaString& name,
     const UaNodeId& newNodeId,
@@ -67,7 +75,9 @@ PositionerObject::PositionerObject(
 
 }
 
-PositionerObject::~PositionerObject(void)
+/// @details If the shared mutex esists (the object still exists), releases the
+/// reference before deleting the object.
+PositionerObject::~PositionerObject()
 {
     if ( m_pSharedMutex )
     {
@@ -77,11 +87,25 @@ PositionerObject::~PositionerObject(void)
     }
 }
 
+/// @details Uses the PositionerType id number defined in passervertypeids.h
+/// along with the namspace index to construct the UaNodeId for the Positioner
+/// type node.
 UaNodeId PositionerObject::typeDefinitionId() const
 {
     UaNodeId ret(GLOB_PositionerType, browseName().namespaceIndex());
     return ret;
 }
+
+/// @details Casts the MethodHandle containing all information about the method
+/// call to a UaNode (MethodHandleUaNode), then gets the actual method node
+/// from it using pUaMethod(). Based on the UaNodeId of this method node,
+/// determines which method it is (by checking against the private pointers
+/// to the allowed method nodes), checks that at least one input argument was
+/// provided, and calls the method using
+/// PasCommunicationInterface.OperateDevice(). OperateDevice() receives the
+/// Positioner object type id, its Identity object, and the method node's id.
+/// If no input arguments were provided, or the method handle is invalid,
+/// returns OpcUa_BadInvalidArgument. Else, returns the relevant UaStatus.
 
 UaStatus PositionerObject::call(
     const ServiceContext&  serviceContext,
