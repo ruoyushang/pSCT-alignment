@@ -1,14 +1,13 @@
-/******************************************************************************
-** servermain.cpp
-**
-** Description: Main entry for the application
-**
-******************************************************************************/
+/**
+ * @file servermain.cpp
+ * @brief Main entry point for OPC UA alignment client
+ */
+
 #include "opcserver.h"
 #include "shutdown.h"
 #include "uaplatformlayer.h"
 #include "uathread.h"
-#if SUPPORT_XML_PARSER
+#if SUPPORT_XML_PARSER // Whether to use XML config files
   #include "xmldocument.h"
 #endif
 #include "pasnodemanager.h"
@@ -18,6 +17,7 @@
 #include "shutdown.h"
 #include <vector>
 #include <string>
+
 
 #define CLIENT_CPP_SDK_ACTIVATE_TRACE    0
 #define CLIENT_CPP_SDK_ACTIVATE_MEMCHECK 0
@@ -47,9 +47,14 @@
     #define getch readch
 #endif
 
-/*============================================================================
- * WaitForKeypress -- helper
- *===========================================================================*/
+/// @brief Helper function to wait for key press and map the result to an int
+/// action code.
+/// @details Maps keys 0-9 to actions 0-9 and maps keys a-k to actions 10-20. If
+/// the received key press is none of the above, action is set to -1. If the 'x'
+/// key is pressed, the function returns True, indicating that the server
+/// should be shut down. If not, it returns False.
+/// @param action A reference to an int variable storing the read action code.
+/// @return Boolean value indicating if an 'x' key was pressed
 bool WaitForKeypress(int& action)
 {
     action = -1;
@@ -102,7 +107,19 @@ bool WaitForKeypress(int& action)
     return false;
 }
 
-//===================================================================
+/// @brief Primary entry point function to start OPC UA alignment client
+/// @details Locates configuration files based on szAppPath, initializes
+/// OpcServer object, and parses configuration files to get server settings
+/// and to initialize Configuration object. Reads list of panel numbers
+/// (servers) to initialize devices. Initializes PasCommunicationInterface using
+/// Configuration object. Initializes PasNodeManager using Configuration and
+/// PasCommunicationInterface objects. Finally, starts server and waits for
+/// key press to shut down. When shutdown command is received, cleans up by
+/// disconnecting clients and deleting server, Configuration,
+/// PasCommunicationInterface.
+/// @param szAppPath Application path string (path to main directory of
+/// application) 
+/// @param serverlist Vector of panel position numbers as strings.
 int OpcMain(const char* szAppPath, std::vector<std::string> serverlist)
 {
     int ret = 0;
@@ -192,7 +209,7 @@ int OpcMain(const char* szAppPath, std::vector<std::string> serverlist)
             printf("    Press x to shut down server\n");
             printf("************************************\n");
             // Wait for user command to terminate the server thread.
-    
+
             //pLogic = new PasLogic(pCommIf);
             //pLogic->start();
 
@@ -218,7 +235,7 @@ int OpcMain(const char* szAppPath, std::vector<std::string> serverlist)
             printf("*************************************\n");
             printf(" Shutting down server/client\n");
             printf("*************************************\n");
-        
+
             //- Stop OPC server -------------------------
             // This code can be integrated into a shutdown
             // sequence of the application where the
@@ -264,6 +281,13 @@ int OpcMain(const char* szAppPath, std::vector<std::string> serverlist)
 #ifdef _WIN32_WCE
 int WINAPI WinMain( HINSTANCE, HINSTANCE, LPWSTR, int)
 #else
+
+/// @brief Main function.
+/// @details Receives a list of panel position numbers as command line args,
+/// gets the application path, and calls OpcMain().
+/// @param argv List of panel position numbers (servers) for the client to
+/// connect to.
+/// @return int status code, 0 for success.
 int main(int argc, char* argv[])
 #endif
 {
@@ -299,5 +323,3 @@ int main(int argc, char* argv[])
 
     return ret;
 }
-
-
