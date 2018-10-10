@@ -1,0 +1,11 @@
+project(server_gettingstarted)
+cmake_minimum_required(VERSION 2.8.0 FATAL_ERROR)
+set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../../cmake ${CMAKE_MODULE_PATH})
+
+add_subdirectory(lesson01)
+add_subdirectory(lesson02)
+add_subdirectory(lesson03)
+add_subdirectory(lesson04)
+add_subdirectory(lesson05)
+add_subdirectory(lesson06)
+add_subdirectory(lesson07)

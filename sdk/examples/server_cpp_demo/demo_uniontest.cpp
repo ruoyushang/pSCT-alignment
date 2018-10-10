@@ -1,0 +1,1043 @@
+/******************************************************************************
+** demo_uniontest.cpp
+**
+** Copyright (c) 2006-2015 Unified Automation GmbH All rights reserved.
+**
+** Software License Agreement ("SLA") Version 2.5
+**
+** Unless explicitly acquired and licensed from Licensor under another
+** license, the contents of this file are subject to the Software License
+** Agreement ("SLA") Version 2.5, or subsequent versions
+** as allowed by the SLA, and You may not copy or use this file in either
+** source code or executable form, except in compliance with the terms and
+** conditions of the SLA.
+**
+** All software distributed under the SLA is provided strictly on an
+** "AS IS" basis, WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESS OR IMPLIED,
+** AND LICENSOR HEREBY DISCLAIMS ALL SUCH WARRANTIES, INCLUDING WITHOUT
+** LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
+** PURPOSE, QUIET ENJOYMENT, OR NON-INFRINGEMENT. See the SLA for specific
+** language governing rights and limitations under the SLA.
+**
+** The complete license agreement can be found here:
+** http://unifiedautomation.com/License/SLA/2.5/
+**
+** Project: C++ OPC Server SDK information model for namespace http://www.unifiedautomation.com/DemoServer/
+**
+** Description: OPC Unified Architecture Software Development Kit.
+**
+******************************************************************************/
+
+#include "demo_uniontest.h"
+
+#include <opcua_datetime.h>
+
+#include "uavariant.h"
+#include "uadatavalue.h"
+#include "uaextensionobject.h"
+#include "uaatomic.h"
+
+// Namespace for the UA information model http://www.unifiedautomation.com/DemoServer/
+namespace Demo {
+
+/******************************************************************************
+** Class UnionTestPrivate
+******************************************************************************/
+class UnionTestPrivate : private Demo_UnionTest
+{
+    UnionTestPrivate(const UnionTestPrivate &other);
+public:
+    UnionTestPrivate();
+    explicit UnionTestPrivate(bool bStatic);
+    explicit UnionTestPrivate(const Demo_UnionTest &other);
+    ~UnionTestPrivate();
+
+    int addRef();
+    int release();
+    inline int refCount() { return m_iRefCnt; }
+
+private:
+    int m_iRefCnt;
+    friend class UnionTest;
+};
+
+/* construction */
+UnionTestPrivate::UnionTestPrivate()
+ : m_iRefCnt(0)
+{
+    Demo_UnionTest_Initialize(this);
+}
+
+/*  Static initializer.
+ *  This is used internaly to initialize the static shared_emtpy variable.
+ *  RefCnt is set to 1 so it will never be deleted.
+ */
+UnionTestPrivate::UnionTestPrivate(bool)
+ : m_iRefCnt(1)
+{
+    Demo_UnionTest_Initialize(this);
+}
+
+
+/*  construction
+ */
+UnionTestPrivate::UnionTestPrivate(const Demo_UnionTest &other) // [in] the other Demo_UnionTest.
+ : m_iRefCnt(0)
+{
+    Demo_UnionTest_CopyTo(&other, this);
+}
+
+/* destruction */
+UnionTestPrivate::~UnionTestPrivate()
+{
+    Demo_UnionTest_Clear(this);
+}
+
+/*  Add a reference to a UnionTestPrivate
+ *  @return 0 if the object was deleted - otherwise a value bigger than 0.
+ *  This method is not thread save regarding the return value. The returned counter is only reliable when it is 0.
+ *  Other values are not reliable and should not be used for any logic.
+ */
+int UnionTestPrivate::addRef()
+{
+    ua_atomic_increment(&m_iRefCnt);
+    return m_iRefCnt;
+}
+
+/*  Release a UnionTestPrivate.
+ *  @return the reference count.
+ */
+int UnionTestPrivate::release()
+{
+    int currentCount = ua_atomic_decrement(&m_iRefCnt);
+    if (currentCount == 0)
+    {
+        delete this;
+    }
+    return currentCount;
+}
+
+UnionTestPrivate* shared_empty_UnionTest()
+{
+    static UnionTestPrivate shared_static(true);
+    return &shared_static;
+}
+
+
+/******************************************************************************
+** Class UnionTest
+******************************************************************************/
+
+/** Constructs an instance of the class UnionTest with empty default values
+*/
+UnionTest::UnionTest()
+{
+    d_ptr = shared_empty_UnionTest();
+    d_ptr->addRef();
+}
+
+/** Constructs an instance of the class UnionTest with values from another UnionTest object
+ *  @param other the other UaUnionTest used to initialize the object
+ */
+UnionTest::UnionTest(const UnionTest &other)
+{
+    d_ptr = other.d_ptr;
+    d_ptr->addRef();
+}
+
+/** Constructs an instance of the class UnionTest with values from another Demo_UnionTest structure
+ *  @param other the other Demo_UnionTest used to initialize the object
+ */
+UnionTest::UnionTest(const Demo_UnionTest &other)
+{
+    d_ptr = new UnionTestPrivate(other);
+    d_ptr->addRef();
+}
+
+/** Constructs an instance of the class UnionTest initialized with value from a UaExtensionObject
+ *  @param extensionObject the extension object containing the UnionTest
+ */
+UnionTest::UnionTest(const UaExtensionObject &extensionObject)
+{
+    d_ptr = new UnionTestPrivate();
+    d_ptr->addRef();
+
+    const OpcUa_ExtensionObject *pExtensionObject = (const OpcUa_ExtensionObject*)extensionObject;
+    Demo_UnionTest *pUnionTest = DEMO_EXTENSIONOBJECT_GET_ENCODEABLE(UnionTest, pExtensionObject);
+
+    if (pUnionTest)
+    {
+        Demo_UnionTest_CopyTo(pUnionTest, d_ptr);
+    }
+}
+
+/** Constructs an instance of the class UnionTest initialized with value from an OpcUa_ExtensionObject structure
+ *  @param extensionObject the extension object containing the UnionTest
+ */
+UnionTest::UnionTest(const OpcUa_ExtensionObject &extensionObject)
+{
+    d_ptr = new UnionTestPrivate();
+    d_ptr->addRef();
+
+    Demo_UnionTest *pUnionTest = DEMO_EXTENSIONOBJECT_GET_ENCODEABLE(UnionTest, &extensionObject);
+
+    if (pUnionTest)
+    {
+        Demo_UnionTest_CopyTo(pUnionTest, d_ptr);
+    }
+}
+
+UnionTest::UnionTest(UaExtensionObject &extensionObject, OpcUa_Boolean bDetach)
+{
+    d_ptr = new UnionTestPrivate();
+    d_ptr->addRef();
+
+    const OpcUa_ExtensionObject *pExtensionObject = (const OpcUa_ExtensionObject*)extensionObject;
+    Demo_UnionTest *pUnionTest = DEMO_EXTENSIONOBJECT_GET_ENCODEABLE(UnionTest, pExtensionObject);
+    if (pUnionTest)
+    {
+        if (bDetach == OpcUa_False)
+        {
+            Demo_UnionTest_CopyTo(pUnionTest, d_ptr);
+        }
+        else
+        {
+            (*(Demo_UnionTest*)d_ptr) = *pUnionTest;
+            Demo_UnionTest_Initialize(pUnionTest);
+            extensionObject.clear();
+        }
+    }
+}
+
+UnionTest::UnionTest(OpcUa_ExtensionObject &extensionObject, OpcUa_Boolean bDetach)
+{
+    d_ptr = new UnionTestPrivate();
+    d_ptr->addRef();
+
+    Demo_UnionTest *pUnionTest = DEMO_EXTENSIONOBJECT_GET_ENCODEABLE(UnionTest, &extensionObject);
+
+    if (pUnionTest)
+    {
+        if (bDetach == OpcUa_False)
+        {
+            Demo_UnionTest_CopyTo(pUnionTest, d_ptr);
+        }
+        else
+        {
+            (*(Demo_UnionTest*)d_ptr) = *pUnionTest;
+            Demo_UnionTest_Initialize(pUnionTest);
+            OpcUa_ExtensionObject_Clear(&extensionObject);
+        }
+    }
+}
+
+/** Destroys the UnionTest object
+*/
+UnionTest::~UnionTest()
+{
+    DEMO_D(UnionTest);
+    d->release();
+}
+
+/** Returns the Type of the UnionTest union
+*/
+UnionTest::Type UnionTest::type() const
+{
+    return (Type) d_ptr->Type;
+}
+
+/** Returns true if the type of the union is "Null"
+*/
+bool UnionTest::isNull() const
+{
+    return d_ptr->Type == Demo_UnionTest_Null;
+}
+
+/** Clear the data of the UnionTest.
+*/
+void UnionTest::clear()
+{
+    d_ptr->release();
+    d_ptr = shared_empty_UnionTest();
+    d_ptr->addRef();
+}
+
+/** Compare two UnionTest if they are similar.
+ *  @param other the UnionTest to compare.
+ *  @return true if similar, false if not.
+ */
+bool UnionTest::operator==(const UnionTest &other) const
+{
+    return (Demo_UnionTest_Compare(d_ptr, other.d_ptr) == 0);
+}
+
+/** Returns true if the other UnionTest is not equal to this.
+ *  @see operator==
+ *  @param other the UnionTest to compare.
+ *  @return true if other is not equal to this.
+ */
+bool UnionTest::operator!=(const UnionTest &other) const
+{
+    return !(operator==(other));
+}
+
+/** Assignment operator.
+ *  @param other the UnionTest to assign.
+ *  @return Assignment operator.
+ */
+UnionTest& UnionTest::operator=(const UnionTest &other)
+{
+    other.d_ptr->addRef();
+    d_ptr->release();
+    d_ptr = other.d_ptr;
+    return *this;
+}
+
+/** Copy UnionTest data to a newly allocated Demo_UnionTest.
+ *  @return data to a newly allocated Demo_UnionTest.
+ */
+Demo_UnionTest* UnionTest::copy() const
+{
+    return clone(*d_ptr);
+}
+
+/** Copy UnionTest data to an existing Demo_UnionTest structure.
+ *  @param pDst the destination of this copy operation.
+ */
+void UnionTest::copyTo(Demo_UnionTest *pDst) const
+{
+    if (pDst == OpcUa_Null) return;
+    cloneTo(*d_ptr, *pDst);
+}
+
+/** Copy Demo_UnionTest data to a newly allocated Demo_UnionTest.
+ *  @param source Source to clone.
+ *  @return new copy.
+ */
+Demo_UnionTest* UnionTest::clone(const Demo_UnionTest& source)
+{
+    Demo_UnionTest* pUnionTest = OpcUa_Null;
+    Demo_UnionTest_Copy(&source, &pUnionTest);
+    return pUnionTest;
+}
+
+/** Copy Demo_UnionTest data to an existing Demo_UnionTest structure.
+ *  @param source the source of the clone operation.
+ *  @param copy the destination of the clone operation.
+ */
+void UnionTest::cloneTo(const Demo_UnionTest& source, Demo_UnionTest& copy)
+{
+    Demo_UnionTest_CopyTo(&source, &copy);
+}
+
+/** Attaches the data of the parameter pValue.
+ * Don't clear the data of pValue afterwards manually, because UnionTest is responsible for it now.
+ */
+void UnionTest::attach(const Demo_UnionTest *pValue) //!< [in] Parameter to attach to.
+{
+    if (pValue == OpcUa_Null) return;
+    if (d_ptr->refCount() == 1)
+    {
+        Demo_UnionTest_Clear(d_ptr);
+    }
+    else
+    {
+        d_ptr->release();
+        d_ptr = new UnionTestPrivate();
+        d_ptr->addRef();
+    }
+    // copy data value structure (no deep copy)
+    OpcUa_MemCpy(d_ptr, sizeof(Demo_UnionTest), (void*)pValue, sizeof(Demo_UnionTest));
+}
+
+/** Detaches the internal UnionTest structure from this class.
+ *  This way you take over the control of releasing the UnionTest data.
+ *  If more than one references exist, the data is copied to pDst instead of being detached.
+ *  @return If the functions succeeds pDst is returned, otherwise 0 is returned.
+ */
+Demo_UnionTest* UnionTest::detach(Demo_UnionTest* pDst) //!< [out] Pointer to Demo_UnionTest structure that receives the UnionTest data.
+{
+    if (pDst == OpcUa_Null) return OpcUa_Null;
+    if (d_ptr->refCount() == 1)
+    {
+        OpcUa_MemCpy(pDst, sizeof(Demo_UnionTest), d_ptr, sizeof(Demo_UnionTest));
+        // clear internal data without releasing deeper memory
+        Demo_UnionTest_Initialize(d_ptr);
+    }
+    else
+    {
+        Demo_UnionTest_CopyTo(d_ptr, pDst);
+    }
+    d_ptr->release();
+    d_ptr = shared_empty_UnionTest();
+    d_ptr->addRef();
+    return pDst;
+}
+
+void UnionTest::toVariant(UaVariant &variant) const
+{
+    UaExtensionObject extensionObject;
+    toExtensionObject(extensionObject);
+    variant.setExtensionObject(extensionObject, OpcUa_True);
+}
+
+void UnionTest::toVariant(OpcUa_Variant &variant) const
+{
+    OpcUa_Variant_Clear(&variant);
+    variant.Datatype = OpcUaType_ExtensionObject;
+    variant.ArrayType = OpcUa_VariantArrayType_Scalar;
+    variant.Value.ExtensionObject = (OpcUa_ExtensionObject*)OpcUa_Alloc(sizeof(OpcUa_ExtensionObject));
+    OpcUa_ExtensionObject_Initialize(variant.Value.ExtensionObject);
+    toExtensionObject(*variant.Value.ExtensionObject);
+}
+
+void UnionTest::toVariant(UaVariant &variant, OpcUa_Boolean bDetach)
+{
+    UaExtensionObject extensionObject;
+    toExtensionObject(extensionObject, bDetach);
+    variant.setExtensionObject(extensionObject, OpcUa_True);
+}
+
+void UnionTest::toVariant(OpcUa_Variant &variant, OpcUa_Boolean bDetach)
+{
+    OpcUa_Variant_Clear(&variant);
+    variant.Datatype = OpcUaType_ExtensionObject;
+    variant.ArrayType = OpcUa_VariantArrayType_Scalar;
+    variant.Value.ExtensionObject = (OpcUa_ExtensionObject*)OpcUa_Alloc(sizeof(OpcUa_ExtensionObject));
+    OpcUa_ExtensionObject_Initialize(variant.Value.ExtensionObject);
+    toExtensionObject(*variant.Value.ExtensionObject, bDetach);
+}
+
+void UnionTest::toDataValue(UaDataValue &dataValue, OpcUa_Boolean updateTimeStamps) const
+{
+    UaVariant variant;
+    toVariant(variant);
+    dataValue.setValue(variant, OpcUa_True, updateTimeStamps);
+}
+
+void UnionTest::toDataValue(OpcUa_DataValue &dataValue, OpcUa_Boolean updateTimeStamps) const
+{
+    OpcUa_Variant_Clear(&dataValue.Value);
+    dataValue.Value.Datatype = OpcUaType_ExtensionObject;
+    dataValue.Value.ArrayType = OpcUa_VariantArrayType_Scalar;
+    dataValue.Value.Value.ExtensionObject = (OpcUa_ExtensionObject*)OpcUa_Alloc(sizeof(OpcUa_ExtensionObject));
+    OpcUa_ExtensionObject_Initialize(dataValue.Value.Value.ExtensionObject);
+    toExtensionObject(*dataValue.Value.Value.ExtensionObject);
+
+    if (updateTimeStamps != OpcUa_False)
+    {
+        dataValue.SourceTimestamp = OpcUa_DateTime_UtcNow();
+        dataValue.ServerTimestamp = OpcUa_DateTime_UtcNow();
+    }
+}
+
+void UnionTest::toDataValue(UaDataValue &dataValue, OpcUa_Boolean bDetach, OpcUa_Boolean updateTimeStamps)
+{
+    UaVariant variant;
+    toVariant(variant, bDetach);
+    dataValue.setValue(variant, OpcUa_True, updateTimeStamps);
+}
+
+void UnionTest::toDataValue(OpcUa_DataValue &dataValue, OpcUa_Boolean bDetach, OpcUa_Boolean updateTimeStamps)
+{
+    OpcUa_Variant_Clear(&dataValue.Value);
+    dataValue.Value.Datatype = OpcUaType_ExtensionObject;
+    dataValue.Value.ArrayType = OpcUa_VariantArrayType_Scalar;
+    dataValue.Value.Value.ExtensionObject = (OpcUa_ExtensionObject*)OpcUa_Alloc(sizeof(OpcUa_ExtensionObject));
+    OpcUa_ExtensionObject_Initialize(dataValue.Value.Value.ExtensionObject);
+    toExtensionObject(*dataValue.Value.Value.ExtensionObject, bDetach);
+
+    if (updateTimeStamps != OpcUa_False)
+    {
+        dataValue.SourceTimestamp = OpcUa_DateTime_UtcNow();
+        dataValue.ServerTimestamp = OpcUa_DateTime_UtcNow();
+    }
+}
+
+void UnionTest::toExtensionObject(UaExtensionObject &extensionObject) const
+{
+    OpcUa_ExtensionObject *pExtensionObject = (OpcUa_ExtensionObject*)(const OpcUa_ExtensionObject*)extensionObject;
+    toExtensionObject(*pExtensionObject);
+}
+
+void UnionTest::toExtensionObject(OpcUa_ExtensionObject &extensionObject) const
+{
+    OpcUa_ExtensionObject_Clear(&extensionObject);
+    Demo_UnionTest *pUnionTest = OpcUa_Null;
+    if (OpcUa_IsGood(OpcUa_EncodeableObject_CreateExtension(&Demo_UnionTest_EncodeableType,
+                                                            &extensionObject,
+                                                            (OpcUa_Void**)&pUnionTest)))
+    {
+        Demo_UnionTest_CopyTo(d_ptr, pUnionTest);
+    }
+}
+
+void UnionTest::toExtensionObject(UaExtensionObject &extensionObject, OpcUa_Boolean bDetach)
+{
+    OpcUa_ExtensionObject *pExtensionObject = (OpcUa_ExtensionObject*)(const OpcUa_ExtensionObject*)extensionObject;
+    toExtensionObject(*pExtensionObject, bDetach);
+}
+
+void UnionTest::toExtensionObject(OpcUa_ExtensionObject &extensionObject, OpcUa_Boolean bDetach)
+{
+    OpcUa_ExtensionObject_Clear(&extensionObject);
+    Demo_UnionTest *pUnionTest = OpcUa_Null;
+    if (OpcUa_IsGood(OpcUa_EncodeableObject_CreateExtension(&Demo_UnionTest_EncodeableType,
+                                                            &extensionObject,
+                                                            (OpcUa_Void**)&pUnionTest)))
+    {
+        Demo_UnionTest_Initialize(pUnionTest);
+        if (bDetach != OpcUa_False && d_ptr->refCount() == 1)
+        {
+            *pUnionTest = *d_ptr;
+            // clear internal data without releasing deeper memory
+            Demo_UnionTest_Initialize(d_ptr);
+        }
+        else
+        {
+            Demo_UnionTest_CopyTo(d_ptr, pUnionTest);
+        }
+        if (bDetach != OpcUa_False)
+        {
+            d_ptr->release();
+            d_ptr = shared_empty_UnionTest();
+            d_ptr->addRef();
+        }
+    }
+}
+
+OpcUa_StatusCode UnionTest::setUnionTest(const UaExtensionObject &extensionObject)
+{
+    OpcUa_ExtensionObject *pExtensionObject = (OpcUa_ExtensionObject*)(const OpcUa_ExtensionObject*)extensionObject;
+    return setUnionTest(*pExtensionObject);
+}
+
+OpcUa_StatusCode UnionTest::setUnionTest(const OpcUa_ExtensionObject &extensionObject)
+{
+    OpcUa_StatusCode ret = OpcUa_BadTypeMismatch;
+    Demo_UnionTest *pUnionTest = DEMO_EXTENSIONOBJECT_GET_ENCODEABLE(UnionTest, &extensionObject);
+
+    if (pUnionTest)
+    {
+        ret = OpcUa_Good;
+
+        if (d_ptr->refCount() == 1)
+        {
+            Demo_UnionTest_Clear(d_ptr);
+        }
+        else
+        {
+            d_ptr->release();
+            d_ptr = new UnionTestPrivate();
+            d_ptr->addRef();
+        }
+
+        Demo_UnionTest_CopyTo(pUnionTest, d_ptr);
+    }
+    return ret;
+}
+
+OpcUa_StatusCode UnionTest::setUnionTest(UaExtensionObject &extensionObject, OpcUa_Boolean bDetach)
+{
+    OpcUa_ExtensionObject *pExtensionObject = (OpcUa_ExtensionObject*)(const OpcUa_ExtensionObject*)extensionObject;
+    return setUnionTest(*pExtensionObject, bDetach);
+}
+
+OpcUa_StatusCode UnionTest::setUnionTest(OpcUa_ExtensionObject &extensionObject, OpcUa_Boolean bDetach)
+{
+    OpcUa_StatusCode ret = OpcUa_BadTypeMismatch;
+    Demo_UnionTest *pUnionTest = DEMO_EXTENSIONOBJECT_GET_ENCODEABLE(UnionTest, &extensionObject);
+
+    if (pUnionTest != OpcUa_Null)
+    {
+        ret = OpcUa_Good;
+
+        if (d_ptr->refCount() == 1)
+        {
+            Demo_UnionTest_Clear(d_ptr);
+        }
+        else
+        {
+            d_ptr->release();
+            d_ptr = new UnionTestPrivate();
+            d_ptr->addRef();
+        }
+
+        if (bDetach == OpcUa_False)
+        {
+            Demo_UnionTest_CopyTo(pUnionTest, d_ptr);
+        }
+        else
+        {
+            (*(Demo_UnionTest*)d_ptr) = *pUnionTest;
+            Demo_UnionTest_Initialize(pUnionTest);
+            OpcUa_ExtensionObject_Clear(&extensionObject);
+        }
+    }
+    return ret;
+}
+
+
+OpcUa_Int32 UnionTest::getInt32(bool *ok) const
+{
+    if (ok)
+    {
+        *ok = type() == Type_Int32;
+    }
+    if (type() == Type_Int32)
+    {
+        return d_ptr->Value.Int32;
+    }
+    else
+    {
+        return 0;
+    }
+}
+
+UaString UnionTest::getString(bool *ok) const
+{
+    if (ok)
+    {
+        *ok = type() == Type_String;
+    }
+    if (type() == Type_String)
+    {
+        return d_ptr->Value.String;
+    }
+    else
+    {
+        return "";
+    }
+}
+
+void UnionTest::setInt32(OpcUa_Int32 Int32)
+{
+    if (d_ptr->refCount() > 1)
+    {
+        // create deep copy
+        UnionTestPrivate *pNew = new UnionTestPrivate();
+        d_ptr->release();
+        d_ptr = pNew;
+        d_ptr->addRef();
+    }
+    else
+    {
+        Demo_UnionTest_Clear(d_ptr);
+    }
+
+    d_ptr->Type = (Demo_UnionTest_Type) Type_Int32;
+    d_ptr->Value.Int32 = Int32;
+}
+
+void UnionTest::setString(const UaString& String)
+{
+    if (d_ptr->refCount() > 1)
+    {
+        // create deep copy
+        UnionTestPrivate *pNew = new UnionTestPrivate();
+        d_ptr->release();
+        d_ptr = pNew;
+        d_ptr->addRef();
+    }
+    else
+    {
+        Demo_UnionTest_Clear(d_ptr);
+    }
+
+    d_ptr->Type = (Demo_UnionTest_Type) Type_String;
+    OpcUa_String_Initialize(&d_ptr->Value.String);
+    String.copyTo(&d_ptr->Value.String);
+}
+
+
+/******************************************************************************
+** Class UnionTests
+******************************************************************************/
+UnionTests UnionTests::empty;
+
+UnionTests::UnionTests()
+: m_noOfElements(0),
+  m_data((Demo_UnionTest*)OpcUa_Null)
+{
+}
+
+UnionTests::UnionTests(const UnionTests &other)
+: m_noOfElements(0),
+  m_data((Demo_UnionTest*)OpcUa_Null)
+{
+    operator=(other);
+}
+
+UnionTests::UnionTests(OpcUa_Int32 length, Demo_UnionTest* data)
+: m_noOfElements(0),
+  m_data((Demo_UnionTest*)OpcUa_Null)
+{
+    if (length > 0 && data != OpcUa_Null)
+    {
+        m_noOfElements = length;
+        m_data = (Demo_UnionTest*)OpcUa_Alloc(m_noOfElements * sizeof(Demo_UnionTest));
+        for (OpcUa_UInt32 i = 0; i < m_noOfElements; i++)
+        {
+            Demo_UnionTest_CopyTo(&(data[i]), &(m_data[i]));
+        }
+    }
+}
+
+UnionTests::~UnionTests()
+{
+    clear();
+}
+
+UnionTests& UnionTests::operator=(const UnionTests &other)
+{
+    if (this == &other) {return *this;}
+
+    clear();
+    if (other.m_noOfElements > 0)
+    {
+        m_noOfElements = other.m_noOfElements;
+        m_data = (Demo_UnionTest*)OpcUa_Alloc(m_noOfElements * sizeof(Demo_UnionTest));
+        for (OpcUa_UInt32 i = 0; i < m_noOfElements; i++)
+        {
+            Demo_UnionTest_CopyTo(&(other.m_data[i]), &(m_data[i]));
+        }
+    }
+    return *this;
+}
+
+/** Returns the Demo_UnionTest at index position index as a modifiable reference.
+ *
+ *  index must be valid index position in the array.
+ */
+Demo_UnionTest& UnionTests::operator[](OpcUa_UInt32 index)
+{
+    assert(index<m_noOfElements);
+    return m_data[index];
+}
+
+/** Returns the Demo_UnionTest at index position index.
+ *
+ *  index must be valid index position in the array.
+ */
+const Demo_UnionTest& UnionTests::operator[](OpcUa_UInt32 index) const
+{
+    assert(index<m_noOfElements);
+    return m_data[index];
+}
+
+/** Attaches the raw data.
+ *
+ *  Clears the array and takes the ownership of data.
+ *  Don't clear the data afterwards manually, because UnionTests is responsible for it now.
+ */
+void UnionTests::attach(OpcUa_UInt32 length, Demo_UnionTest* data)
+{
+    clear();
+    m_data = data;
+    m_noOfElements = length;
+}
+
+/** Attaches the raw data.
+ *
+ *  Clears the array and takes the ownership of data.
+ *  Don't clear the data afterwards manually, because UnionTests is responsible for it now.
+ */
+void UnionTests::attach(OpcUa_Int32 length, Demo_UnionTest* data)
+{
+    clear();
+    if (length >= 0)
+    {
+        m_data = data;
+        m_noOfElements = length;
+    }
+}
+
+bool UnionTests::operator==(const UnionTests &other) const
+{
+    if (m_noOfElements != other.m_noOfElements) {return false;}
+
+    if (m_noOfElements > 0)
+    {
+        for (OpcUa_UInt32 i = 0; i < m_noOfElements; i++)
+        {
+            if (Demo_UnionTest_Compare(&(m_data[i]), &(other.m_data[i])) != OPCUA_EQUAL) {return false;};
+        }
+    }
+    return true;
+}
+
+bool UnionTests::operator!=(const UnionTests &other) const
+{
+    return !(operator==(other));
+}
+
+/** Detaches the raw data from this class.
+ *
+ *  The caller takes ownership of the raw data and is responsible for deleting it
+ *  by calling OpcUa_Free.
+ *  @return The raw data.
+ */
+Demo_UnionTest* UnionTests::detach()
+{
+    Demo_UnionTest* pRet = m_data;
+    m_noOfElements = 0;
+    m_data = (Demo_UnionTest*)OpcUa_Null;
+    return pRet;
+}
+
+void UnionTests::create(OpcUa_UInt32 length)
+{
+    clear();
+    if (length > 0)
+    {
+        m_data = (Demo_UnionTest*)OpcUa_Alloc(length * sizeof(Demo_UnionTest));
+        for (OpcUa_UInt32 i = 0; i < length; i++)
+        {
+            Demo_UnionTest_Initialize(&(m_data[i]));
+        }
+        m_noOfElements = length;
+    }
+}
+
+void UnionTests::resize(OpcUa_UInt32 length)
+{
+    if (length < m_noOfElements)
+    {
+        if (length != 0)
+        {
+            for (OpcUa_UInt32 i = length; i < m_noOfElements; i++)
+            {
+                Demo_UnionTest_Clear(&(m_data[i]));
+            }
+
+            Demo_UnionTest* newData = (Demo_UnionTest*)OpcUa_ReAlloc(m_data, length * sizeof(Demo_UnionTest));
+            if (newData)
+            {
+                m_data = newData;
+                m_noOfElements = length;
+            }
+        }
+        else
+        {
+            clear();
+        }
+    }
+    else if (length > m_noOfElements)
+    {
+        Demo_UnionTest* newData = (Demo_UnionTest*)OpcUa_ReAlloc(m_data, length * sizeof(Demo_UnionTest));
+        if (newData)
+        {
+            for (OpcUa_UInt32 i = m_noOfElements; i < length; i++)
+            {
+                Demo_UnionTest_Initialize(&(newData[i]));
+            }
+            m_data = newData;
+            m_noOfElements = length;
+        }
+    }
+}
+
+void UnionTests::clear()
+{
+    if (m_data)
+    {
+        for (OpcUa_UInt32 i = 0; i < m_noOfElements; i++)
+        {
+            Demo_UnionTest_Clear(&(m_data[i]));
+        }
+        OpcUa_Free(m_data);
+        m_data = (Demo_UnionTest*)OpcUa_Null;
+    }
+    m_noOfElements = 0;
+}
+
+void UnionTests::toVariant(UaVariant &variant) const
+{
+    OpcUa_Variant *pVariant = (OpcUa_Variant*)(const OpcUa_Variant*)variant;
+    toVariant(*pVariant);
+}
+
+void UnionTests::toVariant(OpcUa_Variant &variant) const
+{
+    OpcUa_Variant_Clear(&variant);
+
+    variant.Datatype = OpcUaType_ExtensionObject;
+    variant.ArrayType = OpcUa_VariantArrayType_Array;
+    variant.Value.Array.Length = m_noOfElements;
+    variant.Value.Array.Value.ExtensionObjectArray = (OpcUa_ExtensionObject*)OpcUa_Alloc(m_noOfElements * sizeof(OpcUa_ExtensionObject));
+    for (OpcUa_UInt32 i = 0; i < m_noOfElements; i++)
+    {
+        Demo_UnionTest *pValue = OpcUa_Null;
+        OpcUa_ExtensionObject_Initialize(&variant.Value.Array.Value.ExtensionObjectArray[i]);
+        OpcUa_EncodeableObject_CreateExtension(&Demo_UnionTest_EncodeableType,
+                                               &variant.Value.Array.Value.ExtensionObjectArray[i],
+                                               (OpcUa_Void**)&pValue);
+        Demo_UnionTest_CopyTo(&m_data[i], pValue);
+    }
+}
+
+void UnionTests::toVariant(UaVariant &variant, OpcUa_Boolean bDetach)
+{
+    OpcUa_Variant *pVariant = (OpcUa_Variant*)(const OpcUa_Variant*)variant;
+    toVariant(*pVariant, bDetach);
+}
+
+void UnionTests::toVariant(OpcUa_Variant &variant, OpcUa_Boolean bDetach)
+{
+    OpcUa_Variant_Clear(&variant);
+    variant.Datatype = OpcUaType_ExtensionObject;
+    variant.ArrayType = OpcUa_VariantArrayType_Array;
+    variant.Value.Array.Length = m_noOfElements;
+    variant.Value.Array.Value.ExtensionObjectArray = (OpcUa_ExtensionObject*)OpcUa_Alloc(m_noOfElements * sizeof(OpcUa_ExtensionObject));
+    for (OpcUa_UInt32 i = 0; i < m_noOfElements; i++)
+    {
+        Demo_UnionTest *pValue = OpcUa_Null;
+        OpcUa_ExtensionObject_Initialize(&variant.Value.Array.Value.ExtensionObjectArray[i]);
+        OpcUa_EncodeableObject_CreateExtension(&Demo_UnionTest_EncodeableType,
+                                               &variant.Value.Array.Value.ExtensionObjectArray[i],
+                                               (OpcUa_Void**)&pValue);
+        if (bDetach != OpcUa_False)
+        {
+            *pValue = m_data[i];
+        }
+        else
+        {
+            Demo_UnionTest_CopyTo(&m_data[i], pValue);
+        }
+    }
+    if (bDetach != OpcUa_False)
+    {
+        OpcUa_Free(m_data);
+        m_data = (Demo_UnionTest*)OpcUa_Null;
+        m_noOfElements = 0;
+    }
+}
+
+void UnionTests::toDataValue(UaDataValue &dataValue, OpcUa_Boolean updateTimeStamps) const
+{
+    UaVariant variant;
+    toVariant(variant);
+    dataValue.setValue(variant, OpcUa_True, updateTimeStamps);
+}
+
+void UnionTests::toDataValue(OpcUa_DataValue &dataValue, OpcUa_Boolean updateTimeStamps) const
+{
+    toVariant(dataValue.Value);
+
+    if (updateTimeStamps != OpcUa_False)
+    {
+        dataValue.SourceTimestamp = OpcUa_DateTime_UtcNow();
+        dataValue.ServerTimestamp = OpcUa_DateTime_UtcNow();
+    }
+}
+
+void UnionTests::toDataValue(UaDataValue &dataValue, OpcUa_Boolean bDetach, OpcUa_Boolean updateTimeStamps)
+{
+    UaVariant variant;
+    toVariant(variant, bDetach);
+    dataValue.setValue(variant, OpcUa_True, updateTimeStamps);
+}
+
+void UnionTests::toDataValue(OpcUa_DataValue &dataValue, OpcUa_Boolean bDetach, OpcUa_Boolean updateTimeStamps)
+{
+    toVariant(dataValue.Value, bDetach);
+
+    if (updateTimeStamps != OpcUa_False)
+    {
+        dataValue.SourceTimestamp = OpcUa_DateTime_UtcNow();
+        dataValue.ServerTimestamp = OpcUa_DateTime_UtcNow();
+    }
+}
+
+OpcUa_StatusCode UnionTests::setUnionTests(const UaVariant &variant)
+{
+    OpcUa_Variant *pVariant = (OpcUa_Variant*)(const OpcUa_Variant*)variant;
+    return setUnionTests(*pVariant);
+}
+
+OpcUa_StatusCode UnionTests::setUnionTests(const OpcUa_Variant &variant)
+{
+    return setUnionTests((OpcUa_Variant&)variant, OpcUa_False);
+}
+
+OpcUa_StatusCode UnionTests::setUnionTests(UaVariant &variant, OpcUa_Boolean bDetach)
+{
+    OpcUa_Variant *pVariant = (OpcUa_Variant*)(const OpcUa_Variant*)variant;
+    return setUnionTests(*pVariant, bDetach);
+}
+
+OpcUa_StatusCode UnionTests::setUnionTests(OpcUa_Variant &variant, OpcUa_Boolean bDetach)
+{
+    clear();
+
+    OpcUa_StatusCode ret = OpcUa_BadTypeMismatch;
+    if (variant.Datatype == OpcUaType_ExtensionObject &&
+        variant.ArrayType == OpcUa_VariantArrayType_Array)
+    {
+        ret = OpcUa_Good;
+        m_noOfElements = variant.Value.Array.Length >= 0 ? variant.Value.Array.Length : 0;
+        if (m_noOfElements > 0 && variant.Value.Array.Value.ExtensionObjectArray != OpcUa_Null)
+        {
+            m_data = (Demo_UnionTest*)OpcUa_Alloc(m_noOfElements * sizeof(Demo_UnionTest));
+
+            OpcUa_UInt32 i = 0;
+            for (i = 0; i < m_noOfElements; i++)
+            {
+                Demo_UnionTest_Initialize(&m_data[i]);
+
+                Demo_UnionTest *pValue = DEMO_EXTENSIONOBJECT_GET_ENCODEABLE(UnionTest, &variant.Value.Array.Value.ExtensionObjectArray[i]);
+                if (pValue)
+                {
+                    if (bDetach != OpcUa_False)
+                    {
+                        m_data[i] = *pValue;
+                        Demo_UnionTest_Initialize(pValue);
+                    }
+                    else
+                    {
+                        Demo_UnionTest_CopyTo(pValue, &m_data[i]);
+                    }
+                }
+                else
+                {
+                    ret = OpcUa_BadTypeMismatch;
+                    break;
+                }
+            }
+            if (OpcUa_IsNotGood(ret))
+            {
+                for (OpcUa_UInt32 j = 0; j < i; j++)
+                {
+                    Demo_UnionTest_Clear(&m_data[j]);
+                }
+                OpcUa_Free(m_data);
+                m_data = (Demo_UnionTest*)OpcUa_Null;
+                m_noOfElements = 0;
+            }
+        }
+        else
+        {
+            m_noOfElements = 0;
+        }
+    }
+    return ret;
+}
+
+OpcUa_StatusCode UnionTests::setUnionTests(OpcUa_Int32 length, Demo_UnionTest* data)
+{
+    clear();
+
+    if (length > 0 && data != OpcUa_Null)
+    {
+        m_noOfElements = length;
+        m_data = (Demo_UnionTest*)OpcUa_Alloc(m_noOfElements * sizeof(Demo_UnionTest));
+        for (OpcUa_UInt32 i = 0; i < m_noOfElements; i++)
+        {
+            Demo_UnionTest_CopyTo(&(data[i]), &(m_data[i]));
+        }
+    }
+    return OpcUa_Good;
+}
+
+} // namespace Demo
+

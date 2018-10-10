@@ -1,0 +1,7 @@
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='${_VS_CONFIG}|${_VS_ARCH}'">
+    <LocalDebuggerCommand>${_VS_COMMAND}</LocalDebuggerCommand>
+    <LocalDebuggerWorkingDirectory>${_VS_WORKING_DIR}</LocalDebuggerWorkingDirectory>
+    <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
+    <LocalDebuggerCommandArguments>${_VS_ARGS}</LocalDebuggerCommandArguments>
+    <LocalDebuggerEnvironment>${_VS_ENVIRONMENT_STRING}</LocalDebuggerEnvironment>
+  </PropertyGroup>
