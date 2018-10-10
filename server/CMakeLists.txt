@@ -42,6 +42,10 @@ SET(CMAKE_INSTALL_RPATH ${CMAKE_CURRENT_SOURCE_DIR}/../sdk/lib)
 SET(COMMON_CODE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../pascommon)
 SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH FALSE)
 
+# need libusb.so -- might not be on the system!!
+# brute force it for now
+SET(LIBUSB_LIBRARIES "/usr/lib64/libusb-1.0.so.0")
+
 MESSAGE( STATUS "" )
 MESSAGE( STATUS "====================================" )
 MESSAGE( STATUS "Creating Makefile of ${PROJECT_NAME}" )
@@ -100,6 +104,23 @@ file(GLOB PASSERVER_SRC
     "${COMMON_CODE_DIR}/mpescode/*.cpp"
 )
 
+if ( SIMMODE )
+    add_definitions(-D_AMD64)
+    add_definitions(-DSIMMODE)
+    file(GLOB PASSERVER_SRC
+        ${PASSERVER_SRC}
+        "${COMMON_CODE_DIR}/cbccode/dummycbc.cpp"
+        )
+else ( SIMMODE )
+    file(GLOB PASSERVER_SRC
+        ${PASSERVER_SRC}
+        "${COMMON_CODE_DIR}/cbccode/*.cpp"
+        "${COMMON_CODE_DIR}/globalalignment/psdclass.cpp"
+        "${COMMON_CODE_DIR}/globalalignment/laserclass.cpp"
+        "${COMMON_CODE_DIR}/globalalignment/libpiusb.cpp"
+    )
+endif ( SIMMODE )
+
 if ( AMD64 )
     add_definitions(-D_AMD64)
     file(GLOB PASSERVER_SRC
@@ -107,10 +128,6 @@ if ( AMD64 )
         "${COMMON_CODE_DIR}/cbccode/dummycbc.cpp"
         )
 else ( AMD64 )
-    # need libusb.so -- might not be on the system!!
-    # brute force it for now
-    SET(LIBUSB_LIBRARIES "/usr/lib64/libusb-1.0.so.0")
-
     file(GLOB PASSERVER_SRC
         ${PASSERVER_SRC}
         "${COMMON_CODE_DIR}/cbccode/*.cpp"

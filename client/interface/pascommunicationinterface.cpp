@@ -221,6 +221,7 @@ const Identity PasCommunicationInterface::addDevice(Client *pClient, OpcUa_UInt3
                        PasController *parentC = m_pControllers.at(parent.first).at(parentIdx);
                        PasController *coparentC = m_pControllers.at(coparent.first).at(coparentIdx);
                        static_cast<PasCompositeController *>(parentC)->addChild(coparent.first, coparentC);
+                       std::cout << "Ruo, parent " << parent.first << "(" << parent.second << ") added a child(coparent) " << coparent.first << "(" << coparent.second << ")" << std::endl;
                    }
                }
            }

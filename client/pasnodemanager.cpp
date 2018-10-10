@@ -1,8 +1,3 @@
-/**
- * @file pasnodemanager.cpp
- * @brief Source file for PasNodeManager class.
- */
-
 #include "pasnodemanager.h"
 #include "pasobject.h"
 #include "mirrorobject.h"
@@ -18,8 +13,6 @@
 #include <iostream>
 #include "uaserver/opcua_analogitemtype.h"
 
-/// @details Inherits from the PasNodeManagerCommon class. Initializes a new
-/// Client object for the positioner.
 PasNodeManager::PasNodeManager()
 : PasNodeManagerCommon()
 {
@@ -27,8 +20,6 @@ PasNodeManager::PasNodeManager()
     m_pPositioner = new Client(this);
 }
 
-/// @details Deletes all panel/controller board Clients and positioner 
-/// client one by one.
 PasNodeManager::~PasNodeManager()
 {
     while (!m_pClient.empty())
@@ -41,8 +32,6 @@ PasNodeManager::~PasNodeManager()
     std::cout << "\nDeleted Clients\n";
 }
 
-/// @details Casts the PasCommunicationInterface* to PasComInterfaceCommon*
-/// before assigning.
 void PasNodeManager::setCommunicationInterface(PasCommunicationInterface *pCommIf)
 {
     std::cout << "PasNodeManager: Setting communication interface\n";
@@ -50,9 +39,6 @@ void PasNodeManager::setCommunicationInterface(PasCommunicationInterface *pCommI
     m_pCommIf = static_cast<PasComInterfaceCommon *>(pCommIf);
 }
 
-/// @details Creates new Client objects for each panel/controller board. Then, 
-/// assigns Configuration object to PasNodeManager and internally to
-/// all panel and positioner Clients.
 void PasNodeManager::setConfiguration(Configuration *pConfiguration)
 {
     std::cout << "PasNodeManager: Setting configuration\n";
@@ -60,9 +46,7 @@ void PasNodeManager::setConfiguration(Configuration *pConfiguration)
 
     m_pPositioner->setConfiguration(m_pConfiguration);
 
-    std::cout << "Will attempt to create " << m_pConfiguration->getServers() 
-		<< " clients\n\n";
-
+    std::cout << "Will attempt to create " << m_pConfiguration->getServers() << " clients\n\n";
     for (OpcUa_UInt32 i = 0; i < m_pConfiguration->getServers(); i++)
     {
         m_pClient.push_back(new Client(this));
@@ -70,7 +54,6 @@ void PasNodeManager::setConfiguration(Configuration *pConfiguration)
     }
 }
 
-/// @details
 UaStatus PasNodeManager::afterStartUp()
 {
     UaStatus ret;
@@ -93,7 +76,7 @@ UaStatus PasNodeManager::afterStartUp()
         dynamic_cast<PasCommunicationInterface *>(m_pCommIf)->addDevice(m_pPositioner, GLOB_PositionerType, id);
     }
     else {
-        std::cout << "Failed to connect to " << m_pConfiguration->getPositionerUrl().toUtf8()
+        std::cout << "Failed to connect to positioner " << m_pConfiguration->getPositionerUrl().toUtf8()
             << ". Moving on..." << std::endl;
     }
 
@@ -101,7 +84,7 @@ UaStatus PasNodeManager::afterStartUp()
     // this will add each panel to the communication interface; it will also browse the panels
     // and add the devices on them, such as MPES/ACT/PSD;
     // in the process, it will construct the edges out of the corresponding panels and sensors,
-    // as well as the whole mirror(s). WOW
+    // as well as the whole mirror(s). WOW 
     // number of clients is the same as the number of servers/panels by our set up
     unsigned client = 0;
     for (const auto& panelId : m_pConfiguration->getDeviceList(PAS_PanelType)) {
@@ -114,7 +97,7 @@ UaStatus PasNodeManager::afterStartUp()
             ret = m_pClient.at(client)->browseAndAddDevices();
         }
         else
-            std::cout << "Failed to connect to " << panelId.eAddress << ". Moving on..." << std::endl;
+            std::cout << "Failed to connect to panel " << panelId.eAddress << ". Moving on..." << std::endl;
 
         ++client;
     }
@@ -170,7 +153,7 @@ UaStatus PasNodeManager::afterStartUp()
                 dynamic_cast<PasCommunicationInterface*>(m_pCommIf));
         ret = addNodeAndReference(OpcUaId_ObjectsFolder, pMirror, OpcUaId_Organizes);
         UA_ASSERT(ret.isGood());
-        // Add HasTypeDefinition reference from object to PanelType
+        // Add HasTypeDefinition reference from object to PanelType 
         ret = addUaReference(pMirror->nodeId(), pMirror->typeDefinitionId(), OpcUaId_HasTypeDefinition);
         UA_ASSERT(ret.isGood());
     }
@@ -184,7 +167,7 @@ UaStatus PasNodeManager::afterStartUp()
                 dynamic_cast<PasCommunicationInterface*>(m_pCommIf));
         ret = addNodeAndReference(OpcUaId_ObjectsFolder, pPanel, OpcUaId_Organizes);
         UA_ASSERT(ret.isGood());
-        // Add HasTypeDefinition reference from object to PanelType
+        // Add HasTypeDefinition reference from object to PanelType 
         ret = addUaReference(pPanel->nodeId(), pPanel->typeDefinitionId(), OpcUaId_HasTypeDefinition);
         UA_ASSERT(ret.isGood());
     }
@@ -198,7 +181,7 @@ UaStatus PasNodeManager::afterStartUp()
                 m_defaultLocaleId, this, identity, m_pCommIf);
         ret = addNodeAndReference(pMPESFolder, pMPES, OpcUaId_Organizes);
         UA_ASSERT(ret.isGood());
-        // Add HasTypeDefinition reference from object to MPESType
+        // Add HasTypeDefinition reference from object to MPESType 
         ret = addUaReference(pMPES->nodeId(), pMPES->typeDefinitionId(), OpcUaId_HasTypeDefinition);
         UA_ASSERT(ret.isGood());
     }
@@ -211,7 +194,7 @@ UaStatus PasNodeManager::afterStartUp()
                 m_defaultLocaleId, this, identity, m_pCommIf);
         ret = addNodeAndReference(pACTFolder, pACT, OpcUaId_Organizes);
         UA_ASSERT(ret.isGood());
-        // Add HasTypeDefinition reference from object to ACTType
+        // Add HasTypeDefinition reference from object to ACTType 
         ret = addUaReference(pACT->nodeId(), pACT->typeDefinitionId(), OpcUaId_HasTypeDefinition);
         UA_ASSERT(ret.isGood());
     }
@@ -224,7 +207,7 @@ UaStatus PasNodeManager::afterStartUp()
                 m_defaultLocaleId, this, identity, m_pCommIf);
         ret = addNodeAndReference(pPSDFolder, pPSD, OpcUaId_Organizes);
         UA_ASSERT(ret.isGood());
-        // Add HasTypeDefinition reference from object to ACTType
+        // Add HasTypeDefinition reference from object to ACTType 
         ret = addUaReference(pPSD->nodeId(), pPSD->typeDefinitionId(), OpcUaId_HasTypeDefinition);
         UA_ASSERT(ret.isGood());
     }
@@ -238,7 +221,7 @@ UaStatus PasNodeManager::afterStartUp()
                 dynamic_cast<PasCommunicationInterface*>(m_pCommIf));
         ret = addNodeAndReference(OpcUaId_ObjectsFolder, pEdge, OpcUaId_Organizes);
         UA_ASSERT(ret.isGood());
-        // Add HasTypeDefinition reference from object to EdgeType
+        // Add HasTypeDefinition reference from object to EdgeType 
         ret = addUaReference(pEdge->nodeId(), pEdge->typeDefinitionId(), OpcUaId_HasTypeDefinition);
         UA_ASSERT(ret.isGood());
     }
@@ -253,15 +236,13 @@ UaStatus PasNodeManager::afterStartUp()
         ret = addNodeAndReference(OpcUaId_ObjectsFolder, pCCD, OpcUaId_Organizes);
         if (ret.isGood())
         UA_ASSERT(ret.isGood());
-        // Add HasTypeDefinition reference from object to OptTableType
+        // Add HasTypeDefinition reference from object to OptTableType 
         ret = addUaReference(pCCD->nodeId(), pCCD->typeDefinitionId(), OpcUaId_HasTypeDefinition);
         UA_ASSERT(ret.isGood());
     }
     return ret;
 }
 
-/// @details Disconnects positioner Client and all panel/ controller board
-/// clients before shutdown.
 UaStatus PasNodeManager::beforeShutDown()
 {
     UaStatus ret;
@@ -280,7 +261,6 @@ UaStatus PasNodeManager::beforeShutDown()
     return ret;
 }
 
-/// @details 
 UaStatus PasNodeManager::amendTypeNodes()
 {
     UaStatus ret;
@@ -1038,11 +1018,10 @@ UaStatus PasNodeManager::amendTypeNodes()
     return ret;
 }
 
-/// @details 
 OpcUa_Int32 PasNodeManager::Panic()
 {
     UaStatus status;
-
+    
     OpcUa_Int32 actcount = dynamic_cast<PasCommunicationInterface*>(m_pCommIf)->getDevices(PAS_ACTType);
 
     Identity id;
@@ -1054,7 +1033,7 @@ OpcUa_Int32 PasNodeManager::Panic()
             printf("Will try changing state for %s\n", id.eAddress.c_str());
             status = m_pCommIf->setDeviceState(PAS_ACTType, id, PASState::PAS_Off );
         }
-        else
+        else 
             printf("Problem changing state for %s\n", id.eAddress.c_str());
     }
 
@@ -1067,7 +1046,7 @@ OpcUa_Int32 PasNodeManager::Panic()
             printf("Will try changing state for %s again\n", id.eAddress.c_str());
             status = m_pCommIf->setDeviceState(PAS_ACTType, id, PASState::PAS_On );
         }
-        else
+        else 
             printf("Problem changing state for %s\n", id.eAddress.c_str());
     }
 

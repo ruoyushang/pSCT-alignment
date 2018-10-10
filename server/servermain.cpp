@@ -88,6 +88,7 @@ int OpcServerMain(const char* szAppPath, const char* serverUrl)
         PasCommunicationInterface *pCommIf = new PasCommunicationInterface();
         // this initializes the communication interface, including all devices that talk
         // directly to it, like Aravis cameras
+        //serverUrl = "10.0.1.20"; //Ruo
         pCommIf->setServerUrl(serverUrl);
         UaStatus ret = pCommIf->Initialize();
         UA_ASSERT(ret.isGood());
