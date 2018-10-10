@@ -3,6 +3,8 @@ Alignment software for pSCT
 
 # Installation
 
+Remember to call source thisroot to set ROOT environment variables correctly.
+
 # Dependencies
 
 * OpenCV 4.0
