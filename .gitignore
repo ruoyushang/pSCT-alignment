@@ -34,3 +34,6 @@
 # Doxygen-generated Files
 doxygen/html
 doxygen/latex
+
+# Unnecessary SDK files
+sdk/examples
