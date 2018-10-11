@@ -9,7 +9,7 @@ Remember to call source thisroot to set ROOT environment variables correctly.
 
 * OpenCV 4.0
 * ROOT 6.10.04
-* MySQL 5.5
+* MySQL 5.5.61
 
 # Usage
 
