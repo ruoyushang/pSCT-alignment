@@ -191,15 +191,20 @@ UaStatus PasNodeManager::afterStartUp()
             it!=PasCommunicationInterface::deviceTypeNames.end(); ++it) {
                 deviceType = it->first;
                 deviceName = it->second;
-                pChildren = dynamic_cast<PasCompositeController*>(pController)->getChildren(deviceType);
-                if (!pChildren.empty()) {
-                    pFolder = new UaFolder(UaString(deviceName.c_str()), UaNodeId(UaString(deviceName.c_str()), getNameSpaceIndex()), m_defaultLocaleId);
-                    ret = addNodeAndReference(pObject->nodeId(), pFolder, OpcUaId_HasComponent);
-                    UA_ASSERT(ret.isGood());
-                    for ( auto &child : pChildren) {
-                        ret = addUaReference(pFolder->nodeId(), pDeviceObjects[child]->nodeId(), OpcUaId_HasComponent);
+                try {            
+                    pChildren = dynamic_cast<PasCompositeController*>(pController)->getChildren(deviceType);
+                    if (!pChildren.empty()) {
+                        pFolder = new UaFolder(UaString(deviceName.c_str()), UaNodeId(UaString(deviceName.c_str()), getNameSpaceIndex()), m_defaultLocaleId);
+                        ret = addNodeAndReference(pObject->nodeId(), pFolder, OpcUaId_HasComponent);
                         UA_ASSERT(ret.isGood());
+                        for ( auto &child : pChildren) {
+                            ret = addUaReference(pFolder->nodeId(), pDeviceObjects[child]->nodeId(), OpcUaId_HasComponent);
+                            UA_ASSERT(ret.isGood());
+                        }
                     }
+                }
+                catch (...) {
+                    // Do nothing
                 }
             }
         }
