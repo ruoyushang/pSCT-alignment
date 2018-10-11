@@ -47,19 +47,19 @@ void PasCompositeController::addChild(OpcUa_UInt32 deviceType, PasController *co
     catch (out_of_range) {
         // only add if this is a possible child
         //cout << "\t Ruo, m_ChildrenTypes.count(deviceType) = " << m_ChildrenTypes.count(deviceType) << endl;
-        //if (m_ChildrenTypes.count(deviceType)) { //Ruo, remove this in order to add edges as children of panels
+        if (m_ChildrenTypes.count(deviceType)) {
         ///
         /// This section adds coparents (edge and panel) of a MPES as a child of each other.
         ///
-            cout << "\t Ruo, Not added yet. Adding it now..." << endl;
+            cout << "\t Not added yet. Adding it now..." << endl;
             m_pChildren[deviceType].push_back(pController);
             m_ChildrenIdentityMap[deviceType][id] = m_pChildren.at(deviceType).size() - 1;
             // this doesn't work for edges, since they don't have an assigned position
             try {
                 m_ChildrenPositionMap[deviceType][pos] = m_pChildren.at(deviceType).size() - 1;
             }
-            catch (...) { //Ruo
-                std::cout << "Ruo, failed to create m_ChildrenPositionMap for " << deviceType << " at " << pos << std::endl;
+            catch (...) {
+                std::cout << "Failed to create m_ChildrenPositionMap for " << deviceType << " at " << pos << std::endl;
             }
         //}
     }
@@ -489,7 +489,7 @@ PasPanel::PasPanel(Identity identity, Client *pClient) :
     m_SP.SetPanelType(StewartPlatform::PanelType::OPT);
 
     // define possible children types
-    m_ChildrenTypes = {PAS_ACTType, PAS_MPESType};
+    m_ChildrenTypes = {PAS_ACTType, PAS_MPESType, PAS_EdgeType};
 
     // make sure things update on the first boot up
     // duration takes seconds -- hence the conversion with the 1/1000 ratiot

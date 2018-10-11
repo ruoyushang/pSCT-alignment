@@ -102,25 +102,32 @@ UaStatus PasNodeManager::afterStartUp()
         ++client;
     }
 
+    UaFolder * pFolder = NULL;
+    PasObject *pObject = NULL;
+    PasController *pController = NULL;
+    std::vector<PasController *>pChildren;
 
-    MirrorObject *pMirror = NULL;
-    PanelObject *pPanel = NULL;
-    MPESObject *pMPES = NULL;
-    ACTObject *pACT = NULL;
-    PSDObject *pPSD = NULL;
-    EdgeObject *pEdge = NULL;
-    OptTableObject *pOptTable = NULL;
-    CCDObject *pCCD = NULL;
-    UaFolder *pMPESFolder = NULL;
-    UaFolder *pACTFolder = NULL;
-    UaFolder *pPSDFolder = NULL;
+    std::map<unsigned, UaFolder *> pDeviceFolders;
+    std::map<PasController *, PasObject *> pDeviceObjects;
+
+    string deviceName;
+    string folderName;
+    unsigned deviceType;
+
+    OpcUa_UInt32 count;
     Identity identity;
     UaString sDeviceName;
 
+    // Locate Positioner device
     OpcUa_UInt32 posCount = m_pCommIf->getDevices(GLOB_PositionerType);
-    if (posCount > 1) std::cout << "\n +++ WARNING +++ PasNodeManager: More than one positioner added??\n" << std::endl;
-    if (posCount < 1) std::cout << "\n +++ WARNING +++ PasNodeManager: Less than one positioner added??\n" << std::endl;
+    if (posCount > 1){
+        std::cout << "\n +++ WARNING +++ PasNodeManager: More than one positioner added??\n" << std::endl;
+    }
+    else if (posCount < 1) {
+        std::cout << "\n +++ WARNING +++ PasNodeManager: Less than one positioner added??\n" << std::endl;
+    }
     ret = m_pCommIf->getDeviceConfig(GLOB_PositionerType, 0, sDeviceName, identity);
+
     if (ret.isGood()) {
         //Create a folder for the positioner and add the folder to the ObjectsFolder
         PositionerObject *pPositioner = new PositionerObject(sDeviceName,
@@ -132,115 +139,70 @@ UaStatus PasNodeManager::afterStartUp()
         UA_ASSERT(ret.isGood());
     }
 
-    //Create a folder for the MPES objects and add the folder to the ObjectsFolder
-    pMPESFolder = new UaFolder("MPESFolder", UaNodeId("MPESFolder", getNameSpaceIndex()), m_defaultLocaleId);
-    ret = addNodeAndReference(OpcUaId_ObjectsFolder, pMPESFolder, OpcUaId_Organizes);
+    // First create all nodes and add object type references
+    // Also add to device folder
+    for (std::map<OpcUa_Int32, string>::iterator it=PasCommunicationInterface::deviceTypeNames.begin(); it!=PasCommunicationInterface::deviceTypeNames.end(); ++it) {
+        deviceType = it->first;
+        count = dynamic_cast<PasCommunicationInterface *>(m_pCommIf)->getDevices(deviceType);
 
-    //Create a folder for the actuator objects and add the folder to the ObjectsFolder
-    pACTFolder = new UaFolder("ACTFolder", UaNodeId("ACTFolder", getNameSpaceIndex()), m_defaultLocaleId);
-    ret = addNodeAndReference(OpcUaId_ObjectsFolder, pACTFolder, OpcUaId_Organizes);
+        for (unsigned i = 0; i < count; i++)
+        {
+            ret = m_pCommIf->getDeviceConfig(deviceType, i, sDeviceName, identity);
+            pController = m_pCommIf->getDeviceFromId(deviceType, identity);
+            //If folder doesn't already exist, create a folder for each object type and add the folder to the ObjectsFolder
+            if ( pDeviceFolders.find(deviceType) == pDeviceFolders.end() ) {
+                deviceName = PasCommunicationInterface::deviceTypeNames[deviceType];
+                folderName = deviceName + "Folder";
+                pDeviceFolders[deviceType] = new UaFolder(folderName, UaNodeId(folderName, getNameSpaceIndex()), m_defaultLocaleId);
+                ret = addNodeAndReference(OpcUaId_ObjectsFolder, pDeviceFolders[deviceType], OpcUaId_Organizes);
+            }
 
-    //Create a folder for the PSD objects and add the folder to the ObjectsFolder
-    pPSDFolder = new UaFolder("PSDFolder", UaNodeId("PSDFolder", getNameSpaceIndex()), m_defaultLocaleId);
-    ret = addNodeAndReference(OpcUaId_ObjectsFolder, pPSDFolder, OpcUaId_Organizes);
+            // Create object
+            pObject = PasObject::makeObject(deviceType, sDeviceName, UaNodeId(sDeviceName, getNameSpaceIndex()),
+                    m_defaultLocaleId, this, identity,
+                    dynamic_cast<PasCommunicationInterface*>(m_pCommIf));
 
-    // add devices
+            // Create node
+            ret = addUaNode(pObject);
+            UA_ASSERT(ret.isGood());
+            // Add object type reference
+            ret = addUaReference(pObject->nodeId(), pObject->typeDefinitionId(), OpcUaId_HasTypeDefinition);
+            UA_ASSERT(ret.isGood());
 
-    OpcUa_UInt32 count = dynamic_cast<PasCommunicationInterface *>(m_pCommIf)->getDevices(PAS_MirrorType);
-    for (unsigned i = 0; i < count; i++)
-    {
-        ret = m_pCommIf->getDeviceConfig(PAS_MirrorType, i, sDeviceName, identity);
-        pMirror = new MirrorObject(sDeviceName, UaNodeId(sDeviceName, getNameSpaceIndex()),
-                m_defaultLocaleId, this, identity,
-                dynamic_cast<PasCommunicationInterface*>(m_pCommIf));
-        ret = addNodeAndReference(OpcUaId_ObjectsFolder, pMirror, OpcUaId_Organizes);
-        UA_ASSERT(ret.isGood());
-        // Add HasTypeDefinition reference from object to PanelType 
-        ret = addUaReference(pMirror->nodeId(), pMirror->typeDefinitionId(), OpcUaId_HasTypeDefinition);
-        UA_ASSERT(ret.isGood());
+            // Add OpcUaId_HasComponent reference from the object type folder to
+            /// the object.
+            ret = addUaReference(pDeviceFolders[deviceType]->nodeId(), pObject->nodeId(), OpcUaId_HasComponent);
+            UA_ASSERT(ret.isGood());
+
+            // Add pointer to new object to pDeviceObjects map.
+            pDeviceObjects[pController] = pObject;
+        }
     }
 
-    count = dynamic_cast<PasCommunicationInterface *>(m_pCommIf)->getDevices(PAS_PanelType);
-    for (unsigned i = 0; i < count; i++)
-    {
-        ret = m_pCommIf->getDeviceConfig(PAS_PanelType, i, sDeviceName, identity);
-        pPanel = new PanelObject(sDeviceName, UaNodeId(sDeviceName, getNameSpaceIndex()),
-                m_defaultLocaleId, this, identity,
-                dynamic_cast<PasCommunicationInterface*>(m_pCommIf));
-        ret = addNodeAndReference(OpcUaId_ObjectsFolder, pPanel, OpcUaId_Organizes);
-        UA_ASSERT(ret.isGood());
-        // Add HasTypeDefinition reference from object to PanelType 
-        ret = addUaReference(pPanel->nodeId(), pPanel->typeDefinitionId(), OpcUaId_HasTypeDefinition);
-        UA_ASSERT(ret.isGood());
-    }
+    // Loop through all created objects and add children
+    for (std::map<PasController *, PasObject *>::iterator it=pDeviceObjects.begin(); it!=pDeviceObjects.end(); ++it) {
+        pController = it->first;
+        pObject = it->second;
 
-    count = dynamic_cast<PasCommunicationInterface *>(m_pCommIf)->getDevices(PAS_MPESType);
-    for (unsigned i = 0; i < count; i++)
-    {
-        ret = m_pCommIf->getDeviceConfig(PAS_MPESType, i, sDeviceName, identity);
-
-        pMPES = new MPESObject(sDeviceName, UaNodeId(sDeviceName, getNameSpaceIndex()),
-                m_defaultLocaleId, this, identity, m_pCommIf);
-        ret = addNodeAndReference(pMPESFolder, pMPES, OpcUaId_Organizes);
-        UA_ASSERT(ret.isGood());
-        // Add HasTypeDefinition reference from object to MPESType 
-        ret = addUaReference(pMPES->nodeId(), pMPES->typeDefinitionId(), OpcUaId_HasTypeDefinition);
-        UA_ASSERT(ret.isGood());
-    }
-
-    count = dynamic_cast<PasCommunicationInterface *>(m_pCommIf)->getDevices(PAS_ACTType);
-    for (unsigned i = 0; i < count; i++)
-    {
-        ret = m_pCommIf->getDeviceConfig(PAS_ACTType, i, sDeviceName, identity);
-        pACT = new ACTObject(sDeviceName, UaNodeId(sDeviceName, getNameSpaceIndex()),
-                m_defaultLocaleId, this, identity, m_pCommIf);
-        ret = addNodeAndReference(pACTFolder, pACT, OpcUaId_Organizes);
-        UA_ASSERT(ret.isGood());
-        // Add HasTypeDefinition reference from object to ACTType 
-        ret = addUaReference(pACT->nodeId(), pACT->typeDefinitionId(), OpcUaId_HasTypeDefinition);
-        UA_ASSERT(ret.isGood());
-    }
-
-    count = dynamic_cast<PasCommunicationInterface *>(m_pCommIf)->getDevices(PAS_PSDType);
-    for (unsigned i = 0; i < count; i++)
-    {
-        ret = m_pCommIf->getDeviceConfig(PAS_PSDType, i, sDeviceName, identity);
-        pPSD = new PSDObject(sDeviceName, UaNodeId(sDeviceName, getNameSpaceIndex()),
-                m_defaultLocaleId, this, identity, m_pCommIf);
-        ret = addNodeAndReference(pPSDFolder, pPSD, OpcUaId_Organizes);
-        UA_ASSERT(ret.isGood());
-        // Add HasTypeDefinition reference from object to ACTType 
-        ret = addUaReference(pPSD->nodeId(), pPSD->typeDefinitionId(), OpcUaId_HasTypeDefinition);
-        UA_ASSERT(ret.isGood());
-    }
-
-    count = dynamic_cast<PasCommunicationInterface *>(m_pCommIf)->getDevices(PAS_EdgeType);
-    for (unsigned i = 0; i < count; i++)
-    {
-        ret = m_pCommIf->getDeviceConfig(PAS_EdgeType, i, sDeviceName, identity);
-        pEdge = new EdgeObject(sDeviceName, UaNodeId(sDeviceName, getNameSpaceIndex()),
-                m_defaultLocaleId, this, identity,
-                dynamic_cast<PasCommunicationInterface*>(m_pCommIf));
-        ret = addNodeAndReference(OpcUaId_ObjectsFolder, pEdge, OpcUaId_Organizes);
-        UA_ASSERT(ret.isGood());
-        // Add HasTypeDefinition reference from object to EdgeType 
-        ret = addUaReference(pEdge->nodeId(), pEdge->typeDefinitionId(), OpcUaId_HasTypeDefinition);
-        UA_ASSERT(ret.isGood());
-    }
-
-    count = dynamic_cast<PasCommunicationInterface *>(m_pCommIf)->getDevices(PAS_CCDType);
-    for (unsigned i = 0; i < count; i++)
-    {
-        ret = m_pCommIf->getDeviceConfig(PAS_CCDType, i, sDeviceName, identity);
-        pCCD = new CCDObject(sDeviceName, UaNodeId(sDeviceName, getNameSpaceIndex()),
-                m_defaultLocaleId, this, identity,
-                dynamic_cast<PasCommunicationInterface*>(m_pCommIf));
-        ret = addNodeAndReference(OpcUaId_ObjectsFolder, pCCD, OpcUaId_Organizes);
-        if (ret.isGood())
-        UA_ASSERT(ret.isGood());
-        // Add HasTypeDefinition reference from object to OptTableType 
-        ret = addUaReference(pCCD->nodeId(), pCCD->typeDefinitionId(), OpcUaId_HasTypeDefinition);
-        UA_ASSERT(ret.isGood());
+        // Check if object has children (is a composite controller)
+        if (dynamic_cast<PasCompositeController*>(pController)) {
+            for (std::map<OpcUa_Int32, string>::iterator it=PasCommunicationInterface::deviceTypeNames.begin();
+            it!=PasCommunicationInterface::deviceTypeNames.end(); ++it) {
+                deviceType = it->first;
+                deviceTypeName = it->second;
+                pChildren = dynamic_cast<PasCompositeController*>(pController)->getChildren(device_type);
+                if (!pChildren.empty()) {
+                    folderName = deviceTypeName;
+                    pFolder = new UaFolder(folderName, UaNodeId(folderName, getNameSpaceIndex()), m_defaultLocaleId);
+                    ret = addNodeAndReference(pObject->nodeId(), pFolder->nodeId(), OpcUaId_HasComponent);
+                    UA_ASSERT(ret.isGood());
+                    for ( auto &child : pChildren) {
+                        ret = addUaReference(pFolder->nodeId(), pDeviceObjects[child], OpcUaId_HasComponent);
+                        UA_ASSERT(ret.isGood());
+                    }
+                }
+            }
+        }
     }
     return ret;
 }

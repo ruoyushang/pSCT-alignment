@@ -15,13 +15,18 @@ class PasComInterfaceCommon;
 class UaMethodGeneric;
 struct Identity;
 
+class MirrorObject : public PasObject;
+class PanelObject : public PasObject;
+class EdgeObject : public PasObject;
+class CCDObject : public PasObject;
+
 class PasObject :  public OpcUa::BaseObjectType
 {
     UA_DISABLE_COPY(PasObject);
 public:
-    PasObject(const UaString& name, 
-            const UaNodeId& newNodeId, 
-            const UaString& defaultLocaleId, 
+    PasObject(const UaString& name,
+            const UaNodeId& newNodeId,
+            const UaString& defaultLocaleId,
             PasNodeManagerCommon *pNodeManager,
             Identity identity,
             PasComInterfaceCommon *pCommIf);
@@ -51,6 +56,16 @@ public:
         UaVariantArray&        outputArguments,
         UaStatusCodeArray&     inputArgumentResults,
         UaDiagnosticInfos&     inputArgumentDiag) = 0;
+
+    // Factory pattern
+    static PasObject * makeObject(
+            unsigned deviceType,
+            const UaString& name,
+            const UaNodeId& newNodeId,
+            const UaString& defaultLocaleId,
+            PasNodeManagerCommon *pNodeManager,
+            Identity identity,
+            PasComInterfaceCommon *pCommIf);
 
 protected:
     // a function that's used very often
@@ -135,7 +150,7 @@ public:
         Identity identity,
         PasComInterfaceCommon *pCommIf);
     virtual ~ACTObject(void);
- 
+
     // implement the synchronous call
     UaStatus call(
         const ServiceContext&  serviceContext,
@@ -182,4 +197,3 @@ private:
 };
 
 #endif
-

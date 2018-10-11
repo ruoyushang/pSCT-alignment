@@ -7,19 +7,19 @@
 
 // ----------------------------------------------------------------
 // PasObject implementation
-PasObject::PasObject(const UaString& name, 
-        const UaNodeId& newNodeId, 
-        const UaString& defaultLocaleId, 
-        PasNodeManagerCommon *pNodeManager, 
-        Identity identity, 
-        PasComInterfaceCommon *pCommIf) : 
+PasObject::PasObject(const UaString& name,
+        const UaNodeId& newNodeId,
+        const UaString& defaultLocaleId,
+        PasNodeManagerCommon *pNodeManager,
+        Identity identity,
+        PasComInterfaceCommon *pCommIf) :
                   BaseObjectType(newNodeId, name, pNodeManager->getNameSpaceIndex(),
                          pNodeManager->getNodeManagerConfig()),
                   m_defaultLocaleId(defaultLocaleId),
                   m_pSharedMutex(NULL),
                   m_Identity(identity),
                   m_pCommIf(pCommIf),
-                  m_pNodeManager(pNodeManager) 
+                  m_pNodeManager(pNodeManager)
 {
 }
 
@@ -77,6 +77,34 @@ OpcUa::DataItemType* PasObject::addVariable(PasNodeManagerCommon *pNodeManager, 
     pDataItem->setValueHandling(UaVariable_Value_Cache);
 
     return pDataItem;
+}
+
+PasObject * PasObject::makeObject(
+        unsigned deviceType,
+        const UaString& name,
+        const UaNodeId& newNodeId,
+        const UaString& defaultLocaleId,
+        PasNodeManagerCommon *pNodeManager,
+        Identity identity,
+        PasComInterfaceCommon *pCommIf);
+{
+    switch (deviceType)
+    {
+        case PAS_MirrorType:
+            return new MirrorObject(name, newNodeId, defaultLocaleId, pNodeManager, identity, pCommIf);
+        case PAS_ACTType:
+            return new ACTObject(name, newNodeId, defaultLocaleId, pNodeManager, identity, pCommIf);
+        case PAS_MPESType:
+            return new MPESObject(name, newNodeId, defaultLocaleId, pNodeManager, identity, pCommIf);
+        case PAS_PanelType:
+            return new PanelObject(name, newNodeId, defaultLocaleId, pNodeManager, identity, pCommIf);
+        case PAS_EdgeType:
+            return new EdgeObject(name, newNodeId, defaultLocaleId, pNodeManager, identity, pCommIf);
+        case PAS_PSDType:
+            return new PSDObject(name, newNodeId, defaultLocaleId, pNodeManager, identity, pCommIf);
+        case PAS_CCDType:
+            return new CCDObject(name, newNodeId, defaultLocaleId, pNodeManager, identity, pCommIf);
+    }
 }
 
 // -------------------------------------------------------------------
