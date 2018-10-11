@@ -1,0 +1,301 @@
+﻿Unified Automation Software License Agreement (2.5)
+
+UNIFIED AUTOMATION IS WILLING TO LICENSE THE ACCOMPANYING SOFTWARE AND ASSOCIATED DOCUMENTATION INCLUDING AUTHORIZED COPIES OF EACH (THE "SOFTWARE") TO YOU ("LICENSEE") ONLY ON THE CONDITION THAT LICENSEE ACCEPTS ALL OF THE TERMS IN THIS AGREEMENT.
+
+The licensed Software is protected by copyright laws and international copyright treaties, as well as other intellectual property laws and treaties. The licensed Software is licensed, not sold. Unified Automation shall own all right, title and interest including the intellectual property rights in and to the information on bug fixes or error corrections relating to the licensed Software that are submitted by Licensee to Unified Automation as well as any intellectual property rights to the correction of any errors, if any.
+
+PLEASE READ THE TERMS CAREFULLY BEFORE INSTALLING THE SOFTWARE. BY INSTALLING THE SOFTWARE, LICENSEE ACKNOWLEDGES THAT LICENSEE HAS READ AND UNDERSTANDS THIS AGREEMENT AND AGREES TO BE BOUND BY ITS TERMS AND CONDITIONS. THE EFFECTIVE DATE OF THIS AGREEMENT SHALL BE THE DATE UPON THE SOFTWARE WAS FIRST DELIVERED TO YOU OR FIRST DOWNLOADED BY YOU.
+
+IF LICENSEE DOES NOT ACCEPT THESE LICENSE TERMS, THEN UNIFIED AUTOMATION DOES NOT GRANT ANY LICENSE TO THE SOFTWARE, AND LICENSEE MUST NOT DOWNLOAD OR INSTALL THE SOFTWARE.
+===============================================================================
+1. Grant of License
+1.1 Evaluation License
+If you downloaded a trial or evaluation version of the Software from Unified Automation's website or obtained it through other means, you may install and use one copy of the Software on a single computer of your organization, solely for evaluation and testing purposes during the evaluation period (typically three (3) month from first installation/use). You may not use the Software for commercial purposes. You may not make accessible the Software to third parties and you must make sure that no one except your authorized employees have access to the computer where the Software is installed. The Software may contain a disabling mechanism that will prevent it from being used after the evaluation period. You must not tamper with the disabling mechanism or the Software. After the evaluation period, if you do not order the registered version of the Software, you must remove/destroy the Software and Documentation without delay.
+1.2 Runtime License
+If you purchased runtime licenses you are permitted to use the Software according to the number of purchased licenses. For each license you are permitted to install and use one copy of the Software on a single computer, you might deploy or install the Software together with your end-user products or stand alone.
+1.3 Binary Developer License
+A binary developer license grants the use of the Software for the purpose of software development of OPC enabled products or applications. If you have purchased a binary developer license the Software may be used within your organization by a single developer to actively develop applications. Multiple copies of the Software may exist on more than one computer, as long as the use of the Software is by the same developer. In addition, you are permitted to deploy the application making use of the Software. The Software might be used by being compiled into, linked or bind to your application. All use of the Software shall be solely in accordance with the documentation. 
+You are not allowed to resell, rent, lease or sublicense an unmodified or modified version of this Software as stand-alone product, nor to build toolkit or developer tools from it. You are permitted to use the software to build, deploy, sell and distribute end-user products. Licensee must comply with all of the following:
+a. Licensee is permitted to distribute and/or make available the applications that are making use of the Software only in conjunction with and as an integral part of your application, and distribute and/or make available the binary files only as an integral part of your end-user application. Third party components and respective redistributables thereof, if any, are licensed to Licensee "as is". You must comply with their respective licenses.
+b. Licensee's software product(s) are neither an UA Server development tool nor a Client development tool; licensee may not use the Software in such a way that results in development of product(s) that expose directly or indirectly similar functionality like the licensed Software itself (e.g. you may distribute libraries of the Software together with your application but not the corresponding, separate header files)
+c. Licensee's applications must add primary and substantial functionality to the licensed Software; applications may not pass on functionality which in a simple way makes it possible for others to create software with the licensed Software (e.g. building products by simplifying Software's interface version or by wrapping for platform/language adoption is prohibited) 
+d. Licensee shall indemnify and hold Unified Automation, its affiliates, contractors, and its suppliers, harmless from and against any claims or liabilities arising out of the use, reproduction or distribution of applications to the extent such claim or liability is not based on a defect or intellectual property infringement of the licensed Software itself.
+e. Licensee may not use Unified Automation's name, logo or trademark to market your application without explicit written agreement with Unified Automation
+f. Licensee must include a valid copyright notice on his software products
+1.4 Source Code Developer License
+In addition to the above 1.3; if you have purchased the source code developer license of the Software, you must use reasonable efforts to maintain the confidentiality of the source code, including ensuring that it is installed and used only on the machines belonging to Licensee's organization and that it is used only by a single developer for development of components and applications that use the Software and that the source code is not otherwise used or copied. 
+===============================================================================
+2. Use Definition
+2.1 Authorization of Usage
+Licensee acknowledges that Unified Automation is the sole owner of all rights in the Software and in all of the know-how pertaining to this Software except those described in Appendix A. It shall forbear to attack the rights of Unified Automation, unless Unified Automation asserts such rights against Licensee or Licensee attacks a patent or patent application (or similar, patent-related rights such as utility models) of Unified Automation. It will adequately inform third parties of Unified Automation's ownership of those rights.
+
+Licensee shall only be granted a limited right of usage to the extent to which it is absolutely necessary for the purposes of this agreement. The provisions following hereunder are characterizations of this principle and shall be narrowly construed in cases of doubt. Unified Automation's copyright of the Software shall not be exhausted by this agreement. Nothing in this provision shall be construed in a way as to prevent Licensee from defending its rights in case Unified Automation infringes Licensee patents, trademarks or copyrights, or misappropriates Licensee's trade secrets.
+
+For the developer license granted under Section 1.3 and/ or 1.4 above, the authorization of use encloses the "active development", which is the intellectual process of writing code that uses the Software, including but not limited to programming against the Software's interfaces and compiling and/or linking the Software's libraries. E.g. an automated buildbot would compile the Software, but would not use it in the scope of "active development" and hence does not require a developer license.
+
+The Software may not be leased, assigned, or sublicensed, in whole or in part if and to the extent not expressly permitted in Section 1 ("Grant of License") above. You may not make accessible the Software to third parties and you must make sure that no one except your authorized Licensee has access to the computer(s) where the Software is installed. 
+2.2 Temporary Transfer of Use Authorization
+On written request by Licensee and upon prior authorization by Unified Automation, Licensee may temporarily transfer the developer license granted under Section 1.3 and/ or 1.4 above to another developer or to a subcontractor. Licensee's request must indicate the name, email address and full company postal address of the new developer and the reason for the requested transfer. Only temporarily and for a particular contracted development project, for the development of a component or product of the licensee, the licensee is allowed to give external participant - of this particular development project - access to the software. The licensee must insure that the external development partner is following all rules of the SLA and that the development partner is not using the software for any other purpose than this particular development project with the licensee. The rights of the recent developer to use the Software cease upon Unified Automation's consent to the transfer. Unified Automation remains the right to refuse such transfer for good cause. The written consent shall not be unreasonably withheld, i.e. transferring to a direct competitor of Unified Automation causes reasonable refuse. 
+2.3 Scope of Usage
+The Software is "in use" on a computer when it is loaded into temporary memory (i.e. RAM) or installed into permanent memory (e.g. hard disk, CD-ROM, or other storage device) of that computer, except that a copy installed on a network server for the sole purpose of distribution to other computers is not "in use".
+===============================================================================
+3. Restrictions
+Software is confidential copyrighted information of Unified Automation and title to all copies is retained by Unified Automation and/or its licensors. Licensee shall not decompile, disassemble, decrypt, extract, or otherwise reverse engineer Software. Software is not designed or intended for use in critical safety systems including but not limited to nuclear facilities, aircraft communication and aircraft control systems or other situations in which case of failure of the Software could lead to death or personal injury. 
+
+Without limitation to any other terms and conditions of the Agreement, Licensee shall indemnify, hold harmless and defend Unified Automation and its suppliers and Unified Automation's and its suppliers respective officers, directors, employees and agents (each an "Indemnified Party") from against any damages, fines, penalties, assessments, liabilities, costs and expenses (including reasonable attorneys' fees and costs) in the event that any claim is brought against any Indemnified Party arising from your use of the Software in critical safety systems including but not limited to nuclear facilities, aircraft communication and aircraft control systems or other situations in which case of failure of the Software could lead to death or personal injury.
+===============================================================================
+4. Trademarks and Logos
+This Agreement does not authorize Licensee to use any Unified Automation name, trademark or logo.
+===============================================================================
+5. Warranty Limitation
+General Warranties: Unified Automation represents and warrants that:  (a) it has the unqualified right to grant the licenses granted in this Agreement;  (b) it has not granted any conflicting rights, and no third party contractual duty will be breached by entering into this Agreement;  (c) the Software (expressly excluding all Third Party components as listed in Appendix A) does not infringe or violate the intellectual property rights of any third party;  (d) it will comply with, and conducts its operations according to, applicable laws, rules, codes, regulations, ordinances, and similar governmental directives of Germany and the European Union.  (e) the Software (expressly excluding all Third Party components as listed in Appendix A) does not require a license for export, and if any export license is required following the effective date, Unified Automation will notify Licensee promptly in writing;  (f) the Software does not contain any harmful code;  (g) Software will not be infected with a virus when it is shipped to Licensee.
+
+The parties agree that it is not possible to develop software thus that it meets all the requirements of the application without error. Unified Automation shall make available a user documentation explaining the intended use and the using conditions of the Software, which shall always be kept up to date.
+
+Only defects in the Software that occur within one (1) year after the download or delivery shall be remedied by Unified Automation according to the statutory provisions. Claims for damages shall be expressly excluded from this time limitation. For all damage claims, the statutory limitation period shall apply.
+
+In the event of critical failures (Class1 and Class2) reported by Licensee within the one (1) year warranty period, Unified Automation will eliminate these failures at the request of Licensee without undue delay provided that these failures have been shown to result from failures in the Software delivered by Unified Automation (exclusive Third Party Software according to Appendix A). For this, Licensee will enable Unified Automation to access the project showing the corresponding failure, especially via a remote access or the making available of projects, which can be used in the development environment of Unified Automation in order to clearly reproduce the corresponding failure.
+The parties agree that Class1 failures include the following cases:
+- serious defects, massive functional limitations especially in the final product at customer installations, e.g. system crash, hang-ups, data corruption
+The parties agree that Class2 failures include the following cases:
+- defects, functional limitations in assured functionality that could not be bypassed or avoided, e.g. by means of auxiliary functions, as well as uncontrolled memory and/or resource consumption, which will cause functional limitations in the long term
+Failures which, irrespective of their classification, are a result of incorrect use and/or use outside the conditions recommended by Unified Automation (as described in the documentation and the example code) will be eliminated by Unified Automation upon written request of Licensee and compensated using the common Unified Automation cost rates.
+===============================================================================
+6. Limitation of Liability
+The Software and components are not intended to replace the professional skills and judgment of Licensee and its employees, agents and consultants. Licensee alone shall be responsible for the accuracy and adequacy of information and data furnished for processing and any use made by Licensee of the output of the Software or any reliance thereon. 
+Unified Automation shall be liable towards Licensee to the fullest extent according to the statutory provisions.
+a. in the event of damages caused by wilful misconduct or gross negligence according of Unified Automation, its representatives or employees;
+b. in case of damages resulting in death or personal injury;
+c. to the extent that Unified Automation have expressly given a guarantee or accepted to bear a procurement risk;
+d. in the event of liability under the German Product Liability Act ("Produkthaftungsgesetz").
+
+Beyond a) to d) above, Unified Automation shall only be liable to Licensee in the event of damages caused by a negligent breach of a material contractual obligation. Unified Automation's liability shall, however, in this case be limited to the typical, foreseeable damage. If possible by applicable law, Unified Automation's entire liability to Licensee and Licensee's exclusive remedy shall be, at Unified Automation's option, either (A) return of the price Licensee paid for the licensed Software, or (B) repair or replacement of the licensed Software.
+
+All further liability shall be excluded. 
+
+The Software or the use of the Software may be subject to regulatory provisions related to products used in the Health Care Industry. Prior to using the Software, it is Licensee's responsibility to ensure that Licensee's use of the Software will not violate any legal or regulatory provisions nor deviate from the conditions intended for the use of the Software as explained in the user documentation.
+===============================================================================
+7. Indemnification
+You expressly acknowledge and agree that although Unified Automation grants the licenses to their Software set forth herein, no assurances are provided by Unified Automation that certain configuration of the Software or the use for a specific purpose does not infringe the patent or other intellectual property rights of any other entity. Unified Automation disclaims any liability to you for claims brought by any other entity based on infringement of intellectual property rights or otherwise. As a condition to exercising the rights and licenses granted hereunder, you hereby assume sole responsibility to secure any other intellectual property rights needed, if any. For example, if a third party patent license is required to allow you to use the Software for a certain purpose or specific use case, it is your responsibility to acquire that license before distributing or using the Software.
+
+If notified promptly in writing of any action (and provided that Unified Automation has been promptly notified of all prior claims relating to such action) brought against Licensee based on a claim that the unaltered release of the Software infringes a third party patent or copyright, Unified Automation shall, upon request of Licensee, defend such action at its expense including attorneys' fees and expert fees and pay any costs or damages finally awarded in such action which are attributable to such claim, provided that Unified Automation shall have sole control of the defense of any such action and of all negotiations for its settlement or compromise. United Automation shall not be obliged to defend such action if the infringement is based on a prior version of the Software, the infringement has been fixed in the current version and Unified Automation has offered a free-of-charge update to Licensee before the claim arose.
+
+If a final injunction is obtained against Licensee of any of the Software by reason of infringement of a patent or copyright, or if in Unified Automation's opinion any of the Software supplied to Licensee hereunder is likely to become the subject of a successful claim of infringement of a patent or copyright, Unified Automation shall, at its option and expense, either procure for Licensee the right to continue using such Software or replace or modify the same so that it becomes non-infringing or, if neither of the above options is commercially reasonable, Unified Automation will grant Licensee a full refund for such Software and accept their return. All rights of Licensee under the license granted according to this Agreement shall cease upon the return of the Software.
+
+Notwithstanding the foregoing, Unified Automation shall not have any liability to Licensee under this Section if the infringement or claim is based upon the use of any of the Software in combination with other equipment or software which is not furnished by Unified Automation (if such claim would have been avoided in case the Software was not in such combination, including but not limited to the combination with Third-Party components listed in Appendix A), Software which have been modified or altered by Licensee if the Software would not infringe but for the modification or alteration or intellectual property rights owned by Licensee, the relevant Customer or any of their respective affiliate.
+
+Nothing in the forgoing shall prevent the Licensee at its option and expense to defend itself against claims brought against his end user products that are based on or make use of the Software independent of a certain use case of such end user products or to procure the respective rights or to replace or modify the
+Software so that it becomes non-infringing.
+===============================================================================
+8. Termination
+The license shall be for a period commencing upon the date of initial download or delivery of the Software and continuing until such time this agreement is terminated in accordance with this agreement, but otherwise without limitation as to duration. 
+
+Unified Automation shall have the right to terminate this agreement if Licensee fails to pay any required license fee(s) or otherwise fails to comply with the license terms and conditions described in Section 1. Unified Automation shall give written notice to Licensee of such fault, and if such fault has not been remedied within thirty (30) days after, the license granted hereunder shall terminate. Licensee's end user products that include or are based on the Software and were already sold to customers at the time of cancellation or termination are not affected by the termination. 
+
+On termination Licensee loses the rights granted in section 1 and 2 and is not allowed to actively develop new products nor enhance existing products or otherwise make use of or install the Software. If requested, License will certify in writing as to the destruction or return of the Software and all copies in its possession.
+
+Each party's right to terminate the agreement for due cause according to the statutory provisions remains unaffected.
+===============================================================================
+9. Publicity
+In the event that licensee has obtained a developer license, runtime license or source code license, Unified Automation reserves the right to reference Licensee as one of Unified Automation's customers by mentioning Licensee's company name in documents such as, but not limited to, web pages of Unified Automation's website, emails originating from Unified Automation's employees, publicity brochures and fact sheets, unless explicitly stated otherwise by Licensee. In no event shall Unified Automation publish any other information about Licensee other than the single fact that Licensee is a customer of Unified Automation.
+===============================================================================
+10. Entire Agreement
+This agreement shall be governed by the laws of Germany. This agreement will not be governed by the United Nations Convention of Contracts for the International Sale of Goods, or by the Uniform Commercial Code, the application of which are expressly excluded. If the Licensee is a businessperson and has general jurisdiction (legal domicile) within Germany, sole venue for all disputes arising directly or indirectly out of the contract shall be at the Defendant's place of business. If the Licensee has no general jurisdiction (legal domicile) within Germany, a court at Unified Automation's company location in Nuremberg, Germany is the exclusive local jurisdiction and venue for any disputes arising from this agreement.
+
+This Agreement is the parties' entire agreement relating to the Software. It supersedes all prior or contemporaneous oral or written communications, proposals, warranties, and representations with respect to its subject matter, and following Licensee's acceptance of this license by clicking on the "Accept" Button or by installing and using the Software, will prevail over any conflicting or additional terms of any quote, order, acknowledgment, or any other communications by or between the parties. No modification to this Agreement will be binding, unless in writing and signed by an authorized representative of each party.
+===============================================================================
+11. Export Control
+Licensee acknowledges that the licensed Software may be subject to export control restrictions of various countries. Licensee shall fully comply with all applicable export license restrictions and requirements as well as with all laws and regulations relating to the importation of the licensed Software and/or modified Software and/or applications and shall procure all necessary governmental authorizations, including without limitation, all necessary licenses, approvals, permissions or consents, where necessary for the re-exportation of the licensed Software, modified Software or applications.
+===============================================================================
+12. No Implied License
+There are no implied licenses or other implied rights granted under this Agreement, and all rights, save for those expressly granted hereunder, shall remain with Unified Automation and its licensors. In addition, no licenses or immunities are granted to the combination of the licensed Software and/ modified Software, as applicable, with any other software or hardware not delivered by Unified Automation under this Agreement.
+===============================================================================
+13. Surviving Sections
+Any terms and conditions that by their nature or otherwise reasonably should survive a cancellation or termination of this Agreement shall also be deemed to survive. Such terms and conditions include, but are
+not limited to the following Sections: 3, 5, 6, 7, 8, 10, 11, 12, 13 of this Agreement. Notwithstanding the foregoing, Section 2 shall not survive if the Agreement is terminated for material breach.
+
+On termination the Licensee loses the rights granted in section 1 and 2 and is not allowed to actively develop new products nor enhance existing products. Exception: Section 2 shall survive for the purpose minimal required for continuing sales of present end user products of the Licensee that include or are based on the Software, and for the purpose of support and bug fix of these products that were already sold to customers at the time of cancellation or termination.
+===============================================================================
+14. Severability
+If any of the above provisions are held to be in violation of applicable law, void, or unenforceable in any jurisdiction, then such provisions are herewith waived or amended to the extent necessary for the Agreement to be otherwise enforceable in such jurisdiction. However, if in Unified Automation's opinion deletion or amendment of any provisions of the Agreement by operation of this paragraph unreasonably compromises the rights or increase the liabilities of Unified Automation or its licensors, Unified Automation reserves the right to terminate the Agreement.
+===============================================================================
+Appendix A and B are part of the License Agreement and must be followed by the licensee.
+===============================================================================
+Appendix A
+Third Party Licenses and Open Source License Acknowledgment
+The Unified Automation products use third-party and/or open source software as listed below. These third-party components are not part of the Unified Automation product (the Software) itself and are delivered for convenience purposes only. All third-party components are delivered "as is". These components are subject to the following licenses of their respective copyright owners. Licensee must fully comply with these license terms or must not use these components.
+- OpenSSL
+- LibXML2
+- WCELIBCEX (used in C-Stack Platform Layer for WindowsCE only)
+- WCECOMPAT (used in OpenSSL for WindowsCE only)
+- OPC UA JAVA Stack 
+- Apache Logging Services (used in JAVA SDK only)
+- Bouncy Castle Crypto API  (Used in JAVA SDK only)
+===============================================================================
+1 OpenSSL
+This product includes software developed by the OpenSSL Project for use in the OpenSSL Toolkit (http://www.openssl.org/).
+1.1 Copyright
+Copyright (C) 1995-1998 Eric Young (eay@cryptsoft.com) All rights reserved.
+This product includes cryptographic software written by Eric Young (eay@cryptsoft.com)
+This Windows version of this product includes software written by Tim Hudson (tjh@cryptsoft.com)
+1.2 License Issues 
+The OpenSSL toolkit stays under a dual license, i.e. both the conditions of the OpenSSL License and the original SSLeay license apply to the toolkit. See below for the actual license texts. Actually both licenses are BSD-style Open Source licenses. In case of any license issues related to OpenSSL please contact openssl-core@openssl.org. 
+
+OpenSSL License: 
+Copyright (C) 1998-2007 The OpenSSL Project. All rights reserved. 
+
+Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met: 
+a. Redistributions of source code must retain the copyright notice, this list of conditions and the following disclaimer. 
+b. Redistributions in binary form must reproduce the above copyright notice, this list of conditions, and the following disclaimer in the documentation and/or other materials provided with the distribution. 
+c. All advertising materials mentioning features or use of this software must display the following acknowledgment: 
+"This product includes software developed by the OpenSSL Project for use in the OpenSSL Toolkit (http://www.openssl.org/)". 
+d. The names "OpenSSL Toolkit" and "OpenSSL Project" must not be used to endorse or promote products derived from this software without prior written permission. For written permission, please contact openssl-core@openssl.org. 
+e. Products derived from this software may not be called "OpenSSL" nor may "OpenSSL" appear in their names without prior written permission of the OpenSSL Project. 
+f. Redistributions of any form whatsoever must retain the following acknowledgment: 
+"This product includes software developed by the OpenSSL Project for use in the OpenSSL Toolkit (http://www.openssl.org/)". 
+
+THIS SOFTWARE IS PROVIDED BY THE OpenSSL PROJECT "AS IS"' AND ANY EXPRESSED OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE OpenSSL PROJECT OR ITS CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
+
+This product includes cryptographic software written by Eric Young (eay@cryptsoft.com). This product includes software written by Tim Hudson (tjh@cryptsoft.com). 
+
+Original SSLeay License: 
+Copyright (C) 1995-1998 Eric Young (eay@cryptsoft.com). All rights reserved. 
+
+This package is an SSL implementation written by Eric Young (eay@cryptsoft.com). 
+The implementation was written so as to conform with Netscapes SSL. 
+This library is free for commercial and non-commercial use as long as the following conditions are adhered to. The following conditions apply to all code found in this distribution, be it the RC4, RSA, lhash, DES, etc., code; not just the SSL code. The SSL documentation included with this distribution is covered by the same copyright terms except that the holder is Tim Hudson (tjh@cryptsoft.com). 
+
+Copyright remains Eric Young's, and as such any Copyright notices in the code are not to be removed. If this package is used in a product, Eric Young should be given attribution as the author of the parts of the library used. This can be in the form of a textual message at program startup or in documentation (online or textual) provided with the package. 
+
+Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met: 
+a. Redistributions of source code must retain the copyright notice, this list of conditions and the following disclaimer. 
+b. Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution. 
+c. All advertising materials mentioning features or use of this software must display the following acknowledgement: 
+"This product includes cryptographic software written by Eric Young (eay@cryptsoft.com)". 
+d. The word 'cryptographic' can be left out if the routines from the library being used are not cryptography-related. 
+e. If you include any Windows specific code (or a derivative thereof) from the apps directory (application code) you must include an acknowledgement: 
+"This product includes software written by Tim Hudson (tjh@cryptsoft.com)". 
+
+THIS SOFTWARE IS PROVIDED BY ERIC YOUNG "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
+
+The license and distribution terms for any publicly available version or derivative of this code cannot be changed. i.e. this code cannot simply be copied and put under another distribution license [including the GNU Public License]. 
+===============================================================================
+2 LibXML2
+This product includes code that was developed for the XML toolkit from the GNOME project (http://xmlsoft.org/).
+2.1 Copyright
+Copyright (C) 1998-2003 Daniel Veillard.  All Rights Reserved.
+2.2 License Issues
+The libxml2 library is released under the MIT Licence and includes following copyright notice:
+
+Except where otherwise noted in the source code (e.g. the files hash.c, list.c and the trio files, which are covered by a similar licence but with different Copyright notices) all the files are:
+
+Copyright (C) 1998-2003 Daniel Veillard.  All Rights Reserved.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE DANIEL VEILLARD BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+Except as contained in this notice, the name of Daniel Veillard shall not be used in advertising or otherwise to promote the sale, use or other dealings in this Software without prior written authorization from him.
+===============================================================================
+3 WCELIBCEX
+The Windows platform layer of the Ansi C Stack can be configured to run on Windows CE, but than requires WCELIBCEX: The WCELIBCEX is a package of C library extensions for Windows CE operating system. It is a supplement to standard C library available on Windows CE system. This extensions library is needed to fully support OPC UA SDK functionality.
+3.1 Copyright
+Initial version of WCELIBCEX was founded and copyrighted by Taxus SI Ltd., (http://www.taxussi.com.pl)
+Copyright (c) 2006 Taxus SI Ltd. 
+Created by Mateusz Loskot (mateusz@loskot.net)
+3.2 License Issues
+The source code of the WCELIBCEX library is licensed under MIT License:
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+The complete license agreement can be found here:
+http://opensource.org/licenses/mit-license.php
+===============================================================================
+4 WCECOMPAT
+The OpenSSL Library can be compiled to run on Windows CE, but therefore requires wcecompat: Windows CE C Runtime Library, a "compatibility" library to fully support OpenSSL functionality. The files of wcecompat are released under the GNU LGPL (Lessen General Public License). By this the OpenSSL Library becomes LGPL and can only be used by linking this library dynamically (do not link static).
+4.1 Copyright
+Copyright (C) 2001-2002 Essemer Pty Ltd. All rights reserved.
+http://www.essemer.com.au/
+4.2 License Issues
+This library is free software; you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License as published by the Free Software Foundation; either version 2.1 of the License, or (at your option) any later version.
+
+This library is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License for more details.
+
+You should have received a copy of the GNU Lesser General Public License along with this library; if not, write to the Free Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+===============================================================================
+5 OPC UA JAVA Stack
+This component includes software that was developed by the OPC Foundation (http://www.opcfoundation.org/). The OPC UA JAVA Stack, contains of three modules which are different in licensing: 
+- OPC UA JAVA Stack (containing the communication stack itself)
+- Apache Logging Services (containing framework for logging and tracing)
+- Bouncy Castle Crypto API (containing the crypto functions needed for security)
+5.1 OPC UA JAVA Stack
+This product includes software that was developed by the OPC Foundation (http://www.opcfoundation.org/).
+This module is released under the RCL Licence and includes following copyright notice, except where otherwise noted in the source code all the files are:
+5.1.1 Copyright
+Copyright (c) 2005-2009 The OPC Foundation, Inc. All rights reserved.
+5.1.2 License Issues
+Unless explicitly acquired and licensed from Licensor under another license, the contents of this file are subject to the Reciprocal Community License ("RCL") Version 1.00, or subsequent versions as allowed by the RCL, and You may not copy or use this file in either source code or executable form, except in compliance with the terms and conditions of the RCL.
+
+All software distributed under the RCL is provided strictly on an "AS IS" basis, WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESS OR IMPLIED, AND LICENSOR HEREBY DISCLAIMS ALL SUCH WARRANTIES, INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT, OR NON-INFRINGEMENT. See the RCL for specific language governing rights and limitations under the RCL.
+5.1.3 License in Short
+The JAVA Stack stays under the Reciprocal Community License (RCL) which is based on the concept of reciprocity or, if you prefer, fairness. 
+
+The RCL is adapted from the Open Source Reciprocal Public License (RPL) where the "Public" in the Open Source RPL license is replaced by the "Community" in the RCL License. In short, the RPL license grew out of a desire to close loopholes in previous open source licenses, loopholes that allowed parties to acquire open source software and derive financial benefit from it without having to release their improvements or derivatives to the community which enabled them. This occurred any time an entity did not release their application to a "third party". While there is a certain freedom in this model of licensing, it struck the authors of the RPL as being unfair to the open source community at large and to the original authors of the works in particular. After all, bug fixes, extensions, and meaningful and valuable derivatives were not consistently faster, growth and expansion of the overall open source software base. 
+
+While you should clearly read and understand the entire license, the essence of the RCL is found in two definitions: "Deploy" and "Required Components". 
+- Regarding deployment, under the RCL your changes, bug fixes, extensions, etc. must be made available to the community when you Deploy in any form -- either internally or to an outside party. Once you start running the software you have to start sharing the software. 
+- Further, under the RCL all components you author including schemas, scripts, source code, etc. -- regardless of whether they're compiled into a single binary or used as two halves of client/server application -- must be shared. You have to share the whole pie, not an isolated slice of it.
+
+The complete license agreement can be found here:
+http://www.opcfoundation.org/License/Redistributables/1.00/
+http://opcfoundation.org/License/RCL/1.00/
+5.2 Apache Logging Services
+Apache log4j is a Java-based logging utility. It was originally written by Ceki Gulcu and is now a project of the Apache Software Foundation. log4j is one of several Java Logging Frameworks.
+5.2.1 Copyright
+Copyright 2009 Unified Automation GmbH
+5.2.2 License Issues
+To apply the Apache License to your work, attach the following boilerplate notice, with the fields enclosed by brackets "[]" replaced with your own identifying information. (Don't include the brackets!)  The text should be enclosed in the appropriate comment syntax for the file format. We also recommend that a file or class name and description of purpose be included on the same "printed page" as the copyright notice for easier identification within third-party archives. Copyright [yyyy] [name of copyright owner]
+
+Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at:
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
+5.3 Bouncy Castle Crypto API
+The Bouncy Castle Crypto APIs for Java consist mainly of the following: A lightweight cryptography API for Java and C# and a provider for the Java Cryptography Extension and the Java Cryptography Architecture. The Bouncy Castle Crypto API license is an adaptation of the MIT X11 License and should be read as such.
+5.3.1 Copyright
+Copyright (c) 2000 - 2009 The Legion Of The Bouncy Castle (http://www.bouncycastle.org) 
+5.3.2 License Issues
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions: 
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software. 
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+The complete license agreement can be found here:
+http://www.bouncycastle.org/licence.html
+===============================================================================
+Appendix B
+===============================================================================
+1. Parts of the Licensed Software that are permitted for distribution ("Redistributables"):
+The licensed Software's main and plug-in libraries of the SDK in object code form
+The licensed Software's communication stack in object code form ("C-Stack", "JAVA-Stack", ".NET Stack")
+The licensed Software's administration and configuration tool ("UaAdminDialog, UaConfigTool")
+The licensed Software certificate generation tool ("Opc.Ua.CertificateGenerator.exe")
+===============================================================================
+2. Parts of the Licensed Software that are NOT permitted for distribution include, but are not limited to:
+The licensed Software's source code and/or header files of any of the SDK modules
+The licensed Software's binary files together with header files of any of the SDK modules
+The licensed Software's source code and header files of the communication stacks ("C-Stack", "JAVA-Stack", ".NET Stack")
+The licensed Software's source code and header files of the UA Stack's platform layer
+The licensed Software's tool for modelling Addressspace and code generation ("UaModeler") 
+The licensed Software's documentation
+===============================================================================
+Notices to Unified Automation shall be given to:
+Unified Automation GmbH
+O'Brien Str. 2
+D-91126 Schwabach, Germany
+Fax: +49 911 495 250 09
