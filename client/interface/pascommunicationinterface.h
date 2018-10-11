@@ -82,7 +82,7 @@ public:
 
     PasController* getDeviceFromId(OpcUa_UInt32 type, const Identity& identity);
 
-    static std::map<OpcUa_UInt32, string> deviceTypeNames;
+    static std::map<OpcUa_UInt32, std::string> deviceTypeNames;
 
 private:
 

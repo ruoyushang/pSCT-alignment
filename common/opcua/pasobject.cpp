@@ -2,8 +2,15 @@
 #include "pasnodemanagercommon.h"
 #include "passervertypeids.h"
 #include "pascominterfacecommon.h"
+#include "pasnodemanager.h"
+#include "pascommunicationinterface.h"
 #include "mpeseventdata.h"
 #include "uaserver/methodhandleuanode.h"
+
+#include "mirrorobject.h"
+#include "panelobject.h"
+#include "edgeobject.h"
+#include "gasobject.h"
 
 // ----------------------------------------------------------------
 // PasObject implementation
@@ -79,33 +86,37 @@ OpcUa::DataItemType* PasObject::addVariable(PasNodeManagerCommon *pNodeManager, 
     return pDataItem;
 }
 
-PasObject * PasObject::makeObject(
+/* PasObject Factory Method */
+
+PasObject* PasObject::makeObject(
         unsigned deviceType,
         const UaString& name,
         const UaNodeId& newNodeId,
         const UaString& defaultLocaleId,
-        PasNodeManagerCommon *pNodeManager,
+        PasNodeManager *pNodeManager,
         Identity identity,
-        PasComInterfaceCommon *pCommIf);
+        PasCommunicationInterface *pCommIf)
 {
     switch (deviceType)
     {
         case PAS_MirrorType:
             return new MirrorObject(name, newNodeId, defaultLocaleId, pNodeManager, identity, pCommIf);
         case PAS_ACTType:
-            return new ACTObject(name, newNodeId, defaultLocaleId, pNodeManager, identity, pCommIf);
+            return new ACTObject(name, newNodeId, defaultLocaleId, dynamic_cast<PasNodeManagerCommon *>(pNodeManager), identity, dynamic_cast<PasComInterfaceCommon *>(pCommIf));
         case PAS_MPESType:
-            return new MPESObject(name, newNodeId, defaultLocaleId, pNodeManager, identity, pCommIf);
+            return new MPESObject(name, newNodeId, defaultLocaleId, dynamic_cast<PasNodeManagerCommon *>(pNodeManager), identity, dynamic_cast<PasComInterfaceCommon *>(pCommIf));
         case PAS_PanelType:
             return new PanelObject(name, newNodeId, defaultLocaleId, pNodeManager, identity, pCommIf);
         case PAS_EdgeType:
             return new EdgeObject(name, newNodeId, defaultLocaleId, pNodeManager, identity, pCommIf);
         case PAS_PSDType:
-            return new PSDObject(name, newNodeId, defaultLocaleId, pNodeManager, identity, pCommIf);
+            return new PSDObject(name, newNodeId, defaultLocaleId, dynamic_cast<PasNodeManagerCommon *>(pNodeManager), identity, dynamic_cast<PasComInterfaceCommon *>(pCommIf));
         case PAS_CCDType:
-            return new CCDObject(name, newNodeId, defaultLocaleId, pNodeManager, identity, pCommIf);
+            return new CCDObject(name, newNodeId, defaultLocaleId, dynamic_cast<PasNodeManagerCommon *>(pNodeManager), identity, dynamic_cast<PasComInterfaceCommon *>(pCommIf));
     }
 }
+
+
 
 // -------------------------------------------------------------------
 // Specialization: MPESObject Implementation
@@ -560,3 +571,5 @@ UaStatus PSDObject::call(
 
     return ret;
 }
+
+

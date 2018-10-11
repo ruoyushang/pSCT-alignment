@@ -1,3 +1,4 @@
+#include "pascontroller.h"
 #include "pasnodemanager.h"
 #include "pasobject.h"
 #include "mirrorobject.h"
@@ -110,8 +111,8 @@ UaStatus PasNodeManager::afterStartUp()
     std::map<unsigned, UaFolder *> pDeviceFolders;
     std::map<PasController *, PasObject *> pDeviceObjects;
 
-    string deviceName;
-    string folderName;
+    std::string deviceName;
+    std::string folderName;
     unsigned deviceType;
 
     OpcUa_UInt32 count;
@@ -141,19 +142,19 @@ UaStatus PasNodeManager::afterStartUp()
 
     // First create all nodes and add object type references
     // Also add to device folder
-    for (std::map<OpcUa_Int32, string>::iterator it=PasCommunicationInterface::deviceTypeNames.begin(); it!=PasCommunicationInterface::deviceTypeNames.end(); ++it) {
+    for (auto it=PasCommunicationInterface::deviceTypeNames.begin(); it!=PasCommunicationInterface::deviceTypeNames.end(); ++it) {
         deviceType = it->first;
         count = dynamic_cast<PasCommunicationInterface *>(m_pCommIf)->getDevices(deviceType);
 
         for (unsigned i = 0; i < count; i++)
         {
             ret = m_pCommIf->getDeviceConfig(deviceType, i, sDeviceName, identity);
-            pController = m_pCommIf->getDeviceFromId(deviceType, identity);
+            pController = dynamic_cast<PasCommunicationInterface *>(m_pCommIf)->getDeviceFromId(deviceType, identity);
             //If folder doesn't already exist, create a folder for each object type and add the folder to the ObjectsFolder
             if ( pDeviceFolders.find(deviceType) == pDeviceFolders.end() ) {
                 deviceName = PasCommunicationInterface::deviceTypeNames[deviceType];
                 folderName = deviceName + "Folder";
-                pDeviceFolders[deviceType] = new UaFolder(folderName, UaNodeId(folderName, getNameSpaceIndex()), m_defaultLocaleId);
+                pDeviceFolders[deviceType] = new UaFolder(UaString(folderName.c_str()), UaNodeId(UaString(folderName.c_str()), getNameSpaceIndex()), m_defaultLocaleId);
                 ret = addNodeAndReference(OpcUaId_ObjectsFolder, pDeviceFolders[deviceType], OpcUaId_Organizes);
             }
 
@@ -186,18 +187,17 @@ UaStatus PasNodeManager::afterStartUp()
 
         // Check if object has children (is a composite controller)
         if (dynamic_cast<PasCompositeController*>(pController)) {
-            for (std::map<OpcUa_Int32, string>::iterator it=PasCommunicationInterface::deviceTypeNames.begin();
+            for (auto it=PasCommunicationInterface::deviceTypeNames.begin();
             it!=PasCommunicationInterface::deviceTypeNames.end(); ++it) {
                 deviceType = it->first;
-                deviceTypeName = it->second;
-                pChildren = dynamic_cast<PasCompositeController*>(pController)->getChildren(device_type);
+                deviceName = it->second;
+                pChildren = dynamic_cast<PasCompositeController*>(pController)->getChildren(deviceType);
                 if (!pChildren.empty()) {
-                    folderName = deviceTypeName;
-                    pFolder = new UaFolder(folderName, UaNodeId(folderName, getNameSpaceIndex()), m_defaultLocaleId);
-                    ret = addNodeAndReference(pObject->nodeId(), pFolder->nodeId(), OpcUaId_HasComponent);
+                    pFolder = new UaFolder(UaString(deviceName.c_str()), UaNodeId(UaString(deviceName.c_str()), getNameSpaceIndex()), m_defaultLocaleId);
+                    ret = addNodeAndReference(pObject->nodeId(), pFolder, OpcUaId_HasComponent);
                     UA_ASSERT(ret.isGood());
                     for ( auto &child : pChildren) {
-                        ret = addUaReference(pFolder->nodeId(), pDeviceObjects[child], OpcUaId_HasComponent);
+                        ret = addUaReference(pFolder->nodeId(), pDeviceObjects[child]->nodeId(), OpcUaId_HasComponent);
                         UA_ASSERT(ret.isGood());
                     }
                 }

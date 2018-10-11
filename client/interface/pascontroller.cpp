@@ -61,7 +61,7 @@ void PasCompositeController::addChild(OpcUa_UInt32 deviceType, PasController *co
             catch (...) {
                 std::cout << "Failed to create m_ChildrenPositionMap for " << deviceType << " at " << pos << std::endl;
             }
-        //}
+        }
     }
 
     return;

@@ -10,15 +10,12 @@
 #include "userdatabase.h"
 #include "components.h"
 
+class PasNodeManager;
+class PasCommunicationInterface;
 class PasNodeManagerCommon;
 class PasComInterfaceCommon;
 class UaMethodGeneric;
 struct Identity;
-
-class MirrorObject : public PasObject;
-class PanelObject : public PasObject;
-class EdgeObject : public PasObject;
-class CCDObject : public PasObject;
 
 class PasObject :  public OpcUa::BaseObjectType
 {
@@ -58,14 +55,14 @@ public:
         UaDiagnosticInfos&     inputArgumentDiag) = 0;
 
     // Factory pattern
-    static PasObject * makeObject(
+    static PasObject *makeObject(
             unsigned deviceType,
             const UaString& name,
             const UaNodeId& newNodeId,
             const UaString& defaultLocaleId,
-            PasNodeManagerCommon *pNodeManager,
+            PasNodeManager *pNodeManager,
             Identity identity,
-            PasComInterfaceCommon *pCommIf);
+            PasCommunicationInterface *pCommIf);
 
 protected:
     // a function that's used very often
