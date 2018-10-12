@@ -181,7 +181,7 @@ int main(int argc, char* argv[])
             break;
         case '?':
             if (optopt == 'e')
-                printf('Must provide an endpoint IP address with option e')
+                printf("Must provide an endpoint IP address with option e");
          }   
     }
 
