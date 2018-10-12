@@ -24,7 +24,7 @@ class MPES
         ~MPES();
 
         void setUSBPortNumber(int input_USBPortNumber);
-        bool Initialize();
+        virtual bool Initialize();
         int setExposure();
 
         int MeasurePosition();
