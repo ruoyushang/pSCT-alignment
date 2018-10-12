@@ -272,7 +272,6 @@ Actuator(CBC* InputCBC, int InputPortNumber, int InputActuatorSerial, DBStruct I
 ~Actuator();
 
 };
-#endif
 
 class DummyActuator : public Actuator
 {
@@ -286,4 +285,6 @@ class DummyActuator : public Actuator
         int Step(int InputSteps);
         float MeasureLength();
 
-}
+};
+
+#endif
