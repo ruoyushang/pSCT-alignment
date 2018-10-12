@@ -38,6 +38,10 @@
 #include "pascommunicationinterface.h"
 #include <sys/statvfs.h>
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <getopt.h>
+
 // check the system is reasonable -- enough disk space, enabled network connection
 int CheckSystem(double *size)
 {
@@ -166,6 +170,23 @@ int main(int argc, char* argv[])
         return 1;
     }
 
+    char *endpoint_addr = NULL;
+    char *cbc_ip_addr = NULL;
+
+    while ((c = getopt (argc, argv, "e:")) != -1) {
+        switch(c)
+        {
+        case 'e':
+            endpoint_addr = optarg;
+            break;
+        case '?':
+            if (optopt == 'e')
+                printf('Must provide an endpoint IP address with option e')
+         }   
+    }
+
+    cbc_ip_addr = argv[optind];
+
     int ret = 0;
 
     // check and print system info
@@ -187,7 +208,7 @@ int main(int argc, char* argv[])
 
     //-------------------------------------------
     // Call the OPC server main method
-    ret = OpcServerMain(pszAppPath, argv[1]);
+    ret = OpcServerMain(pszAppPath, cbc_ip_addr);
     //-------------------------------------------
 
     if ( pszAppPath ) delete [] pszAppPath;
