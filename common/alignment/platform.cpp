@@ -45,7 +45,11 @@ DEBUG_MSG("Creating Emergency Platform Object.");
 for (int i=0; i<6; i++)
 {
 //actuator[i]=new Actuator(&cbc, i+1);
+#ifndef SIMMODE
 actuator[i]=Actuator(&cbc, i+1);
+#else
+actuator[i]=DummyActuator(&cbc, i+1);
+#endif
 }
 Initialize();
 }
@@ -57,7 +61,11 @@ DEBUG_MSG("Creating Platform Object with Actuator Serial Numbers and Ports");
 for (int i=0; i<6; i++)
 {
 //actuator[i]=new Actuator(&cbc, ActuatorPorts[i], ActuatorSerials[i]);
+#ifndef SIMMODE
 actuator[i]=Actuator(&cbc, ActuatorPorts[i], ActuatorSerials[i]);
+#else
+actuator[i]=DummyActuator(&cbc, ActuatorPorts[i], ActuatorSerials[i]);
+#endif
 }
 Initialize();
 }
@@ -69,7 +77,11 @@ DEBUG_MSG("Creating Platform Object with Actuator Serial Numbers, Ports, and DB 
 for (int i=0; i<6; i++)
 {
 //actuator[i]=new Actuator(&cbc, ActuatorPorts[i], ActuatorSerials[i], InputDBInfo);
+#ifndef SIMMODE
 actuator[i]=Actuator(&cbc, ActuatorPorts[i], ActuatorSerials[i], InputDBInfo);
+#else
+actuator[i]=DummyActuator(&cbc, ActuatorPorts[i], ActuatorSerials[i], InputDBInfo);
+#endif
 }
 SetCBCSerialNumber(CBCSerial);
 SetDB(InputDBInfo);
@@ -83,7 +95,11 @@ DEBUG_MSG("Creating Platform Object with Actuator Serial Numbers, Ports, DB Info
 for (int i=0; i<6; i++)
 {
 //actuator[i]=new Actuator(&cbc, ActuatorPorts[i], ActuatorSerials[i], InputDBInfo, InputASFInfo);
+#ifndef SIMMODE
 actuator[i]=Actuator(&cbc, ActuatorPorts[i], ActuatorSerials[i], InputDBInfo, InputASFInfo);
+#else
+actuator[i]=DummyActuator(&cbc, ActuatorPorts[i], ActuatorSerials[i], InputDBInfo, InputASFInfo);
+#endif
 }
 SetCBCSerialNumber(CBCSerial);
 SetDB(InputDBInfo);
