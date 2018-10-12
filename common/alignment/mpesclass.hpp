@@ -70,8 +70,7 @@ class DummyMPES : public MPES
 {
         public:
         DummyMPES();
-        DummyMPES(CBC* input_cbc, int input_USBPortNumber, int input_MPES_ID) : 
-            MPES(input_cbc, input_USBPortNumber, input_MPES_ID);
+        DummyMPES(CBC* input_cbc, int input_USBPortNumber, int input_MPES_ID) : MPES(input_cbc, input_USBPortNumber, input_MPES_ID);
         bool Initialize();
 
         private:
