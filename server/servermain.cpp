@@ -55,7 +55,7 @@ int CheckSystem(double *size)
 }
 
 
-int OpcServerMain(const char* szAppPath, const char* serverUrl)
+int OpcServerMain(const char* szAppPath, const char* serverUrl, const char* endpointUrl)
 {
     int ret = 0;
 
@@ -86,6 +86,9 @@ int OpcServerMain(const char* szAppPath, const char* serverUrl)
         // Create and initialize server object
         OpcServer* pServer = new OpcServer;
         pServer->setServerConfig(sConfigFileName, szAppPath);
+
+        // Override endpoint address
+        pServer->getEndpoint(0)->setEndpointUrl(UaString(endpointUrl), false);
 
         // Create and initialize communication interface
         // this is a large object -- allocate on the heap
@@ -187,6 +190,9 @@ int main(int argc, char* argv[])
     }
 
     cbc_ip_addr = argv[optind];
+    if(!endpoint_addr) {
+        endpoint_addr = cbc_ip_addr;
+    }
 
     int ret = 0;
 
@@ -209,7 +215,7 @@ int main(int argc, char* argv[])
 
     //-------------------------------------------
     // Call the OPC server main method
-    ret = OpcServerMain(pszAppPath, cbc_ip_addr);
+    ret = OpcServerMain(pszAppPath, cbc_ip_addr, endpoint_addr);
     //-------------------------------------------
 
     if ( pszAppPath ) delete [] pszAppPath;
