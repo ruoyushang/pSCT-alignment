@@ -399,13 +399,13 @@ void Actuator::ReadStatusFromASF()//read all error codes from ASF. Check size of
 {
     //DEBUG_MSG("Reading Status from ASF File with path " << ASFFullPath);
     std::ifstream ASF(ASFFullPath);
-    if(!ASF.good())//if file does not exist (or possibly other file issues not expected..)
+    if(ASF.bad())//if file does not exist (or possibly other file issues not expected..)
     {
         DEBUG_MSG("ASF file was bad for Actuator " << SerialNumber << " with ASF path " << ASFFullPath << ". Assuming it did not exist and will create a default ASF file.");
         ASF.close();
         CreateDefaultASF();
         ASF.open(ASFFullPath);    
-        if(!ASF.good())//check if ASF is good again. If not, set fatal error.
+        if(ASF.bad())//check if ASF is good again. If not, set fatal error.
         {
             ERROR_MSG("Fatal Error: Creating ASF file for Actuator " << SerialNumber << " did not resolve problem. File appears corrupt.");
             SetError(4);//fatal
@@ -462,7 +462,7 @@ void Actuator::RecordStatusToASF()//record all error codes to ASF.
     //DEBUG_MSG("Recording Status for Actuator " << SerialNumber << " to ASF file with path " << ASFFullPath);
     std::ofstream ASF(ASFFullPath);
 
-    if(!ASF.good())//or exist
+    if(ASF.bad())//or exist
     {
         ERROR_MSG("Fatal Error: ASF is not good for Actuator " << SerialNumber << ". Cannot record Status to ASF.");
         SetError(4);//fatal
@@ -1220,5 +1220,5 @@ float DummyActuator::MeasureLength()
 void DummyActuator::Initialize()//Port, Serial, ASFPath, and sometimes DB are loaded. The rest of the loading needs to be designed here. Set Current Position
 {
     //check if ASF file exists. if it doesn't, create it.
-    DEBUG_MSG("Initializing Actuator " << SerialNumber);
+    std::cout << "Initializing Dummy Actuator ..." << std::endl;
 }
