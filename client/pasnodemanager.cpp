@@ -140,6 +140,10 @@ UaStatus PasNodeManager::afterStartUp()
         UA_ASSERT(ret.isGood());
     }
 
+    // Add folder to be root of device tree
+    pFolder = new UaFolder("DeviceTree", UaNodeId("DeviceTree", getNameSpaceIndex()), m_defaultLocaleId);
+    ret = addNodeAndReference(OpcUaId_ObjectsFolder, pFolder, OpcUaId_Organizes);
+
     // First create all nodes and add object type references
     // Also add to device folder
     for (auto it=PasCommunicationInterface::deviceTypeNames.begin(); it!=PasCommunicationInterface::deviceTypeNames.end(); ++it) {
