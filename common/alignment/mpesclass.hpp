@@ -25,9 +25,9 @@ class MPES
 
         void setUSBPortNumber(int input_USBPortNumber);
         virtual bool Initialize();
-        int setExposure();
+        virtual int setExposure();
 
-        int MeasurePosition();
+        virtual int MeasurePosition();
         struct Position {
             float xCenter;
             float yCenter;
@@ -72,6 +72,8 @@ class DummyMPES : public MPES
         DummyMPES();
         DummyMPES(CBC* input_cbc, int input_USBPortNumber, int input_MPES_ID) : MPES(input_cbc, input_USBPortNumber, input_MPES_ID) {};
         bool Initialize();
+        int setExposure();
+        int MeasurePosition();
 
         private:
         CBC* m_pCBC;
