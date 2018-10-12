@@ -766,7 +766,11 @@ bool Platform::addMPES(int USB, int serial)
 
     cout << "Adding MPES "<< serial << " at USB " << USB << "..." << endl;
 
+#ifndef SIMMODE
     MPES *newMPES = new MPES(&cbc, USB, serial);
+#else
+    MPES *newMPES = new DummyMPES(&cbc, USB, serial);
+#endif
     if (!newMPES->Initialize()) {
         cout << "+++ Platform: Couldn't initialize MPES at USB " << USB << endl;
         delete newMPES;

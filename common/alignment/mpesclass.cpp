@@ -188,3 +188,15 @@ set<int> MPES::__getVideoDevices()
 
     return device_set;
 }
+
+bool DummyMPES::Initialize()
+{
+
+    cout << "DummyMPES::Initialize(): Creating new video device " << endl;
+    Safety_Region_x_min = 60.0;	
+    Safety_Region_x_max = 260.0;	
+    Safety_Region_y_min = 40.0;	
+    Safety_Region_y_max = 200.0;	
+
+    return true;
+}
