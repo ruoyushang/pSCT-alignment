@@ -88,7 +88,8 @@ int OpcServerMain(const char* szAppPath, const char* serverUrl, const char* endp
         pServer->setServerConfig(sConfigFileName, szAppPath);
 
         // Override endpoint address
-        pServer->getEndpoint(0)->setEndpointUrl(UaString(endpointUrl), false);
+        unsigned endpoint_index = 0;
+        pServer->getEndpoint(endpoint_index)->setEndpointUrl(UaString(endpointUrl), false);
 
         // Create and initialize communication interface
         // this is a large object -- allocate on the heap
