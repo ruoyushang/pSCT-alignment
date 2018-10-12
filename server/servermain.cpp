@@ -47,7 +47,7 @@ int CheckSystem(double *size)
 {
     // check disk space
     struct statvfs sysBuf;
-    if (statvfs("/", &sysBuf) == 0) 
+    if (statvfs("/", &sysBuf) == 0)
         *size = ((double)sysBuf.f_bsize*sysBuf.f_bfree)/(1024*1024*1024);
     else return 1;
 
@@ -118,7 +118,7 @@ int OpcServerMain(const char* szAppPath, const char* serverUrl)
             printf("***************************************************\n");
             fflush(stdout);
             // Wait for user command to terminate the server thread.
-            
+
             while ( ShutDownFlag() == 0 )
             {
                 UaThread::msleep(1000);
@@ -166,10 +166,11 @@ int main(int argc, char* argv[])
 #endif
 {
     if (argc != 2) {
-        printf("Usage: %s <CBC IP ADDRESS>\n", argv[0]);
+        printf("Usage: %s <CBC IP ADDRESS> -e <ENDPOINT IP ADDRESS>\n", argv[0]);
         return 1;
     }
 
+    int c;
     char *endpoint_addr = NULL;
     char *cbc_ip_addr = NULL;
 
@@ -182,7 +183,7 @@ int main(int argc, char* argv[])
         case '?':
             if (optopt == 'e')
                 printf("Must provide an endpoint IP address with option e");
-         }   
+         }
     }
 
     cbc_ip_addr = argv[optind];
@@ -197,8 +198,8 @@ int main(int argc, char* argv[])
     else {
         printf(" Failed to stat \"/\": terminating\n");
         return -1;
-    } 
-    printf("***************************************************\n"); 
+    }
+    printf("***************************************************\n");
 
 
     RegisterSignalHandler();
