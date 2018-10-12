@@ -171,10 +171,10 @@ float MeasureVoltage();
 int MeasureAngle();
 int QuickAngleCheck(Position ExpectedPosition);
 int SlowAngleCheck(Position ExpectedPosition);
-int Step(int InputSteps);
+virtual int Step(int InputSteps);
 Position PredictPosition(Position InputPosition, int InputSteps);
 int HysteresisMotion(int InputSteps);
-void Initialize();
+virtual void Initialize();
 void SetCurrentPosition(Position InputPosition);
 void CheckCurrentPosition();
 void SetASFFullPath(ASFStruct InputASFInfo);
@@ -207,7 +207,7 @@ StatusModes GetStatus();
 void ReadStatusFromDBAndASF();
 void CreateDefaultASF();
 //void LoadDefaults();
-float MeasureLength();
+virtual float MeasureLength();
 float MoveToLength(float TargetLength);
 float MoveDeltaLength(float LengthToMove);
 void ClearAllErrors();
@@ -273,3 +273,17 @@ Actuator(CBC* InputCBC, int InputPortNumber, int InputActuatorSerial, DBStruct I
 
 };
 #endif
+
+class DummyActuator : public Actuator
+{
+    public:
+        DummyActuator(CBC* InputCBC, int InputPortNumber) : Actuator(InputCBC, InputPortNumber) {};
+        DummyActuator(CBC* InputCBC, int InputPortNumber, int InputActuatorSerial) : Actuator(InputCBC, InputPortNumber, InputActuatorSerial) {};
+        DummyActuator(CBC* InputCBC, int InputPortNumber, int InputActuatorSerial, DBStruct InputDB) : Actuator(InputCBC, InputPortNumber, InputActuatorSerial, InputDB) {};
+        DummyActuator(CBC* InputCBC, int InputPortNumber, int InputActuatorSerial, DBStruct InputDB, ASFStruct InputASF) : Actuator(InputCBC, InputPortNumber, InputActuatorSerial, InputDB, InputASF) {};
+
+        void Initialize();
+        int Step(int InputSteps);
+        float MeasureLength();
+
+}
