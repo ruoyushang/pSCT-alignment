@@ -769,6 +769,7 @@ bool Platform::addMPES(int USB, int serial)
 #ifndef SIMMODE
     MPES *newMPES = new MPES(&cbc, USB, serial);
 #else
+    cout << "Using SIMMODE..."<< endl;
     MPES *newMPES = new DummyMPES(&cbc, USB, serial);
 #endif
     if (!newMPES->Initialize()) {
