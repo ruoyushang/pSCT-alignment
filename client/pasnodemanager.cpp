@@ -36,8 +36,7 @@ PasNodeManager::~PasNodeManager()
 void PasNodeManager::setCommunicationInterface(PasCommunicationInterface *pCommIf)
 {
     std::cout << "PasNodeManager: Setting communication interface\n";
-    // explicit cast
-    m_pCommIf = static_cast<PasComInterfaceCommon *>(pCommIf);
+    m_pCommIf = pCommIf;
 }
 
 void PasNodeManager::setConfiguration(Configuration *pConfiguration)
@@ -85,7 +84,7 @@ UaStatus PasNodeManager::afterStartUp()
     // this will add each panel to the communication interface; it will also browse the panels
     // and add the devices on them, such as MPES/ACT/PSD;
     // in the process, it will construct the edges out of the corresponding panels and sensors,
-    // as well as the whole mirror(s). WOW 
+    // as well as the whole mirror(s). WOW
     // number of clients is the same as the number of servers/panels by our set up
     unsigned client = 0;
     for (const auto& panelId : m_pConfiguration->getDeviceList(PAS_PanelType)) {
@@ -140,15 +139,11 @@ UaStatus PasNodeManager::afterStartUp()
         UA_ASSERT(ret.isGood());
     }
 
-    // Add folder to be root of device tree
-    pFolder = new UaFolder("DeviceTree", UaNodeId("DeviceTree", getNameSpaceIndex()), m_defaultLocaleId);
-    ret = addNodeAndReference(OpcUaId_ObjectsFolder, pFolder, OpcUaId_Organizes);
-
     // First create all nodes and add object type references
     // Also add to device folder
     for (auto it=PasCommunicationInterface::deviceTypeNames.begin(); it!=PasCommunicationInterface::deviceTypeNames.end(); ++it) {
         deviceType = it->first;
-        count = dynamic_cast<PasCommunicationInterface *>(m_pCommIf)->getDevices(deviceType);
+        count = m_pCommIf->getDevices(deviceType);
 
         for (unsigned i = 0; i < count; i++)
         {
@@ -198,7 +193,7 @@ UaStatus PasNodeManager::afterStartUp()
             it!=PasCommunicationInterface::deviceTypeNames.end(); ++it) {
                 deviceType = it->first;
                 deviceName = it->second;
-                try {            
+                try {
                     pChildren = dynamic_cast<PasCompositeController*>(pController)->getChildren(deviceType);
                     if (!pChildren.empty()) {
                         pFolder = new UaFolder(UaString(deviceName.c_str()), UaNodeId(UaString(deviceName.c_str()), getNameSpaceIndex()), m_defaultLocaleId);
@@ -1014,8 +1009,8 @@ UaStatus PasNodeManager::amendTypeNodes()
 OpcUa_Int32 PasNodeManager::Panic()
 {
     UaStatus status;
-    
-    OpcUa_Int32 actcount = dynamic_cast<PasCommunicationInterface*>(m_pCommIf)->getDevices(PAS_ACTType);
+
+    OpcUa_Int32 actcount = m_pCommIf)->getDevices(PAS_ACTType);
 
     Identity id;
     for (OpcUa_Int32 i = 0; i < actcount; i++)
@@ -1026,7 +1021,7 @@ OpcUa_Int32 PasNodeManager::Panic()
             printf("Will try changing state for %s\n", id.eAddress.c_str());
             status = m_pCommIf->setDeviceState(PAS_ACTType, id, PASState::PAS_Off );
         }
-        else 
+        else
             printf("Problem changing state for %s\n", id.eAddress.c_str());
     }
 
@@ -1039,7 +1034,7 @@ OpcUa_Int32 PasNodeManager::Panic()
             printf("Will try changing state for %s again\n", id.eAddress.c_str());
             status = m_pCommIf->setDeviceState(PAS_ACTType, id, PASState::PAS_On );
         }
-        else 
+        else
             printf("Problem changing state for %s\n", id.eAddress.c_str());
     }
 
