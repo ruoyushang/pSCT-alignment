@@ -184,7 +184,10 @@ UaStatus PasNodeManager::afterStartUp()
         }
     }
 
-    // Loop through all created objects and add children
+    std::map<PasController *, PasObject *> pRootDevices;
+    pRootDevices.insert(pDeviceObjects.begin(), pDeviceObjects.end());
+
+    // Loop through all created objects and add references to children
     for (std::map<PasController *, PasObject *>::iterator it=pDeviceObjects.begin(); it!=pDeviceObjects.end(); ++it) {
         pController = it->first;
         pObject = it->second;
@@ -204,6 +207,8 @@ UaStatus PasNodeManager::afterStartUp()
                         for ( auto &child : pChildren) {
                             ret = addUaReference(pFolder->nodeId(), pDeviceObjects[child]->nodeId(), OpcUaId_HasComponent);
                             UA_ASSERT(ret.isGood());
+                            // Remove any child from the list of root devices
+                            pRootDevices.erase(child);
                         }
                     }
                 }
@@ -213,6 +218,21 @@ UaStatus PasNodeManager::afterStartUp()
             }
         }
     }
+
+    // Add folder for device tree to Objects folder
+    UaFolder *pDeviceTreeFolder = new UaFolder("DeviceTree", UaNodeId("DeviceTree", getNameSpaceIndex()), m_defaultLocaleId);
+    ret = addNodeAndReference(OpcUaId_ObjectsFolder, pFolder, OpcUaId_Organizes);
+    UA_ASSERT(ret.isGood());
+
+    // Add all root devices (devices with no parents) to the Device Tree Folder
+    for (std::map<PasController *, PasObject *>::iterator it=pRootDevices.begin(); it!=pRootDevices.end(); ++it) {
+        pController = it->first;
+        pObject = it->second;
+
+        ret = addUaReference(pDeviceTreeFolder->nodeId(), pObject->nodeId(), OpcUaId_HasComponent);
+        UA_ASSERT(ret.isGood());
+    }
+
     return ret;
 }
 
