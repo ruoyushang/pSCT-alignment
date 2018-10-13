@@ -36,7 +36,7 @@ PasNodeManager::~PasNodeManager()
 void PasNodeManager::setCommunicationInterface(PasCommunicationInterface *pCommIf)
 {
     std::cout << "PasNodeManager: Setting communication interface\n";
-    m_pCommIf = pCommIf;
+    m_pCommIf = static_cast<PasComInterfaceCommon *>(pCommIf);
 }
 
 void PasNodeManager::setConfiguration(Configuration *pConfiguration)
@@ -143,7 +143,7 @@ UaStatus PasNodeManager::afterStartUp()
     // Also add to device folder
     for (auto it=PasCommunicationInterface::deviceTypeNames.begin(); it!=PasCommunicationInterface::deviceTypeNames.end(); ++it) {
         deviceType = it->first;
-        count = m_pCommIf->getDevices(deviceType);
+        count = dynamic_cast<PasCommunicationInterface *>(m_pCommIf)->getDevices(deviceType);
 
         for (unsigned i = 0; i < count; i++)
         {
@@ -151,6 +151,7 @@ UaStatus PasNodeManager::afterStartUp()
             pController = dynamic_cast<PasCommunicationInterface *>(m_pCommIf)->getDeviceFromId(deviceType, identity);
             //If folder doesn't already exist, create a folder for each object type and add the folder to the ObjectsFolder
             if ( pDeviceFolders.find(deviceType) == pDeviceFolders.end() ) {
+                printf("Created folder\n");
                 deviceName = PasCommunicationInterface::deviceTypeNames[deviceType];
                 folderName = deviceName + "Folder";
                 pDeviceFolders[deviceType] = new UaFolder(UaString(folderName.c_str()), UaNodeId(UaString(folderName.c_str()), getNameSpaceIndex()), m_defaultLocaleId);
@@ -216,9 +217,9 @@ UaStatus PasNodeManager::afterStartUp()
 
     // Add folder for device tree to Objects folder
     UaFolder *pDeviceTreeFolder = new UaFolder("DeviceTree", UaNodeId("DeviceTree", getNameSpaceIndex()), m_defaultLocaleId);
-    ret = addNodeAndReference(OpcUaId_ObjectsFolder, pFolder, OpcUaId_Organizes);
+    ret = addNodeAndReference(OpcUaId_ObjectsFolder, pDeviceTreeFolder, OpcUaId_Organizes);
     UA_ASSERT(ret.isGood());
-
+    
     // Add all root devices (devices with no parents) to the Device Tree Folder
     for (std::map<PasController *, PasObject *>::iterator it=pRootDevices.begin(); it!=pRootDevices.end(); ++it) {
         pController = it->first;
@@ -1010,7 +1011,7 @@ OpcUa_Int32 PasNodeManager::Panic()
 {
     UaStatus status;
 
-    OpcUa_Int32 actcount = m_pCommIf)->getDevices(PAS_ACTType);
+    OpcUa_Int32 actcount = m_pCommIf->getDevices(PAS_ACTType);
 
     Identity id;
     for (OpcUa_Int32 i = 0; i < actcount; i++)
