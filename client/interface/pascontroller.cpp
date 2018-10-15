@@ -68,12 +68,19 @@ PasMPES::PasMPES(Identity identity, Client *pClient) : PasController(identity, p
 
     // get the nominal aligned readings and response matrices from DB
     /* BEGIN DATABASE HACK */
-    string db_ip="10.0.50.114";
-    string db_port="3406";
-    string db_user="CTAreadonly";
-    string db_password="readCTAdb";
-    string db_name="CTAonline";
-    string db_address = "tcp://" + db_ip + ":" + db_port;
+    //string db_ip="10.0.50.114";
+    //string db_port="3406";
+    //string db_user="CTAreadonly";
+    //string db_password="readCTAdb";
+    //string db_name="CTAonline";
+    //string db_address = "tcp://" + db_ip + ":" + db_port;
+    //Ruo
+    std::string db_ip="remus.ucsc.edu";
+    std::string db_port="3406";
+    std::string db_user="CTAreadonly";
+    std::string db_password="readCTAdb";
+    std::string db_name="CTAonline";
+    std::string db_address = "tcp://" + db_ip + ":" + db_port;
 
     cout << "Initializing MPES " << m_ID.serialNumber << endl;
     try {
@@ -932,6 +939,15 @@ UaStatusCode PasEdge::Operate(OpcUa_UInt32 offset, const UaVariantArray &args)
 {
     UaMutexLocker lock(&m_mutex);
     UaStatusCode  status;
+
+    for(auto elem :m_pChildren)
+    {
+           std::cout << "Ruo, child of an edge: " << elem.first << "\n";
+           for (auto elem2nd :elem.second)
+           {
+                    std::cout << " " << elem2nd->getId() << "\n";
+           }
+    }
 
     unsigned numPanels;
     try {
