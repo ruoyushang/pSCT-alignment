@@ -1153,9 +1153,10 @@ void Actuator::ForceRecover()
 
 int DummyActuator::Step(int InputSteps)//Positive Step is Extension of Motor
 {
-    DEBUG_MSG("Stepping Actuator " << SerialNumber << " " << InputSteps << " steps");
+    std::cout << "SIMMODE: Stepping Actuator " << SerialNumber << " " << InputSteps << " steps" << std::endl;
     if(ErrorStatus == FatalError)//don't move actuator if there's a fatal error.
     {
+        std::cout << "SIMMODE: Fatal error occurs!!!" << std::endl;
         return InputSteps;
     }
     Position FinalPosition=PredictPosition(CurrentPosition,-InputSteps);
@@ -1164,6 +1165,7 @@ int DummyActuator::Step(int InputSteps)//Positive Step is Extension of Motor
     int StepsTaken;
     int Sign;
     int StepsRemaining=-( CalculateStepsFromHome(FinalPosition)-CalculateStepsFromHome(CurrentPosition) );//negative because positive step is retraction, and (0,0) is defined as full extraction.
+    std::cout << "SIMMODE: StepsRemaining = " << StepsRemaining << std::endl;
 
     if (InputSteps < 0)
     {
@@ -1200,6 +1202,9 @@ int DummyActuator::Step(int InputSteps)//Positive Step is Extension of Motor
         if( std::abs(MissedSteps) > std::max( int(TolerablePercentOfMissedSteps*std::abs(StepsToTake)) , MinimumMissedStepsToFlagError ) )
         {
             ERROR_MSG("Fatal Error: Actuator " << SerialNumber << " missed a large number of steps (" << MissedSteps << ").");
+            std::cout << "SIMMODE: std::abs(StepsToTake) = " << int(std::abs(StepsToTake)) << std::endl;
+            std::cout << "SIMMODE: TolerablePercentOfMissedSteps*std::abs(StepsToTake) = " << int(TolerablePercentOfMissedSteps*std::abs(StepsToTake)) << std::endl;
+            std::cout << "SIMMODE: MinimumMissedStepsToFlagError = " << MinimumMissedStepsToFlagError << std::endl;
             SetError(8);//fatal
             return StepsRemaining;//quit, don't record or register steps attempted to be taken.
         }
