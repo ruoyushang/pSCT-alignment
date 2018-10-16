@@ -1160,58 +1160,12 @@ int DummyActuator::Step(int InputSteps)//Positive Step is Extension of Motor
         return InputSteps;
     }
     Position FinalPosition=PredictPosition(CurrentPosition,-InputSteps);
-    Position PredictedPosition;
+    SetCurrentPosition(FinalPosition); // Set final position as current position in SIMMODE
     int MissedSteps;
     int StepsTaken;
     int Sign;
     int StepsRemaining=-( CalculateStepsFromHome(FinalPosition)-CalculateStepsFromHome(CurrentPosition) );//negative because positive step is retraction, and (0,0) is defined as full extraction.
     std::cout << "SIMMODE: StepsRemaining = " << StepsRemaining << std::endl;
-
-    if (InputSteps < 0)
-    {
-        Sign=-1;
-    }
-    else
-    {
-        Sign=1;
-    }
-
-    int StepsToTake=Sign*RecordingInterval;
-    bool KeepStepping=true;
-
-
-    while ((KeepStepping==true) && (ErrorStatus != FatalError))
-    {
-        if(std::abs(StepsRemaining)<=RecordingInterval)
-        {
-            StepsToTake=StepsRemaining;
-            KeepStepping=false;
-        }
-        PredictedPosition=PredictPosition(CurrentPosition,-StepsToTake);
-        cbc->driver.step(PortNumber, StepsToTake);
-        MissedSteps=0;
-        if(VoltageError)//if voltage measurement has issues.
-        {
-            return StepsRemaining;
-        }
-
-        StepsTaken=StepsToTake-MissedSteps;
-        SetCurrentPosition(PredictPosition(CurrentPosition,-StepsTaken));
-
-        //if( (std::abs(MissedSteps)/float(std::abs(StepsToTake)))>TolerablePercentOfMissedSteps && std::abs(MissedSteps)>MinimumMissedStepsToFlagError)//if the actuator misses a certain percent of steps AND misses more than a threshold number of steps.
-        if( std::abs(MissedSteps) > std::max( int(TolerablePercentOfMissedSteps*std::abs(StepsToTake)) , MinimumMissedStepsToFlagError ) )
-        {
-            ERROR_MSG("Fatal Error: Actuator " << SerialNumber << " missed a large number of steps (" << MissedSteps << ").");
-            std::cout << "SIMMODE: std::abs(StepsToTake) = " << int(std::abs(StepsToTake)) << std::endl;
-            std::cout << "SIMMODE: TolerablePercentOfMissedSteps*std::abs(StepsToTake) = " << int(TolerablePercentOfMissedSteps*std::abs(StepsToTake)) << std::endl;
-            std::cout << "SIMMODE: MinimumMissedStepsToFlagError = " << MinimumMissedStepsToFlagError << std::endl;
-            SetError(8);//fatal
-            return StepsRemaining;//quit, don't record or register steps attempted to be taken.
-        }
-
-        RecordStatusToASF();
-        StepsRemaining=-(CalculateStepsFromHome(FinalPosition)-CalculateStepsFromHome(CurrentPosition));
-    }
     return StepsRemaining;
 }
 float DummyActuator::MeasureLength()
