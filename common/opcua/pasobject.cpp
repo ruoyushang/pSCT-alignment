@@ -30,7 +30,7 @@ PasObject::PasObject(const UaString& name,
 {
 
     // Create folder for errors and add it as component to this object
-    UaFolder* pErrorFolder = new UaFolder("Errors", UaNodeId("Errors", getNameSpaceIndex()), pNodeManager->m_defaultLocaleId);
+    UaFolder* pErrorFolder = new UaFolder("Errors", UaNodeId("Errors", pNodeManager->getNameSpaceIndex()), m_defaultLocaleId);
     UaStatus ret = pNodeManager->addNodeAndReference(this, pErrorFolder, OpcUaId_HasComponent);
     UA_ASSERT(ret.isGood());
     // Store information needed to access device
