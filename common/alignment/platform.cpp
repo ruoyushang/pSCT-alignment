@@ -359,7 +359,7 @@ return StepsRemaining;
 
 void Platform::CheckActuatorErrorStatus(int ActuatorIndex)
 {
-Actuator::StatusModes ErrorStatus=actuator[ActuatorIndex].ErrorStatus;
+Actuator::StatusModes ErrorStatus=actuator[ActuatorIndex]->ErrorStatus;
 if(ErrorStatus == Actuator::FatalError)
 {
 SetError((2*ActuatorIndex)+1);
@@ -687,18 +687,18 @@ CheckErrorStatus();
 void Platform::RecoverActuatorStatusFromDB(int ActuatorIndex)
 {
 DEBUG_MSG("Recovering Actuator Status with Index " << ActuatorIndex << " from Database");
-actuator[ActuatorIndex].ReadStatusFromDB();
-actuator[ActuatorIndex].CheckCurrentPosition();
-actuator[ActuatorIndex].RecordStatusToASF();
+actuator[ActuatorIndex]->ReadStatusFromDB();
+actuator[ActuatorIndex]->CheckCurrentPosition();
+actuator[ActuatorIndex]->RecordStatusToASF();
 CheckActuatorErrorStatus(ActuatorIndex);
 }
 
 void Platform::RecoverActuatorStatusFromDBAndASF(int ActuatorIndex)
 {
 DEBUG_MSG("Recovering Actuator Status with Index " << ActuatorIndex << " from Database and ASF");
-actuator[ActuatorIndex].ReadStatusFromDBAndASF();
-actuator[ActuatorIndex].CheckCurrentPosition();
-actuator[ActuatorIndex].RecordStatusToASF();
+actuator[ActuatorIndex]->ReadStatusFromDBAndASF();
+actuator[ActuatorIndex]->CheckCurrentPosition();
+actuator[ActuatorIndex]->RecordStatusToASF();
 CheckActuatorErrorStatus(ActuatorIndex);
 }
 
@@ -709,12 +709,12 @@ CBCSerialNumber=InputSerial;
 
 void Platform::ClearActuatorAllErrors(int ActuatorIndex)
 {
-actuator[ActuatorIndex].ClearAllErrors();
+actuator[ActuatorIndex]->ClearAllErrors();
 }
 
 void Platform::ClearActuatorSingleError(int ActuatorIndex, int CodeNumber)
 {
-actuator[ActuatorIndex].UnsetError(CodeNumber);
+actuator[ActuatorIndex]->UnsetError(CodeNumber);
 }
 
 void Platform::ClearPlatformAllErrors()
@@ -732,11 +732,11 @@ void Platform::FindHomeFromEndStop(int Direction, int ActuatorIndex)
 {
 if(Direction==1)
 {
-actuator[ActuatorIndex].FindHomeFromExtendStop();
+actuator[ActuatorIndex]->FindHomeFromExtendStop();
 }
 else if(Direction == -1)
 {
-actuator[ActuatorIndex].FindHomeFromRetractStop();
+actuator[ActuatorIndex]->FindHomeFromRetractStop();
 }
 }
 
@@ -752,13 +752,13 @@ FindHomeFromEndStop(-1, ActuatorIndex);
 
 void Platform::ProbeHome(int ActuatorIndex)
 {
-actuator[ActuatorIndex].ProbeHome();
+actuator[ActuatorIndex]->ProbeHome();
 }
 
 Actuator* Platform::getActuatorAt(int internal_idx)
 {
     try {
-        return &actuator.at(internal_idx);
+        return actuator.at(internal_idx);
     }
     catch (out_of_range) {
         return nullptr;
