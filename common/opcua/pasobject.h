@@ -19,9 +19,9 @@ class PasObject :  public OpcUa::BaseObjectType
 {
     UA_DISABLE_COPY(PasObject);
 public:
-    PasObject(const UaString& name, 
-            const UaNodeId& newNodeId, 
-            const UaString& defaultLocaleId, 
+    PasObject(const UaString& name,
+            const UaNodeId& newNodeId,
+            const UaString& defaultLocaleId,
             PasNodeManagerCommon *pNodeManager,
             Identity identity,
             PasComInterfaceCommon *pCommIf);
@@ -62,6 +62,7 @@ protected:
     PasComInterfaceCommon*     m_pCommIf;
     PasNodeManagerCommon*      m_pNodeManager;
     OpcUa::OffNormalAlarmType* m_pStateOffNormalAlarm;
+    UaFolder* m_pErrorFolder;
 
 };
 
@@ -135,7 +136,7 @@ public:
         Identity identity,
         PasComInterfaceCommon *pCommIf);
     virtual ~ACTObject(void);
- 
+
     // implement the synchronous call
     UaStatus call(
         const ServiceContext&  serviceContext,
@@ -182,4 +183,3 @@ private:
 };
 
 #endif
-
