@@ -99,14 +99,14 @@ OpcUa::DataItemType* PasObject::addVariable(PasNodeManagerCommon *pNodeManager, 
     return pDataItem;
 }
 
-OpcUa::DataItemType* PasObject::addErrorVariable(PasNodeManagerCommon *pNodeManager, OpcUa_UInt32 ParentType, OpcUa_Boolean isState)
+OpcUa::DataItemType* PasObject::addErrorVariable(PasNodeManagerCommon *pNodeManager, OpcUa_UInt32 VarType, OpcUa_UInt32 ParentType, OpcUa_Boolean isState)
 {
     // Get the instance declaration node used as base for this variable instance
     UaVariable* pInstanceDeclaration = pNodeManager->getInstanceDeclarationVariable(VarType);
     UA_ASSERT(pInstanceDeclaration!=NULL);
     // Create new variable and add it as component to this object
     OpcUa::DataItemType* pDataItem = new OpcUa::DataItemType(this, pInstanceDeclaration, pNodeManager, m_pSharedMutex);
-    UaStatus addStatus = pNodeManager->addNodeAndReference(this, pDataItem, OpcUaId_HasComponent);
+    UaStatus addStatus = pNodeManager->addNodeAndReference(m_pErrorFolder, pDataItem, OpcUaId_HasComponent);
     UA_ASSERT(addStatus.isGood());
     // Store information needed to access device
     PasUserData* pUserData = new PasUserData(isState, ParentType, m_Identity, VarType);
@@ -602,3 +602,5 @@ UaStatus PSDObject::call(
 
     return ret;
 }
+
+

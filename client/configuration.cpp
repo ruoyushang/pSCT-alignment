@@ -137,7 +137,8 @@ UaStatus Configuration::loadConnectionConfiguration(const UaString& sConfigurati
     value.toBool(m_bRetryInitialConnect);
 
     // Server URLs
-    value = pSettings->value("DiscoveryURL", UaString("opc.tcp://localhost:48010"));
+    //value = pSettings->value("DiscoveryURL", UaString("opc.tcp://localhost:48010"));
+    value = pSettings->value("DiscoveryURL", UaString("opc.tcp://10.0.1.13:48010")); //Ruo
     m_discoveryUrl = value.toString();
 
     value = pSettings->value("PositionerURL", UaString("opc.tcp://localhost:4840"));
@@ -400,7 +401,14 @@ UaStatus Configuration::loadDeviceConfiguration(const std::vector<std::string>& 
     // read device configuration from the database and load it into the internal maps
     /* *********************************************************/
     /* INITIAL DATABASE HACK JOB -- NEEDS TO HAVE ITS OWN CLASS */
-    std::string db_ip="10.0.50.114";
+    //std::string db_ip="10.0.50.114";
+    //std::string db_port="3406";
+    //std::string db_user="CTAreadonly";
+    //std::string db_password="readCTAdb";
+    //std::string db_name="CTAonline";
+    //std::string db_address = "tcp://" + db_ip + ":" + db_port;
+    //Ruo
+    std::string db_ip="remus.ucsc.edu";
     std::string db_port="3406";
     std::string db_user="CTAreadonly";
     std::string db_password="readCTAdb";
@@ -425,6 +433,8 @@ UaStatus Configuration::loadDeviceConfiguration(const std::vector<std::string>& 
             while (sql_results->next()) {
                 panelId.serialNumber = sql_results->getInt(1);
                 panelId.eAddress = "opc.tcp://" + sql_results->getString(2) + ":4840";
+                //panelId.eAddress = "opc.tcp://10.0.1.13:4840"; //Ruo, only use this for servers running on a local PC.
+                //panelId.eAddress = "opc.tcp://10.0.1.13:"+std::string(position.c_str()); //Ruo, only use this for servers running on a local PC.
             }
             // add to the list of devices
             m_DeviceList[PAS_PanelType].push_back(panelId);

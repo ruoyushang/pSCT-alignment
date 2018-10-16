@@ -10,6 +10,8 @@
 #include "userdatabase.h"
 #include "components.h"
 
+class PasNodeManager;
+class PasCommunicationInterface;
 class PasNodeManagerCommon;
 class PasComInterfaceCommon;
 class UaMethodGeneric;
@@ -51,6 +53,16 @@ public:
         UaVariantArray&        outputArguments,
         UaStatusCodeArray&     inputArgumentResults,
         UaDiagnosticInfos&     inputArgumentDiag) = 0;
+
+    // Factory pattern
+    static PasObject *makeObject(
+            unsigned deviceType,
+            const UaString& name,
+            const UaNodeId& newNodeId,
+            const UaString& defaultLocaleId,
+            PasNodeManager *pNodeManager,
+            Identity identity,
+            PasCommunicationInterface *pCommIf);
 
 protected:
     // a function that's used very often
