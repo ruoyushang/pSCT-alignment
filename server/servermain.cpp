@@ -88,10 +88,10 @@ int OpcServerMain(const char* szAppPath, const char* serverUrl, const char* endp
         pServer->setServerConfig(sConfigFileName, szAppPath);
 
         // Override endpoint address
-        printf("Endpoint URL: %s", endpointUrl);
-        dynamic_cast<UaServerApplication *>(pServer);
-        OpcUa_UInt32 endpoint_count = dynamic_cast<UaServerApplication *>(pServer)->getEndpointCount();
-        printf("%d endpoints found", endpoint_count);
+        //printf("Endpoint URL: %s", endpointUrl);
+        //dynamic_cast<UaServerApplication *>(pServer);
+        //OpcUa_UInt32 endpoint_count = dynamic_cast<UaServerApplication *>(pServer)->getEndpointCount();
+        //printf("%d endpoints found", endpoint_count);
         //pServer->getEndpoint(endpoint_index);
         //->setEndpointUrl(UaString(endpointUrl), false);
 
@@ -112,6 +112,8 @@ int OpcServerMain(const char* szAppPath, const char* serverUrl, const char* endp
 
         // Start server object
         ret = pServer->start();
+        OpcUa_UInt32 endpoint_count = dynamic_cast<UaServerApplication *>(pServer)->getEndpointCount();
+        printf("%d endpoints found", endpoint_count);
         if ( ret != 0 )
         {
             delete pServer;
