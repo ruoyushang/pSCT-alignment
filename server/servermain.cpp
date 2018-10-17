@@ -30,6 +30,7 @@
 #include "opcserver.h"
 #include "uaplatformlayer.h"
 #include "uathread.h"
+#include "serverconfigxml.h"
 #if SUPPORT_XML_PARSER
   #include "xmldocument.h"
 #endif
@@ -74,10 +75,15 @@ int OpcServerMain(const char* szAppPath, const char* serverUrl, const char* endp
         UaString sConfigFileName(szAppPath);
 
 #if SUPPORT_XML_PARSER
-        sConfigFileName += "/ServerConfig.xml";
+        sConfigFileName = "ServerConfig.xml";
 #else
-        sConfigFileName += "/ServerConfig.ini";
+        sConfigFileName = "ServerConfig.ini";
 #endif
+
+        ServerConfigXml* pConfig = new ServerConfigXml(sConfigFileName, szAppPath, szAppPath, szAppPath);
+        OpcUa_UInt32 endpoint_count = pConfig->getEndpointCount();
+        printf("%d endpoints found", endpoint_count);
+
         //- Start up OPC server ---------------------
         // This code can be integrated into a startup
         // sequence of the application where the
