@@ -1,0 +1,506 @@
+C++ based UA SDK for Linux
+------------------------------
+
+----------------------
+Content
+----------------------
+(0) Third-Party Libraries
+(1) Build instructions
+(2) Release notes
+(3) Feature list
+----------------------
+
+This SDK was compiled with the gcc version  4.7.2 .
+
+You SHOULD NOT mix this SDK binaries with other gcc versions,
+because your application will end up in loading two different libcs,
+which results in two different heaps.
+Mixing heaps will lead to application crashes, when trying to
+free memory that was allocated by another heap.
+
+===================================================================
+(0) Third-Party Libraries
+===================================================================
+
+The UA SDK includes a number of third-party libraries that are used
+to provide certain features.
+Third Party Software may impose additional restrictions and it is
+the user's responsibility to ensure that they have met the licensing
+requirements of the according libraries.
+The following enumeration lists all third-party libraries used by
+the UA SDK with additional information about version,
+configuration and used licenses.
+The third-party licenses are stored in the license folder distributed
+with the SDK.
+
+* OpenSSL
+
+  The OpenSSL library is used by the OPC UA Stack to implement OPC UA
+  Security (AES, RSA, SHA1, x509 certificates). The SDK requires OpenSSL
+  pre-installed on your system. For developing you will also need the
+  OpenSSL header files (often called openssl-devel). Please use the package
+  system of your distribution to install the according package.
+
+  Version: The actual version installed on your system
+  Home: http://www.openssl.org
+  License: OpenSSL License
+
+* Libxml2
+
+  Libxml2 is the XML C parser and toolkit developed for the Gnome project
+  (but usable outside of the Gnome platform), it is free software available
+  under the MIT License. XML itself is a metalanguage to design markup languages,
+  i.e. text language where semantic and structure are added to the content
+  using extra "markup" information enclosed between angle brackets.
+  HTML is the most well-known markup language. Though the library is written
+  in C a variety of language bindings make it available in other environments.
+
+  Version: The actual version installed on your system
+  Home: http://www.xmlsoft.org/
+  License: MIT License
+
+===================================================================
+(1) Build instructions
+===================================================================
+
+The following descriptions assume that you have unpacked
+the SDK to /home/john/sdk. Change this to your needs.
+
+Requirements:
+-------------
+* CMake 2.8 - The build system
+* OpenSSL   - For building the OPC UA Communication Stack
+* LibXML2   - Only for the examples
+
+General:
+--------
+The sources are written in portable ANSI C (uastack) and C++ and
+should compile on various systems, not only Linux.
+The sources were successfully built on Windows, Windows CE, Linux,
+OpenSolaris, VxWorks and QNX.
+The sources contain CMake files to simplify compiling on various systems,
+but this is not a requirement. You can create your on Makefiles for your
+target system if necessary.
+The following examples assume that you use CMake.
+
+Using the binaries:
+-------------------
+The SDK contains already pre-built binaries which are compiled for
+general i686 CPUs. The debug and release binaries differ in the 'd'
+(for debug) at the end of the names.
+You can start to use the SDK using this binaries.
+
+If you create your own server or integrate the SDK into an existing
+project you only have to add this INCLUDEPATHS:
+/home/john/sdk/include/uastack, /home/john/sdk/include/uabase, /home/john/sdk/include/uamodels,
+/home/john/sdk/include/uapki, /home/john/sdk/include/uaserver, /home/john/sdk/include/xmlparser,
+[/home/john/sdk/include/uaclient]
+and this LINKER configurations:
+-L/home/john/sdk/lib -luamodule(d) -luamodels(d) -lcoremodule(d) -luabase(d)
+-luastack(d) -lxmlparser(d) -luapki(d) [-luaclient(d)]
+
+Using the sources:
+------------------
+You can recompile the SDK binaries using the SDK sources contained in /home/john/sdk/src.
+This way can change configurations and optimize the binaries for your CPU.
+Follow the build instructions below to compile the sources.
+
+Build instructions:
+-------------------
+If you are familiar with CMake building should not be a problem for you.
+Check out this page http://www.cmake.org if you want to learn more about CMake.
+To simplify building the various UA SDK modules we created a BASH batch file.
+Using this batch file is also recommended if you don't know CMake.
+
+> cd /home/john/sdk
+> ./buildSdk.sh (to build the sdk)
+> ./buildExamples.sh (to build the examples)
+
+This will create the build folders 'buildDebug' and 'buildRelease' to build the sources.
+This folders contain all generated files like the Makefiles, object files, etc.
+This way the src folder stays untouched.
+The build script removes these folders every time to guarantee clean builds.
+
+
+===================================================================
+(2) Release notes
+===================================================================
+
+(2a) Certificate Store configuration
+======================================================
+
+With version 1.5.0, the certificate store configuration has been improved
+to better fit the new features of central certificate configuration
+using the Global Discovery Service (GDS).
+The configuration is backward compatible, but it is highly recommended
+to review the new configuration options.
+See CHANGELOG.txt for more details.
+
+See also the documentation in
+Server SDK Introduction -> Server Configuration
+
+
+(2b) OPC UA Compliance Testing
+======================================================
+We are following the OPC UA compliance and certification efforts of
+the OPC Foundation as close as possible. We participated in all UA plug fest
+events and most of the OPC interoperability events as first available step.
+
+We have tested the C++ demo server contained in this SDK release with the
+released OPC UA compliance test tool version 1.02.335.238. There are no known
+issues with this compliance test version.
+
+The last OPC Test Lab Certification of C++ demo server contained in this SDK
+was successfully finished with version 1.4.3 of the SDK. A renew of the
+OPC Test Lab Certification is done in a two year cycle and not for every
+product release.
+
+The test results with your own server implementation may have compliance
+issues based on different SDK implementation options used. Issues can also
+be caused by different timing.
+
+We will provide regular updates to the SDK after the availability
+of new OPC UA compliance test tool versions.
+
+
+(2c) Protocol binding HTTPS with UA Binary Encoding
+======================================================
+
+The OPC UA stack version used in the C++ SDK version 1.5.0 supports the
+protocol binding HTTPS with UA Binary Encoding. The protocol binding can be
+activated through configuration options.
+
+However this part of the SDK is not released yet since the level of testing
+is not high enough, even if there are no known open issues.
+
+
+(2d) Breaking changes between V1.3.x and V1.4.x
+======================================================
+
+Breaking changes to utilities
+-----------------------------
+To make sure that the utilities provided for the OPC UA Server applications
+are maintained and updated with the SDK, most of the utility functionality
+like the class ServerConfigXml and main parts of the class OpcServer are now
+covered by the SDK CoreModule.
+
+When updating from an SDK version 1.3 to V1.4 or later, you must update the
+files from examples/utilities in your OPC UA Server application project. Remove
+the files serverconfigxml.cpp/h from your server project. They are now part of
+the SDK core module library. Update opcserver.cpp/h from the examples/utilities
+directory. Main parts are now included in the SDK core module library.
+
+Breaking changes to IOManager
+-----------------------------
+If you have implemented the SDK interface IOManager directly, you must update
+the enumeration values of the enumeration IOMananger::TransactionType. Due to
+conflicts on VxWorks we had to change the enumeration value names.
+
+Other breaking changes
+----------------------
+
+There are a few other breaking changes that may effect your existing server or
+client application. If your application is affected depends on the used features.
+A complete list of breaking changed can be found in the change log provided with the SDK.
+
+See CHANGELOG.txt for more details.
+
+
+===================================================================
+(3) Feature list
+===================================================================
+
+For a detailed changelog see the file CHANGELOG in your SDK download section.
+
+Version 1.5.0
+--------------------------
+
+Major features added in this version
+
+* Support for central certificate management define in OPC UA Part 12 version 1.03
+
+  - OPC UA Part 12 defines a Global Discovery Server used to manage certificates in a
+    central place through the interfaces DirectoryType and CertificateDirectoryType.
+    OPC UA client and server applications can use these standard interfaces to
+    manage application instance certificates and to update trust lists.
+
+  - The server SDK supports the ServerConfiguration object for the GDS push model.
+    The push model allows remote configuration of certificates and trust lists in
+    the server. This can be done through GDS related tools or through stand-alone
+    OPC UA clients like UaExpert.
+
+  - The client SDK provides a library for access to the GDS interfaces. This library
+    allows OPC UA client or server developers to integrate the GDS pull model. In
+    the pull model, the OPC UA client or server requests certificates and trust lists
+    from the GDS server.
+
+* Support for new OPC UA data type features added in OPC UA version 1.03
+
+  - Union data types
+
+  - Structured data types with optional fields
+
+  - OptionSet data types
+
+* General update to OPC UA 1.03 specification changes
+
+* Support for user authorization down to UaNode level
+
+  - The UaNodes managed by the NodeManagerBase in the server toolkit level do now
+    support an additional access mask used to configure access to the nodes for
+    different actions like browse, read, write, and call for three user classes like
+    owner, group, and other.
+
+  - During user authentication, the SDK user must set the user id and the group ids
+    for the user on the Session object.
+
+  - The SDK automatically checks the user authorization per node based on the access
+    mask in the node and the user information in the Session.
+
+* Complete restructuring of CMake projects and management of options
+
+* Update of generated code for OPC UA types to include documentation
+
+* Added support for SecurityPolicy Basic256Sha256
+
+Version 1.4.3
+--------------------------
+The main purpose of this version is to provide bug fixes for version 1.4.2
+See CHANGELOG for details.
+
+Version 1.4.2
+--------------------------
+The main purpose of this version is to provide bug fixes for version 1.4.1
+See CHANGELOG for details.
+
+Version 1.4.1
+--------------------------
+The main purpose of this version is to provide bug fixes for version 1.4.
+See CHANGELOG for details.
+
+Features added in this version
+* Added capability to register HistoryManager per node in NodeManagerBase
+* Enabled support of event history for Server object
+* Added capability to set status for event fields of condition objects
+* Added configuration through files or on-line change for the feature to
+  send error, warning and info traces as events
+* Update of PLCopen and OPC DI information model libraries
+* Added feature to allow user check for event delivery
+
+Known issue from V 1.4.0 Release Notes
+* The use of stack thread pool was not released with 1.4.0.
+  The issue is now fixed and the stack thread pool can be used with 1.4.1.
+
+Version 1.4.0
+--------------------------
+Major features added in this version
+
+- Compliance with OPC UA 1.02
+
+  Update to OPC UA 1.02 specification changes. Compliance testing with latest
+  compliance test tool for OPC UA 1.02.
+
+- Full support for HistoricalAccess functionality (Client + Server)
+
+  Important historical data access features are available in the SDK since several
+  versions but was never released since the specification was not released yet.
+  After the Historical Access and Aggregates specification are now released, this
+  is the version of the SDK that has full support for all Historical Access and
+  Aggregates features released for client and server side SDK.
+
+- Full structured data type support (Client + Server)
+
+  OPC UA provides support for user defined structured data types. These structures
+  can be known at compile time. In this case the structures are available in code
+  and serialization functions are registered with the stacks. Other structures are
+  unknown at compile time. This requires handling of XML based type descriptions
+  in OPC UA client and server applications. Both options are now supported by the
+  client and server side SDK. The known structures and the handling code can be
+  generated with the UaModeler. The unknown structures can be handled with helper
+  classes provided by the SDK.
+
+- Added OPC UA 1.02 features
+  - Added support for loading address space with new XML format (Server)
+    XML files based on the UANodeSet schema can be loaded with new
+    server SDK class NodeManagerUaNodeXmlParser
+  - Added FileType support (Server)
+    OPC UA 1.02 added a FileType object type definition for access to files. The
+    server side SDK provides a corresponding class to represent files in the server.
+  - Added new protocol binding HTTPS with UA Binary Encoding (Stack)
+  - Adds support for OPC UA defined units (UaBase - UaEUInformation)
+
+- Classes like UaString, UaMutex or UaThread can now be used before stack is
+  initialized (see UaBase features)
+
+- Trace access through OPC UA
+  - Trace configuration can be done through OPC UA interface
+  - Trace events for trace levels INFO, WARNING and ERROR are fired as events
+  - Event history for these events can be access with HistoryRead for events
+
+Version 1.3.3
+--------------------------
+The main purpose of this version is to provide bug fixes for version 1.3.2.
+See CHANGELOG for details.
+
+Version 1.3.2
+--------------------------
+The main purpose of this version is to provide bug fixes for version 1.3.1.
+See CHANGELOG for details.
+
+Version 1.3.1
+--------------------------
+The main purpose of this version is to provide bug fixes for version 1.3.
+See CHANGELOG for details.
+
+Features added in this version
+* Compliance Testing server
+  See (2a)
+* Added support for user defined reference types in server SDK
+  - Added support in C++ server SDK
+  - Added support in UaModeler
+* Added support for user defined enumeration types in server SDK
+  - Added support to UaModeler
+* Added network redundancy support in client SDK
+  Implemented as list of alternative EndpointUrls in SessionConnectInfo used
+  for connect tries at secure channel if the main URL fails
+* Added Query service set handling to server and client SDK
+* Enhanced Condition Branch handling
+* Added handling of user tokens Certificate and IssuedToken to server and
+  client SDK
+* Added configurable max settings for subscription and monitored item counts
+
+Version 1.3
+--------------------------
+Major features added in this version
+- Compliance Testing
+  See (2a)
+- Support for additional server profiles
+  - A & C Previous Instances Server Facet
+  - Auditing Server Facet
+  - Client Redundancy Facet (TransferSubscription)
+  - Redundancy Visible Server Facet
+- Support for additional client profiles
+  - Redundancy Switch Client Facet (TransferSubscription)
+- Several enhancements for Event handling and Alarms & Conditions
+
+Minor features and enhancements added in this version
+- Client development
+  - Network browser class
+  - Event filter helper classes
+  - Added automatic reconnect if initial connect fails
+  - Added option for setting the client session name
+- Server development
+  - Enhanced NodeManagerBase to support HistoryManager integration
+  - IOManagerUaNode
+    - Added capability for overwriting Read (e.g. to check user rights)
+    - Added capability for overwriting start monitoring (e.g. to check user rights)
+    - Added capability to get informed about variable value monitoring changes
+      This allows to start / stop monitoring of cache variables in a background thread
+    - Added ValueHandling mode UaVariable_Value_CacheIsUpdatedOnRequest
+      This allows to combine
+      - Read and Write implementation through IOManagerUaNode readValues
+        and writeValues
+      - Monitoring in the background on request and using the cache variable for
+        data update distribution
+  - Events and Alarms & Conditions
+    - Splitted EventManagerUaNode into two classes - EventManagerUaNode is now
+      derived from EventManagerBase
+    - EventManagerBase has no relation to UaNode classes and implements only
+      the base functionality needed for an EventManager
+    - EventManagerBase
+      - Added Condition Branch handling
+      - Added capability to send RefreshRequiredEvents
+      - Added EventManagerBase::unregisterEventField and
+
+EventManagerBase::unregisterEventType
+      - Added EventManagerBase::unregisterEventNotifier to be able to remove
+        event notifiers from an EventManager
+      - Added EventCallback::invalidateEventManager() to allow an EventManager
+        to be removed from the server without shutting down the whole server
+        and without keeping the interface instance in memory
+      - Added capability to shut down the EventManager and to disconnect
+        from MonitoredItems
+      - Implemented EventFilter result handling
+      - Enhanced error handling for EventFilter
+      - Added capability to overwrite check whether the passed NodeId is a
+        root notifier for the EventManager
+    - Added feature to register an EventManager during runtime
+  - Class Statistic - C++ class instance counts are provided as UA Variables
+    and trace output
+  - Added internal (simplified) browse calls available through ServerManager
+  - Implemented service SetTriggering
+  - Implemented service TransferSubscription
+  - Optimized Publish handling
+
+Version 1.2.1
+--------------------------
+The main purpose of this version is to provide bug fixes for version 1.2.
+See CHANGELOG for details.
+
+Features added to this version are
+- Full support for the Windows certificate store
+- Added additional examples and tutorials for server development
+  - COM DA migration example
+  - PLCopen information model example
+
+Version 1.2
+--------------------------
+Major features added in this version
+- OPC UA Alarms & Condition support
+  The OPC UA Alarms & Conditions specification was released by the OPC
+  Foundation in March 2010. The support for this information model was
+  added and the event handling was enhanced and simplified by full support
+  for simple events and alarm conditions by the SDK.
+- Support for OPC DI (Devices) information model
+  The OPC DI information model was released by the OPC Foundation in
+  November 2009. This SDK version provides full support for this model.
+- Support for OPC UA IEC 61131-3 information model
+  The OPC UA IEC 61131-3 information model was released by the OPC Foundation in
+  March 2010 as joined specification with PLCopen.
+  This SDK version provides full support for this model.
+- Tested for 64Bit support on Windows and Linux
+
+Minor features and enhancements added in this version
+- Test and bug fixes with the upcoming OPC UA compliance test tool
+- Documentation
+  - Added general OPC UA introduction sections to the documentation
+  - Added detailed Server Getting Started Tutorial
+  - Added detailed Client Getting Started Tutorial
+- Enhancements for security handling
+  - Exchange of discovery server certificate to server store and
+    server certificate to discovery server windows store to enable
+    (optional) automatic security configuration for local discovery server
+  - Access to windows certificate store
+  - Creation of PKI directories if they do not exist
+  - Creation of revocation list file (*.crl)
+- Information model
+  - Added modelling tool including a code generator (beta) for creation
+    of implementation classes for user specific Object and Variable types.
+  - Added namespace OpcUa containing classes for OPC UA defined
+    Object and Variable types.
+  - Added simplified handling of modelling rule to UaNode
+  - Added callback interface and functionality to restrict browse results
+    The new interface BrowseUaNodeCallback allows product implementers to
+    hook into the browsing of UaNodes to reject the browsing of a node or
+    to restrict the browse results of a node for example based on the user
+    rights of the user logged into the session.
+  - Added feature to delete all components of a node when the node is deleted
+- Added methods for internal read, write, call, data monitoring and event
+  monitoring to class ServerManager
+- Added event handlers beforeSetAttributeValue and afterSetAttributeValue to
+  IOManagerUaNode to inform implementation classes about write access to nodes
+- Added writing of any attribute if allowed by the UaNode implementation
+- Added implementation of Republish
+- Enabled build of all modules as DLL
+  Breaking change for this feature: Split Session class into Session class
+
+(CoreModule)
+  and UaSession (UaModule) to be able to build both modules as DLL
+- Added the capability to overwrite internal SDK classes like SessionManager,
+  TransactionManager, ServerManager and SubscriptionManager
+
+
+Version 1.0
+--------------------------
+Initial version
+

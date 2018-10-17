@@ -758,7 +758,6 @@ MPES* Platform::getMPESAt(int internal_idx)
         return nullptr;
     }
 }
-
 bool Platform::addMPES(int USB, int serial)
 {
     if (serial < 0)
@@ -767,6 +766,14 @@ bool Platform::addMPES(int USB, int serial)
     cout << "Adding MPES "<< serial << " at USB " << USB << "..." << endl;
 
     MPES *newMPES = new MPES(&cbc, USB, serial);
+    // Ruo, only use this for sim mode.
+///
+/// This part adds the MPES if they can be initialized at the USB ports.
+/// In the SIMMODE, MPES will be added anyway.
+///
+#ifdef SIMMODE
+    m_vMPES.push_back(newMPES);
+#else
     if (!newMPES->Initialize()) {
         cout << "+++ Platform: Couldn't initialize MPES at USB " << USB << endl;
         delete newMPES;
@@ -774,6 +781,7 @@ bool Platform::addMPES(int USB, int serial)
     }
     else
         m_vMPES.push_back(newMPES);
+#endif
 
     return true;
 }

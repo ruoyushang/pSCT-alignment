@@ -405,7 +405,8 @@ DEBUG_MSG("ASF file was bad for Actuator " << SerialNumber << " with ASF path " 
 ASF.close();
 CreateDefaultASF();
 ASF.open(ASFFullPath);    
-if(!ASF.good())//check if ASF is good again. If not, set fatal error.
+//if(!ASF.good())//check if ASF is good again. If not, set fatal error.
+if(ASF.bad())//check if ASF is good again. If not, set fatal error. //Ruo
 {
 ERROR_MSG("Fatal Error: Creating ASF file for Actuator " << SerialNumber << " did not resolve problem. File appears corrupt.");
 SetError(4);//fatal
@@ -462,7 +463,8 @@ void Actuator::RecordStatusToASF()//record all error codes to ASF.
 //DEBUG_MSG("Recording Status for Actuator " << SerialNumber << " to ASF file with path " << ASFFullPath);
 std::ofstream ASF(ASFFullPath);
 
-if(!ASF.good())//or exist
+//if(!ASF.good())//or exist
+if(ASF.bad())//check if ASF is good again. If not, set fatal error. //Ruo
 {
 ERROR_MSG("Fatal Error: ASF is not good for Actuator " << SerialNumber << ". Cannot record Status to ASF.");
 SetError(4);//fatal
@@ -595,14 +597,19 @@ if(ErrorStatus == FatalError)//don't move actuator if there's a fatal error.
 {
 return InputSteps;
 }
+#ifndef SIMMODE
 ReadStatusFromASF();
 CheckCurrentPosition();
+#endif
 Position FinalPosition=PredictPosition(CurrentPosition,-InputSteps);
 Position PredictedPosition;
 int MissedSteps;
 int StepsTaken;
 int Sign;
 int StepsRemaining=-( CalculateStepsFromHome(FinalPosition)-CalculateStepsFromHome(CurrentPosition) );//negative because positive step is retraction, and (0,0) is defined as full extraction.
+#ifdef SIMMODE
+std::cout << "Ruo, Steps Remaining = " << StepsRemaining << std::endl;
+#endif
 
 if (InputSteps < 0)
 {
@@ -626,7 +633,11 @@ KeepStepping=false;
 }
 PredictedPosition=PredictPosition(CurrentPosition,-StepsToTake);
 cbc->driver.step(PortNumber, StepsToTake);
+#ifndef SIMMODE
 MissedSteps=QuickAngleCheck(PredictedPosition);//negative*negative=positive sign because retraction is increasing internal counter and missed steps is negative by definition.
+#else
+MissedSteps=0;
+#endif
 if(VoltageError)//if voltage measurement has issues.
 {
 return StepsRemaining;
@@ -644,7 +655,9 @@ RecordStatusToASF();
 return StepsRemaining;//quit, don't record or register steps attempted to be taken.
 }
 
+#ifndef SIMMODE
 RecordStatusToASF();
+#endif
 StepsRemaining=-(CalculateStepsFromHome(FinalPosition)-CalculateStepsFromHome(CurrentPosition));
 }
 return StepsRemaining;
@@ -653,8 +666,10 @@ return StepsRemaining;
 float Actuator::MeasureLength()
 {
 //DEBUG_MSG("Measuring Actuator Length for Actuator " << SerialNumber);
+#ifndef SIMMODE
 ReadStatusFromASF();
 CheckCurrentPosition();
+#endif
 int StepsFromHome=CalculateStepsFromHome(CurrentPosition);
 float DistanceFromHome=StepsFromHome*mmPerStep;
 float CurrentLength=HomeLength-DistanceFromHome;
@@ -708,10 +723,12 @@ void Actuator::Initialize()//Port, Serial, ASFPath, and sometimes DB are loaded.
 {
 //check if ASF file exists. if it doesn't, create it.
 DEBUG_MSG("Initializing Actuator " << SerialNumber);
+#ifndef SIMMODE
 ReadStatusFromASF();
 ReadConfigurationAndCalibration();
 CheckCurrentPosition();
 CheckErrorStatus();
+#endif
 //assert(RecordingInterval <= StepsPerRevolution/2);//to avoid ambiguity in revolution position
 //assert(HysteresisSteps <= RecordingInterval);//to make hysteresis steps one clean motion
 //assert((EndstopSearchStepsize >= 10) && (EndstopSearchStepsize <= StepsPerRevolution/2));//must be large enough to be twice greater than potential recoil steps (~5) but smaller than half a cycle to avoid ambiguity in revolution position.

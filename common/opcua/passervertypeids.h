@@ -98,6 +98,7 @@
 #define PAS_PanelType_curCoords_xRot                2024
 #define PAS_PanelType_curCoords_yRot                2025
 #define PAS_PanelType_curCoords_zRot                2026
+#define PAS_PanelType_New                           2027 //Ruo
 #define PAS_PanelType_inCoords_x                    2031
 #define PAS_PanelType_inCoords_y                    2032
 #define PAS_PanelType_inCoords_z                    2033
