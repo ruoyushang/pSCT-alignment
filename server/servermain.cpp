@@ -30,6 +30,8 @@
 #include "opcserver.h"
 #include "uaplatformlayer.h"
 #include "uathread.h"
+#include "serverconfig.h"
+#include "serverconfigdata.h"
 #include "serverconfigxml.h"
 #if SUPPORT_XML_PARSER
   #include "xmldocument.h"
@@ -42,6 +44,21 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <getopt.h>
+
+
+/** Basic server configuration class using the XML file format for internal use in the class OpcServer.*/
+class ServerConfigBasicXml: public ServerConfigXml
+{
+    public:
+        using ServerConfigXml::ServerConfigXml;
+        ~ServerConfigBasicXml(){}
+        UaStatus afterLoadConfiguration(){return OpcUa_Good;}
+        UaStatus startUp(ServerManager*){return OpcUa_Good;}
+        UaStatus shutDown(){return OpcUa_Good;}
+        Session* createSession(OpcUa_Int32 sessionID, const UaNodeId &authenticationToken);
+        UaStatus logonSessionUser(Session* pSession, UaUserIdentityToken* pUserIdentityToken);
+};
+
 
 // check the system is reasonable -- enough disk space, enabled network connection
 int CheckSystem(double *size)
@@ -72,17 +89,20 @@ int OpcServerMain(const char* szAppPath, const char* serverUrl, const char* endp
     if ( ret == 0 )
     {
         // Create configuration file name
-        UaString sConfigFileName(szAppPath);
+        UaString sAppPath(szAppPath);
+        UaString sEndpointUrl(endpointUrl);
 
 #if SUPPORT_XML_PARSER
-        sConfigFileName = "ServerConfig.xml";
+        UaString sConfigFileName = "ServerConfig.xml";
 #else
-        sConfigFileName = "ServerConfig.ini";
+        UaString sConfigFileName = "ServerConfig.ini";
 #endif
 
-        ServerConfigXml* pConfig = new ServerConfigXml(sConfigFileName, szAppPath, szAppPath, szAppPath);
-        OpcUa_UInt32 endpoint_count = pConfig->getEndpointCount();
-        printf("%d endpoints found", endpoint_count);
+        ServerConfigXml* pConfig = new ServerConfigBasicXml(sConfigFileName, sAppPath, sAppPath, sAppPath);
+        UaEndpointArray endpoints;
+        unsigned rejected_certificates_count = 5;
+        pConfig->getEndpointConfiguration(sAppPath, rejected_certificates_count, endpoints);
+        endpoints[0]->setEndpointUrl(sEndpointUrl, false);
 
         //- Start up OPC server ---------------------
         // This code can be integrated into a startup
@@ -118,8 +138,6 @@ int OpcServerMain(const char* szAppPath, const char* serverUrl, const char* endp
 
         // Start server object
         ret = pServer->start();
-        OpcUa_UInt32 endpoint_count = dynamic_cast<UaServerApplication *>(pServer)->getEndpointCount();
-        printf("%d endpoints found", endpoint_count);
         if ( ret != 0 )
         {
             delete pServer;
