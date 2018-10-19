@@ -28,11 +28,13 @@
 **
 ******************************************************************************/
 #include "opcserver.h"
+#include "uaserverapplication.h"
 #include "uaplatformlayer.h"
 #include "uathread.h"
 #include "serverconfig.h"
 #include "serverconfigdata.h"
 #include "serverconfigxml.h"
+#include "uadatetime.h"
 #if SUPPORT_XML_PARSER
   #include "xmldocument.h"
 #endif
@@ -44,21 +46,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <getopt.h>
-
-
-/** Basic server configuration class using the XML file format for internal use in the class OpcServer.*/
-class ServerConfigBasicXml: public ServerConfigXml
-{
-    public:
-        using ServerConfigXml::ServerConfigXml;
-        ~ServerConfigBasicXml(){}
-        UaStatus afterLoadConfiguration(){return OpcUa_Good;}
-        UaStatus startUp(ServerManager*){return OpcUa_Good;}
-        UaStatus shutDown(){return OpcUa_Good;}
-        Session* createSession(OpcUa_Int32 sessionID, const UaNodeId &authenticationToken);
-        UaStatus logonSessionUser(Session* pSession, UaUserIdentityToken* pUserIdentityToken);
-};
-
 
 // check the system is reasonable -- enough disk space, enabled network connection
 int CheckSystem(double *size)
@@ -91,18 +78,13 @@ int OpcServerMain(const char* szAppPath, const char* serverUrl, const char* endp
         // Create configuration file name
         UaString sAppPath(szAppPath);
         UaString sEndpointUrl(endpointUrl);
+        UaString sConfigFileName(szAppPath);
 
 #if SUPPORT_XML_PARSER
-        UaString sConfigFileName = "ServerConfig.xml";
+        sConfigFileName += "/ServerConfig.xml";
 #else
-        UaString sConfigFileName = "ServerConfig.ini";
+        sConfigFileName += "/ServerConfig.ini";
 #endif
-
-        ServerConfigXml* pConfig = new ServerConfigBasicXml(sConfigFileName, sAppPath, sAppPath, sAppPath);
-        UaEndpointArray endpoints;
-        unsigned rejected_certificates_count = 5;
-        pConfig->getEndpointConfiguration(sAppPath, rejected_certificates_count, endpoints);
-        endpoints[0]->setEndpointUrl(sEndpointUrl, false);
 
         //- Start up OPC server ---------------------
         // This code can be integrated into a startup
@@ -110,16 +92,18 @@ int OpcServerMain(const char* szAppPath, const char* serverUrl, const char* endp
         // OPC server should be integrated
         //-------------------------------------------
         // Create and initialize server object
-        OpcServer* pServer = new OpcServer;
-        pServer->setServerConfig(sConfigFileName, szAppPath);
+        UaServerApplication* pServer = new UaServerApplication();
+        pServer->setServerConfig(sConfigFileName, sAppPath);
 
-        // Override endpoint address
-        //printf("Endpoint URL: %s", endpointUrl);
-        //dynamic_cast<UaServerApplication *>(pServer);
-        //OpcUa_UInt32 endpoint_count = dynamic_cast<UaServerApplication *>(pServer)->getEndpointCount();
-        //printf("%d endpoints found", endpoint_count);
-        //pServer->getEndpoint(endpoint_index);
-        //->setEndpointUrl(UaString(endpointUrl), false);
+        // Get config and overwrite endpoint URL
+        printf("%s", sConfigFileName.toUtf8());
+        UaEndpointArray endpoints;
+        OpcUa_UInt32 rejected_certificates_count = 1;
+        ServerConfig *pConfig = pServer->getServerConfig();
+        //pConfig->loadConfiguration();
+        pConfig->getEndpointConfiguration(sAppPath, rejected_certificates_count, endpoints);
+        //printf("Number of endpoints: %d\n", endpoints.length());
+        //endpoints[0]->setEndpointUrl(sEndpointUrl, false);
 
         // Create and initialize communication interface
         // this is a large object -- allocate on the heap
@@ -199,7 +183,7 @@ int WINAPI WinMain( HINSTANCE, HINSTANCE, LPWSTR, int)
 int main(int argc, char* argv[])
 #endif
 {
-    if (argc != 2) {
+    if (argc == 1) {
         printf("Usage: %s <CBC IP ADDRESS> -e <ENDPOINT IP ADDRESS>\n", argv[0]);
         return 1;
     }
