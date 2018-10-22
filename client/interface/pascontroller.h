@@ -215,6 +215,7 @@ private:
 
     // helper
     void __updateCoords(bool printout = false);
+    bool __willSensorsBeOutOfRange();
 
     // x, y, z, xRot, yRot, zRot
     double m_curCoords[6], m_inCoords[6];

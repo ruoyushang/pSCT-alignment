@@ -777,6 +777,63 @@ UaStatus PasPanel::__moveTo()
     return status;
 }
 
+void PasPanel::__willSensorsBeOutOfRange()
+{
+        //Ruo, try to estimate new laser spot positions after actuators move
+
+        ///
+        /// This part predicts the new laser spot positions before we move the actuators.
+        /// Will make a new function of this and allow all actuator operations to call this function before moving.
+        ///
+        MatrixXd M_response; // response matrix
+        VectorXd Act_delta; // actuator delta length
+        VectorXd Sen_current; // sensor current position
+        VectorXd Sen_delta; // sensor delta
+        VectorXd Sen_new; // sensor new position = Sen_delta + current sensor reading
+        VectorXd Sen_aligned; // aligned sensor reading
+        VectorXd Sen_deviation; // deviated sensor reading
+        for(auto elem :m_pChildren)
+        {
+               std::cout << "Ruo, child of a panel: " << elem.first << "\n";
+               for (auto elem2nd :elem.second)
+               {
+                        std::cout << " " << elem2nd->getId() << "\n";
+               }
+        }
+        for (int edge2align=0; edge2align<m_pChildren.at(PAS_EdgeType).size(); edge2align++)
+        {
+                PasEdge* edge = static_cast<PasEdge *> (m_pChildren.at(PAS_EdgeType).at(edge2align));
+                edge->getAlignedReadings();
+                //cout << "\nTarget MPES readings:\n" << m_AlignedReadings << endl << endl;
+                M_response = edge->getResponseMatrix(m_ID.position);
+                Sen_current = edge->getCurrentReadings();
+                Sen_aligned = edge->getAlignedReadings();
+                cout << "Looking at edge " << edge->getId() << endl;
+                cout << "\nActuator response matrix for this edge:\n" << M_response << endl;
+                //m_SP.GetActLengths() is the new act length
+                //m_ActuatorLengths is the current act length
+                VectorXd newLengths(6);
+                for (unsigned i = 0; i < 6; i++)
+                    newLengths(i) = m_SP.GetActLengths()[i];
+                cout << "New Act length is \n" << newLengths << endl;
+                cout << "Current Act length is \n" << m_ActuatorLengths << endl;
+                Act_delta = newLengths-m_ActuatorLengths; 
+                cout << "Delta Act length will be \n" << Act_delta << endl;
+                Sen_delta = M_response*Act_delta;
+                Sen_new = Sen_delta+Sen_current;
+                cout << "The new sensor coordinates (x, y) will be:\n" << Sen_new << endl;
+                Sen_deviation = Sen_new-Sen_aligned;
+                cout << "\n will deviate from the aligned position by\n" << Sen_new-Sen_aligned << endl;
+                double deviation = 0;
+                for (unsigned i = 0; i < 6; i++)
+                    deviation += pow(Sen_deviation(i),2);
+                deviation = pow(deviation,0.5);
+                if (deviation>40) return true; 
+        }
+
+        return false;
+
+}
 void PasPanel::__updateCoords(bool printout)
 {
     // do nothing if values haven't expired
