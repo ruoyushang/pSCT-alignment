@@ -12,4 +12,4 @@ printf "Starting client...\n"
 
 opcua-client &>> /dev/null &
 
-../sdk/bin/p2pasclient "${panel_numbers[*]}"
+../sdk/bin/p2pasclient "${panel_numbers[@]}"
