@@ -3,10 +3,13 @@ printf "Reading from database...\n"
 declare -a panel_numbers
 while read -r position;
 do
+  if [[ $position = "0" ]] || [[ ${position:1:1} = "0" ]]; then
+      continue
+  fi
   panel_numbers+=("$position")
 done < <(mysql --user="CTAreadonly" --password="readCTAdb" --database="CTAonline" --host="remus.ucsc.edu" --port="3406" -ss -e "SELECT position FROM Opt_MPMMapping")
 
-count=${#panel_numbers[@]}
+count=$((${#panel_numbers[@]}-1))
 printf "%s total panel servers found in database\n" "$count"
 printf "Starting client...\n"
 
