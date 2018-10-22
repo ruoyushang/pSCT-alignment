@@ -76,6 +76,13 @@ PanelObject::PanelObject(
     addStatus = pNodeManager->addNodeAndReference(this, m_pMethodStop, OpcUaId_HasComponent);
     UA_ASSERT(addStatus.isGood());
 
+    // Add Method "New" // Ruo
+    sName = "New";
+    sNodeId = UaString("%1.%2").arg(newNodeId.toString()).arg(sName);
+    m_pMethodNew = new UaMethodGeneric(sName, UaNodeId(sNodeId, nsIdx), m_defaultLocaleId);
+    addStatus = pNodeManager->addNodeAndReference(this, m_pMethodNew, OpcUaId_HasComponent);
+    UA_ASSERT(addStatus.isGood());
+
 }
 
 PanelObject::~PanelObject(void)
@@ -144,6 +151,14 @@ UaStatus PanelObject::call(
                     ret = OpcUa_BadInvalidArgument;
                 else
                     ret = m_pCommIf->OperateDevice(PAS_PanelType, m_Identity, PAS_PanelType_Stop);
+            }
+            else if ( pMethod->nodeId() == m_pMethodNew->nodeId()) //Ruo 
+            {
+                // Number of input arguments must be 0
+                if ( inputArguments.length() > 0 )
+                    ret = OpcUa_BadInvalidArgument;
+                else
+                    ret = m_pCommIf->OperateDevice(PAS_PanelType, m_Identity, PAS_PanelType_New);
             }
 
         }

@@ -28,21 +28,13 @@
 *.o
 
 # IDE Files
-<<<<<<< HEAD
 .vs
 .idea
 
 # Doxygen-generated files
 doxygen/html
 doxygen/latex
-=======
-.idea
-.vs
-
-# Doxygen-generated Files
-doxygen/html
-doxygen/latex
 
 # Unnecessary SDK files
 sdk/examples
->>>>>>> master
+

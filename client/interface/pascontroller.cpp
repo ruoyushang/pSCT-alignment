@@ -46,11 +46,21 @@ void PasCompositeController::addChild(OpcUa_UInt32 deviceType, PasController *co
     }
     catch (out_of_range) {
         // only add if this is a possible child
+        //cout << "\t Ruo, m_ChildrenTypes.count(deviceType) = " << m_ChildrenTypes.count(deviceType) << endl;
         if (m_ChildrenTypes.count(deviceType)) {
+        ///
+        /// This section adds coparents (edge and panel) of a MPES as a child of each other.
+        ///
+            cout << "\t Not added yet. Adding it now..." << endl;
             m_pChildren[deviceType].push_back(pController);
             m_ChildrenIdentityMap[deviceType][id] = m_pChildren.at(deviceType).size() - 1;
             // this doesn't work for edges, since they don't have an assigned position
-            m_ChildrenPositionMap[deviceType][pos] = m_pChildren.at(deviceType).size() - 1;
+            try {
+                m_ChildrenPositionMap[deviceType][pos] = m_pChildren.at(deviceType).size() - 1;
+            }
+            catch (...) {
+                std::cout << "Failed to create m_ChildrenPositionMap for " << deviceType << " at " << pos << std::endl;
+            }
         }
     }
 
@@ -385,7 +395,9 @@ UaStatusCode PasACT::getData(OpcUa_UInt32 offset, UaVariant& value)
     string varstoread[3] {"Steps", "curLength_mm", "inLength_mm"};
 
     vector<string> vec_curread {m_ID.eAddress + "." + varstoread[dataoffset]};
+    printf("Ruo (1), PasACT::getData -> value = %s\n",value.toString().toUtf8());
     status = m_pClient->read(vec_curread, &value);
+    printf("Ruo (2), PasACT::getData -> value = %s\n",value.toString().toUtf8());
 
     return status;
 }
@@ -474,7 +486,7 @@ PasPanel::PasPanel(Identity identity, Client *pClient) :
     m_SP.SetPanelType(StewartPlatform::PanelType::OPT);
 
     // define possible children types
-    m_ChildrenTypes = {PAS_ACTType, PAS_MPESType};
+    m_ChildrenTypes = {PAS_ACTType, PAS_MPESType, PAS_EdgeType};
 
     // make sure things update on the first boot up
     // duration takes seconds -- hence the conversion with the 1/1000 ratiot
@@ -644,7 +656,12 @@ UaStatusCode PasPanel::Operate(OpcUa_UInt32 offset, const UaVariantArray &args)
      * move actuators to the preset lengths         *
      * **********************************************/
     if (offset == PAS_PanelType_MoveTo_Acts) {
+#ifndef SIMMODE
         status =  __moveTo();
+#else
+        for (int i = 0; i < 6; i++)
+            m_inCoords[i] = m_curCoords[i];
+#endif
     }
 
 
@@ -660,7 +677,12 @@ UaStatusCode PasPanel::Operate(OpcUa_UInt32 offset, const UaVariantArray &args)
             val.setDouble(m_SP.GetActLengths()[act.first - 1]);
             pACT.at(act.second)->setData(PAS_ACTType_inLength_mm, val);
         }
+#ifndef SIMMODE
         status =  __moveTo();
+#else
+        for (int i = 0; i < 6; i++)
+            m_inCoords[i] = m_curCoords[i];
+#endif
         PASState state;
         getState(state);
         cout << "Current State is " << static_cast<unsigned>(m_state) << " and it is equivalent to PASState::PAS_Busy : " << (state == PASState::PAS_Busy) << endl;
@@ -696,6 +718,55 @@ UaStatusCode PasPanel::Operate(OpcUa_UInt32 offset, const UaVariantArray &args)
             if (!status.isGood()) return status;
 
         }
+
+        //Ruo, try to estimate new laser spot positions after actuators move
+
+        ///
+        /// This part predicts the new laser spot positions before we move the actuators.
+        /// Will make a new function of this and allow all actuator operations to call this function before moving.
+        ///
+        MatrixXd A; // response matrix
+        VectorXd X; // actuator delta length
+        VectorXd W; // sensor current position
+        VectorXd Y; // sensor delta
+        VectorXd Z; // sensor new position = Y + current sensor reading
+        VectorXd V; // aligned sensor reading
+        for(auto elem :m_pChildren)
+        {
+               std::cout << "Ruo, child of a panel: " << elem.first << "\n";
+               for (auto elem2nd :elem.second)
+               {
+                        std::cout << " " << elem2nd->getId() << "\n";
+               }
+        }
+        for (int edge2align=0; edge2align<m_pChildren.at(PAS_EdgeType).size(); edge2align++)
+        {
+                PasEdge* edge = static_cast<PasEdge *> (m_pChildren.at(PAS_EdgeType).at(edge2align));
+                //edge->Operate(PAS_EdgeType_Read);
+                edge->getAlignedReadings();
+                //cout << "\nTarget MPES readings:\n" << m_AlignedReadings << endl << endl;
+                A = edge->getResponseMatrix(m_ID.position);
+                W = edge->getCurrentReadings();
+                V = edge->getAlignedReadings();
+                cout << "Looking at edge " << edge->getId() << endl;
+                cout << "\nActuator response matrix for this edge:\n" << A << endl;
+                //m_SP.GetActLengths() is the new act length
+                //m_ActuatorLengths is the current act length
+                VectorXd newLengths(6);
+                for (unsigned i = 0; i < 6; i++)
+                    newLengths(i) = m_SP.GetActLengths()[i];
+                cout << "New Act length is \n" << newLengths << endl;
+                cout << "Current Act length is \n" << m_ActuatorLengths << endl;
+                X = newLengths-m_ActuatorLengths; 
+                cout << "Delta Act length will be \n" << X << endl;
+                Y = A*X;
+                Z = Y+W;
+                cout << "The new sensor coordinates (x, y) will be:\n" << Z << endl;
+                cout << "\n will deviate from the aligned position by\n" << Z-V << endl;
+        }
+        //Ruo
+
+
         m_SP.ComputeStewart(actLengths);
         cout << "\n\tThe new panel coordinates (x, y ,z xRot, yRot, zRot) will be:\n\t\t";
         for (int i = 0; i < 6; i++) {
@@ -1005,7 +1076,6 @@ UaStatusCode PasEdge::Operate(OpcUa_UInt32 offset, const UaVariantArray &args)
                     std::cout << " " << elem2nd->getId() << "\n";
            }
     }
-
     unsigned numPanels;
     try {
         numPanels = m_pChildren.at(PAS_PanelType).size();

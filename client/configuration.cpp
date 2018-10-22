@@ -434,7 +434,7 @@ UaStatus Configuration::loadDeviceConfiguration(const std::vector<std::string>& 
                 panelId.serialNumber = sql_results->getInt(1);
                 //panelId.eAddress = "opc.tcp://" + sql_results->getString(2) + ":4840";
                 //panelId.eAddress = "opc.tcp://10.0.1.13:4840"; //Ruo, only use this for servers running on a local PC.
-                panelId.eAddress = "opc.tcp://10.0.1.13:"+std::string(position.c_str()); //Ruo, only use this for servers running on a local PC.
+                panelId.eAddress = "opc.tcp://10.0.1.13:"+std::string(position.c_str()); //Ruo, only use this for servers running on a l
             }
             // add to the list of devices
             m_DeviceList[PAS_PanelType].push_back(panelId);

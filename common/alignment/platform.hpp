@@ -17,6 +17,9 @@
 
 
 // hack to be able to stop mid motion
+/** 
+ * @brief This is the platform class.
+*/
 enum class PlatformState {On = 0, Off = 1, Busy = 2, Error = 3};
 
 class Platform
@@ -117,7 +120,14 @@ Actuator* getActuatorAt(int internal_idx);
 // MPES functionality
 int getMPESCount() {return m_vMPES.size(); }
 MPES* getMPESAt(int internal_idx);
+
+
+/** 
+ * @brief This function adds MPES if they can be initialized at USB ports.
+    In the Sim mode, MPES are added regardlessly.
+*/
 bool addMPES(int USB, int serial);
+
 const MPES::Position& ReadMPES(int internal_idx);
 private:
     std::vector<MPES *> m_vMPES;
