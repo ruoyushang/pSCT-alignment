@@ -10,4 +10,6 @@ count=${#panel_numbers[@]}
 printf "%s total panel servers found in database\n" "$count"
 printf "Starting client...\n"
 
-../sdk/bin/p2pasclient "${myArray[*]}"
+opcua-client &>> /dev/null &
+
+../sdk/bin/p2pasclient "${panel_numbers[*]}"

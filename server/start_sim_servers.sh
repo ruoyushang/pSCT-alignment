@@ -14,7 +14,6 @@ declare -A PANEL_MAP
 while read -r position ip_address;
 do
     PANEL_MAP[$position]=$ip_address
-    printf "%s %s\n" "$position" "$ip_address"
 done < <(mysql --user="CTAreadonly" --password="readCTAdb" --database="CTAonline" --host="remus.ucsc.edu" --port="3406" -ss -e "SELECT position, mpcb_ip_address FROM Opt_MPMMapping")
 
 count=${#PANEL_MAP[@]}
@@ -36,7 +35,7 @@ done
 
 printf "Done.\n"
 
-read -n1 -r -p "Press x to shut down...\n" key
+read -n1 -r -p "Press x to shut down..." key
 
 if [ "$key" = 'x' ]; then
     interrupt

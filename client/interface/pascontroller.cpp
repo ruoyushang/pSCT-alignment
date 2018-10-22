@@ -848,7 +848,7 @@ UaStatus PasPanel::__moveTo()
     return status;
 }
 
-void PasPanel::__willSensorsBeOutOfRange()
+bool PasPanel::__willSensorsBeOutOfRange()
 {
         //Ruo, try to estimate new laser spot positions after actuators move
 
