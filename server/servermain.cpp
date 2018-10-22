@@ -181,7 +181,7 @@ int main(int argc, char* argv[])
     }
 
     int c;
-    char *config_file_path = NULL;
+    const char *config_file_path = NULL;
     char *cbc_ip_addr = NULL;
 
     while ((c = getopt (argc, argv, "c:")) != -1) {
