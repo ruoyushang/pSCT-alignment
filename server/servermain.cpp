@@ -60,7 +60,7 @@ int CheckSystem(double *size)
 }
 
 
-int OpcServerMain(const char* szAppPath, const char* serverUrl, const char* endpointUrl)
+int OpcServerMain(const char* szAppPath, const char* configFilePath, const char* serverUrl)
 {
     int ret = 0;
 
@@ -77,14 +77,7 @@ int OpcServerMain(const char* szAppPath, const char* serverUrl, const char* endp
     {
         // Create configuration file name
         UaString sAppPath(szAppPath);
-        UaString sEndpointUrl(endpointUrl);
-        UaString sConfigFileName(szAppPath);
-
-#if SUPPORT_XML_PARSER
-        sConfigFileName += "/ServerConfig.xml";
-#else
-        sConfigFileName += "/ServerConfig.ini";
-#endif
+        UaString sConfigFileName(configFilePath);
 
         //- Start up OPC server ---------------------
         // This code can be integrated into a startup
@@ -92,16 +85,15 @@ int OpcServerMain(const char* szAppPath, const char* serverUrl, const char* endp
         // OPC server should be integrated
         //-------------------------------------------
         // Create and initialize server object
-        UaServerApplication* pServer = new UaServerApplication();
+        OpcServer* pServer = new OpcServer();
         pServer->setServerConfig(sConfigFileName, sAppPath);
 
         // Get config and overwrite endpoint URL
-        printf("%s", sConfigFileName.toUtf8());
-        UaEndpointArray endpoints;
-        OpcUa_UInt32 rejected_certificates_count = 1;
-        ServerConfig *pConfig = pServer->getServerConfig();
+        //UaEndpointArray endpoints;
+        //OpcUa_UInt32 rejected_certificates_count = 1;
+        //ServerConfig *pConfig = pServer->getServerConfig();
         //pConfig->loadConfiguration();
-        pConfig->getEndpointConfiguration(sAppPath, rejected_certificates_count, endpoints);
+        //pConfig->getEndpointConfiguration(sAppPath, rejected_certificates_count, endpoints);
         //printf("Number of endpoints: %d\n", endpoints.length());
         //endpoints[0]->setEndpointUrl(sEndpointUrl, false);
 
@@ -184,29 +176,39 @@ int main(int argc, char* argv[])
 #endif
 {
     if (argc == 1) {
-        printf("Usage: %s <CBC IP ADDRESS> -e <ENDPOINT IP ADDRESS>\n", argv[0]);
+        printf("Usage: %s <CBC IP ADDRESS> -c <CONFIG_FILE_PATH>\n", argv[0]);
         return 1;
     }
 
     int c;
-    char *endpoint_addr = NULL;
+    char *config_file_path = NULL;
     char *cbc_ip_addr = NULL;
 
-    while ((c = getopt (argc, argv, "e:")) != -1) {
+    while ((c = getopt (argc, argv, "c:")) != -1) {
         switch(c)
         {
-        case 'e':
-            endpoint_addr = optarg;
+        case 'c':
+            config_file_path = optarg;
             break;
         case '?':
-            if (optopt == 'e')
-                printf("Must provide an endpoint IP address with option e");
+            if (optopt == 'c')
+                printf("Must provide a config file path with option c");
          }
     }
 
     cbc_ip_addr = argv[optind];
-    if(!endpoint_addr) {
-        endpoint_addr = cbc_ip_addr;
+
+#if SUPPORT_XML_PARSER
+        char *sConfigFileName = "/ServerConfig.xml";
+#else
+        char *sConfigFileName = "/ServerConfig.ini";
+#endif
+
+    // Extract application path
+    char* pszAppPath = getAppPath();
+
+    if(!config_file_path) {
+        config_file_path = (std::string(pszAppPath) + sConfigFileName).c_str();
     }
 
     int ret = 0;
@@ -225,12 +227,9 @@ int main(int argc, char* argv[])
 
     RegisterSignalHandler();
 
-    // Extract application path
-    char* pszAppPath = getAppPath();
-
     //-------------------------------------------
     // Call the OPC server main method
-    ret = OpcServerMain(pszAppPath, cbc_ip_addr, endpoint_addr);
+    ret = OpcServerMain(pszAppPath, config_file_path, cbc_ip_addr);
     //-------------------------------------------
 
     if ( pszAppPath ) delete [] pszAppPath;
