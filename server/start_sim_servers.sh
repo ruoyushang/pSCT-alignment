@@ -33,17 +33,20 @@ for panel_num in "${!PANEL_MAP[@]}"; do
      printf "(%d/%d) Starting server for panel %d at address %s.\n" "$i" "$count" "$panel_num" "$endpoint_addr"
      abspath=$(realpath $config_filename)
      ../sdk/bin/passerver "${PANEL_MAP[$panel_num]}" "-c$abspath" >/dev/null &
-     #rm "$config_filename"
      ((i++))
 done
+
+sleep 30s
+
+rm 0*.xml
+rm 1*.xml
+rm 2*.xml
 
 printf "Done.\n"
 
 read -n1 -r -p "Press x to shut down..." key
 
 if [ "$key" = 'x' ]; then
-    rm 1*.xml
-    rm 2*.xml
     interrupt
 fi
 
