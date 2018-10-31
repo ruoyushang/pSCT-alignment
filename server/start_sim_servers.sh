@@ -27,7 +27,7 @@ printf "Starting all servers...\n"
 i=1
 for panel_num in "${!PANEL_MAP[@]}"; do
      config_filename="$panel_num$extension"
-     endpoint_addr="opc.tcp://10.0.1.13:$panel_num"
+     endpoint_addr="opc.tcp://127.0.0.1:$panel_num"
      cp "TemplateServerConfig.xml" "$config_filename"
      sed -i "s@URL_LOCATION@$endpoint_addr@g" "$config_filename"
      printf "(%d/%d) Starting server for panel %d at address %s.\n" "$i" "$count" "$panel_num" "$endpoint_addr"
