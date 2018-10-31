@@ -24,10 +24,10 @@ class MPES
         ~MPES();
 
         void setUSBPortNumber(int input_USBPortNumber);
-        bool Initialize();
-        int setExposure();
+        virtual bool Initialize();
+        virtual int setExposure();
 
-        int MeasurePosition();
+        virtual int MeasurePosition();
         struct Position {
             float xCenter;
             float yCenter;
@@ -65,6 +65,40 @@ class MPES
         float Safety_Region_x_max;
         float Safety_Region_y_min;
         float Safety_Region_y_max;
+};
+class DummyMPES : public MPES
+{
+        public:
+        DummyMPES();
+        DummyMPES(CBC* input_cbc, int input_USBPortNumber, int input_MPES_ID) : MPES(input_cbc, input_USBPortNumber, input_MPES_ID) {};
+        bool Initialize();
+        int setExposure();
+        int MeasurePosition();
+
+        private:
+        CBC* m_pCBC;
+
+        int m_USBPortNumber;
+        int m_serialNumber;
+
+        static int sDefaultImagesToCapture;
+        bool calibrate;
+        static std::string matFileString;
+        static std::string calFileString;
+
+        // MPES Reading
+        Position m_position;
+        // helpers
+        MPESImageSet *m_pImageSet;
+        MPESDevice *m_pDevice;
+        std::set<int> __getVideoDevices();
+
+        // sanity
+        float Safety_Region_x_min;
+        float Safety_Region_x_max;
+        float Safety_Region_y_min;
+        float Safety_Region_y_max;
+
 };
 
 #endif

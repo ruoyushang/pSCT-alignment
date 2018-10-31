@@ -109,7 +109,7 @@ UaStatus PasNodeManager::afterStartUp()
 
     std::map<unsigned, UaFolder *> pDeviceFolders;
     std::map<PasController *, PasObject *> pDeviceObjects;
-
+    
     std::string deviceName;
     std::string folderName;
     unsigned deviceType;
@@ -187,10 +187,14 @@ UaStatus PasNodeManager::afterStartUp()
     std::map<PasController *, PasObject *> pRootDevices;
     pRootDevices.insert(pDeviceObjects.begin(), pDeviceObjects.end());
 
+    UaString objectName;
+
     // Loop through all created objects and add references to children
     for (std::map<PasController *, PasObject *>::iterator it=pDeviceObjects.begin(); it!=pDeviceObjects.end(); ++it) {
         pController = it->first;
         pObject = it->second;
+
+        objectName = pObject->nodeId().toString();
 
         // Check if object has children (is a composite controller)
         if (dynamic_cast<PasCompositeController*>(pController)) {
@@ -201,7 +205,8 @@ UaStatus PasNodeManager::afterStartUp()
                 try {
                     pChildren = dynamic_cast<PasCompositeController*>(pController)->getChildren(deviceType);
                     if (!pChildren.empty()) {
-                        pFolder = new UaFolder(UaString(deviceName.c_str()), UaNodeId(UaString(deviceName.c_str()), getNameSpaceIndex()), m_defaultLocaleId);
+
+                        pFolder = new UaFolder(UaString(deviceName.c_str()), UaNodeId(objectName + UaString(deviceName.c_str()), getNameSpaceIndex()), m_defaultLocaleId);
                         ret = addNodeAndReference(pObject->nodeId(), pFolder, OpcUaId_HasComponent);
                         UA_ASSERT(ret.isGood());
                         for ( auto &child : pChildren) {

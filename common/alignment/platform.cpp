@@ -45,7 +45,11 @@ DEBUG_MSG("Creating Emergency Platform Object.");
 for (int i=0; i<6; i++)
 {
 //actuator[i]=new Actuator(&cbc, i+1);
-actuator[i]=Actuator(&cbc, i+1);
+#ifndef SIMMODE
+actuator[i]=new Actuator(&cbc, i+1);
+#else
+actuator[i]=new DummyActuator(&cbc, i+1);
+#endif
 }
 Initialize();
 }
@@ -57,7 +61,11 @@ DEBUG_MSG("Creating Platform Object with Actuator Serial Numbers and Ports");
 for (int i=0; i<6; i++)
 {
 //actuator[i]=new Actuator(&cbc, ActuatorPorts[i], ActuatorSerials[i]);
-actuator[i]=Actuator(&cbc, ActuatorPorts[i], ActuatorSerials[i]);
+#ifndef SIMMODE
+actuator[i]=new Actuator(&cbc, ActuatorPorts[i], ActuatorSerials[i]);
+#else
+actuator[i]=new DummyActuator(&cbc, ActuatorPorts[i], ActuatorSerials[i]);
+#endif
 }
 Initialize();
 }
@@ -69,7 +77,11 @@ DEBUG_MSG("Creating Platform Object with Actuator Serial Numbers, Ports, and DB 
 for (int i=0; i<6; i++)
 {
 //actuator[i]=new Actuator(&cbc, ActuatorPorts[i], ActuatorSerials[i], InputDBInfo);
-actuator[i]=Actuator(&cbc, ActuatorPorts[i], ActuatorSerials[i], InputDBInfo);
+#ifndef SIMMODE
+actuator[i]=new Actuator(&cbc, ActuatorPorts[i], ActuatorSerials[i], InputDBInfo);
+#else
+actuator[i]=new DummyActuator(&cbc, ActuatorPorts[i], ActuatorSerials[i], InputDBInfo);
+#endif
 }
 SetCBCSerialNumber(CBCSerial);
 SetDB(InputDBInfo);
@@ -83,7 +95,11 @@ DEBUG_MSG("Creating Platform Object with Actuator Serial Numbers, Ports, DB Info
 for (int i=0; i<6; i++)
 {
 //actuator[i]=new Actuator(&cbc, ActuatorPorts[i], ActuatorSerials[i], InputDBInfo, InputASFInfo);
-actuator[i]=Actuator(&cbc, ActuatorPorts[i], ActuatorSerials[i], InputDBInfo, InputASFInfo);
+#ifndef SIMMODE
+actuator[i]=new Actuator(&cbc, ActuatorPorts[i], ActuatorSerials[i], InputDBInfo, InputASFInfo);
+#else
+actuator[i]=new DummyActuator(&cbc, ActuatorPorts[i], ActuatorSerials[i], InputDBInfo, InputASFInfo);
+#endif
 }
 SetCBCSerialNumber(CBCSerial);
 SetDB(InputDBInfo);
@@ -236,16 +252,16 @@ std::array<Actuator::Position, 6> FinalPosition;
 
 for (int i=0; i<6; i++)
 {
-actuator[i].ReadStatusFromASF();
-actuator[i].CheckCurrentPosition();
-FinalPosition[i]=actuator[i].PredictPosition(actuator[i].CurrentPosition,-InputSteps[i]);//negative steps because positive step is extension of motor, negative steps increases counter since home is defined (0,0)
-StepsRemaining[i]=-(actuator[i].CalculateStepsFromHome(FinalPosition[i])-actuator[i].CalculateStepsFromHome(actuator[i].CurrentPosition));
+actuator[i]->ReadStatusFromASF();
+actuator[i]->CheckCurrentPosition();
+FinalPosition[i]=actuator[i]->PredictPosition(actuator[i]->CurrentPosition,-InputSteps[i]);//negative steps because positive step is extension of motor, negative steps increases counter since home is defined (0,0)
+StepsRemaining[i]=-(actuator[i]->CalculateStepsFromHome(FinalPosition[i])-actuator[i]->CalculateStepsFromHome(actuator[i]->CurrentPosition));
 
-if (FinalPosition[i].Revolution < actuator[i].ExtendRevolutionLimit || FinalPosition[i].Revolution >= actuator[i].RetractRevolutionLimit)
+if (FinalPosition[i].Revolution < actuator[i]->ExtendRevolutionLimit || FinalPosition[i].Revolution >= actuator[i]->RetractRevolutionLimit)
 {
 ERROR_MSG("Operable Error: Attempting to move Actuator with Index " << i << " outside of software range.");
 SetError(12);
-ERROR_MSG("Attempting to move outside of Software Range(" << actuator[i].HomeLength-(actuator[i].RetractRevolutionLimit*actuator[i].StepsPerRevolution*actuator[i].mmPerStep) << "-" << actuator[i].HomeLength-(actuator[i].ExtendRevolutionLimit*actuator[i].StepsPerRevolution*actuator[i].mmPerStep) << "mm) for Actuator " << actuator[i].SerialNumber);
+ERROR_MSG("Attempting to move outside of Software Range(" << actuator[i]->HomeLength-(actuator[i]->RetractRevolutionLimit*actuator[i]->StepsPerRevolution*actuator[i]->mmPerStep) << "-" << actuator[i]->HomeLength-(actuator[i]->ExtendRevolutionLimit*actuator[i]->StepsPerRevolution*actuator[i]->mmPerStep) << "mm) for Actuator " << actuator[i]->SerialNumber);
  
     // reset the state to Off
     m_State = PlatformState::Off;
@@ -255,7 +271,7 @@ return InputSteps;
 
 if(StepsRemaining[i] != 0)
 {
-ActuatorIterations[i]=1+((std::abs(StepsRemaining[i])-1)/actuator[i].RecordingInterval);//simply integer division rounded up, hence the -1.
+ActuatorIterations[i]=1+((std::abs(StepsRemaining[i])-1)/actuator[i]->RecordingInterval);//simply integer division rounded up, hence the -1.
 }
 }
 
@@ -292,14 +308,14 @@ RecordActuatorsToDB();
 return StepsRemaining;
 }
 StepsToTake[i]=StepsToTake[i]+StepsRemaining[i]/IterationsRemaining;
-if(std::abs(StepsToTake[i])>actuator[i].RecordingInterval)
+if(std::abs(StepsToTake[i])>actuator[i]->RecordingInterval)
 {
 Sign=(StepsToTake[i]>0)-(StepsToTake[i]<0);
-StepsMissed=actuator[i].Step(Sign*actuator[i].RecordingInterval);
+StepsMissed=actuator[i]->Step(Sign*actuator[i]->RecordingInterval);
 CheckActuatorErrorStatus(i);
-StepsToTake[i]=StepsToTake[i]-(Sign*actuator[i].RecordingInterval)+StepsMissed;
-StepsRemaining[i]=-(actuator[i].CalculateStepsFromHome(FinalPosition[i])-actuator[i].CalculateStepsFromHome(actuator[i].CurrentPosition));
-ActuatorIterations[i]=1+((std::abs(StepsRemaining[i])-1)/actuator[i].RecordingInterval);
+StepsToTake[i]=StepsToTake[i]-(Sign*actuator[i]->RecordingInterval)+StepsMissed;
+StepsRemaining[i]=-(actuator[i]->CalculateStepsFromHome(FinalPosition[i])-actuator[i]->CalculateStepsFromHome(actuator[i]->CurrentPosition));
+ActuatorIterations[i]=1+((std::abs(StepsRemaining[i])-1)/actuator[i]->RecordingInterval);
 DEBUG_MSG("Steps Remaining for Actuator Index " << i << ": " << StepsRemaining[i]);
 }
 }
@@ -324,9 +340,9 @@ return StepsRemaining;
 }
 if(StepsRemaining[i] != 0)
 {
-actuator[i].HysteresisMotion(StepsRemaining[i]);
+actuator[i]->HysteresisMotion(StepsRemaining[i]);
 CheckActuatorErrorStatus(i);
-StepsRemaining[i]=-(actuator[i].CalculateStepsFromHome(FinalPosition[i])-actuator[i].CalculateStepsFromHome(actuator[i].CurrentPosition));
+StepsRemaining[i]=-(actuator[i]->CalculateStepsFromHome(FinalPosition[i])-actuator[i]->CalculateStepsFromHome(actuator[i]->CurrentPosition));
 }
 
 }
@@ -343,7 +359,7 @@ return StepsRemaining;
 
 void Platform::CheckActuatorErrorStatus(int ActuatorIndex)
 {
-Actuator::StatusModes ErrorStatus=actuator[ActuatorIndex].ErrorStatus;
+Actuator::StatusModes ErrorStatus=actuator[ActuatorIndex]->ErrorStatus;
 if(ErrorStatus == Actuator::FatalError)
 {
 SetError((2*ActuatorIndex)+1);
@@ -422,8 +438,8 @@ std::array<float,6> VoltageAfter;
 
 for (int i=0; i<6; i++)
 {
-SearchSteps[i]=Direction*actuator[i].EndstopSearchStepsize;
-VoltageAfter[i]=actuator[i].MeasureVoltage();
+SearchSteps[i]=Direction*actuator[i]->EndstopSearchStepsize;
+VoltageAfter[i]=actuator[i]->MeasureVoltage();
 //CheckActuatorErrorStatus(i);
 if (DisallowMovement)
 {
@@ -441,8 +457,8 @@ for (int i=0; i<6; i++)
 if (NotReachedStop[i])
 {
 VoltageBefore[i]=VoltageAfter[i];
-cbc.driver.step(actuator[i].PortNumber, SearchSteps[i]);
-VoltageAfter[i]=actuator[i].MeasureVoltage();
+cbc.driver.step(actuator[i]->PortNumber, SearchSteps[i]);
+VoltageAfter[i]=actuator[i]->MeasureVoltage();
 CheckActuatorErrorStatus(i);
 if (DisallowMovement)
 {
@@ -450,7 +466,7 @@ cbc.driver.disableAll();
 return;
 }
 AbsDeltaVoltage[i]=std::fabs(VoltageAfter[i]-VoltageBefore[i]);
-if (AbsDeltaVoltage[i]<std::fabs(actuator[i].dV*SearchSteps[i]*StoppedSteppingFactor))
+if (AbsDeltaVoltage[i]<std::fabs(actuator[i]->dV*SearchSteps[i]*StoppedSteppingFactor))
 {
 NotReachedStop[i]=false;
 }
@@ -501,11 +517,11 @@ for (int i=0; i<6; i++)
 {
 if(Direction == 1)
 {
-actuator[i].FindHomeFromExtendStop();
+actuator[i]->FindHomeFromExtendStop();
 }
 else if(Direction == -1)
 {
-actuator[i].FindHomeFromRetractStop();
+actuator[i]->FindHomeFromRetractStop();
 }
 else
 {
@@ -551,7 +567,7 @@ return;
 cbc.driver.enableAll();
 for (int i=0; i<6; i++)
 {
-actuator[i].ProbeHome();
+actuator[i]->ProbeHome();
 CheckActuatorErrorStatus(i);
 if (DisallowMovement)
 {
@@ -571,7 +587,7 @@ DEBUG_MSG("Measuring Lengths of All Actuators");
 std::array<float,6> CurrentLengths;
 for (int i=0; i<6; i++)
 {
-CurrentLengths[i]=actuator[i].MeasureLength();
+CurrentLengths[i]=actuator[i]->MeasureLength();
 //CheckActuatorErrorStatus(i);
 }
 return CurrentLengths;
@@ -585,7 +601,7 @@ std::array<int, 6> StepsToTake;
 for (int i=0; i<6; i++)
 {
 LengthsToMove[i]=TargetLengths[i]-CurrentLengths[i];
-StepsToTake[i]=std::floor((LengthsToMove[i]/actuator[i].mmPerStep)+0.5);
+StepsToTake[i]=std::floor((LengthsToMove[i]/actuator[i]->mmPerStep)+0.5);
 }
 std::array<int, 6> StepsRemaining=Step(StepsToTake);
 CurrentLengths=MeasureLengths();
@@ -628,7 +644,7 @@ void Platform::RecordActuatorsToDB()
 //DEBUG_MSG("Recording All Actuators To DB");
 for (int i=0; i<6; i++)
 {
-//actuator[i].RecordStatusToDB();//uncomment this when db can be used locally.
+//actuator[i]->RecordStatusToDB();//uncomment this when db can be used locally.
 }
 }
 
@@ -671,18 +687,18 @@ CheckErrorStatus();
 void Platform::RecoverActuatorStatusFromDB(int ActuatorIndex)
 {
 DEBUG_MSG("Recovering Actuator Status with Index " << ActuatorIndex << " from Database");
-actuator[ActuatorIndex].ReadStatusFromDB();
-actuator[ActuatorIndex].CheckCurrentPosition();
-actuator[ActuatorIndex].RecordStatusToASF();
+actuator[ActuatorIndex]->ReadStatusFromDB();
+actuator[ActuatorIndex]->CheckCurrentPosition();
+actuator[ActuatorIndex]->RecordStatusToASF();
 CheckActuatorErrorStatus(ActuatorIndex);
 }
 
 void Platform::RecoverActuatorStatusFromDBAndASF(int ActuatorIndex)
 {
 DEBUG_MSG("Recovering Actuator Status with Index " << ActuatorIndex << " from Database and ASF");
-actuator[ActuatorIndex].ReadStatusFromDBAndASF();
-actuator[ActuatorIndex].CheckCurrentPosition();
-actuator[ActuatorIndex].RecordStatusToASF();
+actuator[ActuatorIndex]->ReadStatusFromDBAndASF();
+actuator[ActuatorIndex]->CheckCurrentPosition();
+actuator[ActuatorIndex]->RecordStatusToASF();
 CheckActuatorErrorStatus(ActuatorIndex);
 }
 
@@ -693,12 +709,12 @@ CBCSerialNumber=InputSerial;
 
 void Platform::ClearActuatorAllErrors(int ActuatorIndex)
 {
-actuator[ActuatorIndex].ClearAllErrors();
+actuator[ActuatorIndex]->ClearAllErrors();
 }
 
 void Platform::ClearActuatorSingleError(int ActuatorIndex, int CodeNumber)
 {
-actuator[ActuatorIndex].UnsetError(CodeNumber);
+actuator[ActuatorIndex]->UnsetError(CodeNumber);
 }
 
 void Platform::ClearPlatformAllErrors()
@@ -716,11 +732,11 @@ void Platform::FindHomeFromEndStop(int Direction, int ActuatorIndex)
 {
 if(Direction==1)
 {
-actuator[ActuatorIndex].FindHomeFromExtendStop();
+actuator[ActuatorIndex]->FindHomeFromExtendStop();
 }
 else if(Direction == -1)
 {
-actuator[ActuatorIndex].FindHomeFromRetractStop();
+actuator[ActuatorIndex]->FindHomeFromRetractStop();
 }
 }
 
@@ -736,13 +752,13 @@ FindHomeFromEndStop(-1, ActuatorIndex);
 
 void Platform::ProbeHome(int ActuatorIndex)
 {
-actuator[ActuatorIndex].ProbeHome();
+actuator[ActuatorIndex]->ProbeHome();
 }
 
 Actuator* Platform::getActuatorAt(int internal_idx)
 {
     try {
-        return &actuator.at(internal_idx);
+        return actuator.at(internal_idx);
     }
     catch (out_of_range) {
         return nullptr;
@@ -758,6 +774,7 @@ MPES* Platform::getMPESAt(int internal_idx)
         return nullptr;
     }
 }
+
 bool Platform::addMPES(int USB, int serial)
 {
     if (serial < 0)
@@ -765,15 +782,12 @@ bool Platform::addMPES(int USB, int serial)
 
     cout << "Adding MPES "<< serial << " at USB " << USB << "..." << endl;
 
+#ifndef SIMMODE
     MPES *newMPES = new MPES(&cbc, USB, serial);
-    // Ruo, only use this for sim mode.
-///
-/// This part adds the MPES if they can be initialized at the USB ports.
-/// In the SIMMODE, MPES will be added anyway.
-///
-#ifdef SIMMODE
-    m_vMPES.push_back(newMPES);
 #else
+    cout << "Using SIMMODE..."<< endl;
+    MPES *newMPES = new DummyMPES(&cbc, USB, serial);
+#endif
     if (!newMPES->Initialize()) {
         cout << "+++ Platform: Couldn't initialize MPES at USB " << USB << endl;
         delete newMPES;
@@ -781,7 +795,6 @@ bool Platform::addMPES(int USB, int serial)
     }
     else
         m_vMPES.push_back(newMPES);
-#endif
 
     return true;
 }
