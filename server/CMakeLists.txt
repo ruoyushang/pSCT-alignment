@@ -44,7 +44,9 @@ SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH FALSE)
 
 # need libusb.so -- might not be on the system!!
 # brute force it for now
-SET(LIBUSB_LIBRARIES "/usr/lib64/libusb-1.0.so.0")
+#SET(LIBUSB_LIBRARIES "/usr/lib64/libusb-1.0.so.0")
+#SET(LIBUSB_LIBRARIES "/lib/x86_64-linux-gnu/libusb-1.0.so.0")
+SET(LIBUSB_LIBRARIES "${LD_LIBRARY_PATH}/libusb-1.0.so.0")
 
 MESSAGE( STATUS "" )
 MESSAGE( STATUS "====================================" )
@@ -150,7 +152,7 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/interface)
 include_directories(${UASDK_BASE_DIR}/include)
 include_directories(${UASTACK_INCLUDE})
 include_directories(${UABASE_INCLUDE})
-include_directories(${UASERVER_INCLUDE})
+include_directories(${UACOREMODULE_INCLUDE})
 include_directories(${COMMON_CODE_DIR}/mpescode)
 include_directories(${COMMON_CODE_DIR}/cbccode)
 include_directories(${COMMON_CODE_DIR}/opcua)
@@ -243,12 +245,14 @@ SET_PROPERTY(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 11)
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11" )
 
 IF ( NOT TARGET uastack )
+    message(WARNING " UA_LIB_DIR = ${UA_LIB_DIR}")
     TARGET_LINK_LIBRARIES(${PROJECT_NAME}       ${UAMODULE_LIBRARY}
                           ${UAMODELS_LIBRARY}  ${UACOREMODULE_LIBRARY}
                           ${UABASE_LIBRARY}    ${UASTACK_LIBRARY}
                           ${PLATTFORM_LIBS} ${OpenCV_LIBRARIES} ${ROOT_LIBRARIES} ${MYSQLCONNECTORCPP_LIBRARIES} ${LIBUSB_LIBRARIES})
 
 ELSE ()
+    message(WARNING " UA_LIB_DIR = ${UA_LIB_DIR}")
     TARGET_LINK_LIBRARIES(${PROJECT_NAME} uamodule uamodels coremodule uabase
         uastack ${PLATTFORM_LIBS} ${OpenCV_LIBRARIES} ${ROOT_LIBRARIES} ${MYSQLCONNECTORCPP_LIBRARIES} ${LIBUSB_LIBRARIES})
 ENDIF ()

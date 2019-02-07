@@ -30,7 +30,7 @@ Actuator::StatusModes ErrorStatus {Actuator::Healthy};
 
 bool DisallowMovement{false};
 CBC cbc;
-std::array<Actuator,6> actuator;
+std::array<Actuator *,6> actuator;
 bool DBFlag{false};
 float InternalTemperatureSlope{100.0};
 float InternalTemperatureOffset{-50.0};

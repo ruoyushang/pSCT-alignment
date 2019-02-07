@@ -188,3 +188,39 @@ set<int> MPES::__getVideoDevices()
 
     return device_set;
 }
+
+bool DummyMPES::Initialize()
+{
+
+    cout << "DummyMPES::Initialize(): Creating new video device " << endl;
+    Safety_Region_x_min = 60.0;	
+    Safety_Region_x_max = 260.0;	
+    Safety_Region_y_min = 40.0;	
+    Safety_Region_y_max = 200.0;	
+
+    return true;
+}
+int DummyMPES::setExposure()
+{
+    cout << "+++ Dummy MPES: Setting exposure for device at USB " << m_USBPortNumber << endl;
+    int intensity;
+    // need to check if intensity is non-zero!
+    int counter = 0;
+    intensity = 1;
+    cout << "setExposure(): DONE" << endl;
+    return intensity;
+}
+int DummyMPES::MeasurePosition()
+{
+    // initialize to something obvious in case of failure
+    m_position.xCenter = 160.;
+    m_position.yCenter = 80.;
+    m_position.xStdDev = 10.;
+    m_position.yStdDev = 10.;
+    m_position.CleanedIntensity = 0.;
+
+    if (m_position.xCenter == -1. || m_position.yCenter == -1. )
+        cout << "mpes reading -1! potentially lost beam" << endl;
+
+    return static_cast<int>(m_position.CleanedIntensity);
+}

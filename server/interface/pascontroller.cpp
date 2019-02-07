@@ -237,7 +237,6 @@ UaStatusCode PasMPES::getData(
     int dataoffset = offset - PAS_MPESType_xCentroidAvg;
     if ( (dataoffset >= 7) || (dataoffset < 0))
         return OpcUa_BadInvalidArgument;
-
     if (!m_updated)
         value.setFloat(0.);
     else
@@ -385,6 +384,9 @@ UaStatusCode PasACT::getData(
     case 1:
         {
             value.setFloat(m_pPlatform->getActuatorAt(m_ID)->MeasureLength());
+#ifdef SIMMODE
+        std::cout << "PasACT::getData -> getActuatorAt(m_ID)->MeasureLength() = " << value.toString().toUtf8() << std::endl;
+#endif
             break;
         }
     case 2:

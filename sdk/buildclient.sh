@@ -80,7 +80,6 @@ if [ "$TOOLCHAIN" == "" ]; then
         export CFLAGS='-march=x86-64 -mtune=generic -fPIC -fno-strict-aliasing -g'
         export CXXFLAGS=$CFLAGS
         export CC CXX CFLAGS CXXFLAGS
-        echo ${CXXFLAGS}
     fi
 fi
 
@@ -90,14 +89,19 @@ fi
 export UASDKDIR
 # build all configurations
 for config in $CONFIGURATIONS; do
+    if [[ $config = "SIMMODE" ]]; then
+        config="Release"
+        suffix="SIMMODE"
+        OPTION=${OPTION}" -DSIMMODE:bool=true"
+    fi
     # build all modules
     for module in $MODULES; do
         # create build directory
-        mkdir -p $UASDKDIR/buildclient$config/$module || { echo "mkdir failed."; exit 1; }
+        mkdir -p $UASDKDIR/buildclient$config$suffix/$module || { echo "mkdir failed."; exit 1; }
         # enter build directory
-        cd $UASDKDIR/buildclient$config/$module || { echo "cd failed."; exit 1; }
+        cd $UASDKDIR/buildclient$config$suffix/$module || { echo "cd failed."; exit 1; }
         # create the Makefile using CMake
-        cmake "$TOOLCHAIN" "$OPTION" -DCMAKE_BUILD_TYPE=$config -DBUILD_SHARED_LIBS=$BUILD_SHARED_LIBS -DCMAKE_INSTALL_PREFIX=$CMAKE_INSTALL_PREFIX $UASDKDIR/../$module || { echo "cmake failed."; exit 1; }
+        cmake "$TOOLCHAIN" $OPTION -DCMAKE_BUILD_TYPE=$config -DBUILD_SHARED_LIBS=$BUILD_SHARED_LIBS -DCMAKE_INSTALL_PREFIX=$CMAKE_INSTALL_PREFIX $UASDKDIR/../$module || { echo "cmake failed."; exit 1; }
         # build
         make "$JOBS" || { echo "make failed."; exit 1; }
         # install

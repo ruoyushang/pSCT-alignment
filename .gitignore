@@ -5,15 +5,15 @@
 *.obj
 
 # Compiled Dynamic libraries
-*.so
-*.dylib
-*.dll
+#*.so
+#*.dylib
+#*.dll
 
 # Compiled Static libraries
-*.lai
-*.la
-*.a
-*.lib
+#*.lai
+#*.la
+#*.a
+#*.lib
 
 # Executables
 *.exe
@@ -28,12 +28,13 @@
 *.o
 
 # IDE Files
-.idea
 .vs
+.idea
 
-# Doxygen-generated Files
+# Doxygen-generated files
 doxygen/html
 doxygen/latex
 
 # Unnecessary SDK files
 sdk/examples
+
