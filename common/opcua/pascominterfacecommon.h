@@ -1,0 +1,61 @@
+/******************************************************************************
+** Project: P2PAS Server
+**
+** Description: Common description of the communication interface to access devices.
+** Abstract class to meant to be implemented on both sides.
+******************************************************************************/
+#ifndef __PASCOMUNICATIONINTERFACECOMMON_H__
+#define __PASCOMUNICATIONINTERFACECOMMON_H__
+
+#include "uabase.h"
+#include "uavariant.h"
+#include "statuscode.h"
+#include "uaarraytemplates.h"
+
+struct Identity;
+
+enum class PASState {
+        PAS_On = 0,
+        PAS_Off = 1,
+        PAS_Busy = 2,
+        PAS_Error = 3,
+        GLOB_Positioner_Moving = 10,
+        GLOB_Positioner_notMoving = 11
+    };
+
+
+class PasComInterfaceCommon
+{
+public:
+    PasComInterfaceCommon() {};
+    virtual ~PasComInterfaceCommon() {};
+
+    virtual UaStatusCode Initialize() = 0;
+
+    virtual OpcUa_Int32 getDevices(OpcUa_UInt32 deviceType) = 0;
+
+    virtual UaStatusCode getDeviceConfig(OpcUa_UInt32 type, 
+            OpcUa_UInt32 deviceIndex,
+            UaString& sName,
+            Identity& identity) = 0;
+
+    /* Get device status and data */
+    virtual UaStatusCode getDeviceState(OpcUa_UInt32 type, const Identity& identity, PASState& state) = 0;
+
+    virtual UaStatusCode getDeviceData(OpcUa_UInt32 type, const Identity& identity,
+            OpcUa_UInt32 offset,
+            UaVariant &value) = 0;
+
+    /* Set device status and data*/
+    virtual UaStatusCode setDeviceState(OpcUa_UInt32 type, const Identity& identity, PASState state) = 0;
+
+    virtual UaStatusCode setDeviceData(OpcUa_UInt32 type, const Identity& identity,
+            OpcUa_UInt32 offset,
+            UaVariant value) = 0;
+
+    virtual UaStatusCode OperateDevice(OpcUa_UInt32 type, const Identity& identity,
+            OpcUa_UInt32 offset = 0,
+            const UaVariantArray& args = UaVariantArray()) = 0;
+};
+
+#endif // #ifndef __PASCOMUNICATIONINTERFACECOMMON_H__

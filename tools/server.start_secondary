@@ -1,0 +1,7 @@
+#!/bin/bash
+
+for panel in `cat ~/p2pas/sdk/secondarymirror`; do
+        ./server.start $panel
+        echo ./server.start $panel
+done
+
