@@ -169,4 +169,4 @@ COPY ROBAST.pc /usr/local/lib/pkgconfig
 
 VOLUME /app
 EXPOSE 22 9999 7777
-WORKDIR /software
+WORKDIR /app
