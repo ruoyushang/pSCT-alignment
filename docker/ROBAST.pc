@@ -1,0 +1,10 @@
+prefix=/software/ROBAST
+exec_prefix=${prefix}
+libdir=${exec_prefix}
+includedir=${prefix}/include/
+
+Name: ROBAST
+Description: ROOT-Based Simulator for Ray Tracing (ROBAST)
+Version: 2.4.4
+Libs: -L${libdir} -lROBAST -lm
+Cflags: -I${includedir}
