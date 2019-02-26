@@ -223,12 +223,9 @@ int main(int argc, char* argv[])
 
     RegisterSignalHandler();
 
-    // Extract application path
-    char* pszAppPath = getAppPath();
-
     //-------------------------------------------
     // Call the OPC server main method
-    ret = OpcServerMain(pszAppPath, argv[1]);
+    ret = OpcServerMain(pszAppPath, argv[1], config_file_path);
     //-------------------------------------------
 
     if ( pszAppPath ) delete [] pszAppPath;
