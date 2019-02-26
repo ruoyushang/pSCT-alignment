@@ -13,7 +13,7 @@ class PasCommunicationInterface;
 class Configuration;
 class Client;
 
-/// @brief Node manager class 
+/// @brief Node manager class
 class PasNodeManager : public PasNodeManagerCommon
 {
     UA_DISABLE_COPY(PasNodeManager);
@@ -52,7 +52,7 @@ private:
     /// @brief Adds all custom type nodes for device object types.
     /// @return An OPC UA status code.
     UaStatus amendTypeNodes();
-    /// @brief Configuration object used to 
+    /// @brief Configuration object used to
     Configuration *m_pConfiguration;
     /// @brief Pointers to all OPC UA clients (controller boards) connected to
 	/// the master alignment client.

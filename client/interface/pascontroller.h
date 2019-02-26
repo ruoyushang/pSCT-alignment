@@ -47,7 +47,7 @@ public:
     virtual ~PasController() {};
 
     const Identity& getId() const {return m_ID;}
-    
+
     /* Get Controller status and data */
     virtual UaStatusCode getState(PASState& state) = 0;
     virtual UaStatusCode getData(OpcUa_UInt32 offset, UaVariant& value) = 0;
@@ -100,7 +100,7 @@ class PasCompositeController : public PasController
         std::map< unsigned, std::vector<PasController *> > m_pChildren;
         // deviceType -> {position -> index in m_pChildren.at(deviceType) }
         // m_ChildrenPositionMap.at(deviceType) is oredered by the first index, position.
-        // This makes it perfect for cycling through actuators.
+        // This makes it perfect for cycling through positions.
         std::map< unsigned, std::map<unsigned, unsigned> > m_ChildrenPositionMap;
         // almost a duplicate of the above, but not quite.
         // This guarantees that sensors along the 4-sensor edge are not discarded if their
@@ -115,6 +115,7 @@ class PasMPES : public PasController
     UA_DISABLE_COPY(PasMPES);
 public:
     friend PasEdge;
+    friend PasMirror;
     /* construction / destruction */
     PasMPES(Identity identity, Client *pClient);
     ~PasMPES();
@@ -129,11 +130,14 @@ public:
     UaStatusCode Operate(OpcUa_UInt32 offset = 0, const UaVariantArray &args = UaVariantArray());
     // test if current panel is this sensor's webcam-side panel
     char getPanelSide(unsigned panelpos);
+    bool isVisible() const {return m_isVisible;};
     const Eigen::Matrix<double, 2, 6>& getResponseMatrix(char panelside = 'w') const { return m_ResponseMatMap.at(panelside); }
     const Eigen::Vector2d& getAlignedReadings() const {return m_AlignedReadings;}
+    const Eigen::Vector2d& getSystematicOffsets() const {return SystematicOffsets;}
 
 private:
     bool m_updated;
+    bool m_isVisible;
     struct MPESData {
         OpcUa_Double m_xCentroidAvg;
         OpcUa_Double m_yCentroidAvg;
@@ -143,12 +147,15 @@ private:
         OpcUa_Double m_xNominal;
         OpcUa_Double m_yNominal;
     } data;
-    
+    static float kNominalIntensity;
+    static float kNominalCentroidSD;
+
     Identity m_wPanelId; // id of the webcam-side panel
     // actuator response matrix map -- {panel position -> matrix}
     std::map< char,  Eigen::Matrix<double, 2, 6> > m_ResponseMatMap;
     // aligned readings
     Eigen::Vector2d m_AlignedReadings;
+    Eigen::Vector2d SystematicOffsets;
     // which side the panel is on { panel position -> side ('w' or 'l')
     std::map< unsigned, char > m_PanelSideMap;
     UaStatus read();
@@ -162,15 +169,15 @@ class PasACT : public PasController
     UA_DISABLE_COPY(PasACT);
 public:
     friend PasPanel;
-    // construction / destruction 
+    // construction / destruction
     PasACT(Identity identity, Client *pClient);
     virtual ~PasACT();
 
-    // Get Controller status and data 
+    // Get Controller status and data
     UaStatusCode getState(PASState& state);
     UaStatusCode getData(OpcUa_UInt32 offset, UaVariant& value);
 
-    // set Controller status and data 
+    // set Controller status and data
     UaStatusCode setState(PASState state);
     UaStatusCode setData(OpcUa_UInt32 offset, UaVariant value);
     UaStatusCode Operate(OpcUa_UInt32 offset = 0, const UaVariantArray &args = UaVariantArray());
@@ -188,17 +195,17 @@ class PasPanel : public PasCompositeController
     UA_DISABLE_COPY(PasPanel);
 public:
     friend PasMirror; // for convenient access to internal methods for mirror computations
-    friend PasEdge; // access internal methods for compute and systematic offsets
+    friend PasEdge; // access internal methods for compute
 
-    // construction / destruction 
+    // construction / destruction
     PasPanel(Identity identity, Client *pClient);
     virtual ~PasPanel();
 
-    // Get Controller status and data 
+    // Get Controller status and data
     UaStatusCode getState(PASState& state);
     UaStatusCode getData(OpcUa_UInt32 offset, UaVariant& value);
 
-    // set Controller status and data 
+    // set Controller status and data
     UaStatusCode setState(PASState state);
     UaStatusCode setData(OpcUa_UInt32 offset, UaVariant value);
     UaStatusCode Operate(OpcUa_UInt32 offset = 0, const UaVariantArray &args = UaVariantArray());
@@ -215,7 +222,6 @@ private:
 
     // helper
     void __updateCoords(bool printout = false);
-    bool __willSensorsBeOutOfRange();
 
     // x, y, z, xRot, yRot, zRot
     double m_curCoords[6], m_inCoords[6];
@@ -224,13 +230,15 @@ private:
     // helper to be able to run ChiSq minimization
     Eigen::Matrix3d getPadCoords() { return m_PadCoords; };
 
-    // helpers to be able to run ChiSq minimization and introduce systematic offsets
+    // helpers to be able to run ChiSq minimization
     Eigen::VectorXd m_ActuatorLengths;
     // pad coords -- column per pad
     Eigen::Matrix3d m_PadCoords;
 
     // track if inCoords have been updated on initial boot
     bool m_inCoordsUpdated;
+
+    bool __willSensorsBeOutOfRange();
 };
 
 
@@ -242,21 +250,22 @@ class PasEdge : public PasCompositeController
     UA_DISABLE_COPY(PasEdge);
 public:
     friend PasMirror;
-    // construction / destruction 
+    // construction / destruction
     PasEdge(Identity identity);
     virtual ~PasEdge();
 
-    // Get Controller status and data 
+    // Get Controller status and data
     UaStatusCode getState(PASState& state);
     UaStatusCode getData(OpcUa_UInt32 offset, UaVariant& value);
 
-    // set Controller status and data 
+    // set Controller status and data
     UaStatusCode setState(PASState state);
     UaStatusCode setData(OpcUa_UInt32 offset, UaVariant value);
     UaStatusCode Operate(OpcUa_UInt32 offset = 0, const UaVariantArray &args = UaVariantArray());
 
     const Eigen::MatrixXd& getResponseMatrix(unsigned panelpos);
     const Eigen::VectorXd& getAlignedReadings();
+    const Eigen::VectorXd& getSystematicOffsets();
     const Eigen::VectorXd& getCurrentReadings();
 
     bool isAligned() { return m_isAligned; }
@@ -264,6 +273,7 @@ public:
 private:
     // internal variables
     OpcUa_Float m_DeltaL;
+    OpcUa_Float m_AlignFrac;
 
     // methods
     UaStatus align(unsigned panel_pos, bool moveit);
@@ -272,18 +282,14 @@ private:
     UaStatus __findSingleMatrix(unsigned panelidx);
     UaStatus __alignSinglePanel(unsigned panelpos, bool moveit = true);
 
-    // Alignment linear algebra needs
-    bool m_responseMatUpdated;
-    bool m_alignmentUpdated;
-    void __updateResponse();
-    void __updateAlignmentData();
     // keep track of the panels we want to move
     std::vector<unsigned> m_PanelsToMove;
     // maps panel position to its response matrix
     std::map<unsigned, Eigen::MatrixXd> m_ResponseMatMap;
     Eigen::VectorXd m_AlignedReadings;
+    Eigen::VectorXd m_systematicOffsets;
     Eigen::VectorXd m_CurrentReadings;
-    Eigen::VectorXd m_SystematicOffsets;
+    Eigen::VectorXd m_CurrentReadingsSD;
 
     bool m_isAligned;
 };
@@ -312,7 +318,7 @@ public:
 private:
     PASState m_state = PASState::PAS_Off;
     bool m_updated = false;
-    
+
     UaStatus read();
 
     GASCCD *m_pCCD;
@@ -323,15 +329,15 @@ class PasPSD : public PasController
     UA_DISABLE_COPY(PasPSD);
 public:
     friend PasMirror;
-    // construction / destruction 
+    // construction / destruction
     PasPSD(Identity identity, Client *pClient);
     virtual ~PasPSD();
 
-    // Get Controller status and data 
+    // Get Controller status and data
     UaStatusCode getState(PASState& state);
     UaStatusCode getData(OpcUa_UInt32 offset, UaVariant& value);
 
-    // set Controller status and data 
+    // set Controller status and data
     UaStatusCode setState(PASState state);
     UaStatusCode setData(OpcUa_UInt32 offset, UaVariant value);
     UaStatusCode Operate(OpcUa_UInt32 offset = 0, const UaVariantArray &args = UaVariantArray());

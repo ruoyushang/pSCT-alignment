@@ -7,11 +7,6 @@
 #include "mpeseventdata.h"
 #include "uaserver/methodhandleuanode.h"
 
-#include "mirrorobject.h"
-#include "panelobject.h"
-#include "edgeobject.h"
-#include "gasobject.h"
-
 // ----------------------------------------------------------------
 // PasObject implementation
 PasObject::PasObject(const UaString& name,
@@ -68,15 +63,21 @@ UaStatus PasObject::beginCall(
     return ret;
 }
 
-OpcUa::DataItemType* PasObject::addVariable(PasNodeManagerCommon *pNodeManager, OpcUa_UInt32 ParentType, OpcUa_UInt32 VarType, OpcUa_Boolean isState)
+OpcUa::DataItemType* PasObject::addVariable(PasNodeManagerCommon *pNodeManager, OpcUa_UInt32 ParentType, OpcUa_UInt32 VarType, OpcUa_Boolean isState, OpcUa_Boolean addReference)
 {
     // Get the instance declaration node used as base for this variable instance
     UaVariable* pInstanceDeclaration = pNodeManager->getInstanceDeclarationVariable(VarType);
     UA_ASSERT(pInstanceDeclaration!=NULL);
     // Create new variable and add it as component to this object
     OpcUa::DataItemType* pDataItem = new OpcUa::DataItemType(this, pInstanceDeclaration, pNodeManager, m_pSharedMutex);
-    UaStatus addStatus = pNodeManager->addNodeAndReference(this, pDataItem, OpcUaId_HasComponent);
+
+    UaStatus addStatus;
+    if (addReference)
+        addStatus = pNodeManager->addNodeAndReference(this, pDataItem, OpcUaId_HasComponent);
+    else
+        addStatus = pNodeManager->addUaNode(pDataItem->getUaNode());
     UA_ASSERT(addStatus.isGood());
+
     // Store information needed to access device
     PasUserData* pUserData = new PasUserData(isState, ParentType, m_Identity, VarType);
     pDataItem->setUserData(pUserData);
@@ -85,38 +86,6 @@ OpcUa::DataItemType* PasObject::addVariable(PasNodeManagerCommon *pNodeManager, 
 
     return pDataItem;
 }
-
-/* PasObject Factory Method */
-
-PasObject* PasObject::makeObject(
-        unsigned deviceType,
-        const UaString& name,
-        const UaNodeId& newNodeId,
-        const UaString& defaultLocaleId,
-        PasNodeManager *pNodeManager,
-        Identity identity,
-        PasCommunicationInterface *pCommIf)
-{
-    switch (deviceType)
-    {
-        case PAS_MirrorType:
-            return new MirrorObject(name, newNodeId, defaultLocaleId, pNodeManager, identity, pCommIf);
-        case PAS_ACTType:
-            return new ACTObject(name, newNodeId, defaultLocaleId, dynamic_cast<PasNodeManagerCommon *>(pNodeManager), identity, dynamic_cast<PasComInterfaceCommon *>(pCommIf));
-        case PAS_MPESType:
-            return new MPESObject(name, newNodeId, defaultLocaleId, dynamic_cast<PasNodeManagerCommon *>(pNodeManager), identity, dynamic_cast<PasComInterfaceCommon *>(pCommIf));
-        case PAS_PanelType:
-            return new PanelObject(name, newNodeId, defaultLocaleId, pNodeManager, identity, pCommIf);
-        case PAS_EdgeType:
-            return new EdgeObject(name, newNodeId, defaultLocaleId, pNodeManager, identity, pCommIf);
-        case PAS_PSDType:
-            return new PSDObject(name, newNodeId, defaultLocaleId, dynamic_cast<PasNodeManagerCommon *>(pNodeManager), identity, dynamic_cast<PasComInterfaceCommon *>(pCommIf));
-        case PAS_CCDType:
-            return new CCDObject(name, newNodeId, defaultLocaleId, dynamic_cast<PasNodeManagerCommon *>(pNodeManager), identity, dynamic_cast<PasComInterfaceCommon *>(pCommIf));
-    }
-}
-
-
 
 // -------------------------------------------------------------------
 // Specialization: MPESObject Implementation
@@ -164,7 +133,7 @@ MPESObject::MPESObject(
     m_pStateOffNormalAlarm->setAckedState(OpcUa_True);
     m_pStateOffNormalAlarm->setEnabledState(OpcUa_True);
     /* =====================================================================*/
-    
+
     pDataItem = addVariable(pNodeManager, PAS_MPESType, PAS_MPESType_xCentroidAvg);
     pDataItem = addVariable(pNodeManager, PAS_MPESType, PAS_MPESType_yCentroidAvg);
     pDataItem = addVariable(pNodeManager, PAS_MPESType, PAS_MPESType_xCentroidSD);
@@ -193,6 +162,14 @@ MPESObject::MPESObject(
     m_pMethodRead = new UaMethodGeneric(sName, UaNodeId(sNodeId, nsIdx), m_defaultLocaleId);
     addStatus = pNodeManager->addNodeAndReference(this, m_pMethodRead, OpcUaId_HasComponent);
     UA_ASSERT(addStatus.isGood());
+
+    // Add Method "SetExposure"
+    sName = "SetExposure";
+    sNodeId = UaString("%1.%2").arg(newNodeId.toString()).arg(sName);
+    m_pMethodSetExposure = new UaMethodGeneric(sName, UaNodeId(sNodeId, nsIdx), m_defaultLocaleId);
+    addStatus = pNodeManager->addNodeAndReference(this, m_pMethodSetExposure, OpcUaId_HasComponent);
+    UA_ASSERT(addStatus.isGood());
+
 }
 
 
@@ -224,7 +201,7 @@ UaStatus MPESObject::call(
     UaVariantArray&        outputArguments,
     UaStatusCodeArray&     inputArgumentResults,
     UaDiagnosticInfos&     inputArgumentDiag)
-{   
+{
     UaStatus            ret;
     MethodHandleUaNode* pMethodHandleUaNode = static_cast<MethodHandleUaNode*>(pMethodHandle);
     UaMethod*           pMethod             = NULL;
@@ -262,9 +239,17 @@ UaStatus MPESObject::call(
                 if ( inputArguments.length() > 0 )
                     ret = OpcUa_BadInvalidArgument;
                 else
-                    ret = m_pCommIf->OperateDevice(PAS_MPESType, m_Identity);
+                    ret = m_pCommIf->OperateDevice(PAS_MPESType, m_Identity, PAS_MPESType_Read);
             }
-
+            // Check if we have the SetExposure method
+            else if ( pMethod->nodeId() == m_pMethodSetExposure->nodeId())
+            {
+                // Number of input arguments must be 0
+                if ( inputArguments.length() > 0 )
+                    ret = OpcUa_BadInvalidArgument;
+                else
+                    ret = m_pCommIf->OperateDevice(PAS_MPESType, m_Identity, PAS_MPESType_SetExposure);
+            }
             // Create Sensor Events if state change succeeded
             if ( ret.isGood() )
             {
@@ -493,7 +478,7 @@ PSDObject::PSDObject(
     // Add Variable "State"
     // Get the instance declaration node used as base for this variable instance
     pDataItem = addVariable(pNodeManager, PAS_PSDType, PAS_PSDType_State, OpcUa_True);
-    
+
     pDataItem = addVariable(pNodeManager, PAS_PSDType, PAS_PSDType_x1);
     pDataItem = addVariable(pNodeManager, PAS_PSDType, PAS_PSDType_y1);
     pDataItem = addVariable(pNodeManager, PAS_PSDType, PAS_PSDType_x2);
@@ -571,5 +556,3 @@ UaStatus PSDObject::call(
 
     return ret;
 }
-
-

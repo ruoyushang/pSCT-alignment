@@ -12,12 +12,12 @@
 #include <string>
 
 /*!
- * The Actuator Class is responsible for the positioning of the Actuators. 
-The class communicates with the online database to load and save positional information, 
+ * The Actuator Class is responsible for the positioning of the Actuators.
+The class communicates with the online database to load and save positional information,
 as well as with the offline database to load and save calibration and configuration information.
  */
 
-class Actuator 
+class Actuator
 {
 
 public:
@@ -239,7 +239,7 @@ Actuator::ErrorInfo ActuatorErrors[NumberOfErrorCodes]={
 
  /*!
  *
- * Default constructor, used ideally only during calibration of Actuator. Allows for calibration functions to be performed, as well as (inaccurate) motion of Actuator. 
+ * Default constructor, used ideally only during calibration of Actuator. Allows for calibration functions to be performed, as well as (inaccurate) motion of Actuator.
  *
  * @param cbc 			Instance of CBC class being used is passed to Actuator Class
  */

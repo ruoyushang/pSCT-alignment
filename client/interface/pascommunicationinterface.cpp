@@ -265,7 +265,7 @@ UaStatusCode PasCommunicationInterface::getDeviceConfig(
 {
 
     OpcUa_UInt32 devCount = getDevices(type);
-    
+
     if ( deviceIndex < devCount )
     {
         try {
@@ -307,7 +307,7 @@ UaStatusCode PasCommunicationInterface::getDeviceState(
 {
     if (getDeviceFromId(type, identity) != nullptr)
         return getDeviceFromId(type, identity)->getState(state);
-    
+
     return OpcUa_BadInvalidArgument;
 }
 /* ----------------------------------------------------------------------------
@@ -322,7 +322,7 @@ UaStatusCode PasCommunicationInterface::setDeviceState(
 {
     if (getDeviceFromId(type, identity) != nullptr)
         return getDeviceFromId(type, identity)->setState(state);
-    
+
     return OpcUa_BadInvalidArgument;
 }
 /* ----------------------------------------------------------------------------
@@ -389,12 +389,12 @@ PasController* PasCommunicationInterface::getDeviceFromId(OpcUa_UInt32 type,
     try {
         m_DeviceIdentityMap.at(type);
     }
-    catch (out_of_range) 
+    catch (out_of_range)
     {
         return nullptr;
     }
 
-    // try getting the device with this identity 
+    // try getting the device with this identity
     try {
         index = m_DeviceIdentityMap.at(type).at(identity);
     }

@@ -24,7 +24,7 @@ if( MYSQLCONNECTORCPP_FOUND )
     link_directories(${MYSQLCONNECTORCPP_LIBRARY_DIRS})
 else( MYSQLCONNECTORCPP_FOUND )
     message(WARNING "MySQLConnectorCPP not found. You need MySQLConnectorCPP for this program to work!")
-endif( MYSQLCONNECTORCPP_FOUND ) 
+endif( MYSQLCONNECTORCPP_FOUND )
 
 SET(CMAKE_PREFIX_PATH "/usr" ${CMAKE_PREFIX_PATH} )
 FIND_PACKAGE( OpenCV REQUIRED )
@@ -152,6 +152,7 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/interface)
 include_directories(${UASDK_BASE_DIR}/include)
 include_directories(${UASTACK_INCLUDE})
 include_directories(${UABASE_INCLUDE})
+include_directories(${UASERVER_INCLUDE})
 include_directories(${UACOREMODULE_INCLUDE})
 include_directories(${COMMON_CODE_DIR}/mpescode)
 include_directories(${COMMON_CODE_DIR}/cbccode)
@@ -174,7 +175,7 @@ ENDIF ()
 
 # LINKER PATHS
 IF ( NOT TARGET uastack )
-    link_directories(${UA_LIB_DIR})   
+    link_directories(${UA_LIB_DIR})
 ENDIF ( NOT TARGET uastack )
 
 ####################################### Different Platforms ########################################
@@ -259,14 +260,14 @@ ENDIF ()
 
 ####################################### configure debug postfix #############################
 
-SET_TARGET_PROPERTIES(  ${PROJECT_NAME} 
-                        PROPERTIES 
+SET_TARGET_PROPERTIES(  ${PROJECT_NAME}
+                        PROPERTIES
                          OUTPUT_NAME ${PROJECT_NAME}
                          DEBUG_POSTFIX d
                          ${WCELINKERFLAGS}
 )
 
-INSTALL(TARGETS ${PROJECT_NAME} 
+INSTALL(TARGETS ${PROJECT_NAME}
         RUNTIME DESTINATION bin
         LIBRARY DESTINATION lib
         ARCHIVE DESTINATION lib

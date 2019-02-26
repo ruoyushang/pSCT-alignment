@@ -1,0 +1,1 @@
+g++ telescope.cpp `root-config --cflags` `pkg-config --cflags opencv` -o telescope -lcbc -lmysqlcppconn `root-config --glibs` `pkg-config --libs opencv` -std=c++11

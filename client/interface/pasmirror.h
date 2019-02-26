@@ -72,6 +72,7 @@ protected:
     virtual double chiSq(Eigen::VectorXd telDleta);
 
 private:
+    OpcUa_Float m_AlignFrac;
     // private methods for the actions we can take
     UaStatus __align();
     UaStatus __moveTo();
@@ -87,6 +88,8 @@ private:
     void __readAlignmentAll();
     // Align all edges fron need_alignment starting at start_idx and  moving in the direction dir
     void __alignAll(unsigned start_idx, const std::set<unsigned>& need_alignment, bool dir);
+    void __alignSector();
+    void __alignGlobal(unsigned fixPanel);
     void __move();
     // the children that we have selected to perform common actions on
     // if this is empty, no action is performed
@@ -96,7 +99,9 @@ private:
     std::map<unsigned, std::string> m_SelectedChildrenString;
 
     // mirror coords -- x/y/z, xRot, yRot, zRot
-    Eigen::VectorXd m_curCoords, m_curCoordsErr, m_inCoords, m_sysOffsets;
+    Eigen::VectorXd m_curCoords, m_curCoordsErr, m_inCoords, m_sysOffsetsMPES;
+    // map ring -> {MPES Position -> Systematic Offset}
+    std::map<unsigned, std::map<unsigned, Eigen::VectorXd> > SystematicOffsetsMPESMap;
 
     // in our coordinate system, the ideal panel is located along the x axis, between
     // the second and third quadrant

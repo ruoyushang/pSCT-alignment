@@ -31,6 +31,9 @@
 #define PAS_MirrorType_MoveTo_Coords                 112
 #define PAS_MirrorType_ReadAlign                     113
 #define PAS_MirrorType_Align                         114
+#define PAS_MirrorType_AlignSector                   115
+#define PAS_MirrorType_MoveSector                    116
+#define PAS_MirrorType_GlobalAlign                   117
 #define PAS_MirrorType_Stop                          120
 #define PAS_MirrorType_curCoords_x                   121
 #define PAS_MirrorType_curCoords_y                   122
@@ -44,21 +47,24 @@
 #define PAS_MirrorType_inCoords_xRot                 134
 #define PAS_MirrorType_inCoords_yRot                 135
 #define PAS_MirrorType_inCoords_zRot                 136
-#define PAS_MirrorType_sysOffsets_x                   137
-#define PAS_MirrorType_sysOffsets_y                   138
-#define PAS_MirrorType_sysOffsets_z                   139
-#define PAS_MirrorType_sysOffsets_xRot                140
-#define PAS_MirrorType_sysOffsets_yRot                141
-#define PAS_MirrorType_sysOffsets_zRot                142
+#define PAS_MirrorType_sysOffsetsMPES_x1             137
+#define PAS_MirrorType_sysOffsetsMPES_y1             138
+#define PAS_MirrorType_sysOffsetsMPES_x2             139
+#define PAS_MirrorType_sysOffsetsMPES_y2             140
+#define PAS_MirrorType_sysOffsetsMPES_x3             141
+#define PAS_MirrorType_sysOffsetsMPES_y3             142
 #define PAS_MirrorType_selectedPanels                151
 #define PAS_MirrorType_selectedEdges                 152
-#define PAS_MirrorType_Align_InEdge                  153
+#define PAS_MirrorType_selectedMPES                  153
+#define PAS_MirrorType_Align_InEdge                  161
+#define PAS_MirrorType_Align_InPanel                 162
 //----------------------------------------------------------//
 // Edge Type
 #define PAS_EdgeType                                1000
 // Instance declaration
 #define PAS_EdgeType_State                          1001
 #define PAS_EdgeType_StepSize                       1002
+#define PAS_EdgeType_AlignFrac                      1003
 #define PAS_EdgeType_FindMatrix                     1011
 #define PAS_EdgeType_Align                          1012
 #define PAS_EdgeType_Move                           1013
@@ -79,6 +85,7 @@
 #define PAS_MPESType_Start                          1111
 #define PAS_MPESType_Stop                           1112
 #define PAS_MPESType_Read                           1113
+#define PAS_MPESType_SetExposure                    1114
 #define PAS_MPESType_StateCondition                 1121
 //----------------------------------------------------------//
 //
@@ -98,7 +105,6 @@
 #define PAS_PanelType_curCoords_xRot                2024
 #define PAS_PanelType_curCoords_yRot                2025
 #define PAS_PanelType_curCoords_zRot                2026
-#define PAS_PanelType_New                           2027 //Ruo
 #define PAS_PanelType_inCoords_x                    2031
 #define PAS_PanelType_inCoords_y                    2032
 #define PAS_PanelType_inCoords_z                    2033

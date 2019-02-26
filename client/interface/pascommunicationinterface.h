@@ -38,7 +38,7 @@ public:
     const Identity addDevice(Client *pClient, OpcUa_UInt32 deviceType, const Identity& identity);
 
     OpcUa_Int32 getDevices(OpcUa_UInt32 deviceType);
-   
+
     UaStatusCode getDeviceConfig(
         OpcUa_UInt32 type,
         OpcUa_UInt32 deviceIndex,
@@ -74,7 +74,7 @@ public:
         const Identity& identity,
         OpcUa_UInt32 offset,
         UaVariant value);
-    
+
     /* Operate a device -- run a method */
     UaStatusCode OperateDevice(OpcUa_UInt32 type, const Identity& identity,
             OpcUa_UInt32 offset = 0,
@@ -96,7 +96,7 @@ private:
     //
     // maps from id to internal array indices: DeviceType -> {Identity -> arrayIdx }
     std::map< OpcUa_UInt32, std::map<Identity, int> > m_DeviceIdentityMap;
-    
+
     OpcUa_Boolean m_stop;
 };
 

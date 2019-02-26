@@ -97,7 +97,7 @@ OPCUA_BEGIN_EXTERN_C
 #define OPCUA_P_OPENSSL_USE_RAND_SEED                           OPCUA_CONFIG_NO
 
 /* Create the configuration string for OpcUa_P_GetConfigString(). */
-#define OPCUA_P_CONFIGSTRING    "PreferMonotonyOverResolution: " OPCUA_TOSTRING(OPCUA_P_GETTICKCOUNT_PREFER_MONOTONY_OVER_RESOLUTION) "\\"\
+#define OPCUA_P_CONFIGSTRING    "PreferMonotonyOverResolution:" OPCUA_TOSTRING(OPCUA_P_GETTICKCOUNT_PREFER_MONOTONY_OVER_RESOLUTION) "\\"\
                                 "AcceptSelfSigned:" OPCUA_TOSTRING(OPCUA_P_PKI_ACCEPT_SELFSIGNED_CERTIFICATES) "\\"\
                                 "StackSize:" OPCUA_TOSTRING(OPCUA_P_THREAD_STACKSIZE) "\\"\
                                 "UseReuseAddr:" OPCUA_TOSTRING(OPCUA_P_SOCKET_USE_REUSEADDR) "\\"\
@@ -832,7 +832,7 @@ struct S_OpcUa_Port_CallTable
     /**@} Timer Functions */
 
 
-#if OPCUA_HAVE_XMLAPI    
+#if OPCUA_HAVE_XMLAPI
     /**@name XML Functions */
     /**@{*/
 
@@ -843,7 +843,7 @@ struct S_OpcUa_Port_CallTable
                                                                     OpcUa_XmlWriter_PfnWriteCallback*   a_pWriteCallback,
                                                                     OpcUa_XmlWriter_PfnCloseCallback*   a_pCloseCallback,
                                                                     struct _OpcUa_XmlWriter*            a_pXmlWriter);
-    
+
     /** @brief Delete a XML writer context.
      *  @ingroup opcua_platformlayer_interface
      */
@@ -855,7 +855,7 @@ struct S_OpcUa_Port_CallTable
     OpcUa_StatusCode    (OPCUA_DLLCALL* CreateXmlReader)          ( OpcUa_Void*                         a_pReaderContext,
                                                                     OpcUa_XmlReader_PfnReadCallback*    a_pReaderCallback,
                                                                     OpcUa_XmlReader_PfnCloseCallback*   a_pCloseCallback,
-                                                                    struct _OpcUa_XmlReader*            a_pXmlReader);   
+                                                                    struct _OpcUa_XmlReader*            a_pXmlReader);
 
     /** @brief Delete a XML reader context.
      *  @ingroup opcua_platformlayer_interface

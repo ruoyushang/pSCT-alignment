@@ -79,37 +79,39 @@ namespace SCT {
         // mirror segmentation -- inner and outer ring
         const int kPanels[2] = {8, 16};
 
-        const double kZ      = 3./2.*kFp; // Secondary Position
-        const double kD      = 2.7081*2*m; // Secondary diameter 
+        // notice the origin is at zero! our frame of reference is at the mirror itself
+        const double kZ      = 0.*m; // 3./2.*kFp; // Secondary Position in its frame
+        const double kD      = 2.7081*2*m; // Secondary diameter
         const double kDm     = 1.5965*2*m; // Secondary inner ring outer diameter
         const double kDinner = 0.395*2*m; // Secondary inner diameter
         const double kMirrorThickness = 34.2*mm; // Panel thickness
 
-        // mirror parameters
+        // mirror parameters -- notice the opposite signs! this is because of our choice of frame
+        // of reference centered at the mirror itself!
         const double kz[] = {
             pow(kFp,  1)*5.016585e-06,
-            pow(kFp, -1)*-0.4169942781,
-            pow(kFp, -3)*-0.1361436152,
-            pow(kFp, -5)*0.5406127539,
-            pow(kFp, -7)*-2.135329061,
-            pow(kFp, -9)*5.8095677,
-            pow(kFp,-11)*-9.94478388,
-            pow(kFp,-13)*7.903283749
+            pow(kFp, -1)*0.4169942781,
+            pow(kFp, -3)*0.1361436152,
+            pow(kFp, -5)*-0.5406127539,
+            pow(kFp, -7)*2.135329061,
+            pow(kFp, -9)*-5.8095677,
+            pow(kFp,-11)*9.94478388,
+            pow(kFp,-13)*-7.903283749
         };
 
         // Pads coordinates in the telescope frame
         const double PadsCoords[2][3][3] = {
             // S1
             {
-                {0.7999935*m, 0.000000*m, 8.33140952*m - 3./2.*kFp},
-                {1.2731926*m, -0.2771281*m, 8.250887211*m - 3./2.*kFp},
-                {1.2731926*m, 0.2771281*m, 8.250887211*m - 3./2.*kFp}
+                {0.7999935*m, 0.000000*m, 0.0480964*m},
+                {1.2731926*m, 0.2771281*m, 0.128618*m},
+                {1.2731926*m, -0.2771281*m, 0.128618*m}
             },
             // S2
             {
-                {1.8782451*m, 0.000000*m, 8.109331132*m - 3./2.*kFp},
-                {2.3321339*m, -0.2771281*m, 7.953174941*m - 3./2.*kFp},
-                {2.3321339*m, 0.2771281*m, 7.953174941*m - 3./2.*kFp}
+                {1.8782451*m, 0.000000*m, 0.270175*m},
+                {2.3321339*m, 0.2771281*m, 0.426331*m},
+                {2.3321339*m, -0.2771281*m, 0.426331*m}
             }
         };
     };

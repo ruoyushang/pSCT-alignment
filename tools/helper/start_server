@@ -1,0 +1,22 @@
+#!/bin/bash
+
+logfile=passerver_operations.log
+
+if [ "$#" -ne 1 ]; then
+    echo "Usage: `basename $0` <CBC IP ADDRESS>"
+    exit 1;
+fi
+
+URL=$1
+SDKDIR="/home/root/opcua/sdk"
+
+# prepare config file -- set the IP in the template
+configtmplt=${SDKDIR}"/bin/ServerConfig_template.xml"
+configfile=${configtmplt/_template/}
+cp $configtmplt $configfile
+
+sed -i -e "s/__IP_ADDRESS__/${URL}/" $configfile
+
+# this clears the log from the previous time
+echo `date` > $logfile
+${SDKDIR}/bin/mpesserver $URL |& tee -a $logfile

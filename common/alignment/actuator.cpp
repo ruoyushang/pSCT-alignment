@@ -30,7 +30,7 @@
 //Destructor
 Actuator::~Actuator()
 {
-    //maybe record position locally to compare with on next construction of this actuator. if so, it should not overwrite normal local recording, since actuator could get in bad state and we want to destruct without overwriting. probably do nothing here.
+//maybe record position locally to compare with on next construction of this actuator. if so, it should not overwrite normal local recording, since actuator could get in bad state and we want to destruct without overwriting. probably do nothing here.
 }
 
 //Default Constructor
@@ -109,121 +109,121 @@ Actuator::Actuator(CBC* InputCBC, int InputPortNumber, int InputActuatorSerial, 
 
 void Actuator::ReadConfigurationAndCalibration()//needs to be fixed to new database structure
 {
-    DEBUG_MSG("Reading Configuration and Calibration Information from DB for Actuator " << SerialNumber);
-    //check to make sure number of columns match what is expected.
-    if(DBFlag)
-    {
-        try
-        {
-            sql::Driver *driver;
-            sql::Connection *con;
-            sql::Statement *stmt;
-            sql::ResultSet *res;
+DEBUG_MSG("Reading Configuration and Calibration Information from DB for Actuator " << SerialNumber);
+//check to make sure number of columns match what is expected.
+if(DBFlag)
+{
+  try
+{
+  sql::Driver *driver;
+  sql::Connection *con;
+  sql::Statement *stmt;
+  sql::ResultSet *res;
 
-            driver = get_driver_instance();
-            std::string hoststring="tcp://"+DBInfo.ip+":"+DBInfo.port;
-            con = driver->connect(hoststring,DBInfo.user,DBInfo.password);
-            con->setSchema(DBInfo.dbname);
-            stmt = con->createStatement();
+  driver = get_driver_instance();
+  std::string hoststring="tcp://"+DBInfo.ip+":"+DBInfo.port;
+  con = driver->connect(hoststring,DBInfo.user,DBInfo.password);
+  con->setSchema(DBInfo.dbname);
+  stmt = con->createStatement();
 
-            std::stringstream stmtvar;
-            stmtvar << "SELECT * FROM Opt_ActuatorConfigurationAndCalibration WHERE serial_number=" << SerialNumber << " ORDER BY start_date DESC LIMIT 1";
-            stmt->execute(stmtvar.str());
-            res = stmt->getResultSet();
-            while (res->next())//check and edit these
-            {
-                mmPerStep=res->getDouble(4);
-                StepsPerRevolution=res->getInt(5);
-                HomeLength=res->getDouble(6);
-                RetractStop.Revolution=res->getInt(7);
-                RetractStop.Angle=res->getInt(8);
-                ExtendStop.Revolution=res->getInt(9);
-                ExtendStop.Angle=res->getInt(10);
-                RecordingInterval=res->getInt(11);
-                CalibrationTemperature=res->getDouble(12);
-                HysteresisSteps=res->getInt(13);
-                RetractRevolutionLimit=res->getInt(14);
-                ExtendRevolutionLimit=res->getInt(15);
-                MaxVoltageMeasurementAttempts=res->getInt(16);
-                StdDevRemeasure=res->getDouble(17);
-                StdDevMax=res->getDouble(18);
-                QuickAngleCheckRange=res->getInt(19);
-                EndstopSearchStepsize=res->getInt(20);
-                CyclesDefiningHome=res->getInt(21);
-                MinimumMissedStepsToFlagError=res->getInt(22);
-                TolerablePercentOfMissedSteps=res->getDouble(23);
-                ExtendStopToHomeStepsDeviation=res->getInt(24);
-                FlaggedRecoverySteps=res->getInt(25);
-                MaxRecoverySteps=res->getInt(26);
-                EndStopRecoverySteps=res->getInt(27);
-            }
-            EncoderCalibration.resize(StepsPerRevolution);
-            for (int i=0; i<StepsPerRevolution; i++)//check and edit this
-            {
-                stmtvar.str(std::string());
-                stmtvar << "SELECT * FROM Opt_ActuatorMotorProfile WHERE (serial_number=" << SerialNumber << " and angle=" << i << ") ORDER BY start_date DESC LIMIT 1";
-                stmt->execute(stmtvar.str());
-                res = stmt->getResultSet();
-                while (res->next())
-                {
-                    EncoderCalibration[i]=res->getDouble(5);//edit this
-                }
-            }
-            VMin=EncoderCalibration[0];
-            VMax=EncoderCalibration[StepsPerRevolution-1];
-            dV=(VMax-VMin)/(StepsPerRevolution-1);
-            delete res;
-            delete stmt;
-            delete con;
+std::stringstream stmtvar;
+stmtvar << "SELECT * FROM Opt_ActuatorConfigurationAndCalibration WHERE serial_number=" << SerialNumber << " ORDER BY start_date DESC LIMIT 1";
+stmt->execute(stmtvar.str());
+res = stmt->getResultSet();
+while (res->next())//check and edit these
+{
+mmPerStep=res->getDouble(4);
+StepsPerRevolution=res->getInt(5);
+HomeLength=res->getDouble(6);
+RetractStop.Revolution=res->getInt(7);
+RetractStop.Angle=res->getInt(8);
+ExtendStop.Revolution=res->getInt(9);
+ExtendStop.Angle=res->getInt(10);
+RecordingInterval=res->getInt(11);
+CalibrationTemperature=res->getDouble(12);
+HysteresisSteps=res->getInt(13);
+RetractRevolutionLimit=res->getInt(14);
+ExtendRevolutionLimit=res->getInt(15);
+MaxVoltageMeasurementAttempts=res->getInt(16);
+StdDevRemeasure=res->getDouble(17);
+StdDevMax=res->getDouble(18);
+QuickAngleCheckRange=res->getInt(19);
+EndstopSearchStepsize=res->getInt(20);
+CyclesDefiningHome=res->getInt(21);
+MinimumMissedStepsToFlagError=res->getInt(22);
+TolerablePercentOfMissedSteps=res->getDouble(23);
+ExtendStopToHomeStepsDeviation=res->getInt(24);
+FlaggedRecoverySteps=res->getInt(25);
+MaxRecoverySteps=res->getInt(26);
+EndStopRecoverySteps=res->getInt(27);
+}
+EncoderCalibration.resize(StepsPerRevolution);
+for (int i=0; i<StepsPerRevolution; i++)//check and edit this
+{
+stmtvar.str(std::string());
+stmtvar << "SELECT * FROM Opt_ActuatorMotorProfile WHERE (serial_number=" << SerialNumber << " and angle=" << i << ") ORDER BY start_date DESC LIMIT 1";
+stmt->execute(stmtvar.str());
+res = stmt->getResultSet();
+while (res->next())
+{
+EncoderCalibration[i]=res->getDouble(5);//edit this
+}
+}
+VMin=EncoderCalibration[0];
+VMax=EncoderCalibration[StepsPerRevolution-1];
+dV=(VMax-VMin)/(StepsPerRevolution-1);
+  delete res;
+  delete stmt;
+  delete con;
 
-        }
-        catch (sql::SQLException &e) 
-        {
-            std::cout << "# ERR: SQLException in " << __FILE__;
-            std::cout << "(" << __FUNCTION__ << ") on line " << __LINE__ << std::endl;
-            std::cout << "# ERR: " << e.what();
-            std::cout << " (MySQL error code: " << e.getErrorCode();
-            std::cout << ", SQLState: " << e.getSQLState() << " )" << std::endl;
-            std::cout << "Actuator Serial: " << SerialNumber << std::endl;
-            ERROR_MSG("Operable Error: SQL Exception caught for Actuator " << SerialNumber << ". Did not successfully communicate with database.");
-            SetError(2);//operable
-            RecordStatusToASF();
-            return;
-        }
-    }
-    else
-    {
-        ERROR_MSG("Operable Error: DBFlag is not set for Actuator " << SerialNumber << ". Cannot read Configuration and Calibration from DB.");
-        SetError(1);//operable
-        RecordStatusToASF();
-    }
-    return;
+}
+  catch (sql::SQLException &e)
+{
+  std::cout << "# ERR: SQLException in " << __FILE__;
+  std::cout << "(" << __FUNCTION__ << ") on line " << __LINE__ << std::endl;
+  std::cout << "# ERR: " << e.what();
+  std::cout << " (MySQL error code: " << e.getErrorCode();
+  std::cout << ", SQLState: " << e.getSQLState() << " )" << std::endl;
+  std::cout << "Actuator Serial: " << SerialNumber << std::endl;
+ERROR_MSG("Operable Error: SQL Exception caught for Actuator " << SerialNumber << ". Did not successfully communicate with database.");
+SetError(2);//operable
+RecordStatusToASF();
+return;
+}
+}
+else
+{
+ERROR_MSG("Operable Error: DBFlag is not set for Actuator " << SerialNumber << ". Cannot read Configuration and Calibration from DB.");
+SetError(1);//operable
+RecordStatusToASF();
+}
+return;
 }
 
 /*
-   void Actuator::SaveConfigurationAndCalibration()//should only be used during calibration or with technical expertise. Needs to be fixed to new database table structure
-   {
-   DEBUG_MSG("Saving Configuration and Calibration to database for Actuator " << SerialNumber);
-   if(DBFlag)
-   {
-   try 
-   {
-   sql::Driver *driver;
-   sql::Connection *con;
-   sql::Statement *stmt;
+void Actuator::SaveConfigurationAndCalibration()//should only be used during calibration or with technical expertise. Needs to be fixed to new database table structure
+{
+DEBUG_MSG("Saving Configuration and Calibration to database for Actuator " << SerialNumber);
+if(DBFlag)
+{
+try
+{
+  sql::Driver *driver;
+  sql::Connection *con;
+  sql::Statement *stmt;
 
-   driver = get_driver_instance();
-   std::string hoststring="tcp://"+DBInfo.ip+":"+DBInfo.port;
-   con = driver->connect(hoststring,DBInfo.user,DBInfo.password);
-   con->setSchema(DBInfo.dbname);
-   stmt = con->createStatement();
+  driver = get_driver_instance();
+  std::string hoststring="tcp://"+DBInfo.ip+":"+DBInfo.port;
+  con = driver->connect(hoststring,DBInfo.user,DBInfo.password);
+  con->setSchema(DBInfo.dbname);
+  stmt = con->createStatement();
 
-   std::stringstream stmtvar;
-   stmtvar << "UPDATE Opt_ActuatorConfigurationAndCalibration SET EndDate=now() WHERE (SerialNumber=" << SerialNumber << " and EndDate is NULL) ORDER BY StartDate DESC LIMIT 1";
-   stmt->execute(stmtvar.str());
-   stmtvar.str(std::string());
+std::stringstream stmtvar;
+stmtvar << "UPDATE Opt_ActuatorConfigurationAndCalibration SET EndDate=now() WHERE (SerialNumber=" << SerialNumber << " and EndDate is NULL) ORDER BY StartDate DESC LIMIT 1";
+stmt->execute(stmtvar.str());
+stmtvar.str(std::string());
 
-   stmtvar << "INSERT INTO Opt_ActuatorConfigurationAndCalibration VALUES (" << SerialNumber << ", now(), null, " << mmPerStep << ", " << StepsPerRevolution << ", " << HomeLength << ", " << RevolutionRange << ", " << RetractStop.Revolution << ", " << RetractStop.Angle << ", " << ExtendStop.Revolution << ", " << ExtendStop.Angle << ", " << RecordingInterval << ", " << CalibrationTemperature << ", " << HysteresisSteps << ", " << MaxVoltageMeasurementAttempts << ", " << StdDevRemeasure << ", " << StdDevMax << ", " << QuickAngleCheckRange << ", " << EndstopSearchStepsize << ", " << ", " << CyclesDefiningHome << ", " << MinimumMissedStepsToFlagError << ", " << TolerablePercentOfMissedSteps << ", " << ExtendStopToHomeStepsDeviation << ", " << FlaggedRecoverySteps << ", " << ", " << EndStopRecoverySteps << ")";
+stmtvar << "INSERT INTO Opt_ActuatorConfigurationAndCalibration VALUES (" << SerialNumber << ", now(), null, " << mmPerStep << ", " << StepsPerRevolution << ", " << HomeLength << ", " << RevolutionRange << ", " << RetractStop.Revolution << ", " << RetractStop.Angle << ", " << ExtendStop.Revolution << ", " << ExtendStop.Angle << ", " << RecordingInterval << ", " << CalibrationTemperature << ", " << HysteresisSteps << ", " << MaxVoltageMeasurementAttempts << ", " << StdDevRemeasure << ", " << StdDevMax << ", " << QuickAngleCheckRange << ", " << EndstopSearchStepsize << ", " << ", " << CyclesDefiningHome << ", " << MinimumMissedStepsToFlagError << ", " << TolerablePercentOfMissedSteps << ", " << ExtendStopToHomeStepsDeviation << ", " << FlaggedRecoverySteps << ", " << ", " << EndStopRecoverySteps << ")";
 // << NumberOfErrorCodes << ", " << NumberOfIntsInASFHeader << ")";
 stmt->execute(stmtvar.str());
 stmtvar.str(std::string());
@@ -238,18 +238,18 @@ stmtvar << "INSERT INTO ActuatorMotorProfile VALUES (" << SerialNumber << ", now
 stmt->execute(stmtvar.str());
 stmtvar.str(std::string());
 }
-delete stmt;
-delete con;
+  delete stmt;
+  delete con;
 }
 
-catch (sql::SQLException &e) 
+  catch (sql::SQLException &e)
 {
-std::cout << "# ERR: SQLException in " << __FILE__;
-std::cout << "(" << __FUNCTION__ << ") on line " << __LINE__ << std::endl;
-std::cout << "# ERR: " << e.what();
-std::cout << " (MySQL error code: " << e.getErrorCode();
-std::cout << ", SQLState: " << e.getSQLState() << " )" << std::endl;
-std::cout << "Actuator Serial: " << SerialNumber << std::endl;
+  std::cout << "# ERR: SQLException in " << __FILE__;
+  std::cout << "(" << __FUNCTION__ << ") on line " << __LINE__ << std::endl;
+  std::cout << "# ERR: " << e.what();
+  std::cout << " (MySQL error code: " << e.getErrorCode();
+  std::cout << ", SQLState: " << e.getSQLState() << " )" << std::endl;
+  std::cout << "Actuator Serial: " << SerialNumber << std::endl;
 ERROR_MSG("Operable Error: SQL Exception caught for Actuator " << SerialNumber << ". Did not successfully communicate with database.");
 SetError(2);//operable, If new parameters cannot be saved to database, still allow actuators to move.
 return;
@@ -275,7 +275,7 @@ void Actuator::ReadStatusFromDB()//read all error codes from DB. Check size of e
             sql::Connection *con;
             sql::Statement *stmt;
             sql::ResultSet *res;
-            sql::ResultSetMetaData *resmeta; 
+            sql::ResultSetMetaData *resmeta;
 
             driver = get_driver_instance();
             std::string hoststring="tcp://"+DBInfo.ip+":"+DBInfo.port;
@@ -404,7 +404,7 @@ void Actuator::ReadStatusFromASF()//read all error codes from ASF. Check size of
         DEBUG_MSG("ASF file was bad for Actuator " << SerialNumber << " with ASF path " << ASFFullPath << ". Assuming it did not exist and will create a default ASF file.");
         ASF.close();
         CreateDefaultASF();
-        ASF.open(ASFFullPath);    
+        ASF.open(ASFFullPath);
         if(ASF.bad())//check if ASF is good again. If not, set fatal error.
         {
             ERROR_MSG("Fatal Error: Creating ASF file for Actuator " << SerialNumber << " did not resolve problem. File appears corrupt.");
@@ -1042,7 +1042,7 @@ Actuator::StatusModes Actuator::GetStatus()
     return ErrorStatus;
 }
 
-void Actuator::ReadStatusFromDBAndASF()//not used. don't use. reading individually asf and db will set errors and current position 
+void Actuator::ReadStatusFromDBAndASF()//not used. don't use. reading individually asf and db will set errors and current position
 {
     //DEBUG_MSG("Reading Status From DB And ASF for Actuator " << SerialNumber);
     ReadStatusFromASF();

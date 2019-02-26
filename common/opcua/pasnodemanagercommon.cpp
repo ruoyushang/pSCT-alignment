@@ -45,7 +45,7 @@ UaStatus PasNodeManagerCommon::readValues(const UaVariableArray &arrUaVariables,
                 UaStatusCode status;
 
                 if ( pUserData->isState() == OpcUa_False )
-                { 
+                {
                     // Read of a data variable
                     // Get the data for the sensor from the communication interface
                     status = m_pCommIf->getDeviceData(pUserData->DeviceType(), pUserData->DeviceId(),
@@ -260,7 +260,7 @@ UaStatus PasNodeManagerCommon::createTypeNodes()
     pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
     addStatus = addNodeAndReference(pMPESType, pDataItem, OpcUaId_HasComponent);
     UA_ASSERT(addStatus.isGood());
-    
+
     // Add Variable "yCentroidAvg" as DataItem
     defaultValue.setDouble(0);
     pDataItem = new OpcUa::DataItemType(
@@ -273,7 +273,7 @@ UaStatus PasNodeManagerCommon::createTypeNodes()
     pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
     addStatus = addNodeAndReference(pMPESType, pDataItem, OpcUaId_HasComponent);
     UA_ASSERT(addStatus.isGood());
-    
+
     // Add Variable "xCentroidSD" as DataItem
     defaultValue.setDouble(0);
     pDataItem = new OpcUa::DataItemType(
@@ -286,7 +286,7 @@ UaStatus PasNodeManagerCommon::createTypeNodes()
     pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
     addStatus = addNodeAndReference(pMPESType, pDataItem, OpcUaId_HasComponent);
     UA_ASSERT(addStatus.isGood());
-    
+
     // Add Variable "yCentroidSD" as DataItem
     defaultValue.setDouble(0);
     pDataItem = new OpcUa::DataItemType(
@@ -313,7 +313,7 @@ UaStatus PasNodeManagerCommon::createTypeNodes()
     addStatus = addNodeAndReference(pMPESType, pDataItem, OpcUaId_HasComponent);
     UA_ASSERT(addStatus.isGood());
 
-    
+
     // Add Variable "xCentroidNominal" as DataItem
     defaultValue.setDouble(0);
     pDataItem = new OpcUa::DataItemType(
@@ -359,6 +359,13 @@ UaStatus PasNodeManagerCommon::createTypeNodes()
     addStatus = addNodeAndReference(pMPESType, pMethod, OpcUaId_HasComponent);
     UA_ASSERT(addStatus.isGood());
 
+    // Add Method "setExposure"
+    pMethod = new OpcUa::BaseMethod(UaNodeId(PAS_MPESType_SetExposure, getNameSpaceIndex()), "SetExposure", getNameSpaceIndex());
+    pMethod->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
+    addStatus = addNodeAndReference(pMPESType, pMethod, OpcUaId_HasComponent);
+    UA_ASSERT(addStatus.isGood());
+
+
     /**************************************************************
      * Create the MPESEventType and its event field properties
      **************************************************************/
@@ -371,7 +378,7 @@ UaStatus PasNodeManagerCommon::createTypeNodes()
     addStatus = addNodeAndReference(OpcUaId_BaseEventType, pMPESEventType, OpcUaId_HasSubtype);
     UA_ASSERT(addStatus.isGood());
 
-    
+
     // State Event field property
     defaultValue.setDouble(0);
     pProperty = new UaPropertyCache(
@@ -393,7 +400,7 @@ UaStatus PasNodeManagerCommon::createTypeNodes()
         m_defaultLocaleId);
     addStatus = addNodeAndReference(pMPESEventType, pProperty, OpcUaId_HasProperty);
     UA_ASSERT(addStatus.isGood());
-    
+
     // yCentroidAvg Event field property
     defaultValue.setDouble(0);
     pProperty = new UaPropertyCache(
@@ -404,7 +411,7 @@ UaStatus PasNodeManagerCommon::createTypeNodes()
         m_defaultLocaleId);
     addStatus = addNodeAndReference(pMPESEventType, pProperty, OpcUaId_HasProperty);
     UA_ASSERT(addStatus.isGood());
-    
+
     // xCentroidSD Event field property
     defaultValue.setDouble(0);
     pProperty = new UaPropertyCache(
@@ -415,7 +422,7 @@ UaStatus PasNodeManagerCommon::createTypeNodes()
         m_defaultLocaleId);
     addStatus = addNodeAndReference(pMPESEventType, pProperty, OpcUaId_HasProperty);
     UA_ASSERT(addStatus.isGood());
-    
+
     // yCentroidSD Event field property
     defaultValue.setDouble(0);
     pProperty = new UaPropertyCache(
@@ -563,7 +570,7 @@ UaStatus PasNodeManagerCommon::createTypeNodes()
     pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
     addStatus = addNodeAndReference(pPSDType, pDataItem, OpcUaId_HasComponent);
     UA_ASSERT(addStatus.isGood());
-    
+
     pDataItem = new OpcUa::DataItemType(
             UaNodeId(PAS_PSDType_x2, getNameSpaceIndex()), "x2", getNameSpaceIndex(),
             defaultValue, Ua_AccessLevel_CurrentRead, this);
@@ -595,7 +602,7 @@ UaStatus PasNodeManagerCommon::createTypeNodes()
     pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
     addStatus = addNodeAndReference(pPSDType, pDataItem, OpcUaId_HasComponent);
     UA_ASSERT(addStatus.isGood());
-    
+
     pDataItem = new OpcUa::DataItemType(
             UaNodeId(PAS_PSDType_dx2, getNameSpaceIndex()), "dx2", getNameSpaceIndex(),
             defaultValue, Ua_AccessLevel_CurrentRead, this);

@@ -14,6 +14,7 @@
 #include <algorithm>
 #include <cstdlib> // system
 #include <unistd.h> // usleep
+#include <utility> // make_pair
 
 // MySQL C++ Connector includes
 #include "mysql_driver.h"
@@ -27,6 +28,9 @@ int PasController::kUpdateInterval = 0;
 int PasPanel::kUpdateInterval = 1000;
 // 500 ms update interval for PSDs
 int PasPSD::kUpdateInterval = 500;
+
+float PasMPES::kNominalIntensity = 150000.;
+float PasMPES::kNominalCentroidSD = 20.;
 
 // implement PasCompositeController::addChild()
 void PasCompositeController::addChild(OpcUa_UInt32 deviceType, PasController *const pController)
@@ -46,21 +50,11 @@ void PasCompositeController::addChild(OpcUa_UInt32 deviceType, PasController *co
     }
     catch (out_of_range) {
         // only add if this is a possible child
-        //cout << "\t Ruo, m_ChildrenTypes.count(deviceType) = " << m_ChildrenTypes.count(deviceType) << endl;
         if (m_ChildrenTypes.count(deviceType)) {
-        ///
-        /// This section adds coparents (edge and panel) of a MPES as a child of each other.
-        ///
-            cout << "\t Not added yet. Adding it now..." << endl;
             m_pChildren[deviceType].push_back(pController);
             m_ChildrenIdentityMap[deviceType][id] = m_pChildren.at(deviceType).size() - 1;
             // this doesn't work for edges, since they don't have an assigned position
-            try {
-                m_ChildrenPositionMap[deviceType][pos] = m_pChildren.at(deviceType).size() - 1;
-            }
-            catch (...) {
-                std::cout << "Failed to create m_ChildrenPositionMap for " << deviceType << " at " << pos << std::endl;
-            }
+            m_ChildrenPositionMap[deviceType].insert(make_pair(pos, m_pChildren.at(deviceType).size() - 1));
         }
     }
 
@@ -72,25 +66,18 @@ void PasCompositeController::addChild(OpcUa_UInt32 deviceType, PasController *co
     constructors / destructors
 -----------------------------------------------------------------------------*/
 PasMPES::PasMPES(Identity identity, Client *pClient) : PasController(identity, pClient),
-    m_updated(false)
+    m_updated(false), m_isVisible(false)
 {
     m_state = PASState::PAS_On;
 
     // get the nominal aligned readings and response matrices from DB
     /* BEGIN DATABASE HACK */
-    //string db_ip="10.0.50.114";
-    //string db_port="3406";
-    //string db_user="CTAreadonly";
-    //string db_password="readCTAdb";
-    //string db_name="CTAonline";
-    //string db_address = "tcp://" + db_ip + ":" + db_port;
-    //Ruo
-    std::string db_ip="remus.ucsc.edu";
-    std::string db_port="3406";
-    std::string db_user="CTAreadonly";
-    std::string db_password="readCTAdb";
-    std::string db_name="CTAonline";
-    std::string db_address = "tcp://" + db_ip + ":" + db_port;
+    string db_ip="172.17.10.10";
+    string db_port="3406";
+    string db_user="CTAreadonly";
+    string db_password="readCTAdb";
+    string db_name="CTAonline";
+    string db_address = "tcp://" + db_ip + ":" + db_port;
 
     cout << "Initializing MPES " << m_ID.serialNumber << endl;
     try {
@@ -159,6 +146,8 @@ PasMPES::PasMPES(Identity identity, Client *pClient) : PasController(identity, p
         m_state = PASState::PAS_Error;
     }
     /* END DATABASE HACK */
+
+    SystematicOffsets = Vector2d::Zero();
 }
 
 PasMPES::~PasMPES()
@@ -257,10 +246,16 @@ UaStatusCode PasMPES::Operate(OpcUa_UInt32 offset, const UaVariantArray &args)
     UaMutexLocker lock(&m_mutex);
     UaStatusCode  status;
 
-    if ( offset >= 1 )
+    if ( offset == 0 || offset == PAS_MPESType_Read )
+        return read();
+    else if ( offset == PAS_MPESType_SetExposure ) {
+        cout << "+++ Adjusting exposure for " << m_ID << endl;
+        status = m_pClient->callMethod(m_ID.eAddress, UaString("SetExposure"));
+        return status;
+    }
+    else
         return OpcUa_BadInvalidArgument;
 
-    return read();
 }
 /* ----------------------------------------------------------------------------
     Class        PasMPES
@@ -298,6 +293,29 @@ UaStatus PasMPES::read()
 
         for (unsigned i = 0; i < varstoread.size(); i++)
             valstoread[i].toDouble(*(reinterpret_cast<OpcUa_Double *>(&data) + i));
+
+        m_isVisible = true;
+        if (data.m_xCentroidAvg < 0.1) m_isVisible = false;
+
+        if (m_isVisible) {
+            if (data.m_xCentroidSD > kNominalCentroidSD) {
+                cout << "+++ WARNING +++ The width of the image along the X axis for " << m_ID.name
+                    << " is greater than 20px. Consider fixing things." << endl;
+            }
+            if (data.m_yCentroidSD > kNominalCentroidSD) {
+                cout << "+++ WARNING +++ The width of the image along the Y axis for " << m_ID.name
+                    << " is greater than 20px. Consider fixing things." << endl;
+            }
+
+            if (fabs(data.m_CleanedIntensity - kNominalIntensity)/kNominalIntensity > 0.2) {
+                cout << "+++ WARNING +++ The intensity of " << m_ID.name
+                    << " differs from the magic value by more than 20%\n"
+                    << "+++ WARNING +++ Will readjust the exposure now!" << endl;
+                Operate(PAS_MPESType_SetExposure);
+                // read the sensor again
+                status = read();
+            }
+        }
     }
     else
         m_updated = false;
@@ -395,9 +413,8 @@ UaStatusCode PasACT::getData(OpcUa_UInt32 offset, UaVariant& value)
     string varstoread[3] {"Steps", "curLength_mm", "inLength_mm"};
 
     vector<string> vec_curread {m_ID.eAddress + "." + varstoread[dataoffset]};
-    printf("Ruo (1), PasACT::getData -> value = %s\n",value.toString().toUtf8());
+    printf("PasACT::getData -> value = %s\n",value.toString().toUtf8());
     status = m_pClient->read(vec_curread, &value);
-    printf("Ruo (2), PasACT::getData -> value = %s\n",value.toString().toUtf8());
 
     return status;
 }
@@ -660,7 +677,7 @@ UaStatusCode PasPanel::Operate(OpcUa_UInt32 offset, const UaVariantArray &args)
         status =  __moveTo();
 #else
         for (int i = 0; i < 6; i++)
-            m_inCoords[i] = m_curCoords[i];
+            m_curCoords[i] = m_inCoords[i];
 #endif
     }
 
@@ -681,7 +698,7 @@ UaStatusCode PasPanel::Operate(OpcUa_UInt32 offset, const UaVariantArray &args)
         status =  __moveTo();
 #else
         for (int i = 0; i < 6; i++)
-            m_inCoords[i] = m_curCoords[i];
+            m_curCoords[i] = m_inCoords[i];
 #endif
         PASState state;
         getState(state);
@@ -757,7 +774,7 @@ UaStatusCode PasPanel::Operate(OpcUa_UInt32 offset, const UaVariantArray &args)
                     newLengths(i) = m_SP.GetActLengths()[i];
                 cout << "New Act length is \n" << newLengths << endl;
                 cout << "Current Act length is \n" << m_ActuatorLengths << endl;
-                X = newLengths-m_ActuatorLengths; 
+                X = newLengths-m_ActuatorLengths;
                 cout << "Delta Act length will be \n" << X << endl;
                 Y = A*X;
                 Z = Y+W;
@@ -888,7 +905,7 @@ bool PasPanel::__willSensorsBeOutOfRange()
                     newLengths(i) = m_SP.GetActLengths()[i];
                 cout << "New Act length is \n" << newLengths << endl;
                 cout << "Current Act length is \n" << m_ActuatorLengths << endl;
-                Act_delta = newLengths-m_ActuatorLengths; 
+                Act_delta = newLengths-m_ActuatorLengths;
                 cout << "Delta Act length will be \n" << Act_delta << endl;
                 Sen_delta = M_response*Act_delta;
                 Sen_new = Sen_delta+Sen_current;
@@ -899,7 +916,7 @@ bool PasPanel::__willSensorsBeOutOfRange()
                 for (unsigned i = 0; i < 6; i++)
                     deviation += pow(Sen_deviation(i),2);
                 deviation = pow(deviation,0.5);
-                if (deviation>40) return true; 
+                if (deviation>40) return true;
         }
 
         return false;
@@ -968,15 +985,12 @@ void PasPanel::getActuatorSteps(UaVariantArray &args) const
 -----------------------------------------------------------------------------*/
 
 PasEdge::PasEdge(Identity identity) : PasCompositeController(identity, nullptr),
-    m_DeltaL {0.5}, m_responseMatUpdated(false), m_alignmentUpdated(false), m_isAligned(false)
+    m_DeltaL {0.5}, m_AlignFrac {0.25}, m_isAligned(false)
 {
     m_ID.name = string("Edge_") + m_ID.eAddress;
     m_state = PASState::PAS_On;
     // defin possible children types
     m_ChildrenTypes = {PAS_MPESType, PAS_PanelType};
-
-    m_SystematicOffsets = VectorXd(6);
-    m_SystematicOffsets.setZero();
 }
 
 PasEdge::~PasEdge()
@@ -1032,6 +1046,8 @@ UaStatusCode PasEdge::getData(OpcUa_UInt32 offset, UaVariant& value)
 
     if (offset == PAS_EdgeType_StepSize)
         value.setFloat(m_DeltaL);
+    else if (offset == PAS_EdgeType_AlignFrac)
+        value.setFloat(m_AlignFrac);
     else
         status = OpcUa_BadInvalidArgument;
 
@@ -1049,10 +1065,9 @@ UaStatusCode PasEdge::setData(OpcUa_UInt32 offset, UaVariant value)
 
     if (offset == PAS_EdgeType_StepSize)
         value.toFloat(m_DeltaL);
-    else if (offset >= PAS_MirrorType_sysOffsets_x && offset <= PAS_MirrorType_sysOffsets_zRot) {
-        int dataoffset = offset - PAS_MirrorType_sysOffsets_x;
-        value.toDouble(m_SystematicOffsets(dataoffset));
-    }
+    else if (offset == PAS_EdgeType_AlignFrac)
+        value.toFloat(m_AlignFrac);
+
     else
         status = OpcUa_BadInvalidArgument;
 
@@ -1068,14 +1083,6 @@ UaStatusCode PasEdge::Operate(OpcUa_UInt32 offset, const UaVariantArray &args)
     UaMutexLocker lock(&m_mutex);
     UaStatusCode  status;
 
-    for(auto elem :m_pChildren)
-    {
-           std::cout << "Ruo, child of an edge: " << elem.first << "\n";
-           for (auto elem2nd :elem.second)
-           {
-                    std::cout << " " << elem2nd->getId() << "\n";
-           }
-    }
     unsigned numPanels;
     try {
         numPanels = m_pChildren.at(PAS_PanelType).size();
@@ -1139,8 +1146,19 @@ UaStatusCode PasEdge::Operate(OpcUa_UInt32 offset, const UaVariantArray &args)
             cout << "\n" << m_ID.name << " :" << endl;;
             getCurrentReadings();
             getAlignedReadings();
-            cout << "\nCurrent MPES readings:\n" << m_CurrentReadings << endl;
+
+            if (!m_CurrentReadings.size() || !m_AlignedReadings.size()) {
+                cout << "+++ ERROR +++ No physical sensor readings! Make sure the sensors are in the field of view. Nothing to do for now." << endl;
+                status = OpcUa_Bad;
+                break;
+            }
+
+            cout << "\nCurrent MPES readings:\n";
+            for (unsigned i = 0; i < m_CurrentReadings.size(); i++)
+               cout << m_CurrentReadings(i) << " +/- " << m_CurrentReadingsSD(i) << endl;
+
             cout << "\nTarget MPES readings:\n" << m_AlignedReadings << endl << endl;
+            cout << "\nMisalignment:\n" << m_AlignedReadings - m_CurrentReadings << endl << endl;
             status = OpcUa_Good;
             break;
         case PAS_EdgeType_Move:
@@ -1196,16 +1214,16 @@ UaStatus PasEdge::__findSingleMatrix(unsigned panelidx)
     UaMutexLocker lock(&m_mutex);
     UaStatus status;
 
-    double responseMatrix[6][6];;
+    MatrixXd responseMatrix(6, 6);
+    responseMatrix.setZero();
     // convenience variable;
     // no need to check with a try/catch block anymore as this has already been done
     // by the caller
-    auto& pMPES = m_pChildren.at(PAS_MPESType);
     PasPanel *pCurPanel = static_cast<PasPanel *>(m_pChildren.at(PAS_PanelType).at(panelidx));
     unsigned nACTs = pCurPanel->getActuatorCount();
 
-    OpcUa_Double vector0[6]; // maximum possible size
-    OpcUa_Double vector1[6]; // maximum possible size
+    VectorXd vector0(6); // maximum possible size
+    VectorXd vector1(6); // maximum possible size
 
     UaVariant minusdeltaL, deltaL, zeroDelta;
     deltaL.setFloat(m_DeltaL);
@@ -1224,14 +1242,11 @@ UaStatus PasEdge::__findSingleMatrix(unsigned panelidx)
             zeroDelta.copyTo(&deltas[k]);
 
         missedDelta = 0.;
-        for (unsigned i = 0; i < pMPES.size(); i++) {
-            status = pMPES.at(i)->Operate();
-            if (!status.isGood()) return status;
-            pMPES.at(i)->getData(PAS_MPESType_xCentroidAvg, vtmp);
-            vtmp.toDouble(vector0[2*i]);
-            pMPES.at(i)->getData(PAS_MPESType_yCentroidAvg, vtmp);
-            vtmp.toDouble(vector0[2*i + 1]);
-        }
+
+        vector0 = getCurrentReadings();
+        cout << "+++ CURRENT READINGS:\n" << vector0 << endl << "Sleeping for 1s" << endl;
+        sleep(1); // seconds
+
         printf("attempting to move actuator %d by %5.3f mm\n", j, m_DeltaL);
         deltaL.copyTo(&deltas[j]);
         status = pCurPanel->Operate(PAS_PanelType_StepAll_move, deltas);
@@ -1240,9 +1255,11 @@ UaStatus PasEdge::__findSingleMatrix(unsigned panelidx)
         // before the next step. So we wait.
         PASState curState = PASState::PAS_Busy;
         while (curState == PASState::PAS_Busy) {
-            usleep(50*1000); // microseconds
+            usleep(300*1000); // microseconds
             pCurPanel->getState(curState);
         }
+        cout << "+++ MOTION SHOULD HAVE FINISHED. Sleeping for 2s" << endl;
+        sleep(2);
 
         // update missed steps
         pCurPanel->getActuatorSteps(deltas);
@@ -1250,15 +1267,12 @@ UaStatus PasEdge::__findSingleMatrix(unsigned panelidx)
 
         printf("actuator %d missed target by %5.3f mm\n", j, missedDelta);
 
-        for (unsigned i = 0; i < pMPES.size(); i++) {
-            status = pMPES.at(i)->Operate();
-            if (!status.isGood()) return status;
-            pMPES.at(i)->getData(PAS_MPESType_xCentroidAvg, vtmp);
-            vtmp.toDouble(vector1[2*i]);
-            pMPES.at(i)->getData(PAS_MPESType_yCentroidAvg, vtmp);
-            vtmp.toDouble(vector1[2*i + 1]);
-        }
+        vector1 = getCurrentReadings();
+        cout << "+++ CURRENT READINGS:\n" << vector1 << endl << "Sleeping for 1s" << endl;
+        sleep(1); // seconds
+        cout << "+++ Difference in sensor readings:\n" << vector1 - vector0 << endl;
         // move the same actuator back
+        printf("moving actuator %d back", j);
         minusdeltaL.copyTo(&deltas[j]);
         status = pCurPanel->Operate(PAS_PanelType_StepAll_move, deltas);
         if (!status.isGood()) return status;
@@ -1266,35 +1280,39 @@ UaStatus PasEdge::__findSingleMatrix(unsigned panelidx)
         // before the next step. So we wait.
         curState = PASState::PAS_Busy;
         while (curState == PASState::PAS_Busy) {
-            usleep(50*1000); // microseconds
+            usleep(300*1000); // microseconds
             pCurPanel->getState(curState);
         }
+        cout << "+++ MOTION SHOULD HAVE FINISHED. Sleeping for 2s" << endl;
+        sleep(2);
 
-        for (unsigned i = 0; i < 2*pMPES.size(); i++)
-        {
-            responseMatrix[i][j]=(vector1[i]-vector0[i])/(m_DeltaL - missedDelta);
-            printf("[%d,%d]= [%6.4lf,%6.4lf,%6.4lf]\n", i+1, j+1,
-                    vector1[i], vector0[i], responseMatrix[i][j]);
-        }
+        responseMatrix.col(j) = (vector1 - vector0)/(m_DeltaL - missedDelta);
+        cout << "+++ CURRENT RESPONSE MATRIX:\n" << responseMatrix << endl;
     }
+    cout << "\n+++ ALL DONE FOR THIS PANEL!" << endl;
+    cout << "+++ Response matrix for " << m_ID.eAddress << ": panel " << pCurPanel->getId().position << endl;
+    cout << responseMatrix << endl;
 
-    string outfilename = "/home/ctauser/PanelAlignmentData/ResponseMatrix.txt";
-    ofstream output(outfilename, ios_base::app);
+    string outfilename = "/home/ctauser/PanelAlignmentData/ResponseMatrix_" + m_ID.eAddress + ".txt";
+    ofstream output(outfilename, ios_base::in | ios_base::out | ios_base::app);
     stringstream outputstr;
+    output << pCurPanel->getId().position << endl << responseMatrix << endl;
 
-    for (unsigned i = 0; i < pMPES.size(); i++) {
+    /*
+    auto& pMPES = m_pChildren.at(PAS_MPESType);
+    for (const auto& mpes : m_ChildrenPositionMap.at(PAS_MPESType)) {
         for (auto const& coord : {'x', 'y'}) {
             // explicit cast here
-            char panelside = static_cast<PasMPES *>(pMPES.at(i))->getPanelSide(pCurPanel->getId().position);
+            char panelside = static_cast<PasMPES *>(pMPES.at(mpes.second))->getPanelSide(pCurPanel->getId().position);
 
             // prepare command for DB
             outputstr.str(string());
             outputstr << "addResponseMatrix2db "
-                << pMPES.at(i)->getId().serialNumber << " " << coord << " " << panelside;
+                << pMPES.at(mpes.second)->getId().serialNumber << " " << coord << " " << panelside;
             outputstr << " \""; // begin quoted list of values
             // -------------------- //
 
-            output << pMPES.at(i)->getId().serialNumber << " " << coord << " " << panelside;
+            output << pMPES.at(mpes.second)->getId().serialNumber << " " << coord << " " << panelside;
             for (unsigned j = 0; j < nACTs; j++) {
                 output << " " << responseMatrix[2*i + int(coord - 'x')][j];
                 outputstr << " " << responseMatrix[2*i + int(coord - 'x')][j];
@@ -1302,9 +1320,9 @@ UaStatus PasEdge::__findSingleMatrix(unsigned panelidx)
             output << endl;
 
             outputstr << "\""; //end quoted list of values
-            system(outputstr.str().c_str());
+        //    system(outputstr.str().c_str());
         }
-    }
+    } */
     output.close();
 
     return status;
@@ -1363,8 +1381,13 @@ UaStatus PasEdge::__alignSinglePanel(unsigned panelpos, bool moveit)
     MatrixXd A; // response matrix
     MatrixXd C; // constraint matrix
     MatrixXd B; // complete matrix we want to solve for
-    auto current_read = getCurrentReadings();
-    auto aligned_read = getAlignedReadings();
+    VectorXd current_read = getCurrentReadings();
+    VectorXd aligned_read = getAlignedReadings() - getSystematicOffsets();
+    if (!current_read.size() || !aligned_read.size()) {
+        cout << "+++ ERROR +++ No physical sensor readings! Make sure the sensors are in the field of view. Nothing to do for now." << endl;
+        return OpcUa_Bad;
+    }
+
     VectorXd X; // solutions vector
     VectorXd Y; // sensor misalignment vector, we want to fit to this
 
@@ -1424,23 +1447,31 @@ UaStatus PasEdge::__alignSinglePanel(unsigned panelpos, bool moveit)
         VectorXd overlap_current(overlapMPES.size()*2);
         VectorXd overlap_aligned(overlapMPES.size()*2);
         UaVariant vtmp;
-        for (int i = 0; i < overlapMPES.size(); i++) {
-            overlapMPES.at(i)->Operate();
+        unsigned visible = 0;
+        for (auto& mpes : overlapMPES) {
+            mpes->Operate();
+            if ( !mpes->isVisible() ) continue;
 
-            overlapMPES.at(i)->getData(PAS_MPESType_xCentroidAvg, vtmp);
-            vtmp.toDouble(overlap_current(i*2));
-            overlapMPES.at(i)->getData(PAS_MPESType_yCentroidAvg, vtmp);
-            vtmp.toDouble(overlap_current(i*2 + 1));
+            mpes->getData(PAS_MPESType_xCentroidAvg, vtmp);
+            vtmp.toDouble(overlap_current(visible*2));
+            mpes->getData(PAS_MPESType_yCentroidAvg, vtmp);
+            vtmp.toDouble(overlap_current(visible*2 + 1));
 
-            overlap_aligned.segment(i*2, 2) = overlapMPES.at(i)->getAlignedReadings();
+            overlap_aligned.segment(visible*2, 2) = mpes->getAlignedReadings()
+                - mpes->getSystematicOffsets();
+
+            ++visible;
         }
+        overlap_current.conservativeResize(2*visible);
+        overlap_aligned.conservativeResize(2*visible);
 
-        C = MatrixXd(overlapMPES.size()*blockRows, 2*blockCols);
+        C = MatrixXd(visible*blockRows, 2*blockCols);
         C.setZero();
 
         for (int j = 0; j < 2; j++) {
             int i = 0;
             for (const auto& mpes : overlapMPES) {
+                if (!mpes->isVisible()) continue;
                 auto panelside = mpes->getPanelSide(twopanels[j]);
                 C.block(blockRows*i, blockCols*j, blockRows, blockCols) = mpes->getResponseMatrix(panelside);
                 i++;
@@ -1454,14 +1485,20 @@ UaStatus PasEdge::__alignSinglePanel(unsigned panelpos, bool moveit)
         B = MatrixXd(A.rows() + C.rows(), A.cols());
         B.block(0, 0, A.rows(), A.cols()) = A;
         B.block(A.rows(), 0, C.rows(), A.cols()) = sqrt(2.)*C; // increase the weight of the constraint due to the degenaracy along the P1-P2 edge
-        Y = VectorXd(B.rows());
-        Y.head(A.rows()) = aligned_read - current_read;
-        Y.tail(C.rows()) = sqrt(2.)*(overlap_aligned - overlap_current);
+        Y = VectorXd(aligned_read.size() + overlap_current.size());
+        Y.head(aligned_read.size()) = aligned_read - current_read;
+        Y.tail(overlap_current.size()) = sqrt(2.)*(overlap_aligned - overlap_current);
 
         aligned_read.conservativeResize(aligned_read.size() + overlap_aligned.size());
         aligned_read.tail(overlap_aligned.size()) = overlap_aligned;
         current_read.conservativeResize(current_read.size() + overlap_current.size());
         current_read.tail(overlap_current.size()) = overlap_current;
+    }
+
+    // make sure we have enough constraints to solve this
+    if (Y.size() < B.cols()) {
+        cout << "+++ ERROR! +++ Not enough sensors to constrain the motion. Won't do anything!" << endl;
+        return OpcUa_Bad;
     }
 
     try {
@@ -1470,10 +1507,11 @@ UaStatus PasEdge::__alignSinglePanel(unsigned panelpos, bool moveit)
     catch (...) {
         cout << "+++ WARNING! +++ Failed to perform Singular Value Decomposition. "
             << "Check your sensor readings! Discarding this result!" << endl;
+        return OpcUa_Bad;
     }
 
     cout << "\nCurrent MPES readings:\n" << current_read << endl;
-    cout << "\nTarget MPES readings:\n" << aligned_read << endl;
+    cout << "\nTarget MPES readings (accounting for systematics):\n" << aligned_read << endl;
     cout << "\nActuator response matrix for this edge:\n" << A << endl;
     if (!C.isZero(0))
         cout << "\nConstraint matrix for this edge:\n" << C << endl;
@@ -1492,6 +1530,12 @@ UaStatus PasEdge::__alignSinglePanel(unsigned panelpos, bool moveit)
     // We do this partly through brute force and partly through SVD.
 
     cout << "\nLEAST SQUARES SOLUTION:\n" << X << endl;
+    // while (X.norm() >= 14*(X.size()/6)) { // heuristic -- don't want to move by more than the panel gap
+    if (m_AlignFrac < 1.) {
+        cout << "+++ WARNING +++ You requested fractional motion: will move fractionally by " << m_AlignFrac << " of the above:" << endl;
+        X *= m_AlignFrac;
+        cout << X << endl;
+    }
 
     // make sure we don't move what we're not supposed to
     m_PanelsToMove.clear();
@@ -1503,28 +1547,8 @@ UaStatus PasEdge::__alignSinglePanel(unsigned panelpos, bool moveit)
         if ( (panelPair.first == panelpos) == moveit ) { // clever but not clear...
             pCurPanel = static_cast<PasPanel *>(m_pChildren.at(PAS_PanelType).at(panelPair.second));
             auto nACT = pCurPanel->getActuatorCount();
-            // WORK AROUND TO HANDLE SYSTEMATIC OFFSETS DURING ALIGNMENT ONLY
-            // update the current coordinates of the panel
-            pCurPanel->__updateCoords();
-            // get the current actuator lenghts
-            VectorXd curLengths = pCurPanel->m_ActuatorLengths;
-            // get the new coordinates -- add deltas to actuator lengths and recompute
-            curLengths += X.segment(j, 6);
-            pCurPanel->m_SP.ComputeStewart(curLengths.data());
-            VectorXd curCoords(6);
-            for (unsigned i = 0; i < 6; i++)
-                curCoords(i) = pCurPanel->m_SP.GetPanelCoords()[i];
-            // subtract offsets
-            curCoords -= m_SystematicOffsets;
-            // recompute actuator lengths
-            pCurPanel->m_SP.ComputeActsFromPanel(curCoords.data());
-            VectorXd newLengths(6);
-            for (unsigned i = 0; i < 6; i++)
-                newLengths(i) = pCurPanel->m_SP.GetActLengths()[i];
-            // finally, update the deltas
-            X.segment(j, 6) = newLengths - pCurPanel->m_ActuatorLengths;
             // print out to make sure
-            cout << "After correction for systematic offsets, will move actuators of "
+            cout << "Will move actuators of "
                 << pCurPanel->getId().name << " by\n" << X.segment(j, 6) << endl;
 
             UaVariantArray deltas;
@@ -1546,66 +1570,12 @@ UaStatus PasEdge::__alignSinglePanel(unsigned panelpos, bool moveit)
 
     cout << "\nYou can also call " << m_ID.name << ".Move to move the panel(s).\n" << endl;
 
-    /* LOG ALIGNMENT */
-/*
-    ofstream output("convergence.log", ios_base::app);
-
-    cout << "Old Positions: (";
-    output << "Old Positions: (";
-    for (unsigned i = 0; i < nMPES; i++ )
-    {
-        cout << current_read[i*2] << ", " << current_read[i*2 + 1] << "; ";
-        output << current_read[i*2] << ", " << current_read[i*2 + 1] << "; ";
-    }
-    cout << ")." << endl;
-    output << ")." << endl;
-
-    cout << "Target Positions: (";
-    output << "Target Positions: (";
-    for (unsigned i = 0; i < nMPES; i++ )
-    {
-        cout << aligned_read[i*2] << ", " << aligned_read[i*2 + 1] << "; ";
-        output << aligned_read[i*2] << ", " << aligned_read[i*2 + 1] << "; ";
-    }
-    cout << ")." << endl;
-    output << ")." << endl;
-
-    for (unsigned i = 0; i < nMPES; i++)
-    {
-        status = pMPES.at(i)->Operate();
-        if (!status.isGood()) return status;
-        pMPES.at(i)->getData(PAS_MPESType_xCentroidAvg, vtmp);
-        vtmp.toDouble(current_read[i*2]);
-        pMPES.at(i)->getData(PAS_MPESType_yCentroidAvg, vtmp);
-        vtmp.toDouble(current_read[i*2 + 1]);
-    }
-
-    cout << "New Positions: (";
-    output << "New Positions: (";
-    for (unsigned i = 0; i < nMPES; i++ )
-    {
-        cout << current_read[i*2] << ", " << current_read[i*2 + 1] << "; ";
-        output << current_read[i*2] << ", " << current_read[i*2 + 1] << "; ";
-    }
-    cout << ")." << endl;
-    output << ")." << endl;
-
-    output.close();
-*/
-
     return status;
 }
 
+// Get response matrix for the panel defined by 'panelpos'
+// this is the response of the sensors on this edge to the motion of the requested panel
 const MatrixXd& PasEdge::getResponseMatrix(unsigned panelpos)
-{
-    if (!m_responseMatUpdated)
-        __updateResponse();
-
-    // no need to try-catch -- panelpos here is always valid
-    return m_ResponseMatMap.at(panelpos);
-}
-
-void PasEdge::__updateResponse()
 {
     auto& pMPES = m_pChildren.at(PAS_MPESType);
     unsigned maxMPES = pMPES.size();
@@ -1614,64 +1584,110 @@ void PasEdge::__updateResponse()
     for (const auto& panelPair : m_ChildrenPositionMap.at(PAS_PanelType)) {
         unsigned panel = panelPair.first;
 
+        unsigned visibleMPES = 0;
         m_ResponseMatMap[panel] = MatrixXd(maxMPES*2, nACT);
         m_ResponseMatMap.at(panel).setZero();
         for (unsigned nMPES = 0; nMPES < maxMPES; nMPES++) {
+//        for (const auto& mpes : m_ChildrenPositionMap.at(PAS_MPESType)) {
+            // do not check if the sensor is visible here -- return the full response matrix
+//            if ( !static_cast<PasMPES *>(pMPES.at(nMPES))->isVisible() ) continue;
+
             auto panelside = static_cast<PasMPES *>(pMPES.at(nMPES))->getPanelSide(panel);
-            // if this is nonzero, add it to the edge response matrix
+            // if this is nonzero (so either 'l' or 'w'), add it to the edge response matrix
             if (panelside) {
                 const auto& curresponse = static_cast<PasMPES *>(pMPES.at(nMPES))->getResponseMatrix(panelside);
-                m_ResponseMatMap.at(panel).block(2*nMPES, 0, curresponse.rows(), curresponse.cols()) = curresponse;
+                m_ResponseMatMap.at(panel).block(2*visibleMPES, 0, curresponse.rows(), curresponse.cols()) = curresponse;
             }
+            ++visibleMPES;
         }
+        m_ResponseMatMap.at(panel).conservativeResize(2*visibleMPES, nACT);
     }
 
-    m_responseMatUpdated = true;
+    // no need to try-catch -- panelpos here is always valid
+    return m_ResponseMatMap.at(panelpos);
 }
 
 
 const VectorXd& PasEdge::getAlignedReadings()
 {
-    if (!m_alignmentUpdated)
-        __updateAlignmentData();
+    auto& pMPES = m_pChildren.at(PAS_MPESType);
+    unsigned maxMPES = pMPES.size();
+    unsigned visibleMPES = 0;
+
+    m_AlignedReadings = VectorXd(2*pMPES.size());
+    for (unsigned nMPES = 0; nMPES < maxMPES; nMPES++) {
+        if ( !static_cast<PasMPES *>(pMPES.at(nMPES))->isVisible() ) continue;
+//    for (const auto& mpes : m_ChildrenPositionMap.at(PAS_MPESType)) {
+//        if ( !static_cast<PasMPES *>(pMPES.at(mpes.second))->isVisible() ) continue;
+
+        auto mpes_response = static_cast<PasMPES *>(pMPES.at(nMPES))->getAlignedReadings();
+        m_AlignedReadings.segment(2*visibleMPES, 2) = mpes_response;
+        ++visibleMPES;
+    }
+    m_AlignedReadings.conservativeResize(2*visibleMPES);
 
     return m_AlignedReadings;
 }
 
-void PasEdge::__updateAlignmentData()
+const VectorXd& PasEdge::getSystematicOffsets()
 {
     auto& pMPES = m_pChildren.at(PAS_MPESType);
-    unsigned nMPES = pMPES.size();
+    unsigned maxMPES = pMPES.size();
+    unsigned visibleMPES = 0;
 
-    m_AlignedReadings = VectorXd(2*nMPES);
-    for (unsigned mpes = 0; mpes < nMPES; mpes++) {
-        auto mpes_response = static_cast<PasMPES *>(pMPES.at(mpes))->getAlignedReadings();
-        m_AlignedReadings.segment(2*mpes, 2) = mpes_response;
+    m_systematicOffsets = VectorXd(2*pMPES.size());
+    for (unsigned nMPES = 0; nMPES < maxMPES; nMPES++) {
+        if ( !static_cast<PasMPES *>(pMPES.at(nMPES))->isVisible() ) continue;
+//    for (const auto& mpes : m_ChildrenPositionMap.at(PAS_MPESType)) {
+//        if ( !static_cast<PasMPES *>(pMPES.at(mpes.second))->isVisible() ) continue;
+
+        m_systematicOffsets.segment(2*visibleMPES, 2) =
+            (static_cast<PasMPES*>(pMPES.at(nMPES)) )->getSystematicOffsets();
+        ++visibleMPES;
     }
+    m_systematicOffsets.conservativeResize(2*visibleMPES);
 
-    m_alignmentUpdated = true;
-
+    return m_systematicOffsets;
 }
-
 
 const Eigen::VectorXd& PasEdge::getCurrentReadings()
 {
     // edge should have at least one sensor by definition -- otherwise it wouldn't be created.
     // so this is safe.
     auto& pMPES = m_pChildren.at(PAS_MPESType);
-    unsigned nMPES = pMPES.size();
+    unsigned maxMPES = pMPES.size();
+    unsigned visibleMPES = 0;
 
-    m_CurrentReadings = VectorXd(2*nMPES);
+    m_CurrentReadings = VectorXd(2*maxMPES);
+    m_CurrentReadingsSD = VectorXd(2*maxMPES);
 
     UaVariant vtmp;
-    for (unsigned i = 0; i < nMPES; i++) {
-        pMPES.at(i)->Operate();
+    for (unsigned nMPES = 0; nMPES < maxMPES; nMPES++) {
+        pMPES.at(nMPES)->Operate();
+        if ( !static_cast<PasMPES *>(pMPES.at(nMPES))->isVisible() ) {
+            cout << "+++ WARNING +++ " << pMPES.at(nMPES)->getId().name
+    //for (const auto& mpes : m_ChildrenPositionMap.at(PAS_MPESType)) {
+    //    pMPES.at(mpes.second)->Operate();
+    //    if ( !static_cast<PasMPES *>(pMPES.at(mpes.second))->isVisible() ) {
+    //        cout << "+++ WARNING +++ " << pMPES.at(mpes.second)->getId().name
+                << " is not in the field of view! Will ignore it." << endl;
+                continue;
+        }
 
-        pMPES.at(i)->getData(PAS_MPESType_xCentroidAvg, vtmp);
-        vtmp.toDouble(m_CurrentReadings(i*2));
-        pMPES.at(i)->getData(PAS_MPESType_yCentroidAvg, vtmp);
-        vtmp.toDouble(m_CurrentReadings(i*2 + 1));
+        pMPES.at(nMPES)->getData(PAS_MPESType_xCentroidAvg, vtmp);
+        vtmp.toDouble(m_CurrentReadings(visibleMPES*2));
+        pMPES.at(nMPES)->getData(PAS_MPESType_yCentroidAvg, vtmp);
+        vtmp.toDouble(m_CurrentReadings(visibleMPES*2 + 1));
+
+        pMPES.at(nMPES)->getData(PAS_MPESType_xCentroidSD, vtmp);
+        vtmp.toDouble(m_CurrentReadingsSD(visibleMPES*2));
+        pMPES.at(nMPES)->getData(PAS_MPESType_yCentroidSD, vtmp);
+        vtmp.toDouble(m_CurrentReadingsSD(visibleMPES*2 + 1));
+
+        ++visibleMPES;
     }
+    m_CurrentReadings.conservativeResize(2*visibleMPES);
+    m_CurrentReadingsSD.conservativeResize(2*visibleMPES);
 
     return m_CurrentReadings;
 }

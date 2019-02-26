@@ -51,7 +51,7 @@ PasPanel::PasPanel(int ID, Platform *platform) : PasController(ID, platform)
 {
     if (m_state != PASState::PAS_On)
         m_state = PASState::PAS_On;
-} 
+}
 
 PasPanel::~PasPanel()
 {
@@ -111,8 +111,8 @@ UaStatusCode PasPanel::getData(OpcUa_UInt32 offset, UaVariant& value)
 {
 #ifdef SIMMODE
     random_device rd{};
-    mt19937 generator{rd()}; 
-    
+    mt19937 generator{rd()};
+
     normal_distribution<double> internalTempDistribution(30.0,2.0);
     normal_distribution<double> externalTempDistribution(20.0,2.0);
 
@@ -260,6 +260,7 @@ UaStatusCode PasMPES::getData(
     int dataoffset = offset - PAS_MPESType_xCentroidAvg;
     if ( (dataoffset >= 7) || (dataoffset < 0))
         return OpcUa_BadInvalidArgument;
+
     if (!m_updated)
         value.setFloat(0.);
     else
@@ -294,14 +295,14 @@ UaStatusCode PasMPES::Operate(OpcUa_UInt32 offset, const UaVariantArray& args)
 {
     UaMutexLocker lock(&m_mutex);
     UaStatusCode  status;
-    
-    if ( offset >= 1 )
-        return OpcUa_BadInvalidArgument;
 
     switch ( offset )
     {
-        case 0:
+        case PAS_MPESType_Read:
             status = read();
+            break;
+        case PAS_MPESType_SetExposure:
+            m_pPlatform->getMPESAt(m_ID)->setExposure();
             break;
         default:
             status = OpcUa_BadInvalidArgument;
@@ -454,7 +455,7 @@ UaStatusCode PasACT::Operate(OpcUa_UInt32 offset, const UaVariantArray& args)
     // do not lock the object -- might want to access it during stepping!
     // UaMutexLocker lock(&m_mutex);
     UaStatusCode  status;
-    
+
     if ( offset >= 1 )
         return OpcUa_BadInvalidArgument;
 
@@ -507,7 +508,7 @@ PasPSD::PasPSD(int ID) : PasController(ID, 500)
     m_pPSD->setPort();
     m_pPSD->Initialize();
     m_mutex.unlock();
-} 
+}
 
 PasPSD::~PasPSD()
 {
@@ -531,7 +532,7 @@ UaStatusCode PasPSD::getData(
 
     if (_expired()) // if cached value expired, update it
         status = read();
-    
+
     value.setDouble(*(m_pPSD->getOutput() + dataoffset));
 
     return status;
@@ -548,7 +549,7 @@ UaStatusCode PasPSD::Operate(OpcUa_UInt32 offset, const UaVariantArray& args)
 {
     //UaMutexLocker lock(&m_mutex);
     UaStatusCode  status;
-    
+
     if ( offset >= 1 )
         return OpcUa_BadInvalidArgument;
 
@@ -582,4 +583,3 @@ UaStatus PasPSD::read()
 }
 
 #endif
-

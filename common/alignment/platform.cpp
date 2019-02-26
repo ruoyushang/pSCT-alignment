@@ -23,7 +23,7 @@
 using namespace std;
 
 //Destructor
-Platform::~Platform() 
+Platform::~Platform()
 {
 /*
 for (int i=0; i<6; i++)
@@ -182,7 +182,7 @@ HighCurrent=res->getInt(35);
   delete con;
 
 }
-  catch (sql::SQLException &e) 
+  catch (sql::SQLException &e)
 {
   cout << "# ERR: SQLException in " << __FILE__;
   cout << "(" << __FUNCTION__ << ") on line " << __LINE__ << endl;
@@ -262,7 +262,7 @@ if (FinalPosition[i].Revolution < actuator[i]->ExtendRevolutionLimit || FinalPos
 ERROR_MSG("Operable Error: Attempting to move Actuator with Index " << i << " outside of software range.");
 SetError(12);
 ERROR_MSG("Attempting to move outside of Software Range(" << actuator[i]->HomeLength-(actuator[i]->RetractRevolutionLimit*actuator[i]->StepsPerRevolution*actuator[i]->mmPerStep) << "-" << actuator[i]->HomeLength-(actuator[i]->ExtendRevolutionLimit*actuator[i]->StepsPerRevolution*actuator[i]->mmPerStep) << "mm) for Actuator " << actuator[i]->SerialNumber);
- 
+
     // reset the state to Off
     m_State = PlatformState::Off;
 
@@ -425,7 +425,7 @@ return;
 }
 
 
-void Platform::ProbeEndStopAll(int Direction)//pass +1 for extension stop, -1 for retraction stop. private 
+void Platform::ProbeEndStopAll(int Direction)//pass +1 for extension stop, -1 for retraction stop. private
 {
 if (DisallowMovement)
 {

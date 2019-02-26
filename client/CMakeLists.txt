@@ -33,7 +33,7 @@ if( MYSQLCONNECTORCPP_FOUND )
     link_directories(${MYSQLCONNECTORCPP_LIBRARY_DIRS})
 else( MYSQLCONNECTORCPP_FOUND )
     message(WARNING "MySQLConnectorCPP not found. You need MySQLConnectorCPP for this program to work!")
-endif( MYSQLCONNECTORCPP_FOUND ) 
+endif( MYSQLCONNECTORCPP_FOUND )
 
 pkg_search_module(ARAVIS REQUIRED aravis-0.6 aravis-0.4)
 if(ARAVIS_FOUND)
@@ -108,10 +108,6 @@ FILE(GLOB P2PAS_SRC
     "${COMMON_CODE_DIR}/globalalignment/ccd/*.cpp"
     "${COMMON_CODE_DIR}/utilities/*.cpp"
   )
-
-if ( SIMMODE )
-    add_definitions(-DSIMMODE)
-endif ( SIMMODE )
 
 ####################################### Include Paths ########################################
 IF ( UASTACK_WITH_OPENSSL )
@@ -271,5 +267,3 @@ IF (WIN32)
         ENDIF()
     ENDIF()
 ENDIF (WIN32)
-
-

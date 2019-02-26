@@ -8,6 +8,7 @@
 
 #include "uabase.h"
 #include "mysql_connection.h"
+#include "mysql_driver.h"
 #include <vector>
 
 class Configuration;
@@ -25,16 +26,16 @@ public:
 	/// @brief Setter method to set internal Configuration object.
 	/// @param Pointer to new Configuration object.
     void setConfiguration(const Configuration *pConfiguration);
-    
+
 	/// @warning Logic to setup statements and connections is
 	/// currently commented out.
-	/// @brief Setup method to connect to database(s) and print 
+	/// @brief Setup method to connect to database(s) and print
 	/// metadata/entries from the Configuration object.
-    void connectAndPrepare(); 
+    void connectAndPrepare();
 
     // write to the DB
 	/// @warning Currently commented out.
-	/// @brief Write an MPES measurement entry consisting of a timestamp and 
+	/// @brief Write an MPES measurement entry consisting of a timestamp and
 	/// an x and y position to the database.
 	/// @param timestamp Timestamp represented as a C string.
 	/// @param x MPES laser x position.
@@ -47,7 +48,7 @@ private:
 	/// @brief Vector of MySQL Driver objects to create connections
 	/// to the MySQL server.
     std::vector<sql::Driver*> m_pDriver;
-	/// @brief Vector of MySQL Connection objects. 
+	/// @brief Vector of MySQL Connection objects.
 	/// @warning Currently unused.
     std::vector<sql::Connection*> m_pConnection;
 	/// @brief Vector of MySQL query statement objects.

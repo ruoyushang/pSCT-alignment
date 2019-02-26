@@ -38,8 +38,6 @@ private:
     UaMethodGeneric* m_pMethodMoveToCoords;
     UaMethodGeneric* m_pMethodRead;
     UaMethodGeneric* m_pMethodStop;
-    UaMethodGeneric* m_pMethodNew; //Ruo
 };
 
 #endif
-

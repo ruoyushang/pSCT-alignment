@@ -13,7 +13,7 @@
 #include "cppconn/prepared_statement.h"
 
 /// @details Sets internal Configuration pointer to NULL.
-Database::Database() 
+Database::Database()
 : m_pConfiguration(NULL)
 {
 }
@@ -30,7 +30,7 @@ void Database::setConfiguration(const Configuration *pConfiguration)
 {
     m_pConfiguration = pConfiguration;
 }
-    
+
 /// @details Gets list of databases from the Configuration, creates drivers,
 /// and then reads and prints database information (host, user, name, password)
 /// and entries saved in Configuration object.
@@ -65,13 +65,13 @@ void Database::connectAndPrepare()
             std::cout << UaString(m_pConfiguration->getDatabaseEntries().at(i)[j]).toUtf8() << std::endl;
         }
     }
-    // the values to read/write are in the format 
+    // the values to read/write are in the format
     // VarNameOnTheServer;ReadOrWrite;Type;VarNameInTheDatabase
 //    OpcUa_Int32 sPos=0, ePos=0;
 //    ePos = UaString(m_pConfiguration->getDatabaseEntries()[i]).find(';', sPos);
 
 //    nameOnTheServer = UaStringk
-    
+
     /* prepare the statement
     std::string stmt = "INSERT INTO mpes(";
     for ( i = 0; i < size - 1; i++ )
@@ -82,7 +82,7 @@ void Database::connectAndPrepare()
     for ( i = 0; i < size - 1; i++ )
         stmt += "?, ";
     stmt += "?)";
-    
+
     m_pStmt = m_pConnection->prepareStatement(stmt.c_str()); */
 }
 

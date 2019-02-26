@@ -39,7 +39,7 @@ class MPES
         };
         // return const reference to the private member
         const MPES::Position& getPosition() const { return m_position; };
-        
+
         int GetPortNumber() const {return m_USBPortNumber; };
 
     private:
