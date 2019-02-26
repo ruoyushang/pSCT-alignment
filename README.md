@@ -23,7 +23,7 @@ It is recommended that you add a tag to label that image with `-t yourname/align
 Once built, run the image using volume building. Docker creates a read only container from your image, so development is difficult because you can't save progress on the image. Instead, you can work on a local directory (as opposed to the container itself) and build against the container. Binding allows you to point to the local directory from an open directory on the container.
 Use the following run commmand to do this, making sure to use your own local directory first, followed by /app, which is the directory exposed during build. 
 ```bash
-docker run -it --run -v/path/to/your/local/directory:/app yourname/alignment
+docker run -it --rm -v/path/to/your/local/directory:/app yourname/alignment
 ```
 
 It is recommended that /path/to/your/local/directory is the top directory where this git repo live, so that within the container terminal you can navigate to `/app/pSCT-alignment/sdk/bin/`. The image is identified here with the tag specified above, but you can also explicitly point to the ImageID from the list in `docker images`. 
