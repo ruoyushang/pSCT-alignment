@@ -12,6 +12,7 @@
 #include "platform.hpp"
 #include <iostream>
 #include <array>
+#include <random>
 
 using namespace std;
 UaStatusCode PasController::getState(PASState& state)
@@ -108,13 +109,36 @@ UaStatusCode PasPanel::setState(PASState state)
 
 UaStatusCode PasPanel::getData(OpcUa_UInt32 offset, UaVariant& value)
 {
-    if (offset == PAS_PanelType_ExtTemperature)
-        value.setFloat(m_pPlatform->ReadInternalTemperature());
-    else if (offset == PAS_PanelType_IntTemperature)
-        value.setFloat(m_pPlatform->ReadExternalTemperature());
-    else
-        return OpcUa_BadInvalidArgument;
+#ifdef SIMMODE
+    random_device rd{};
+    mt19937 generator{rd()}; 
+    
+    normal_distribution<double> internalTempDistribution(30.0,2.0);
+    normal_distribution<double> externalTempDistribution(20.0,2.0);
 
+    if (offset == PAS_PanelType_ExtTemperature) {
+        double newValue = externalTempDistribution(generator);
+        value.setFloat(newValue);
+    }
+    else if (offset == PAS_PanelType_IntTemperature) {
+        double newValue = internalTempDistribution(generator);
+        value.setFloat(newValue);
+    }
+    else {
+        return OpcUa_BadInvalidArgument;
+    }
+
+#else
+    if (offset == PAS_PanelType_ExtTemperature) {
+        value.setFloat(m_pPlatform->ReadExternalTemperature());
+    }
+    else if (offset == PAS_PanelType_IntTemperature) {
+        value.setFloat(m_pPlatform->ReadInternalTemperature());
+    }
+    else {
+        return OpcUa_BadInvalidArgument;
+    }
+#endif
     return OpcUa_Good;
 }
 
