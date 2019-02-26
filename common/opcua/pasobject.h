@@ -54,19 +54,9 @@ public:
         UaStatusCodeArray&     inputArgumentResults,
         UaDiagnosticInfos&     inputArgumentDiag) = 0;
 
-    // Factory pattern
-    static PasObject *makeObject(
-            unsigned deviceType,
-            const UaString& name,
-            const UaNodeId& newNodeId,
-            const UaString& defaultLocaleId,
-            PasNodeManager *pNodeManager,
-            Identity identity,
-            PasCommunicationInterface *pCommIf);
-
 protected:
     // a function that's used very often
-    OpcUa::DataItemType* addVariable(PasNodeManagerCommon *pNodeManager, OpcUa_UInt32 ParentType, OpcUa_UInt32 VarType, OpcUa_Boolean isState = OpcUa_False);
+    OpcUa::DataItemType* addVariable(PasNodeManagerCommon *pNodeManager, OpcUa_UInt32 ParentType, OpcUa_UInt32 VarType, OpcUa_Boolean isState = OpcUa_False, OpcUa_Boolean addReference = OpcUa_True);
 
     OpcUa::DataItemType* addErrorVariable(PasNodeManagerCommon *pNodeManager, OpcUa_UInt32 ParentType, OpcUa_UInt32 VarType, OpcUa_Boolean isState = OpcUa_False);
 

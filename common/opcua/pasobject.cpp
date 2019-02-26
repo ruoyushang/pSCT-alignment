@@ -7,11 +7,6 @@
 #include "mpeseventdata.h"
 #include "uaserver/methodhandleuanode.h"
 
-#include "mirrorobject.h"
-#include "panelobject.h"
-#include "edgeobject.h"
-#include "gasobject.h"
-
 // ----------------------------------------------------------------
 // PasObject implementation
 PasObject::PasObject(const UaString& name,
@@ -91,38 +86,6 @@ OpcUa::DataItemType* PasObject::addVariable(PasNodeManagerCommon *pNodeManager, 
 
     return pDataItem;
 }
-
-/* PasObject Factory Method */
-
-PasObject* PasObject::makeObject(
-        unsigned deviceType,
-        const UaString& name,
-        const UaNodeId& newNodeId,
-        const UaString& defaultLocaleId,
-        PasNodeManager *pNodeManager,
-        Identity identity,
-        PasCommunicationInterface *pCommIf)
-{
-    switch (deviceType)
-    {
-        case PAS_MirrorType:
-            return new MirrorObject(name, newNodeId, defaultLocaleId, pNodeManager, identity, pCommIf);
-        case PAS_ACTType:
-            return new ACTObject(name, newNodeId, defaultLocaleId, dynamic_cast<PasNodeManagerCommon *>(pNodeManager), identity, dynamic_cast<PasComInterfaceCommon *>(pCommIf));
-        case PAS_MPESType:
-            return new MPESObject(name, newNodeId, defaultLocaleId, dynamic_cast<PasNodeManagerCommon *>(pNodeManager), identity, dynamic_cast<PasComInterfaceCommon *>(pCommIf));
-        case PAS_PanelType:
-            return new PanelObject(name, newNodeId, defaultLocaleId, pNodeManager, identity, pCommIf);
-        case PAS_EdgeType:
-            return new EdgeObject(name, newNodeId, defaultLocaleId, pNodeManager, identity, pCommIf);
-        case PAS_PSDType:
-            return new PSDObject(name, newNodeId, defaultLocaleId, dynamic_cast<PasNodeManagerCommon *>(pNodeManager), identity, dynamic_cast<PasComInterfaceCommon *>(pCommIf));
-        case PAS_CCDType:
-            return new CCDObject(name, newNodeId, defaultLocaleId, dynamic_cast<PasNodeManagerCommon *>(pNodeManager), identity, dynamic_cast<PasComInterfaceCommon *>(pCommIf));
-    }
-}
-
-
 
 // -------------------------------------------------------------------
 // Specialization: MPESObject Implementation
