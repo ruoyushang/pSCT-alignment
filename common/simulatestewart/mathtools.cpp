@@ -83,11 +83,16 @@ namespace SCTMath {
         int panel = Panel(position) - 1;
 
         // we need to shift within the group by this much:
-        int shift = inc % size;
-        if (inc < 0) shift = size +  inc % size;
+        if (inc < 0) {
+            int shift = size +  inc % size;
+        }
+        else {
+            int shift = inc % size;
+        }
+
 
         // this is the position within the group written in our base
-        int group_pos = quadrant*base + panel; 
+        int group_pos = quadrant*base + panel;
         // shift it
         group_pos += shift;
         group_pos %= size;

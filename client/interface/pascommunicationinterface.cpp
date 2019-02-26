@@ -28,6 +28,17 @@ using namespace std;
 // initialize the image directory path
 //const char *PasCommunicationInterface::m_imageDir = "/home/root/opcua/sdk/mpesServer/testimages/";
 
+map<OpcUa_UInt32, string> PasCommunicationInterface::deviceTypeNames {
+    {PAS_MirrorType, "Mirror"},
+    {PAS_PanelType, "Panel"},
+    {PAS_EdgeType, "Edge"},
+    {PAS_MPESType, "MPES"},
+    {PAS_ACTType, "ACT"},
+    {PAS_CCDType, "CCD"},
+    {PAS_PSDType, "PSD"},
+    {GLOB_PositionerType, "Positioner"}
+};
+
 PasCommunicationInterface::PasCommunicationInterface() :
     m_pConfiguration(nullptr),
     m_stop(OpcUa_False)
@@ -108,16 +119,6 @@ const Identity PasCommunicationInterface::addDevice(Client *pClient, OpcUa_UInt3
 {
     // check if object already exists -- this way, passing the same object multiple times won't
     // actually add it multiple times
-    map<OpcUa_UInt32, string> deviceTypeNames {
-        {PAS_MirrorType, "Mirror"},
-        {PAS_PanelType, "Panel"},
-        {PAS_EdgeType, "Edge"},
-        {PAS_MPESType, "MPES"},
-        {PAS_ACTType, "ACT"},
-        {PAS_CCDType, "CCD"},
-        {PAS_PSDType, "PSD"},
-        {GLOB_PositionerType, "Positioner"}
-    };
 
     Identity addedId;
 
@@ -150,7 +151,7 @@ const Identity PasCommunicationInterface::addDevice(Client *pClient, OpcUa_UInt3
         Identity id = m_pControllers.at(deviceType).at(index)->getId();
 
         cout <<": already exists as "
-            << deviceTypeNames.at(deviceType) << "[" << index << "]. Moving on..." << endl;
+            << PasCommunicationInterface::deviceTypeNames.at(deviceType) << "[" << index << "]. Moving on..." << endl;
 
         // already added -- clean up and return
         delete pController;
@@ -170,13 +171,13 @@ const Identity PasCommunicationInterface::addDevice(Client *pClient, OpcUa_UInt3
 
     m_pControllers[deviceType].push_back(pController);
     unsigned curindex = m_pControllers.at(deviceType).size() - 1;
-    m_DeviceIdentityMap[deviceType][addedId] = curindex; 
+    m_DeviceIdentityMap[deviceType][addedId] = curindex;
 
-    cout << " as " << deviceTypeNames[deviceType] << "["
+    cout << " as " << PasCommunicationInterface::deviceTypeNames[deviceType] << "["
         << curindex << "] with identity " << addedId << endl;
 
     // get the device's parents and create them.
-    // if added device is MPES, its parents are the w-side panel, the edge and the mirror;
+    // if added device is MPES, its parents are the w-side panel and the edge;
     // if added device is ACT, its parent is the panel;
     // if added device is Panel or Edge, its parent is the mirror.
     auto parentList = m_pConfiguration->getParents(deviceType, identity);
@@ -184,7 +185,7 @@ const Identity PasCommunicationInterface::addDevice(Client *pClient, OpcUa_UInt3
         // check the list of parents and print a warning if it's not what's expected
         if (parentList.size() != 1 && parentList.size() != 2)
             cout << endl << " +++ WARNING +++ PasCommunicationInterface::addDevice():"
-                << "there's an inconsistency with device mappings!" << endl;
+                << "more than 2 parents!" << endl;
 
         // for each parent, create it, complete the ID and add the current device as its child,
         // and add the other co-parents to it -- this guarantees that panels get added to their edges
@@ -220,7 +221,9 @@ const Identity PasCommunicationInterface::addDevice(Client *pClient, OpcUa_UInt3
                        coparentIdx = m_DeviceIdentityMap.at(coparent.first).at(coparent.second);
                        PasController *parentC = m_pControllers.at(parent.first).at(parentIdx);
                        PasController *coparentC = m_pControllers.at(coparent.first).at(coparentIdx);
+                       std::cout << "Ruo, parent " << parent.first << "(" << parent.second << ") added a child(coparent) " << coparent.first << "(" << coparent.second << ")" << std::endl;
                        static_cast<PasCompositeController *>(parentC)->addChild(coparent.first, coparentC);
+                       std::cout << "Ruo, parent " << parent.first << "(" << parent.second << ") added a child(coparent) " << coparent.first << "(" << coparent.second << ")" << std::endl;
                    }
                }
            }
@@ -262,7 +265,7 @@ UaStatusCode PasCommunicationInterface::getDeviceConfig(
 {
 
     OpcUa_UInt32 devCount = getDevices(type);
-    
+
     if ( deviceIndex < devCount )
     {
         try {
@@ -304,7 +307,7 @@ UaStatusCode PasCommunicationInterface::getDeviceState(
 {
     if (getDeviceFromId(type, identity) != nullptr)
         return getDeviceFromId(type, identity)->getState(state);
-    
+
     return OpcUa_BadInvalidArgument;
 }
 /* ----------------------------------------------------------------------------
@@ -319,7 +322,7 @@ UaStatusCode PasCommunicationInterface::setDeviceState(
 {
     if (getDeviceFromId(type, identity) != nullptr)
         return getDeviceFromId(type, identity)->setState(state);
-    
+
     return OpcUa_BadInvalidArgument;
 }
 /* ----------------------------------------------------------------------------
@@ -386,12 +389,12 @@ PasController* PasCommunicationInterface::getDeviceFromId(OpcUa_UInt32 type,
     try {
         m_DeviceIdentityMap.at(type);
     }
-    catch (out_of_range) 
+    catch (out_of_range)
     {
         return nullptr;
     }
 
-    // try getting the device with this identity 
+    // try getting the device with this identity
     try {
         index = m_DeviceIdentityMap.at(type).at(identity);
     }

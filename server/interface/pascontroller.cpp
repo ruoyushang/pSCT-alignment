@@ -50,7 +50,7 @@ PasPanel::PasPanel(int ID, Platform *platform) : PasController(ID, platform)
 {
     if (m_state != PASState::PAS_On)
         m_state = PASState::PAS_On;
-} 
+}
 
 PasPanel::~PasPanel()
 {
@@ -271,7 +271,7 @@ UaStatusCode PasMPES::Operate(OpcUa_UInt32 offset, const UaVariantArray& args)
 {
     UaMutexLocker lock(&m_mutex);
     UaStatusCode  status;
-    
+
     switch ( offset )
     {
         case PAS_MPESType_Read:
@@ -384,6 +384,9 @@ UaStatusCode PasACT::getData(
     case 1:
         {
             value.setFloat(m_pPlatform->getActuatorAt(m_ID)->MeasureLength());
+#ifdef SIMMODE
+        std::cout << "PasACT::getData -> getActuatorAt(m_ID)->MeasureLength() = " << value.toString().toUtf8() << std::endl;
+#endif
             break;
         }
     case 2:
@@ -428,7 +431,7 @@ UaStatusCode PasACT::Operate(OpcUa_UInt32 offset, const UaVariantArray& args)
     // do not lock the object -- might want to access it during stepping!
     // UaMutexLocker lock(&m_mutex);
     UaStatusCode  status;
-    
+
     if ( offset >= 1 )
         return OpcUa_BadInvalidArgument;
 
@@ -481,7 +484,7 @@ PasPSD::PasPSD(int ID) : PasController(ID, 500)
     m_pPSD->setPort();
     m_pPSD->Initialize();
     m_mutex.unlock();
-} 
+}
 
 PasPSD::~PasPSD()
 {
@@ -505,7 +508,7 @@ UaStatusCode PasPSD::getData(
 
     if (_expired()) // if cached value expired, update it
         status = read();
-    
+
     value.setDouble(*(m_pPSD->getOutput() + dataoffset));
 
     return status;
@@ -522,7 +525,7 @@ UaStatusCode PasPSD::Operate(OpcUa_UInt32 offset, const UaVariantArray& args)
 {
     //UaMutexLocker lock(&m_mutex);
     UaStatusCode  status;
-    
+
     if ( offset >= 1 )
         return OpcUa_BadInvalidArgument;
 

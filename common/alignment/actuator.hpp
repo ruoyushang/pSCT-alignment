@@ -12,12 +12,12 @@
 #include <string>
 
 /*!
- * The Actuator Class is responsible for the positioning of the Actuators. 
-The class communicates with the online database to load and save positional information, 
+ * The Actuator Class is responsible for the positioning of the Actuators.
+The class communicates with the online database to load and save positional information,
 as well as with the offline database to load and save calibration and configuration information.
  */
 
-class Actuator 
+class Actuator
 {
 
 public:
@@ -171,10 +171,10 @@ float MeasureVoltage();
 int MeasureAngle();
 int QuickAngleCheck(Position ExpectedPosition);
 int SlowAngleCheck(Position ExpectedPosition);
-int Step(int InputSteps);
+virtual int Step(int InputSteps);
 Position PredictPosition(Position InputPosition, int InputSteps);
 int HysteresisMotion(int InputSteps);
-void Initialize();
+virtual void Initialize();
 void SetCurrentPosition(Position InputPosition);
 void CheckCurrentPosition();
 void SetASFFullPath(ASFStruct InputASFInfo);
@@ -207,7 +207,7 @@ StatusModes GetStatus();
 void ReadStatusFromDBAndASF();
 void CreateDefaultASF();
 //void LoadDefaults();
-float MeasureLength();
+virtual float MeasureLength();
 float MoveToLength(float TargetLength);
 float MoveDeltaLength(float LengthToMove);
 void ClearAllErrors();
@@ -239,7 +239,7 @@ Actuator::ErrorInfo ActuatorErrors[NumberOfErrorCodes]={
 
  /*!
  *
- * Default constructor, used ideally only during calibration of Actuator. Allows for calibration functions to be performed, as well as (inaccurate) motion of Actuator. 
+ * Default constructor, used ideally only during calibration of Actuator. Allows for calibration functions to be performed, as well as (inaccurate) motion of Actuator.
  *
  * @param cbc 			Instance of CBC class being used is passed to Actuator Class
  */
@@ -272,4 +272,19 @@ Actuator(CBC* InputCBC, int InputPortNumber, int InputActuatorSerial, DBStruct I
 ~Actuator();
 
 };
+
+class DummyActuator : public Actuator
+{
+    public:
+        DummyActuator(CBC* InputCBC, int InputPortNumber) : Actuator(InputCBC, InputPortNumber) {};
+        DummyActuator(CBC* InputCBC, int InputPortNumber, int InputActuatorSerial) : Actuator(InputCBC, InputPortNumber, InputActuatorSerial) {};
+        DummyActuator(CBC* InputCBC, int InputPortNumber, int InputActuatorSerial, DBStruct InputDB) : Actuator(InputCBC, InputPortNumber, InputActuatorSerial, InputDB) {};
+        DummyActuator(CBC* InputCBC, int InputPortNumber, int InputActuatorSerial, DBStruct InputDB, ASFStruct InputASF) : Actuator(InputCBC, InputPortNumber, InputActuatorSerial, InputDB, InputASF) {};
+
+        void Initialize();
+        int Step(int InputSteps);
+        float MeasureLength();
+
+};
+
 #endif

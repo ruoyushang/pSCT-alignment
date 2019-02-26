@@ -1,6 +1,7 @@
 project(uasdk)
 cmake_minimum_required(VERSION 2.8.0 FATAL_ERROR)
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake ${CMAKE_MODULE_PATH})
+set(CMAKE_LIBRARY_PATH ${CMAKE_LIBRARY_PATH} /usr/alignment/lib64)
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 include(CMakeDependentOption)

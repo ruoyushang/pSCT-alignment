@@ -192,7 +192,7 @@ int OpcMain(const char* szAppPath, std::vector<std::string> serverlist)
             printf("    Press x to shut down server\n");
             printf("************************************\n");
             // Wait for user command to terminate the server thread.
-    
+
             //pLogic = new PasLogic(pCommIf);
             //pLogic->start();
 
@@ -218,7 +218,7 @@ int OpcMain(const char* szAppPath, std::vector<std::string> serverlist)
             printf("*************************************\n");
             printf(" Shutting down server/client\n");
             printf("*************************************\n");
-        
+
             //- Stop OPC server -------------------------
             // This code can be integrated into a shutdown
             // sequence of the application where the
@@ -299,5 +299,3 @@ int main(int argc, char* argv[])
 
     return ret;
 }
-
-

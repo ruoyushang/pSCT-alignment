@@ -28,8 +28,13 @@
 **
 ******************************************************************************/
 #include "opcserver.h"
+#include "uaserverapplication.h"
 #include "uaplatformlayer.h"
 #include "uathread.h"
+#include "serverconfig.h"
+#include "serverconfigdata.h"
+#include "serverconfigxml.h"
+#include "uadatetime.h"
 #if SUPPORT_XML_PARSER
   #include "xmldocument.h"
 #endif
@@ -38,12 +43,16 @@
 #include "pascommunicationinterface.h"
 #include <sys/statvfs.h>
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <getopt.h>
+
 // check the system is reasonable -- enough disk space, enabled network connection
 int CheckSystem(double *size)
 {
     // check disk space
     struct statvfs sysBuf;
-    if (statvfs("/", &sysBuf) == 0) 
+    if (statvfs("/", &sysBuf) == 0)
         *size = ((double)sysBuf.f_bsize*sysBuf.f_bfree)/(1024*1024*1024);
     else return 1;
 
@@ -51,7 +60,7 @@ int CheckSystem(double *size)
 }
 
 
-int OpcServerMain(const char* szAppPath, const char* serverUrl)
+int OpcServerMain(const char* szAppPath, const char* configFilePath, const char* serverUrl)
 {
     int ret = 0;
 
@@ -88,6 +97,7 @@ int OpcServerMain(const char* szAppPath, const char* serverUrl)
         PasCommunicationInterface *pCommIf = new PasCommunicationInterface();
         // this initializes the communication interface, including all devices that talk
         // directly to it, like Aravis cameras
+        //serverUrl = "10.0.1.20"; //Ruo
         pCommIf->setServerUrl(serverUrl);
         UaStatus ret = pCommIf->Initialize();
         UA_ASSERT(ret.isGood());
@@ -114,7 +124,7 @@ int OpcServerMain(const char* szAppPath, const char* serverUrl)
             printf("***************************************************\n");
             fflush(stdout);
             // Wait for user command to terminate the server thread.
-            
+
             while ( ShutDownFlag() == 0 )
             {
                 UaThread::msleep(1000);
@@ -161,9 +171,40 @@ int WINAPI WinMain( HINSTANCE, HINSTANCE, LPWSTR, int)
 int main(int argc, char* argv[])
 #endif
 {
-    if (argc != 2) {
-        printf("Usage: %s <CBC IP ADDRESS>\n", argv[0]);
+    if (argc == 1) {
+        printf("Usage: %s <CBC IP ADDRESS> -c <CONFIG_FILE_PATH>\n", argv[0]);
         return 1;
+    }
+
+    int c;
+    const char *config_file_path = NULL;
+    char *cbc_ip_addr = NULL;
+
+    while ((c = getopt (argc, argv, "c:")) != -1) {
+        switch(c)
+        {
+        case 'c':
+            config_file_path = optarg;
+            break;
+        case '?':
+            if (optopt == 'c')
+                printf("Must provide a config file path with option c");
+         }
+    }
+
+    cbc_ip_addr = argv[optind];
+
+#if SUPPORT_XML_PARSER
+        char *sConfigFileName = "/ServerConfig.xml";
+#else
+        char *sConfigFileName = "/ServerConfig.ini";
+#endif
+
+    // Extract application path
+    char* pszAppPath = getAppPath();
+
+    if(!config_file_path) {
+        config_file_path = (std::string(pszAppPath) + sConfigFileName).c_str();
     }
 
     int ret = 0;
@@ -176,8 +217,8 @@ int main(int argc, char* argv[])
     else {
         printf(" Failed to stat \"/\": terminating\n");
         return -1;
-    } 
-    printf("***************************************************\n"); 
+    }
+    printf("***************************************************\n");
 
 
     RegisterSignalHandler();

@@ -47,7 +47,7 @@ public:
     virtual ~PasController() {};
 
     const Identity& getId() const {return m_ID;}
-    
+
     /* Get Controller status and data */
     virtual UaStatusCode getState(PASState& state) = 0;
     virtual UaStatusCode getData(OpcUa_UInt32 offset, UaVariant& value) = 0;
@@ -149,7 +149,7 @@ private:
     } data;
     static float kNominalIntensity;
     static float kNominalCentroidSD;
-    
+
     Identity m_wPanelId; // id of the webcam-side panel
     // actuator response matrix map -- {panel position -> matrix}
     std::map< char,  Eigen::Matrix<double, 2, 6> > m_ResponseMatMap;
@@ -169,15 +169,15 @@ class PasACT : public PasController
     UA_DISABLE_COPY(PasACT);
 public:
     friend PasPanel;
-    // construction / destruction 
+    // construction / destruction
     PasACT(Identity identity, Client *pClient);
     virtual ~PasACT();
 
-    // Get Controller status and data 
+    // Get Controller status and data
     UaStatusCode getState(PASState& state);
     UaStatusCode getData(OpcUa_UInt32 offset, UaVariant& value);
 
-    // set Controller status and data 
+    // set Controller status and data
     UaStatusCode setState(PASState state);
     UaStatusCode setData(OpcUa_UInt32 offset, UaVariant value);
     UaStatusCode Operate(OpcUa_UInt32 offset = 0, const UaVariantArray &args = UaVariantArray());
@@ -197,15 +197,15 @@ public:
     friend PasMirror; // for convenient access to internal methods for mirror computations
     friend PasEdge; // access internal methods for compute
 
-    // construction / destruction 
+    // construction / destruction
     PasPanel(Identity identity, Client *pClient);
     virtual ~PasPanel();
 
-    // Get Controller status and data 
+    // Get Controller status and data
     UaStatusCode getState(PASState& state);
     UaStatusCode getData(OpcUa_UInt32 offset, UaVariant& value);
 
-    // set Controller status and data 
+    // set Controller status and data
     UaStatusCode setState(PASState state);
     UaStatusCode setData(OpcUa_UInt32 offset, UaVariant value);
     UaStatusCode Operate(OpcUa_UInt32 offset = 0, const UaVariantArray &args = UaVariantArray());
@@ -248,15 +248,15 @@ class PasEdge : public PasCompositeController
     UA_DISABLE_COPY(PasEdge);
 public:
     friend PasMirror;
-    // construction / destruction 
+    // construction / destruction
     PasEdge(Identity identity);
     virtual ~PasEdge();
 
-    // Get Controller status and data 
+    // Get Controller status and data
     UaStatusCode getState(PASState& state);
     UaStatusCode getData(OpcUa_UInt32 offset, UaVariant& value);
 
-    // set Controller status and data 
+    // set Controller status and data
     UaStatusCode setState(PASState state);
     UaStatusCode setData(OpcUa_UInt32 offset, UaVariant value);
     UaStatusCode Operate(OpcUa_UInt32 offset = 0, const UaVariantArray &args = UaVariantArray());
@@ -316,7 +316,7 @@ public:
 private:
     PASState m_state = PASState::PAS_Off;
     bool m_updated = false;
-    
+
     UaStatus read();
 
     GASCCD *m_pCCD;
@@ -327,15 +327,15 @@ class PasPSD : public PasController
     UA_DISABLE_COPY(PasPSD);
 public:
     friend PasMirror;
-    // construction / destruction 
+    // construction / destruction
     PasPSD(Identity identity, Client *pClient);
     virtual ~PasPSD();
 
-    // Get Controller status and data 
+    // Get Controller status and data
     UaStatusCode getState(PASState& state);
     UaStatusCode getData(OpcUa_UInt32 offset, UaVariant& value);
 
-    // set Controller status and data 
+    // set Controller status and data
     UaStatusCode setState(PASState state);
     UaStatusCode setData(OpcUa_UInt32 offset, UaVariant value);
     UaStatusCode Operate(OpcUa_UInt32 offset = 0, const UaVariantArray &args = UaVariantArray());

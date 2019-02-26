@@ -161,4 +161,3 @@ UaStatus PanelObject::call(
 
     return ret;
 }
-

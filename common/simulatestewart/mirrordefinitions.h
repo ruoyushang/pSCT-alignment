@@ -81,7 +81,7 @@ namespace SCT {
 
         // notice the origin is at zero! our frame of reference is at the mirror itself
         const double kZ      = 0.*m; // 3./2.*kFp; // Secondary Position in its frame
-        const double kD      = 2.7081*2*m; // Secondary diameter 
+        const double kD      = 2.7081*2*m; // Secondary diameter
         const double kDm     = 1.5965*2*m; // Secondary inner ring outer diameter
         const double kDinner = 0.395*2*m; // Secondary inner diameter
         const double kMirrorThickness = 34.2*mm; // Panel thickness

@@ -125,7 +125,7 @@ UaStatusCode PasCommunicationInterface::Initialize()
         cout << "# ERR: " << e.what();
         cout << " (MySQL error code: " << e.getErrorCode();
         cout << ", SQLState: " << e.getSQLState() << " )" << endl;
-      
+
         return OpcUa_Bad;
     }
     /* END OF DATABASE HACK JOB */
@@ -384,8 +384,8 @@ void PasCommunicationInterface::run()
                 Identity id;
                 id.eAddress = to_string(m_platform->getMPESAt(i)->USBPortNumber);
                 status = OperateDevice(PAS_MPESType, id);
-                cout << "MPES " << i << " " 
-                << UaDateTime::now().toTime_t(); 
+                cout << "MPES " << i << " "
+                << UaDateTime::now().toTime_t();
                 for ( int j = 0; j < 5; j++ ) {
                     getDeviceData(PAS_MPESType, id, j, curValue);
                     cout << " " << curValue;

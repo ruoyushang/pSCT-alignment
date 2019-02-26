@@ -10,6 +10,8 @@
 #include "userdatabase.h"
 #include "components.h"
 
+class PasNodeManager;
+class PasCommunicationInterface;
 class PasNodeManagerCommon;
 class PasComInterfaceCommon;
 class UaMethodGeneric;
@@ -19,9 +21,9 @@ class PasObject :  public OpcUa::BaseObjectType
 {
     UA_DISABLE_COPY(PasObject);
 public:
-    PasObject(const UaString& name, 
-            const UaNodeId& newNodeId, 
-            const UaString& defaultLocaleId, 
+    PasObject(const UaString& name,
+            const UaNodeId& newNodeId,
+            const UaString& defaultLocaleId,
             PasNodeManagerCommon *pNodeManager,
             Identity identity,
             PasComInterfaceCommon *pCommIf);
@@ -52,9 +54,21 @@ public:
         UaStatusCodeArray&     inputArgumentResults,
         UaDiagnosticInfos&     inputArgumentDiag) = 0;
 
+    // Factory pattern
+    static PasObject *makeObject(
+            unsigned deviceType,
+            const UaString& name,
+            const UaNodeId& newNodeId,
+            const UaString& defaultLocaleId,
+            PasNodeManager *pNodeManager,
+            Identity identity,
+            PasCommunicationInterface *pCommIf);
+
 protected:
     // a function that's used very often
-    OpcUa::DataItemType* addVariable(PasNodeManagerCommon *pNodeManager, OpcUa_UInt32 ParentType, OpcUa_UInt32 VarType, OpcUa_Boolean isState = OpcUa_False, OpcUa_Boolean addReference = OpcUa_True);
+    OpcUa::DataItemType* addVariable(PasNodeManagerCommon *pNodeManager, OpcUa_UInt32 ParentType, OpcUa_UInt32 VarType, OpcUa_Boolean isState = OpcUa_False);
+
+    OpcUa::DataItemType* addErrorVariable(PasNodeManagerCommon *pNodeManager, OpcUa_UInt32 ParentType, OpcUa_UInt32 VarType, OpcUa_Boolean isState = OpcUa_False);
 
     UaString                   m_defaultLocaleId;
     UaMutexRefCounted*         m_pSharedMutex;
@@ -62,6 +76,7 @@ protected:
     PasComInterfaceCommon*     m_pCommIf;
     PasNodeManagerCommon*      m_pNodeManager;
     OpcUa::OffNormalAlarmType* m_pStateOffNormalAlarm;
+    UaFolder* m_pErrorFolder;
 
 };
 
@@ -136,7 +151,7 @@ public:
         Identity identity,
         PasComInterfaceCommon *pCommIf);
     virtual ~ACTObject(void);
- 
+
     // implement the synchronous call
     UaStatus call(
         const ServiceContext&  serviceContext,
@@ -183,4 +198,3 @@ private:
 };
 
 #endif
-

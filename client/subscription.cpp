@@ -1,10 +1,20 @@
+/**
+ * @file subscription.cpp
+ * @brief Source file for a Subscription class wrapping the OPC UA Subscription class.
+ *
+ * @see http://documentation.unified-automation.com/uasdkcpp/1.5.4/html/classUaClientSdk_1_1UaSubscriptionCallback.html
+ */
+
 #include "subscription.h"
 #include "uaclient/uasubscription.h"
 #include "uaclient/uasession.h"
-#include "configuration.h"
+
+class Configuration;
 
 using namespace UaClientSdk;
 
+/// @details The constructor nitializes the internal Configuration pointer,
+/// but leaves the internal Session and Subscription pointers as NULL.
 Subscription::Subscription(Configuration* pConfiguration)
 : m_pSession(NULL),
   m_pSubscription(NULL),
@@ -12,6 +22,8 @@ Subscription::Subscription(Configuration* pConfiguration)
 {
 }
 
+/// @details If this Subscription object has an internal UaSubscription, calls
+/// deleteSubscription().
 Subscription::~Subscription()
 {
     if ( m_pSubscription )
@@ -20,6 +32,8 @@ Subscription::~Subscription()
     }
 }
 
+/// @details If the internal Subscription object errors, prints an error
+/// message, then calls recoverSubscription() to recover the Subscription.
 void Subscription::subscriptionStatusChanged(
     OpcUa_UInt32      clientSubscriptionHandle, //!< [in] Client defined handle of the affected subscription
     const UaStatus&   status)                   //!< [in] Changed status for the subscription
@@ -35,6 +49,9 @@ void Subscription::subscriptionStatusChanged(
     }
 }
 
+/// @details If a monitored variable(s) changes, prints a notification about the
+/// change(s). If any of the changed variables indicate an error, prints an
+/// error message instead.
 void Subscription::dataChange(
     OpcUa_UInt32               clientSubscriptionHandle, //!< [in] Client defined handle of the affected subscription
     const UaDataNotifications& dataNotifications,        //!< [in] List of data notifications sent by the server
@@ -61,6 +78,7 @@ void Subscription::dataChange(
     printf("------------------------------------------------------------\n");
 }
 
+/// @details If an event triggers on a monitored OPC UA node, does nothing.
 void Subscription::newEvents(
     OpcUa_UInt32                clientSubscriptionHandle, //!< [in] Client defined handle of the affected subscription
     UaEventFieldLists&          eventFieldList)           //!< [in] List of event notifications sent by the server
@@ -69,6 +87,10 @@ void Subscription::newEvents(
     OpcUa_ReferenceParameter(eventFieldList);
 }
 
+/// @details If the object does not already have an internal UaSubscription,
+/// creates one with a fixed publishing interval of 100 ms in the provided
+/// UaSession. Else, returns an error. Prints a success/failure
+/// message on exit.
 UaStatus Subscription::createSubscription(UaSession* pSession)
 {
     if ( m_pSubscription )
@@ -107,6 +129,9 @@ UaStatus Subscription::createSubscription(UaSession* pSession)
     return result;
 }
 
+/// @details If the object has a UaSubscription, deletes it from the session and
+/// cleans up. Else, returns an error. Prints a success/failure
+/// message on exit.
 UaStatus Subscription::deleteSubscription()
 {
     if ( m_pSubscription == NULL )
@@ -137,6 +162,11 @@ UaStatus Subscription::deleteSubscription()
     return result;
 }
 
+/// @details Receives list of OPC UA nodes to monitor from its internal
+/// Configuration object's getNodesToMonitor(), then adds them to the
+/// Subscription with a sampling interval of 500 ms. If the object does not
+/// have an internal UaSubscription, returns an error. Prints a success/failure
+/// message on exit.
 UaStatus Subscription::createMonitoredItems()
 {
     if ( m_pSubscription == NULL )
@@ -201,11 +231,17 @@ UaStatus Subscription::createMonitoredItems()
     return result;
 }
 
+/// @details Sets the internal Configuration object pointer to the provided
+/// Configuration object pointer.
 void Subscription::setConfiguration(Configuration* pConfiguration)
 {
     m_pConfiguration = pConfiguration;
 }
 
+/// @details If the object has an internal UaSubscription, deletes it using
+/// deleteSubscription(), then creates a new one with createSubscription() and
+/// re-monitors nodes with createMonitoredItems(). Prints a success/failure
+/// message on exit.
 UaStatus Subscription::recoverSubscription()
 {
     UaStatus result;

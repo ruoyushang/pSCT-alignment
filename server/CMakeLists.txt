@@ -24,7 +24,7 @@ if( MYSQLCONNECTORCPP_FOUND )
     link_directories(${MYSQLCONNECTORCPP_LIBRARY_DIRS})
 else( MYSQLCONNECTORCPP_FOUND )
     message(WARNING "MySQLConnectorCPP not found. You need MySQLConnectorCPP for this program to work!")
-endif( MYSQLCONNECTORCPP_FOUND ) 
+endif( MYSQLCONNECTORCPP_FOUND )
 
 SET(CMAKE_PREFIX_PATH "/usr" ${CMAKE_PREFIX_PATH} )
 FIND_PACKAGE( OpenCV REQUIRED )
@@ -39,8 +39,14 @@ endif ( NOT(${OpenCV_VERSION} LESS 3.0) )
 SET(CMAKE_SKIP_BUILD_RPATH FALSE)
 SET(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
 SET(CMAKE_INSTALL_RPATH ${CMAKE_CURRENT_SOURCE_DIR}/../sdk/lib)
-SET(COMMON_CODE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../pascommon)
+SET(COMMON_CODE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../common)
 SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH FALSE)
+
+# need libusb.so -- might not be on the system!!
+# brute force it for now
+#SET(LIBUSB_LIBRARIES "/usr/lib64/libusb-1.0.so.0")
+#SET(LIBUSB_LIBRARIES "/lib/x86_64-linux-gnu/libusb-1.0.so.0")
+SET(LIBUSB_LIBRARIES "${LD_LIBRARY_PATH}/libusb-1.0.so.0")
 
 MESSAGE( STATUS "" )
 MESSAGE( STATUS "====================================" )
@@ -100,6 +106,23 @@ file(GLOB PASSERVER_SRC
     "${COMMON_CODE_DIR}/mpescode/*.cpp"
 )
 
+if ( SIMMODE )
+    add_definitions(-D_AMD64)
+    add_definitions(-DSIMMODE)
+    file(GLOB PASSERVER_SRC
+        ${PASSERVER_SRC}
+        "${COMMON_CODE_DIR}/cbccode/dummycbc.cpp"
+        )
+else ( SIMMODE )
+    file(GLOB PASSERVER_SRC
+        ${PASSERVER_SRC}
+        "${COMMON_CODE_DIR}/cbccode/*.cpp"
+        "${COMMON_CODE_DIR}/globalalignment/psdclass.cpp"
+        "${COMMON_CODE_DIR}/globalalignment/laserclass.cpp"
+        "${COMMON_CODE_DIR}/globalalignment/libpiusb.cpp"
+    )
+endif ( SIMMODE )
+
 if ( AMD64 )
     add_definitions(-D_AMD64)
     file(GLOB PASSERVER_SRC
@@ -107,10 +130,6 @@ if ( AMD64 )
         "${COMMON_CODE_DIR}/cbccode/dummycbc.cpp"
         )
 else ( AMD64 )
-    # need libusb.so -- might not be on the system!!
-    # brute force it for now
-    SET(LIBUSB_LIBRARIES "/usr/lib64/libusb-1.0.so.0")
-
     file(GLOB PASSERVER_SRC
         ${PASSERVER_SRC}
         "${COMMON_CODE_DIR}/cbccode/*.cpp"
@@ -134,6 +153,7 @@ include_directories(${UASDK_BASE_DIR}/include)
 include_directories(${UASTACK_INCLUDE})
 include_directories(${UABASE_INCLUDE})
 include_directories(${UASERVER_INCLUDE})
+//include_directories(${UACOREMODULE_INCLUDE})
 include_directories(${COMMON_CODE_DIR}/mpescode)
 include_directories(${COMMON_CODE_DIR}/cbccode)
 include_directories(${COMMON_CODE_DIR}/opcua)
@@ -155,7 +175,7 @@ ENDIF ()
 
 # LINKER PATHS
 IF ( NOT TARGET uastack )
-    link_directories(${UA_LIB_DIR})   
+    link_directories(${UA_LIB_DIR})
 ENDIF ( NOT TARGET uastack )
 
 ####################################### Different Platforms ########################################
@@ -226,26 +246,28 @@ SET_PROPERTY(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 11)
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11" )
 
 IF ( NOT TARGET uastack )
+    message(WARNING " UA_LIB_DIR = ${UA_LIB_DIR}")
     TARGET_LINK_LIBRARIES(${PROJECT_NAME}       ${UAMODULE_LIBRARY}
                           ${UAMODELS_LIBRARY}  ${UACOREMODULE_LIBRARY}
                           ${UABASE_LIBRARY}    ${UASTACK_LIBRARY}
                           ${PLATTFORM_LIBS} ${OpenCV_LIBRARIES} ${ROOT_LIBRARIES} ${MYSQLCONNECTORCPP_LIBRARIES} ${LIBUSB_LIBRARIES})
 
 ELSE ()
+    message(WARNING " UA_LIB_DIR = ${UA_LIB_DIR}")
     TARGET_LINK_LIBRARIES(${PROJECT_NAME} uamodule uamodels coremodule uabase
         uastack ${PLATTFORM_LIBS} ${OpenCV_LIBRARIES} ${ROOT_LIBRARIES} ${MYSQLCONNECTORCPP_LIBRARIES} ${LIBUSB_LIBRARIES})
 ENDIF ()
 
 ####################################### configure debug postfix #############################
 
-SET_TARGET_PROPERTIES(  ${PROJECT_NAME} 
-                        PROPERTIES 
+SET_TARGET_PROPERTIES(  ${PROJECT_NAME}
+                        PROPERTIES
                          OUTPUT_NAME ${PROJECT_NAME}
                          DEBUG_POSTFIX d
                          ${WCELINKERFLAGS}
 )
 
-INSTALL(TARGETS ${PROJECT_NAME} 
+INSTALL(TARGETS ${PROJECT_NAME}
         RUNTIME DESTINATION bin
         LIBRARY DESTINATION lib
         ARCHIVE DESTINATION lib

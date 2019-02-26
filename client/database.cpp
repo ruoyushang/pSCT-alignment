@@ -1,3 +1,8 @@
+/**
+ * @file database.cpp
+ * @brief Source file for Database wrapper class.
+ */
+
 #include <string>
 #include "database.h"
 #include "configuration.h"
@@ -7,22 +12,30 @@
 #include "cppconn/resultset.h"
 #include "cppconn/prepared_statement.h"
 
-Database::Database() 
+/// @details Sets internal Configuration pointer to NULL.
+Database::Database()
 : m_pConfiguration(NULL)
 {
 }
 
+/// @details Clears Connection vector and Statement vector.
 Database::~Database()
 {
     m_pConnection.clear();
     m_pStmt.clear();
  }
 
+/// @details Assigns provided Configuration pointer to object.
 void Database::setConfiguration(const Configuration *pConfiguration)
 {
     m_pConfiguration = pConfiguration;
 }
-    
+
+/// @details Gets list of databases from the Configuration, creates drivers,
+/// and then reads and prints database information (host, user, name, password)
+/// and entries saved in Configuration object.
+/// @warning Functionality to setup actual database connections and statements
+/// is commented out.
 void Database::connectAndPrepare()
 {
     std::cout << "reading database config details:" << std::endl;
@@ -52,13 +65,13 @@ void Database::connectAndPrepare()
             std::cout << UaString(m_pConfiguration->getDatabaseEntries().at(i)[j]).toUtf8() << std::endl;
         }
     }
-    // the values to read/write are in the format 
+    // the values to read/write are in the format
     // VarNameOnTheServer;ReadOrWrite;Type;VarNameInTheDatabase
 //    OpcUa_Int32 sPos=0, ePos=0;
 //    ePos = UaString(m_pConfiguration->getDatabaseEntries()[i]).find(';', sPos);
 
 //    nameOnTheServer = UaStringk
-    
+
     /* prepare the statement
     std::string stmt = "INSERT INTO mpes(";
     for ( i = 0; i < size - 1; i++ )
@@ -69,10 +82,12 @@ void Database::connectAndPrepare()
     for ( i = 0; i < size - 1; i++ )
         stmt += "?, ";
     stmt += "?)";
-    
+
     m_pStmt = m_pConnection->prepareStatement(stmt.c_str()); */
 }
 
+/// @details Adds timestamped MPES reading to database.
+/// @warning Currently commented out and unfinished.
 void Database::write(const char *timestamp, double x, double y)
 {
     /*

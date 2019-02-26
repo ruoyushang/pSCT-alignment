@@ -138,6 +138,7 @@ UaStatus Configuration::loadConnectionConfiguration(const UaString& sConfigurati
 
     // Server URLs
     value = pSettings->value("DiscoveryURL", UaString("opc.tcp://localhost:48010"));
+    //value = pSettings->value("DiscoveryURL", UaString("opc.tcp://10.0.1.13:48010")); //Ruo
     m_discoveryUrl = value.toString();
 
     value = pSettings->value("PositionerURL", UaString("opc.tcp://localhost:4840"));
@@ -164,11 +165,11 @@ UaStatus Configuration::loadConnectionConfiguration(const UaString& sConfigurati
 
     return result;
 
-   /* 
+   /*
     pSettings->beginGroup("Server");
     value = pSettings->value("size", (OpcUa_UInt32)0);
     value.toUInt32(size);
-   
+
     std::string sTempMap;
     std::string sSubMap;
     std::string USB;
@@ -366,7 +367,7 @@ UaStatus Configuration::loadConnectionConfiguration(const UaString& sConfigurati
         sTempKey = UaString("User%1").arg((int)i, 2, 10, UaChar('0'));
         value = pSettings->value(sTempKey.toUtf16(), UaString(""));
         value.toString().copyTo(&m_databaseUser[i]);
-        
+
         sTempKey = UaString("Password%1").arg((int)i, 2, 10, UaChar('0'));
         value = pSettings->value(sTempKey.toUtf16(), UaString(""));
         value.toString().copyTo(&m_databasePassword[i]);
@@ -423,9 +424,13 @@ UaStatus Configuration::loadDeviceConfiguration(const std::vector<std::string>& 
             sql_results = sql_stmt->getResultSet();
             // should only be one result FOR NOW -- IN THE FUTURE, NEED TO FIX THIS, SORTING BY DATE
             while (sql_results->next()) {
-                panelId.serialNumber = sql_results->getInt(1);
+#ifdef SIMMODE
+                panelId.eAddress = "opc.tcp://127.0.0.1:"+std::string(position.c_str()); //Ruo, only use this for servers running on a l
+#else
                 panelId.eAddress = "opc.tcp://" + sql_results->getString(2) + ":4840";
-            }
+#endif
+                panelId.serialNumber = sql_results->getInt(1);
+                }
             // add to the list of devices
             m_DeviceList[PAS_PanelType].push_back(panelId);
             std::cout << " +++ Configuration: added Panel "
@@ -460,7 +465,7 @@ UaStatus Configuration::loadDeviceConfiguration(const std::vector<std::string>& 
 
                 // add the actuator and this panel to the parents map
                 m_ParentMap[PAS_ACTType][actId.serialNumber] = std::to_string(panelId.position);
-                std::cout << " +++ Configuration: added parent " << panelId.position 
+                std::cout << " +++ Configuration: added parent " << panelId.position
                     << " of Actuator " << actId.serialNumber << std::endl;
             }
 
@@ -491,7 +496,7 @@ UaStatus Configuration::loadDeviceConfiguration(const std::vector<std::string>& 
                 m_ParentMap[PAS_MPESType][mpesId.serialNumber] =
                     "w" + std::to_string(panelId.position) + "l" + l_panelPos;
                 std::cout << " +++ Configuration: added parent "
-                    << m_ParentMap.at(PAS_MPESType).at(mpesId.serialNumber) 
+                    << m_ParentMap.at(PAS_MPESType).at(mpesId.serialNumber)
                     << " of Sensor " << mpesId.serialNumber << std::endl;
             }
         }
@@ -502,7 +507,7 @@ UaStatus Configuration::loadDeviceConfiguration(const std::vector<std::string>& 
         std::cout << "# ERR: " << e.what();
         std::cout << " (MySQL error code: " << e.getErrorCode();
         std::cout << ", SQLState: " << e.getSQLState() << " )" << std::endl;
-      
+
         return OpcUa_Bad;
     }
     /* END OF DATABASE HACK JOB */
@@ -719,7 +724,7 @@ std::vector< std::pair<OpcUa_UInt32, Identity> > Configuration::getParents(OpcUa
             w_pos = stoi(parentAddress.substr(w_idx + 1));
         }
 
-        w_panelId.position = w_pos; 
+        w_panelId.position = w_pos;
         w_panelId.eAddress = m_PanelAddressMap.at(w_pos);
 
         // return the edge only if the l_panel is actually present; otherwise, only the w_panel

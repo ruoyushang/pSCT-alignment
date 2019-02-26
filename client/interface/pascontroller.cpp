@@ -146,7 +146,7 @@ PasMPES::PasMPES(Identity identity, Client *pClient) : PasController(identity, p
         m_state = PASState::PAS_Error;
     }
     /* END DATABASE HACK */
-    
+
     SystematicOffsets = Vector2d::Zero();
 }
 
@@ -306,7 +306,7 @@ UaStatus PasMPES::read()
                 cout << "+++ WARNING +++ The width of the image along the Y axis for " << m_ID.name
                     << " is greater than 20px. Consider fixing things." << endl;
             }
-             
+
             if (fabs(data.m_CleanedIntensity - kNominalIntensity)/kNominalIntensity > 0.2) {
                 cout << "+++ WARNING +++ The intensity of " << m_ID.name
                     << " differs from the magic value by more than 20%\n"
@@ -413,6 +413,7 @@ UaStatusCode PasACT::getData(OpcUa_UInt32 offset, UaVariant& value)
     string varstoread[3] {"Steps", "curLength_mm", "inLength_mm"};
 
     vector<string> vec_curread {m_ID.eAddress + "." + varstoread[dataoffset]};
+    printf("PasACT::getData -> value = %s\n",value.toString().toUtf8());
     status = m_pClient->read(vec_curread, &value);
 
     return status;
@@ -502,7 +503,7 @@ PasPanel::PasPanel(Identity identity, Client *pClient) :
     m_SP.SetPanelType(StewartPlatform::PanelType::OPT);
 
     // define possible children types
-    m_ChildrenTypes = {PAS_ACTType, PAS_MPESType};
+    m_ChildrenTypes = {PAS_ACTType, PAS_MPESType, PAS_EdgeType};
 
     // make sure things update on the first boot up
     // duration takes seconds -- hence the conversion with the 1/1000 ratiot
@@ -672,7 +673,12 @@ UaStatusCode PasPanel::Operate(OpcUa_UInt32 offset, const UaVariantArray &args)
      * move actuators to the preset lengths         *
      * **********************************************/
     if (offset == PAS_PanelType_MoveTo_Acts) {
+#ifndef SIMMODE
         status =  __moveTo();
+#else
+        for (int i = 0; i < 6; i++)
+            m_curCoords[i] = m_inCoords[i];
+#endif
     }
 
 
@@ -688,7 +694,12 @@ UaStatusCode PasPanel::Operate(OpcUa_UInt32 offset, const UaVariantArray &args)
             val.setDouble(m_SP.GetActLengths()[act.first - 1]);
             pACT.at(act.second)->setData(PAS_ACTType_inLength_mm, val);
         }
+#ifndef SIMMODE
         status =  __moveTo();
+#else
+        for (int i = 0; i < 6; i++)
+            m_curCoords[i] = m_inCoords[i];
+#endif
         PASState state;
         getState(state);
         cout << "Current State is " << static_cast<unsigned>(m_state) << " and it is equivalent to PASState::PAS_Busy : " << (state == PASState::PAS_Busy) << endl;
@@ -724,6 +735,55 @@ UaStatusCode PasPanel::Operate(OpcUa_UInt32 offset, const UaVariantArray &args)
             if (!status.isGood()) return status;
 
         }
+
+        //Ruo, try to estimate new laser spot positions after actuators move
+
+        ///
+        /// This part predicts the new laser spot positions before we move the actuators.
+        /// Will make a new function of this and allow all actuator operations to call this function before moving.
+        ///
+        MatrixXd A; // response matrix
+        VectorXd X; // actuator delta length
+        VectorXd W; // sensor current position
+        VectorXd Y; // sensor delta
+        VectorXd Z; // sensor new position = Y + current sensor reading
+        VectorXd V; // aligned sensor reading
+        for(auto elem :m_pChildren)
+        {
+               std::cout << "Ruo, child of a panel: " << elem.first << "\n";
+               for (auto elem2nd :elem.second)
+               {
+                        std::cout << " " << elem2nd->getId() << "\n";
+               }
+        }
+        for (int edge2align=0; edge2align<m_pChildren.at(PAS_EdgeType).size(); edge2align++)
+        {
+                PasEdge* edge = static_cast<PasEdge *> (m_pChildren.at(PAS_EdgeType).at(edge2align));
+                //edge->Operate(PAS_EdgeType_Read);
+                edge->getAlignedReadings();
+                //cout << "\nTarget MPES readings:\n" << m_AlignedReadings << endl << endl;
+                A = edge->getResponseMatrix(m_ID.position);
+                W = edge->getCurrentReadings();
+                V = edge->getAlignedReadings();
+                cout << "Looking at edge " << edge->getId() << endl;
+                cout << "\nActuator response matrix for this edge:\n" << A << endl;
+                //m_SP.GetActLengths() is the new act length
+                //m_ActuatorLengths is the current act length
+                VectorXd newLengths(6);
+                for (unsigned i = 0; i < 6; i++)
+                    newLengths(i) = m_SP.GetActLengths()[i];
+                cout << "New Act length is \n" << newLengths << endl;
+                cout << "Current Act length is \n" << m_ActuatorLengths << endl;
+                X = newLengths-m_ActuatorLengths;
+                cout << "Delta Act length will be \n" << X << endl;
+                Y = A*X;
+                Z = Y+W;
+                cout << "The new sensor coordinates (x, y) will be:\n" << Z << endl;
+                cout << "\n will deviate from the aligned position by\n" << Z-V << endl;
+        }
+        //Ruo
+
+
         m_SP.ComputeStewart(actLengths);
         cout << "\n\tThe new panel coordinates (x, y ,z xRot, yRot, zRot) will be:\n\t\t";
         for (int i = 0; i < 6; i++) {
@@ -805,6 +865,63 @@ UaStatus PasPanel::__moveTo()
     return status;
 }
 
+bool PasPanel::__willSensorsBeOutOfRange()
+{
+        //Ruo, try to estimate new laser spot positions after actuators move
+
+        ///
+        /// This part predicts the new laser spot positions before we move the actuators.
+        /// Will make a new function of this and allow all actuator operations to call this function before moving.
+        ///
+        MatrixXd M_response; // response matrix
+        VectorXd Act_delta; // actuator delta length
+        VectorXd Sen_current; // sensor current position
+        VectorXd Sen_delta; // sensor delta
+        VectorXd Sen_new; // sensor new position = Sen_delta + current sensor reading
+        VectorXd Sen_aligned; // aligned sensor reading
+        VectorXd Sen_deviation; // deviated sensor reading
+        for(auto elem :m_pChildren)
+        {
+               std::cout << "Ruo, child of a panel: " << elem.first << "\n";
+               for (auto elem2nd :elem.second)
+               {
+                        std::cout << " " << elem2nd->getId() << "\n";
+               }
+        }
+        for (int edge2align=0; edge2align<m_pChildren.at(PAS_EdgeType).size(); edge2align++)
+        {
+                PasEdge* edge = static_cast<PasEdge *> (m_pChildren.at(PAS_EdgeType).at(edge2align));
+                edge->getAlignedReadings();
+                //cout << "\nTarget MPES readings:\n" << m_AlignedReadings << endl << endl;
+                M_response = edge->getResponseMatrix(m_ID.position);
+                Sen_current = edge->getCurrentReadings();
+                Sen_aligned = edge->getAlignedReadings();
+                cout << "Looking at edge " << edge->getId() << endl;
+                cout << "\nActuator response matrix for this edge:\n" << M_response << endl;
+                //m_SP.GetActLengths() is the new act length
+                //m_ActuatorLengths is the current act length
+                VectorXd newLengths(6);
+                for (unsigned i = 0; i < 6; i++)
+                    newLengths(i) = m_SP.GetActLengths()[i];
+                cout << "New Act length is \n" << newLengths << endl;
+                cout << "Current Act length is \n" << m_ActuatorLengths << endl;
+                Act_delta = newLengths-m_ActuatorLengths;
+                cout << "Delta Act length will be \n" << Act_delta << endl;
+                Sen_delta = M_response*Act_delta;
+                Sen_new = Sen_delta+Sen_current;
+                cout << "The new sensor coordinates (x, y) will be:\n" << Sen_new << endl;
+                Sen_deviation = Sen_new-Sen_aligned;
+                cout << "\n will deviate from the aligned position by\n" << Sen_new-Sen_aligned << endl;
+                double deviation = 0;
+                for (unsigned i = 0; i < 6; i++)
+                    deviation += pow(Sen_deviation(i),2);
+                deviation = pow(deviation,0.5);
+                if (deviation>40) return true;
+        }
+
+        return false;
+
+}
 void PasPanel::__updateCoords(bool printout)
 {
     // do nothing if values haven't expired
@@ -1125,7 +1242,7 @@ UaStatus PasEdge::__findSingleMatrix(unsigned panelidx)
             zeroDelta.copyTo(&deltas[k]);
 
         missedDelta = 0.;
-        
+
         vector0 = getCurrentReadings();
         cout << "+++ CURRENT READINGS:\n" << vector0 << endl << "Sleeping for 1s" << endl;
         sleep(1); // seconds
@@ -1172,7 +1289,7 @@ UaStatus PasEdge::__findSingleMatrix(unsigned panelidx)
         responseMatrix.col(j) = (vector1 - vector0)/(m_DeltaL - missedDelta);
         cout << "+++ CURRENT RESPONSE MATRIX:\n" << responseMatrix << endl;
     }
-    cout << "\n+++ ALL DONE FOR THIS PANEL!" << endl; 
+    cout << "\n+++ ALL DONE FOR THIS PANEL!" << endl;
     cout << "+++ Response matrix for " << m_ID.eAddress << ": panel " << pCurPanel->getId().position << endl;
     cout << responseMatrix << endl;
 

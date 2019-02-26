@@ -32,20 +32,20 @@ MPES::MPES(CBC* input_cbc, int input_USBPortNumber, int input_MPES_ID) :
 }
 
 //Destructor
-MPES::~MPES() 
+MPES::~MPES()
 {
     m_pCBC->usb.disable(m_USBPortNumber);
 }
 
 
-// returns intensity of the sensor image. 
+// returns intensity of the sensor image.
 // check this value to see if everything is working fine
 bool MPES::Initialize()
 {
     // we toggle the usb port, checking the video devices when it's off and again when it's on.
     // the new video device is the ID of the newly created MPES.
     //
-    // make sure our USB is off 
+    // make sure our USB is off
     m_pCBC->usb.disable(m_USBPortNumber);
     // count video devices
     auto old_video_device_set = __getVideoDevices();
@@ -90,13 +90,13 @@ bool MPES::Initialize()
         cout << "Read calibration data OK -- using calibrated values" << endl;
         calibrate = true;
     }
-    else 
+    else
         cout << "Failed to read calibration data -- using raw values" << endl;
 
-    Safety_Region_x_min = 60.0;	
-    Safety_Region_x_max = 260.0;	
-    Safety_Region_y_min = 40.0;	
-    Safety_Region_y_max = 200.0;	
+    Safety_Region_x_min = 60.0;
+    Safety_Region_x_max = 260.0;
+    Safety_Region_y_min = 40.0;
+    Safety_Region_y_max = 200.0;
 
     return true;
 }
@@ -109,7 +109,7 @@ int MPES::setExposure()
     int intensity;
     // need to check if intensity is non-zero!
     int counter = 0;
-    while ( (intensity = MeasurePosition()) 
+    while ( (intensity = MeasurePosition())
             && !m_pDevice->isWithinIntensityTolerance(intensity) )
     {
         m_pDevice->SetExposure((int)(m_pDevice->GetTargetIntensity()/intensity
@@ -130,7 +130,7 @@ void MPES::setUSBPortNumber(int input_USBPortNumber)
     }
     m_USBPortNumber=input_USBPortNumber;
 }
- 
+
 // returns intensity of the beam -- 0 if no beam/device.
 // so check the return value to know if things work fine
 int MPES::MeasurePosition()
@@ -150,11 +150,11 @@ int MPES::MeasurePosition()
         }
         else
 	    m_pImageSet->simpleAverage();
-    
+
         m_position.xCenter = m_pImageSet->SetData.xCentroid;
         m_position.yCenter = m_pImageSet->SetData.yCentroid;
-        m_position.xStdDev = m_pImageSet->SetData.xSpotSD;
-        m_position.yStdDev = m_pImageSet->SetData.ySpotSD;
+        m_position.xStdDev = m_pImageSet->SetData.xCentroidSD;
+        m_position.yStdDev = m_pImageSet->SetData.yCentroidSD;
         m_position.CleanedIntensity = m_pImageSet->SetData.CleanedIntensity;
     }
 
@@ -187,4 +187,40 @@ set<int> MPES::__getVideoDevices()
         return {-1};
 
     return device_set;
+}
+
+bool DummyMPES::Initialize()
+{
+
+    cout << "DummyMPES::Initialize(): Creating new video device " << endl;
+    Safety_Region_x_min = 60.0;
+    Safety_Region_x_max = 260.0;
+    Safety_Region_y_min = 40.0;	
+    Safety_Region_y_max = 200.0;
+
+    return true;
+}
+int DummyMPES::setExposure()
+{
+    cout << "+++ Dummy MPES: Setting exposure for device at USB " << m_USBPortNumber << endl;
+    int intensity;
+    // need to check if intensity is non-zero!
+    int counter = 0;
+    intensity = 1;
+    cout << "setExposure(): DONE" << endl;
+    return intensity;
+}
+int DummyMPES::MeasurePosition()
+{
+    // initialize to something obvious in case of failure
+    m_position.xCenter = 160.;
+    m_position.yCenter = 80.;
+    m_position.xStdDev = 10.;
+    m_position.yStdDev = 10.;
+    m_position.CleanedIntensity = 0.;
+
+    if (m_position.xCenter == -1. || m_position.yCenter == -1. )
+        cout << "mpes reading -1! potentially lost beam" << endl;
+
+    return static_cast<int>(m_position.CleanedIntensity);
 }
