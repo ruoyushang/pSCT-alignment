@@ -237,6 +237,8 @@ private:
 
     // track if inCoords have been updated on initial boot
     bool m_inCoordsUpdated;
+
+    bool __willSensorsBeOutOfRange();
 };
 
 
