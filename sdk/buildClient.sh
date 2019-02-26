@@ -37,7 +37,7 @@ if [ "$CONFIGURATIONS" == "" ]; then
     CONFIGURATIONS="Debug Release"
     echo "No config was set - setting up the config to default build CONFIGURATIONS=$CONFIGURATIONS"
 fi
-MODULES="pasclient"
+MODULES="client"
 
 # shared objects?
 if [ "$BUILD_SHARED_LIBS" == "" ]; then
