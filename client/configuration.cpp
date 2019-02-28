@@ -401,7 +401,8 @@ UaStatus Configuration::loadDeviceConfiguration(const std::vector<std::string>& 
     // read device configuration from the database and load it into the internal maps
     /* *********************************************************/
     /* INITIAL DATABASE HACK JOB -- NEEDS TO HAVE ITS OWN CLASS */
-    std::string db_ip="172.17.10.10";
+    //string db_ip="172.17.10.10"; // internal ip
+    std::string db_ip="romulus.ucsc.edu";
     std::string db_port="3406";
     std::string db_user="CTAreadonly";
     std::string db_password="readCTAdb";
