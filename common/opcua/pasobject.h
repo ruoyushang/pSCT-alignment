@@ -60,8 +60,6 @@ protected:
 
     OpcUa::DataItemType* addErrorVariable(PasNodeManagerCommon *pNodeManager, OpcUa_UInt32 ParentType, OpcUa_UInt32 VarType, OpcUa_Boolean isState = OpcUa_False);
 
-    OpcUa::DataItemType* addErrorVariable(PasNodeManagerCommon *pNodeManager, OpcUa_UInt32 ParentType, OpcUa_UInt32 VarType, OpcUa_Boolean isState = OpcUa_False);
-
     UaString                   m_defaultLocaleId;
     UaMutexRefCounted*         m_pSharedMutex;
     Identity                   m_Identity;
