@@ -58,6 +58,7 @@
 #define PAS_MirrorType_selectedMPES                  153
 #define PAS_MirrorType_Align_InEdge                  161
 #define PAS_MirrorType_Align_InPanel                 162
+#define PAS_MirrorType_AlignFrac                     163
 //----------------------------------------------------------//
 // Edge Type
 #define PAS_EdgeType                                1000

@@ -72,7 +72,8 @@ PasMPES::PasMPES(Identity identity, Client *pClient) : PasController(identity, p
 
     // get the nominal aligned readings and response matrices from DB
     /* BEGIN DATABASE HACK */
-    string db_ip="172.17.10.10";
+    //string db_ip="172.17.10.10"; // internal ip
+    string db_ip="romulus.ucsc.edu";
     string db_port="3406";
     string db_user="CTAreadonly";
     string db_password="readCTAdb";

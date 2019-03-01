@@ -13,6 +13,12 @@ done
 
 shift $((OPTIND-1))
 
+function interrupt() {    
+  printf "\nKilling all servers and exiting...\n"
+  killall -9 -q "passerver" 
+  printf "Done.\n"
+}
+
 extension=".xml"
 
 if $all ; then
@@ -58,6 +64,12 @@ if [[ ("$count" > 0) ]]; then
     done
 
     printf "Done.\n"
+
+    read -n1 -r -p "Press x to shut down..." key
+
+    if [ "$key" = 'x' ]; then
+        interrupt
+    fi
 else
     usage
 fi

@@ -23,6 +23,18 @@ PasObject::PasObject(const UaString& name,
                   m_pCommIf(pCommIf),
                   m_pNodeManager(pNodeManager)
 {
+
+    // Create folder for errors and add it as component to this object
+    UaFolder* pErrorFolder = new UaFolder("Errors", UaNodeId("Errors", pNodeManager->getNameSpaceIndex()), m_defaultLocaleId);
+    UaStatus ret = pNodeManager->addNodeAndReference(this, pErrorFolder, OpcUaId_HasComponent);
+    UA_ASSERT(ret.isGood());
+    // Store information needed to access device
+    //PasUserData* pUserData = new PasUserData(isState, ParentType, m_Identity, VarType);
+    //pDataItem->setUserData(pUserData);
+    // Change value handling to get read and write calls to the node manager
+    //pDataItem->setValueHandling(UaVariable_Value_Cache);
+    m_pErrorFolder = pErrorFolder;
+
 }
 
 PasObject::~PasObject() {}
@@ -78,6 +90,24 @@ OpcUa::DataItemType* PasObject::addVariable(PasNodeManagerCommon *pNodeManager, 
         addStatus = pNodeManager->addUaNode(pDataItem->getUaNode());
     UA_ASSERT(addStatus.isGood());
 
+    // Store information needed to access device
+    PasUserData* pUserData = new PasUserData(isState, ParentType, m_Identity, VarType);
+    pDataItem->setUserData(pUserData);
+    // Change value handling to get read and write calls to the node manager
+    pDataItem->setValueHandling(UaVariable_Value_Cache);
+
+    return pDataItem;
+}
+
+OpcUa::DataItemType* PasObject::addErrorVariable(PasNodeManagerCommon *pNodeManager, OpcUa_UInt32 VarType, OpcUa_UInt32 ParentType, OpcUa_Boolean isState)
+{
+    // Get the instance declaration node used as base for this variable instance
+    UaVariable* pInstanceDeclaration = pNodeManager->getInstanceDeclarationVariable(VarType);
+    UA_ASSERT(pInstanceDeclaration!=NULL);
+    // Create new variable and add it as component to this object
+    OpcUa::DataItemType* pDataItem = new OpcUa::DataItemType(this, pInstanceDeclaration, pNodeManager, m_pSharedMutex);
+    UaStatus addStatus = pNodeManager->addNodeAndReference(m_pErrorFolder, pDataItem, OpcUaId_HasComponent);
+    UA_ASSERT(addStatus.isGood());
     // Store information needed to access device
     PasUserData* pUserData = new PasUserData(isState, ParentType, m_Identity, VarType);
     pDataItem->setUserData(pUserData);

@@ -564,12 +564,11 @@ UaStatus PasNodeManager::amendTypeNodes()
     UA_ASSERT(addStatus.isGood());
 
     defaultValue.setFloat(0.);
-    pDataItem = new OpcUa::DataItemType(UaNodeId(PAS_EdgeType_AlignFrac, getNameSpaceIndex()), "AlignFraction",
+    pDataItem = new OpcUa::DataItemType(UaNodeId(PAS_MirrorType_AlignFrac, getNameSpaceIndex()), "AlignFraction",
         getNameSpaceIndex(), defaultValue, Ua_AccessLevel_CurrentRead | Ua_AccessLevel_CurrentWrite, this);
     pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
     addStatus = addNodeAndReference(pMirrorType, pDataItem, OpcUaId_HasComponent);
     UA_ASSERT(addStatus.isGood());
-
 
     defaultValue.setDouble(0);
     pDataItem = new OpcUa::DataItemType(UaNodeId(PAS_MirrorType_curCoords_x, getNameSpaceIndex()),
@@ -830,7 +829,7 @@ UaStatus PasNodeManager::amendTypeNodes()
 
     // Add Variable "StepSize" as DataItem
     defaultValue.setDouble(0);
-    pDataItem = new OpcUa::DataItemType(UaNodeId(PAS_EdgeType_StepSize, getNameSpaceIndex()), "StepSize",
+    pDataItem = new OpcUa::DataItemType(UaNodeId(PAS_OptTableType_StepSize, getNameSpaceIndex()), "StepSize",
         getNameSpaceIndex(), defaultValue, Ua_AccessLevel_CurrentRead | Ua_AccessLevel_CurrentWrite, this);
     pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
     addStatus = addNodeAndReference(pOptTableType, pDataItem, OpcUaId_HasComponent);
