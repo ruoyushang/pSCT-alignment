@@ -39,4 +39,5 @@ doxygen/latex
 sdk/examples
 sdk/buildServer*
 sdk/buildClient*
+sdk/bin
 
