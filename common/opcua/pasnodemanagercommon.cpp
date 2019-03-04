@@ -472,6 +472,13 @@ UaStatus PasNodeManagerCommon::createTypeNodes()
     /***************************************************************
      * Create the ACT Type Instance declaration
      ***************************************************************/
+
+     // Add error folder
+     UaFolder* pErrorFolder = new UaFolder("Errors", UaNodeId("Errors", pNodeManager->getNameSpaceIndex()), m_defaultLocaleId);
+     pErrorFolder->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
+     UaStatus ret = pNodeManager->addNodeAndReference(this, pErrorFolder, OpcUaId_HasComponent);
+     UA_ASSERT(ret.isGood());
+
     // Add Variable "State" as BaseDataVariable
     defaultValue.setUInt32(0);
     pDataItem = new OpcUa::DataItemType(

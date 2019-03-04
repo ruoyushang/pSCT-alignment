@@ -24,15 +24,12 @@ PasObject::PasObject(const UaString& name,
                   m_pNodeManager(pNodeManager)
 {
 
-    // Create folder for errors and add it as component to this object
-    UaFolder* pErrorFolder = new UaFolder("Errors", UaNodeId("Errors", pNodeManager->getNameSpaceIndex()), m_defaultLocaleId);
-    UaStatus ret = pNodeManager->addNodeAndReference(this, pErrorFolder, OpcUaId_HasComponent);
-    UA_ASSERT(ret.isGood());
     // Store information needed to access device
     //PasUserData* pUserData = new PasUserData(isState, ParentType, m_Identity, VarType);
     //pDataItem->setUserData(pUserData);
     // Change value handling to get read and write calls to the node manager
     //pDataItem->setValueHandling(UaVariable_Value_Cache);
+
     m_pErrorFolder = pErrorFolder;
 
 }
