@@ -9,6 +9,7 @@
 #include "clienthelper.h"
 #include "configuration.h"
 #include "pascommunicationinterface.h"
+#include "pasobjectfactory.h"
 #include "passervertypeids.h"
 #include "components.h"
 #include <iostream>
@@ -107,6 +108,8 @@ UaStatus PasNodeManager::afterStartUp()
     PasController *pController = NULL;
     std::vector<PasController *>pChildren;
 
+    PasObjectFactory *pPasFactory = new PasObjectFactory();
+
     std::map<unsigned, UaFolder *> pDeviceFolders;
     std::map<PasController *, PasObject *> pDeviceObjects;
 
@@ -163,7 +166,7 @@ UaStatus PasNodeManager::afterStartUp()
             }
 
             // Create object
-            pObject = PasObject::Create(deviceType, sDeviceName, UaNodeId(sDeviceName, getNameSpaceIndex()),
+            pObject = pPasFactory->Create(deviceType, sDeviceName, UaNodeId(sDeviceName, getNameSpaceIndex()),
                     m_defaultLocaleId, this, identity,
                     dynamic_cast<PasCommunicationInterface*>(m_pCommIf));
 

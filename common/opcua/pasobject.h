@@ -9,10 +9,6 @@
 #include "uaserver/nodemanagerroot.h"
 #include "userdatabase.h"
 #include "components.h"
-#include "../../client/gasobject.h"
-#include "../../client/edgeobject.h"
-#include "../../client/mirrorobject.h"
-#include "../../client/panelobject.h"
 
 class PasNodeManager;
 class PasCommunicationInterface;
