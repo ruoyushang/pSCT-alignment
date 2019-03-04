@@ -1,0 +1,40 @@
+#include "pasobjectfactory.h"
+#include "pasnodemanager.h"
+#include "passervertypeids.h"
+#include "pascommunicationinterface.h"
+#include "pascominterfacecommon.h"
+#include "pasnodemanagercommon.h"
+#include "components.h"
+#include "pasobject.h"
+#include "gasobject.h"
+#include "mirrorobject.h"
+#include "panelobject.h"
+#include "edgeobject.h"
+
+PasObject* PasObjectFactory::Create(
+        unsigned deviceType,
+        const UaString& name,
+        const UaNodeId& newNodeId,
+        const UaString& defaultLocaleId,
+        PasNodeManager *pNodeManager,
+        Identity identity,
+        PasCommunicationInterface *pCommIf)
+{
+    switch (deviceType)
+    {
+        case PAS_MirrorType:
+            return new MirrorObject(name, newNodeId, defaultLocaleId, pNodeManager, identity, pCommIf);
+        case PAS_ACTType:
+            return new ACTObject(name, newNodeId, defaultLocaleId, dynamic_cast<PasNodeManagerCommon *>(pNodeManager), identity, dynamic_cast<PasComInterfaceCommon *>(pCommIf));
+        case PAS_MPESType:
+            return new MPESObject(name, newNodeId, defaultLocaleId, dynamic_cast<PasNodeManagerCommon *>(pNodeManager), identity, dynamic_cast<PasComInterfaceCommon *>(pCommIf));
+        case PAS_PanelType:
+            return new PanelObject(name, newNodeId, defaultLocaleId, pNodeManager, identity, pCommIf);
+        case PAS_EdgeType:
+            return new EdgeObject(name, newNodeId, defaultLocaleId, pNodeManager, identity, pCommIf);
+        case PAS_PSDType:
+            return new PSDObject(name, newNodeId, defaultLocaleId, dynamic_cast<PasNodeManagerCommon *>(pNodeManager), identity, dynamic_cast<PasComInterfaceCommon *>(pCommIf));
+        case PAS_CCDType:
+            return new CCDObject(name, newNodeId, defaultLocaleId, dynamic_cast<PasNodeManagerCommon *>(pNodeManager), identity, dynamic_cast<PasComInterfaceCommon *>(pCommIf));
+    }
+}

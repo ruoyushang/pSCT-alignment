@@ -9,6 +9,7 @@
 #include "clienthelper.h"
 #include "configuration.h"
 #include "pascommunicationinterface.h"
+#include "pasobjectfactory.h"
 #include "passervertypeids.h"
 #include "components.h"
 #include <iostream>
@@ -107,9 +108,11 @@ UaStatus PasNodeManager::afterStartUp()
     PasController *pController = NULL;
     std::vector<PasController *>pChildren;
 
+    PasObjectFactory *pPasFactory = new PasObjectFactory();
+
     std::map<unsigned, UaFolder *> pDeviceFolders;
     std::map<PasController *, PasObject *> pDeviceObjects;
-    
+
     std::string deviceName;
     std::string folderName;
     unsigned deviceType;
@@ -163,7 +166,7 @@ UaStatus PasNodeManager::afterStartUp()
             }
 
             // Create object
-            pObject = PasObject::makeObject(deviceType, sDeviceName, UaNodeId(sDeviceName, getNameSpaceIndex()),
+            pObject = pPasFactory->Create(deviceType, sDeviceName, UaNodeId(sDeviceName, getNameSpaceIndex()),
                     m_defaultLocaleId, this, identity,
                     dynamic_cast<PasCommunicationInterface*>(m_pCommIf));
 
@@ -640,48 +643,6 @@ UaStatus PasNodeManager::amendTypeNodes()
 
     pDataItem = new OpcUa::DataItemType(UaNodeId(PAS_MirrorType_selectedEdges, getNameSpaceIndex()),
             "selectedEdges", getNameSpaceIndex(), defaultValue,
-            Ua_AccessLevel_CurrentRead | Ua_AccessLevel_CurrentWrite, this);
-    pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
-    addStatus = addNodeAndReference(pMirrorType, pDataItem, OpcUaId_HasComponent);
-    UA_ASSERT(addStatus.isGood());
-
-    pDataItem = new OpcUa::DataItemType(UaNodeId(PAS_MirrorType_sysOffsets_x, getNameSpaceIndex()),
-            "sysOffsets_x", getNameSpaceIndex(), defaultValue,
-            Ua_AccessLevel_CurrentRead | Ua_AccessLevel_CurrentWrite, this);
-    pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
-    addStatus = addNodeAndReference(pMirrorType, pDataItem, OpcUaId_HasComponent);
-    UA_ASSERT(addStatus.isGood());
-
-    pDataItem = new OpcUa::DataItemType(UaNodeId(PAS_MirrorType_sysOffsets_y, getNameSpaceIndex()),
-            "sysOffsets_y", getNameSpaceIndex(), defaultValue,
-            Ua_AccessLevel_CurrentRead | Ua_AccessLevel_CurrentWrite, this);
-    pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
-    addStatus = addNodeAndReference(pMirrorType, pDataItem, OpcUaId_HasComponent);
-    UA_ASSERT(addStatus.isGood());
-
-    pDataItem = new OpcUa::DataItemType(UaNodeId(PAS_MirrorType_sysOffsets_z, getNameSpaceIndex()),
-            "sysOffsets_z", getNameSpaceIndex(), defaultValue,
-            Ua_AccessLevel_CurrentRead | Ua_AccessLevel_CurrentWrite, this);
-    pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
-    addStatus = addNodeAndReference(pMirrorType, pDataItem, OpcUaId_HasComponent);
-    UA_ASSERT(addStatus.isGood());
-
-    pDataItem = new OpcUa::DataItemType(UaNodeId(PAS_MirrorType_sysOffsets_xRot, getNameSpaceIndex()),
-            "sysOffsets_xRot", getNameSpaceIndex(), defaultValue,
-            Ua_AccessLevel_CurrentRead | Ua_AccessLevel_CurrentWrite, this);
-    pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
-    addStatus = addNodeAndReference(pMirrorType, pDataItem, OpcUaId_HasComponent);
-    UA_ASSERT(addStatus.isGood());
-
-    pDataItem = new OpcUa::DataItemType(UaNodeId(PAS_MirrorType_sysOffsets_yRot, getNameSpaceIndex()),
-            "sysOffsets_yRot", getNameSpaceIndex(), defaultValue,
-            Ua_AccessLevel_CurrentRead | Ua_AccessLevel_CurrentWrite, this);
-    pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
-    addStatus = addNodeAndReference(pMirrorType, pDataItem, OpcUaId_HasComponent);
-    UA_ASSERT(addStatus.isGood());
-
-    pDataItem = new OpcUa::DataItemType(UaNodeId(PAS_MirrorType_sysOffsets_zRot, getNameSpaceIndex()),
-            "sysOffsets_zRot", getNameSpaceIndex(), defaultValue,
             Ua_AccessLevel_CurrentRead | Ua_AccessLevel_CurrentWrite, this);
     pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
     addStatus = addNodeAndReference(pMirrorType, pDataItem, OpcUaId_HasComponent);
