@@ -109,7 +109,7 @@ UaStatus PasNodeManager::afterStartUp()
 
     std::map<unsigned, UaFolder *> pDeviceFolders;
     std::map<PasController *, PasObject *> pDeviceObjects;
-    
+
     std::string deviceName;
     std::string folderName;
     unsigned deviceType;
@@ -163,7 +163,7 @@ UaStatus PasNodeManager::afterStartUp()
             }
 
             // Create object
-            pObject = PasObject::makeObject(deviceType, sDeviceName, UaNodeId(sDeviceName, getNameSpaceIndex()),
+            pObject = PasObject::Create(deviceType, sDeviceName, UaNodeId(sDeviceName, getNameSpaceIndex()),
                     m_defaultLocaleId, this, identity,
                     dynamic_cast<PasCommunicationInterface*>(m_pCommIf));
 

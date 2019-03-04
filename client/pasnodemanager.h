@@ -55,7 +55,7 @@ private:
     /// @brief Configuration object used to
     Configuration *m_pConfiguration;
     /// @brief Pointers to all OPC UA clients (controller boards) connected to
-	/// the master alignment client.
+  	/// the master alignment client.
     std::vector<Client *> m_pClient;
     /// @brief Pointer to telescope positioner OPC UA client.
     Client *m_pPositioner;
