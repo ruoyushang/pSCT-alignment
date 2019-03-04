@@ -37,4 +37,6 @@ doxygen/latex
 
 # Unnecessary SDK files
 sdk/examples
+sdk/buildServer*
+sdk/buildClient*
 
