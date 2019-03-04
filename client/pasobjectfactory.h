@@ -7,10 +7,10 @@
 class PasObjectFactory
 {
     public:
-        PasObjectFactory();
+        PasObjectFactory(){};
         ~PasObjectFactory(){};
 
-        PasObject* PasObjectFactory::Create(
+        PasObject* Create(
                 unsigned deviceType,
                 const UaString& name,
                 const UaNodeId& newNodeId,

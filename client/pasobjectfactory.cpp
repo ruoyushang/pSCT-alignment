@@ -1,17 +1,15 @@
+#include "pasobjectfactory.h"
+#include "pasnodemanager.h"
+#include "passervertypeids.h"
+#include "pascommunicationinterface.h"
+#include "pascominterfacecommon.h"
+#include "pasnodemanagercommon.h"
 #include "components.h"
 #include "pasobject.h"
 #include "gasobject.h"
 #include "mirrorobject.h"
 #include "panelobject.h"
 #include "edgeobject.h"
-
-PasObjectFactory::PasObjectFactory()
-{
-}
-
-PasObjectFactory::~PasObjectFactory(void)
-{
-}
 
 PasObject* PasObjectFactory::Create(
         unsigned deviceType,
