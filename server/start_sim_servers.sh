@@ -1,13 +1,22 @@
-#!/usr/bin/env bash
+# Script to start simulation mode servers in the background.
+# Receives either a list of panel (position) numbers, or the option -a for all
+# when "all" is selected, it will read all panels from the database except
+# the test panels 0, 1, and any optical table panels (1001, 2001)
+
 trap interrupt INT
 
-usage() { echo "Usage: $0  [-a (all)] [panel number(s)] [-h]" 1>&2; exit 1; }
+# NOTE: DB access information is hardcoded
+
+usage() { echo "Usage: $0  [-a] [panel number(s)] [-h] [-b]" 1>&2; exit 1; }
 
 all=false
+background=false
+extension=".xml"
 
-while getopts "ah" o; do
+while getopts "ahb" o; do
     case "${o}" in
     a) all=true ;;
+    b) background=true ;;
     h) usage ;;
     esac
 done
@@ -41,10 +50,16 @@ if [[ ("$count" > 0) ]]; then
 
     i=1
     for panel_num in "${PANELS[@]}"; do
-         config_filename="/app/pSCT-alignment/server/$panel_num$extension"
+         # Create temporary config file for each server to set the server endpoint
+         # IP. Config files are created based on the template TemplateServerConfig.xml and
+         # use sed to replace the string "URL_LOCATION" with the desired IP addr/port.
+         # Temporary config files are named [panel_num].xml
+         # They are deleted 30 sec after startup.
+         config_filename="$panel_num$extension"
          endpoint_addr="opc.tcp://127.0.0.1:$panel_num"
          cp "TemplateServerConfig${extension}" "$config_filename"
          sed -i "s@URL_LOCATION@$endpoint_addr@g" "$config_filename"
+
          printf "(%d/%d) Starting server for panel %d at address %s.\n" "$i" "$count" "$panel_num" "$endpoint_addr"
          abspath=$(realpath ${config_filename})
          printf "../sdk/bin/passerver 127.0.0.1:$panel_num -c $abspath \n"
@@ -52,7 +67,9 @@ if [[ ("$count" > 0) ]]; then
          ((i++))
     done
 
-    sleep 10
+    # Sleep for 30 seconds before deleting temporary config files
+    # To give time for servers to start and read configuration
+    sleep 30
 
     for panel_num in "${PANELS[@]}"; do
        config_filename="/app/pSCT-alignment/server/$panel_num$extension"
@@ -60,7 +77,15 @@ if [[ ("$count" > 0) ]]; then
     done
 
     printf "Done.\n"
+
+    if $background ; then
+      trap interrupt INT
+      read -n1 -r -p "Press x to shut down..." key
+
+      if [ "$key" = 'x' ]; then
+          interrupt
+      fi
+    fi
 else
     usage
 fi
-
