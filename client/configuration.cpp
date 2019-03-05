@@ -425,11 +425,8 @@ UaStatus Configuration::loadDeviceConfiguration(const std::vector<std::string>& 
             sql_results = sql_stmt->getResultSet();
             // should only be one result FOR NOW -- IN THE FUTURE, NEED TO FIX THIS, SORTING BY DATE
             while (sql_results->next()) {
-#ifdef SIMMODE
-                panelId.eAddress = "opc.tcp://127.0.0.1:"+std::string(position.c_str()); //Ruo, only use this for servers running on a l
-#else
-                panelId.eAddress = "opc.tcp://" + sql_results->getString(2) + ":4840";
-#endif
+                panelId.eAddress = "opc.tcp://127.0.0.1:"+std::string(position.c_str()); 
+                //panelId.eAddress = "opc.tcp://" + sql_results->getString(2) + ":4840";
                 panelId.serialNumber = sql_results->getInt(1);
                 }
             // add to the list of devices
