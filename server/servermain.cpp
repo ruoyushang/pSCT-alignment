@@ -44,6 +44,7 @@
 #include <sys/statvfs.h>
 
 #include <stdio.h>
+#include <iostream>
 #include <stdlib.h>
 #include <getopt.h>
 
@@ -75,22 +76,27 @@ int OpcServerMain(const char* szAppPath, const char* configFilePath, const char*
 
     if ( ret == 0 )
     {
-        // Create configuration file name
-        UaString sConfigFileName(szAppPath);
+       // Create configuration file name
+        UaString sAppPath(szAppPath);
+        UaString sConfigFileName(configFilePath);
 
-#if SUPPORT_XML_PARSER
-        sConfigFileName += "/ServerConfig.xml";
-#else
-        sConfigFileName += "/ServerConfig.ini";
-#endif
         //- Start up OPC server ---------------------
         // This code can be integrated into a startup
         // sequence of the application where the
         // OPC server should be integrated
         //-------------------------------------------
         // Create and initialize server object
-        OpcServer* pServer = new OpcServer;
-        pServer->setServerConfig(sConfigFileName, szAppPath);
+        OpcServer* pServer = new OpcServer();
+        pServer->setServerConfig(sConfigFileName, sAppPath);
+
+        // Get config and overwrite endpoint URL
+        //UaEndpointArray endpoints;
+        //OpcUa_UInt32 rejected_certificates_count = 1;
+        //ServerConfig *pConfig = pServer->getServerConfig();
+        //pConfig->loadConfiguration();
+        //pConfig->getEndpointConfiguration(sAppPath, rejected_certificates_count, endpoints);
+        //printf("Number of endpoints: %d\n", endpoints.length());
+        //endpoints[0]->setEndpointUrl(sEndpointUrl, false);
 
         // Create and initialize communication interface
         // this is a large object -- allocate on the heap
@@ -106,8 +112,8 @@ int OpcServerMain(const char* szAppPath, const char* configFilePath, const char*
         PasNodeManager *pNodeManager = new PasNodeManager();
         // set its communication interface
         pNodeManager->setCommunicationInterface(pCommIf);
-        pServer->addNodeManager(pNodeManager);
-
+        pServer->addNodeManager(pNodeManager); 
+        
         // Start server object
         ret = pServer->start();
         if ( ret != 0 )
@@ -225,7 +231,7 @@ int main(int argc, char* argv[])
 
     //-------------------------------------------
     // Call the OPC server main method
-    ret = OpcServerMain(pszAppPath, argv[1], config_file_path);
+    ret = OpcServerMain(pszAppPath, config_file_path, argv[1]);
     //-------------------------------------------
 
     if ( pszAppPath ) delete [] pszAppPath;
