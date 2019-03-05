@@ -1,4 +1,4 @@
-# Script to start simulation mode servers in the background.
+# Script to start simulation mode servers.
 # Receives either a list of panel (position) numbers, or the option -a for all
 # when "all" is selected, it will read all panels from the database except
 # the test panels 0, 1, and any optical table panels (1001, 2001)
@@ -7,7 +7,7 @@ trap interrupt INT
 
 # NOTE: DB access information is hardcoded
 
-usage() { echo "Usage: $0  [-a] [panel number(s)] [-h] [-b]" 1>&2; exit 1; }
+usage() { echo "Usage: $0  [-a (all)] [panel number(s)] [-h (help)] [-b (background)]" 1>&2; exit 1; }
 
 all=false
 background=false
