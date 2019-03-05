@@ -109,6 +109,11 @@ FILE(GLOB P2PAS_SRC
     "${COMMON_CODE_DIR}/utilities/*.cpp"
   )
 
+if ( SIMMODE )
+    message("SIMMODE!")
+    add_definitions(-DSIMMODE)
+endif ( SIMMODE )
+
 ####################################### Include Paths ########################################
 IF ( UASTACK_WITH_OPENSSL )
     include_directories(${OPENSSL_INCLUDE_DIR})

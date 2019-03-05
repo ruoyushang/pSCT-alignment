@@ -3,7 +3,7 @@
 CONFIGURATIONS=""
 
 # get command line options
-usage="./buildServClient.sh -c<CONFIG> -s<SHARED_OBJECT> -t<TOOLCHAIN>"
+usage="./buildClient.sh -c<CONFIG> -s<SHARED_OBJECT> -t<TOOLCHAIN>"
 usage1="CONFIGURATIONS : The configuration to build (possible is \"Release\", \"Debug\", \"RelWithDebInfo\" and \"RelMinSize\" / default: \"Debug Release\")"
 usage2="BUILD_SHARED_LIBS : Set this option to ON to build the SDK in shared object mode (default: OFF)"
 usage3="TOOLCHAIN : Set the full path to the CMake toolchain file to cross-compile (e.g.: /home/user/work/toolchain.cmake)"
@@ -75,19 +75,24 @@ if [ "$TOOLCHAIN" == "" ]; then
 fi
 
 # create fresh build directories
-rm -rf buildClientDebug buildClientRelease
+rm -rf buildClientDebug buildClientRelease buildClientReleaseSIMMODE
 
 export UASDKDIR
 # build all configurations
 for config in $CONFIGURATIONS; do
+    if [[ $config = "SIMMODE" ]]; then
+        config="Release"
+        suffix="SIMMODE"
+        OPTION=${OPTION}" -DSIMMODE:bool=true"
+    fi
     # build all modules
     for module in $MODULES; do
         # create build directory
-        mkdir -p $UASDKDIR/buildClient$config/$module || { echo "mkdir failed."; exit 1; }
+        mkdir -p $UASDKDIR/buildClient$config$suffix/$module || { echo "mkdir failed."; exit 1; }
         # enter build directory
-        cd $UASDKDIR/buildClient$config/$module || { echo "cd failed."; exit 1; }
+        cd $UASDKDIR/buildClient$config$suffix/$module || { echo "cd failed."; exit 1; }
         # create the Makefile using CMake
-        cmake "$TOOLCHAIN" "$OPTION" -DCMAKE_BUILD_TYPE=$config -DBUILD_SHARED_LIBS=$BUILD_SHARED_LIBS -DCMAKE_INSTALL_PREFIX=$CMAKE_INSTALL_PREFIX $UASDKDIR/../$module || { echo "cmake failed."; exit 1; }
+        cmake "$TOOLCHAIN" $OPTION -DCMAKE_BUILD_TYPE=$config -DBUILD_SHARED_LIBS=$BUILD_SHARED_LIBS -DCMAKE_INSTALL_PREFIX=$CMAKE_INSTALL_PREFIX $UASDKDIR/../$module || { echo "cmake failed."; exit 1; }
         # build
         cmake --build . -- -j5 || { echo "make failed."; exit 1; }
         # install

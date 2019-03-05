@@ -44,9 +44,9 @@ SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH FALSE)
 
 # need libusb.so -- might not be on the system!!
 # brute force it for now
-#SET(LIBUSB_LIBRARIES "/usr/lib64/libusb-1.0.so.0")
+SET(LIBUSB_LIBRARIES "/usr/lib64/libusb-1.0.so.0")
 #SET(LIBUSB_LIBRARIES "/lib/x86_64-linux-gnu/libusb-1.0.so.0")
-SET(LIBUSB_LIBRARIES "${LD_LIBRARY_PATH}/libusb-1.0.so.0")
+#SET(LIBUSB_LIBRARIES "${LD_LIBRARY_PATH}/libusb-1.0.so.0")
 
 MESSAGE( STATUS "" )
 MESSAGE( STATUS "====================================" )

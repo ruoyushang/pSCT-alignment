@@ -83,6 +83,8 @@ if [ "$TOOLCHAIN" == "" ]; then
     fi
 fi
 
+rm -rf ./buildServerRelease ./buildServerReleaseSIMMODE
+
 export UASDKDIR
 # build all configurations
 for config in $CONFIGURATIONS; do
