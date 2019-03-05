@@ -7,6 +7,8 @@
 #include "mpeseventdata.h"
 #include "uaserver/methodhandleuanode.h"
 
+#include <iostream>
+
 // ----------------------------------------------------------------
 // PasObject implementation
 PasObject::PasObject(const UaString& name,
@@ -29,8 +31,6 @@ PasObject::PasObject(const UaString& name,
     //pDataItem->setUserData(pUserData);
     // Change value handling to get read and write calls to the node manager
     //pDataItem->setValueHandling(UaVariable_Value_Cache);
-
-    m_pErrorFolder = pErrorFolder;
 
 }
 
@@ -72,14 +72,14 @@ UaStatus PasObject::beginCall(
     return ret;
 }
 
-OpcUa::DataItemType* PasObject::addVariable(PasNodeManagerCommon *pNodeManager, OpcUa_UInt32 ParentType, OpcUa_UInt32 VarType, OpcUa_Boolean isState, OpcUa_Boolean addReference)
+OpcUa::DataItemType* PasObject::addVariable(PasNodeManagerCommon *pNodeManager, OpcUa_UInt32 ParentType, OpcUa_UInt32 VarType, OpcUa_Boolean isState, bool addReference)
 {
     // Get the instance declaration node used as base for this variable instance
     UaVariable* pInstanceDeclaration = pNodeManager->getInstanceDeclarationVariable(VarType);
     UA_ASSERT(pInstanceDeclaration!=NULL);
     // Create new variable and add it as component to this object
     OpcUa::DataItemType* pDataItem = new OpcUa::DataItemType(this, pInstanceDeclaration, pNodeManager, m_pSharedMutex);
-
+    
     UaStatus addStatus;
     if (addReference)
         addStatus = pNodeManager->addNodeAndReference(this, pDataItem, OpcUaId_HasComponent);
@@ -87,24 +87,6 @@ OpcUa::DataItemType* PasObject::addVariable(PasNodeManagerCommon *pNodeManager, 
         addStatus = pNodeManager->addUaNode(pDataItem->getUaNode());
     UA_ASSERT(addStatus.isGood());
 
-    // Store information needed to access device
-    PasUserData* pUserData = new PasUserData(isState, ParentType, m_Identity, VarType);
-    pDataItem->setUserData(pUserData);
-    // Change value handling to get read and write calls to the node manager
-    pDataItem->setValueHandling(UaVariable_Value_Cache);
-
-    return pDataItem;
-}
-
-OpcUa::DataItemType* PasObject::addErrorVariable(PasNodeManagerCommon *pNodeManager, OpcUa_UInt32 VarType, OpcUa_UInt32 ParentType, OpcUa_Boolean isState)
-{
-    // Get the instance declaration node used as base for this variable instance
-    UaVariable* pInstanceDeclaration = pNodeManager->getInstanceDeclarationVariable(VarType);
-    UA_ASSERT(pInstanceDeclaration!=NULL);
-    // Create new variable and add it as component to this object
-    OpcUa::DataItemType* pDataItem = new OpcUa::DataItemType(this, pInstanceDeclaration, pNodeManager, m_pSharedMutex);
-    UaStatus addStatus = pNodeManager->addNodeAndReference(m_pErrorFolder, pDataItem, OpcUaId_HasComponent);
-    UA_ASSERT(addStatus.isGood());
     // Store information needed to access device
     PasUserData* pUserData = new PasUserData(isState, ParentType, m_Identity, VarType);
     pDataItem->setUserData(pUserData);
@@ -370,6 +352,11 @@ ACTObject::ACTObject(
     /**************************************************************
      * Create the sensor components
      **************************************************************/
+    //Create the folder for the Errors
+    UaFolder *pErrorFolder = new UaFolder("Errors", UaNodeId("Errors", nsIdx), m_defaultLocaleId);
+    addStatus = pNodeManager->addNodeAndReference(this, pErrorFolder, OpcUaId_Organizes);
+    UA_ASSERT(addStatus.isGood());
+    
     // Add Variable "State"
     pDataItem = addVariable(pNodeManager, PAS_ACTType, PAS_ACTType_State, OpcUa_True);
 

@@ -6,6 +6,7 @@
 #include "uaserver/opcua_offnormalalarmtype.h"
 #include "uaserver/opcua_analogitemtype.h"
 #include "uavariant.h"
+#include "uaserver/opcua_foldertype.h"
 
 PasNodeManagerCommon::PasNodeManagerCommon()
 : NodeManagerBase("urn:UnifiedAutomation:CppServer:P2PAS", OpcUa_True)
@@ -199,6 +200,7 @@ UaStatus PasNodeManagerCommon::createTypeNodes()
     UaObjectTypeSimple*          pMPESType = NULL;
     UaObjectTypeSimple*          pACTType = NULL;
     UaObjectTypeSimple*          pPSDType = NULL;
+    OpcUa::FolderType*           pFolderType;
     OpcUa::DataItemType*         pDataItem;
     // Method helpers
     OpcUa::BaseMethod*           pMethod = NULL;
@@ -472,13 +474,7 @@ UaStatus PasNodeManagerCommon::createTypeNodes()
     /***************************************************************
      * Create the ACT Type Instance declaration
      ***************************************************************/
-
-     // Add error folder
-     UaFolder* pErrorFolder = new UaFolder("Errors", UaNodeId("Errors", pNodeManager->getNameSpaceIndex()), m_defaultLocaleId);
-     pErrorFolder->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
-     UaStatus ret = pNodeManager->addNodeAndReference(this, pErrorFolder, OpcUaId_HasComponent);
-     UA_ASSERT(ret.isGood());
-
+    
     // Add Variable "State" as BaseDataVariable
     defaultValue.setUInt32(0);
     pDataItem = new OpcUa::DataItemType(
