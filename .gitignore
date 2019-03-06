@@ -1,3 +1,18 @@
+*.o
+
+# IDE Files
+.vs
+.idea
+
+# Doxygen-generated files
+doxygen/html
+doxygen/latex
+
+# Unnecessary SDK files
+sdk/examples
+sdk/buildServerRelease*
+sdk/buildClientRelease*
+=======
 # Compiled Object files
 *.slo
 *.lo
@@ -37,5 +52,8 @@ doxygen/latex
 
 # Unnecessary SDK files
 sdk/examples
-sdk/buildServerRelease*
-sdk/buildClientRelease*
+sdk/buildServerRelease/
+sdk/buildServerReleaseSIMMODE/
+sdk/buildClientRelease/
+sdk/buildServerReleaseSIMMODE/
+sdk/bin
