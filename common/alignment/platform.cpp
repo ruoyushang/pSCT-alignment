@@ -6,9 +6,6 @@
 
 #define ERROR_MSG(str) do {std::cout << str << std::endl;} while (false)
 
-/*
- * platform.cpp Platform Control
- */
 #include "platform.hpp"
 #include <sstream>
 #include <mysql_connection.h>
@@ -248,11 +245,11 @@ return InputSteps;
 
 std::array<int, 6> StepsRemaining;
 std::array<int, 6> ActuatorIterations={0,0,0,0,0,0};
-std::array<Actuator::Position, 6> FinalPosition;
+std::array<Actuator::PositionStruct, 6> FinalPosition;
 
 for (int i=0; i<6; i++)
 {
-actuator[i]->ReadStatusFromASF();
+actuator[i]->LoadStatusFromASF();
 actuator[i]->CheckCurrentPosition();
 FinalPosition[i]=actuator[i]->PredictPosition(actuator[i]->CurrentPosition,-InputSteps[i]);//negative steps because positive step is extension of motor, negative steps increases counter since home is defined (0,0)
 StepsRemaining[i]=-(actuator[i]->CalculateStepsFromHome(FinalPosition[i])-actuator[i]->CalculateStepsFromHome(actuator[i]->CurrentPosition));
@@ -300,7 +297,6 @@ if(ActuatorIterations[i] > 1)
 if (DisallowMovement)
 {
 cbc.driver.disableAll();
-RecordActuatorsToDB();
 
     // reset the state to Off
     m_State = PlatformState::Off;
@@ -320,7 +316,6 @@ DEBUG_MSG("Steps Remaining for Actuator Index " << i << ": " << StepsRemaining[i
 }
 }
 }
-RecordActuatorsToDB();
 IterationsRemaining=*std::max_element(ActuatorIterations.begin(), ActuatorIterations.end());
 }
 
@@ -331,7 +326,6 @@ for (int i=0; i<6; i++)
 if (DisallowMovement)
 {
 cbc.driver.disableAll();
-RecordActuatorsToDB();
 
     // reset the state to Off
     m_State = PlatformState::Off;
@@ -349,12 +343,16 @@ StepsRemaining[i]=-(actuator[i]->CalculateStepsFromHome(FinalPosition[i])-actuat
 }
 
 cbc.driver.disableAll();
-RecordActuatorsToDB();
 
     // reset the state to On
     m_State = PlatformState::On;
 
 return StepsRemaining;
+}
+
+bool Platform::GetActuatorStatus(int ActuatorIndex, Actuator::StatusStruct & ActuatorStatus)
+{
+return actuator[ActuatorIndex]->ReadStatusFromASF(ActuatorStatus);
 }
 
 void Platform::CheckActuatorErrorStatus(int ActuatorIndex)
@@ -535,7 +533,6 @@ return;
 }
 }
 cbc.driver.disableAll();
-RecordActuatorsToDB();
 return;
 }
 
@@ -576,7 +573,6 @@ return;
 }
 }
 cbc.driver.disableAll();
-RecordActuatorsToDB();
 return;
 }
 
@@ -639,15 +635,6 @@ CBC::ADC::adcData TemperatureADCData=cbc.adc.readExternalTemp();
 return (ExternalTemperatureSlope*TemperatureADCData.voltage)+ExternalTemperatureOffset;
 }
 
-void Platform::RecordActuatorsToDB()
-{
-//DEBUG_MSG("Recording All Actuators To DB");
-for (int i=0; i<6; i++)
-{
-//actuator[i]->RecordStatusToDB();//uncomment this when db can be used locally.
-}
-}
-
 void Platform::SetHighCurrent()//public
 {
 DEBUG_MSG("Setting High Current");
@@ -687,20 +674,22 @@ CheckErrorStatus();
 void Platform::RecoverActuatorStatusFromDB(int ActuatorIndex)
 {
 DEBUG_MSG("Recovering Actuator Status with Index " << ActuatorIndex << " from Database");
-actuator[ActuatorIndex]->ReadStatusFromDB();
+actuator[ActuatorIndex]->LoadStatusFromDB();
 actuator[ActuatorIndex]->CheckCurrentPosition();
 actuator[ActuatorIndex]->RecordStatusToASF();
 CheckActuatorErrorStatus(ActuatorIndex);
 }
 
+/*
 void Platform::RecoverActuatorStatusFromDBAndASF(int ActuatorIndex)
 {
 DEBUG_MSG("Recovering Actuator Status with Index " << ActuatorIndex << " from Database and ASF");
-actuator[ActuatorIndex]->ReadStatusFromDBAndASF();
+actuator[ActuatorIndex]->LoadStatusFromDBAndASF();
 actuator[ActuatorIndex]->CheckCurrentPosition();
 actuator[ActuatorIndex]->RecordStatusToASF();
 CheckActuatorErrorStatus(ActuatorIndex);
 }
+*/
 
 void Platform::SetCBCSerialNumber(int InputSerial)
 {
