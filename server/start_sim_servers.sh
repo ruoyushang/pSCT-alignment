@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 trap interrupt INT
 
 usage() { echo "Usage: $0  [-a (all)] [panel number(s)] [-h]" 1>&2; exit 1; }
@@ -13,16 +14,16 @@ done
 
 shift $((OPTIND-1))
 
-extension=".xml"
+extension=".ini"
 
-if $all ; then
+if ${all} ; then
 
 printf "Reading from database...\n"
 
     PANELS=()
     while read -r position;
     do
-         if [[ $position = "0" ]] || [[ $position = "1" ]] || [[ ${position:1:1} = "0" ]];
+         if [[ ${position} = "0" ]] || [[ ${position} = "1" ]] || [[ ${position:1:1} = "0" ]];
          then
              continue
          fi
@@ -40,20 +41,21 @@ if [[ ("$count" > 0) ]]; then
 
     i=1
     for panel_num in "${PANELS[@]}"; do
-         config_filename="$panel_num$extension"
+         config_filename="/app/pSCT-alignment/server/$panel_num$extension"
          endpoint_addr="opc.tcp://127.0.0.1:$panel_num"
-         cp "TemplateServerConfig.xml" "$config_filename"
+         cp "TemplateServerConfig${extension}" "$config_filename"
          sed -i "s@URL_LOCATION@$endpoint_addr@g" "$config_filename"
          printf "(%d/%d) Starting server for panel %d at address %s.\n" "$i" "$count" "$panel_num" "$endpoint_addr"
-         abspath=$(realpath $config_filename)
-         ../sdk/bin/passerver "${PANEL_MAP[$panel_num]}" "-c$abspath" >/dev/null &
+         abspath=$(realpath ${config_filename})
+         printf "../sdk/bin/passerver 127.0.0.1:$panel_num -c $abspath \n"
+         ../sdk/bin/passerver "127.0.0.1:$panel_num" "-c$abspath" > "/app/pSCT-alignment/server/${panel_num}.log" &
          ((i++))
     done
 
     sleep 10
 
     for panel_num in "${PANELS[@]}"; do
-       config_filename="$panel_num$extension"
+       config_filename="/app/pSCT-alignment/server/$panel_num$extension"
        rm "$config_filename"
     done
 

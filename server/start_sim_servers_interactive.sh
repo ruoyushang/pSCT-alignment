@@ -19,7 +19,7 @@ function interrupt() {
   printf "Done.\n"
 }
 
-extension=".xml"
+extension=".ini"
 
 if $all ; then
 
@@ -46,20 +46,20 @@ if [[ ("$count" > 0) ]]; then
 
     i=1
     for panel_num in "${PANELS[@]}"; do
-         config_filename="$panel_num$extension"
+         config_filename="/app/pSCT-alignment/server/$panel_num$extension"
          endpoint_addr="opc.tcp://127.0.0.1:$panel_num"
-         cp "TemplateServerConfig.xml" "$config_filename"
+         cp "TemplateServerConfig.ini" "$config_filename"
          sed -i "s@URL_LOCATION@$endpoint_addr@g" "$config_filename"
          printf "(%d/%d) Starting server for panel %d at address %s.\n" "$i" "$count" "$panel_num" "$endpoint_addr"
          abspath=$(realpath $config_filename)
-         ../sdk/bin/passerver "${PANEL_MAP[$panel_num]}" "-c$abspath" >/dev/null &
+         ../sdk/bin/passerver "${PANEL_MAP[$panel_num]}" "-c$abspath" > "/app/pSCT-alignment/server/${panel_num}.log" &
          ((i++))
     done
 
     sleep 10
 
     for panel_num in "${PANELS[@]}"; do
-       config_filename="$panel_num$extension"
+       config_filename="/app/pSCT-alignment/server/$panel_num$extension"
        rm "$config_filename"
     done
 

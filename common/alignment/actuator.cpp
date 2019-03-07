@@ -1158,7 +1158,7 @@ int DummyActuator::Step(int InputSteps)//Positive Step is Extension of Motor
         std::cout << "SIMMODE: Fatal error occurs!!!" << std::endl;
         return InputSteps;
     }
-    Position FinalPosition=PredictPosition(CurrentPosition,-InputSteps);
+    PositionStruct FinalPosition=PredictPosition(CurrentPosition,-InputSteps);
     SetCurrentPosition(FinalPosition); // Set final position as current position in SIMMODE
     int MissedSteps;
     int StepsTaken;
