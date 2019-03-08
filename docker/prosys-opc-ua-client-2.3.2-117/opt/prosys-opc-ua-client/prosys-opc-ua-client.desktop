@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=Prosys OPC UA Client
+Comment=Prosys OPC UA Client
+Exec=/opt/prosys-opc-ua-client/prosys-opc-ua-client
+Icon=/opt/prosys-opc-ua-client/prosys-opc-ua-client.png
+Terminal=false
+Type=Application
+Categories=Network
+

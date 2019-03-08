@@ -1,0 +1,9 @@
+Package: prosys-opc-ua-client
+Version: 2.3.2-117
+Section: unknown
+Maintainer: Prosys PMS Ltd <support@prosysopc.com>
+Priority: optional
+Architecture: amd64
+Provides: prosys-opc-ua-client
+Description: Prosys OPC UA Client
+Installed-Size: 250000
