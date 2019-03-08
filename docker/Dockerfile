@@ -20,14 +20,19 @@ RUN  yum -y update && yum erase cmake && yum -y install wget \
     gtk-doc-tools python3-setuptools libX11-devel.x86_64 \
     libXpm.x86_64 libXpm-devel.x86_64 libXft.x86_64 \
     libXft-devel.x86_64 libXext.x86_64 libXext-devel.x86_64 && \
-    yum groupinstall -y "X Window System"
+    yum groupinstall -y "X Window System" && \
+    yum install -y gstreamer1\* \
+    libxml2 libpcap0.8 libaudit1 libnotify4 gtk-doc \
+    python3-pyqt5 python3-gi openssl-devel.x86_64 \
+    libusbmuxd-devel.x86_64 libusb.x86_64 libusbx.x86_64 \
+    libusb-devel.x86_64 && yum clean all
 
 
 RUN mkdir software
 WORKDIR /software
 RUN mkdir tarballs ROOT_build mysql_5.7 mysqlcppconn_build mysqlcppconn opencv_build
 
-ENV NTHREADS 2 
+ENV NTHREADS 4
 
 # Install gcc-4.9.2
 #RUN wget --directory-prefix=tarballs http://mirrors.concertpass.com/gcc/releases/gcc-4.9.2/gcc-4.9.2.tar.gz \
@@ -135,11 +140,6 @@ ENV PKG_CONFIG_PATH="${PKG_CONFIG_PATH}:/usr/local/lib64/pkgconfig"
 
 # Install aravis
 WORKDIR /software
-RUN yum install -y gstreamer1\* \
-    libxml2 libpcap0.8 libaudit1 libnotify4 gtk-doc \
-    python3-pyqt5 python3-gi openssl-devel.x86_64 \
-    libusbmuxd-devel.x86_64 libusb.x86_64 libusbx.x86_64 \
-    libusb-devel.x86_64 && yum clean all
 RUN git clone https://github.com/AravisProject/aravis.git \
     && cd aravis \
     && git checkout ARAVIS_0_4_0 \
@@ -167,6 +167,6 @@ RUN git checkout v2.4.4 \
 ENV LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:/software/ROBAST/"
 COPY ROBAST.pc /usr/local/lib/pkgconfig
 
-VOLUME /app
-EXPOSE 22 9999 7777
+COPY bash_profile /root/.bash_profile
+COPY screenrc /root/.screenrc
 WORKDIR /app
