@@ -56,7 +56,7 @@ if [[ ("$count" > 0) ]]; then
 
     for panel_num in "${PANELS[@]}"; do
        config_filename="/app/pSCT-alignment/server/$panel_num$extension"
-       rm "$config_filename"
+#       rm "$config_filename"
     done
 
     printf "Done.\n"

@@ -1,0 +1,23 @@
+Use of Prosys OPC UA Client is allowed under several license agreements.
+
+LICENSE
+
+Prosys OPC UA Client License
+
+  Prosys OPC UA Client is covered by the license terms in 
+  
+  Prosys_OPC_UA_Client_License.pdf
+
+Libraries
+
+  The application uses the following libraries, which are covered by individual licenses,
+  available in the following files. 
+
+  -- Library --                 -- License file --		-- Product web site --
+  OPC Foundation Java Stack     LICENSE.opc.ua.stack    http://www.opcfoundation.org
+  Apache Logging Services       LICENSE.log4j           http://www.apache.org
+  Bouncy Castle Crypto API      LICENSE.bouncycastle    http://www.bouncycastle.org
+  SwingX                        LICENSE.lgpl            http://java.net/projects/swingx
+  JCommon                       LICENSE.lgpl            http://www.jfree.org/jcommon/
+  JFreeChart                    LICENSE.lgpl            http://www.jfree.org/jfreechart/
+
