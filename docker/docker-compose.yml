@@ -1,26 +1,31 @@
 version: '3'
 services:
-    mysql:
-        container_name: mysql
-        image: mysql:5.7
-        restart: on-failure
-        environment:
-            - MYSQL_ROOT_PASSWORD=write2db4pSCT
-            - MYSQL_USER=CTAreadwrite
-            - MYSQL_PASSWORD=write2db4pSCT
-        ports:
-            - "3306:3306"
-        volumes:
-            - "./init:/docker-entrypoint-initdb.d"
-    alignment:
-        container_name: main
-        build:
-            context: .
-            dockerfile: Dockerfile
-        volumes:
-            - /InstalledTools/alignment/:/app
-        ports:
-            - "3022:22"
-            - "9999:9999"
-            - "7777:7777"
-            - "48010:48010"
+  mysql.docker:
+    container_name: mysql
+    image: mysql:5.7
+    restart: on-failure
+    environment:
+      - MYSQL_ROOT_PASSWORD=write2db4pSCT
+      - MYSQL_USER=CTAreadwrite
+      - MYSQL_PASSWORD=write2db4pSCT
+      - MYSQL_HOST=mysql
+    ports:
+      - "3306:3306"
+    volumes:
+      - "./init:/docker-entrypoint-initdb.d"
+  alignment.docker:
+    container_name: main
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - /InstalledTools/alignment/:/app
+    ports:
+      - "3022:22"
+      - "9999:9999"
+      - "7777:7777"
+      - "48010:48010"
+    depends_on:
+      - mysql.docker
+#    command: ["screen"]
+    command: ["/usr/sbin/sshd", "-D"]

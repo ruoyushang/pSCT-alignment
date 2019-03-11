@@ -11,7 +11,7 @@ RUN  yum -y update && yum erase cmake && yum -y install wget \
     graphviz-dev libavahi-compat-libdnssd-dev \
     libldap2-dev libxml2-dev libkrb5-dev \
     libgsl0-dev libqt4-dev libgsl0-dev libgsl0-dbg \
-    python3-dev python3-pip git libudev-dev libudev1 \
+    python3-dev python3-pip git gdb libudev-dev libudev1 \
     libtinyxml-dev libgstreamer1.0-dev \
     libgstreamer-plugins-base1.0-dev libglib2.0-dev \
     libgirepository1.0-dev libusb-1.0-0-dev libzip-dev \
@@ -21,7 +21,7 @@ RUN  yum -y update && yum erase cmake && yum -y install wget \
     libXpm.x86_64 libXpm-devel.x86_64 libXft.x86_64 \
     libXft-devel.x86_64 libXext.x86_64 libXext-devel.x86_64 && \
     yum groupinstall -y "X Window System" && \
-    yum install -y gstreamer1\* \
+    yum install -y gstreamer1\* openssh-server\
     libxml2 libpcap0.8 libaudit1 libnotify4 gtk-doc \
     python3-pyqt5 python3-gi openssl-devel.x86_64 \
     libusbmuxd-devel.x86_64 libusb.x86_64 libusbx.x86_64 \
@@ -30,7 +30,14 @@ RUN  yum -y update && yum erase cmake && yum -y install wget \
 
 RUN mkdir software
 WORKDIR /software
-RUN mkdir tarballs ROOT_build mysql_5.7 mysqlcppconn_build mysqlcppconn opencv_build
+RUN mkdir tarballs ROOT_build mysql_5.7 mysqlcppconn_build mysqlcppconn opencv_build /var/run/sshd
+
+RUN echo 'root:pass' | chpasswd
+RUN sed -i 's/PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config
+
+ENV NOTVISIBLE "in users profile"
+RUN echo "export VISIBLE=now" >> /etc/profile
+RUN /usr/bin/ssh-keygen -A
 
 ENV NTHREADS 4
 
@@ -169,4 +176,7 @@ COPY ROBAST.pc /usr/local/lib/pkgconfig
 
 COPY bash_profile /root/.bash_profile
 COPY screenrc /root/.screenrc
+#EXPOSE 22 7777 9999 48010
 WORKDIR /app
+
+#CMD ["/usr/sbin/sshd", "-D"]

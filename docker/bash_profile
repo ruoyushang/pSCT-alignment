@@ -7,21 +7,20 @@ fi
 
 # User specific environment and startup programs
 
-PATH=$PATH:$HOME/bin
-
-export PATH
 export TERM=xterm
 export DISPLAY=localhost:0.0
 export MYSQL_DIR=/software/mysql_5.7
-export LD_LIBRARY_PATH=:/software/root/lib:/software/mysql_5.7/lib/:/usr/local/lib:/usr/local/lib64/:/lib64:/software/ROBAST/
 export BOOST_V=1.67.0
 export ROOTSYS=/software/root
 export ROOT_V=6.10.04
+export LD_LIBRARY_PATH=:$ROOTSYS/lib:$MYSQL_DIR/lib/:/usr/local/lib:/usr/local/lib64/:/lib64:/software/ROBAST/
 export PKG_CONFIG_PATH=:/software/mysql_5.7/lib/pkgconfig:/usr/local/lib/pkgconfig:/usr/local/lib64/pkgconfig
 
 export MYSQL_DATABASE=CTAonline
 export MYSQL_USER=CTAreadwrite
 export MYSQL_ROOT_PASSWORD=write2db4pSCT
 export MYSQL_PASSWORD=write2db4pSCT
-export MYSQL_HOST=172.17.0.4
+export MYSQL_HOST=mysql
 export MYSQL_PORT=3306
+
+export PATH=$PATH:$HOME/bin:${ROOTSYS}/bin:${MYSQL_DIR}/bin:
