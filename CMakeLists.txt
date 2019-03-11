@@ -2,7 +2,6 @@ cmake_minimum_required(VERSION 2.8.4)
 PROJECT("Alignment")
 
 SET(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/sdk/cmake ${CMAKE_MODULE_PATH})
-message(Location " ${CMAKE_MODULE_PATH}")
 
 include_directories(sdk/cmake)
 
