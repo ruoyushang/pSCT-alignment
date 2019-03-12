@@ -466,6 +466,14 @@ UaStatus PasNodeManager::amendTypeNodes()
     addStatus = addNodeAndReference(pEdgeType, pDataItem, OpcUaId_HasComponent);
     UA_ASSERT(addStatus.isGood());
 
+    // Add Variable "AlignFrac" as DataItem
+    defaultValue.setDouble(0);
+    pDataItem = new OpcUa::DataItemType(UaNodeId(PAS_EdgeType_AlignFrac, getNameSpaceIndex()), "AlignFrac",
+                                        getNameSpaceIndex(), defaultValue, Ua_AccessLevel_CurrentRead | Ua_AccessLevel_CurrentWrite, this);
+    pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
+    addStatus = addNodeAndReference(pEdgeType, pDataItem, OpcUaId_HasComponent);
+    UA_ASSERT(addStatus.isGood());
+
     // Add Method "Stop"
     pMethod = new OpcUa::BaseMethod(UaNodeId(PAS_EdgeType_Stop, getNameSpaceIndex()), "Stop", getNameSpaceIndex());
     pMethod->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
