@@ -1,0 +1,168 @@
+/// @details Sets state to On, inLength to current length, and DeltaL to 0.
+ActController::ActController(int ID, std::shared_ptr<Platform> pPlatform) : PasController(ID, pPlatform)
+{
+    m_state = PASState::PAS_On;
+    m_inLength = m_pPlatform->getActuatorAt(m_ID)->MeasureLength();
+    m_DeltaL = 0.;
+}
+
+/// @details Sets state to off.
+ActController::~ActController()
+{
+    m_state = PASState::PAS_Off; // NOTE: This shouldn't do anything, as the object is destroyed anyways.
+}
+
+UaStatus ActController::getState(PASState& state)
+{
+    UaMutexLocker lock(&m_mutex);
+    updateState();
+    state = m_state;
+    return OpcUa_Good;
+}
+
+UaStatus ActController::updateState()
+{
+    UaMutexLocker lock(&m_mutex);
+    // update internal state to match teh underlying platform object
+    switch (  m_pPlatform->getActuatorAt(m_ID)->getStatus() ) {
+        case Actuator::StatusModes::Healthy:
+            m_state = PASState::On;
+            break;
+        case Actuator::StatusModes::OperableError :
+            m_state = PASState::OperableError;
+            break;
+        case Actuator::StatusModes::FatalError :
+            m_state = PASState::FatalError;
+            break;
+        default :
+            return OpcUa_BadInvalidState;
+    }
+
+    return OpcUa_Good;
+}
+
+UaStatus ActController::getData(OpcUa_UInt32 offset, UaVariant& value)
+{
+    UaMutexLocker lock(&m_mutex);
+    UaStatus status;
+
+    if (offset >= PAS_ACTType_Error0 && offset <= PAS_ACTType_Error0) {
+      return getError(offset, value);
+    }
+    else {
+      int dataoffset = offset - PAS_ACTType_Steps;
+
+      switch ( dataoffset )
+      {
+          case 0:
+              value.setFloat(m_DeltaL);
+              break;
+          case 1:
+              value.setFloat(m_pPlatform->getActuatorAt(m_ID)->MeasureLength());
+              break;
+          case 2:
+              value.setFloat(m_inLength);
+              break;
+          default:
+              status = OpcUa_BadInvalidArgument;
+      }
+    }
+    return status;
+}
+
+UaStatus ActController::getError(OpcUa_UInt32 offset, UaVariant& value)
+{
+    UaMutexLocker lock(&m_mutex);
+    UaStatus status;
+    bool errorStatus;
+
+    int errorNum = offset - PAS_ACTType_Error0;
+
+    if ( errorNum >= 0 && errorNum <= 13 ) {
+      errorStatus = errorStatus = std::get<0>(m_pPlatform->getActuatorAt(m_ID).ActuatorErrors[errorNum]);
+      value.setBool(errorStatus);
+    }
+    else {
+      status = OpcUa_BadInvalidArgument;
+    }
+    return status;
+}
+
+/// @details Locks mutex while writing data.
+UaStatus ActController::setData(OpcUa_UInt32 offset, UaVariant value)
+{
+    UaMutexLocker lock(&m_mutex);
+    UaStatus status;
+
+    switch ( offset )
+    {
+        case PAS_ACTType_Steps:
+            value.toFloat(m_DeltaL);
+            status = OpcUa_Good;
+            break;
+        case PAS_ACTType_inLength_mm:
+            value.toFloat(m_inLength);
+            status = OpcUa_Good;
+        default:
+            status = OpcUa_BadNotWritable;
+    }
+
+    return status;
+}
+
+/// @details Locks mutex while writing data.
+UaStatus ActController::setError(OpcUa_UInt32 offset, UaVariant value)
+{
+    UaMutexLocker lock(&m_mutex);
+    UaStatus status;
+
+    switch ( offset )
+    {
+        case PAS_ACTType_Steps:
+            value.toFloat(m_DeltaL);
+            status = OpcUa_Good;
+            break;
+        case PAS_ACTType_inLength_mm:
+            value.toFloat(m_inLength);
+            status = OpcUa_Good;
+        default:
+            status = OpcUa_BadNotWritable;
+    }
+
+    return status;
+}
+
+/// @details Locks mutex while calling method.
+UaStatus ActController::Operate(OpcUa_UInt32 offset, const UaVariantArray& args)
+{
+    UaMutexLocker lock(&m_mutex); // Lock the object to prevent other actions while operating.
+
+    UaStatus status;
+    switch ( offset )
+    {
+        case 0:
+            status = moveDelta();
+            break;
+        default:
+            status = OpcUa_BadInvalidArgument;
+    }
+
+    return status;
+}
+
+/// @details Calls MoveDeltaLengths on the Platform object with the desired change for this actuator and zero for all others.
+// Applies lock to shared mutex to prevent other actions. Will fail unless device state is PAS_On.
+UaStatus ActController::moveDelta(const UaVariantArray& args)
+{
+    if ( !(m_state == PASState::PAS_On) )
+        return OpcUa_BadNothingToDo;
+
+    std::array<float, 6> deltaL = {0., 0., 0., 0., 0., 0.}; // Set delta lengths to move to
+    deltaL[m_ID] = args[0];
+
+    std::cout << "ActController :: Moving actuator " << m_ID << " by " << m_DeltaL << " mm." << std::endl;
+    deltaL = m_pPlatform->MoveDeltaLengths(deltaL);
+    m_DeltaL = deltaL[m_ID];
+
+    return OpcUa_Good;
+}
