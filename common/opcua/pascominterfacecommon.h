@@ -15,10 +15,11 @@
 struct Identity;
 
 enum class PASState {
-        PAS_On = 0,
-        PAS_Off = 1,
-        PAS_Busy = 2,
-        PAS_Error = 3,
+        On = 0,
+        Off = 1,
+        Busy = 2,
+        FatalError = 3,
+        OperableError = 4,
         GLOB_Positioner_Moving = 10,
         GLOB_Positioner_notMoving = 11
     };
@@ -58,4 +59,4 @@ public:
             const UaVariantArray& args = UaVariantArray()) = 0;
 };
 
-#endif // #ifndef __PASCOMUNICATIONINTERFACECOMMON_H__
+#endif

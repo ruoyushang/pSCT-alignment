@@ -15,8 +15,7 @@ class PasCommunicationInterface;
 class UaMethodGeneric;
 struct Identity;
 
-/// @brief Class representing the OPC UA object interface of a positioner
-/// device.
+/// @brief Class representing the OPC UA object interface of a positioner device.
 class PositionerObject : public PasObject
 {
     UA_DISABLE_COPY(PositionerObject); // Prevents copying of object constructor
@@ -44,8 +43,8 @@ public:
 
     /// @brief General function to call an OPC UA method from a Positioner
     /// object.
-	/// @warning The /p outputArguments and /p inputArgumentDiag parameters are
-	/// unused.
+	  /// @warning The /p outputArguments and /p inputArgumentDiag parameters are
+	  /// unused.
     /// @param serviceContext ServiceContext object containing various client
     /// settings as well as the current Session object.
     /// @param pMethodHandle Pointer to a MethodHandle instance containing

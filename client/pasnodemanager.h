@@ -24,11 +24,11 @@ public:
     virtual ~PasNodeManager();
 
     /// @brief Initialization method called after startup to add objects and
-	/// folders to the OPC UA node graph.
+	  /// folders to the OPC UA node graph.
     /// @return An OPC UA status code.
     UaStatus afterStartUp();
     /// @brief Cleanup method to disconnect from positioner server and all
-	/// panel servers at client shutdown.
+	  /// panel servers at client shutdown.
     /// @return An OPC UA status code.
     UaStatus beforeShutDown();
 
@@ -39,12 +39,12 @@ public:
     /// @param pCommIf Pointer to a new PasCommunicationInterface object.
     void setCommunicationInterface(PasCommunicationInterface *pCommIf);
 
-	/// @brief Method to get locale ID indicating the region/language.
-	/// @return A locale ID string indicating the region/language.
+	  /// @brief Method to get locale ID indicating the region/language.
+	  /// @return A locale ID string indicating the region/language.
     UaString getDefaultLocaleId() {return m_defaultLocaleId;};
 
     /// @brief Emergency method to test all actuator devices by toggling their
-	/// state variable.
+	  /// state variable.
     /// @return Integer status indicator.
     OpcUa_Int32 Panic();
 

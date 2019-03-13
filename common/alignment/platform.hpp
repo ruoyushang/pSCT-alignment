@@ -17,7 +17,15 @@
 
 
 // hack to be able to stop mid motion
-enum class PlatformState {On = 0, Off = 1, Busy = 2, Error = 3};
+/**
+ * @brief This is the platform class.
+*/
+enum class PlatformState {
+  On = 0,
+  Off = 1,
+  Busy = 2,
+  OperableError = 3,
+  FatalError = 4};
 
 class Platform
 {

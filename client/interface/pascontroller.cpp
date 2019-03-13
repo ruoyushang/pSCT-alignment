@@ -144,7 +144,7 @@ PasMPES::PasMPES(Identity identity, Client *pClient) : PasController(identity, p
         cout << ", SQLState: " << e.getSQLState() << " )" << endl;
 
         // set state to error
-        m_state = PASState::PAS_Error;
+        m_state = PASState::FatalError;
     }
     /* END DATABASE HACK */
 
@@ -547,17 +547,20 @@ UaStatusCode PasPanel::getState(PASState& state)
 
     val.toUInt32(intState);
     switch ( intState ) {
-        case static_cast<unsigned>(PASState::PAS_On) :
+        case static_cast<unsigned>(PASState::On) :
             m_state = PASState::PAS_On;
             break;
-        case static_cast<unsigned>(PASState::PAS_Off) :
+        case static_cast<unsigned>(PASState::Off) :
             m_state = PASState::PAS_Off;
             break;
-        case static_cast<unsigned>(PASState::PAS_Busy) :
+        case static_cast<unsigned>(PASState::Busy) :
             m_state = PASState::PAS_Busy;
             break;
-        case static_cast<unsigned>(PASState::PAS_Error) :
-            m_state = PASState::PAS_Error;
+        case static_cast<unsigned>(PASState::OperableError) :
+            m_state = PASState::OperableError;
+            break;
+        case static_cast<unsigned>(PASState::FatalError) :
+            m_state = PASState::FatalError;
             break;
         default:
             return OpcUa_BadInvalidState;
@@ -572,7 +575,7 @@ UaStatusCode PasPanel::getState(PASState& state)
 
 UaStatusCode PasPanel::setState(PASState state)
 {
-    if ( state == PASState::PAS_Error )
+    if ( state == PASState::OperableError || state == PASState::FatalError )
     {
         return OpcUa_BadInvalidArgument;
     }
@@ -660,8 +663,8 @@ UaStatusCode PasPanel::Operate(OpcUa_UInt32 offset, const UaVariantArray &args)
     getState(dummy);
 
     if (offset != PAS_PanelType_Stop) {
-        if (m_state == PASState::PAS_Error)
-            cout << m_ID << "::Operate() : Current state is 'Error'! This won't do anything." << endl;
+        if (m_state == PASState::FatalError)
+            cout << m_ID << "::Operate() : Current state is 'FatalError'! This won't do anything." << endl;
         if (m_state == PASState::PAS_Busy)
             cout << m_ID << "::Operate() : Current state is 'Busy'! This won't do anything." << endl;
     }
@@ -1023,7 +1026,7 @@ UaStatusCode PasEdge::getState(PASState& state)
 -----------------------------------------------------------------------------*/
 UaStatusCode PasEdge::setState(PASState state)
 {
-    if ( state == PASState::PAS_Error )
+    if ( state == PASState::OperableError || state == PASState::FatalError )
     {
         return OpcUa_BadInvalidArgument;
     }
@@ -1738,7 +1741,7 @@ UaStatusCode PasCCD::getState(PASState& state)
 -----------------------------------------------------------------------------*/
 UaStatusCode PasCCD::setState(PASState state)
 {
-    if ( state == PASState::PAS_Error )
+    if ( state == PASState::OperableError || state == PASState::FatalError )
     {
         return OpcUa_BadInvalidArgument;
     }

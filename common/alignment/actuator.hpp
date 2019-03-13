@@ -16,7 +16,7 @@ class Actuator
 
 public:
 
-enum StatusModes {
+enum class StatusModes {
 Healthy=1,//Everything is good
 OperableError=2,//Errors that the user should be aware of, but shouldn't interfere with normal operation of the actuator.
 FatalError=3//Errors that the user should definitely be aware of and handle appropriately. The Actuator should not be able to move with a fatal error without first reconfiguring something.
