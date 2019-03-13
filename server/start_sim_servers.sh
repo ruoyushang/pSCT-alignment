@@ -21,14 +21,16 @@ done
 
 shift $((OPTIND-1))
 
-if $all ; then
+extension=".ini"
+
+if ${all} ; then
 
 printf "Reading from database...\n"
 
     PANELS=()
     while read -r position;
     do
-         if [[ $position = "0" ]] || [[ $position = "1" ]] || [[ ${position:1:1} = "0" ]];
+         if [[ ${position} = "0" ]] || [[ ${position} = "1" ]] || [[ ${position:1:1} = "0" ]];
          then
              continue
          fi
@@ -46,19 +48,22 @@ if [[ ("$count" > 0) ]]; then
 
     i=1
     for panel_num in "${PANELS[@]}"; do
+
          # Create temporary config file for each server to set the server endpoint
          # IP. Config files are created based on the template TemplateServerConfig.xml and
          # use sed to replace the string "URL_LOCATION" with the desired IP addr/port.
          # Temporary config files are named [panel_num].xml
          # They are deleted 30 sec after startup.
-         config_filename="$panel_num$extension"
+         config_filename="/app/pSCT-alignment/server/$panel_num$extension"
+
          endpoint_addr="opc.tcp://127.0.0.1:$panel_num"
-         cp "TemplateServerConfig.xml" "$config_filename"
+         cp "TemplateServerConfig${extension}" "$config_filename"
          sed -i "s@URL_LOCATION@$endpoint_addr@g" "$config_filename"
 
          printf "(%d/%d) Starting server for panel %d at address %s.\n" "$i" "$count" "$panel_num" "$endpoint_addr"
-         abspath=$(realpath $config_filename)
-         ../sdk/bin/passerver "${PANEL_MAP[$panel_num]}" "-c$abspath" >/dev/null &
+         abspath=$(realpath ${config_filename})
+         printf "../sdk/bin/passerver 127.0.0.1:$panel_num -c $abspath \n"
+         ../sdk/bin/passerver "127.0.0.1:$panel_num" "-c$abspath" > "/app/pSCT-alignment/server/${panel_num}.log" &
          ((i++))
     done
 
@@ -67,8 +72,8 @@ if [[ ("$count" > 0) ]]; then
     sleep 30
 
     for panel_num in "${PANELS[@]}"; do
-       config_filename="$panel_num$extension"
-       rm "$config_filename"
+       config_filename="/app/pSCT-alignment/server/$panel_num$extension"
+#       rm "$config_filename"
     done
 
     printf "Done.\n"

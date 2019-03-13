@@ -12,18 +12,31 @@ Remember to call source thisroot to set ROOT environment variables correctly.
 * MySQL 5.5.61
 
 # Usage
+To build for SIMMODE,
+```bash
+cd ./sdk/
+./buildServer.sh -cSIMMODE
+./buildClient.sh -cSIMMODE
+```
+If using another environment, check the help menu for each build script. This will install binaries to `./sdk/bin`, and you can set up SIMMODE instances by creating servers in `./server/start_sim_servers.sh -a` and `./client/start_sim_client.sh`. 
+
 
 # Docker
-Build docker image by going to docker/ directory. In it are two files that need to be copied on to image, and the Dockerfile. Use the following build command to create an image on your computer:
+Build docker image by going to docker/ directory. In it are several files that need to be copied on to image, and the Dockerfile. Use the following build command to create both the alignment image and mysql on your computer:
 ```bash
-docker build .
+docker-compose build .
 ``` 
-It is recommended that you add a tag to label that image with `-t yourname/alignment` for example. This build process takes about 1hr to complete since it is currently a single monolithic OS+dependencies image, about 11gb in size. We will develop further to containerize subcomponents and reduce the image size.
+This build process takes about 1hr to complete since it is currently a single monolithic OS+dependencies image, about 11gb in size. We will develop further to containerize subcomponents and reduce the image size.
 
-Once built, run the image using volume building. Docker creates a read only container from your image, so development is difficult because you can't save progress on the image. Instead, you can work on a local directory (as opposed to the container itself) and build against the container. Binding allows you to point to the local directory from an open directory on the container.
-Use the following run commmand to do this, making sure to use your own local directory first, followed by /app, which is the directory exposed during build. 
+Once built, run the set of images together with 
+
 ```bash
-docker run -it --rm -v/path/to/your/local/directory:/app yourname/alignment
+docker-compose up -d
+``` 
+This will start the mysql and alignment container. To connect, do not use `docker run <options>` but instead ssh directly to the alignment container.
+```bash
+ssh -p 3022 root@0.0.0.0
 ```
+This will log you into the container. The password is defined inside the Dockerfile image - `pass`. From here, you can compile the alignment git repository from `/app/pSCT-alignment/sdk` with the build shell scripts.
 
-It is recommended that /path/to/your/local/directory is the top directory where this git repo live, so that within the container terminal you can navigate to `/app/pSCT-alignment/sdk/bin/`. The image is identified here with the tag specified above, but you can also explicitly point to the ImageID from the list in `docker images`. 
+ 

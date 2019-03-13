@@ -137,11 +137,11 @@ UaStatus Configuration::loadConnectionConfiguration(const UaString& sConfigurati
     value.toBool(m_bRetryInitialConnect);
 
     // Server URLs
-    value = pSettings->value("DiscoveryURL", UaString("opc.tcp://localhost:48010"));
+    value = pSettings->value("DiscoveryURL", UaString("opc.tcp://127.0.0.1:48010"));
     //value = pSettings->value("DiscoveryURL", UaString("opc.tcp://10.0.1.13:48010")); //Ruo
     m_discoveryUrl = value.toString();
 
-    value = pSettings->value("PositionerURL", UaString("opc.tcp://localhost:4840"));
+    value = pSettings->value("PositionerURL", UaString("opc.tcp://127.0.0.1:4840"));
     m_positionerUrl = value.toString();
 
     // Read NamespaceArray
