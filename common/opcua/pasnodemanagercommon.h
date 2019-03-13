@@ -28,7 +28,7 @@ public:
 protected:
     UaStatus createTypeNodes();
 
-    PasComInterfaceCommon *m_pCommIf;
+    std::unique_ptr<PasComInterfaceCommon> m_pCommIf;
 };
 
 #endif // __PASNODEMANAGER_H__
