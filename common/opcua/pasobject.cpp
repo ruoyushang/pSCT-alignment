@@ -356,7 +356,28 @@ ACTObject::ACTObject(
     UaFolder *pErrorFolder = new UaFolder("Errors", UaNodeId("Errors", nsIdx), m_defaultLocaleId);
     addStatus = pNodeManager->addNodeAndReference(this, pErrorFolder, OpcUaId_Organizes);
     UA_ASSERT(addStatus.isGood());
-    
+
+    // add error variables
+    unsigned errors[] = {
+        PAS_ACTType_Error_0,
+        PAS_ACTType_Error_1,
+        PAS_ACTType_Error_2,
+        PAS_ACTType_Error_3,
+        PAS_ACTType_Error_4,
+        PAS_ACTType_Error_5,
+        PAS_ACTType_Error_6,
+        PAS_ACTType_Error_7,
+        PAS_ACTType_Error_8,
+        PAS_ACTType_Error_9,
+        PAS_ACTType_Error_10,
+        PAS_ACTType_Error_11,
+        PAS_ACTType_Error_12,
+        PAS_ACTType_Error_13};
+    for (auto &var : errors) {
+        pDataItem = addVariable(pNodeManager, PAS_MirrorType, var, OpcUa_False, false);
+        addStatus = pNodeManager->addUaReference(pErrorFolder->nodeId(), pDataItem->nodeId(), OpcUaId_Organizes);
+    }
+
     // Add Variable "State"
     pDataItem = addVariable(pNodeManager, PAS_ACTType, PAS_ACTType_State, OpcUa_True);
 
