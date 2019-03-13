@@ -39,23 +39,24 @@ if [[ ("$count" > 0) ]]; then
     printf "%s total panels found\n" "$count"
     printf "Starting all servers...\n"
 
+    IP=${LOCALIP}
     i=1
     for panel_num in "${PANELS[@]}"; do
-         config_filename="/app/pSCT-alignment/server/$panel_num$extension"
-         endpoint_addr="opc.tcp://127.0.0.1:$panel_num"
+         config_filename="$panel_num$extension"
+         endpoint_addr="opc.tcp://${IP}:$panel_num"
          cp "TemplateServerConfig${extension}" "$config_filename"
          sed -i "s@URL_LOCATION@$endpoint_addr@g" "$config_filename"
          printf "(%d/%d) Starting server for panel %d at address %s.\n" "$i" "$count" "$panel_num" "$endpoint_addr"
          abspath=$(realpath ${config_filename})
-         printf "../sdk/bin/passerver 127.0.0.1:$panel_num -c $abspath \n"
-         ../sdk/bin/passerver "127.0.0.1:$panel_num" "-c$abspath" > "/app/pSCT-alignment/server/${panel_num}.log" &
+         printf "../sdk/bin/passerver %s:%s -c%s > %s.log &\n" "${IP}" "$panel_num" "$abspath" "${panel_num}"
+         ../sdk/bin/passerver "${IP}:$panel_num" "-c$abspath" > "${panel_num}.log" &
          ((i++))
     done
 
     sleep 10
 
     for panel_num in "${PANELS[@]}"; do
-       config_filename="/app/pSCT-alignment/server/$panel_num$extension"
+       config_filename="$panel_num$extension"
 #       rm "$config_filename"
     done
 
