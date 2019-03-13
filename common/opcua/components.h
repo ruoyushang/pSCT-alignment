@@ -1,3 +1,8 @@
+/**
+ * @file positioner.h
+ * @brief Header file for PositionerObject class inheriting from the PasObject class.
+ */
+
 #ifndef _COMPONENTS_H_
 #define _COMPONENTS_H_
 #include <string>
@@ -22,54 +27,4 @@ inline std::ostream& operator<<(std::ostream& out, const Identity& id)
         << ")";
     return out;
 }
-/*
-class Component
-{
-    public:
-        Identity GetIdentity() {return id;};
-        void SetIdentity(Identity input_id);
-    
-    private:
-        Identity id;
-};
-
-
-class Panel : Component
-{
-    public:
-        Panel();
-        ~Panel();
-
-        Device& GetDevice(DeviceType device_to_id, Identity partial_device_id);
-    
-    private:
-        CBC *cbc;
-
-};
-
-class Device : Component
-{
-    public:
-        Identity GetPanel() {return parent->GetIdentity();};
-
-    private:
-        Panel *parent;
-}
-
-enum DeviceType {ACT, MPES};
-
-class ACTDevice : Device
-{
-    public:
-        ACTDevice();
-        ~ACTDevice();
-};
-
-class MPESDevice : Device
-{
-    public:
-        MPESDevice();
-        ~MPESDevice();
-}; */
-
 #endif
