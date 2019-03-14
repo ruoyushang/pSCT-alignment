@@ -1,4 +1,10 @@
-#include "server/opcua_objects/panelobject.hpp"
+#include "server/objects/panelobject.hpp"
+
+#include <map>
+#include <string>
+#include <tuple>
+
+#include "uabase/uavariant.h"
 
 #include "uaserver/methodhandleuanode.h"
 #include "uaserver/opcua_analogitemtype.h"
@@ -9,7 +15,19 @@
 #include "server/pasnodemanager.hpp"
 #include "server/pascommunicationinterface.hpp"
 
+const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean>> PanelObject::variables = {
+    {PAS_PanelType_State, std::make_tuple("State", UaVariant(0), OpcUa_True)},
+    {PAS_PanelType_ExtTemperature, std::make_tuple("ExternalTemperature", UaVariant(0.0), OpcUa_False)},
+    {PAS_PanelType_IntTemperature, std::make_tuple("InternalTemperature", UaVariant(0.0), OpcUa_False)}
+};
 
+const std::map<OpcUa_UInt32, std::pair<std::string, int>> PanelObject::methods = {
+    {PAS_PanelType_StepAll, {"StepAll", 0}},
+    {PAS_PanelType_MoveTo_Acts, {"MoveToActs", 0}},
+    {PAS_PanelType_Stop, {"Stop", 0}}
+};
+
+std::map<UaNodeId, std::pair<UaMethodGeneric *, OpcUa_UInt32>> m_MethodMap;
 
 /// @details
 PanelObject::PanelObject(
@@ -29,8 +47,7 @@ PanelObject::PanelObject(
 
     // Add all child variable nodes
     for (auto it = variables.begin(); it != variables.end(); it++) {
-        addStatus = addVariable(pNodeManager, PAS_PanelType, std::get<0>(it->second), std::get<2>(it->second));
-        UA_ASSERT(addStatus.isGood());
+        addVariable(pNodeManager, PAS_PanelType, it->first, std::get<2>(it->second));
     }
 
     // Add all method variable nodes
@@ -39,10 +56,10 @@ PanelObject::PanelObject(
     OpcUa_Int16 nsIdx = pNodeManager->getNameSpaceIndex();
     for (auto it = methods.begin(); it != methods.end(); it++)
     {
-      sName = it->second.first;
+      sName = UaString(it->second.first.c_str());
       sNodeId = UaString("%1.%2").arg(newNodeId.toString()).arg(sName);
       m_MethodMap[UaNodeId(sNodeId, nsIdx)] = std::make_pair(new UaMethodGeneric(sName, UaNodeId(sNodeId, nsIdx), m_defaultLocaleId), it->first);
-      addStatus = pNodeManager->addNodeAndReference(this, it->first, OpcUaId_HasComponent);
+      addStatus = pNodeManager->addNodeAndReference(this, m_MethodMap[UaNodeId(sNodeId, nsIdx)].first, OpcUaId_HasComponent);
       UA_ASSERT(addStatus.isGood());
     }
 }
@@ -86,9 +103,9 @@ UaStatus PanelObject::call(
         if(m_MethodMap.find(pMethod->nodeId()) != m_MethodMap.end())
         {
             methodTypeID = m_MethodMap[pMethod->nodeId()].second;
-            numArgs = PanelObject::methods[methodTypeID].second;
+            numArgs = PanelObject::methods.at(methodTypeID).second;
 
-            if ( inputArguments.length() != numArgs; )
+            if ( inputArguments.length() != numArgs )
                 ret = OpcUa_BadInvalidArgument;
             else
                 ret = m_pCommIf->OperateDevice(PAS_PanelType, m_Identity, methodTypeID);

@@ -22,7 +22,7 @@ public:
     /// @brief Instantiate a PasNodeManager object.
     PasNodeManager();
     /// @brief Destroy a PasNodeManager object.
-    virtual ~PasNodeManager();
+    ~PasNodeManager() {};
 
     /// @brief Create OPC UA nodes and folders for all devices in the server.
     /// @return OPC UA status code indicating success or failure.
@@ -33,7 +33,7 @@ public:
 
     /// @brief Set the communication interface to use for operating/reading devices.
     /// @param pCommIf Pointer to the communication interface for the node manager.
-    void setCommunicationInterface(std::unique_ptr<PasCommunicationInterface> pCommIf);
+    void setCommunicationInterface(std::unique_ptr<PasCommunicationInterface> &pCommIf);
 
 private:
     /// @brief Add a custom type definition node for the Panel type.

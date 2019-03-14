@@ -283,12 +283,12 @@ while(IterationsRemaining>1)
 {
         // need to check the state and if needed, break TWICE --
         // once for the inner actuator loop and once for the outer cycle loop
-        if (m_State == PlatformState::Off || m_State == PlatformState::Error)
+        if (m_State == PlatformState::Off || m_State == PlatformState::FatalError)
             break;
 
 for (int i=0; i<6; i++)
 {
-            if (m_State == PlatformState::Off || m_State == PlatformState::Error)
+            if (m_State == PlatformState::Off || m_State == PlatformState::FatalError)
                 break;
 
 
@@ -320,7 +320,7 @@ IterationsRemaining=*std::max_element(ActuatorIterations.begin(), ActuatorIterat
 }
 
 //Hysteresis Motion
-if (m_State != PlatformState::Off && m_State != PlatformState::Error) {
+if (m_State != PlatformState::Off && m_State != PlatformState::FatalError) {
 for (int i=0; i<6; i++)
 {
 if (DisallowMovement)
@@ -358,11 +358,11 @@ return actuator[ActuatorIndex]->ReadStatusFromASF(ActuatorStatus);
 void Platform::CheckActuatorErrorStatus(int ActuatorIndex)
 {
 Actuator::StatusModes ErrorStatus=actuator[ActuatorIndex]->ErrorStatus;
-if(ErrorStatus == Actuator::FatalError)
+if(ErrorStatus == Actuator::StatusModes::FatalError)
 {
 SetError((2*ActuatorIndex)+1);
 }
-else if(ErrorStatus == Actuator::OperableError)
+else if(ErrorStatus == Actuator::StatusModes::OperableError)
 {
 SetError(2*ActuatorIndex);
 }
@@ -371,7 +371,7 @@ return;
 
 void Platform::CheckErrorStatus()//cycle through all errors and set status based on ones triggered.
 {
-ErrorStatus=Actuator::Healthy;
+ErrorStatus=Actuator::StatusModes::Healthy;
 for (int i=0; i<6; i++)
 {
 CheckActuatorErrorStatus(i);
@@ -389,13 +389,13 @@ return;
 void Platform::SetStatus(Actuator::StatusModes InputStatus)//private
 {
 
-if(InputStatus==Actuator::FatalError)
+if(InputStatus==Actuator::StatusModes::FatalError)
 {
 DEBUG_MSG("Disallowing Movement of Platform!");
 DisallowMovement=true;
 }
 
-if (ErrorStatus == Actuator::FatalError)
+if (ErrorStatus == Actuator::StatusModes::FatalError)
 {
 return;
 }
@@ -708,7 +708,7 @@ actuator[ActuatorIndex]->UnsetError(CodeNumber);
 
 void Platform::ClearPlatformAllErrors()
 {
-ErrorStatus=Actuator::Healthy;
+ErrorStatus=Actuator::StatusModes::Healthy;
 for (int i=0; i<PlatformErrors.size(); i++)
 {
 PlatformErrors[i].Triggered=false;

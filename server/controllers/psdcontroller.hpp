@@ -2,13 +2,14 @@
  * @file psdcontroller.hpp
  * @brief Header file for position sensitive device controller class
  */
- 
-#ifndef _AMD64
+
+#ifndef __PSDCONTROLLER_H__
+#define __PSDCONTROLLER_H__
 
 #include <memory>
 
 #include "uabase/statuscode.h"
-#include "uabase/uaobjecttypes.h"
+#include "uaserver/uaobjecttypes.h"
 
 class GASPSD;
 
@@ -36,7 +37,7 @@ public:
 
 private:
     /// @brief The internal device state (on/off/busy).
-    PASState m_state = PASState::PAS_Off;
+    PASState m_state = PASState::Off;
     /// @brief Pointer to an interface object to interact with the PSD hardware.
     std::unique_ptr<GASPSD> m_pPSD;
 

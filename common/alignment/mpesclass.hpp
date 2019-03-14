@@ -2,15 +2,15 @@
 #define __MPESCLASS_H__
 
 #ifndef _AMD64
-    #include "cbc.hpp"
+    #include "common/cbccode/cbc.hpp"
 #else
-    #include "dummycbc.hpp"
+    #include "common/cbccode/dummycbc.hpp"
     #define CBC DummyCBC
 #endif
 
-#include "MPESImageSet.h"
+#include "common/mpescode/MPESImageSet.h"
 #include "actuator.hpp"
-#include "MPESDevice.h"
+#include "common/mpescode/MPESDevice.h"
 #include <string>
 #include <fstream>
 #include <cstring>
@@ -39,6 +39,9 @@ class MPES
         };
         // return const reference to the private member
         const MPES::Position& getPosition() const { return m_position; };
+
+        int setxNominalPosition(float x);
+        int setyNominalPosition(float y); 
 
         int GetPortNumber() const {return m_USBPortNumber; };
 

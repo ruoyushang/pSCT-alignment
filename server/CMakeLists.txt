@@ -2,7 +2,6 @@ project(passerver)
 cmake_minimum_required(VERSION 2.8)
 set_property(GLOBAL PROPERTY USE_FOLDERS ON) # Required to make folder targets
 
-set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 11) # Set C++ standard to build against
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11" ) # Set all C++ compiler flags
 set(CMAKE_PREFIX_PATH "/usr" ${CMAKE_PREFIX_PATH})
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/../sdk/cmake ${CMAKE_MODULE_PATH}) # NOTE: requires that sdk directory is on the same level as the server directory containing CMakeLists.txt
@@ -99,7 +98,8 @@ endif ( USE_XMLCONFIG )
 # Locate all source files to build
 file(GLOB PASSERVER_SRC
     "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/interface/*.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/controllers/*.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/objects/*.cpp"
     "${COMMON_CODE_DIR}/opcua/*.cpp"
     "${COMMON_CODE_DIR}/utilities/*.cpp"
     "${COMMON_CODE_DIR}/alignment/*.cpp"
@@ -145,6 +145,9 @@ endif ( AMD64 )
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/..)
 include_directories(${UASDK_BASE_DIR}/include)
+include_directories(${UASTACK_INCLUDE})
+include_directories(${UABASE_INCLUDE})
+include_directories(${UASERVER_INCLUDE})
 include_directories(${UACOREMODULE_INCLUDE})
 include_directories(${OpenCV_INCLUDE_DIR})
 include_directories(${ROOT_INCLUDES})
@@ -206,6 +209,8 @@ endif ( vxWorks )
 ####################################### Create executable ###################################
 
 add_executable(${PROJECT_NAME} ${PASSERVER_SRC})
+
+set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 11) # Set C++ standard to build against
 
 if ( UASTACK_WITH_OPENSSL )
     set(PLATTFORM_LIBS ${PLATTFORM_LIBS} ${OPENSSL_LIBRARIES})

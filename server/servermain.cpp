@@ -62,7 +62,7 @@ int OpcServerMain(std::string szAppPath, std::string configFilePath, std::string
         UaString sAppPath(szAppPath.c_str()); // Set server app path
         UaString sConfigFileName(configFilePath.c_str()); // Set config filename
 
-        std::unique_ptr<OpcServer> pServer = new OpcServer(); // Initialize and configure server object
+        std::unique_ptr<OpcServer> pServer = std::unique_ptr<OpcServer>(new OpcServer()); // Initialize and configure server object
         pServer->setServerConfig(sConfigFileName, sAppPath);
 
         /**
@@ -76,15 +76,15 @@ int OpcServerMain(std::string szAppPath, std::string configFilePath, std::string
         endpoints[0]->setEndpointUrl(sEndpointUrl, false);
         */
 
-        std::unique_ptr<PasCommunicationInterface> pCommIf = new PasCommunicationInterface(); // Initialize communication interface
+        std::unique_ptr<PasCommunicationInterface> pCommIf = std::unique_ptr<PasCommunicationInterface>(new PasCommunicationInterface()); // Initialize communication interface
         pCommIf->setserverIP(serverIP.c_str());
         UaStatus ret = pCommIf->Initialize();
         UA_ASSERT(ret.isGood());
 
-        std::unique_ptr<PasNodeManager> pNodeManager = new PasNodeManager(); // Create Node Manager for the server
+        std::unique_ptr<PasNodeManager> pNodeManager = std::unique_ptr<PasNodeManager>(new PasNodeManager()); // Create Node Manager for the server
         pNodeManager->setCommunicationInterface(pCommIf); // set its communication interface
 
-        pServer->addNodeManager(pNodeManager); // Add node manager to server
+        pServer->addNodeManager(pNodeManager.release()); // Add node manager to server
 
         ret = pServer->start();
         if ( ret == 0 )

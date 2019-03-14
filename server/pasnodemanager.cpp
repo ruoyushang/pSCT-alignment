@@ -3,41 +3,42 @@
  * @brief Source file for the server-side node manager class.
  */
 
- #include "server/pasnodemanager.hpp"
+#include "server/pasnodemanager.hpp"
 
 #include <iostream>
 #include <map>
 #include <memory>
+#include <set>
 #include <string>
 #include <vector>
 
 #include "uabase/statuscode.h"
 #include "uabase/uamutex.h"
-#include "uabase/uaobjecttypes.h"
 
 #include "uaserver/opcua_analogitemtype.h"
 #include "uaserver/opcua_offnormalalarmtype.h"
+#include "uaserver/uaobjecttypes.h"
 
 #include "common/opcua/mpeseventdata.h"
+#include "common/opcua/pasnodemanagercommon.h"
 #include "common/opcua/pasobject.h"
 #include "common/opcua/passervertypeids.h"
 
-#include "server/panelobject.hpp"
+#include "server/objects/panelobject.hpp"
 #include "server/pascommunicationinterface.hpp"
 
 
-PasNodeManager::PasNodeManager()
-: PasNodeManagerCommon()
+PasNodeManager::PasNodeManager() : PasNodeManagerCommon()
 {
-    std::cout << "Created Node manager with NameSpaceIndex = " getNameSpaceIndex() << "\n";
+    std::cout << "Created Node manager with NameSpaceIndex = " << getNameSpaceIndex() << std::endl;
 }
 
 /// @details Takes ownership of the heap-allocated PasCommunicationInterface by calling release on
 /// the unique ptr and instantiating a new unique pointer.
-void PasNodeManager::setCommunicationInterface(std::unique_ptr<PasCommunicationInterface> pCommIf)
+void PasNodeManager::setCommunicationInterface(std::unique_ptr<PasCommunicationInterface> &pCommIf)
 {
     std::cout << "PasNodeManager: Setting communication interface\n";
-    m_pCommIf = std::unique_ptr<PasComInterfaceCommon>(static_cast<PasComInterfaceCommon>(pCommIf.release())); // Note that we need to release the original unique pointer and make a new unique pointer
+    m_pCommIf = std::unique_ptr<PasCommunicationInterface>(pCommIf.release()); // Note that we need to release the original unique pointer and make a new unique pointer
 }
 
 /// @details Creates all default and custom type nodes. Creates folders for MPES and Actuators.
@@ -51,21 +52,19 @@ UaStatus PasNodeManager::afterStartUp()
     // PasNodeManagerCommon and PasNodeManager inherit, will destroy all nodes (which are registered with
     // addNode or addNodeandReference)
 
-    PasObject *pObject;
-    PasController *pController;
-    std::vector<PasController *> pChildren;
-
-    std::map<OpcUa_UInt32, UaFolder *> pDeviceFolders;
-    std::map<PasController *, PasObject *> pDeviceObjects;
-
+    PasObject *pObject;  
+    PanelObject *pPanel;
+    std::set<PasObject *> pChildObjects;
+   
+    std::map<OpcUa_UInt32, UaFolder *> pDeviceTypeFolders;
+    std::map<OpcUa_UInt32, UaFolder *> pChildFolders;
+    
     std::string deviceTypeName, folderName;
 
     std::vector<int> validDeviceAddresses;
-    int eAddress;
 
     Identity identity;
-    UaString sDeviceName;
-
+    
     ret = createTypeNodes(); // create default type nodes
     UA_ASSERT(ret.isGood());
     ret = amendTypeNodes(); // add custom type nodes (in this case for the panel object type)
@@ -86,34 +85,36 @@ UaStatus PasNodeManager::afterStartUp()
     // First create all nodes, add object type references, and add to relevant folder
     // Note that only the Communication Interface knows what types and numbers of devices we have
     OpcUa_UInt32 deviceType;
-    for (auto it=PasCommunicationInterface::deviceTypeNames.begin(); it!=PasCommunicationInterface::deviceTypeNames.end(); ++it) {
-        deviceTypeName = it->first;
-        deviceType = it->second;
+    UaString deviceName;
+    for (auto pair : PasCommunicationInterface::deviceTypes) {
+        deviceType = pair.first;
+        deviceTypeName = pair.second;
         validDeviceAddresses = dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->getValidDeviceAddresses(deviceType);
 
-        for (auto it=validDeviceAddresses.begin(); it!=validDeviceAddresses.end(); ++it)
-        {
-            eAddress = *it;
+        for (auto eAddress : validDeviceAddresses) {
             identity.eAddress = eAddress;
-            sDeviceName = UaString(deviceTypeName.c_str()) + "_" + identity.eAddress.c_str();
-            pController = dynamic_cast<PasCommunicationInterface *>(m_pCommIf)->getDevice(deviceType, eAddress);
+            deviceName = UaString(deviceTypeName.c_str()) + "_" + identity.eAddress.c_str();
             //If folder doesn't already exist, create a folder for each object type and add the folder to the DevicesByType folder
-            if ( pDeviceFolders.find(deviceType) == pDeviceFolders.end() ) {
+            if ( pDeviceTypeFolders.find(deviceType) == pDeviceTypeFolders.end() ) {
                 folderName = deviceTypeName + "Folder";
-                pDeviceFolders[deviceType] = new UaFolder(folderName.c_str()), UaNodeId(folderName.c_str(), getNameSpaceIndex()), m_defaultLocaleId);
-                ret = addNodeAndReference(pDevicesByTypeFolder, pDeviceFolders[deviceType], OpcUaId_Organizes);
+                pDeviceTypeFolders[deviceType] = new UaFolder(folderName.c_str(), UaNodeId(folderName.c_str(), getNameSpaceIndex()), m_defaultLocaleId);
+                ret = addNodeAndReference(pDevicesByTypeFolder, pDeviceTypeFolders[deviceType], OpcUaId_Organizes);
             }
 
             // Create OPC UA device object
             // Types hardcoded for now, in future consider creating a common factory class
-            if (deviceType == PAS_ACTType):
-                pObject = new ACTObject(sDeviceName, UaNodeId(sDeviceName, getNameSpaceIndex()), m_defaultLocaleId, dynamic_cast<PasNodeManagerCommon *>(this), identity, dynamic_cast<PasComInterfaceCommon *>(m_pCommIf));
-            else if (deviceType == PAS_MPESType):
-                pObject =  new MPESObject(sDeviceName, UaNodeId(sDeviceName, getNameSpaceIndex()), m_defaultLocaleId, dynamic_cast<PasNodeManagerCommon *>(this), identity, dynamic_cast<PasComInterfaceCommon *>(m_pCommIf));
-            else if (deviceType == PAS_PanelType):
-                pObject = new PanelObject(sDeviceName, UaNodeId(sDeviceName, getNameSpaceIndex()), m_defaultLocaleId, this, identity, m_pCommIf);
-            else if (deviceType == PAS_PSDType):
-                pObject = new PSDObject(sDeviceName, UaNodeId(sDeviceName, getNameSpaceIndex()), m_defaultLocaleId, dynamic_cast<PasNodeManagerCommon *>(this), identity, dynamic_cast<PasComInterfaceCommon *>(m_pCommIf));
+            if (deviceType == PAS_ACTType) {
+                pObject = new ACTObject(deviceName, UaNodeId(deviceName, getNameSpaceIndex()), m_defaultLocaleId, dynamic_cast<PasNodeManagerCommon *>(this), identity, m_pCommIf.get()); 
+            }
+            else if (deviceType == PAS_MPESType) {
+                pObject =  new MPESObject(deviceName, UaNodeId(deviceName, getNameSpaceIndex()), m_defaultLocaleId, dynamic_cast<PasNodeManagerCommon *>(this), identity, m_pCommIf.get());
+            }
+            else if (deviceType == PAS_PanelType) {
+                pObject = new PanelObject(deviceName, UaNodeId(deviceName, getNameSpaceIndex()), m_defaultLocaleId, this, identity, dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get()));
+            }
+            else if (deviceType == PAS_PSDType) {
+                pObject = new PSDObject(deviceName, UaNodeId(deviceName, getNameSpaceIndex()), m_defaultLocaleId, dynamic_cast<PasNodeManagerCommon *>(this), identity, m_pCommIf.get());
+            }
 
             ret = addUaNode(pObject); // Create node
             UA_ASSERT(ret.isGood());
@@ -121,58 +122,38 @@ UaStatus PasNodeManager::afterStartUp()
             ret = addUaReference(pObject->nodeId(), pObject->typeDefinitionId(), OpcUaId_HasTypeDefinition); // Add object type reference
             UA_ASSERT(ret.isGood());
 
-            ret = addUaReference(pDeviceFolders[deviceType]->nodeId(), pObject->nodeId(), OpcUaId_HasComponent); // Add OpcUaId_HasComponent reference from the object type folder to the object.
+            ret = addUaReference(pDeviceTypeFolders[deviceType]->nodeId(), pObject->nodeId(), OpcUaId_HasComponent); // Add OpcUaId_HasComponent reference from the object type folder to the object.
             UA_ASSERT(ret.isGood());
-
-            pDeviceObjects[pController] = pObject; // Add pointer to new object to pDeviceObjects map.
-
+                
+            if (deviceType == PAS_PanelType) {
+                pPanel = dynamic_cast<PanelObject *>(pObject); // Keep track of the single panel object separately (as it is the parent of all others).
+            }
+            else {
+                pChildObjects.insert(pObject); // Add pointer to new object to pChildObjects set.
+            }
+            
             if (deviceType == PAS_MPESType) {
-              ret = addUaReference(pAreaMPESFolder, pMPES, OpcUaId_HasNotifier); // Add HasNotifier reference from alarm area to controller object
-              UA_ASSERT(ret.isGood());
-              ret = registerEventNotifier(pAreaMPESFolder->nodeId(), pMPES->nodeId());
-              UA_ASSERT(ret.isGood());
+                ret = addUaReference(pAreaMPESFolder, pObject, OpcUaId_HasNotifier); // Add HasNotifier reference from alarm area to controller object
+                UA_ASSERT(ret.isGood());
+                registerEventNotifier(pAreaMPESFolder->nodeId(), pObject->nodeId());
             }
         }
     }
-
-    std::map<PasController *, PasObject *> pRootDevices;
-    pRootDevices.insert(pDeviceObjects.begin(), pDeviceObjects.end()); // Copy all elements in pDeviceObjects to pRootDevices
-
-    // Loop through all created objects and add references to children
-    UaString objectName;
-    UaFolder* pFolder;
-    for (auto it=pDeviceObjects.begin(); it!=pDeviceObjects.end(); ++it) {
-        pController = it->first;
-        pObject = it->second;
-
-        objectName = pObject->nodeId().toString();
-
-        // Check if object has children
-        // Add folder for each type of child and add children to folder
-        // Remove devices which are children from pRootDevices map
-        if (dynamic_cast<PasCompositeController*>(pController)) {
-            for (auto it=PasCommunicationInterface::deviceTypeNames.begin();
-            it!=PasCommunicationInterface::deviceTypeNames.end(); ++it) {
-                deviceType = it->first;
-                deviceName = it->second;
-                try {
-                    pChildren = dynamic_cast<PasCompositeController*>(pController)->getChildren(deviceType);
-                    if (!pChildren.empty()) {
-                        pFolder = new UaFolder(UaString(deviceName.c_str()), UaNodeId(objectName + UaString(deviceName.c_str()), getNameSpaceIndex()), m_defaultLocaleId);
-                        ret = addNodeAndReference(pObject->nodeId(), pFolder, OpcUaId_HasComponent);
-                        UA_ASSERT(ret.isGood());
-                        for (auto &child : pChildren) {
-                            ret = addUaReference(pFolder->nodeId(), pDeviceObjects[child]->nodeId(), OpcUaId_HasComponent);
-                            UA_ASSERT(ret.isGood());
-                            pRootDevices.erase(child); // Remove any child from the list of root devices
-                        }
-                    }
-                }
-                catch (...) {
-                    // Do nothing
-                }
-            }
+ 
+    // Loop through all created objects and add as children of the panel
+    for (auto p : pChildObjects) {
+        deviceTypeName = pObject->typeDefinitionId().toString().toUtf8();
+        deviceType = pObject->typeDefinitionId().identifierNumeric();
+       
+        //If folder doesn't already exist, create a folder for each object type and add the folder to the DevicesByType folder
+        if ( pChildFolders.find(deviceType) == pChildFolders.end() ) {
+            pChildFolders[deviceType] = new UaFolder(deviceTypeName.c_str(), UaNodeId((deviceTypeName + "_children").c_str(), getNameSpaceIndex()), m_defaultLocaleId);
+            ret = addNodeAndReference(pPanel, pChildFolders[deviceType], OpcUaId_Organizes);
+            UA_ASSERT(ret.isGood());
         }
+
+        ret = addUaReference(pChildFolders[deviceType]->nodeId(), p->nodeId(), OpcUaId_HasComponent);
+        UA_ASSERT(ret.isGood());
     }
 
     // Add folder for device tree to Objects folder
@@ -180,14 +161,9 @@ UaStatus PasNodeManager::afterStartUp()
     ret = addNodeAndReference(OpcUaId_ObjectsFolder, pDeviceTreeFolder, OpcUaId_Organizes);
     UA_ASSERT(ret.isGood());
 
-    // Add all root devices (devices with no parents) to the Device Tree Folder
-    for (auto it=pRootDevices.begin(); it!=pRootDevices.end(); ++it) {
-        pController = it->first;
-        pObject = it->second;
-
-        ret = addUaReference(pDeviceTreeFolder->nodeId(), pObject->nodeId(), OpcUaId_HasComponent);
-        UA_ASSERT(ret.isGood());
-    }
+    // Add panel as root of device tree
+    ret = addUaReference(pDeviceTreeFolder->nodeId(), pPanel->nodeId(), OpcUaId_HasComponent);
+    UA_ASSERT(ret.isGood());
 
     return ret;
 }
@@ -219,9 +195,9 @@ UaStatus PasNodeManager::amendTypeNodes()
 
     // Register all variables
     OpcUa::DataItemType* pDataItem;
-    for (auto it = PanelObject::variables.begin(); it != PanelObject::variables.end(); ++it) {
-      pDataItem = new OpcUa::DataItemType(UaNodeId(it->first, getNameSpaceIndex()),
-              std::get<0>(it->second), getNameSpaceIndex(), std::get<1>(it->second), Ua_AccessLevel_CurrentRead, this);
+    for (auto v : PanelObject::variables) {
+      pDataItem = new OpcUa::DataItemType(UaNodeId(v.first, getNameSpaceIndex()),
+              std::get<0>(v.second).c_str(), getNameSpaceIndex(), std::get<1>(v.second), Ua_AccessLevel_CurrentRead, this);
       pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
       status = addNodeAndReference(pPanelType, pDataItem, OpcUaId_HasComponent);
       UA_ASSERT(status.isGood());
@@ -229,8 +205,8 @@ UaStatus PasNodeManager::amendTypeNodes()
 
     // Register all methods
     OpcUa::BaseMethod* pMethod;
-    for (auto it = PanelObject::methods.begin(); it != PanelObject::methods.end(); ++it) {
-      pMethod = new OpcUa::BaseMethod(UaNodeId(it->first, getNameSpaceIndex()), it->second.first, getNameSpaceIndex());
+    for (auto m : PanelObject::methods) {
+      pMethod = new OpcUa::BaseMethod(UaNodeId(m.first, getNameSpaceIndex()), m.second.first.c_str(), getNameSpaceIndex());
       pMethod->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
       status = addNodeAndReference(pPanelType, pMethod, OpcUaId_HasComponent);
       UA_ASSERT(status.isGood());

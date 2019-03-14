@@ -1,9 +1,7 @@
-#include "pasobject.h"
-#include "pasnodemanagercommon.h"
-#include "passervertypeids.h"
-#include "pascominterfacecommon.h"
-#include "pasnodemanager.h"
-#include "pascommunicationinterface.h"
+#include "common/opcua/pasobject.h"
+#include "common/opcua/pasnodemanagercommon.h"
+#include "common/opcua/passervertypeids.h"
+#include "common/opcua/pascominterfacecommon.h"
 #include "mpeseventdata.h"
 #include "uaserver/methodhandleuanode.h"
 
@@ -229,7 +227,7 @@ UaStatus MPESObject::call(
                     ret = OpcUa_BadInvalidArgument;
                 else
                     ret = m_pCommIf->setDeviceState(PAS_MPESType, m_Identity,
-                        PASState::PAS_On );
+                        PASState::On );
             }
             // Check if we have the stop method
             else if ( pMethod->nodeId() == m_pMethodStop->nodeId())
@@ -239,7 +237,7 @@ UaStatus MPESObject::call(
                     ret = OpcUa_BadInvalidArgument;
                 else
                     ret = m_pCommIf->setDeviceState(PAS_MPESType, m_Identity,
-                        PASState::PAS_Off );
+                        PASState::Off );
             }
             // Check if we have the read method
             else if ( pMethod->nodeId() == m_pMethodRead->nodeId())
@@ -280,7 +278,7 @@ UaStatus MPESObject::call(
                 eventData.m_SourceNode.setNodeId(nodeId());
                 eventData.m_SourceName.setString(browseName().toString());
                 UaString messageText;
-                if ( state == PASState::PAS_Off )
+                if ( state == PASState::Off )
                 {
                     messageText = UaString("State of %1 changed to OFF").arg(browseName().toString());
                 }
@@ -298,7 +296,7 @@ UaStatus MPESObject::call(
 
                 //--------------------------------------------------------
                 // Change state of alarm condition
-                if ( state == PASState::PAS_Off )
+                if ( state == PASState::Off )
                 {
                     m_pStateOffNormalAlarm->setAckedState(OpcUa_False);
                     m_pStateOffNormalAlarm->setActiveState(OpcUa_True);
@@ -359,20 +357,20 @@ ACTObject::ACTObject(
 
     // add error variables
     unsigned errors[] = {
-        PAS_ACTType_Error_0,
-        PAS_ACTType_Error_1,
-        PAS_ACTType_Error_2,
-        PAS_ACTType_Error_3,
-        PAS_ACTType_Error_4,
-        PAS_ACTType_Error_5,
-        PAS_ACTType_Error_6,
-        PAS_ACTType_Error_7,
-        PAS_ACTType_Error_8,
-        PAS_ACTType_Error_9,
-        PAS_ACTType_Error_10,
-        PAS_ACTType_Error_11,
-        PAS_ACTType_Error_12,
-        PAS_ACTType_Error_13};
+        PAS_ACTType_Error0,
+        PAS_ACTType_Error1,
+        PAS_ACTType_Error2,
+        PAS_ACTType_Error3,
+        PAS_ACTType_Error4,
+        PAS_ACTType_Error5,
+        PAS_ACTType_Error6,
+        PAS_ACTType_Error7,
+        PAS_ACTType_Error8,
+        PAS_ACTType_Error9,
+        PAS_ACTType_Error10,
+        PAS_ACTType_Error11,
+        PAS_ACTType_Error12,
+        PAS_ACTType_Error13};
     for (auto &var : errors) {
         pDataItem = addVariable(pNodeManager, PAS_MirrorType, var, OpcUa_False, false);
         addStatus = pNodeManager->addUaReference(pErrorFolder->nodeId(), pDataItem->nodeId(), OpcUaId_Organizes);
@@ -460,7 +458,7 @@ UaStatus ACTObject::call(
                     ret = OpcUa_BadInvalidArgument;
                 else
                     ret = m_pCommIf->setDeviceState(PAS_ACTType, m_Identity,
-                        PASState::PAS_Off );
+                        PASState::Off );
             }
             // Check if we have the start method
             else if ( pMethod->nodeId() == m_pMethodStart->nodeId())
@@ -470,7 +468,7 @@ UaStatus ACTObject::call(
                     ret = OpcUa_BadInvalidArgument;
                 else
                     ret = m_pCommIf->setDeviceState(PAS_ACTType, m_Identity,
-                        PASState::PAS_On );
+                        PASState::On );
             }
         }
         else

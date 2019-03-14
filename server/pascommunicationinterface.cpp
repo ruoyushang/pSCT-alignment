@@ -8,6 +8,8 @@
 #include <array>
 #include <iostream>
 #include <map>
+#include <memory>
+#include <stdexcept>
 #include <string>
 #include <vector>
 
@@ -17,6 +19,10 @@
 #include "common/opcua/passervertypeids.h"
 
 #include "server/controllers/pascontroller.hpp"
+#include "server/controllers/actcontroller.hpp"
+#include "server/controllers/mpescontroller.hpp"
+#include "server/controllers/psdcontroller.hpp"
+#include "server/controllers/panelcontroller.hpp"
 
 #include "uabase/uadatetime.h"
 
@@ -25,6 +31,12 @@
 #include "cppconn/statement.h"
 #include <cppconn/exception.h>
 
+const std::map<OpcUa_UInt32, std::string> PasCommunicationInterface::deviceTypes = {
+      {PAS_PanelType, "Panel"},
+      {PAS_MPESType, "MPES"},
+      {PAS_ACTType, "ACT"},
+      {PAS_PSDType, "PSD"}
+    };
 
 PasCommunicationInterface::PasCommunicationInterface() :
     m_serverIP(""),
@@ -65,17 +77,17 @@ UaStatusCode PasCommunicationInterface::Initialize()
     std::map<int, int> mpesPositionToPort;
 
     try {
-        std::unique_ptr<sql::Driver> pSqlDriver = get_driver_instance();
-        std::unique_ptr<sql::Connection> pSqlConn = pSqlDriver->connect(dbAddress, DbInfo.user, DbInfo.password);
+        sql::Driver *pSqlDriver = get_driver_instance(); // Need to use naked pointer here to avoid attempting to call protected destructor.
+        std::unique_ptr<sql::Connection> pSqlConn = std::unique_ptr<sql::Connection>(pSqlDriver->connect(dbAddress, DbInfo.user, DbInfo.password));
         pSqlConn->setSchema(DbInfo.dbname);
-        std::unique_ptr<sql::Statement> pSqlStmt = pSqlConn->createStatement();
+        std::unique_ptr<sql::Statement> pSqlStmt = std::unique_ptr<sql::Statement>(pSqlConn->createStatement());
         std::unique_ptr<sql::ResultSet> pSqlResults;
 
         // Query DB for panel position and cbc id by IP address
         std::string query = "SELECT mpcb_id, position FROM Opt_MPMMapping WHERE mpcb_ip_address='"
             + m_serverIP + "'";
         pSqlStmt->execute(query);
-        pSqlResults = pSqlStmt->getResultSet();
+        pSqlResults.reset(pSqlStmt->getResultSet());
 
         // Should only be one result FOR NOW -- IN THE FUTURE, NEED TO FIX THIS, SORTING BY DATE
         while (pSqlResults->next()) {
@@ -85,18 +97,18 @@ UaStatusCode PasCommunicationInterface::Initialize()
         std::cout << "Will initialize Panel " << panelPosition << " with CBC " << cbcID << std::endl;
 
         // Query DB for actuator serials and ports
-        query = "SELECT port, serial_number, position FROM Opt_ActuatorMapping WHERE panel=" + to_string(panelPosition);
+        query = "SELECT port, serial_number, position FROM Opt_ActuatorMapping WHERE panel=" + std::to_string(panelPosition);
         pSqlStmt->execute(query);
-        pSqlResults = pSqlStmt->getResultSet();
+        pSqlResults.reset(pSqlStmt->getResultSet());
         while (pSqlResults->next()) {
             actPositionToPort[pSqlResults->getInt(3)] = pSqlResults->getInt(1);
             actPositionToSerial[pSqlResults->getInt(3)] = pSqlResults->getInt(2);
         }
 
         // Query DB for mpes serials and ports
-        query = "SELECT port, serial_number, w_position FROM Opt_MPESMapping WHERE w_panel=" + to_string(panelPosition);
+        query = "SELECT port, serial_number, w_position FROM Opt_MPESMapping WHERE w_panel=" + std::to_string(panelPosition);
         pSqlStmt->execute(query);
-        pSqlResults = pSqlStmt->getResultSet();
+        pSqlResults.reset(pSqlStmt->getResultSet());
         while (pSqlResults->next()) {
             mpesPositionToPort[pSqlResults->getInt(3)] = pSqlResults->getInt(1);
             mpesPositionToSerial[pSqlResults->getInt(3)] = pSqlResults->getInt(2);
@@ -121,7 +133,7 @@ UaStatusCode PasCommunicationInterface::Initialize()
     for (auto act : actPositionToSerial)
         actuatorSerials[act.first - 1] = act.second;
 
-    m_platform = new Platform(cbcID, actuatorPorts, actuatorSerials, DbInfo);
+    m_platform = std::shared_ptr<Platform>(new Platform(cbcID, actuatorPorts, actuatorSerials, DbInfo));
 
     // initialize the MPES in the positional order. Not strictly necessary, but keeps things tidy
     // addMPES(port, serial)
@@ -138,12 +150,12 @@ UaStatusCode PasCommunicationInterface::Initialize()
     for (auto devCount: expectedDeviceCounts) {
         std::cout << "Expecting " << devCount.second << " "
                  << deviceTypes.at(devCount.first) << " devices.\n";
-        if (d.second > 0)
+        if (devCount.second > 0)
             std::cout << "Attempting to create their virtual counterparts...\n";
 
-        int failed = 0; // keep track of devices that fail to initialize
+        int failed;
         std::shared_ptr<PasController> pController;
-        for (int i = 0; i < d.second; i++) {
+        for (int i = 0; i < devCount.second; i++) {
 
             int eAddress;
             if (devCount.first == PAS_PanelType) {
@@ -171,26 +183,25 @@ UaStatusCode PasCommunicationInterface::Initialize()
             else {
                 std::cout << "Could not Initialize " << deviceTypes.at(devCount.first)
                          << " at eAddress " << eAddress << std::endl;
-                ++failed;
             }
         }
         // update the number of devices to the ones initialized
-        m_DeviceCounts.at(devCount.first) -= failed;
+        failed = devCount.second - m_pControllers.at(devCount.first).size();
         if (failed) {
             std::cout << "\n +++ WARNING +++ Failed to initialize " << failed << " "
-                << m_DeviceTypeNames.at(devCount.first) << " devices!" << std::endl;
+                << deviceTypes.at(devCount.first) << " devices!" << std::endl;
         }
     }
 
     try {
-        std::shared_pointer<PanelController> pPanel = std::dynamic_pointer_cast<PanelController>(m_pControllers.at(PAS_PanelType).at(0)); // get the first panel and assign actuators to it
-        std::shared_pointer<ActController> pACT;
+        std::shared_ptr<PanelController> pPanel = std::dynamic_pointer_cast<PanelController>(m_pControllers[PAS_PanelType][0]); // get the first panel and assign actuators to it
+        std::shared_ptr<ActController> pACT;
         for (auto a : m_pControllers.at(PAS_ACTType)) {
             pACT = std::dynamic_pointer_cast<ActController>(a.second);
             pPanel->addActuator(pACT);
           }
     }
-    catch (out_of_range) {
+    catch (std::out_of_range) {
     }
 
     // start(); // start the thread mananged by this object
@@ -201,17 +212,19 @@ UaStatusCode PasCommunicationInterface::Initialize()
 std::size_t PasCommunicationInterface::getDeviceCount(OpcUa_UInt32 deviceType)
 {
     try {
-        return m_pController.at(deviceType).size();
+        return m_pControllers.at(deviceType).size();
     }
-    catch (out_of_range) {
+    catch (std::out_of_range) {
         return -1;
     }
 }
 
-std::vector<int> getValidDeviceAddresses(OpcUa_UInt32 deviceType)
+std::vector<int> PasCommunicationInterface::getValidDeviceAddresses(OpcUa_UInt32 deviceType)
 {
   std::vector<int> validAddresses;
-  for(auto it = m_pControllers.at(deviceType).begin(); it != m_pControllers.at(deviceType).end(); ++it) {
+  std::map<int, std::shared_ptr<PasController>> devices = m_pControllers.at(deviceType);
+
+  for(auto it = devices.begin(); it != devices.end(); ++it) {
     validAddresses.push_back(it->first);
   }
 
@@ -262,7 +275,7 @@ UaStatusCode PasCommunicationInterface::getDeviceState(
     try {
         return m_pControllers.at(deviceType).at(eAddress)->getState(state);
     }
-    catch (out_of_range) {
+    catch (std::out_of_range) {
         return OpcUa_BadInvalidArgument;
     }
 }
@@ -275,7 +288,7 @@ UaStatusCode PasCommunicationInterface::setDeviceState(
     try {
         return m_pControllers.at(deviceType).at(eAddress)->setState(state);
     }
-    catch (out_of_range) {
+    catch (std::out_of_range) {
         return OpcUa_BadInvalidArgument;
     }
 }
@@ -289,7 +302,7 @@ UaStatusCode PasCommunicationInterface::getDeviceData(
     try {
         return m_pControllers.at(deviceType).at(eAddress)->getData(offset, value);
     }
-    catch (out_of_range) {
+    catch (std::out_of_range) {
         return OpcUa_BadInvalidArgument;
     }
 }
@@ -303,7 +316,7 @@ UaStatusCode PasCommunicationInterface::setDeviceData(
     try {
         return m_pControllers.at(deviceType).at(eAddress)->setData(offset, value);
     }
-    catch (out_of_range) {
+    catch (std::out_of_range) {
         return OpcUa_BadInvalidArgument;
     }
 }
@@ -317,7 +330,7 @@ UaStatusCode PasCommunicationInterface::OperateDevice(
     try {
         return m_pControllers.at(deviceType).at(eAddress)->Operate(offset, args);
     }
-    catch (out_of_range) {
+    catch (std::out_of_range) {
         return OpcUa_BadInvalidArgument;
     }
 }

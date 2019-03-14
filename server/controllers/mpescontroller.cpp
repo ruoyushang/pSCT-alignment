@@ -15,23 +15,23 @@
 
 #include "common/alignment/platform.hpp"
 #include "common/opcua/pascominterfacecommon.h"
-
+#include "common/opcua/passervertypeids.h"
 
 /// @details Turns state to On.
-MPESController::MPESController(int ID, std::shared_ptr<Platform> pPlatform) : PasController(ID, platform)
+MPESController::MPESController(int ID, std::shared_ptr<Platform> pPlatform) : PasController(ID, pPlatform)
 {
-    m_state = PASState::PAS_On;
+    m_state = PASState::On;
 }
 
 /// @details Turns state to Off.
 MPESController::~MPESController()
 {
-    m_state = PASState::PAS_Off;
+    m_state = PASState::Off;
 }
 
 /// @details Sets exposure for this MPES.
 int MPESController::Initialize()
-{   int ret = m_pPlatform->getMPESAt(m_ID)->setExposure() > 0);
+{   int ret = m_pPlatform->getMPESAt(m_ID)->setExposure();
     if (ret > 0) {
       return 0;
     }
@@ -89,15 +89,15 @@ UaStatus MPESController::setData(OpcUa_UInt32 offset, UaVariant value)
     UaStatus status;
 
     int dataOffset = offset - PAS_MPESType_xCentroidAvg;
-    const MPES::Position& position = m_pPlatform->getMPESAt(m_ID)->getPosition();
-    float& data;
+    float v;
+    value.toFloat(v);
     switch ( dataOffset )
     {
         case 5:
-            value.toFloat(position.xNominal);
+            m_pPlatform->getMPESAt(m_ID)->setxNominalPosition(v);
             break;
         case 6:
-            value.toFloat(position.yNominal);
+            m_pPlatform->getMPESAt(m_ID)->setyNominalPosition(v);
             break;
         default:
             status = OpcUa_BadNotWritable;
@@ -132,7 +132,7 @@ OpcUa_Int32 MPESController::read()
 {
     UaMutexLocker lock(&m_mutex);
 
-    if ( m_state == PASState::PAS_On )
+    if ( m_state == PASState::On )
     {
         std::cout << "\nReading MPES " << m_ID << std::endl;
         m_pPlatform->ReadMPES(m_ID);

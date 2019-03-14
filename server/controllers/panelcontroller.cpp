@@ -1,14 +1,25 @@
+#include "server/controllers/panelcontroller.hpp"
 
+#include <array>
+#include <iostream>
+#include <memory>
+
+#include "uabase/statuscode.h"
+#include "uabase/uabase.h"
+#include "uabase/uamutex.h"
+#include "uabase/uastring.h"
+
+#include "common/opcua/passervertypeids.h"
 
 // no data for now, so just let these be
 PanelController::PanelController(int ID, std::shared_ptr<Platform> pPlatform) : PasController(ID, pPlatform)
 {
-    m_state = PASState::PAS_On;
+    m_state = PASState::On;
 }
 
 PanelController::~PanelController()
 {
-    m_state = PASState::PAS_Off;
+    m_state = PASState::Off;
 }
 
 UaStatus PanelController::getState(PASState& state)
@@ -25,13 +36,13 @@ UaStatus PanelController::updateState()
     // update internal state to match teh underlying platform object
     switch ( m_pPlatform->getState() ) {
         case PlatformState::On :
-            m_state = PASState::PAS_On;
+            m_state = PASState::On;
             break;
         case PlatformState::Off :
-            m_state = PASState::PAS_Off;
+            m_state = PASState::Off;
             break;
         case PlatformState::Busy :
-            m_state = PASState::PAS_Busy;
+            m_state = PASState::Busy;
             break;
         case PlatformState::OperableError :
             m_state = PASState::OperableError;
@@ -127,15 +138,15 @@ UaStatus PanelController::Operate(OpcUa_UInt32 offset, const UaVariantArray& arg
     }
 
     if (offset == PAS_PanelType_StepAll) {
-        if (m_state == PASState::PAS_Off)
-            setState(PASState::PAS_On);
-        else if (m_state == PASState::PAS_Busy) {
+        if (m_state == PASState::Off)
+            setState(PASState::On);
+        else if (m_state == PASState::Busy) {
             std::cout << "PanelController::Operate(): Busy at the moment. "
                 << "Wait for the current operation to finish and try again.\n";
             return OpcUa_Good;
         }
 
-        m_state = PASState::PAS_Busy; // set the state immadiately
+        m_state = PASState::Busy; // set the state immadiately
 
         std::array<float, 6> deltaLengths;
 
@@ -156,17 +167,17 @@ UaStatus PanelController::Operate(OpcUa_UInt32 offset, const UaVariantArray& arg
         status = OpcUa_Good;
     }
     else if (offset == PAS_PanelType_MoveTo_Acts) {
-        if (m_state == PASState::PAS_Off)
-            setState(PASState::PAS_On);
-        else if (m_state == PASState::PAS_Busy) {
+        if (m_state == PASState::Off)
+            setState(PASState::On);
+        else if (m_state == PASState::Busy) {
             std::cout << "PanelController::Operate(): Busy at the moment. "
                 << "Wait for the current operation to finish and try again.\n";
             return OpcUa_Good;
         }
 
-        m_state = PASState::PAS_Busy; // set the state immeadiately
+        m_state = PASState::Busy; // set the state immeadiately
 
-        array<float, 6> lengths;
+        std::array<float, 6> lengths;
         UaVariant vTemp;
         for (int i = 0; i < 6; i++) {
             m_pActuators.at(i)->getData(PAS_ACTType_inLength_mm, vTemp);
@@ -178,7 +189,7 @@ UaStatus PanelController::Operate(OpcUa_UInt32 offset, const UaVariantArray& arg
     }
     else if (offset == PAS_PanelType_Stop) {
         std::cout << "PanelController::Operate(): Attempting to gracefully stop the motion.\n";
-        status = setState(PASState::PAS_Off);
+        status = setState(PASState::Off);
     }
     else
         status = OpcUa_BadInvalidArgument;
