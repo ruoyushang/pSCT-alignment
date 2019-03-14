@@ -10,14 +10,14 @@
 #include "uabase/statuscode.h"
 #include "uabase/uamutex.h"
 
-#include "server/device_controller/pascontroller.hpp"
+#include "server/controllers/pascontroller.hpp"
 
 #include "common/opcua/passervertypeids.h"
 #include "common/alignment/platform.hpp"
 
 
 /// @details Locks the shared mutex while retrieving the state.
-UaStatusCode PasController::getState(PASState& state)
+UaStatus PasController::getState(PASState& state)
 {
     UaMutexLocker lock(&m_mutex);
     state = m_state;
@@ -26,7 +26,7 @@ UaStatusCode PasController::getState(PASState& state)
 
 /// #details Does not allow setting the state to error or setting the state to
 /// its current value. Locks the shared mutex while setting the state.
-UaStatusCode PasController::setState(PASState state)
+UaStatus PasController::setState(PASState state)
 {
     UaMutexLocker lock(&m_mutex);
     if ( state == PASState::FatalError || state == PASState::OperableError)

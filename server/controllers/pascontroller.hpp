@@ -9,6 +9,7 @@
 #include "uabase/uabase.h"
 #include "uabase/uamutex.h"
 #include "uabase/uastring.h"
+#include "uabase/uavariant.h"
 
 #include "common/opcua/pascominterfacecommon.h"
 
@@ -43,26 +44,20 @@ class PasController
 
         /// @brief Get the device's state.
         /// @return OPC UA status code indicating success or failure.
-        virtual UaStatusCode getState(PASState& state);
+        virtual UaStatus getState(PASState& state);
         /// @brief Get data from a device variable.
         /// @return OPC UA status code indicating success or failure.
-        virtual UaStatusCode getData(OpcUa_UInt32 offset, UaVariant& value) = 0; // Pure virtual function
-        /// @brief Get data from a device variable.
-        /// @return OPC UA status code indicating success or failure.
-        virtual UaStatusCode getError(OpcUa_UInt32 offset, UaVariant& value) = 0; // Pure virtual function
-
+        virtual UaStatus getData(OpcUa_UInt32 offset, UaVariant& value) = 0; // Pure virtual function
+        
         /// @brief Set the device's state.
         /// @return OPC UA status code indicating success or failure.
-        virtual UaStatusCode setState(PASState state);
+        virtual UaStatus setState(PASState state);
         /// @brief Set a device data variable.
         /// @return OPC UA status code indicating success or failure.
-        virtual UaStatusCode setData(OpcUa_UInt32 offset, UaVariant value) = 0; // Pure virtual function
-        /// @brief Get data from a device variable.
-        /// @return OPC UA status code indicating success or failure.
-        virtual UaStatusCode setError(OpcUa_UInt32 offset, UaVariant& value) = 0; // Pure virtual function
+        virtual UaStatus setData(OpcUa_UInt32 offset, UaVariant value) = 0; // Pure virtual function
         /// @brief Call a device method.
         /// @return OPC UA status code indicating success or failure.
-        virtual UaStatusCode Operate(OpcUa_UInt32 offset, const UaVariantArray& args = UaVariantArray()) = 0; // Pure virtual function
+        virtual UaStatus Operate(OpcUa_UInt32 offset, const UaVariantArray& args = UaVariantArray()) = 0; // Pure virtual function
 
     protected:
         /// @brief Shared mutex used to lock parallel access to controller variables.
@@ -81,9 +76,6 @@ class PasController
         bool _expired() const {return (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - m_lastUpdateTime).count() > m_kUpdateInterval_ms); }
         /// @brief Time of last variable update.
         std::chrono::time_point<std::chrono::system_clock> m_lastUpdateTime;
-
-        std::map<OpcUa_UInt32, function> m_DataMap;
-        std::map<OpcUa_UInt32, function> m_MethodMap;
 };
 
 #endif

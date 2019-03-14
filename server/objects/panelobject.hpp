@@ -6,6 +6,8 @@
 #ifndef __PanelController_H__
 #define __PanelController_H__
 
+#include "uabase/uavariant.h"
+
 #include "uaserver/methodmanager.h"
 
 #include "common/opcua/components.h"
@@ -77,21 +79,13 @@ public:
     UaNodeId typeDefinitionId() const;
 
     /// @brief
-    static const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean> variables{
-        {PAS_PanelType_State, {"State", UaVariant(0), OpcUa_True}},
-        {PAS_PanelType_ExtTemperature, {"ExternalTemperature", UaVariant(0.0), OpcUa_False}},
-        {PAS_PanelType_IntTemperature, {"InternalTemperature", UaVariant(0.0), OpcUa_False}}
-    };
-
+    static const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean>> variables;
+    
     /// @brief
-    static const std::map<OpcUa_UInt32, std::pair<std::string, int>> methods{
-      {PAS_PanelType_StepAll, {"StepAll", 0}},
-      {PAS_PanelType_MoveTo_Acts, {"MoveToActs", 0}},
-      {PAS_PanelType_Stop, {"Stop", 0}}
-    }
+    static const std::map<OpcUa_UInt32, std::pair<std::string, int>> methods;
 
 private:
-    std::map<UaNodeId, std::pair<std::unique_ptr<UaMethodGeneric>, OpcUa_UInt32>> m_MethodMap;
+    std::map<UaNodeId, std::pair<UaMethodGeneric *, OpcUa_UInt32>> m_MethodMap;
 };
 
 #endif

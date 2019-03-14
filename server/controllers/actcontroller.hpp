@@ -3,16 +3,20 @@
  * @brief Header file for actuator device controller.
  */
 
- #include "server/controllers/pascontroller.hpp"
+#ifndef __ACTCONTROLLER_H__
+#define __ACTCONTROLLER_H__
 
- #include <memory>
+#include "server/controllers/pascontroller.hpp"
 
- #include "uabase/statuscode.h"
- #include "uabase/uabase.h"
- #include "uabase/uamutex.h"
- #include "uabase/uastring.h"
+#include <memory>
 
- #include "common/opcua/pascominterfacecommon.h"
+#include "uabase/statuscode.h"
+#include "uabase/uabase.h"
+#include "uabase/uamutex.h"
+#include "uabase/uastring.h"
+
+#include "common/alignment/platform.hpp"
+#include "common/opcua/pascominterfacecommon.h"
 
 /// @brief Controller class for an actuator device.
 class ActController : public PasController
@@ -24,38 +28,43 @@ public:
     /// @param pPlatform Platform object used to interface with hardware.
     ActController(int ID, std::shared_ptr<Platform> pPlatform);
     /// @brief Destroy an actuator device controller object.
-    virtual ~ActController();
+    ~ActController();
 
-    /// @brief Get the value of an actuator data variable.
-    /// @return OPC UA status code indicating success or failure.
-    UaStatusCode getData(OpcUa_UInt32 offset, UaVariant& value);
+    UaStatus updateState();
 
     /// @brief Set the internal state of an actuator data variable.
     /// @return OPC UA status code indicating success or failure.
-    UaStatusCode setState(PASState state);
+    UaStatus getState(PASState &state);
+    /// @brief Get the value of an actuator data variable.
+    /// @return OPC UA status code indicating success or failure.
+    UaStatus getData(OpcUa_UInt32 offset, UaVariant& value);
+    /// @brief Get the value of an actuator error variable.
+    /// @return OPC UA status code indicating success or failure.
+    UaStatus getError(OpcUa_UInt32 offset, UaVariant& value);
+
+    /// @brief Set the internal state of an actuator data variable.
+    /// @return OPC UA status code indicating success or failure.
+    //UaStatus setState(PASState state);
     /// @brief Set the value of an actuator data variable.
     /// @return OPC UA status code indicating success or failure.
-    UaStatusCode setData(OpcUa_UInt32 offset, UaVariant value);
+    UaStatus setData(OpcUa_UInt32 offset, UaVariant value);
+    /// @brief Set the value of an actuator error variable.
+    /// @return OPC UA status code indicating success or failure.
+    UaStatus setError(OpcUa_UInt32 offset, UaVariant value);
     /// @brief Call a method on the actuator device.
     /// @return OPC UA status code indicating success or failure.
-    UaStatusCode Operate(OpcUa_UInt32 offset, const UaVariantArray& args);
+    UaStatus Operate(OpcUa_UInt32 offset, const UaVariantArray& args);
 
 private:
     /// @brief Device state.
-    PASState m_state = PASState::PAS_Off;
+    PASState m_state = PASState::Off;
     /// @brief
     OpcUa_Float m_DeltaL;
     /// @brief
     OpcUa_Float m_inLength;
 
     /// @brief
-    UaStatusCode moveDelta(const UaVariantArray& args);
-
-    std::map<OpcUa_UInt32, function> m_DataMap = {
-
-    };
-
-    std::map<OpcUa_UInt32, function> m_MethodMap = {
-      {0, moveDelta}
-    };
+    UaStatus moveDelta(const UaVariantArray& args);
 };
+
+#endif

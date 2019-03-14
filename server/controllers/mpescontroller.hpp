@@ -3,6 +3,9 @@
  * @brief Header file for mirror panel edge sensor device controller.
  */
 
+#ifndef __MPESCONTROLLER_H__
+#define __MPESCONTROLLER_H__
+
 #include "server/controllers/pascontroller.hpp"
 
 #include <memory>
@@ -45,10 +48,12 @@ public:
 
 private:
     /// @brief The internal device state (on/off/busy).
-    PASState m_state = PASState::PAS_Off;
+    PASState m_state = PASState::Off;
     /// @brief Whether the MPES data has been read at least once since initialization.
     bool m_updated = false;
 
     /// @brief Update the MPES position data.
     OpcUa_Int32 read();
 };
+
+#endif

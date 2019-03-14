@@ -2,9 +2,9 @@
 #define ACTUATOR_H
 
 #ifndef _AMD64
-    #include "cbc.hpp"
+    #include "common/cbccode/cbc.hpp"
 #else
-    #include "dummycbc.hpp"
+    #include "common/cbccode/dummycbc.hpp"
     #define CBC DummyCBC
 #endif
 
@@ -22,7 +22,7 @@ OperableError=2,//Errors that the user should be aware of, but shouldn't interfe
 FatalError=3//Errors that the user should definitely be aware of and handle appropriately. The Actuator should not be able to move with a fatal error without first reconfiguring something.
 };
 
-StatusModes ErrorStatus {OperableError};
+StatusModes ErrorStatus {StatusModes::OperableError};
 
 struct ErrorInfo {
 bool Triggered;
@@ -103,20 +103,20 @@ int EndStopRecoverySteps{StepsPerRevolution/4};
 
 
 std::vector<ErrorInfo> ActuatorErrors{
-{true, "Home Position is not calibrated", FatalError},//error 0
-{false, "DBFlagNotSet", OperableError},//error 1
-{false, "MySQL Communication Error", OperableError},//error 2
-{false, "DB Columns does not match what is expected", FatalError},//error 3
-{false, "ASF File is Bad", FatalError},//error 4
-{false, "ASF File entries does not match what is expected", FatalError},//error 5
-{false, "DB recording more recent than ASF and has mismatch with measured angle", FatalError},//error 6
-{false, "Voltage Std Dev is entirely too high", FatalError},//error 7
-{false, "Actuator Missed too many steps", FatalError},//error 8
-{false, "Actuator position is too many steps away to recover safely", FatalError},//error 9
-{false, "Actuator position is recovering large amount of steps, should be ok", OperableError},//error 10
-{false, "Extend Stop Voltage is too close to the discontinuity. Possible 1 cycle uncertainty with calibrated data", OperableError},//error 11
-{false, "End stop is large number of steps away from what is expected. Possible uncertainty in home position", OperableError},//error 12
-{false, "Discrepancy between number of steps from extend stop and recorded number of steps from end stop is too high. Possible uncertainty in probed home position", OperableError}//error 13
+{true, "Home Position is not calibrated", StatusModes::FatalError},//error 0
+{false, "DBFlagNotSet", StatusModes::OperableError},//error 1
+{false, "MySQL Communication Error", StatusModes::OperableError},//error 2
+{false, "DB Columns does not match what is expected", StatusModes::FatalError},//error 3
+{false, "ASF File is Bad", StatusModes::FatalError},//error 4
+{false, "ASF File entries does not match what is expected", StatusModes::FatalError},//error 5
+{false, "DB recording more recent than ASF and has mismatch with measured angle", StatusModes::FatalError},//error 6
+{false, "Voltage Std Dev is entirely too high", StatusModes::FatalError},//error 7
+{false, "Actuator Missed too many steps", StatusModes::FatalError},//error 8
+{false, "Actuator position is too many steps away to recover safely", StatusModes::FatalError},//error 9
+{false, "Actuator position is recovering large amount of steps, should be ok", StatusModes::OperableError},//error 10
+{false, "Extend Stop Voltage is too close to the discontinuity. Possible 1 cycle uncertainty with calibrated data", StatusModes::OperableError},//error 11
+{false, "End stop is large number of steps away from what is expected. Possible uncertainty in home position", StatusModes::OperableError},//error 12
+{false, "Discrepancy between number of steps from extend stop and recorded number of steps from end stop is too high. Possible uncertainty in probed home position", StatusModes::OperableError}//error 13
 };//do not simply add a new error to this vector without changing the ASF files. If ASF text files are saved with 13 errors and this code is updated to 14 errors, text files must also be updated to 14 errors. otherwise the number of arguments in ASF file won't match, and an error will occur.
 
 int NumberOfIntsInASFHeader{8};//yr,mo,day,hr,min,sec,rev,angle

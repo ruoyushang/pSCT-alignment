@@ -564,7 +564,7 @@ int Actuator::SlowAngleCheck(PositionStruct ExpectedPosition)
 int Actuator::Step(int InputSteps)//Positive Step is Extension of Motor
 {
     DEBUG_MSG("Stepping Actuator " << SerialNumber << " " << InputSteps << " steps");
-    if(ErrorStatus == FatalError)//don't move actuator if there's a fatal error.
+    if(ErrorStatus == StatusModes::FatalError)//don't move actuator if there's a fatal error.
     {
         return InputSteps;
     }
@@ -590,7 +590,7 @@ int Actuator::Step(int InputSteps)//Positive Step is Extension of Motor
     bool KeepStepping=true;
 
 
-    while ((KeepStepping==true) && (ErrorStatus != FatalError))
+    while ((KeepStepping==true) && (ErrorStatus != StatusModes::FatalError))
     {
         if(std::abs(StepsRemaining)<=RecordingInterval)
         {
@@ -816,7 +816,7 @@ void Actuator::UnsetError(int CodeNumber)
 
 void Actuator::SetStatus(StatusModes InputStatus)
 {
-    if (ErrorStatus == FatalError)
+    if (ErrorStatus == StatusModes::FatalError)
     {
         return;
     }
@@ -830,7 +830,7 @@ void Actuator::SetStatus(StatusModes InputStatus)
 
 void Actuator::CheckErrorStatus()//cycle through all errors and set status based on ones triggered.
 {
-    ErrorStatus=Healthy;
+    ErrorStatus=StatusModes::Healthy;
     for (int i=0; i<NumberOfErrorCodes; i++)
     {
         if(ActuatorErrors[i].Triggered == true)
@@ -1153,7 +1153,7 @@ void Actuator::CopyFile(std::string srcfile, std::string destfile)
 int DummyActuator::Step(int InputSteps)//Positive Step is Extension of Motor
 {
     std::cout << "SIMMODE: Stepping Actuator " << SerialNumber << " " << InputSteps << " steps" << std::endl;
-    if(ErrorStatus == FatalError)//don't move actuator if there's a fatal error.
+    if(ErrorStatus == StatusModes::FatalError)//don't move actuator if there's a fatal error.
     {
         std::cout << "SIMMODE: Fatal error occurs!!!" << std::endl;
         return InputSteps;
