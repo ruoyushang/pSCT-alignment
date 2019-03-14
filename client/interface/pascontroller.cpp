@@ -68,7 +68,7 @@ void PasCompositeController::addChild(OpcUa_UInt32 deviceType, PasController *co
 PasMPES::PasMPES(Identity identity, Client *pClient) : PasController(identity, pClient),
     m_updated(false), m_isVisible(false)
 {
-    m_state = PASState::PAS_On;
+    m_state = PASState::On;
 
     // get the nominal aligned readings and response matrices from DB
     /* BEGIN DATABASE HACK */
@@ -154,7 +154,7 @@ PasMPES::PasMPES(Identity identity, Client *pClient) : PasController(identity, p
 PasMPES::~PasMPES()
 {
     m_pClient = nullptr;
-    m_state = PASState::PAS_Off;
+    m_state = PASState::Off;
 }
 /* ----------------------------------------------------------------------------
     Class        PasMPES
@@ -183,9 +183,9 @@ UaStatusCode PasMPES::setState(PASState state)
     UaMutexLocker lock(&m_mutex);
 
     m_state = state;
-    if ( state == PASState::PAS_Off )
+    if ( state == PASState::Off )
         status = m_pClient->callMethod(m_ID.eAddress, UaString("Stop"));
-    else if ( state == PASState::PAS_On )
+    else if ( state == PASState::On )
         status = m_pClient->callMethod(m_ID.eAddress, UaString("Start"));
     else
         status = OpcUa_BadInvalidArgument;
@@ -269,7 +269,7 @@ UaStatus PasMPES::read()
     UaStatus status;
 
     cout << "calling read() on " << m_ID << endl;
-    if ( m_state == PASState::PAS_On )
+    if ( m_state == PASState::On )
     {
         // read the values on the server first
         status = m_pClient->callMethod(m_ID.eAddress, UaString("Read"));
@@ -350,13 +350,13 @@ char PasMPES::getPanelSide(unsigned panelpos)
 PasACT::PasACT(Identity identity, Client *pClient) : PasController(identity, pClient),
     m_DeltaL {0.}
 {
-    m_state = PASState::PAS_On;
+    m_state = PASState::On;
 }
 
 PasACT::~PasACT()
 {
     m_pClient = nullptr;
-    m_state = PASState::PAS_Off;
+    m_state = PASState::Off;
 }
 
 /* ----------------------------------------------------------------------------
@@ -385,9 +385,9 @@ UaStatusCode PasACT::setState(PASState state)
         return OpcUa_BadInvalidState;
     }
     m_state = state;
-    if ( state == PASState::PAS_Off )
+    if ( state == PASState::Off )
         status = m_pClient->callMethod(m_ID.eAddress, UaString("Stop"));
-    else if ( state == PASState::PAS_On )
+    else if ( state == PASState::On )
         status = m_pClient->callMethod(m_ID.eAddress, UaString("Start"));
     else
         status = OpcUa_BadInvalidArgument;
@@ -477,7 +477,7 @@ UaStatus PasACT::moveDelta()
 {
     // don't lock the object -- might want to change state while operating the device!
     // UaMutexLocker lock(&m_mutex);
-    if ( m_state == PASState::PAS_On )
+    if ( m_state == PASState::On )
     {
         printf("stepping actuator %d by %5.3f mm\n", m_ID.serialNumber, m_DeltaL);
         return m_pClient->callMethodAsync(m_ID.eAddress, UaString("Step"));
@@ -500,7 +500,7 @@ PasPanel::PasPanel(Identity identity, Client *pClient) :
     m_inCoordsUpdated(false)
 {
     m_ID.name = string("Panel_") + to_string(m_ID.position);
-    m_state = PASState::PAS_On;
+    m_state = PASState::On;
     m_SP.SetPanelType(StewartPlatform::PanelType::OPT);
 
     // define possible children types
@@ -519,7 +519,7 @@ PasPanel::~PasPanel()
        for (auto& dev : devVector.second)
            dev = nullptr;
 
-    m_state = PASState::PAS_Off;
+    m_state = PASState::Off;
 }
 
 unsigned PasPanel::getActuatorCount()
@@ -548,13 +548,13 @@ UaStatusCode PasPanel::getState(PASState& state)
     val.toUInt32(intState);
     switch ( intState ) {
         case static_cast<unsigned>(PASState::On) :
-            m_state = PASState::PAS_On;
+            m_state = PASState::On;
             break;
         case static_cast<unsigned>(PASState::Off) :
-            m_state = PASState::PAS_Off;
+            m_state = PASState::Off;
             break;
         case static_cast<unsigned>(PASState::Busy) :
-            m_state = PASState::PAS_Busy;
+            m_state = PASState::Busy;
             break;
         case static_cast<unsigned>(PASState::OperableError) :
             m_state = PASState::OperableError;
@@ -665,7 +665,7 @@ UaStatusCode PasPanel::Operate(OpcUa_UInt32 offset, const UaVariantArray &args)
     if (offset != PAS_PanelType_Stop) {
         if (m_state == PASState::FatalError)
             cout << m_ID << "::Operate() : Current state is 'FatalError'! This won't do anything." << endl;
-        if (m_state == PASState::PAS_Busy)
+        if (m_state == PASState::Busy)
             cout << m_ID << "::Operate() : Current state is 'Busy'! This won't do anything." << endl;
     }
 
@@ -706,7 +706,7 @@ UaStatusCode PasPanel::Operate(OpcUa_UInt32 offset, const UaVariantArray &args)
 #endif
         PASState state;
         getState(state);
-        cout << "Current State is " << static_cast<unsigned>(m_state) << " and it is equivalent to PASState::PAS_Busy : " << (state == PASState::PAS_Busy) << endl;
+        cout << "Current State is " << static_cast<unsigned>(m_state) << " and it is equivalent to PASState::Busy : " << (state == PASState::Busy) << endl;
     }
 
 
@@ -992,7 +992,7 @@ PasEdge::PasEdge(Identity identity) : PasCompositeController(identity, nullptr),
     m_DeltaL {0.5}, m_AlignFrac {0.25}, m_isAligned(false)
 {
     m_ID.name = string("Edge_") + m_ID.eAddress;
-    m_state = PASState::PAS_On;
+    m_state = PASState::On;
     // defin possible children types
     m_ChildrenTypes = {PAS_MPESType, PAS_PanelType};
 }
@@ -1005,7 +1005,7 @@ PasEdge::~PasEdge()
        for (auto& dev : devVector.second)
            dev = nullptr;
 
-    m_state = PASState::PAS_Off;
+    m_state = PASState::Off;
 }
 
 /* ----------------------------------------------------------------------------
@@ -1257,8 +1257,8 @@ UaStatus PasEdge::__findSingleMatrix(unsigned panelidx)
         if (!status.isGood()) return status;
         // Stepping is asynchronous. but here, we want it to actually complete
         // before the next step. So we wait.
-        PASState curState = PASState::PAS_Busy;
-        while (curState == PASState::PAS_Busy) {
+        PASState curState = PASState::Busy;
+        while (curState == PASState::Busy) {
             usleep(300*1000); // microseconds
             pCurPanel->getState(curState);
         }
@@ -1282,8 +1282,8 @@ UaStatus PasEdge::__findSingleMatrix(unsigned panelidx)
         if (!status.isGood()) return status;
         // Stepping is asynchronous. but here, we want it to actually complete
         // before the next step. So we wait.
-        curState = PASState::PAS_Busy;
-        while (curState == PASState::PAS_Busy) {
+        curState = PASState::Busy;
+        while (curState == PASState::Busy) {
             usleep(300*1000); // microseconds
             pCurPanel->getState(curState);
         }
@@ -1715,13 +1715,13 @@ PasCCD::PasCCD(Identity identity) : PasController(identity, nullptr)
     m_ID.name = m_pCCD->getName();
     cout << "assigned the name " << m_ID.name << " to this CCD" << endl;
 
-    if (m_state != PASState::PAS_On)
-        m_state = PASState::PAS_On;
+    if (m_state != PASState::On)
+        m_state = PASState::On;
 }
 
 PasCCD::~PasCCD()
 {
-    m_state = PASState::PAS_Off;
+    m_state = PASState::Off;
 }
 /* ----------------------------------------------------------------------------
     Class        PasCCD
@@ -1824,7 +1824,7 @@ UaStatus PasCCD::read()
 {
     UaMutexLocker lock(&m_mutex);
 
-    if ( m_state == PASState::PAS_On )
+    if ( m_state == PASState::On )
     {
         printf("\nReading CCD %s\n", m_ID.name.c_str());
         m_pCCD->Update();
@@ -1848,7 +1848,7 @@ UaStatus PasCCD::read()
 PasPSD::PasPSD(Identity identity, Client *pClient) :
     PasController(identity, pClient, kUpdateInterval)
 {
-    m_state = PASState::PAS_On;
+    m_state = PASState::On;
     cout << "PasPSD: update interval set to " << m_UpdateInterval_ms << " ms" << endl;
 
     m_lastUpdateTime = TIME::now() - chrono::duration<int, ratio<1, 1000>>(m_UpdateInterval_ms);
@@ -1857,7 +1857,7 @@ PasPSD::PasPSD(Identity identity, Client *pClient) :
 PasPSD::~PasPSD()
 {
     m_pClient = nullptr;
-    m_state = PASState::PAS_Off;
+    m_state = PASState::Off;
 }
 
 UaStatusCode PasPSD::getState(PASState& state)

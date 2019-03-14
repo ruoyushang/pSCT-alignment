@@ -13,6 +13,7 @@
 #include "passervertypeids.h"
 #include "components.h"
 #include <iostream>
+#include <memory>
 #include "uaserver/opcua_analogitemtype.h"
 
 PasNodeManager::PasNodeManager()
@@ -37,7 +38,7 @@ PasNodeManager::~PasNodeManager()
 void PasNodeManager::setCommunicationInterface(PasCommunicationInterface *pCommIf)
 {
     std::cout << "PasNodeManager: Setting communication interface\n";
-    m_pCommIf = static_cast<PasComInterfaceCommon *>(pCommIf);
+    m_pCommIf = std::unique_ptr<PasComInterfaceCommon>(pCommIf);
 }
 
 void PasNodeManager::setConfiguration(Configuration *pConfiguration)
@@ -74,7 +75,7 @@ UaStatus PasNodeManager::afterStartUp()
         id.eAddress = positioner_address.toUtf8();
         id.name = "Positioner";
         // add the positioner to the comm interface
-        dynamic_cast<PasCommunicationInterface *>(m_pCommIf)->addDevice(m_pPositioner, GLOB_PositionerType, id);
+        dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->addDevice(m_pPositioner, GLOB_PositionerType, id);
         std::cout << "Added positioner\n";
     }
     else {
@@ -94,7 +95,7 @@ UaStatus PasNodeManager::afterStartUp()
         m_pClient.at(client)->setAddress(UaString(panelId.eAddress.c_str()));
         ret = m_pClient.at(client)->connect();
         if (ret.isGood()) {
-            dynamic_cast<PasCommunicationInterface*>(m_pCommIf)->addDevice(m_pClient.at(client), PAS_PanelType, panelId);
+            dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->addDevice(m_pClient.at(client), PAS_PanelType, panelId);
             // add the nodes that are the result of browsing
             ret = m_pClient.at(client)->browseAndAddDevices();
         }
@@ -141,7 +142,7 @@ UaStatus PasNodeManager::afterStartUp()
         //Create a folder for the positioner and add the folder to the ObjectsFolder
         PositionerObject *pPositioner = new PositionerObject(sDeviceName,
                 UaNodeId(sDeviceName, getNameSpaceIndex()), m_defaultLocaleId, this, identity,
-                dynamic_cast<PasCommunicationInterface*>(m_pCommIf));
+                dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get()));
         ret = addNodeAndReference(OpcUaId_ObjectsFolder, pPositioner, OpcUaId_Organizes);
         UA_ASSERT(ret.isGood());
         ret = addUaReference(pPositioner->nodeId(), pPositioner->typeDefinitionId(), OpcUaId_HasTypeDefinition);
@@ -152,12 +153,12 @@ UaStatus PasNodeManager::afterStartUp()
     // Also add to device folder
     for (auto it=PasCommunicationInterface::deviceTypeNames.begin(); it!=PasCommunicationInterface::deviceTypeNames.end(); ++it) {
         deviceType = it->first;
-        count = dynamic_cast<PasCommunicationInterface *>(m_pCommIf)->getDevices(deviceType);
+        count = dynamic_cast<PasCommunicationInterface*>(m_pCommIf.get())->getDevices(deviceType);
 
         for (unsigned i = 0; i < count; i++)
         {
             ret = m_pCommIf->getDeviceConfig(deviceType, i, sDeviceName, identity);
-            pController = dynamic_cast<PasCommunicationInterface *>(m_pCommIf)->getDeviceFromId(deviceType, identity);
+            pController = dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->getDeviceFromId(deviceType, identity);
             //If folder doesn't already exist, create a folder for each object type and add the folder to the DevicesByType folder
             if ( pDeviceFolders.find(deviceType) == pDeviceFolders.end() ) {
                 deviceName = PasCommunicationInterface::deviceTypeNames[deviceType];
@@ -169,7 +170,7 @@ UaStatus PasNodeManager::afterStartUp()
             // Create object
             pObject = pPasFactory->Create(deviceType, sDeviceName, UaNodeId(sDeviceName, getNameSpaceIndex()),
                     m_defaultLocaleId, this, identity,
-                    dynamic_cast<PasCommunicationInterface*>(m_pCommIf));
+                    dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get()));
 
             // Create node
             ret = addUaNode(pObject);
@@ -1056,11 +1057,11 @@ OpcUa_Int32 PasNodeManager::Panic()
     Identity id;
     for (OpcUa_Int32 i = 0; i < actcount; i++)
     {
-        status = dynamic_cast<PasCommunicationInterface*>(m_pCommIf)->getDeviceConfig(PAS_ACTType, i, id);
+        status = dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->getDeviceConfig(PAS_ACTType, i, id);
         if (status.isGood())
         {
             printf("Will try changing state for %s\n", id.eAddress.c_str());
-            status = m_pCommIf->setDeviceState(PAS_ACTType, id, PASState::PAS_Off );
+            status = m_pCommIf->setDeviceState(PAS_ACTType, id, PASState::Off );
         }
         else
             printf("Problem changing state for %s\n", id.eAddress.c_str());
@@ -1069,11 +1070,11 @@ OpcUa_Int32 PasNodeManager::Panic()
     sleep(3);
     for (OpcUa_Int32 i = 0; i < actcount; i++)
     {
-        status = dynamic_cast<PasCommunicationInterface*>(m_pCommIf)->getDeviceConfig(PAS_ACTType, i, id);
+        status = dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->getDeviceConfig(PAS_ACTType, i, id);
         if (status.isGood())
         {
             printf("Will try changing state for %s again\n", id.eAddress.c_str());
-            status = m_pCommIf->setDeviceState(PAS_ACTType, id, PASState::PAS_On );
+            status = m_pCommIf->setDeviceState(PAS_ACTType, id, PASState::On );
         }
         else
             printf("Problem changing state for %s\n", id.eAddress.c_str());

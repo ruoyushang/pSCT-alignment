@@ -481,7 +481,7 @@ void Client::addDevices(const OpcUa_ReferenceDescription& referenceDescription)
             printf("=====================================\n");
             printBrowseResults(referenceDescription);
             printf("will add %s %d as %s\n", name.c_str(), identity.serialNumber, identity.eAddress.c_str());
-            ((PasCommunicationInterface*)m_pNodeManager->getComInterface())->addDevice(this, type, identity);
+            ((PasCommunicationInterface*)m_pNodeManager->getComInterface().get())->addDevice(this, type, identity);
         }
     }
 }

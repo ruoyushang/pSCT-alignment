@@ -90,7 +90,7 @@ IF (ROOT_FOUND)
     OUTPUT_VARIABLE ROOT_LIBRARY_DIR_TMP )
 
   IF(EXISTS "${ROOT_LIBRARY_DIR_TMP}")
-    SET(ROOT_LIBRARY_DIR ${ROOT_LIBRARY_DIR_TMP} )
+      SET(ROOT_LIBRARY_DIR ${ROOT_LIBRARY_DIR_TMP} CACHE INTERNAL "")
   ELSE(EXISTS "${ROOT_LIBRARY_DIR_TMP}")
     MESSAGE("Warning: ROOT_CONFIG_EXECUTABLE reported ${ROOT_LIBRARY_DIR_TMP} as library path,")
     MESSAGE("Warning: but ${ROOT_LIBRARY_DIR_TMP} does NOT exist, ROOT must NOT be installed correctly.")
@@ -100,14 +100,13 @@ IF (ROOT_FOUND)
   EXEC_PROGRAM(${ROOT_CONFIG_EXECUTABLE}
     ARGS "--bindir"
     OUTPUT_VARIABLE root_bins )
-  SET(ROOT_BINARY_DIR ${root_bins})
+  SET(ROOT_BINARY_DIR ${root_bins} CACHE INTERNAL "")
 
   # ask root-config for the include dir
   EXEC_PROGRAM( ${ROOT_CONFIG_EXECUTABLE}
     ARGS "--incdir"
     OUTPUT_VARIABLE root_headers )
-  SET(ROOT_INCLUDE_DIR ${root_headers})
-      # CACHE INTERNAL "")
+  SET(ROOT_INCLUDE_DIRS ${root_headers} CACHE INTERNAL "")
 
   # ask root-config for the library varaibles
   EXEC_PROGRAM( ${ROOT_CONFIG_EXECUTABLE}
@@ -118,16 +117,17 @@ IF (ROOT_FOUND)
 #  STRING(REGEX MATCHALL "([^ ])+"  root_libs_all ${root_flags})
 #  STRING(REGEX MATCHALL "-L([^ ])+"  root_library ${root_flags})
 #  REMOVE_FROM_LIST(root_flags "${root_libs_all}" "${root_library}")
-
-  SET(ROOT_LIBRARIES ${root_flags})
+ 
+  SET(root_flags "${root_flags} -lMinuit")
+  SET(ROOT_LIBRARIES ${root_flags} CACHE INTERNAL "")
 
   # Make variables changeble to the advanced user
   MARK_AS_ADVANCED( ROOT_LIBRARY_DIR ROOT_INCLUDE_DIR ROOT_DEFINITIONS)
 
   # Set ROOT_INCLUDES
-  SET( ROOT_INCLUDES ${ROOT_INCLUDE_DIR})
+  SET(ROOT_INCLUDES ${ROOT_INCLUDE_DIR} CACHE INTERNAL "")
 
-  SET(LD_LIBRARY_PATH ${LD_LIBRARY_PATH} ${ROOT_LIBRARY_DIR})
+  SET(LD_LIBRARY_PATH ${LD_LIBRARY_PATH} ${ROOT_LIBRARY_DIR} CACHE INTERNAL "")
 
   #######################################
   #
@@ -174,10 +174,10 @@ MACRO (ROOT_GENERATE_DICTIONARY_OLD )
 
    endforeach (_current_FILE ${ARGN})
 
-#  MESSAGE("INFILES: ${INFILES}")
-#  MESSAGE("OutFILE: ${OUTFILE}")
-#  MESSAGE("LINKDEF_FILE: ${LINKDEF_FILE}")
-#  MESSAGE("INCLUDE_DIRS: ${INCLUDE_DIRS}")
+  MESSAGE("INFILES: ${INFILES}")
+  MESSAGE("OutFILE: ${OUTFILE}")
+  MESSAGE("LINKDEF_FILE: ${LINKDEF_FILE}")
+  MESSAGE("INCLUDE_DIRS: ${INCLUDE_DIRS}")
 
    STRING(REGEX REPLACE "(^.*).cxx" "\\1.h" bla "${OUTFILE}")
 #   MESSAGE("BLA: ${bla}")
@@ -237,10 +237,10 @@ MACRO (GENERATE_ROOT_TEST_SCRIPT SCRIPT_FULL_NAME)
   get_filename_component(file_name ${SCRIPT_FULL_NAME} NAME_WE)
   set(shell_script_name "${file_name}.sh")
 
-  #MESSAGE("PATH: ${path_name}")
-  #MESSAGE("Ext: ${file_extension}")
-  #MESSAGE("Name: ${file_name}")
-  #MESSAGE("Shell Name: ${shell_script_name}")
+  MESSAGE("PATH: ${path_name}")
+  MESSAGE("Ext: ${file_extension}")
+  MESSAGE("Name: ${file_name}")
+  MESSAGE("Shell Name: ${shell_script_name}")
 
   string(REPLACE ${PROJECT_SOURCE_DIR}
          ${PROJECT_BINARY_DIR} new_path ${path_name}
