@@ -17,6 +17,7 @@
 #include "mysql_driver.h"
 #include "cppconn/statement.h"
 #include <cppconn/exception.h>
+#include "DBConfig.h"
 
 using namespace std;
 /* ----------------------------------------------------------------------------
@@ -75,11 +76,12 @@ UaStatusCode PasCommunicationInterface::Initialize()
     /* *********************************************************/
     /* INITIAL DATABASE HACK JOB -- NEEDS TO HAVE ITS OWN CLASS */
     Actuator::DBStruct HDB_ID;
-    HDB_ID.ip="remus.ucsc.edu";
-    HDB_ID.port="3406";
-    HDB_ID.user="CTAreadonly";
-    HDB_ID.password="readCTAdb";
-    HDB_ID.dbname="CTAonline";
+    DBConfig myconfig = DBPubConfig::getDefaultConfig();
+    HDB_ID.ip=myconfig.getHost();
+    HDB_ID.port=std::to_string(myconfig.getPort());
+    HDB_ID.user=myconfig.getUser();
+    HDB_ID.password=myconfig.getPassword();
+    HDB_ID.dbname=myconfig.getDatabase();
     string db_address = "tcp://" + HDB_ID.ip + ":" + HDB_ID.port;
 
     try {
