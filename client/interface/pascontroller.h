@@ -316,7 +316,7 @@ public:
     UaStatusCode Operate(OpcUa_UInt32 offset = 0, const UaVariantArray &args = UaVariantArray());
 
 private:
-    PASState m_state = PASState::PAS_Off;
+    PASState m_state = PASState::Off;
     bool m_updated = false;
 
     UaStatus read();
