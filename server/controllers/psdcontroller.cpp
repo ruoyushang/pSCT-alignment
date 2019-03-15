@@ -18,22 +18,22 @@
 #include "common/opcua/pascominterfacecommon.h"
 
 /// @details By default, sets the update interval to 500 ms. Creates a new GASPSD object,
-/// sets its port, and initializes. Sets state to On.
+/// sets its port, and initializes. Sets its state to On.
 PSDController::PSDController(int ID) : PasController(ID, 500)
 {
     m_pPSD = new GASPSD();
     m_pPSD->setPort();
     m_pPSD->Initialize();
-    m_state = PASState::PAS_On;
+    m_state = PASState::On;
 }
 
 /// @details Sets the device state to off.
 PSDController::~PSDController()
 {
-    m_state = PASState::PAS_Off; // Set state to off
+    m_state = PASState::Off;
 }
 
-/// @details Calls GASPSD.getOutput() to read data. Locks the mutex to prevent concurrent actions while reading data.
+/// @details Calls GASPSD.getOutput() to read data. Locks the shared mutex to prevent concurrent actions while reading data.
 UaStatusCode PSDController::getData(OpcUa_UInt32 offset, UaVariant& value)
 {
     UaMutexLocker lock(&m_mutex);
@@ -53,13 +53,13 @@ UaStatusCode PSDController::getData(OpcUa_UInt32 offset, UaVariant& value)
     return status;
 }
 
-/// @details No effect, PSDs have no writable data variables.
+/// @details Has no effect, as PSDs have no writable data variables.
 UaStatusCode PSDController::setData(OpcUa_UInt32 offset, UaVariant value)
 {
     return OpcUa_BadNotWritable;
 }
 
-/// @details Locks the mutex to prevent concurrent actions while calling methods.
+/// @details Locks the shared mutex to prevent concurrent actions while calling methods.
 UaStatusCode PSDController::Operate(OpcUa_UInt32 offset, const UaVariantArray& args)
 {
     UaMutexLocker lock(&m_mutex);
@@ -77,12 +77,12 @@ UaStatusCode PSDController::Operate(OpcUa_UInt32 offset, const UaVariantArray& a
     return status;
 }
 
-/// @details Calls update on the GASPSD object and updates the lastUpdateTime. Also locks the mutex while reading.
+/// @details Calls update on the GASPSD object and revises the last update time. Locks the shared mutex while reading.
 UaStatus PSDController::read()
 {
     UaMutexLocker lock(&m_mutex);
 
-    if ( m_state == PASState::PAS_On )
+    if ( m_state == PASState::On )
     {
         std::cout << "\nReading PSD " <<  m_ID << std::endl;
         m_pPSD->Update();
