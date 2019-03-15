@@ -1,20 +1,19 @@
 /**
  * @file pascontroller.cpp
- * @brief Source file for generic device controller class
+ * @brief Source file for generic device controller class.
  */
 
-#ifndef _AMD64
-    #include "server/controllers/psdcontroller.hpp"
-#endif
+ #include "server/controllers/pascontroller.hpp"
 
 #include "uabase/statuscode.h"
 #include "uabase/uamutex.h"
 
-#include "server/controllers/pascontroller.hpp"
-
 #include "common/opcua/passervertypeids.h"
 #include "common/alignment/platform.hpp"
 
+#ifndef _AMD64
+    #include "server/controllers/psdcontroller.hpp"
+#endif
 
 /// @details Locks the shared mutex while retrieving the state.
 UaStatus PasController::getState(PASState& state)
@@ -24,7 +23,7 @@ UaStatus PasController::getState(PASState& state)
     return OpcUa_Good;
 }
 
-/// #details Does not allow setting the state to error or setting the state to
+/// @details Does not allow setting the state to error or setting the state to
 /// its current value. Locks the shared mutex while setting the state.
 UaStatus PasController::setState(PASState state)
 {

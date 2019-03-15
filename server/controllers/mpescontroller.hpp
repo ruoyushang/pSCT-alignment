@@ -19,7 +19,7 @@
 
 class Platform;
 
-/// @brief Controller class for a mirror panel edge sensor device.
+/// @brief Class representing a mirror panel edge sensor device controller.
 class MPESController : public PasController
 {
     UA_DISABLE_COPY(MPESController); // Disables copy construction and copy assignment
@@ -47,7 +47,7 @@ public:
     UaStatus Operate(OpcUa_UInt32 offset, const UaVariantArray& args);
 
 private:
-    /// @brief The internal device state (on/off/busy).
+    /// @brief The internal device state.
     PASState m_state = PASState::Off;
     /// @brief Whether the MPES data has been read at least once since initialization.
     bool m_updated = false;

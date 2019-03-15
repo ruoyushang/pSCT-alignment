@@ -29,7 +29,7 @@ const std::map<OpcUa_UInt32, std::pair<std::string, int>> PanelObject::methods =
 
 std::map<UaNodeId, std::pair<UaMethodGeneric *, OpcUa_UInt32>> m_MethodMap;
 
-/// @details
+/// @details Adds all child variable nodes and child method nodes. nitializes a reference-counting shared mutex for thread locking.
 PanelObject::PanelObject(
     const UaString& name,
     const UaNodeId& newNodeId,
@@ -50,7 +50,7 @@ PanelObject::PanelObject(
         addVariable(pNodeManager, PAS_PanelType, it->first, std::get<2>(it->second));
     }
 
-    // Add all method variable nodes
+    // Add all child method nodes
     UaString sName;
     UaString sNodeId;
     OpcUa_Int16 nsIdx = pNodeManager->getNameSpaceIndex();
@@ -80,7 +80,7 @@ UaNodeId PanelObject::typeDefinitionId() const
     return ret;
 }
 
-/// @details
+/// @details Executes the requested method by calling the communication interface to retrieve the desired device controller.
 UaStatus PanelObject::call(
     const ServiceContext&  serviceContext,
     MethodHandle*          pMethodHandle,

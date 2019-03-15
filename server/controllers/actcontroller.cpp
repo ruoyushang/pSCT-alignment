@@ -14,7 +14,6 @@
 ActController::ActController(int ID, std::shared_ptr<Platform> pPlatform) : PasController(ID, pPlatform)
 {
     m_state = PASState::On;
-    m_inLength = m_pPlatform->getActuatorAt(m_ID)->MeasureLength();
     m_DeltaL = 0.;
 }
 
@@ -24,6 +23,7 @@ ActController::~ActController()
     m_state = PASState::Off; // NOTE: This shouldn't do anything, as the object is destroyed anyways.
 }
 
+/// @details Calls update state before returning the current state.
 UaStatus ActController::getState(PASState& state)
 {
     UaMutexLocker lock(&m_mutex);
@@ -53,6 +53,7 @@ UaStatus ActController::updateState()
     return OpcUa_Good;
 }
 
+/// @details If the offset given points to an error variable, internally calls getError. Locks the shared mutex while reading data.
 UaStatus ActController::getData(OpcUa_UInt32 offset, UaVariant& value)
 {
     UaMutexLocker lock(&m_mutex);
@@ -71,9 +72,6 @@ UaStatus ActController::getData(OpcUa_UInt32 offset, UaVariant& value)
               break;
           case 1:
               value.setFloat(m_pPlatform->getActuatorAt(m_ID)->MeasureLength());
-              break;
-          case 2:
-              value.setFloat(m_inLength);
               break;
           default:
               status = OpcUa_BadInvalidArgument;
@@ -100,7 +98,7 @@ UaStatus ActController::getError(OpcUa_UInt32 offset, UaVariant& value)
     return status;
 }
 
-/// @details Locks mutex while writing data.
+/// @details Locks the shared mutex while writing data.
 UaStatus ActController::setData(OpcUa_UInt32 offset, UaVariant value)
 {
     UaMutexLocker lock(&m_mutex);
@@ -112,9 +110,6 @@ UaStatus ActController::setData(OpcUa_UInt32 offset, UaVariant value)
             value.toFloat(m_DeltaL);
             status = OpcUa_Good;
             break;
-        case PAS_ACTType_inLength_mm:
-            value.toFloat(m_inLength);
-            status = OpcUa_Good;
         default:
             status = OpcUa_BadNotWritable;
     }
@@ -122,29 +117,13 @@ UaStatus ActController::setData(OpcUa_UInt32 offset, UaVariant value)
     return status;
 }
 
-/// @details Locks mutex while writing data.
+/// @details Does nothing, as errors are not currently user-writeable.
 UaStatus ActController::setError(OpcUa_UInt32 offset, UaVariant value)
 {
-    UaMutexLocker lock(&m_mutex);
-    UaStatus status;
-
-    switch ( offset )
-    {
-        case PAS_ACTType_Steps:
-            value.toFloat(m_DeltaL);
-            status = OpcUa_Good;
-            break;
-        case PAS_ACTType_inLength_mm:
-            value.toFloat(m_inLength);
-            status = OpcUa_Good;
-        default:
-            status = OpcUa_BadNotWritable;
-    }
-
-    return status;
+    return OpcUa_BadNotWritable;
 }
 
-/// @details Locks mutex while calling method.
+/// @details Locks shared mutex while operating device.
 UaStatus ActController::Operate(OpcUa_UInt32 offset, const UaVariantArray& args)
 {
     UaMutexLocker lock(&m_mutex); // Lock the object to prevent other actions while operating.
@@ -162,7 +141,7 @@ UaStatus ActController::Operate(OpcUa_UInt32 offset, const UaVariantArray& args)
     return status;
 }
 
-/// @details Calls MoveDeltaLengths on the Platform object with the desired change for this actuator and zero for all others.
+/// @details Calls MoveDeltaLengths on the Platform object with the desired length change for this actuator and zero for all others.
 // Applies lock to shared mutex to prevent other actions. Will fail unless device state is PAS_On.
 UaStatus ActController::moveDelta(const UaVariantArray& args)
 {

@@ -39,9 +39,7 @@ const std::map<OpcUa_UInt32, std::string> PasCommunicationInterface::deviceTypes
     };
 
 PasCommunicationInterface::PasCommunicationInterface() :
-    m_serverIP(""),
     m_stop(OpcUa_False),
-    m_platform(nullptr)
 {
 }
 
@@ -54,8 +52,8 @@ PasCommunicationInterface::~PasCommunicationInterface()
 }
 
 /// @details Uses hardcoded DB login info to access the device database and retrieve
-/// all device mappings and positions. Then, initializes all corresponding controllers and attaches
-/// all actuators to the corresponding panel.
+/// all device mappings and positions. Then, initializes all corresponding controllers, adds all MPES to the platform object,
+/// and attaches all actuator controllers to the corresponding panel controller.
 UaStatusCode PasCommunicationInterface::Initialize()
 {
     UaStatusCode status;

@@ -35,29 +35,45 @@ public:
     /// @brief Destroy a communication interface object.
     ~PasCommunicationInterface();
 
-    /// @brief Initialize all device controllers by reading from the database.
-    /// @return A status code indicating success/failure.
+    /// @brief Initialize all device controllers using information from the database.
+    /// @return OPC UA status code indicating success/failure.
     UaStatusCode Initialize();
-    /// @brief Set the panel server IP used to retreive information from the database.
+    /// @brief Set the panel server IP used when retreiving information from the database.
     /// @param serverIP External IP address of the panel/controller board.
     void setserverIP(const std::string& serverIP) { m_serverIP = serverIP; }
 
-    /// @brief Get the number of found devices of a given type.
+    /// @brief Get the total number of devices of a given type.
+    /// @param deviceType OPC UA type ID for the desired device object type.
+    /// @return The number of found device controllers.
     std::size_t getDeviceCount(OpcUa_UInt32 deviceType);
 
-    /// @brief Get the eAddresses of all existing devices of a given type.
+    /// @brief Get the eAddresses of all devices of a given type.
+    /// @param deviceType OPC UA type ID for the desired device object type.
+    /// @return A vector of device eAddresses.
     std::vector<int> getValidDeviceAddresses(OpcUa_UInt32 deviceType);
 
-    /// @brief Get the PasController for a specific device.
+    /// @brief Get the a pointer to the device controller for a specific device.
+    /// @param deviceType OPC UA type ID for the desired device object type.
+    /// @param eAddress The electronic address (USB/serial port number) of the desired device.
+    /// @return Pointer to the device controller.
     std::unique_ptr<PasController>& getDevice(OpcUa_UInt32 deviceType, int eAddress);
 
     /// @brief Get a device's state through its controller.
+    /// @param deviceType OPC UA type ID for the desired device object type.
+    /// @param eAddress The electronic address (USB/serial port number) of the desired device.
+    /// @param state Variable to store the retrieved state value.
+    /// @return OPC UA status code indicating success/failure.
     UaStatusCode getDeviceState(
         OpcUa_UInt32 deviceType,
         int eAddress,
         PASState& state);
 
     /// @brief Get a device's data through its controller.
+    /// @param deviceType OPC UA type ID for the desired device object type.
+    /// @param eAddress The electronic address (USB/serial port number) of the desired device.
+    /// @param offset A number used to uniquely identify the data variable to access.
+    /// @param value Variable to store the retrieved data value.
+    /// @return OPC UA status code indicating success/failure.
     UaStatusCode getDeviceData(
         OpcUa_UInt32 deviceType,
         int eAddress,
@@ -65,12 +81,21 @@ public:
         UaVariant& value);
 
     /// @brief Set a device's state through its controller.
+    /// @param deviceType OPC UA type ID for the desired device object type.
+    /// @param eAddress The electronic address (USB/serial port number) of the desired device.
+    /// @param state State value to set the device state to.
+    /// @return OPC UA status code indicating success/failure.
     UaStatusCode setDeviceState(
         OpcUa_UInt32 deviceType,
         int eAddress,
         PASState state);
 
     /// @brief Set a device's data through its controller.
+    /// @param deviceType OPC UA type ID for the desired device object type.
+    /// @param eAddress The electronic address (USB/serial port number) of the desired device.
+    /// @param offset A number used to uniquely identify the data variable to access.
+    /// @param value Value to write to the data variable.
+    /// @return OPC UA status code indicating success/failure.
     UaStatusCode setDeviceData(
         OpcUa_UInt32 deviceType,
         int eAddress,
@@ -78,46 +103,52 @@ public:
         UaVariant value);
 
     /// @brief Operate a device through its controller.
+    /// @param deviceType OPC UA type ID for the desired device object type.
+    /// @param eAddress The electronic address (USB/serial port number) of the desired device.
+    /// @param offset A number used to uniquely identify the method to call.
+    /// @param args Array of method arguments as UaVariants.
+    /// @return OPC UA status code indicating success/failure.
     UaStatusCode OperateDevice(
         OpcUa_UInt32 deviceType,
         int eAddress,
-        OpcUa_UInt32 offset = 0,
-        const UaVariantArray& args = UaVariantArray());
+        OpcUa_UInt32 offset,
+        const UaVariantArray& args);
 
-    /// @brief Map of the OPC UA type ID for all supported device types to their device name.
+    /// @brief Map of OPC UA type ID to device type name for all device types supported by the server.
     static const std::map<OpcUa_UInt32, std::string> deviceTypes;
 
     // Unused/temporary methods to match interface of virtual parent class
-    
-    /// @brief Get a device's name and identity information through its controller.
-    /// Unused. Temporary, remove after reworking common/pascommmunicationinterfacecommon.h.
+
+    /// @brief Temporary/unused, remove after reworking common/pascommmunicationinterfacecommon.h.
     UaStatusCode getDeviceConfig(
         OpcUa_UInt32 deviceType,
         OpcUa_UInt32 deviceIndex,
         UaString& sName,
         Identity& identity) { return OpcUa_BadNotImplemented; };
 
+    /// @brief Temporary/unused, remove after reworking common/pascommmunicationinterfacecommon.h.
     OpcUa_Int32 getDevices(OpcUa_UInt32 deviceType) { return 0; };
 
-    /* Get device status and data */
+    /// @brief Temporary/unused, remove after reworking common/pascommmunicationinterfacecommon.h.
     UaStatusCode getDeviceState(OpcUa_UInt32 type, const Identity& identity, PASState& state) { return OpcUa_BadNotImplemented; };
 
+    /// @brief Temporary/unused, remove after reworking common/pascommmunicationinterfacecommon.h.
     UaStatusCode getDeviceData(OpcUa_UInt32 type, const Identity& identity,
             OpcUa_UInt32 offset,
             UaVariant &value) { return OpcUa_BadNotImplemented; };
 
-    /* Set device status and data*/
+    /// @brief Temporary/unused, remove after reworking common/pascommmunicationinterfacecommon.h.
     UaStatusCode setDeviceState(OpcUa_UInt32 type, const Identity& identity, PASState state) { return OpcUa_BadNotImplemented; };
 
+    /// @brief Temporary/unused, remove after reworking common/pascommmunicationinterfacecommon.h.
     UaStatusCode setDeviceData(OpcUa_UInt32 type, const Identity& identity,
             OpcUa_UInt32 offset,
             UaVariant value) { return OpcUa_BadNotImplemented; };
 
+    /// @brief Temporary/unused, remove after reworking common/pascommmunicationinterfacecommon.h.
     UaStatusCode OperateDevice(OpcUa_UInt32 type, const Identity& identity,
             OpcUa_UInt32 offset = 0,
             const UaVariantArray& args = UaVariantArray()) { return OpcUa_BadNotImplemented; };
-
-
 
 private:
     /// @brief Shared mutex used to control multi thread access to controller.
@@ -133,7 +164,7 @@ private:
     /// @warning Unused.
     OpcUa_Boolean m_stop;
 
-    /// @brief Platform object used by all devices to interface directly with the hardware.
+    /// @brief Pointer to the platform object used by all devices to interface with the hardware.
     std::shared_ptr<Platform> m_platform;
 };
 

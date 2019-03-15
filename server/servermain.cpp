@@ -30,8 +30,8 @@
 
 
 /// @brief Check the available disk space on the system.
-/// @param size Reference to a double to store the retrieved file system size (in GB).
-/// @return Returns 0 on success and -1 on failure.
+/// @param size Double to store the retrieved file system size (in GB).
+/// @return 0 on success and -1 on failure.
 int CheckSystem(double &size)
 {
     struct statvfs sysBuf;
@@ -43,10 +43,10 @@ int CheckSystem(double &size)
 }
 
 /// @brief Initialize, configure, and start the OPC UA server.
-/// @param szAppPath String application filepath.
-/// @param configFilePath String path to configuration file for server.
-/// @param serverIP Url for the server.
-/// @return Returns 0 on success and -1 on failure.
+/// @param szAppPath The file path of the application.
+/// @param configFilePath The file path to the server configuration file.
+/// @param serverIP The IP address for the server endpoint.
+/// @return 0 on success and -1 on failure.
 int OpcServerMain(std::string szAppPath, std::string configFilePath, std::string serverIP)
 {
     int ret;
@@ -93,10 +93,9 @@ int OpcServerMain(std::string szAppPath, std::string configFilePath, std::string
             std::cout << " Press " << SHUTDOWN_SEQUENCE << " to shut down server\n";
             std::cout << "***************************************************\n";
 
-            // Wait for user command to terminate the server.
             while ( ShutDownFlag() == 0 )
             {
-                UaThread::msleep(1000);
+                UaThread::msleep(1000); // Wait for user command to terminate the server.
             }
 
             std::cout << "***************************************************\n";
@@ -148,8 +147,7 @@ int main(int argc, char* argv[])
     }
     cbcIPAddress = argv[optind];
 
-    // NOTE: It is unclear whether this method allocates on the heap
-    // It is assumed so, which is why we later call delete manually.
+    // NOTE: This method returns a pointer to heap-allocated memory, must be freed manually
     char* pszAppPath = getAppPath(); // Extract application path
 
     #if SUPPORT_XML_PARSER
