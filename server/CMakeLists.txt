@@ -4,7 +4,7 @@ set_property(GLOBAL PROPERTY USE_FOLDERS ON) # Required to make folder targets
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11" ) # Set all C++ compiler flags
 set(CMAKE_PREFIX_PATH "/usr" ${CMAKE_PREFIX_PATH})
-set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/../sdk/cmake ${CMAKE_MODULE_PATH}) # NOTE: requires that sdk directory is on the same level as the server directory containing CMakeLists.txt
+set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../sdk/cmake ${CMAKE_MODULE_PATH}) # NOTE: requires that sdk directory is on the same level as the server directory containing CMakeLists.txt
 set(CMAKE_SKIP_BUILD_RPATH FALSE)
 set(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
 set(CMAKE_INSTALL_RPATH ${CMAKE_CURRENT_SOURCE_DIR}/../sdk/lib) # NOTE: requires that sdk directory is on the same level as the server directory containing CMakeLists.txt
@@ -150,6 +150,7 @@ include_directories(${UABASE_INCLUDE})
 include_directories(${UASERVER_INCLUDE})
 include_directories(${UACOREMODULE_INCLUDE})
 include_directories(${OpenCV_INCLUDE_DIR})
+MESSAGE("ROOT_INCLUDES=${ROOT_INCLUDES}")
 include_directories(${ROOT_INCLUDES})
 include_directories(${MYSQLCONNECTORCPP_INCLUDE_DIRS})
 
@@ -235,7 +236,7 @@ endif ( USE_XMLCONFIG )
 
 ####################################### Link Libraries ########################################
 
-message(WARNING "OPC UA library directory (UA_LIB_DIR) = ${UA_LIB_DIR}")
+message("OPC UA library directory (UA_LIB_DIR) = ${UA_LIB_DIR}")
 if ( NOT TARGET uastack )
     target_link_libraries(${PROJECT_NAME} ${UAMODULE_LIBRARY} ${UAMODELS_LIBRARY} ${UACOREMODULE_LIBRARY} ${UABASE_LIBRARY} ${UASTACK_LIBRARY})
 else ( NOT TARGET uastack )
