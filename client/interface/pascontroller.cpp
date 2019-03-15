@@ -414,8 +414,8 @@ UaStatusCode PasACT::getData(OpcUa_UInt32 offset, UaVariant& value)
     string varstoread[3] {"Steps", "curLength_mm", "inLength_mm"};
 
     vector<string> vec_curread {m_ID.eAddress + "." + varstoread[dataoffset]};
-    printf("PasACT::getData -> value = %s\n",value.toString().toUtf8());
     status = m_pClient->read(vec_curread, &value);
+    printf("PasACT::getData -> value = %s\n",value.toString().toUtf8());
 
     return status;
 }
