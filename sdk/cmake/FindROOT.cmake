@@ -106,8 +106,8 @@ IF (ROOT_FOUND)
   EXEC_PROGRAM( ${ROOT_CONFIG_EXECUTABLE}
     ARGS "--incdir"
     OUTPUT_VARIABLE root_headers )
-  SET(ROOT_INCLUDE_DIRS ${root_headers} CACHE INTERNAL "")
-
+  SET(ROOT_INCLUDE_DIR ${root_headers} CACHE INTERNAL "")
+  
   # ask root-config for the library varaibles
   EXEC_PROGRAM( ${ROOT_CONFIG_EXECUTABLE}
 #    ARGS "--noldflags --noauxlibs --libs"
@@ -126,7 +126,7 @@ IF (ROOT_FOUND)
 
   # Set ROOT_INCLUDES
   SET(ROOT_INCLUDES ${ROOT_INCLUDE_DIR} CACHE INTERNAL "")
-
+  
   SET(LD_LIBRARY_PATH ${LD_LIBRARY_PATH} ${ROOT_LIBRARY_DIR} CACHE INTERNAL "")
 
   #######################################
