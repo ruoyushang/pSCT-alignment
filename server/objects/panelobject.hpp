@@ -3,8 +3,13 @@
  * @brief Header file for OPC UA panel object class.
  */
 
-#ifndef __PanelController_H__
-#define __PanelController_H__
+#ifndef __PANELOBJECT_H__
+#define __PANELOBJECT_H__
+
+#include <vector>
+#include <map>
+#include <tuple>
+#include <utility>
 
 #include "uabase/uavariant.h"
 
@@ -12,11 +17,6 @@
 
 #include "common/opcua/components.h"
 #include "common/opcua/pasobject.h"
-
-#include <vector>
-#include <map>
-#include <tuple>
-#include <utility>
 
 class PasNodeManager;
 class PasCommunicationInterface;
@@ -28,12 +28,11 @@ class PanelObject : public PasObject
 {
     UA_DISABLE_COPY(PanelObject); // Disables copy construction and copy assignment
 public:
-    /// @brief Constructor for a Panel object.
-    /// @param name String name for the underlying OPC UA BaseObjectType node.
-    /// @param newNodeId Node id for the object node.
-    /// @param defaultLocaleId String indicating the session's locale id/
-    /// language setting (i.e. "en" for English).
-    /// @param pNodeManager Pointer  PasNodeManager to control the creation of OPC UA
+    /// @brief Instantiate an OPC UA Panel object.
+    /// @param name Name for the underlying OPC UA BaseObjectType node.
+    /// @param newNodeId OPC UA node id for the object node.
+    /// @param defaultLocaleId The session's locale id/language setting (i.e. "en" for English).
+    /// @param pNodeManager Pointer to the node manager used to control the creation of OPC UA
     /// nodes and references.
     /// @param identity Identity object describing the panel's serial,
     /// location, IP address, etc.
@@ -46,13 +45,13 @@ public:
         PasNodeManager*            pNodeManager,
         Identity                   identity,
         PasCommunicationInterface* pCommIf);
-    /// @brief Destructor for a PositionerObject object.
+    /// @brief Destroy an OPC UA panel object.
     virtual ~PanelObject(void);
 
-    /// @brief Call an OPC UA method from a Panel object.
+    /// @brief Call an OPC UA method on a Panel object.
     /// @warning The /p outputArguments and /p inputArgumentDiag parameters are
     /// unused.
-    /// @param serviceContext ServiceContext object containing various client
+    /// @param serviceContext Object containing various client
     /// settings as well as the current Session object.
     /// @param pMethodHandle Pointer to a MethodHandle instance containing
     /// information about the object and method being called.
@@ -73,18 +72,18 @@ public:
         UaStatusCodeArray&     inputArgumentResults,
         UaDiagnosticInfos&     inputArgumentDiag);
 
-    /// @brief Return the UaNodeId for the Panel object type
-    /// definition node.
-    /// @return A UaNodeId uniquely identifying the Panel object type node.
+    /// @brief Return the UaNodeId for the Panel object type definition node.
+    /// @return The UaNodeId uniquely identifying the Panel object type node.
     UaNodeId typeDefinitionId() const;
 
-    /// @brief
+    /// @brief Map of OPC UA type ids for all child variables to their name, default value, and is_state value.
     static const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean>> variables;
-    
-    /// @brief
+
+    /// @brief Map of OPC UA type ids for all child methods to their name and number of arguments.
     static const std::map<OpcUa_UInt32, std::pair<std::string, int>> methods;
 
 private:
+    /// @brief Map from the OPC UA node IDs for all supported method nodes to the corresponding method node and the OPC UA type ID for the method type node.
     std::map<UaNodeId, std::pair<UaMethodGeneric *, OpcUa_UInt32>> m_MethodMap;
 };
 

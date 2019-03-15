@@ -11,17 +11,19 @@
 
 #include "common/opcua/passervertypeids.h"
 
-// no data for now, so just let these be
+// @details Sets the state to On.
 PanelController::PanelController(int ID, std::shared_ptr<Platform> pPlatform) : PasController(ID, pPlatform)
 {
     m_state = PASState::On;
 }
 
+// @details Sets the state to Off.
 PanelController::~PanelController()
 {
     m_state = PASState::Off;
 }
 
+// @details Locks the shared mutex while reading the state.
 UaStatus PanelController::getState(PASState& state)
 {
     UaMutexLocker lock(&m_mutex);
@@ -30,10 +32,11 @@ UaStatus PanelController::getState(PASState& state)
     return OpcUa_Good;
 }
 
+// @details Locks the shared mutex while updating the state.
 UaStatus PanelController::updateState()
 {
     UaMutexLocker lock(&m_mutex);
-    // update internal state to match teh underlying platform object
+    // update internal state to match the underlying platform object
     switch ( m_pPlatform->getState() ) {
         case PlatformState::On :
             m_state = PASState::On;
@@ -57,6 +60,7 @@ UaStatus PanelController::updateState()
     return OpcUa_Good;
 }
 
+// @details Locks the shared mutex wihle setting the state. Only the On and Off states are allowed to be set manually.
 UaStatus PanelController::setState(PASState state)
 {
     UaMutexLocker lock(&m_mutex);
@@ -83,8 +87,12 @@ UaStatus PanelController::setState(PASState state)
     return OpcUa_Good;
 }
 
+/// @details Locks the shared mutex while setting the state. In SIMMODE,
+/// when reading temperature values, dummy values are generated from a normal distribution.
 UaStatus PanelController::getData(OpcUa_UInt32 offset, UaVariant& value)
 {
+    UaMutexLocker lock(&m_mutex);
+
 #ifdef SIMMODE
     std::random_device rd{};
     std::mt19937 generator{rd()};
@@ -119,12 +127,14 @@ UaStatus PanelController::getData(OpcUa_UInt32 offset, UaVariant& value)
     return OpcUa_Good;
 }
 
-/// @details Does nothing, panel has no writeable variables.
+/// @details This method does nothing as panels have no writeable variables.
 UaStatus PanelController::setData(OpcUa_UInt32 offset, UaVariant value)
 {
     return OpcUa_BadNotImplemented;
 }
 
+/// @details Updates the state and then checks it before attempting to call any methods. When the state is FatalError or Busy, prevents panel operation.
+/// If the stop method is called, sets the platform state to off in order to halt any motion.
 UaStatus PanelController::Operate(OpcUa_UInt32 offset, const UaVariantArray& args)
 {
     UaStatus status;

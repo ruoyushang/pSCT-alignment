@@ -52,19 +52,19 @@ UaStatus PasNodeManager::afterStartUp()
     // PasNodeManagerCommon and PasNodeManager inherit, will destroy all nodes (which are registered with
     // addNode or addNodeandReference)
 
-    PasObject *pObject;  
+    PasObject *pObject;
     PanelObject *pPanel;
     std::set<PasObject *> pChildObjects;
-   
+
     std::map<OpcUa_UInt32, UaFolder *> pDeviceTypeFolders;
     std::map<OpcUa_UInt32, UaFolder *> pChildFolders;
-    
+
     std::string deviceTypeName, folderName;
 
     std::vector<int> validDeviceAddresses;
 
     Identity identity;
-    
+
     ret = createTypeNodes(); // create default type nodes
     UA_ASSERT(ret.isGood());
     ret = amendTypeNodes(); // add custom type nodes (in this case for the panel object type)
@@ -104,7 +104,7 @@ UaStatus PasNodeManager::afterStartUp()
             // Create OPC UA device object
             // Types hardcoded for now, in future consider creating a common factory class
             if (deviceType == PAS_ACTType) {
-                pObject = new ACTObject(deviceName, UaNodeId(deviceName, getNameSpaceIndex()), m_defaultLocaleId, dynamic_cast<PasNodeManagerCommon *>(this), identity, m_pCommIf.get()); 
+                pObject = new ACTObject(deviceName, UaNodeId(deviceName, getNameSpaceIndex()), m_defaultLocaleId, dynamic_cast<PasNodeManagerCommon *>(this), identity, m_pCommIf.get());
             }
             else if (deviceType == PAS_MPESType) {
                 pObject =  new MPESObject(deviceName, UaNodeId(deviceName, getNameSpaceIndex()), m_defaultLocaleId, dynamic_cast<PasNodeManagerCommon *>(this), identity, m_pCommIf.get());
@@ -124,14 +124,14 @@ UaStatus PasNodeManager::afterStartUp()
 
             ret = addUaReference(pDeviceTypeFolders[deviceType]->nodeId(), pObject->nodeId(), OpcUaId_HasComponent); // Add OpcUaId_HasComponent reference from the object type folder to the object.
             UA_ASSERT(ret.isGood());
-                
+
             if (deviceType == PAS_PanelType) {
                 pPanel = dynamic_cast<PanelObject *>(pObject); // Keep track of the single panel object separately (as it is the parent of all others).
             }
             else {
                 pChildObjects.insert(pObject); // Add pointer to new object to pChildObjects set.
             }
-            
+
             if (deviceType == PAS_MPESType) {
                 ret = addUaReference(pAreaMPESFolder, pObject, OpcUaId_HasNotifier); // Add HasNotifier reference from alarm area to controller object
                 UA_ASSERT(ret.isGood());
@@ -139,12 +139,12 @@ UaStatus PasNodeManager::afterStartUp()
             }
         }
     }
- 
+
     // Loop through all created objects and add as children of the panel
     for (auto p : pChildObjects) {
         deviceTypeName = pObject->typeDefinitionId().toString().toUtf8();
         deviceType = pObject->typeDefinitionId().identifierNumeric();
-       
+
         //If folder doesn't already exist, create a folder for each object type and add the folder to the DevicesByType folder
         if ( pChildFolders.find(deviceType) == pChildFolders.end() ) {
             pChildFolders[deviceType] = new UaFolder(deviceTypeName.c_str(), UaNodeId((deviceTypeName + "_children").c_str(), getNameSpaceIndex()), m_defaultLocaleId);
@@ -175,7 +175,7 @@ UaStatus PasNodeManager::beforeShutDown()
 }
 
 /// @details Adds a type node (instance declaration) for the custom Panel type with all
-/// associated properties + variables + methods.
+/// associated properties, variables, and methods.
 UaStatus PasNodeManager::amendTypeNodes()
 {
     UaStatus status;
