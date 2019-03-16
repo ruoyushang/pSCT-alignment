@@ -21,13 +21,11 @@ done
 
 shift $((OPTIND-1))
 
-extension=".ini"
+if ${background} ; then
+    printf "Will start servers in background...\n"
+fi
 
 if ${all} ; then
-
-printf "Reading from database...\n"
-
-    PANELS=()
     while read -r position;
     do
          if [[ ${position} = "0" ]] || [[ ${position} = "1" ]] || [[ ${position:1:1} = "0" ]];
@@ -43,7 +41,7 @@ fi
 count=$((${#PANELS[@]}))
 
 if [[ ("$count" > 0) ]]; then
-    printf "%s total panels found\n" "$count"
+    printf "%s total panels selected\n" "$count"
     printf "Starting all servers...\n"
 
     i=1
@@ -54,16 +52,15 @@ if [[ ("$count" > 0) ]]; then
          # use sed to replace the string "URL_LOCATION" with the desired IP addr/port.
          # Temporary config files are named [panel_num].xml
          # They are deleted 30 sec after startup.
-         config_filename="/app/pSCT-alignment/server/$panel_num$extension"
-
-         endpoint_addr="opc.tcp://127.0.0.1:$panel_num"
+         config_filename="$panel_num$extension"
+	 endpoint_addr="opc.tcp://127.0.0.1:$panel_num"
          cp "TemplateServerConfig${extension}" "$config_filename"
          sed -i "s@URL_LOCATION@$endpoint_addr@g" "$config_filename"
 
          printf "(%d/%d) Starting server for panel %d at address %s.\n" "$i" "$count" "$panel_num" "$endpoint_addr"
          abspath=$(realpath ${config_filename})
-         printf "../sdk/bin/passerver 127.0.0.1:$panel_num -c $abspath \n"
-         ../sdk/bin/passerver "127.0.0.1:$panel_num" "-c$abspath" > "/app/pSCT-alignment/server/${panel_num}.log" &
+         printf "../sdk/bin/passerver $panel_num -c $abspath \n"
+         ../sdk/bin/passerver "${panel_num}" "-c $abspath" > "${panel_num}.log" &
          ((i++))
     done
 
@@ -72,8 +69,8 @@ if [[ ("$count" > 0) ]]; then
     sleep 30
 
     for panel_num in "${PANELS[@]}"; do
-       config_filename="/app/pSCT-alignment/server/$panel_num$extension"
-#       rm "$config_filename"
+       config_filename="$panel_num$extension"
+       rm "$config_filename"
     done
 
     printf "Done.\n"

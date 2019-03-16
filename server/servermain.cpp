@@ -47,7 +47,7 @@ int CheckSystem(double &size)
 /// @param configFilePath The file path to the server configuration file.
 /// @param serverIP The IP address for the server endpoint.
 /// @return 0 on success and -1 on failure.
-int OpcServerMain(std::string szAppPath, std::string configFilePath, std::string serverIP)
+int OpcServerMain(std::string szAppPath, std::string configFilePath, std::string panelNumber)
 {
     int ret;
 
@@ -77,13 +77,13 @@ int OpcServerMain(std::string szAppPath, std::string configFilePath, std::string
         */
 
         std::unique_ptr<PasCommunicationInterface> pCommIf = std::unique_ptr<PasCommunicationInterface>(new PasCommunicationInterface()); // Initialize communication interface
-        pCommIf->setserverIP(serverIP.c_str());
+        pCommIf->setPanelNumber(panelNumber.c_str());
         UaStatus ret = pCommIf->Initialize();
         UA_ASSERT(ret.isGood());
 
         std::unique_ptr<PasNodeManager> pNodeManager = std::unique_ptr<PasNodeManager>(new PasNodeManager()); // Create Node Manager for the server
         pNodeManager->setCommunicationInterface(pCommIf); // set its communication interface
-
+        
         pServer->addNodeManager(pNodeManager.release()); // Add node manager to server
 
         ret = pServer->start();
