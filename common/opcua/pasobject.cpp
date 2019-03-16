@@ -7,6 +7,8 @@
 
 #include <iostream>
 
+#include "uabase/uamutex.h"
+
 // ----------------------------------------------------------------
 // PasObject implementation
 PasObject::PasObject(const UaString& name,
@@ -77,7 +79,7 @@ OpcUa::DataItemType* PasObject::addVariable(PasNodeManagerCommon *pNodeManager, 
     UA_ASSERT(pInstanceDeclaration!=NULL);
     // Create new variable and add it as component to this object
     OpcUa::DataItemType* pDataItem = new OpcUa::DataItemType(this, pInstanceDeclaration, pNodeManager, m_pSharedMutex);
-    
+ 
     UaStatus addStatus;
     if (addReference)
         addStatus = pNodeManager->addNodeAndReference(this, pDataItem, OpcUaId_HasComponent);
@@ -340,9 +342,9 @@ ACTObject::ACTObject(
 : PasObject(name, newNodeId, defaultLocaleId, pNodeManager, identity, pCommIf)
 {
     // Use a mutex shared across all variables of this object
-    m_pSharedMutex = new UaMutexRefCounted;
+    m_pSharedMutex = new UaMutexRefCounted();
 
-    OpcUa::DataItemType*         pDataItem            = NULL;
+    OpcUa::DataItemType*         pDataItem;
     UaStatus                     addStatus;
     // Method helper
     OpcUa_Int16                  nsIdx = pNodeManager->getNameSpaceIndex();
@@ -351,12 +353,12 @@ ACTObject::ACTObject(
      * Create the sensor components
      **************************************************************/
     //Create the folder for the Errors
-    UaFolder *pErrorFolder = new UaFolder("Errors", UaNodeId("Errors", nsIdx), m_defaultLocaleId);
+    UaFolder *pErrorFolder = new UaFolder("Errors", UaNodeId("ACT_Errors", nsIdx), m_defaultLocaleId);
     addStatus = pNodeManager->addNodeAndReference(this, pErrorFolder, OpcUaId_Organizes);
     UA_ASSERT(addStatus.isGood());
 
     // add error variables
-    unsigned errors[] = {
+    std::vector<OpcUa_UInt32> errors = {
         PAS_ACTType_Error0,
         PAS_ACTType_Error1,
         PAS_ACTType_Error2,
@@ -370,9 +372,11 @@ ACTObject::ACTObject(
         PAS_ACTType_Error10,
         PAS_ACTType_Error11,
         PAS_ACTType_Error12,
-        PAS_ACTType_Error13};
-    for (auto &var : errors) {
-        pDataItem = addVariable(pNodeManager, PAS_MirrorType, var, OpcUa_False, false);
+        PAS_ACTType_Error13
+    };
+    
+    for (auto var : errors) {
+        pDataItem = addVariable(pNodeManager, PAS_ACTType, var);
         addStatus = pNodeManager->addUaReference(pErrorFolder->nodeId(), pDataItem->nodeId(), OpcUaId_Organizes);
     }
 
