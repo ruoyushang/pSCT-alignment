@@ -20,6 +20,7 @@
 #include "uaserver/uaobjecttypes.h"
 
 #include "common/opcua/mpeseventdata.h"
+#include "common/opcua/pascominterfacecommon.h"
 #include "common/opcua/pasnodemanagercommon.h"
 #include "common/opcua/pasobject.h"
 #include "common/opcua/passervertypeids.h"
@@ -38,7 +39,7 @@ PasNodeManager::PasNodeManager() : PasNodeManagerCommon()
 void PasNodeManager::setCommunicationInterface(std::unique_ptr<PasCommunicationInterface> &pCommIf)
 {
     std::cout << "PasNodeManager: Setting communication interface\n";
-    m_pCommIf = std::unique_ptr<PasCommunicationInterface>(pCommIf.release()); // Note that we need to release the original unique pointer and make a new unique pointer
+    m_pCommIf = std::unique_ptr<PasComInterfaceCommon>(pCommIf.release()); // Note that we need to release the original unique pointer and make a new unique pointer
 }
 
 /// @details Creates all default and custom type nodes. Creates folders for MPES and Actuators.
@@ -92,7 +93,7 @@ UaStatus PasNodeManager::afterStartUp()
         validDeviceAddresses = dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->getValidDeviceAddresses(deviceType);
 
         for (auto eAddress : validDeviceAddresses) {
-            identity.eAddress = eAddress;
+            identity.eAddress = std::to_string(eAddress);
             deviceName = UaString(deviceTypeName.c_str()) + "_" + identity.eAddress.c_str();
             //If folder doesn't already exist, create a folder for each object type and add the folder to the DevicesByType folder
             if ( pDeviceTypeFolders.find(deviceType) == pDeviceTypeFolders.end() ) {
@@ -104,16 +105,16 @@ UaStatus PasNodeManager::afterStartUp()
             // Create OPC UA device object
             // Types hardcoded for now, in future consider creating a common factory class
             if (deviceType == PAS_ACTType) {
-                pObject = new ACTObject(deviceName, UaNodeId(deviceName, getNameSpaceIndex()), m_defaultLocaleId, dynamic_cast<PasNodeManagerCommon *>(this), identity, m_pCommIf.get());
+                pObject = new ACTObject(deviceName, UaNodeId(deviceName, getNameSpaceIndex()), m_defaultLocaleId, static_cast<PasNodeManagerCommon *>(this), identity, m_pCommIf.get());
             }
             else if (deviceType == PAS_MPESType) {
-                pObject =  new MPESObject(deviceName, UaNodeId(deviceName, getNameSpaceIndex()), m_defaultLocaleId, dynamic_cast<PasNodeManagerCommon *>(this), identity, m_pCommIf.get());
+                pObject =  new MPESObject(deviceName, UaNodeId(deviceName, getNameSpaceIndex()), m_defaultLocaleId, static_cast<PasNodeManagerCommon *>(this), identity, m_pCommIf.get());
             }
             else if (deviceType == PAS_PanelType) {
                 pObject = new PanelObject(deviceName, UaNodeId(deviceName, getNameSpaceIndex()), m_defaultLocaleId, this, identity, dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get()));
             }
             else if (deviceType == PAS_PSDType) {
-                pObject = new PSDObject(deviceName, UaNodeId(deviceName, getNameSpaceIndex()), m_defaultLocaleId, dynamic_cast<PasNodeManagerCommon *>(this), identity, m_pCommIf.get());
+                pObject = new PSDObject(deviceName, UaNodeId(deviceName, getNameSpaceIndex()), m_defaultLocaleId, static_cast<PasNodeManagerCommon *>(this), identity, m_pCommIf.get());
             }
 
             ret = addUaNode(pObject); // Create node
