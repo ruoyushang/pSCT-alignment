@@ -23,13 +23,11 @@ done
 
 shift $((OPTIND-1))
 
-extension=".ini"
+if ${background} ; then
+    printf "Will start servers in background...\n"
+fi
 
 if ${all} ; then
-
-printf "Reading from database...\n"
-
-    PANELS=()
     while read -r position;
     do
          if [[ ${position} = "0" ]] || [[ ${position} = "1" ]] || [[ ${position:1:1} = "0" ]];
@@ -45,7 +43,7 @@ fi
 count=$((${#PANELS[@]}))
 
 if [[ ("$count" > 0) ]]; then
-    printf "%s total panels found\n" "$count"
+    printf "%s total panels selected\n" "$count"
     printf "Starting all servers...\n"
 
     i=1
@@ -62,8 +60,8 @@ if [[ ("$count" > 0) ]]; then
 
          printf "(%d/%d) Starting server for panel %d at address %s.\n" "$i" "$count" "$panel_num" "$endpoint_addr"
          abspath=$(realpath ${config_filename})
-         printf "../sdk/bin/passerver 127.0.0.1:$panel_num -c $abspath \n"
-         ../sdk/bin/passerver "127.0.0.1:$panel_num" "-c$abspath" > "/app/pSCT-alignment/server/${panel_num}.log" &
+         printf "../sdk/bin/passerver $panel_num -c $abspath \n"
+         ../sdk/bin/passerver "${panel_num}" "-c $abspath" > "${panel_num}.log" &
          ((i++))
     done
 
@@ -72,8 +70,8 @@ if [[ ("$count" > 0) ]]; then
     sleep 30
 
     for panel_num in "${PANELS[@]}"; do
-       config_filename="/app/pSCT-alignment/server/$panel_num$extension"
-#       rm "$config_filename"
+       config_filename="$panel_num$extension"
+       rm "$config_filename"
     done
 
     printf "Done.\n"

@@ -38,9 +38,9 @@ public:
     /// @brief Initialize all device controllers using information from the database.
     /// @return OPC UA status code indicating success/failure.
     UaStatusCode Initialize();
-    /// @brief Set the panel server IP used when retreiving information from the database.
-    /// @param serverIP External IP address of the panel/controller board.
-    void setserverIP(const std::string& serverIP) { m_serverIP = serverIP; }
+    /// @brief Set the panel number used when retreiving information from the database.
+    /// @param panelNumber Position number of the panel for this server.
+    void setPanelNumber(const std::string& panelNumber) { m_panelNum = panelNumber; }
 
     /// @brief Get the total number of devices of a given type.
     /// @param deviceType OPC UA type ID for the desired device object type.
@@ -154,8 +154,8 @@ private:
     /// @brief Shared mutex used to control multi thread access to controller.
     UaMutex m_mutex;
 
-    /// @brief IP address of the panel controller board. Used for device database lookup.
-    std::string m_serverIP;
+    /// @brief Position number of the panel. Used for device database lookup.
+    std::string m_panelNum;
 
     /// @brief Map from OPC UA device type to eAddress to a unique pointer to the controller object.
     std::map<OpcUa_UInt32, std::map<int, std::shared_ptr<PasController>>> m_pControllers;

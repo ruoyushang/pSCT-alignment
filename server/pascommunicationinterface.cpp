@@ -39,7 +39,7 @@ const std::map<OpcUa_UInt32, std::string> PasCommunicationInterface::deviceTypes
     };
 
 PasCommunicationInterface::PasCommunicationInterface() :
-    m_stop(OpcUa_False),
+    m_stop(OpcUa_False)
 {
 }
 
@@ -82,8 +82,8 @@ UaStatusCode PasCommunicationInterface::Initialize()
         std::unique_ptr<sql::ResultSet> pSqlResults;
 
         // Query DB for panel position and cbc id by IP address
-        std::string query = "SELECT mpcb_id, position FROM Opt_MPMMapping WHERE mpcb_ip_address='"
-            + m_serverIP + "'";
+        std::string query = "SELECT mpcb_id, position FROM Opt_MPMMapping WHERE position='"
+            + m_panelNum + "'";
         pSqlStmt->execute(query);
         pSqlResults.reset(pSqlStmt->getResultSet());
 
@@ -135,8 +135,9 @@ UaStatusCode PasCommunicationInterface::Initialize()
 
     // initialize the MPES in the positional order. Not strictly necessary, but keeps things tidy
     // addMPES(port, serial)
-    for (auto mpes : mpesPositionToPort)
+    for (auto mpes : mpesPositionToPort) {
         m_platform->addMPES(mpes.second, mpesPositionToSerial.at(mpes.first));
+    }
 
     // Initialize expected devices
     std::map<OpcUa_UInt32, int> expectedDeviceCounts;
@@ -151,32 +152,35 @@ UaStatusCode PasCommunicationInterface::Initialize()
         if (devCount.second > 0)
             std::cout << "Attempting to create their virtual counterparts...\n";
 
+        if (m_pControllers.find(devCount.first) == m_pControllers.end()) {
+            m_pControllers[devCount.first] = std::map<int, std::shared_ptr<PasController>>();
+        }
+
+        int eAddress;
         int failed;
         std::shared_ptr<PasController> pController;
         for (int i = 0; i < devCount.second; i++) {
 
-            int eAddress;
             if (devCount.first == PAS_PanelType) {
-                pController = std::shared_ptr<PasController>(new PanelController(i, m_platform));
+                pController.reset(new PanelController(i, m_platform));
                 eAddress = i;
             }
             else if (devCount.first == PAS_MPESType) {
-                pController = std::shared_ptr<PasController>(new MPESController(i, m_platform));
+                pController.reset(new MPESController(i, m_platform));
                 eAddress = m_platform->getMPESAt(i)->GetPortNumber();
             }
             else if (devCount.first == PAS_ACTType) {
-                pController = std::shared_ptr<PasController>(new ActController(i, m_platform));
+                pController.reset(new ActController(i, m_platform));
                 eAddress = m_platform->getActuatorAt(i)->GetPortNumber();
             }
 #ifndef _AMD64
             else if (devCount.first == PAS_PSDType) {
-                pController = std::shared_ptr<PasController>(new PSDController(i));
+                pController.reset(new PSDController(i));
                 eAddress = i;
             }
 #endif
-
-            if (pController->Initialize()) {
-                m_pControllers.at(devCount.first)[eAddress] = pController;
+            if (pController->Initialize() == 0) {
+                m_pControllers.at(devCount.first).emplace(eAddress, pController);
             }
             else {
                 std::cout << "Could not Initialize " << deviceTypes.at(devCount.first)
