@@ -476,13 +476,12 @@ UaStatus PasNodeManagerCommon::createTypeNodes()
      ***************************************************************/
 
     // Register all variables
-    OpcUa::DataItemType* pDataItem;
     for (auto v : ACTObject::VARIABLES) {
       pDataItem = new OpcUa::DataItemType(UaNodeId(v.first, getNameSpaceIndex()),
               std::get<0>(v.second).c_str(), getNameSpaceIndex(), std::get<1>(v.second), std::get<3>(v.second), this);
       pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
-      status = addNodeAndReference(pACTType, pDataItem, OpcUaId_HasComponent);
-      UA_ASSERT(status.isGood());
+      addStatus = addNodeAndReference(pACTType, pDataItem, OpcUaId_HasComponent);
+      UA_ASSERT(addStatus.isGood());
     }
 
     // Register all error variables
@@ -490,17 +489,16 @@ UaStatus PasNodeManagerCommon::createTypeNodes()
       pDataItem = new OpcUa::DataItemType(UaNodeId(v.first, getNameSpaceIndex()),
               std::get<0>(v.second).c_str(), getNameSpaceIndex(), std::get<1>(v.second), Ua_AccessLevel_CurrentRead, this);
       pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
-      status = addNodeAndReference(pACTType, pDataItem, OpcUaId_HasComponent);
-      UA_ASSERT(status.isGood());
+      addStatus = addNodeAndReference(pACTType, pDataItem, OpcUaId_HasComponent);
+      UA_ASSERT(addStatus.isGood());
     }
 
     // Register all methods
-    OpcUa::BaseMethod* pMethod;
     for (auto m : ACTObject::METHODS) {
       pMethod = new OpcUa::BaseMethod(UaNodeId(m.first, getNameSpaceIndex()), m.second.first.c_str(), getNameSpaceIndex());
       pMethod->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
-      status = addNodeAndReference(pACTType, pMethod, OpcUaId_HasComponent);
-      UA_ASSERT(status.isGood());
+      addStatus = addNodeAndReference(pACTType, pMethod, OpcUaId_HasComponent);
+      UA_ASSERT(addStatus.isGood());
     }
 
     /**************************************************************

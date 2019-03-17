@@ -98,6 +98,7 @@ OpcUa::DataItemType* PasObject::addVariable(PasNodeManagerCommon *pNodeManager, 
 
 // -------------------------------------------------------------------
 // Specialization: MPESObject Implementation
+
 MPESObject::MPESObject(
     const UaString& name,
     const UaNodeId& newNodeId,
@@ -329,10 +330,10 @@ UaStatus MPESObject::call(
     return ret;
 }
 
-const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean>> ACTObject::VARIABLES = {
-    {PAS_ACTType_State, std::make_tuple("State", UaVariant(0), OpcUa_True)},
-    {PAS_ACTType_curLength_mm, std::make_tuple("CurrentLength", UaVariant(0.0), OpcUa_False)},
-    {PAS_ACTType_inLength_mm, std::make_tuple("InputLength", UaVariant(0.0), OpcUa_False)}
+const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, OpcUa_Byte>> ACTObject::VARIABLES = {
+    {PAS_ACTType_State, std::make_tuple("State", UaVariant(0), OpcUa_True, Ua_AccessLevel_CurrentRead)},
+    {PAS_ACTType_curLength_mm, std::make_tuple("CurrentLength", UaVariant(0.0), OpcUa_False, Ua_AccessLevel_CurrentRead)},
+    {PAS_ACTType_inLength_mm, std::make_tuple("InputLength", UaVariant(0.0), OpcUa_False, Ua_AccessLevel_CurrentRead)}
 };
 
 const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean>> ACTObject::ERRORS = {
@@ -391,11 +392,9 @@ ACTObject::ACTObject(
         addStatus = pNodeManager->addUaReference(pErrorFolder->nodeId(), pDataItem->nodeId(), OpcUaId_Organizes);
     }
 
-
     // Add all child method nodes
     UaString sName;
     UaString sNodeId;
-    OpcUa_Int16 nsIdx = pNodeManager->getNameSpaceIndex();
     for (auto it = ACTObject::METHODS.begin(); it != ACTObject::METHODS.end(); it++)
     {
       sName = UaString(it->second.first.c_str());
@@ -435,51 +434,30 @@ UaStatus ACTObject::call(
     MethodHandleUaNode* pMethodHandleUaNode = static_cast<MethodHandleUaNode*>(pMethodHandle);
     UaMethod*           pMethod             = NULL;
 
+    int numArgs;
+    OpcUa_UInt32 methodTypeID;
+
     if(pMethodHandleUaNode)
     {
         pMethod = pMethodHandleUaNode->pUaMethod();
 
-        if(pMethod)
+        if(m_MethodMap.find(pMethod->nodeId()) != m_MethodMap.end())
         {
-            // Check if we have the step() method
-            if ( pMethod->nodeId() == m_pMethodStep->nodeId())
-            {
-                // Number of input arguments must be 0
-                if ( inputArguments.length() > 0 )
-                    ret = OpcUa_BadInvalidArgument;
-                else
-                    ret = m_pCommIf->OperateDevice(PAS_ACTType, m_Identity);
-            }
-            // Check if we have the stop method
-            else if ( pMethod->nodeId() == m_pMethodStop->nodeId())
-            {
-                // Number of input arguments must be 0
-                if ( inputArguments.length() > 0 )
-                    ret = OpcUa_BadInvalidArgument;
-                else
-                    ret = m_pCommIf->setDeviceState(PAS_ACTType, m_Identity,
-                        PASState::Off );
-            }
-            // Check if we have the start method
-            else if ( pMethod->nodeId() == m_pMethodStart->nodeId())
-            {
-                // Number of input arguments must be 0
-                if ( inputArguments.length() > 0 )
-                    ret = OpcUa_BadInvalidArgument;
-                else
-                    ret = m_pCommIf->setDeviceState(PAS_ACTType, m_Identity,
-                        PASState::On );
-            }
+            methodTypeID = m_MethodMap[pMethod->nodeId()].second;
+            numArgs = METHODS.at(methodTypeID).second;
+
+            if ( inputArguments.length() != numArgs )
+                ret = OpcUa_BadInvalidArgument;
+            else
+                ret = m_pCommIf->OperateDevice(PAS_ACTType, m_Identity, methodTypeID);
         }
         else
         {
-            assert(false);
             ret = OpcUa_BadInvalidArgument;
         }
     }
     else
     {
-        assert(false);
         ret = OpcUa_BadInvalidArgument;
     }
 
