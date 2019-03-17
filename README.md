@@ -50,3 +50,20 @@ This will yield IP address for main and mysql. Copy the value for main and expor
 export LOCALIP="value"
 ```
 Make sure this IP address is also in `sdk/bin/PasServerConfig.xml` line 137, following <UaServerConfig><UaEndpoint><URL>.
+  
+# Generating documentation with Doxygen
+
+To re-generate all doxygen documentation, from the root directory (containing the doxygen/ directory), run:
+
+```bash
+doxygen doxygen/Doxyfile
+```
+
+NOTE: It is required that the command is executed from the root directory for the files to be searched correctly.
+
+The generated html and LaTeX documentation will be located at:
+
+```bash
+doxygen/html
+doxygen/latex
+```
