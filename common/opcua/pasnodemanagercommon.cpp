@@ -474,69 +474,34 @@ UaStatus PasNodeManagerCommon::createTypeNodes()
     /***************************************************************
      * Create the ACT Type Instance declaration
      ***************************************************************/
-    
-    // Add Variable "State" as BaseDataVariable
-    defaultValue.setUInt32(0);
-    pDataItem = new OpcUa::DataItemType(
-        UaNodeId(PAS_ACTType_State, getNameSpaceIndex()), // NodeId of the Variable
-        "State",                // Name of the Variable
-        getNameSpaceIndex(),    // Namespace index of the browse name (same like NodeId)
-        defaultValue,           // Initial value
-        Ua_AccessLevel_CurrentRead, // Access level
-        this);                  // Node manager for this variable
-    // Set Modelling Rule to Mandatory
-    pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
-    addStatus = addNodeAndReference(pACTType, pDataItem, OpcUaId_HasComponent);
-    UA_ASSERT(addStatus.isGood());
 
-    // Add Variable "Steps" as DataItem
-    defaultValue.setDouble(0);
-    pDataItem = new OpcUa::DataItemType(
-            UaNodeId(PAS_ACTType_Steps, getNameSpaceIndex()),
-            "Steps", getNameSpaceIndex(), defaultValue,
-            Ua_AccessLevel_CurrentRead | Ua_AccessLevel_CurrentWrite, this);
-    pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
-    addStatus = addNodeAndReference(pACTType, pDataItem, OpcUaId_HasComponent);
-    UA_ASSERT(addStatus.isGood());
+    // Register all variables
+    OpcUa::DataItemType* pDataItem;
+    for (auto v : ACTObject::VARIABLES) {
+      pDataItem = new OpcUa::DataItemType(UaNodeId(v.first, getNameSpaceIndex()),
+              std::get<0>(v.second).c_str(), getNameSpaceIndex(), std::get<1>(v.second), std::get<3>(v.second), this);
+      pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
+      status = addNodeAndReference(pACTType, pDataItem, OpcUaId_HasComponent);
+      UA_ASSERT(status.isGood());
+    }
 
-    // Add Variable "curLength_mm" as DataItem
-    defaultValue.setFloat(0);
-    pDataItem = new OpcUa::DataItemType(
-            UaNodeId(PAS_ACTType_curLength_mm, getNameSpaceIndex()), "curLength_mm",
-            getNameSpaceIndex(), defaultValue, Ua_AccessLevel_CurrentRead, this);
-    pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
-    addStatus = addNodeAndReference(pACTType, pDataItem, OpcUaId_HasComponent);
-    UA_ASSERT(addStatus.isGood());
-    // Add Variable "curLength_mm" as DataItem
-    defaultValue.setFloat(0);
-    pDataItem = new OpcUa::DataItemType(
-            UaNodeId(PAS_ACTType_inLength_mm, getNameSpaceIndex()), "inLength_mm",
-            getNameSpaceIndex(), defaultValue,
-            Ua_AccessLevel_CurrentRead | Ua_AccessLevel_CurrentWrite, this);
-    pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
-    addStatus = addNodeAndReference(pACTType, pDataItem, OpcUaId_HasComponent);
-    UA_ASSERT(addStatus.isGood());
+    // Register all error variables
+    for (auto v : ACTObject::ERRORS) {
+      pDataItem = new OpcUa::DataItemType(UaNodeId(v.first, getNameSpaceIndex()),
+              std::get<0>(v.second).c_str(), getNameSpaceIndex(), std::get<1>(v.second), Ua_AccessLevel_CurrentRead, this);
+      pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
+      status = addNodeAndReference(pACTType, pDataItem, OpcUaId_HasComponent);
+      UA_ASSERT(status.isGood());
+    }
 
-
-    // Add Method "Start"
-    pMethod = new OpcUa::BaseMethod(
-            UaNodeId(PAS_ACTType_Start, getNameSpaceIndex()), "Start", getNameSpaceIndex());
-    pMethod->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
-    addStatus = addNodeAndReference(pACTType, pMethod, OpcUaId_HasComponent);
-    UA_ASSERT(addStatus.isGood());
-
-    // Add Method "Stop"
-    pMethod = new OpcUa::BaseMethod(
-            UaNodeId(PAS_ACTType_Stop, getNameSpaceIndex()), "Stop", getNameSpaceIndex());
-    pMethod->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
-    addStatus = addNodeAndReference(pACTType, pMethod, OpcUaId_HasComponent);
-    UA_ASSERT(addStatus.isGood());
-
-    // Add Method "Step"
-    pMethod = new OpcUa::BaseMethod(UaNodeId(PAS_ACTType_Step, getNameSpaceIndex()), "Step", getNameSpaceIndex());
-    pMethod->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
-    addStatus = addNodeAndReference(pACTType, pMethod, OpcUaId_HasComponent);
-    UA_ASSERT(addStatus.isGood());
+    // Register all methods
+    OpcUa::BaseMethod* pMethod;
+    for (auto m : ACTObject::METHODS) {
+      pMethod = new OpcUa::BaseMethod(UaNodeId(m.first, getNameSpaceIndex()), m.second.first.c_str(), getNameSpaceIndex());
+      pMethod->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
+      status = addNodeAndReference(pACTType, pMethod, OpcUaId_HasComponent);
+      UA_ASSERT(status.isGood());
+    }
 
     /**************************************************************
      * Create the PSD Type and instance decalaration

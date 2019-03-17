@@ -196,9 +196,9 @@ UaStatus PasNodeManager::amendTypeNodes()
 
     // Register all variables
     OpcUa::DataItemType* pDataItem;
-    for (auto v : PanelObject::variables) {
+    for (auto v : PanelObject::VARIABLES) {
       pDataItem = new OpcUa::DataItemType(UaNodeId(v.first, getNameSpaceIndex()),
-              std::get<0>(v.second).c_str(), getNameSpaceIndex(), std::get<1>(v.second), Ua_AccessLevel_CurrentRead, this);
+              std::get<0>(v.second).c_str(), getNameSpaceIndex(), std::get<1>(v.second), std::get<3>(v.second), this);
       pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
       status = addNodeAndReference(pPanelType, pDataItem, OpcUaId_HasComponent);
       UA_ASSERT(status.isGood());
@@ -206,7 +206,7 @@ UaStatus PasNodeManager::amendTypeNodes()
 
     // Register all methods
     OpcUa::BaseMethod* pMethod;
-    for (auto m : PanelObject::methods) {
+    for (auto m : PanelObject::METHODS) {
       pMethod = new OpcUa::BaseMethod(UaNodeId(m.first, getNameSpaceIndex()), m.second.first.c_str(), getNameSpaceIndex());
       pMethod->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
       status = addNodeAndReference(pPanelType, pMethod, OpcUaId_HasComponent);

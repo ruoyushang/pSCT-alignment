@@ -329,9 +329,35 @@ UaStatus MPESObject::call(
     return ret;
 }
 
+const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean>> ACTObject::VARIABLES = {
+    {PAS_ACTType_State, std::make_tuple("State", UaVariant(0), OpcUa_True)},
+    {PAS_ACTType_curLength_mm, std::make_tuple("CurrentLength", UaVariant(0.0), OpcUa_False)},
+    {PAS_ACTType_inLength_mm, std::make_tuple("InputLength", UaVariant(0.0), OpcUa_False)}
+};
 
-// -------------------------------------------------------------------
-// Specialization: ACTObject Implementation
+const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean>> ACTObject::ERRORS = {
+    {PAS_ACTType_Error0, std::make_tuple("Error0", UaVariant(false), OpcUa_False)},
+    {PAS_ACTType_Error1, std::make_tuple("Error1", UaVariant(false), OpcUa_False)},
+    {PAS_ACTType_Error2, std::make_tuple("Error2", UaVariant(false), OpcUa_False)},
+    {PAS_ACTType_Error3, std::make_tuple("Error3", UaVariant(false), OpcUa_False)},
+    {PAS_ACTType_Error4, std::make_tuple("Error4", UaVariant(false), OpcUa_False)},
+    {PAS_ACTType_Error5, std::make_tuple("Error5", UaVariant(false), OpcUa_False)},
+    {PAS_ACTType_Error6, std::make_tuple("Error6", UaVariant(false), OpcUa_False)},
+    {PAS_ACTType_Error7, std::make_tuple("Error7", UaVariant(false), OpcUa_False)},
+    {PAS_ACTType_Error8, std::make_tuple("Error8", UaVariant(false), OpcUa_False)},
+    {PAS_ACTType_Error9, std::make_tuple("Error9", UaVariant(false), OpcUa_False)},
+    {PAS_ACTType_Error10, std::make_tuple("Error10", UaVariant(false), OpcUa_False)},
+    {PAS_ACTType_Error11, std::make_tuple("Error11", UaVariant(false), OpcUa_False)},
+    {PAS_ACTType_Error12, std::make_tuple("Error12", UaVariant(false), OpcUa_False)},
+    {PAS_ACTType_Error13, std::make_tuple("Error13", UaVariant(false), OpcUa_False)}
+};
+
+const std::map<OpcUa_UInt32, std::pair<std::string, int>> ACTObject::METHODS = {
+    {PAS_ACTType_Start, {"Start", 0}},
+    {PAS_ACTType_Stop, {"Stop", 0}},
+    {PAS_ACTType_Step, {"Step", 1}}
+};
+
 ACTObject::ACTObject(
     const UaString& name,
     const UaNodeId& newNodeId,
@@ -349,65 +375,35 @@ ACTObject::ACTObject(
     // Method helper
     OpcUa_Int16                  nsIdx = pNodeManager->getNameSpaceIndex();
 
-    /**************************************************************
-     * Create the sensor components
-     **************************************************************/
+    // Add all child variable nodes
+    for (auto it = ACTObject::VARIABLES.begin(); it != ACTObject::VARIABLES.end(); it++) {
+        addVariable(pNodeManager, PAS_PanelType, it->first, std::get<2>(it->second));
+    }
+
     //Create the folder for the Errors
     UaFolder *pErrorFolder = new UaFolder("Errors", UaNodeId("ACT_Errors", nsIdx), m_defaultLocaleId);
     addStatus = pNodeManager->addNodeAndReference(this, pErrorFolder, OpcUaId_Organizes);
     UA_ASSERT(addStatus.isGood());
 
-    // add error variables
-    std::vector<OpcUa_UInt32> errors = {
-        PAS_ACTType_Error0,
-        PAS_ACTType_Error1,
-        PAS_ACTType_Error2,
-        PAS_ACTType_Error3,
-        PAS_ACTType_Error4,
-        PAS_ACTType_Error5,
-        PAS_ACTType_Error6,
-        PAS_ACTType_Error7,
-        PAS_ACTType_Error8,
-        PAS_ACTType_Error9,
-        PAS_ACTType_Error10,
-        PAS_ACTType_Error11,
-        PAS_ACTType_Error12,
-        PAS_ACTType_Error13
-    };
-    
-    for (auto var : errors) {
-        pDataItem = addVariable(pNodeManager, PAS_ACTType, var);
+    // Add all error variable nodes
+    for (auto v : ACTObject::ERRORS) {
+        pDataItem = addVariable(pNodeManager, PAS_ACTType, v.first);
         addStatus = pNodeManager->addUaReference(pErrorFolder->nodeId(), pDataItem->nodeId(), OpcUaId_Organizes);
     }
 
-    // Add Variable "State"
-    pDataItem = addVariable(pNodeManager, PAS_ACTType, PAS_ACTType_State, OpcUa_True);
 
-    // Add Variable "Steps"
-    pDataItem = addVariable(pNodeManager, PAS_ACTType, PAS_ACTType_Steps);
-    pDataItem = addVariable(pNodeManager, PAS_ACTType, PAS_ACTType_curLength_mm);
-    pDataItem = addVariable(pNodeManager, PAS_ACTType, PAS_ACTType_inLength_mm);
-
-    // Add Method "Start"
-    UaString sName = "Start";
-    UaString sNodeId = UaString("%1.%2").arg(newNodeId.toString()).arg(sName);
-    m_pMethodStart = new UaMethodGeneric(sName, UaNodeId(sNodeId, nsIdx), m_defaultLocaleId);
-    addStatus = pNodeManager->addNodeAndReference(this, m_pMethodStart, OpcUaId_HasComponent);
-    UA_ASSERT(addStatus.isGood());
-
-    // Add Method "Stop"
-    sName = "Stop";
-    sNodeId = UaString("%1.%2").arg(newNodeId.toString()).arg(sName);
-    m_pMethodStop = new UaMethodGeneric(sName, UaNodeId(sNodeId, nsIdx), m_defaultLocaleId);
-    addStatus = pNodeManager->addNodeAndReference(this, m_pMethodStop, OpcUaId_HasComponent);
-    UA_ASSERT(addStatus.isGood());
-
-    // Add Method "Step"
-    sName = "Step";
-    sNodeId = UaString("%1.%2").arg(newNodeId.toString()).arg(sName);
-    m_pMethodStep = new UaMethodGeneric(sName, UaNodeId(sNodeId, nsIdx), m_defaultLocaleId);
-    addStatus = pNodeManager->addNodeAndReference(this, m_pMethodStep, OpcUaId_HasComponent);
-    UA_ASSERT(addStatus.isGood());
+    // Add all child method nodes
+    UaString sName;
+    UaString sNodeId;
+    OpcUa_Int16 nsIdx = pNodeManager->getNameSpaceIndex();
+    for (auto it = ACTObject::METHODS.begin(); it != ACTObject::METHODS.end(); it++)
+    {
+      sName = UaString(it->second.first.c_str());
+      sNodeId = UaString("%1.%2").arg(newNodeId.toString()).arg(sName);
+      m_MethodMap[UaNodeId(sNodeId, nsIdx)] = std::make_pair(new UaMethodGeneric(sName, UaNodeId(sNodeId, nsIdx), m_defaultLocaleId), it->first);
+      addStatus = pNodeManager->addNodeAndReference(this, m_MethodMap[UaNodeId(sNodeId, nsIdx)].first, OpcUaId_HasComponent);
+      UA_ASSERT(addStatus.isGood());
+    }
 }
 
 ACTObject::~ACTObject(void)
