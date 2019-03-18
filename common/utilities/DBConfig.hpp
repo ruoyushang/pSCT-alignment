@@ -64,7 +64,6 @@ private:
     std::string socket_name;
     unsigned int flags;
     static DBConfig *currentconfig;
-    static DBConfig *globalconfig;
 };
 
 

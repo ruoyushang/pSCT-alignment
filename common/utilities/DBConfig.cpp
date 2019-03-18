@@ -119,8 +119,6 @@ DBConfig DBConfig::getDefaultConfig()
     DBConfig myconfig;
     //fix config defaults from currentconfig
     myconfig.overwriteDefaultValues(getCurrentConfigPtr());
-    //fix config defaults from globalconfig
-    myconfig.overwriteDefaultValues(globalconfig);
     //fix config defaults from UNIX environment variables
     DBConfig cfg;
     cfg.setHost(getenv("MYSQL_HOST"));
@@ -157,5 +155,4 @@ void DBConfig::setCurrentConfigPtr(DBConfig *config)
 
 //the static variables below are automatically initialized to zero
 DBConfig *DBConfig::currentconfig;
-DBConfig *DBConfig::globalconfig;
 
