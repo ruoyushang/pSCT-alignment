@@ -19,6 +19,7 @@
 // MySQL C++ Connector includes
 #include "mysql_driver.h"
 #include "cppconn/statement.h"
+#include "DBConfig.hpp"
 
 using namespace Eigen;
 using namespace std;
@@ -73,11 +74,12 @@ PasMPES::PasMPES(Identity identity, Client *pClient) : PasController(identity, p
     // get the nominal aligned readings and response matrices from DB
     /* BEGIN DATABASE HACK */
     //string db_ip="172.17.10.10"; // internal ip
-    string db_ip="romulus.ucsc.edu";
-    string db_port="3406";
-    string db_user="CTAreadonly";
-    string db_password="readCTAdb";
-    string db_name="CTAonline";
+    DBConfig myconfig = DBConfig::getDefaultConfig();
+    string db_ip=myconfig.getHost();
+    string db_port = std::to_string(myconfig.getPort());
+    string db_user=myconfig.getUser();
+    string db_password=myconfig.getPassword();
+    string db_name=myconfig.getDatabase();
     string db_address = "tcp://" + db_ip + ":" + db_port;
 
     cout << "Initializing MPES " << m_ID.serialNumber << endl;
