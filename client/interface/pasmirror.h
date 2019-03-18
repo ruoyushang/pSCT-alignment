@@ -2,7 +2,7 @@
 #define __PASMIRROR_H__
 
 #include "pascontroller.h"
-#include "TObject.h" // to be able to use ROOT's MINUIT implementation
+#include <TObject.h> // to be able to use ROOT's MINUIT implementation
 // these are included in pascontroller.h, but we add them just in case something changes there
 #include "stewartplatform.h"
 
