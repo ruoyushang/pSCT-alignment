@@ -76,7 +76,7 @@ UaStatusCode PasCommunicationInterface::Initialize()
     /* *********************************************************/
     /* INITIAL DATABASE HACK JOB -- NEEDS TO HAVE ITS OWN CLASS */
     Actuator::DBStruct HDB_ID;
-    DBConfig myconfig = DBPubConfig::getDefaultConfig();
+    DBConfig myconfig = DBConfig::getDefaultConfig();
     HDB_ID.ip=myconfig.getHost();
     HDB_ID.port=std::to_string(myconfig.getPort());
     HDB_ID.user=myconfig.getUser();

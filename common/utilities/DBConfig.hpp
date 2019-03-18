@@ -25,7 +25,7 @@ public:
 
     ~DBConfig() {}
 
-    void resetAll(DBConfig *configptr);
+    void overwriteDefaultValues(DBConfig *configptr);
 
     std::string getHost();
     void setHost(const char *host);

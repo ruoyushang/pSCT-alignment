@@ -5,7 +5,7 @@
 #include "DBConfig.hpp"
 
 
-void DBConfig::resetAll(DBConfig *configptr)
+void DBConfig::overwriteDefaultValues(DBConfig *configptr)
 {
     //reset all currently NULL variables to values from configptr
     if (configptr == NULL)
@@ -118,9 +118,9 @@ DBConfig DBConfig::getDefaultConfig()
      */
     DBConfig myconfig;
     //fix config defaults from currentconfig
-    myconfig.resetAll(getCurrentConfigPtr());
+    myconfig.overwriteDefaultValues(getCurrentConfigPtr());
     //fix config defaults from globalconfig
-    myconfig.resetAll(globalconfig);
+    myconfig.overwriteDefaultValues(globalconfig);
     //fix config defaults from UNIX environment variables
     DBConfig cfg;
     cfg.setHost(getenv("MYSQL_HOST"));
@@ -129,7 +129,7 @@ DBConfig DBConfig::getDefaultConfig()
     cfg.setDatabase(getenv("MYSQL_DATABASE"));
     cfg.setSocket(getenv("MYSQL_SOCKET"));
     cfg.setPort(std::atoi( getenv("MYSQL_PORT")));
-    myconfig.resetAll(&cfg);
+    myconfig.overwriteDefaultValues(&cfg);
     //fix hardwired config defaults
     cfg.setHost("");
     cfg.setUser("CTAreadonly");
@@ -138,7 +138,7 @@ DBConfig DBConfig::getDefaultConfig()
     cfg.setSocket("");
     cfg.setPort(0);
     cfg.setFlags(0);
-    myconfig.resetAll(&cfg);
+    myconfig.overwriteDefaultValues(&cfg);
     return myconfig;
 }
 
