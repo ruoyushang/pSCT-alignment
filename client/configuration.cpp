@@ -10,7 +10,7 @@
 // MySQL C++ Connector includes
 #include "mysql_driver.h"
 #include "cppconn/statement.h"
-#include "DBConfig.h"
+#include "DBConfig.hpp"
 
 using namespace UaClientSdk;
 
@@ -406,7 +406,7 @@ UaStatus Configuration::loadDeviceConfiguration(const std::vector<std::string>& 
     /* *********************************************************/
     /* INITIAL DATABASE HACK JOB -- NEEDS TO HAVE ITS OWN CLASS */
     //string db_ip="172.17.10.10"; // internal ip
-    DBConfig myconfig = DBPubConfig::getDefaultConfig();
+    DBConfig myconfig = DBConfig::getDefaultConfig();
     std::string db_ip=myconfig.getHost();
     std::string db_port=std::to_string(myconfig.getPort());
     std::string db_user=myconfig.getUser();

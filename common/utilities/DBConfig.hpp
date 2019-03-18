@@ -5,6 +5,7 @@
 #ifndef ALIGNMENT_DBCONFIG_H
 #define ALIGNMENT_DBCONFIG_H
 #include <string>
+#include <cstdlib>
 
 using namespace std;
 
@@ -12,11 +13,19 @@ class DBConfig {
 
 public:
 
-    DBConfig();
+    DBConfig(){
+        host_name.clear();
+        user_name.clear();
+        password.clear();
+        db_name.clear();
+        port_num = 0;
+        socket_name.clear();
+        flags = 0;
+    };
 
-    ~DBConfig();
+    ~DBConfig() {}
 
-    void resetNULLs(DBConfig *configptr);
+    void resetAll(DBConfig *configptr);
 
     std::string getHost();
     void setHost(const char *host);
@@ -39,6 +48,12 @@ public:
     unsigned int getFlags();
     void setFlags(unsigned int flg);
 
+    static DBConfig getDefaultConfig();
+
+    static DBConfig *getCurrentConfigPtr();
+
+    static void setCurrentConfigPtr(DBConfig *config);
+
 private:
 
     std::string host_name;
@@ -48,36 +63,9 @@ private:
     unsigned int port_num;
     std::string socket_name;
     unsigned int flags;
-
-};
-
-
-
-class DBPubConfig {
-
-public:
-
-    DBPubConfig(DBConfig &config);
-
-    ~DBPubConfig();
-
-//    static void setGlobalConfig(DBConfig &config) throw(DBGlobalConfigException);
-
-    static DBConfig getDefaultConfig();
-
-    static DBConfig *getCurrentConfigPtr();
-
-    static void setCurrentConfigPtr(DBConfig *config);
-
-private:
-
-
     static DBConfig *currentconfig;
     static DBConfig *globalconfig;
-
 };
-
-
 
 
 #endif //ALIGNMENT_DBCONFIG_H

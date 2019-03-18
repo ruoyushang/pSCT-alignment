@@ -2,25 +2,10 @@
 // Created by Deivid Ribeiro on 2019-03-14.
 //
 
-#include "DBConfig.h"
+#include "DBConfig.hpp"
 
 
-DBConfig::DBConfig()
-{
-    host_name.clear();
-    user_name.clear();
-    password.clear();
-    db_name.clear();
-    port_num = 0;
-    socket_name.clear();
-    flags = 0;
-}
-
-
-DBConfig::~DBConfig(){}
-
-
-void DBConfig::resetNULLs(DBConfig *configptr)
+void DBConfig::resetAll(DBConfig *configptr)
 {
     //reset all currently NULL variables to values from configptr
     if (configptr == NULL)
@@ -117,28 +102,8 @@ void DBConfig::setFlags(unsigned int flg)
 }
 
 
-#include <cstdlib>
 
-DBPubConfig::DBPubConfig(DBConfig &config){}
-
-
-DBPubConfig::~DBPubConfig(){}
-
-
-//void DBPubConfig::setGlobalConfig(DBConfig &config)
-//throw(VDBGlobalConfigException)
-//{
-//    if (globalconfig == NULL) {
-//        globalconfig = new DBConfig(config);
-//    } else {
-//        VDBGlobalConfigException ex("Attempt to reset global connection configuration");
-//        ex.setThrowLocation(__FILE__, __LINE__);
-//        throw ex;
-//    }
-//}
-
-
-DBConfig DBPubConfig::getDefaultConfig()
+DBConfig DBConfig::getDefaultConfig()
 {
     /* Sets VDB connection parameters in the order listed below.
      * At each level, any parameters not set are allowed to
@@ -153,9 +118,9 @@ DBConfig DBPubConfig::getDefaultConfig()
      */
     DBConfig myconfig;
     //fix config defaults from currentconfig
-    myconfig.resetNULLs(getCurrentConfigPtr());
+    myconfig.resetAll(getCurrentConfigPtr());
     //fix config defaults from globalconfig
-    myconfig.resetNULLs(globalconfig);
+    myconfig.resetAll(globalconfig);
     //fix config defaults from UNIX environment variables
     DBConfig cfg;
     cfg.setHost(getenv("MYSQL_HOST"));
@@ -164,7 +129,7 @@ DBConfig DBPubConfig::getDefaultConfig()
     cfg.setDatabase(getenv("MYSQL_DATABASE"));
     cfg.setSocket(getenv("MYSQL_SOCKET"));
     cfg.setPort(std::atoi( getenv("MYSQL_PORT")));
-    myconfig.resetNULLs(&cfg);
+    myconfig.resetAll(&cfg);
     //fix hardwired config defaults
     cfg.setHost("");
     cfg.setUser("CTAreadonly");
@@ -173,24 +138,24 @@ DBConfig DBPubConfig::getDefaultConfig()
     cfg.setSocket("");
     cfg.setPort(0);
     cfg.setFlags(0);
-    myconfig.resetNULLs(&cfg);
+    myconfig.resetAll(&cfg);
     return myconfig;
 }
 
 
-DBConfig *DBPubConfig::getCurrentConfigPtr()
+DBConfig *DBConfig::getCurrentConfigPtr()
 {
     return currentconfig;
 }
 
 
-void DBPubConfig::setCurrentConfigPtr(DBConfig *config)
+void DBConfig::setCurrentConfigPtr(DBConfig *config)
 {
     currentconfig=config;
 }
 
 
 //the static variables below are automatically initialized to zero
-DBConfig *DBPubConfig::currentconfig;
-DBConfig *DBPubConfig::globalconfig;
+DBConfig *DBConfig::currentconfig;
+DBConfig *DBConfig::globalconfig;
 

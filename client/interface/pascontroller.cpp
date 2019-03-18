@@ -19,7 +19,7 @@
 // MySQL C++ Connector includes
 #include "mysql_driver.h"
 #include "cppconn/statement.h"
-#include "DBConfig.h"
+#include "DBConfig.hpp"
 
 using namespace Eigen;
 using namespace std;
@@ -74,7 +74,7 @@ PasMPES::PasMPES(Identity identity, Client *pClient) : PasController(identity, p
     // get the nominal aligned readings and response matrices from DB
     /* BEGIN DATABASE HACK */
     //string db_ip="172.17.10.10"; // internal ip
-    DBConfig myconfig = DBPubConfig::getDefaultConfig();
+    DBConfig myconfig = DBConfig::getDefaultConfig();
     string db_ip=myconfig.getHost();
     string db_port = std::to_string(myconfig.getPort());
     string db_user=myconfig.getUser();
@@ -416,7 +416,6 @@ UaStatusCode PasACT::getData(OpcUa_UInt32 offset, UaVariant& value)
     string varstoread[3] {"Steps", "curLength_mm", "inLength_mm"};
 
     vector<string> vec_curread {m_ID.eAddress + "." + varstoread[dataoffset]};
-    printf("PasACT::getData -> value = %s\n",value.toString().toUtf8());
     status = m_pClient->read(vec_curread, &value);
 
     return status;

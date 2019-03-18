@@ -17,7 +17,7 @@
 #include "mysql_driver.h"
 #include "cppconn/statement.h"
 #include <cppconn/exception.h>
-#include "DBConfig.h"
+#include "DBConfig.hpp"
 
 using namespace std;
 /* ----------------------------------------------------------------------------
