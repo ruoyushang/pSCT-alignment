@@ -54,13 +54,17 @@ public:
         UaStatusCodeArray&     inputArgumentResults,
         UaDiagnosticInfos&     inputArgumentDiag) = 0;
 
-    virtual const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, OpcUa_Byte>> getVariableDefs() { return m_VARIABLES; };
 
-    virtual const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, OpcUa_Byte>> getErrorDefs() { return m_ERRORS; };
+    virtual const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, OpcUa_Byte>> getVariableDefs() { return PasObject::VARIABLES; }
 
-    virtual const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, OpcUa_Byte>> getMethodDefs() { return m_METHODS; };
+    virtual const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean>> getErrorDefs() { return PasObject::ERRORS; }
+
+    virtual const std::map<OpcUa_UInt32, std::pair<std::string, int>> getMethodDefs() { return PasObject::METHODS; }
+
 protected:
-    // a function that's used very often
+  
+
+// a function that's used very often
     OpcUa::DataItemType* addVariable(PasNodeManagerCommon *pNodeManager, OpcUa_UInt32 ParentType, OpcUa_UInt32 VarType, OpcUa_Boolean isState = OpcUa_False, bool addReference = true);
 
     /// @brief Map from the OPC UA node IDs for all supported method nodes to the corresponding method node and the OPC UA type ID for the method type node.
@@ -73,6 +77,12 @@ protected:
     PasNodeManagerCommon*      m_pNodeManager;
     OpcUa::OffNormalAlarmType* m_pStateOffNormalAlarm;
 
+private:
+    static const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, OpcUa_Byte>> VARIABLES;
+
+    static const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean>> ERRORS;
+
+    static const std::map<OpcUa_UInt32, std::pair<std::string, int>> METHODS;
 };
 
 class PasUserData : public UserDataBase
@@ -158,16 +168,20 @@ public:
 
     UaNodeId typeDefinitionId() const;
 
-private:
+    const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, OpcUa_Byte>> getVariableDefs() { return ACTObject::VARIABLES; }
+
+    const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean>> getErrorDefs() { return ACTObject::ERRORS; }
+
+    const std::map<OpcUa_UInt32, std::pair<std::string, int>> getMethodDefs() { return ACTObject::METHODS; }
 
     /// @brief Map of OPC UA type ids for all child variables to their name, default value, is_state value, and access level.
-    static const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, OpcUa_Byte>> m_VARIABLES;
+    static const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, OpcUa_Byte>> VARIABLES;
 
     /// @brief Map of OPC UA type ids for all child error variables to their name, default value, and is_state value.
-    static const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean>> m_ERRORS;
+    static const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean>> ERRORS;
 
     /// @brief Map of OPC UA type ids for all child methods to their name and number of arguments.
-    static const std::map<OpcUa_UInt32, std::pair<std::string, int>> m_METHODS;
+    static const std::map<OpcUa_UInt32, std::pair<std::string, int>> METHODS;
 };
 
 
