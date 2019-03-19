@@ -76,14 +76,16 @@ public:
     /// @return The UaNodeId uniquely identifying the Panel object type node.
     UaNodeId typeDefinitionId() const;
 
+private:
+
     /// @brief Map of OPC UA type ids for all child variables to their name, default value, is_state value, and access level.
-    static const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, OpcUa_Byte>> VARIABLES;
+    static const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, OpcUa_Byte>> m_VARIABLES;
 
     /// @brief Map of OPC UA type ids for all child error variables to their name, default value, and is_state value.
-    static const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean>> ERRORS;
+    static const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean>> m_ERRORS;
 
     /// @brief Map of OPC UA type ids for all child methods to their name and number of arguments.
-    static const std::map<OpcUa_UInt32, std::pair<std::string, int>> METHODS;
+    static const std::map<OpcUa_UInt32, std::pair<std::string, int>> m_METHODS;
 };
 
 #endif
