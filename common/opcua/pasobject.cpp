@@ -115,6 +115,7 @@ OpcUa::DataItemType* PasObject::addVariable(PasNodeManagerCommon *pNodeManager, 
 
 // -------------------------------------------------------------------
 // Specialization: MPESObject Implementation
+
 MPESObject::MPESObject(
     const UaString& name,
     const UaNodeId& newNodeId,
@@ -408,7 +409,6 @@ ACTObject::ACTObject(
         addStatus = pNodeManager->addUaReference(pErrorFolder->nodeId(), pDataItem->nodeId(), OpcUaId_Organizes);
     }
 
-
     // Add all child method nodes
     UaString sName;
     UaString sNodeId;
@@ -452,51 +452,30 @@ UaStatus ACTObject::call(
     MethodHandleUaNode* pMethodHandleUaNode = static_cast<MethodHandleUaNode*>(pMethodHandle);
     UaMethod*           pMethod             = NULL;
 
+    int numArgs;
+    OpcUa_UInt32 methodTypeID;
+
     if(pMethodHandleUaNode)
     {
         pMethod = pMethodHandleUaNode->pUaMethod();
 
-        if(pMethod)
+        if(m_MethodMap.find(pMethod->nodeId()) != m_MethodMap.end())
         {
-            // Check if we have the step() method
-            if ( pMethod->nodeId() == m_pMethodStep->nodeId())
-            {
-                // Number of input arguments must be 0
-                if ( inputArguments.length() > 0 )
-                    ret = OpcUa_BadInvalidArgument;
-                else
-                    ret = m_pCommIf->OperateDevice(PAS_ACTType, m_Identity);
-            }
-            // Check if we have the stop method
-            else if ( pMethod->nodeId() == m_pMethodStop->nodeId())
-            {
-                // Number of input arguments must be 0
-                if ( inputArguments.length() > 0 )
-                    ret = OpcUa_BadInvalidArgument;
-                else
-                    ret = m_pCommIf->setDeviceState(PAS_ACTType, m_Identity,
-                        PASState::Off );
-            }
-            // Check if we have the start method
-            else if ( pMethod->nodeId() == m_pMethodStart->nodeId())
-            {
-                // Number of input arguments must be 0
-                if ( inputArguments.length() > 0 )
-                    ret = OpcUa_BadInvalidArgument;
-                else
-                    ret = m_pCommIf->setDeviceState(PAS_ACTType, m_Identity,
-                        PASState::On );
-            }
+            methodTypeID = m_MethodMap[pMethod->nodeId()].second;
+            numArgs = METHODS.at(methodTypeID).second;
+
+            if ( inputArguments.length() != numArgs )
+                ret = OpcUa_BadInvalidArgument;
+            else
+                ret = m_pCommIf->OperateDevice(PAS_ACTType, m_Identity, methodTypeID);
         }
         else
         {
-            assert(false);
             ret = OpcUa_BadInvalidArgument;
         }
     }
     else
     {
-        assert(false);
         ret = OpcUa_BadInvalidArgument;
     }
 

@@ -106,7 +106,7 @@ UaStatus PanelObject::call(
         if(m_MethodMap.find(pMethod->nodeId()) != m_MethodMap.end())
         {
             methodTypeID = m_MethodMap[pMethod->nodeId()].second;
-            numArgs = PanelObject::methods.at(methodTypeID).second;
+            numArgs = METHODS.at(methodTypeID).second;
 
             if ( inputArguments.length() != numArgs )
                 ret = OpcUa_BadInvalidArgument;
