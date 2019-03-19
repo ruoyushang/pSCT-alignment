@@ -15,16 +15,16 @@
 #include "server/pasnodemanager.hpp"
 #include "server/pascommunicationinterface.hpp"
 
-const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, OpcUa_Byte>> PanelObject::VARIABLES = {
+const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, OpcUa_Byte>> PanelObject::m_VARIABLES = {
     {PAS_PanelType_State, std::make_tuple("State", UaVariant(0), OpcUa_True, Ua_AccessLevel_CurrentRead)},
     {PAS_PanelType_ExtTemperature, std::make_tuple("ExternalTemperature", UaVariant(0.0), OpcUa_False, Ua_AccessLevel_CurrentRead)},
     {PAS_PanelType_IntTemperature, std::make_tuple("InternalTemperature", UaVariant(0.0), OpcUa_False, Ua_AccessLevel_CurrentRead)}
 };
 
-const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean>> PanelObject::ERRORS = {
+const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean>> PanelObject::m_ERRORS = {
 };
 
-const std::map<OpcUa_UInt32, std::pair<std::string, int>> PanelObject::METHODS = {
+const std::map<OpcUa_UInt32, std::pair<std::string, int>> PanelObject::m_METHODS = {
     {PAS_PanelType_StepAll, {"StepAll", 0}},
     {PAS_PanelType_MoveTo_Acts, {"MoveToActs", 0}},
     {PAS_PanelType_Stop, {"Stop", 0}}
@@ -49,7 +49,7 @@ PanelObject::PanelObject(
     UaStatus addStatus;
 
     // Add all child variable nodes
-    for (auto it = VARIABLES.begin(); it != VARIABLES.end(); it++) {
+    for (auto it = getVariableDefs().begin(); it != getVariableDefs().end(); it++) {
         addVariable(pNodeManager, PAS_PanelType, it->first, std::get<2>(it->second));
     }
 
@@ -57,7 +57,7 @@ PanelObject::PanelObject(
     UaString sName;
     UaString sNodeId;
     OpcUa_Int16 nsIdx = pNodeManager->getNameSpaceIndex();
-    for (auto it = METHODS.begin(); it != METHODS.end(); it++)
+    for (auto it = getMethodDefs().begin(); it != getMethodDefs().end(); it++)
     {
       sName = UaString(it->second.first.c_str());
       sNodeId = UaString("%1.%2").arg(newNodeId.toString()).arg(sName);
