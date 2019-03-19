@@ -15,16 +15,16 @@
 #include "server/pasnodemanager.hpp"
 #include "server/pascommunicationinterface.hpp"
 
-const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, OpcUa_Byte>> PanelObject::m_VARIABLES = {
+const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, OpcUa_Byte>> PanelObject::VARIABLES = {
     {PAS_PanelType_State, std::make_tuple("State", UaVariant(0), OpcUa_True, Ua_AccessLevel_CurrentRead)},
     {PAS_PanelType_ExtTemperature, std::make_tuple("ExternalTemperature", UaVariant(0.0), OpcUa_False, Ua_AccessLevel_CurrentRead)},
     {PAS_PanelType_IntTemperature, std::make_tuple("InternalTemperature", UaVariant(0.0), OpcUa_False, Ua_AccessLevel_CurrentRead)}
 };
 
-const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean>> PanelObject::m_ERRORS = {
+const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean>> PanelObject::ERRORS = {
 };
 
-const std::map<OpcUa_UInt32, std::pair<std::string, int>> PanelObject::m_METHODS = {
+const std::map<OpcUa_UInt32, std::pair<std::string, int>> PanelObject::METHODS = {
     {PAS_PanelType_StepAll, {"StepAll", 0}},
     {PAS_PanelType_MoveTo_Acts, {"MoveToActs", 0}},
     {PAS_PanelType_Stop, {"Stop", 0}}

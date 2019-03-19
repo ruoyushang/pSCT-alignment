@@ -11,6 +11,13 @@
 
 // ----------------------------------------------------------------
 // PasObject implementation
+const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, OpcUa_Byte>> PasObject::VARIABLES;
+
+const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean>> PasObject::ERRORS;
+
+const std::map<OpcUa_UInt32, std::pair<std::string, int>> PasObject::METHODS;
+
+
 PasObject::PasObject(const UaString& name,
         const UaNodeId& newNodeId,
         const UaString& defaultLocaleId,
@@ -25,6 +32,10 @@ PasObject::PasObject(const UaString& name,
                   m_pCommIf(pCommIf),
                   m_pNodeManager(pNodeManager)
 {
+    OpcUa::DataItemType*         pDataItem            = NULL;
+    UaStatus                     addStatus;
+    // Method helper
+    OpcUa_Int16                  nsIdx = pNodeManager->getNameSpaceIndex();
 
     // Store information needed to access device
     //PasUserData* pUserData = new PasUserData(isState, ParentType, m_Identity, VarType);
@@ -33,12 +44,12 @@ PasObject::PasObject(const UaString& name,
     //pDataItem->setValueHandling(UaVariable_Value_Cache);
 
     // Add all child variable nodes
-    for (auto it = getVariableDefs().begin(); it != getVariableDefs.end(); it++) {
+    for (auto it = getVariableDefs().begin(); it != getVariableDefs().end(); it++) {
         addVariable(pNodeManager, PAS_PanelType, it->first, std::get<2>(it->second));
     }
 
     //Create the folder for the Errors
-    UaFolder *pErrorFolder = new UaFolder("Errors", UaNodeId(name + UaString("_Errors"), nsIdx), m_defaultLocaleId);
+    UaFolder *pErrorFolder = new UaFolder("Errors", UaNodeId((std::string(name.toUtf8()) + "_Errors").c_str(), nsIdx), m_defaultLocaleId);
     addStatus = pNodeManager->addNodeAndReference(this, pErrorFolder, OpcUaId_Organizes);
     UA_ASSERT(addStatus.isGood());
 
@@ -347,13 +358,13 @@ UaStatus MPESObject::call(
     return ret;
 }
 
-const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean>> ACTObject::m_VARIABLES = {
-    {PAS_ACTType_State, std::make_tuple("State", UaVariant(0), OpcUa_True)},
-    {PAS_ACTType_curLength_mm, std::make_tuple("CurrentLength", UaVariant(0.0), OpcUa_False)},
-    {PAS_ACTType_inLength_mm, std::make_tuple("InputLength", UaVariant(0.0), OpcUa_False)}
+const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, OpcUa_Byte>> ACTObject::VARIABLES = {
+    {PAS_ACTType_State, std::make_tuple("State", UaVariant(0), OpcUa_True, Ua_AccessLevel_CurrentRead)},
+    {PAS_ACTType_curLength_mm, std::make_tuple("CurrentLength", UaVariant(0.0), OpcUa_False, Ua_AccessLevel_CurrentRead)},
+    {PAS_ACTType_inLength_mm, std::make_tuple("InputLength", UaVariant(0.0), OpcUa_False, Ua_AccessLevel_CurrentRead)}
 };
 
-const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean>> ACTObject::m_ERRORS = {
+const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean>> ACTObject::ERRORS = {
     {PAS_ACTType_Error0, std::make_tuple("Error0", UaVariant(false), OpcUa_False)},
     {PAS_ACTType_Error1, std::make_tuple("Error1", UaVariant(false), OpcUa_False)},
     {PAS_ACTType_Error2, std::make_tuple("Error2", UaVariant(false), OpcUa_False)},
@@ -370,7 +381,7 @@ const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean>> 
     {PAS_ACTType_Error13, std::make_tuple("Error13", UaVariant(false), OpcUa_False)}
 };
 
-const std::map<OpcUa_UInt32, std::pair<std::string, int>> ACTObject::m_METHODS = {
+const std::map<OpcUa_UInt32, std::pair<std::string, int>> ACTObject::METHODS = {
     {PAS_ACTType_Start, {"Start", 0}},
     {PAS_ACTType_Stop, {"Stop", 0}},
     {PAS_ACTType_Step, {"Step", 1}}
@@ -394,7 +405,7 @@ ACTObject::ACTObject(
     OpcUa_Int16                  nsIdx = pNodeManager->getNameSpaceIndex();
 
     // Add all child variable nodes
-    for (auto it = getVariableDefs().begin(); it != getVariableDefs.end(); it++) {
+    for (auto it = getVariableDefs().begin(); it != getVariableDefs().end(); it++) {
         addVariable(pNodeManager, PAS_PanelType, it->first, std::get<2>(it->second));
     }
 
@@ -412,7 +423,6 @@ ACTObject::ACTObject(
     // Add all child method nodes
     UaString sName;
     UaString sNodeId;
-    OpcUa_Int16 nsIdx = pNodeManager->getNameSpaceIndex();
     for (auto it = getMethodDefs().begin(); it != getMethodDefs().end(); it++)
     {
       sName = UaString(it->second.first.c_str());
