@@ -87,7 +87,7 @@ int OpcServerMain(std::string szAppPath, std::string configFilePath, std::string
         pServer->addNodeManager(pNodeManager.release()); // Add node manager to server
 
         ret = pServer->start();
-        if ( ret == 0 )
+	if ( ret == 0 )
         {
             std::cout << "***************************************************\n";
             std::cout << " Press " << SHUTDOWN_SEQUENCE << " to shut down server\n";
@@ -127,7 +127,7 @@ int main(int argc, char* argv[])
 #endif
 {
     if (argc == 1) {
-        printf("Usage: %s <CBC IP ADDRESS> -c <CONFIG FILE PATH>\n", argv[0]);
+        std::cout << "Usage: " << argv[0] << " <CBC IP ADDRESS> -c <CONFIG FILE PATH>\n";
         return -1;
     }
 
@@ -145,7 +145,15 @@ int main(int argc, char* argv[])
                     std::cout << "Must provide a config file path with option c\n";
          }
     }
-    cbcIPAddress = argv[optind];
+
+    if (optind != argc - 1) {
+        std::cout << "Invalid number of positional arguments: " << (argc - optind) << std::endl;
+        std::cout << "Usage: " << argv[0] << " <CBC IP ADDRESS> -c <CONFIG FILE PATH>\n";
+        return -1;
+    }
+    else {
+        cbcIPAddress = argv[optind];
+    }
 
     // NOTE: This method returns a pointer to heap-allocated memory, must be freed manually
     char* pszAppPath = getAppPath(); // Extract application path
@@ -157,6 +165,7 @@ int main(int argc, char* argv[])
     #endif
 
     if(configFilePath.empty()) {
+        std::cout << "No config file path passed, using default.\n";
         configFilePath = std::string(pszAppPath) + sConfigFileName;
     }
 
