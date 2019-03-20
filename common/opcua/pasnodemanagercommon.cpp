@@ -488,7 +488,7 @@ UaStatus PasNodeManagerCommon::createTypeNodes()
     for (auto v : ACTObject::ERRORS) {
       pDataItem = new OpcUa::DataItemType(UaNodeId(v.first, getNameSpaceIndex()),
               std::get<0>(v.second).c_str(), getNameSpaceIndex(), std::get<1>(v.second), Ua_AccessLevel_CurrentRead, this);
-      pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
+      //pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Optional);
       addStatus = addNodeAndReference(pACTType, pDataItem, OpcUaId_HasComponent);
       UA_ASSERT(addStatus.isGood());
     }

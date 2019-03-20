@@ -203,9 +203,9 @@ class DummyActuator : public Actuator
         DummyActuator(CBC* InputCBC, int InputPortNumber, int InputActuatorSerial, DBStruct InputDB) : Actuator(InputCBC, InputPortNumber, InputActuatorSerial, InputDB) {};
         DummyActuator(CBC* InputCBC, int InputPortNumber, int InputActuatorSerial, DBStruct InputDB, ASFStruct InputASF) : Actuator(InputCBC, InputPortNumber, InputActuatorSerial, InputDB, InputASF) {};
 
-        void Initialize();
-        int Step(int InputSteps);
-        float MeasureLength();
+        void Initialize() override;
+        int Step(int InputSteps) override;
+        float MeasureLength() override;
 
 };
 

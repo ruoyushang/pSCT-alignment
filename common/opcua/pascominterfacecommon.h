@@ -12,8 +12,6 @@
 #include "statuscode.h"
 #include "uaarraytemplates.h"
 
-struct Identity;
-
 enum class PASState {
         On = 0,
         Off = 1,
@@ -24,6 +22,7 @@ enum class PASState {
         GLOB_Positioner_notMoving = 11
     };
 
+struct Identity;
 
 class PasComInterfaceCommon
 {
