@@ -7,11 +7,11 @@ trap interrupt INT
 
 # NOTE: DB access information is hardcoded
 
-usage() { echo "Usage: $0  [-a (all)] [panel number(s)] [-h (help)] [-b (background)]" 1>&2; exit 1; }
+usage() { echo "Usage: $0  [-a (all)] [-h (help)] [-b (background)] [panel number(s)]" 1>&2; exit 1; }
 
 all=false
 background=false
-extension=".xml"
+extension=".ini"
 
 while getopts "ahb" o; do
     case "${o}" in
@@ -60,8 +60,11 @@ if [[ ("$count" > 0) ]]; then
 
          printf "(%d/%d) Starting server for panel %d at address %s.\n" "$i" "$count" "$panel_num" "$endpoint_addr"
          abspath=$(realpath ${config_filename})
-         printf "../sdk/bin/passerver $panel_num -c $abspath \n"
-         ../sdk/bin/passerver "${panel_num}" "-c $abspath" > "${panel_num}.log" &
+         if $background ; then
+           nohup ../sdk/bin/passerver "${panel_num}" "-c $abspath" &>"${panel_num}.log" &
+         else 
+           ../sdk/bin/passerver "${panel_num}" "-c $abspath" &>"${panel_num}.log" &
+         fi
          ((i++))
     done
 
@@ -71,12 +74,12 @@ if [[ ("$count" > 0) ]]; then
 
     for panel_num in "${PANELS[@]}"; do
        config_filename="$panel_num$extension"
-       rm "$config_filename"
+       # rm "$config_filename"
     done
 
     printf "Done.\n"
 
-    if $background ; then
+    if ! $background ; then
       trap interrupt INT
       read -n1 -r -p "Press x to shut down..." key
 
