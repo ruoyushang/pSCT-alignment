@@ -19,6 +19,7 @@
 #include "uaserver/opcua_offnormalalarmtype.h"
 #include "uaserver/uaobjecttypes.h"
 
+#include "common/opcua/components.h"
 #include "common/opcua/mpeseventdata.h"
 #include "common/opcua/pascominterfacecommon.h"
 #include "common/opcua/pasnodemanagercommon.h"
@@ -62,9 +63,7 @@ UaStatus PasNodeManager::afterStartUp()
 
     std::string deviceTypeName, folderName;
 
-    std::vector<int> validDeviceAddresses;
-
-    Identity identity;
+    std::vector<Identity> validDeviceIdentities;
 
     ret = createTypeNodes(); // create default type nodes
     UA_ASSERT(ret.isGood());
@@ -90,10 +89,9 @@ UaStatus PasNodeManager::afterStartUp()
     for (auto pair : PasCommunicationInterface::deviceTypes) {
         deviceType = pair.first;
         deviceTypeName = pair.second;
-        validDeviceAddresses = dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->getValidDeviceAddresses(deviceType);
+        validDeviceIdentities = dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->getValidDeviceIdentities(deviceType);
 
-        for (auto eAddress : validDeviceAddresses) {
-            identity.eAddress = std::to_string(eAddress);
+        for (auto identity : validDeviceIdentities) {
             deviceName = UaString(deviceTypeName.c_str()) + "_" + identity.eAddress.c_str();
             //If folder doesn't already exist, create a folder for each object type and add the folder to the DevicesByType folder
             if ( pDeviceTypeFolders.find(deviceType) == pDeviceTypeFolders.end() ) {
@@ -143,8 +141,8 @@ UaStatus PasNodeManager::afterStartUp()
 
     // Loop through all created objects and add as children of the panel
     for (auto p : pChildObjects) {
-        deviceTypeName = pObject->typeDefinitionId().toString().toUtf8();
-        deviceType = pObject->typeDefinitionId().identifierNumeric();
+        deviceType = p->typeDefinitionId().identifierNumeric();
+        deviceTypeName = PasCommunicationInterface::deviceTypes.at(p->typeDefinitionId().identifierNumeric());
 
         //If folder doesn't already exist, create a folder for each object type and add the folder to the DevicesByType folder
         if ( pChildFolders.find(deviceType) == pChildFolders.end() ) {
@@ -152,7 +150,6 @@ UaStatus PasNodeManager::afterStartUp()
             ret = addNodeAndReference(pPanel, pChildFolders[deviceType], OpcUaId_Organizes);
             UA_ASSERT(ret.isGood());
         }
-
         ret = addUaReference(pChildFolders[deviceType]->nodeId(), p->nodeId(), OpcUaId_HasComponent);
         UA_ASSERT(ret.isGood());
     }

@@ -140,6 +140,7 @@ UaStatusCode PasCommunicationInterface::Initialize()
     }
 
     // Initialize expected devices
+    Identity identity;
     std::map<OpcUa_UInt32, int> expectedDeviceCounts;
     expectedDeviceCounts[PAS_PanelType] = 1;
     expectedDeviceCounts[PAS_ACTType] = m_platform->getActuatorCount();
@@ -153,7 +154,7 @@ UaStatusCode PasCommunicationInterface::Initialize()
             std::cout << "Attempting to create their virtual counterparts...\n";
 
         if (m_pControllers.find(devCount.first) == m_pControllers.end()) {
-            m_pControllers[devCount.first] = std::map<int, std::shared_ptr<PasController>>();
+            m_pControllers[devCount.first] = std::map<Identity, std::shared_ptr<PasController>>();
         }
 
         int eAddress;
@@ -179,12 +180,13 @@ UaStatusCode PasCommunicationInterface::Initialize()
                 eAddress = i;
             }
 #endif
+            identity.eAddress = std::to_string(eAddress); 
             if (pController->Initialize() == 0) {
-                m_pControllers.at(devCount.first).emplace(eAddress, pController);
+                m_pControllers.at(devCount.first).emplace(identity, pController);
             }
             else {
                 std::cout << "Could not Initialize " << deviceTypes.at(devCount.first)
-                         << " at eAddress " << eAddress << std::endl;
+                         << " with identity " << identity << std::endl;
             }
         }
         // update the number of devices to the ones initialized
@@ -196,7 +198,11 @@ UaStatusCode PasCommunicationInterface::Initialize()
     }
 
     try {
-        std::shared_ptr<PanelController> pPanel = std::dynamic_pointer_cast<PanelController>(m_pControllers[PAS_PanelType][0]); // get the first panel and assign actuators to it
+        std::vector<std::shared_ptr<PasController>> panels;
+        for( auto it = m_pControllers[PAS_PanelType].begin(); it != m_pControllers[PAS_PanelType].end(); ++it ) {
+            panels.push_back( it->second ); 
+        }
+        std::shared_ptr<PanelController> pPanel = std::dynamic_pointer_cast<PanelController>(panels.at(0)); // get the first panel and assign actuators to it
         std::shared_ptr<ActController> pACT;
         for (auto a : m_pControllers.at(PAS_ACTType)) {
             pACT = std::dynamic_pointer_cast<ActController>(a.second);
@@ -221,16 +227,16 @@ std::size_t PasCommunicationInterface::getDeviceCount(OpcUa_UInt32 deviceType)
     }
 }
 
-std::vector<int> PasCommunicationInterface::getValidDeviceAddresses(OpcUa_UInt32 deviceType)
+std::vector<Identity> PasCommunicationInterface::getValidDeviceIdentities(OpcUa_UInt32 deviceType)
 {
-  std::vector<int> validAddresses;
-  std::map<int, std::shared_ptr<PasController>> devices = m_pControllers.at(deviceType);
+  std::vector<Identity> validIdentities;
+  std::map<Identity, std::shared_ptr<PasController>> devices = m_pControllers.at(deviceType);
 
   for(auto it = devices.begin(); it != devices.end(); ++it) {
-    validAddresses.push_back(it->first);
+    validIdentities.push_back(it->first);
   }
 
-  return validAddresses;
+  return validIdentities;
 }
 
 /**
@@ -238,18 +244,10 @@ std::vector<int> PasCommunicationInterface::getValidDeviceAddresses(OpcUa_UInt32
 /// and uses it to get the identity in
 UaStatusCode PasCommunicationInterface::getDeviceInfo(
     OpcUa_UInt32 deviceType,
-    int eAddress,
+    int idx,
     UaString& sName,
     Identity& identity)
 {
-    int idx;
-    try {
-        idx = m_pControllers.at(deviceType).at(eAddress)->getId();
-    }
-    catch (out_of_range) {
-        return OpcUa_BadInvalidArgument;
-    }
-
     if ( deviceType == PAS_MPESType)
         identity.eAddress = to_string(m_platform->getMPESAt(idx)->GetPortNumber());
     else if (deviceType == PAS_ACTType)
@@ -271,11 +269,11 @@ UaStatusCode PasCommunicationInterface::getDeviceInfo(
 
 UaStatusCode PasCommunicationInterface::getDeviceState(
     OpcUa_UInt32 deviceType,
-    int eAddress,
+    const Identity& identity,
     PASState& state)
 {
     try {
-        return m_pControllers.at(deviceType).at(eAddress)->getState(state);
+        return m_pControllers.at(deviceType).at(identity)->getState(state);
     }
     catch (std::out_of_range) {
         return OpcUa_BadInvalidArgument;
@@ -284,11 +282,11 @@ UaStatusCode PasCommunicationInterface::getDeviceState(
 
 UaStatusCode PasCommunicationInterface::setDeviceState(
     OpcUa_UInt32 deviceType,
-    int eAddress,
+    const Identity& identity,
     PASState state)
 {
     try {
-        return m_pControllers.at(deviceType).at(eAddress)->setState(state);
+        return m_pControllers.at(deviceType).at(identity)->setState(state);
     }
     catch (std::out_of_range) {
         return OpcUa_BadInvalidArgument;
@@ -297,26 +295,27 @@ UaStatusCode PasCommunicationInterface::setDeviceState(
 
 UaStatusCode PasCommunicationInterface::getDeviceData(
     OpcUa_UInt32 deviceType,
-    int eAddress,
+    const Identity& identity,
     OpcUa_UInt32 offset,
     UaVariant& value)
 {
     try {
-        return m_pControllers.at(deviceType).at(eAddress)->getData(offset, value);
+        return m_pControllers.at(deviceType).at(identity)->getData(offset, value);
     }
     catch (std::out_of_range) {
+        std::cout << "failed to find controller " << deviceType << " " << identity << std::endl;
         return OpcUa_BadInvalidArgument;
     }
 }
 
 UaStatusCode PasCommunicationInterface::setDeviceData(
     OpcUa_UInt32 deviceType,
-    int eAddress,
+    const Identity& identity,
     OpcUa_UInt32 offset,
     UaVariant value)
 {
     try {
-        return m_pControllers.at(deviceType).at(eAddress)->setData(offset, value);
+        return m_pControllers.at(deviceType).at(identity)->setData(offset, value);
     }
     catch (std::out_of_range) {
         return OpcUa_BadInvalidArgument;
@@ -325,47 +324,14 @@ UaStatusCode PasCommunicationInterface::setDeviceData(
 
 UaStatusCode PasCommunicationInterface::OperateDevice(
     OpcUa_UInt32 deviceType,
-    int eAddress,
+    const Identity& identity,
     OpcUa_UInt32 offset,
     const UaVariantArray& args)
 {
     try {
-        return m_pControllers.at(deviceType).at(eAddress)->Operate(offset, args);
+        return m_pControllers.at(deviceType).at(identity)->Operate(offset, args);
     }
     catch (std::out_of_range) {
         return OpcUa_BadInvalidArgument;
     }
 }
-
-/**
-void PasCommunicationInterface::run()
-{
-    UaStatusCode status;
-    UaDateTime last = UaDateTime::now();
-    OpcUa_UInt32 i;
-    OpcUa_UInt32 count = getCountSensors();
-
-    OpcUa_Double curValue;
-
-    while( m_stop == OpcUa_False )
-    {
-        if ( last.msecsTo(UaDateTime::now()) >= 1000 )
-        {
-            for ( i=0; i<count; i++ )
-            {
-                std::cout << "******** running MPES " << i+1 << " ********" << std::endl;
-                Identity id;
-                id.eAddress = to_string(m_platform->getMPESAt(i)->USBPortNumber);
-                status = OperateDevice(PAS_MPESType, id);
-                std::cout << "MPES " << i << " "
-                << UaDateTime::now().toTime_t();
-                for ( int j = 0; j < 5; j++ ) {
-                    getDeviceData(PAS_MPESType, id, j, curValue);
-                    std::cout << " " << curValue;
-                }
-                std::cout << endl;
-            }
-            last = UaDateTime::now();
-        }
-    }
-} */
