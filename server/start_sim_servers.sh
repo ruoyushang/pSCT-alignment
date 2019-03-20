@@ -34,18 +34,19 @@ if ${all} ; then
          then
              continue
          fi
-         PANELS+=($position)
-    done < <(mysql --user="CTAreadonly" --password="readCTAdb" --database="CTAonline" --host="remus.ucsc.edu" --port="3406" -ss -e "SELECT position FROM Opt_MPMMapping")
-else
-    PANELS=("$@")
+         PANEL_MAP[$position]=${ip_address}
+    done < <(mysql --user="CTAreadonly" --password="readCTAdb" --database="CTAonline" --host="remus.ucsc.edu" --port="3406" -ss -e "SELECT position, mpcb_ip_address FROM Opt_MPMMapping")
+#else
+#    PANELS=("$@")
 fi
 
-count=$((${#PANELS[@]}))
+count=$((${#PANEL_MAP[@]}))
 
 if [[ ("$count" > 0) ]]; then
     printf "%s total panels selected\n" "$count"
     printf "Starting all servers...\n"
 
+    IP=${LOCALIP}
     i=1
     for panel_num in "${PANELS[@]}"; do
          # Create temporary config file for each server to set the server endpoint

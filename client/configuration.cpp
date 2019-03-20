@@ -10,6 +10,7 @@
 // MySQL C++ Connector includes
 #include "mysql_driver.h"
 #include "cppconn/statement.h"
+#include "DBConfig.hpp"
 
 using namespace UaClientSdk;
 
@@ -137,10 +138,13 @@ UaStatus Configuration::loadConnectionConfiguration(const UaString& sConfigurati
     value.toBool(m_bRetryInitialConnect);
 
     // Server URLs
-    value = pSettings->value("DiscoveryURL", UaString("opc.tcp://127.0.0.1:48010"));
-    //value = pSettings->value("DiscoveryURL", UaString("opc.tcp://10.0.1.13:48010")); //Ruo
+#if SIMMODE
+    const char *  local_ip = getenv("LOCALIP");
+    value = pSettings->value("DiscoveryURL", UaString("opc.tcp://%s:48010").arg(local_ip));
+#else
+    value = pSettings->value("DiscoveryURL", UaString("opc.tcp://172.17.0.201.:48010"));
+#endif
     m_discoveryUrl = value.toString();
-
     value = pSettings->value("PositionerURL", UaString("opc.tcp://127.0.0.1:4840"));
     m_positionerUrl = value.toString();
 
@@ -402,11 +406,12 @@ UaStatus Configuration::loadDeviceConfiguration(const std::vector<std::string>& 
     /* *********************************************************/
     /* INITIAL DATABASE HACK JOB -- NEEDS TO HAVE ITS OWN CLASS */
     //string db_ip="172.17.10.10"; // internal ip
-    std::string db_ip="romulus.ucsc.edu";
-    std::string db_port="3406";
-    std::string db_user="CTAreadonly";
-    std::string db_password="readCTAdb";
-    std::string db_name="CTAonline";
+    DBConfig myconfig = DBConfig::getDefaultConfig();
+    std::string db_ip=myconfig.getHost();
+    std::string db_port=std::to_string(myconfig.getPort());
+    std::string db_user=myconfig.getUser();
+    std::string db_password=myconfig.getPassword();
+    std::string db_name=myconfig.getDatabase();
     std::string db_address = "tcp://" + db_ip + ":" + db_port;
 
     try {
@@ -425,10 +430,14 @@ UaStatus Configuration::loadDeviceConfiguration(const std::vector<std::string>& 
             sql_results = sql_stmt->getResultSet();
             // should only be one result FOR NOW -- IN THE FUTURE, NEED TO FIX THIS, SORTING BY DATE
             while (sql_results->next()) {
-                panelId.eAddress = "opc.tcp://127.0.0.1:"+std::string(position.c_str()); 
-                //panelId.eAddress = "opc.tcp://" + sql_results->getString(2) + ":4840";
+#if SIMMODE
+                const char* local_ip = getenv("LOCALIP");
+                panelId.eAddress = "opc.tcp://"+std::string(local_ip)+":"+std::string(position.c_str());
+#else
+                panelId.eAddress = "opc.tcp://" + sql_results->getString(2) + ":4840";
+#endif
                 panelId.serialNumber = sql_results->getInt(1);
-                }
+            }
             // add to the list of devices
             m_DeviceList[PAS_PanelType].push_back(panelId);
             std::cout << " +++ Configuration: added Panel "

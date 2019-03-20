@@ -18,7 +18,7 @@ cd ./sdk/
 ./buildServer.sh -cSIMMODE
 ./buildClient.sh -cSIMMODE
 ```
-If using another environment, check the help menu for each build script. This will install binaries to `./sdk/bin`, and you can set up SIMMODE instances by creating servers in `./server/start_sim_servers.sh -a` and `./client/start_sim_client.sh`. 
+If using another environment, check the help menu for each build script. This will install binaries to `./sdk/bin`, and you can set up SIMMODE instances by creating servers in `./server/start_sim_servers.sh -a` and `./client/start_sim_client.sh`. Make sure to set environment variable `LOCALIP` to the ip address of the local SIMMODE instance - if using docker, this is the ip discovered below in the docker section, but otherwise usually set to `127.0.0.1`. 
 
 
 # Docker
@@ -33,10 +33,37 @@ Once built, run the set of images together with
 ```bash
 docker-compose up -d
 ``` 
-This will start the mysql and alignment container. To connect, do not use `docker run <options>` but instead ssh directly to the alignment container.
+This will start the mysql and alignment container. To connect, do not use `docker run <options>` like in previous instances but instead ssh directly to the alignment container.
 ```bash
 ssh -p 3022 root@0.0.0.0
 ```
-This will log you into the container. The password is defined inside the Dockerfile image - `pass`. From here, you can compile the alignment git repository from `/app/pSCT-alignment/sdk` with the build shell scripts.
+This will log you into the container. The password is defined inside the Dockerfile image = `pass`. From here, you can compile the alignment git repository from `/app/pSCT-alignment/sdk` with the build shell scripts.
 
- 
+Before building the binaries inside the container (after `docker-compose up -d`, but before `./buildClient.sh -cSIMMODE`), check that the ip address is correct for docker's internet container network:
+
+```bash
+docker inspect -f '{{.Name}} - {{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $(docker ps -aq)
+```
+This will yield IP address for main and mysql. Copy the value for main and export into main while using the server or client:
+
+```bash
+export LOCALIP="value"
+```
+Make sure this IP address is also in `sdk/bin/PasServerConfig.xml` line 137, following <UaServerConfig><UaEndpoint><URL>.
+  
+# Generating documentation with Doxygen
+
+To re-generate all doxygen documentation, from the root directory (containing the doxygen/ directory), run:
+
+```bash
+doxygen doxygen/Doxyfile
+```
+
+NOTE: It is required that the command is executed from the root directory for the files to be searched correctly.
+
+The generated html and LaTeX documentation will be located at:
+
+```bash
+doxygen/html
+doxygen/latex
+```
