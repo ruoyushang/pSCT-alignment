@@ -8,6 +8,7 @@
 #include "uabase/uamutex.h"
 #include "uabase/uastring.h"
 
+#include "common/opcua/pasobject.h"
 #include "common/opcua/passervertypeids.h"
 
 /// @details Sets state to On, inLength to current length, and DeltaL to 0.
@@ -59,23 +60,25 @@ UaStatus ActController::getData(OpcUa_UInt32 offset, UaVariant& value)
     UaMutexLocker lock(&m_mutex);
     UaStatus status;
 
-    if (offset >= PAS_ACTType_Error0 && offset <= PAS_ACTType_Error0) {
-      return getError(offset, value);
-    }
-    else {
-      int dataoffset = offset - PAS_ACTType_Steps;
-
-      switch ( dataoffset )
+    if (ACTObject::VARIABLES.find(offset) != ACTObject::VARIABLES.end()) {
+       switch ( offset )
       {
-          case 0:
-              value.setFloat(m_DeltaL);
-              break;
-          case 1:
+          case PAS_ACTType_curLength_mm:
               value.setFloat(m_pPlatform->getActuatorAt(m_ID)->MeasureLength());
+              break;
+          case PAS_ACTType_inLength_mm:
+              value.setFloat(m_DeltaL);
               break;
           default:
               status = OpcUa_BadInvalidArgument;
-      }
+      }  
+    }
+
+    else if (ACTObject::ERRORS.find(offset) != ACTObject::ERRORS.end()) {
+      return getError(offset, value);
+    }
+    else {
+        return OpcUa_BadInvalidArgument; 
     }
     return status;
 }
@@ -86,10 +89,9 @@ UaStatus ActController::getError(OpcUa_UInt32 offset, UaVariant& value)
     UaStatus status;
     bool errorStatus;
 
-    int errorNum = offset - PAS_ACTType_Error0;
-
-    if ( errorNum >= 0 && errorNum <= 13 ) {
-      errorStatus = m_pPlatform->getActuatorAt(m_ID)->ActuatorErrors[errorNum].Triggered;
+    OpcUa_UInt32 errorNum = offset - PAS_ACTType_Error0;
+    if ( errorNum >= 0 && errorNum < ACTObject::ERRORS.size() ) {
+      errorStatus = m_pPlatform->getActuatorAt(m_ID)->ActuatorErrors[int(errorNum)].Triggered;
       value.setBool(errorStatus);
     }
     else {
