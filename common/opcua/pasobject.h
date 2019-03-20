@@ -61,10 +61,8 @@ public:
 
     virtual const std::map<OpcUa_UInt32, std::pair<std::string, int>> getMethodDefs() { return PasObject::METHODS; }
 
-protected:
-  
-
-// a function that's used very often
+protected: 
+    // a function that's used very often
     OpcUa::DataItemType* addVariable(PasNodeManagerCommon *pNodeManager, OpcUa_UInt32 ParentType, OpcUa_UInt32 VarType, OpcUa_Boolean isState = OpcUa_False, bool addReference = true);
 
     /// @brief Map from the OPC UA node IDs for all supported method nodes to the corresponding method node and the OPC UA type ID for the method type node.

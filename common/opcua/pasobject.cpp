@@ -37,13 +37,14 @@ PasObject::PasObject(const UaString& name,
     // Method helper
     OpcUa_Int16                  nsIdx = pNodeManager->getNameSpaceIndex();
 
-    // Store information needed to access device
+    //Store information needed to access device
     //PasUserData* pUserData = new PasUserData(isState, ParentType, m_Identity, VarType);
     //pDataItem->setUserData(pUserData);
-    // Change value handling to get read and write calls to the node manager
+    //Change value handling to get read and write calls to the node manager
     //pDataItem->setValueHandling(UaVariable_Value_Cache);
 
     // Add all child variable nodes
+    /**
     for (auto it = getVariableDefs().begin(); it != getVariableDefs().end(); it++) {
         addVariable(pNodeManager, PAS_PanelType, it->first, std::get<2>(it->second));
     }
@@ -58,8 +59,7 @@ PasObject::PasObject(const UaString& name,
         pDataItem = addVariable(pNodeManager, PAS_ACTType, v.first);
         addStatus = pNodeManager->addUaReference(pErrorFolder->nodeId(), pDataItem->nodeId(), OpcUaId_Organizes);
     }
-
-
+    */
 }
 
 PasObject::~PasObject() {}
@@ -405,29 +405,29 @@ ACTObject::ACTObject(
     OpcUa_Int16                  nsIdx = pNodeManager->getNameSpaceIndex();
 
     // Add all child variable nodes
-    for (auto it = getVariableDefs().begin(); it != getVariableDefs().end(); it++) {
-        addVariable(pNodeManager, PAS_PanelType, it->first, std::get<2>(it->second));
+    for (auto v : getVariableDefs()) {
+        addVariable(pNodeManager, PAS_ACTType, v.first, std::get<2>(v.second));
     }
 
     //Create the folder for the Errors
-    UaFolder *pErrorFolder = new UaFolder("Errors", UaNodeId("ACT_Errors", nsIdx), m_defaultLocaleId);
+    UaFolder *pErrorFolder = new UaFolder("Errors", UaNodeId(("ACT_" + identity.eAddress + "_errors").c_str(), nsIdx), m_defaultLocaleId);
     addStatus = pNodeManager->addNodeAndReference(this, pErrorFolder, OpcUaId_Organizes);
     UA_ASSERT(addStatus.isGood());
 
     // Add all error variable nodes
     for (auto v : getErrorDefs()) {
-        pDataItem = addVariable(pNodeManager, PAS_ACTType, v.first);
+        pDataItem = addVariable(pNodeManager, PAS_ACTType, v.first, OpcUa_False, false);
         addStatus = pNodeManager->addUaReference(pErrorFolder->nodeId(), pDataItem->nodeId(), OpcUaId_Organizes);
     }
 
     // Add all child method nodes
     UaString sName;
     UaString sNodeId;
-    for (auto it = getMethodDefs().begin(); it != getMethodDefs().end(); it++)
+    for (auto v: getMethodDefs())
     {
-      sName = UaString(it->second.first.c_str());
+      sName = UaString(v.second.first.c_str());
       sNodeId = UaString("%1.%2").arg(newNodeId.toString()).arg(sName);
-      m_MethodMap[UaNodeId(sNodeId, nsIdx)] = std::make_pair(new UaMethodGeneric(sName, UaNodeId(sNodeId, nsIdx), m_defaultLocaleId), it->first);
+      m_MethodMap[UaNodeId(sNodeId, nsIdx)] = std::make_pair(new UaMethodGeneric(sName, UaNodeId(sNodeId, nsIdx), m_defaultLocaleId), v.first);
       addStatus = pNodeManager->addNodeAndReference(this, m_MethodMap[UaNodeId(sNodeId, nsIdx)].first, OpcUaId_HasComponent);
       UA_ASSERT(addStatus.isGood());
     }
@@ -528,7 +528,7 @@ PSDObject::PSDObject(
     pDataItem = addVariable(pNodeManager, PAS_PSDType, PAS_PSDType_dy2);
     pDataItem = addVariable(pNodeManager, PAS_PSDType, PAS_PSDType_Temp);
 
-    // Add Method "StepAll"
+    // Add Method "Update"
     UaString sName = "Update";
     UaString sNodeId = UaString("%1.%2").arg(newNodeId.toString()).arg(sName);
     m_pMethodUpdate = new UaMethodGeneric(sName, UaNodeId(sNodeId, nsIdx), m_defaultLocaleId);

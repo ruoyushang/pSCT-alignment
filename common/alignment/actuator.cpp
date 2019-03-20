@@ -350,12 +350,12 @@ void Actuator::RecordStatusToDB()//record all error codes to DB. Adjust to new d
 
 bool Actuator::ReadStatusFromASF(StatusStruct & RecordedPosition)//read all error codes from ASF. Check size of error codes to make sure version is consistent. Read whether Home is set or not.
 {
-	//DEBUG_MSG("Reading Status from ASF File with path " << ASFFullPath);
+        DEBUG_MSG("Reading Status from ASF File with path " << ASFFullPath);
 	std::ifstream ASF(ASFFullPath);
 	//if(ASF.bad())//if file does not exist (or possibly other file issues not expected..)
 	if(!ASF.good())//if file does not exist (or possibly other file issues not expected..)
 	{
-		DEBUG_MSG("ASF file was bad for Actuator " << SerialNumber << " with ASF path " << ASFFullPath << ". Assuming it did not exist and will create a default ASF file.");
+		ERROR_MSG("ASF file was bad for Actuator " << SerialNumber << " with ASF path " << ASFFullPath << ". Assuming it did not exist and will create a default ASF file.");
 		ASF.close();
 		CreateDefaultASF();
 		ASF.open(ASFFullPath);    
@@ -698,6 +698,7 @@ void Actuator::SetCurrentPosition(PositionStruct InputPosition)//EXPERIENCED USE
 
 void Actuator::CheckCurrentPosition()//consolidates current position and recovers position (if not too far away). This is typically ran after reading status from ASF.
 {
+    DEBUG_MSG("Actuator: Checking current position...");
     int IndexDeviation=QuickAngleCheck(CurrentPosition);
     if(VoltageError)//check for voltage issue
     {
@@ -1129,6 +1130,7 @@ void Actuator::ClearAllErrors()
 
 void Actuator::ForceRecover()
 {
+    ERROR_MSG("Actuator: Force recovering...");
     int IndexDeviation=QuickAngleCheck(CurrentPosition);
     if(VoltageError)//check for voltage issue
     {
@@ -1152,10 +1154,10 @@ void Actuator::CopyFile(std::string srcfile, std::string destfile)
 
 int DummyActuator::Step(int InputSteps)//Positive Step is Extension of Motor
 {
-    std::cout << "SIMMODE: Stepping Actuator " << SerialNumber << " " << InputSteps << " steps" << std::endl;
+    std::cout << "DummyActuator: Stepping Actuator " << SerialNumber << " " << InputSteps << " steps" << std::endl;
     if(ErrorStatus == StatusModes::FatalError)//don't move actuator if there's a fatal error.
     {
-        std::cout << "SIMMODE: Fatal error occurs!!!" << std::endl;
+        ERROR_MSG("DummyActuator: Fatal error");
         return InputSteps;
     }
     PositionStruct FinalPosition=PredictPosition(CurrentPosition,-InputSteps);
@@ -1164,19 +1166,20 @@ int DummyActuator::Step(int InputSteps)//Positive Step is Extension of Motor
     int StepsTaken;
     int Sign;
     int StepsRemaining=-( CalculateStepsFromHome(FinalPosition)-CalculateStepsFromHome(CurrentPosition) );//negative because positive step is retraction, and (0,0) is defined as full extraction.
-    std::cout << "SIMMODE: StepsRemaining = " << StepsRemaining << std::endl;
+    std::cout << "DummyActuator: StepsRemaining = " << StepsRemaining << std::endl;
     return StepsRemaining;
 }
 float DummyActuator::MeasureLength()
 {
-    //DEBUG_MSG("Measuring Actuator Length for Actuator " << SerialNumber);
+    DEBUG_MSG("Measuring Actuator Length for Dummy Actuator " << SerialNumber);
     int StepsFromHome=CalculateStepsFromHome(CurrentPosition);
     float DistanceFromHome=StepsFromHome*mmPerStep;
     float CurrentLength=HomeLength-DistanceFromHome;
     return CurrentLength;
 }
-void DummyActuator::Initialize()//Port, Serial, ASFPath, and sometimes DB are loaded. The rest of the loading needs to be designed here. Set Current Position
+void DummyActuator::Initialize() 
 {
-    //check if ASF file exists. if it doesn't, create it.
     std::cout << "Initializing Dummy Actuator ..." << std::endl;
 }
+
+
