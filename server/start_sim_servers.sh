@@ -62,7 +62,7 @@ if [[ ("$count" > 0) ]]; then
          abspath=$(realpath ${config_filename})
          if $background ; then
            nohup ../sdk/bin/passerver "${panel_num}" "-c $abspath" &>"${panel_num}.log" &
-         else 
+         else
            ../sdk/bin/passerver "${panel_num}" "-c $abspath" &>"${panel_num}.log" &
          fi
          ((i++))
