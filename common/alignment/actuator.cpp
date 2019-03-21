@@ -611,7 +611,7 @@ int Actuator::Step(int InputSteps)//Positive Step is Extension of Motor
         //if( (std::abs(MissedSteps)/float(std::abs(StepsToTake)))>TolerablePercentOfMissedSteps && std::abs(MissedSteps)>MinimumMissedStepsToFlagError)//if the actuator misses a certain percent of steps AND misses more than a threshold number of steps.
 	if (std::abs(StepsTaken)==0 && std::abs(StepsToTake)>MinimumMissedStepsToFlagError)
 	{
-            ERROR_MSG("Fatal Error: Actuator " << SerialNumber << " does not appear to be stepping.")
+            ERROR_MSG("Fatal Error: Actuator " << SerialNumber << " does not appear to be stepping.");
             SetError(6);//fatal
             RecordStatusToASF();
             return StepsRemaining;//quit, don't record or register steps attempted to be taken.
