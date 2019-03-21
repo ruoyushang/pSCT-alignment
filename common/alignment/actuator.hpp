@@ -94,7 +94,7 @@ float StdDevMax{5.0f*dV};
 int QuickAngleCheckRange{5};
 int EndstopSearchStepsize{15};
 int CyclesDefiningHome{3};
-int MinimumMissedStepsToFlagError{5};
+int MinimumMissedStepsToFlagError{3};
 float TolerablePercentOfMissedSteps{0.1};
 int ExtendStopToHomeStepsDeviation{StepsPerRevolution/4};
 int FlaggedRecoverySteps{RecordingInterval/10};
