@@ -609,7 +609,15 @@ int Actuator::Step(int InputSteps)//Positive Step is Extension of Motor
         SetCurrentPosition(PredictPosition(CurrentPosition,-StepsTaken));
 
         //if( (std::abs(MissedSteps)/float(std::abs(StepsToTake)))>TolerablePercentOfMissedSteps && std::abs(MissedSteps)>MinimumMissedStepsToFlagError)//if the actuator misses a certain percent of steps AND misses more than a threshold number of steps.
-        if( std::abs(MissedSteps) > std::max( int(TolerablePercentOfMissedSteps*std::abs(StepsToTake)) , MinimumMissedStepsToFlagError ) )
+	if (std::abs(StepsTaken)==0 && std::abs(StepsToTake)>MinimumMissedStepsToFlagError)
+	{
+            ERROR_MSG("Fatal Error: Actuator " << SerialNumber << " does not appear to be stepping.")
+            SetError(6);//fatal
+            RecordStatusToASF();
+            return StepsRemaining;//quit, don't record or register steps attempted to be taken.
+	}	
+
+        else if( std::abs(MissedSteps) > std::max( int(TolerablePercentOfMissedSteps*std::abs(StepsToTake)) , MinimumMissedStepsToFlagError ) )
         {
             ERROR_MSG("Fatal Error: Actuator " << SerialNumber << " missed a large number of steps (" << MissedSteps << ").");
             SetError(8);//fatal
@@ -1081,7 +1089,7 @@ else
 int CurrentAngle=MeasureAngle();
 if(std::abs(CurrentAngle-ASFRecordedPosition.Position.Angle)>FlaggedRecoverySteps)
 {
-SetError(6);
+SetError();
 RecordStatusToASF();
 }
 else
