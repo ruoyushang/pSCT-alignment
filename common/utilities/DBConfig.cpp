@@ -3,7 +3,7 @@
 //
 
 #include "DBConfig.hpp"
-
+#include <string>
 
 void DBConfig::overwriteDefaultValues(DBConfig *configptr)
 {
@@ -126,7 +126,7 @@ DBConfig DBConfig::getDefaultConfig()
     cfg.setPassword(getenv("MYSQL_PASSWORD"));
     cfg.setDatabase(getenv("MYSQL_DATABASE"));
     cfg.setSocket(getenv("MYSQL_SOCKET"));
-    cfg.setPort(std::atoi( getenv("MYSQL_PORT")));
+    cfg.setPort(std::stoul(getenv("MYSQL_PORT")));
     myconfig.overwriteDefaultValues(&cfg);
     //fix hardwired config defaults
     cfg.setHost("");
