@@ -16,8 +16,10 @@
 #include "pascommunicationinterface.h"
 #include "paslogic.h"
 #include "shutdown.h"
+
 #include <vector>
 #include <string>
+#include <iostream>
 
 #define CLIENT_CPP_SDK_ACTIVATE_TRACE    0
 #define CLIENT_CPP_SDK_ACTIVATE_MEMCHECK 0
@@ -107,20 +109,16 @@ int OpcMain(const char* szAppPath, std::vector<std::string> serverlist)
 {
     int ret = 0;
 
-    //- Initialize the environment --------------
 #if SUPPORT_XML_PARSER
-    // Initialize the XML Parser
-    UaXmlDocument::initParser();
+    UaXmlDocument::initParser(); // Initialize the XML Parser
 #endif
-    // Initialize the UA Stack platform layer
-    ret = UaPlatformLayer::init();
-    //-------------------------------------------
-
+    ret = UaPlatformLayer::init(); // Initialize the UA Stack platform layer
+ 
     UaStatus status;
 
     if ( ret == 0 )
     {
-        // Create configuration file name
+        // Set configuration file names
         UaString sServConfigFile(szAppPath);
         UaString sClientConfigFile(szAppPath);
 
@@ -131,29 +129,20 @@ int OpcMain(const char* szAppPath, std::vector<std::string> serverlist)
 #endif
         sClientConfigFile += "/PasClientConfig.ini";
 
-
-        Configuration *pClientConfiguration = nullptr;
-        PasCommunicationInterface *pCommIf = nullptr;
-        PasLogic *pLogic = nullptr;
-        //- Start up OPC server ---------------------
-        // This code can be integrated into a startup
-        // sequence of the application where the
-        // OPC server should be integrated
-        //-------------------------------------------
-        // Create and initialize server object
+        //PasLogic *pLogic = nullptr;
+               
         OpcServer* pServer = new OpcServer();
         pServer->setServerConfig(sServConfigFile, szAppPath);
 
-        // load configuration. This is a big object -- allocate on the heap
-        pClientConfiguration = new Configuration();
-        printf("  ---- Loading Configuration ----\n");
+        // Load configuration.
+        Configuration *pClientConfiguration = new Configuration();
+        std::cout << "  ---- Loading Configuration ----\n";
         status = pClientConfiguration->loadConnectionConfiguration(sClientConfigFile);
         status = pClientConfiguration->loadDeviceConfiguration(serverlist);
-        printf("  -- Done Loading Configuration --\n");
+        std::cout << "  -- Done Loading Configuration --\n";
 
         // Create and initialize communication interface.
-        // Again, this is a big object -- allocate on the heap
-        pCommIf = new PasCommunicationInterface();
+        PasCommunicationInterface *pCommIf = new PasCommunicationInterface();
         pCommIf->setConfiguration(pClientConfiguration);
         // this initializes the communication interface, including all devices that talk
         // directly to it, like Aravis cameras
@@ -169,33 +158,21 @@ int OpcMain(const char* szAppPath, std::vector<std::string> serverlist)
         // add the node manager
         pServer->addNodeManager(pNodeManagerClient);
 
-        printf("\nPasServer: starting\n");
+        std::cout << "p2pasclient: Server starting\n";
 
         // Start server object
         ret = pServer->start();
-        if ( ret != 0 )
-        {
-            printf("*******************************************\n");
-            printf("  ---- FAILED TO START SERVER/CLIENT ----\n");
-            printf("             Shutting down\n");
-            printf("*******************************************\n");
-            delete pServer;
-            pServer = 0;
-        }
-
-
-        //-------------------------------------------
         if ( ret == 0 )
         {
-            printf("************************************\n");
-            printf("  ---- SERVER/CLIENT STARTED ----\n");
-            printf("    Press x to shut down server\n");
-            printf("************************************\n");
-            // Wait for user command to terminate the server thread.
-
+            std::cout << "************************************\n";
+            std::cout << "  ---- SERVER/CLIENT STARTED ----\n";
+            std::cout << "    Press x to shut down server\n";
+            std::cout << "************************************\n";
+            
             //pLogic = new PasLogic(pCommIf);
             //pLogic->start();
 
+            // Wait for user command to terminate the server thread.
             int action;
             while (!WaitForKeypress(action))
             {
@@ -215,15 +192,10 @@ int OpcMain(const char* szAppPath, std::vector<std::string> serverlist)
                 }
             }
 
-            printf("*************************************\n");
-            printf(" Shutting down server/client\n");
-            printf("*************************************\n");
+            std::cout << "*************************************\n";
+            std::cout << " Shutting down server/client\n";
+            std::cout << "*************************************\n";
 
-            //- Stop OPC server -------------------------
-            // This code can be integrated into a shutdown
-            // sequence of the application where the
-            // OPC server should be integrated
-            //-------------------------------------------
             // Stop the logic thread;
             //pLogic->stop();
 
@@ -234,6 +206,17 @@ int OpcMain(const char* szAppPath, std::vector<std::string> serverlist)
             delete pServer;
             pServer = nullptr;
         }
+        else 
+        {
+            std::cout << "*******************************************\n";
+            std::cout << "  ---- FAILED TO START SERVER/CLIENT ----\n";
+            std::cout << "             Shutting down\n";
+            std::cout << "*******************************************\n";
+            delete pServer;
+            pServer = nullptr;
+        }
+
+
         // clean up
         if (pClientConfiguration) {
             delete pClientConfiguration;
@@ -243,20 +226,18 @@ int OpcMain(const char* szAppPath, std::vector<std::string> serverlist)
             delete pCommIf;
             pCommIf = nullptr;
         }
+        /**
         if (pLogic) {
             delete pLogic;
             pLogic = nullptr;
         }
+        */
     }
 
-    //- Clean up the environment --------------
-    // Clean up the UA Stack platform layer
     UaPlatformLayer::cleanup();
 #if SUPPORT_XML_PARSER
-    // Clean up the XML Parser
-    UaXmlDocument::cleanupParser();
+    UaXmlDocument::cleanupParser(); // Clean up the XML Parser
 #endif
-    //-------------------------------------------
 
     return ret;
 }
@@ -268,7 +249,7 @@ int main(int argc, char* argv[])
 #endif
 {
     if (argc < 2) {
-        printf("Usage: %s <Positions of panels to connect to>\n", argv[0]);
+        std::cout << "Usage: " << argv[0] << " <Positions of panels to connect to>\n";
         return 1;
     }
 
@@ -278,19 +259,17 @@ int main(int argc, char* argv[])
 
     int ret = 0;
 
-//    RegisterSignalHandler();
-
     // Extract application path
     char* pszAppPath = getAppPath();
-    std::vector<std::string> positionlist;
+    
+    // Collect all passed panel position numbers into a vector
+    std::vector<std::string> positionList;
     for (int i = 1; i < argc; i++)
-        positionlist.push_back(argv[i]);
+        positionList.push_back(argv[i]);
 
-    //-------------------------------------------
-    // Call the OPC server main method
-    ret = OpcMain(pszAppPath, positionlist);
-    //-------------------------------------------
-
+    // Run main method
+    ret = OpcMain(pszAppPath, positionList);
+    
     if ( pszAppPath ) delete [] pszAppPath;
 
 #ifndef WIN32

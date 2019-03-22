@@ -67,6 +67,7 @@ UaStatus PasNodeManager::afterStartUp()
     UA_ASSERT(ret.isGood());
 
     // connect to positioner:
+    std::cout << "Attempting to create controller for positioner...\n";
     Identity id;
     UaString positioner_address = m_pConfiguration->getPositionerUrl();
     m_pPositioner->setAddress(positioner_address);
@@ -76,10 +77,10 @@ UaStatus PasNodeManager::afterStartUp()
         id.name = "Positioner";
         // add the positioner to the comm interface
         dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->addDevice(m_pPositioner, GLOB_PositionerType, id);
-        std::cout << "Added positioner\n";
+        std::cout << "Found positioner and added corresponding controller.\n";
     }
     else {
-        std::cout << "Failed to connect to " << m_pConfiguration->getPositionerUrl().toUtf8()
+        std::cout << "Failed to connect to positioner at " << m_pConfiguration->getPositionerUrl().toUtf8()
             << ". Moving on..." << std::endl;
     }
 
@@ -89,6 +90,7 @@ UaStatus PasNodeManager::afterStartUp()
     // in the process, it will construct the edges out of the corresponding panels and sensors,
     // as well as the whole mirror(s). WOW
     // number of clients is the same as the number of servers/panels by our set up
+    std::cout << "Looping through all panels, connecting to servers...\n";
     unsigned client = 0;
     for (const auto& panelId : m_pConfiguration->getDeviceList(PAS_PanelType)) {
         // set the address of the panel as the client helper address and connect to the server
@@ -98,12 +100,17 @@ UaStatus PasNodeManager::afterStartUp()
             dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->addDevice(m_pClient.at(client), PAS_PanelType, panelId);
             // add the nodes that are the result of browsing
             ret = m_pClient.at(client)->browseAndAddDevices();
+            std::cout << "Successfully connected to Panel " << panelId << " and created controller.\n";
         }
         else
-            std::cout << "Failed to connect to " << panelId.eAddress << ". Moving on..." << std::endl;
+            std::cout << "Failed to connect to Panel " << panelId << ". Moving on..." << std::endl;
 
         ++client;
     }
+
+    std::cout << "Done creating device controllers.\n";
+
+    std::cout << "Now creating all OPC UA objects and folders...\n";
 
     UaFolder * pFolder = NULL;
     PasObject *pObject = NULL;
@@ -129,12 +136,10 @@ UaStatus PasNodeManager::afterStartUp()
     UA_ASSERT(ret.isGood());
 
     // Locate Positioner device
+    std::cout << "Creating positioner OPC UA object...\n";
     OpcUa_UInt32 posCount = m_pCommIf->getDevices(GLOB_PositionerType);
-    if (posCount > 1){
-        std::cout << "\n +++ WARNING +++ PasNodeManager: More than one positioner added??\n" << std::endl;
-    }
-    else if (posCount < 1) {
-        std::cout << "\n +++ WARNING +++ PasNodeManager: Less than one positioner added??\n" << std::endl;
+    if (posCount != 1){
+        std::cout << "WARNING: " << posCount << " positioner(s) added. There should be exactly 1.\n" << std::endl;
     }
     ret = m_pCommIf->getDeviceConfig(GLOB_PositionerType, 0, sDeviceName, identity);
 
@@ -148,6 +153,8 @@ UaStatus PasNodeManager::afterStartUp()
         ret = addUaReference(pPositioner->nodeId(), pPositioner->typeDefinitionId(), OpcUaId_HasTypeDefinition);
         UA_ASSERT(ret.isGood());
     }
+
+    std::cout << "Creating all other OPC UA device objects and adding to DevicesByType...\n";
 
     // First create all nodes and add object type references
     // Also add to device folder
@@ -194,6 +201,8 @@ UaStatus PasNodeManager::afterStartUp()
 
     UaString objectName;
 
+    std::cout << "Adding all parent-child references between objects...\n";
+
     // Loop through all created objects and add references to children
     for (std::map<PasController *, PasObject *>::iterator it=pDeviceObjects.begin(); it!=pDeviceObjects.end(); ++it) {
         pController = it->first;
@@ -229,6 +238,8 @@ UaStatus PasNodeManager::afterStartUp()
         }
     }
 
+    std::cout << "Creating device tree...\n";
+
     // Add folder for device tree to Objects folder
     UaFolder *pDeviceTreeFolder = new UaFolder("DeviceTree", UaNodeId("DeviceTree", getNameSpaceIndex()), m_defaultLocaleId);
     ret = addNodeAndReference(OpcUaId_ObjectsFolder, pDeviceTreeFolder, OpcUaId_Organizes);
@@ -242,6 +253,8 @@ UaStatus PasNodeManager::afterStartUp()
         ret = addUaReference(pDeviceTreeFolder->nodeId(), pObject->nodeId(), OpcUaId_HasComponent);
         UA_ASSERT(ret.isGood());
     }
+
+    std::cout << "PasNodeManager: Finished with AfterStartUp()\n";
 
     return ret;
 }

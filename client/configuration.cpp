@@ -16,8 +16,6 @@ using namespace UaClientSdk;
 
 Configuration::Configuration()
 {
-    // initialize the list of panels to an empty one -- other devices don't need this
-    m_DeviceList[PAS_PanelType] = {};
 }
 
 Configuration::~Configuration()
@@ -105,11 +103,8 @@ UaStatus Configuration::loadConnectionConfiguration(const UaString& sConfigurati
 {
     UaStatus result;
     UaVariant value;
-    UaString sTempKey;
-    OpcUa_UInt32 i = 0;
-    OpcUa_UInt32 size = 0;
-    UaSettings* pSettings = nullptr;
-    pSettings = new UaSettings(sConfigurationFile.toUtf16());
+       
+    UaSettings* pSettings = new UaSettings(sConfigurationFile.toUtf16());
 
     pSettings->beginGroup("UaClientConfig");
 
@@ -139,7 +134,7 @@ UaStatus Configuration::loadConnectionConfiguration(const UaString& sConfigurati
 
     // Server URLs
 #if SIMMODE
-    const char *  local_ip = getenv("LOCALIP");
+    const char *local_ip = getenv("LOCALIP");
     value = pSettings->value("DiscoveryURL", UaString("opc.tcp://%s:48010").arg(local_ip));
 #else
     value = pSettings->value("DiscoveryURL", UaString("opc.tcp://172.17.0.201.:48010"));
@@ -149,12 +144,15 @@ UaStatus Configuration::loadConnectionConfiguration(const UaString& sConfigurati
     m_positionerUrl = value.toString();
 
     // Read NamespaceArray
+    OpcUa_UInt32 size = 0; 
     m_namespaceArray.clear();
     pSettings->beginGroup("NSArray");
     value = pSettings->value("size", (OpcUa_UInt32)0);
     value.toUInt32(size);
     m_namespaceArray.resize(size);
-    for (i=0; i<size;i++)
+
+    UaString sTempKey;
+    for (OpcUa_UInt32 i = 0; i < size; i++)
     {
         sTempKey = UaString("NameSpaceUri%1").arg((int)i, 2, 10, UaChar('0'));
         value = pSettings->value(sTempKey.toUtf16(), UaString(""));
@@ -168,244 +166,11 @@ UaStatus Configuration::loadConnectionConfiguration(const UaString& sConfigurati
     pSettings = NULL;
 
     return result;
-
-   /*
-    pSettings->beginGroup("Server");
-    value = pSettings->value("size", (OpcUa_UInt32)0);
-    value.toUInt32(size);
-
-    std::string sTempMap;
-    std::string sSubMap;
-    std::string USB;
-    OpcUa_Int32 serial;
-    OpcUa_Int32 position;
-    int separator1, separator2;
-    int subseparator;
-
-    std::map<OpcUa_UInt32, std::string> typeNamesMap = {{PAS_MPESType, "MPES"}, {PAS_ACTType, "ACT"}, {PAS_PSDType, "PSD"}};
-
-    for (i=0; i <size; i++)
-    {
-        sTempKey = UaString("Server%1").arg((int)i, 2, 10, UaChar('0'));
-        pSettings->beginGroup(sTempKey.toUtf16());
-
-        OpcUa_UInt32 panel_pos;
-        OpcUa_UInt32 panelSerial;
-        sTempKey = UaString("Position");
-        value = pSettings->value(sTempKey.toUtf16(), OpcUa_UInt32(0));
-        value.toUInt32(panel_pos);
-
-        sTempKey = UaString("Serial");
-        value = pSettings->value(sTempKey.toUtf16(), OpcUa_UInt32(0));
-        value.toUInt32(panelSerial);
-
-        sTempKey = UaString("Url");
-        value = pSettings->value(sTempKey.toUtf16(), UaString("opc.tcp://localhost:48010"));
-        std::string panel_address = value.toString().toUtf8();
-        // add this to the device address map {type -> {serial -> address}}
-        m_DeviceMap[PAS_PanelType][panelSerial] = panel_address;
-        // also add this panel to the position map {type -> {serial -> position}}
-        m_DevicePositionMap[PAS_PanelType][panelSerial] = panel_pos;
-        m_PanelAddressMap[panel_pos] = panel_address;
-
-        for (const auto& it_typeNameMap : typeNamesMap) {
-            std::string urlmapstring = it_typeNameMap.second + "UrlMap";
-            std::string posmapstring = it_typeNameMap.second + "PositionMap";
-
-            value = pSettings->value(urlmapstring.c_str(), UaString(""));
-            sTempMap = std::string(value.toString().toUtf8());
-            separator1 = separator2 = 0;
-            while (separator2 < int(sTempMap.length()) - 1)
-            {
-                separator2 = sTempMap.find(';', separator1);
-                sSubMap = sTempMap.substr(separator1,separator2-separator1);
-                subseparator = sSubMap.find(':');
-                USB = sSubMap.substr(0,subseparator);
-                serial = atoi(sSubMap.substr(subseparator+1, std::string::npos).c_str());
-                // m_deviceSerialMap at (deviceType) at (panel address) at (usb number)
-                m_DeviceSerialMap[it_typeNameMap.first]
-                                        [UaString(panel_address.c_str())]
-                                        [UaString(USB.c_str())] = serial;
-
-                separator1 = separator2 + 1;
-                printf("Added the following to %sUrlMap: USB=%s::serial=%d\n", it_typeNameMap.second.c_str(), USB.c_str(), serial);
-
-                m_DeviceMap[it_typeNameMap.first][serial] = m_DeviceMap.at(PAS_PanelType).at(panelSerial);
-                printf("Added the following to %s DeviceMap: %d -> %s\n", it_typeNameMap.second.c_str(), serial, m_DeviceMap.at(it_typeNameMap.first).at(serial).c_str());
-            }
-
-            value = pSettings->value(posmapstring.c_str(), UaString(""));
-            sTempMap = std::string(value.toString().toUtf8());
-            separator1 = separator2 = 0;
-            while (separator2 < int(sTempMap.length()) - 1)
-            {
-                separator2 = sTempMap.find(';', separator1);
-                sSubMap = sTempMap.substr(separator1,separator2-separator1);
-                subseparator = sSubMap.find(':');
-                serial = atoi(sSubMap.substr(0,subseparator).c_str());
-                position = atoi(sSubMap.substr(subseparator+1, std::string::npos).c_str());
-                m_DevicePositionMap[it_typeNameMap.first][serial] = position;
-                separator1 = separator2 + 1;
-                printf("Added the following to %sPositionMap: serial=%d::position=%d\n", it_typeNameMap.second.c_str(), serial, position);
-            }
-        } // for it_typeNameMap
-
-        pSettings->endGroup(); // Server i
-    }
-    pSettings->endGroup(); // Server
-
-    std::map<OpcUa_UInt32, std::string> deviceNamesMap = {{PAS_MPESType, "SensorEdgeMap"},
-        {PAS_ACTType, "ActuatorEdgeMap"}, {PAS_CCDType, "CCDMap"}};
-    for (const auto& it_deviceNamesMap : deviceNamesMap) {
-        std::string eAddress;
-        value = pSettings->value(it_deviceNamesMap.second.c_str(), UaString(""));
-        sTempMap = std::string(value.toString().toUtf8());
-        separator1 = separator2 = 0;
-        while (separator2 < int(sTempMap.length()) - 1)
-        {
-            separator2 = sTempMap.find(';', separator1);
-            sSubMap = sTempMap.substr(separator1,separator2-separator1);
-            subseparator = sSubMap.find(':');
-            serial = atoi(sSubMap.substr(0,subseparator).c_str());
-
-            // special handling of MPES and ACT
-            if (it_deviceNamesMap.first == PAS_MPESType || it_deviceNamesMap.first == PAS_ACTType) {
-                eAddress = sSubMap.substr(subseparator+1, std::string::npos);
-                eAddress.replace(eAddress.find(':'), 1, "+");
-            }
-            else {
-                eAddress = sSubMap.substr(subseparator+1, std::string::npos);
-            }
-
-            m_DeviceMap[it_deviceNamesMap.first][serial] = eAddress;
-            separator1 = separator2 + 1;
-            printf("Added the following to %s: serial=%d::address=%s\n", it_deviceNamesMap.second.c_str(), serial, eAddress.c_str());
-        }
-    }
-
-    // Read NodeIds to use for reading
-    m_nodesToRead.clear();
-    pSettings->beginGroup("NodesToRead");
-    value = pSettings->value("size", (OpcUa_UInt32)0);
-    value.toUInt32(size);
-    m_nodesToRead.resize(size);
-    for (i=0; i<size;i++)
-    {
-        sTempKey = UaString("Variable%1").arg((int)i, 2, 10, UaChar('0'));
-        value = pSettings->value(sTempKey.toUtf16(), UaString(""));
-        UaNodeId::fromXmlString(value.toString()).copyTo(&m_nodesToRead[i]);
-    }
-    pSettings->endGroup();  // NodesToRead
-
-    // Read NodeIds, DataTypes and Values to use for writing
-    m_nodesToWrite.clear();
-    pSettings->beginGroup("NodesToWrite");
-    value = pSettings->value("size", (OpcUa_UInt32)0);
-    value.toUInt32(size);
-    // NodeIds
-    m_nodesToWrite.resize(size);
-    for (i=0; i<size;i++)
-    {
-        sTempKey = UaString("Variable%1").arg((int)i, 2, 10, UaChar('0'));
-        value = pSettings->value(sTempKey.toUtf16(), UaString(""));
-        UaNodeId::fromXmlString(value.toString()).copyTo(&m_nodesToWrite[i]);
-    }
-    // DataTypes
-    UaByteArray writeDataTypes;
-    writeDataTypes.resize(size);
-    for (i=0; i<size;i++)
-    {
-        sTempKey = UaString("DataType%1").arg((int)i, 2, 10, UaChar('0'));
-        value = pSettings->value(sTempKey.toUtf16(), UaString(""));
-        value.toByte(byte);
-        writeDataTypes[(int)i] = byte;
-    }
-    // Values
-    m_writeValues.resize(size);
-    for (i=0; i<size;i++)
-    {
-        sTempKey = UaString("Value%1").arg((int)i, 2, 10, UaChar('0'));
-        value = pSettings->value(sTempKey.toUtf16());
-        // convert the value to the correct type
-        OpcUa_BuiltInType type = (OpcUa_BuiltInType)(char)writeDataTypes[(int)i];
-        if (OpcUa_IsGood(value.changeType(type, OpcUa_False)))
-        {
-            value.copyTo(&m_writeValues[i]);
-        }
-        else
-        {
-            printf("Cannot convert variant value: %s\n", value.toString().toUtf8());
-        }
-    }
-    pSettings->endGroup();  // NodesToWrite
-
-    // Read NodeIds to use for monitoring
-    m_nodesToMonitor.clear();
-    pSettings->beginGroup("NodesToMonitor");
-    value = pSettings->value("size", (OpcUa_UInt32)0);
-    value.toUInt32(size);
-    m_nodesToMonitor.resize(size);
-    for (i=0; i<size;i++)
-    {
-        sTempKey = UaString("Variable%1").arg((int)i, 2, 10, UaChar('0'));
-        value = pSettings->value(sTempKey.toUtf16(), UaString(""));
-        UaNodeId::fromXmlString(value.toString()).copyTo(&m_nodesToMonitor[i]);
-    }
-    pSettings->endGroup();  // NodesToMonitor
-
-    // Read Database connection info
-    pSettings->beginGroup("Database");
-    value = pSettings->value("size", (OpcUa_UInt32)0);
-    value.toUInt32(size);
-    m_databaseHost.resize(size);
-    m_databaseUser.resize(size);
-    m_databaseName.resize(size);
-    m_databasePassword.resize(size);
-    UaStringArray databaseEntries;
-    for (i = 0; i < size; i++)
-    {
-        sTempKey = UaString("Host%1").arg((int)i, 2, 10, UaChar('0'));
-        value = pSettings->value(sTempKey.toUtf16(), UaString(""));
-        value.toString().copyTo(&m_databaseHost[i]);
-
-        sTempKey = UaString("User%1").arg((int)i, 2, 10, UaChar('0'));
-        value = pSettings->value(sTempKey.toUtf16(), UaString(""));
-        value.toString().copyTo(&m_databaseUser[i]);
-
-        sTempKey = UaString("Password%1").arg((int)i, 2, 10, UaChar('0'));
-        value = pSettings->value(sTempKey.toUtf16(), UaString(""));
-        value.toString().copyTo(&m_databasePassword[i]);
-
-        sTempKey = UaString("Database%1").arg((int)i, 2, 10, UaChar('0'));
-        value = pSettings->value(sTempKey.toUtf16(), UaString(""));
-        value.toString().copyTo(&m_databaseName[i]);
-
-        // Read Database entries info
-        databaseEntries.clear();
-        sTempKey = UaString("Entries%1").arg((int)i, 2, 10, UaChar('0'));
-        pSettings->beginGroup(sTempKey.toUtf16());
-        value = pSettings->value("size", (OpcUa_UInt32)0);
-        value.toUInt32(size_inner);
-        databaseEntries.resize(size_inner);
-        m_databaseEntries.push_back(databaseEntries);
-        for (j = 0; j < size_inner; j++)
-        {
-            sTempKey = UaString("Entry%1").arg((int)j, 2, 10, UaChar('0'));
-            value = pSettings->value(sTempKey.toUtf16(), UaString(""));
-            value.toString().copyTo(&m_databaseEntries.at(i)[j]);
-        }
-        pSettings->endGroup(); // Entries
-    }
-    pSettings->endGroup(); // Database
-    */
 }
 
 UaStatus Configuration::loadDeviceConfiguration(const std::vector<std::string>& positionlist)
 {
     // read device configuration from the database and load it into the internal maps
-    /* *********************************************************/
-    /* INITIAL DATABASE HACK JOB -- NEEDS TO HAVE ITS OWN CLASS */
-    //string db_ip="172.17.10.10"; // internal ip
     DBConfig myconfig = DBConfig::getDefaultConfig();
     std::string db_ip=myconfig.getHost();
     std::string db_port=std::to_string(myconfig.getPort());
@@ -413,6 +178,8 @@ UaStatus Configuration::loadDeviceConfiguration(const std::vector<std::string>& 
     std::string db_password=myconfig.getPassword();
     std::string db_name=myconfig.getDatabase();
     std::string db_address = "tcp://" + db_ip + ":" + db_port;
+ 
+    m_DeviceList[PAS_PanelType] = {}; // initialize the list of panels to an empty one -- other devices don't need this
 
     try {
         sql::Driver *sql_driver = get_driver_instance();
@@ -420,12 +187,14 @@ UaStatus Configuration::loadDeviceConfiguration(const std::vector<std::string>& 
         sql_conn->setSchema(db_name);
         sql::Statement *sql_stmt = sql_conn->createStatement();
         sql::ResultSet *sql_results;
+        std::string query;
 
         // get panel IP and serial from position
-        for (const auto& position : positionlist) {
+        for (const auto& position : positionlist) { 
             Identity panelId;
-            panelId.position = atoi(position.c_str());
-            std::string query = "SELECT serial_number, mpcb_ip_address FROM Opt_MPMMapping WHERE position='" + position + "'";
+            panelId.position = std::stoi(position); 
+            
+            query = "SELECT serial_number, mpcb_ip_address FROM Opt_MPMMapping WHERE position='" + position + "'";
             sql_stmt->execute(query);
             sql_results = sql_stmt->getResultSet();
             // should only be one result FOR NOW -- IN THE FUTURE, NEED TO FIX THIS, SORTING BY DATE
@@ -437,16 +206,16 @@ UaStatus Configuration::loadDeviceConfiguration(const std::vector<std::string>& 
                 panelId.eAddress = "opc.tcp://" + sql_results->getString(2) + ":4840";
 #endif
                 panelId.serialNumber = sql_results->getInt(1);
-            }
-            // add to the list of devices
-            m_DeviceList[PAS_PanelType].push_back(panelId);
-            std::cout << " +++ Configuration: added Panel "
-                << panelId << " to Device List" << std::endl;
+            
+                // add to the list of devices
+                m_DeviceList[PAS_PanelType].push_back(panelId);
+                std::cout << " +++ Configuration: added Panel " << panelId << " to Device List" << std::endl;
 
-            // add to the position map {type -> {serial -> position}}
-            m_DevicePositionMap[PAS_PanelType][panelId.serialNumber] = panelId.position;
-            // add to the address map
-            m_PanelAddressMap[panelId.position] = panelId.eAddress;
+                // add to the position map {type -> {serial -> position}}
+                m_DevicePositionMap[PAS_PanelType][panelId.serialNumber] = panelId.position;
+                // add to the address map
+                m_PanelAddressMap[panelId.position] = panelId.eAddress;
+            }
 
             // get the panel's actuators and add them to all the needed maps
             query = "SELECT serial_number, position, port FROM Opt_ActuatorMapping WHERE panel=" + std::to_string(panelId.position);
@@ -460,8 +229,7 @@ UaStatus Configuration::loadDeviceConfiguration(const std::vector<std::string>& 
 
                 // add to the list of devices
                 m_DeviceList[PAS_ACTType].push_back(actId);
-                std::cout << " +++ Configuration: added Actuator "
-                    << actId << " to Device List" << std::endl;
+                std::cout << " +++ Configuration: added Actuator " << actId << " to Device List" << std::endl;
 
                 // m_deviceSerialMap at (deviceType) at (panel address) at (port number)
                 m_DeviceSerialMap[PAS_ACTType][UaString(panelId.eAddress.c_str())]
@@ -472,8 +240,7 @@ UaStatus Configuration::loadDeviceConfiguration(const std::vector<std::string>& 
 
                 // add the actuator and this panel to the parents map
                 m_ParentMap[PAS_ACTType][actId.serialNumber] = std::to_string(panelId.position);
-                std::cout << " +++ Configuration: added parent " << panelId.position
-                    << " of Actuator " << actId.serialNumber << std::endl;
+                std::cout << " +++ Configuration: added Panel " << panelId.position << " as parent of Actuator " << actId.serialNumber << std::endl;
             }
 
             // get the panel's mpes and add them to all the needed maps
@@ -489,8 +256,7 @@ UaStatus Configuration::loadDeviceConfiguration(const std::vector<std::string>& 
 
                 // add to the list of devices
                 m_DeviceList[PAS_MPESType].push_back(mpesId);
-                std::cout << " +++ Configuration: added MPES "
-                    << mpesId << " to Device List" << std::endl;
+                std::cout << " +++ Configuration: added MPES " << mpesId << " to Device List" << std::endl;
 
                 // m_deviceSerialMap at (deviceType) at (panel address) at (port number)
                 m_DeviceSerialMap[PAS_MPESType][UaString(panelId.eAddress.c_str())]
@@ -500,11 +266,9 @@ UaStatus Configuration::loadDeviceConfiguration(const std::vector<std::string>& 
                 m_DevicePositionMap[PAS_MPESType][mpesId.serialNumber] = mpesId.position;
 
                 // add the sensor and its panels to the parents map
-                m_ParentMap[PAS_MPESType][mpesId.serialNumber] =
-                    "w" + std::to_string(panelId.position) + "l" + l_panelPos;
-                std::cout << " +++ Configuration: added parent "
-                    << m_ParentMap.at(PAS_MPESType).at(mpesId.serialNumber)
-                    << " of Sensor " << mpesId.serialNumber << std::endl;
+                m_ParentMap[PAS_MPESType][mpesId.serialNumber] = "w" + std::to_string(panelId.position) + "l" + l_panelPos;
+                std::cout << " +++ Configuration: added Panels " << m_ParentMap.at(PAS_MPESType).at(mpesId.serialNumber)
+                    << " as parents of MPES " << mpesId.serialNumber << std::endl;
             }
         }
     }
@@ -517,9 +281,7 @@ UaStatus Configuration::loadDeviceConfiguration(const std::vector<std::string>& 
 
         return OpcUa_Bad;
     }
-    /* END OF DATABASE HACK JOB */
-    /* *********************************************************/
-
+    
     return OpcUa_Good;
 }
 
