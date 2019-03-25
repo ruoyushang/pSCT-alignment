@@ -3,7 +3,11 @@
 # when "all" is selected, it will read all panels from the database except
 # the test panels 0, 1, and any optical table panels (1001, 2001)
 
-trap interrupt INT
+function interrupt() {    
+  printf "\nKilling all servers and exiting...\n"
+  killall -9 -q "passerver" 
+  printf "Done.\n"
+}
 
 # NOTE: DB access information is hardcoded
 
@@ -36,11 +40,11 @@ if ${all} ; then
          fi
          PANEL_MAP[$position]=${ip_address}
     done < <(mysql --user="CTAreadonly" --password="readCTAdb" --database="CTAonline" --host="remus.ucsc.edu" --port="3406" -ss -e "SELECT position, mpcb_ip_address FROM Opt_MPMMapping")
-#else
-#    PANELS=("$@")
+else
+    PANELS=("$@")
 fi
 
-count=$((${#PANEL_MAP[@]}))
+count=$((${#PANELS[@]}))
 
 if [[ ("$count" > 0) ]]; then
     printf "%s total panels selected\n" "$count"
@@ -64,18 +68,18 @@ if [[ ("$count" > 0) ]]; then
          if $background ; then
            nohup ../sdk/bin/passerver "${panel_num}" "-c $abspath" &>"${panel_num}.log" &
          else
-           ../sdk/bin/passerver "${panel_num}" "-c $abspath" &>"${panel_num}.log" &
+           ../sdk/bin/passerver "${panel_num}" "-c" "$abspath" >"${panel_num}.log" &
          fi
          ((i++))
     done
 
     # Sleep for 30 seconds before deleting temporary config files
     # To give time for servers to start and read configuration
-    sleep 30
+    #sleep 30
 
     for panel_num in "${PANELS[@]}"; do
        config_filename="$panel_num$extension"
-       # rm "$config_filename"
+       #rm "$config_filename"
     done
 
     printf "Done.\n"
