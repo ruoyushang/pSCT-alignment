@@ -158,8 +158,6 @@ int OpcMain(const char* szAppPath, std::vector<std::string> serverlist)
         // add the node manager
         pServer->addNodeManager(pNodeManagerClient);
 
-        std::cout << "p2pasclient: Server starting\n";
-
         // Start server object
         ret = pServer->start();
         if ( ret == 0 )
@@ -202,9 +200,6 @@ int OpcMain(const char* szAppPath, std::vector<std::string> serverlist)
             // Stop the server and wait three seconds if clients are connected
             // to allow them to disconnect after they received the shutdown signal
             pServer->stop(3, UaLocalizedText("", "User shutdown"));
-
-            delete pServer;
-            pServer = nullptr;
         }
         else 
         {
@@ -212,20 +207,18 @@ int OpcMain(const char* szAppPath, std::vector<std::string> serverlist)
             std::cout << "  ---- FAILED TO START SERVER/CLIENT ----\n";
             std::cout << "             Shutting down\n";
             std::cout << "*******************************************\n";
-            delete pServer;
-            pServer = nullptr;
         }
 
-
-        // clean up
         if (pClientConfiguration) {
             delete pClientConfiguration;
             pClientConfiguration = nullptr;
         }
-        if (pCommIf) {
-            delete pCommIf;
-            pCommIf = nullptr;
+ 
+        if (pServer) {
+            delete pServer;
+            pServer = nullptr;
         }
+       
         /**
         if (pLogic) {
             delete pLogic;
