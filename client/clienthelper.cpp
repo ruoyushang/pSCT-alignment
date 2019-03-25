@@ -404,7 +404,7 @@ UaStatus Client::recurseAddressSpace(const UaNodeId& nodeToBrowse, OpcUa_UInt32 
     browseContext.includeSubtype = OpcUa_True;
     browseContext.maxReferencesToReturn = maxReferencesToReturn;
 
-    // printf("\nBrowsing from Node %s...\n", nodeToBrowse.toXmlString().toUtf8());
+    //printf("\nBrowsing from Node %s...\n", nodeToBrowse.toXmlString().toUtf8());
     result = m_pSession->browse(serviceSettings, nodeToBrowse, browseContext,
             continuationPoint, referenceDescriptions);
 
@@ -456,14 +456,15 @@ void Client::addDevices(const OpcUa_ReferenceDescription& referenceDescription)
 
     std::map<OpcUa_UInt32, std::string> typeNamesMap = {{PAS_MPESType, "MPES"}, {PAS_ACTType, "ACT"}, {PAS_PSDType, "PSD"}};
 
-        OpcUa_UInt32 type;
+    OpcUa_UInt32 type;
     std::string name;
     for (const auto& it_typeNameMap : typeNamesMap) {
         type = it_typeNameMap.first;
         name = it_typeNameMap.second;
         // if (TYPE) and (in a folder) (as opposed to, say notification area)
-        if (referenceDescription.TypeDefinition.NodeId.Identifier.Numeric == type
-                && referenceDescription.ReferenceTypeId.Identifier.Numeric == OpcUaId_Organizes) 
+        //if (referenceDescription.TypeDefinition.NodeId.Identifier.Numeric == type
+        //        && referenceDescription.ReferenceTypeId.Identifier.Numeric == OpcUaId_Organizes) 
+        if (referenceDescription.TypeDefinition.NodeId.Identifier.Numeric == type)
         {
             // get the node name of the object we're connecting to!
             sprintf(sTemp, "ns=%d;s=%s",
