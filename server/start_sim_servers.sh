@@ -73,13 +73,13 @@ if [[ ("$count" > 0) ]]; then
          ((i++))
     done
 
-    # Sleep for 30 seconds before deleting temporary config files
+    # Sleep for 15 seconds before deleting temporary config files
     # To give time for servers to start and read configuration
-    #sleep 30
+    sleep 15
 
     for panel_num in "${PANELS[@]}"; do
        config_filename="$panel_num$extension"
-       #rm "$config_filename"
+       rm "$config_filename"
     done
 
     printf "Done.\n"
