@@ -19,7 +19,6 @@
 // MySQL C++ Connector includes
 #include "mysql_driver.h"
 #include "cppconn/statement.h"
-#include "DBConfig.hpp"
 
 using namespace Eigen;
 using namespace std;
@@ -55,7 +54,7 @@ void PasCompositeController::addChild(OpcUa_UInt32 deviceType, PasController *co
             m_pChildren[deviceType].push_back(pController);
             m_ChildrenIdentityMap[deviceType][id] = m_pChildren.at(deviceType).size() - 1;
             // this doesn't work for edges, since they don't have an assigned position
-            m_ChildrenPositionMap[deviceType].insert(make_pair(pos, m_pChildren.at(deviceType).size() - 1));
+            m_ChildrenPositionMap[deviceType][pos] = m_pChildren.at(deviceType).size() - 1;
         }
     }
 
@@ -73,13 +72,11 @@ PasMPES::PasMPES(Identity identity, Client *pClient) : PasController(identity, p
 
     // get the nominal aligned readings and response matrices from DB
     /* BEGIN DATABASE HACK */
-    //string db_ip="172.17.10.10"; // internal ip
-    DBConfig myconfig = DBConfig::getDefaultConfig();
-    string db_ip=myconfig.getHost();
-    string db_port = std::to_string(myconfig.getPort());
-    string db_user=myconfig.getUser();
-    string db_password=myconfig.getPassword();
-    string db_name=myconfig.getDatabase();
+    string db_ip="172.17.10.10";
+    string db_port="3406";
+    string db_user="CTAreadonly";
+    string db_password="readCTAdb";
+    string db_name="CTAonline";
     string db_address = "tcp://" + db_ip + ":" + db_port;
 
     cout << "Initializing MPES " << m_ID.serialNumber << endl;
@@ -92,7 +89,7 @@ PasMPES::PasMPES(Identity identity, Client *pClient) : PasController(identity, p
 
         string query("");
         // obtain topological data
-        query = "SELECT w_panel, l_panel FROM Opt_MPESMapping WHERE serial_number=" + to_string(m_ID.serialNumber);
+        query = "SELECT w_panel, l_panel FROM Opt_MPESMapping WHERE end_date is NULL and serial_number=" + to_string(m_ID.serialNumber);
         sql_stmt->execute(query);
         sql_results = sql_stmt->getResultSet();
         while (sql_results->next()) {
@@ -106,7 +103,7 @@ PasMPES::PasMPES(Identity identity, Client *pClient) : PasController(identity, p
         for (const auto& panel : panelType)
             for (int act = 1; act <= 6; act++)
                 query += ", " + string(1, panel) + "_response_actuator" + to_string(act);
-        query = "SELECT coord, nominal_reading" + query + " FROM Opt_MPESConfigurationAndCalibration WHERE serial_number=" + to_string(m_ID.serialNumber);
+        query = "SELECT coord, nominal_reading" + query + " FROM Opt_MPESConfigurationAndCalibration WHERE end_date is NULL and serial_number=" + to_string(m_ID.serialNumber);
         sql_stmt->execute(query);
         sql_results = sql_stmt->getResultSet();
 
@@ -149,7 +146,7 @@ PasMPES::PasMPES(Identity identity, Client *pClient) : PasController(identity, p
         m_state = PASState::PAS_Error;
     }
     /* END DATABASE HACK */
-
+    
     SystematicOffsets = Vector2d::Zero();
 }
 
@@ -270,32 +267,13 @@ UaStatus PasMPES::read()
     UaMutexLocker lock(&m_mutex);
     UaStatus status;
 
+    m_updated = false;
+
     cout << "calling read() on " << m_ID << endl;
     if ( m_state == PASState::PAS_On )
     {
         // read the values on the server first
-        status = m_pClient->callMethod(m_ID.eAddress, UaString("Read"));
-        if (!status.isGood()) return status;
-        // get the updated values from the server
-
-        // get all the updated values from the server
-        std::vector<std::string> varstoread {
-            "xCentroidAvg",
-            "yCentroidAvg",
-            "xCentroidSD",
-            "yCentroidSD",
-            "CleanedIntensity",
-            "xCentroidNominal",
-            "yCentroidNominal"};
-        std::transform(varstoread.begin(), varstoread.end(), varstoread.begin(),
-                    [this](std::string& str){ return m_ID.eAddress + "." + str;});
-        UaVariant valstoread[7];
-
-        status = m_pClient->read(varstoread, &valstoread[0]);
-        if (status.isGood()) m_updated = true;
-
-        for (unsigned i = 0; i < varstoread.size(); i++)
-            valstoread[i].toDouble(*(reinterpret_cast<OpcUa_Double *>(&data) + i));
+        status = __readRequest();
 
         m_isVisible = true;
         if (data.m_xCentroidAvg < 0.1) m_isVisible = false;
@@ -309,22 +287,50 @@ UaStatus PasMPES::read()
                 cout << "+++ WARNING +++ The width of the image along the Y axis for " << m_ID.name
                     << " is greater than 20px. Consider fixing things." << endl;
             }
-
+             
             if (fabs(data.m_CleanedIntensity - kNominalIntensity)/kNominalIntensity > 0.2) {
                 cout << "+++ WARNING +++ The intensity of " << m_ID.name
                     << " differs from the magic value by more than 20%\n"
                     << "+++ WARNING +++ Will readjust the exposure now!" << endl;
                 Operate(PAS_MPESType_SetExposure);
                 // read the sensor again
-                status = read();
+                status = __readRequest();
             }
         }
     }
-    else
-        m_updated = false;
-
 
     return status;
+}
+
+// a helper for the above that simply requests data from the server without performing any checks
+UaStatus PasMPES::__readRequest()
+{
+    UaMutexLocker lock(&m_mutex);
+    UaStatus status;
+
+    // read the values on the server first
+    status = m_pClient->callMethod(m_ID.eAddress, UaString("Read"));
+    if (!status.isGood()) return status;
+    // get the updated values from the server
+
+    // get all the updated values from the server
+    std::vector<std::string> varstoread {
+        "xCentroidAvg",
+        "yCentroidAvg",
+        "xCentroidSD",
+        "yCentroidSD",
+        "CleanedIntensity",
+        "xCentroidNominal",
+        "yCentroidNominal"};
+    std::transform(varstoread.begin(), varstoread.end(), varstoread.begin(),
+                [this](std::string& str){ return m_ID.eAddress + "." + str;});
+    UaVariant valstoread[7];
+
+    status = m_pClient->read(varstoread, &valstoread[0]);
+    if (status.isGood()) m_updated = true;
+
+    for (unsigned i = 0; i < varstoread.size(); i++)
+        valstoread[i].toDouble(*(reinterpret_cast<OpcUa_Double *>(&data) + i));
 }
 
 char PasMPES::getPanelSide(unsigned panelpos)
@@ -417,7 +423,6 @@ UaStatusCode PasACT::getData(OpcUa_UInt32 offset, UaVariant& value)
 
     vector<string> vec_curread {m_ID.eAddress + "." + varstoread[dataoffset]};
     status = m_pClient->read(vec_curread, &value);
-    printf("PasACT::getData -> value = %s\n",value.toString().toUtf8());
 
     return status;
 }
@@ -506,7 +511,7 @@ PasPanel::PasPanel(Identity identity, Client *pClient) :
     m_SP.SetPanelType(StewartPlatform::PanelType::OPT);
 
     // define possible children types
-    m_ChildrenTypes = {PAS_ACTType, PAS_MPESType, PAS_EdgeType};
+    m_ChildrenTypes = {PAS_ACTType, PAS_MPESType};
 
     // make sure things update on the first boot up
     // duration takes seconds -- hence the conversion with the 1/1000 ratiot
@@ -676,12 +681,7 @@ UaStatusCode PasPanel::Operate(OpcUa_UInt32 offset, const UaVariantArray &args)
      * move actuators to the preset lengths         *
      * **********************************************/
     if (offset == PAS_PanelType_MoveTo_Acts) {
-#ifndef SIMMODE
         status =  __moveTo();
-#else
-        for (int i = 0; i < 6; i++)
-            m_curCoords[i] = m_inCoords[i];
-#endif
     }
 
 
@@ -697,12 +697,7 @@ UaStatusCode PasPanel::Operate(OpcUa_UInt32 offset, const UaVariantArray &args)
             val.setDouble(m_SP.GetActLengths()[act.first - 1]);
             pACT.at(act.second)->setData(PAS_ACTType_inLength_mm, val);
         }
-#ifndef SIMMODE
         status =  __moveTo();
-#else
-        for (int i = 0; i < 6; i++)
-            m_curCoords[i] = m_inCoords[i];
-#endif
         PASState state;
         getState(state);
         cout << "Current State is " << static_cast<unsigned>(m_state) << " and it is equivalent to PASState::PAS_Busy : " << (state == PASState::PAS_Busy) << endl;
@@ -738,55 +733,6 @@ UaStatusCode PasPanel::Operate(OpcUa_UInt32 offset, const UaVariantArray &args)
             if (!status.isGood()) return status;
 
         }
-
-        //Ruo, try to estimate new laser spot positions after actuators move
-
-        ///
-        /// This part predicts the new laser spot positions before we move the actuators.
-        /// Will make a new function of this and allow all actuator operations to call this function before moving.
-        ///
-        MatrixXd A; // response matrix
-        VectorXd X; // actuator delta length
-        VectorXd W; // sensor current position
-        VectorXd Y; // sensor delta
-        VectorXd Z; // sensor new position = Y + current sensor reading
-        VectorXd V; // aligned sensor reading
-        for(auto elem :m_pChildren)
-        {
-               std::cout << "Ruo, child of a panel: " << elem.first << "\n";
-               for (auto elem2nd :elem.second)
-               {
-                        std::cout << " " << elem2nd->getId() << "\n";
-               }
-        }
-        for (int edge2align=0; edge2align<m_pChildren.at(PAS_EdgeType).size(); edge2align++)
-        {
-                PasEdge* edge = static_cast<PasEdge *> (m_pChildren.at(PAS_EdgeType).at(edge2align));
-                //edge->Operate(PAS_EdgeType_Read);
-                edge->getAlignedReadings();
-                //cout << "\nTarget MPES readings:\n" << m_AlignedReadings << endl << endl;
-                A = edge->getResponseMatrix(m_ID.position);
-                W = edge->getCurrentReadings();
-                V = edge->getAlignedReadings();
-                cout << "Looking at edge " << edge->getId() << endl;
-                cout << "\nActuator response matrix for this edge:\n" << A << endl;
-                //m_SP.GetActLengths() is the new act length
-                //m_ActuatorLengths is the current act length
-                VectorXd newLengths(6);
-                for (unsigned i = 0; i < 6; i++)
-                    newLengths(i) = m_SP.GetActLengths()[i];
-                cout << "New Act length is \n" << newLengths << endl;
-                cout << "Current Act length is \n" << m_ActuatorLengths << endl;
-                X = newLengths-m_ActuatorLengths;
-                cout << "Delta Act length will be \n" << X << endl;
-                Y = A*X;
-                Z = Y+W;
-                cout << "The new sensor coordinates (x, y) will be:\n" << Z << endl;
-                cout << "\n will deviate from the aligned position by\n" << Z-V << endl;
-        }
-        //Ruo
-
-
         m_SP.ComputeStewart(actLengths);
         cout << "\n\tThe new panel coordinates (x, y ,z xRot, yRot, zRot) will be:\n\t\t";
         for (int i = 0; i < 6; i++) {
@@ -868,63 +814,6 @@ UaStatus PasPanel::__moveTo()
     return status;
 }
 
-bool PasPanel::__willSensorsBeOutOfRange()
-{
-        //Ruo, try to estimate new laser spot positions after actuators move
-
-        ///
-        /// This part predicts the new laser spot positions before we move the actuators.
-        /// Will make a new function of this and allow all actuator operations to call this function before moving.
-        ///
-        MatrixXd M_response; // response matrix
-        VectorXd Act_delta; // actuator delta length
-        VectorXd Sen_current; // sensor current position
-        VectorXd Sen_delta; // sensor delta
-        VectorXd Sen_new; // sensor new position = Sen_delta + current sensor reading
-        VectorXd Sen_aligned; // aligned sensor reading
-        VectorXd Sen_deviation; // deviated sensor reading
-        for(auto elem :m_pChildren)
-        {
-               std::cout << "Ruo, child of a panel: " << elem.first << "\n";
-               for (auto elem2nd :elem.second)
-               {
-                        std::cout << " " << elem2nd->getId() << "\n";
-               }
-        }
-        for (int edge2align=0; edge2align<m_pChildren.at(PAS_EdgeType).size(); edge2align++)
-        {
-                PasEdge* edge = static_cast<PasEdge *> (m_pChildren.at(PAS_EdgeType).at(edge2align));
-                edge->getAlignedReadings();
-                //cout << "\nTarget MPES readings:\n" << m_AlignedReadings << endl << endl;
-                M_response = edge->getResponseMatrix(m_ID.position);
-                Sen_current = edge->getCurrentReadings();
-                Sen_aligned = edge->getAlignedReadings();
-                cout << "Looking at edge " << edge->getId() << endl;
-                cout << "\nActuator response matrix for this edge:\n" << M_response << endl;
-                //m_SP.GetActLengths() is the new act length
-                //m_ActuatorLengths is the current act length
-                VectorXd newLengths(6);
-                for (unsigned i = 0; i < 6; i++)
-                    newLengths(i) = m_SP.GetActLengths()[i];
-                cout << "New Act length is \n" << newLengths << endl;
-                cout << "Current Act length is \n" << m_ActuatorLengths << endl;
-                Act_delta = newLengths-m_ActuatorLengths;
-                cout << "Delta Act length will be \n" << Act_delta << endl;
-                Sen_delta = M_response*Act_delta;
-                Sen_new = Sen_delta+Sen_current;
-                cout << "The new sensor coordinates (x, y) will be:\n" << Sen_new << endl;
-                Sen_deviation = Sen_new-Sen_aligned;
-                cout << "\n will deviate from the aligned position by\n" << Sen_new-Sen_aligned << endl;
-                double deviation = 0;
-                for (unsigned i = 0; i < 6; i++)
-                    deviation += pow(Sen_deviation(i),2);
-                deviation = pow(deviation,0.5);
-                if (deviation>40) return true;
-        }
-
-        return false;
-
-}
 void PasPanel::__updateCoords(bool printout)
 {
     // do nothing if values haven't expired
@@ -1245,7 +1134,7 @@ UaStatus PasEdge::__findSingleMatrix(unsigned panelidx)
             zeroDelta.copyTo(&deltas[k]);
 
         missedDelta = 0.;
-
+        
         vector0 = getCurrentReadings();
         cout << "+++ CURRENT READINGS:\n" << vector0 << endl << "Sleeping for 1s" << endl;
         sleep(1); // seconds
@@ -1292,7 +1181,7 @@ UaStatus PasEdge::__findSingleMatrix(unsigned panelidx)
         responseMatrix.col(j) = (vector1 - vector0)/(m_DeltaL - missedDelta);
         cout << "+++ CURRENT RESPONSE MATRIX:\n" << responseMatrix << endl;
     }
-    cout << "\n+++ ALL DONE FOR THIS PANEL!" << endl;
+    cout << "\n+++ ALL DONE FOR THIS PANEL!" << endl; 
     cout << "+++ Response matrix for " << m_ID.eAddress << ": panel " << pCurPanel->getId().position << endl;
     cout << responseMatrix << endl;
 
