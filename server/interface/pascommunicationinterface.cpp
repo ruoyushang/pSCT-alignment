@@ -17,7 +17,6 @@
 #include "mysql_driver.h"
 #include "cppconn/statement.h"
 #include <cppconn/exception.h>
-#include "DBConfig.hpp"
 
 using namespace std;
 /* ----------------------------------------------------------------------------
@@ -76,12 +75,11 @@ UaStatusCode PasCommunicationInterface::Initialize()
     /* *********************************************************/
     /* INITIAL DATABASE HACK JOB -- NEEDS TO HAVE ITS OWN CLASS */
     Actuator::DBStruct HDB_ID;
-    DBConfig myconfig = DBConfig::getDefaultConfig();
-    HDB_ID.ip=myconfig.getHost();
-    HDB_ID.port=std::to_string(myconfig.getPort());
-    HDB_ID.user=myconfig.getUser();
-    HDB_ID.password=myconfig.getPassword();
-    HDB_ID.dbname=myconfig.getDatabase();
+    HDB_ID.ip="172.17.10.10";
+    HDB_ID.port="3406";
+    HDB_ID.user="CTAreadonly";
+    HDB_ID.password="readCTAdb";
+    HDB_ID.dbname="CTAonline";
     string db_address = "tcp://" + HDB_ID.ip + ":" + HDB_ID.port;
 
     try {
@@ -92,7 +90,7 @@ UaStatusCode PasCommunicationInterface::Initialize()
         sql::ResultSet *sql_results;
 
         // get panel position and cbc id by IP address
-        string query = "SELECT mpcb_id, position FROM Opt_MPMMapping WHERE mpcb_ip_address='"
+        string query = "SELECT mpcb_id, position FROM Opt_MPMMapping WHERE end_date is NULL and mpcb_ip_address='"
             + m_serverUrl + "'";
         sql_stmt->execute(query);
         sql_results = sql_stmt->getResultSet();
@@ -104,7 +102,7 @@ UaStatusCode PasCommunicationInterface::Initialize()
         cout << "Will initialiaze Panel " << panel_position << " with CBC " << cbc_id << endl;
 
         // get actuator serials and ports
-        query = "SELECT port, serial_number, position FROM Opt_ActuatorMapping WHERE panel=" + to_string(panel_position);
+        query = "SELECT port, serial_number, position FROM Opt_ActuatorMapping WHERE end_date is NULL and panel=" + to_string(panel_position);
         sql_stmt->execute(query);
         sql_results = sql_stmt->getResultSet();
         while (sql_results->next()) {
@@ -113,7 +111,7 @@ UaStatusCode PasCommunicationInterface::Initialize()
         }
 
         // get mpes serials and ports
-        query = "SELECT port, serial_number, w_position FROM Opt_MPESMapping WHERE w_panel=" + to_string(panel_position);
+        query = "SELECT port, serial_number, w_position FROM Opt_MPESMapping WHERE end_date is NULL and w_panel=" + to_string(panel_position);
         sql_stmt->execute(query);
         sql_results = sql_stmt->getResultSet();
         while (sql_results->next()) {
@@ -127,7 +125,7 @@ UaStatusCode PasCommunicationInterface::Initialize()
         cout << "# ERR: " << e.what();
         cout << " (MySQL error code: " << e.getErrorCode();
         cout << ", SQLState: " << e.getSQLState() << " )" << endl;
-
+      
         return OpcUa_Bad;
     }
     /* END OF DATABASE HACK JOB */
@@ -186,19 +184,23 @@ UaStatusCode PasCommunicationInterface::Initialize()
             }
 #endif
 
-            if (pController->Initialize()) {
+            // commenting this out so that the devices are there even if they don't get
+            // initialized -- we'd like to keep them in case they manage to initialize at some
+            // point AFTER the regular startup procedure
+//            if (pController->Initialize()) {
                 m_pControllers[devCount.first].push_back(pController);
                 m_DeviceUsbMap[devCount.first][USB] = m_pControllers.at(devCount.first).size() - 1;
-            }
-            else {
+//           }
+//           else {
+           if (!pController->Initialize()) {
                 cout << "Could not Initialize " << m_DeviceTypeNames.at(devCount.first)
                          << " at USB " << USB << endl;
-                delete pController;
+//                delete pController;
                 ++failed;
             }
         }
         // update the number of devices to the ones initialized
-        m_DeviceCounts.at(devCount.first) -= failed;
+//        m_DeviceCounts.at(devCount.first) -= failed;
         if (failed) {
             cout << "\n +++ WARNING +++ Failed to initialize " << failed << " "
                 << m_DeviceTypeNames.at(devCount.first) << " devices!" << endl;
@@ -386,8 +388,8 @@ void PasCommunicationInterface::run()
                 Identity id;
                 id.eAddress = to_string(m_platform->getMPESAt(i)->USBPortNumber);
                 status = OperateDevice(PAS_MPESType, id);
-                cout << "MPES " << i << " "
-                << UaDateTime::now().toTime_t();
+                cout << "MPES " << i << " " 
+                << UaDateTime::now().toTime_t(); 
                 for ( int j = 0; j < 5; j++ ) {
                     getDeviceData(PAS_MPESType, id, j, curValue);
                     cout << " " << curValue;
