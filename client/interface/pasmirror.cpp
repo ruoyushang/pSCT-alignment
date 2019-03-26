@@ -39,7 +39,7 @@ PasMirror::PasMirror(Identity identity) : PasCompositeController(identity, nullp
     m_curCoordsErr = VectorXd(6);
     m_sysOffsetsMPES = VectorXd(6);
     VectorXd tmp = VectorXd(2); tmp.setZero();
-    // initialize the systematic offsets map to zeros 
+    // initialize the systematic offsets map to zeros
     SystematicOffsetsMPESMap = {
         {1, {
             {1, tmp}, {2, tmp}, {3, tmp}, {4, tmp}, {5, tmp}
@@ -342,7 +342,7 @@ UaStatusCode PasMirror::Operate(OpcUa_UInt32 offset, const UaVariantArray &args)
             cout << "+++ ERROR +++ The selected panel is not connected! Nothing to do." << endl;
             return OpcUa_BadInvalidArgument;
         }
- 
+
         __alignGlobal(fixPanel);
     }
 
@@ -783,14 +783,14 @@ void PasMirror::__alignSector()
             unsigned overlap = 0;
             for (const auto& overlapPanel : panelsToMove)
                 overlap += (static_cast<PasMPES *>(mpes)->getPanelSide(overlapPanel->getId().position) != 0);
-        
+
             if (overlap == 2)
                 overlapIndices.insert(m_ChildrenIdentityMap.at(PAS_MPESType).at(mpes->getId()));
         }
     }
-
     // get the overlapping sensor devices and their readings
     visible = 0;
+
     VectorXd cur_overlapRead(2*overlapIndices.size());
     VectorXd target_overlapRead(2*overlapIndices.size());
     bool userOverlap = false;
@@ -798,7 +798,7 @@ void PasMirror::__alignSector()
         PasMPES *mpes = static_cast<PasMPES *>(m_pChildren.at(PAS_MPESType).at(idx));
         mpes->Operate();
         if ( !mpes->isVisible() ) continue;
-        
+
         overlapMPES.push_back(mpes);
         if (alignMPES.count(mpes)) {
             cout << "You specified the following internal MPES: " << mpes->getId().serialNumber << endl;
@@ -947,7 +947,7 @@ void PasMirror::__alignGlobal(unsigned fixPanel)
         << endl;
 
     MatrixXd T; // Vladimir's T operator
-    MatrixXd Eye = MatrixXd::Identity(6,6); 
+    MatrixXd Eye = MatrixXd::Identity(6,6);
     MatrixXd MCurPrev, MCurNext, MNextCur;
     MatrixXd E;
     T = Eye;
@@ -997,7 +997,7 @@ void PasMirror::__alignGlobal(unsigned fixPanel)
 
         MNextCur = localResponse;
 
-        
+
         // replace the first 6 columns of the response matrix with 6x6 identity matrices:
         // this gets rid of the response matrices corresponding to the fixed panel
         // and replaces them with the Systematic Offset Response matrix (just identity)
@@ -1009,13 +1009,13 @@ void PasMirror::__alignGlobal(unsigned fixPanel)
         // nothing to do if on the first panel
         if (blockRow != 1) {
             E = MCurNext*MCurPrev.inverse();
-            cout << "+++ SPECIAL DEBUG +++ ML = \n" << MCurPrev << endl; 
-            cout << "+++ SPECIAL DEBUG +++ ML*ML.invserse() = \n" << MCurPrev*MCurPrev.inverse() << endl; 
-            cout << "+++ SPECIAL DEBUG +++ MR = \n" << MCurNext << endl; 
+            cout << "+++ SPECIAL DEBUG +++ ML = \n" << MCurPrev << endl;
+            cout << "+++ SPECIAL DEBUG +++ ML*ML.invserse() = \n" << MCurPrev*MCurPrev.inverse() << endl;
+            cout << "+++ SPECIAL DEBUG +++ MR = \n" << MCurNext << endl;
             cout << "+++ SPECIAL DEBUG +++ Operator E = MR*ML.inverse() \n" << E << endl;
             T = Eye - E*T;
         }
-        
+
         MCurPrev = MNextCur;
 
     } while ( curPanel != fixPanel );
@@ -1075,7 +1075,7 @@ void PasMirror::__alignGlobal(unsigned fixPanel)
         }
     }
 
-    if (m_AlignFrac < 1.) 
+    if (m_AlignFrac < 1.)
         cout << "\n+++ WARNING +++ You requested fractional motion: will move fractionally by "
             << m_AlignFrac << " of the computed displacement" << endl;
 

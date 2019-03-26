@@ -127,7 +127,7 @@ UaStatusCode PasCommunicationInterface::Initialize()
         cout << "# ERR: " << e.what();
         cout << " (MySQL error code: " << e.getErrorCode();
         cout << ", SQLState: " << e.getSQLState() << " )" << endl;
-      
+
         return OpcUa_Bad;
     }
     /* END OF DATABASE HACK JOB */
