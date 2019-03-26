@@ -401,26 +401,59 @@ UaStatusCode PasACT::setState(PASState state)
     Method       getData
     Description  Get Controller data.
 -----------------------------------------------------------------------------*/
+// Temporary - move ACTController to common
 UaStatusCode PasACT::getData(OpcUa_UInt32 offset, UaVariant& value)
 {
-    int dataoffset = offset - PAS_ACTType_Steps;
-    if ( (dataoffset >= 3) || (dataoffset < 0) )
-
-    {
-        return OpcUa_BadInvalidArgument;
-    }
-
     UaMutexLocker lock(&m_mutex);
-    UaStatus status;
+    UaStatusCode status;
 
-    string varstoread[3] {"Steps", "curLength_mm", "inLength_mm"};
+    std::string varName;
 
-    vector<string> vec_curread {m_ID.eAddress + "." + varstoread[dataoffset]};
-    status = m_pClient->read(vec_curread, &value);
-    printf("PasACT::getData -> value = %s\n",value.toString().toUtf8());
+    if (offset >= PAS_ACTType_Error0 && offset <= PAS_ACTType_Error13) {
+        return getError(offset, value);
+    }
+    else {
+      switch ( offset )
+      {
+          case PAS_ACTType_Steps:
+              varName = "Steps";
+              break;
+          case PAS_ACTType_curLength_mm:
+              varName = "CurrentLength"; 
+              break;
+          default:
+              return OpcUa_BadInvalidArgument;
+      } 
+      std::vector<std::string> varsToRead = {m_ID.eAddress + "." + varName};
+      status = m_pClient->read(varsToRead, &value);
+      std::cout << "PasACT::getData -> value = " << value.toString().toUtf8() << std::endl;
+    }
 
     return status;
 }
+
+// Temporary - move ACTController to common.
+UaStatusCode PasACT::getError(OpcUa_UInt32 offset, UaVariant& value)
+{
+    UaMutexLocker lock(&m_mutex);
+    UaStatus status;
+    bool errorStatus;
+
+    OpcUa_UInt32 errorNum = offset - PAS_ACTType_Error0;
+    // Temporary
+    if ( errorNum >= 0 && errorNum < 14) {
+      std::string varName = "Error";
+      varName += std::to_string(errorNum);
+      std::vector<std::string> varsToRead = {m_ID.eAddress + "." + varName};
+      status = m_pClient->read(varsToRead, &value);
+      std::cout << "PasACT::getError -> value = " << value.toString().toUtf8() << std::endl;
+    }
+    else {
+      status = OpcUa_BadInvalidArgument;
+    }
+    return status;
+}
+
 /* ----------------------------------------------------------------------------
     Class        PasACT
     Method       setData
@@ -453,15 +486,12 @@ UaStatusCode PasACT::Operate(OpcUa_UInt32 offset, const UaVariantArray &args)
 {
     UaStatusCode  status;
 
-    if ( offset >= 1 )
-        return OpcUa_BadInvalidArgument;
-
     // don't lock the object -- might want to change state while operating the device!
     // UaMutexLocker lock(&m_mutex);
     switch ( offset )
     {
-        case 0:
-            status = moveDelta();
+        case PAS_ACTType_Step:
+            status = moveDelta(args);
             break;
         default:
             status = OpcUa_BadInvalidArgument;
@@ -475,14 +505,17 @@ UaStatusCode PasACT::Operate(OpcUa_UInt32 offset, const UaVariantArray &args)
     Method       step
     Description  Step the actuator
 -----------------------------------------------------------------------------*/
-UaStatus PasACT::moveDelta()
+UaStatus PasACT::moveDelta(const UaVariantArray& args)
 {
     // don't lock the object -- might want to change state while operating the device!
     // UaMutexLocker lock(&m_mutex);
     if ( m_state == PASState::On )
     {
-        printf("stepping actuator %d by %5.3f mm\n", m_ID.serialNumber, m_DeltaL);
-        return m_pClient->callMethodAsync(m_ID.eAddress, UaString("Step"));
+        OpcUa_Float deltaLength;
+        UaVariant(args[0]).toFloat(deltaLength);
+
+        printf("stepping actuator %d by %5.3f mm\n", m_ID.serialNumber, deltaLength);
+        return m_pClient->callMethodAsync(m_ID.eAddress, UaString("Step"), args);
     }
 
     return OpcUa_BadInvalidState;

@@ -63,11 +63,11 @@ UaStatus ActController::getData(OpcUa_UInt32 offset, UaVariant& value)
     if (ACTObject::VARIABLES.find(offset) != ACTObject::VARIABLES.end()) {
        switch ( offset )
       {
+          case PAS_ACTType_Steps:
+              value.setFloat(m_DeltaL);
+              break;
           case PAS_ACTType_curLength_mm:
               value.setFloat(m_pPlatform->getActuatorAt(m_ID)->MeasureLength());
-              break;
-          case PAS_ACTType_inLength_mm:
-              value.setFloat(m_DeltaL);
               break;
           default:
               status = OpcUa_BadInvalidArgument;
@@ -133,7 +133,7 @@ UaStatus ActController::Operate(OpcUa_UInt32 offset, const UaVariantArray& args)
     UaStatus status;
     switch ( offset )
     {
-        case 0:
+        case PAS_ACTType_Step:
             status = moveDelta(args);
             break;
         default:
@@ -151,7 +151,8 @@ UaStatus ActController::moveDelta(const UaVariantArray& args)
         return OpcUa_BadNothingToDo;
 
     std::array<OpcUa_Float, 6> deltaL = {0., 0., 0., 0., 0., 0.}; // Set delta lengths to move to
-    UaVariant(args[0]).toFloat(deltaL[m_ID]);
+    UaVariant length = UaVariant(args[0]);
+    length.toFloat(deltaL[m_ID]);
 
     std::cout << "ActController :: Moving actuator " << m_ID << " by " << m_DeltaL << " mm." << std::endl;
     deltaL = m_pPlatform->MoveDeltaLengths(deltaL);

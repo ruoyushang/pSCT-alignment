@@ -34,9 +34,9 @@ public:
     UaStatus write(std::vector<std::string> sNodeName, const UaVariant *values);
 
     // synchronous call
-    UaStatus callMethod(std::string sNodeName, UaString sMethod);
+    UaStatus callMethod(std::string sNodeName, UaString sMethod, const UaVariantArray &args = UaVariantArray());
     // asynchronous call -- needs a callComplete for the callback as welcl
-    UaStatus callMethodAsync(std::string sNodeName, UaString sMethod);
+    UaStatus callMethodAsync(std::string sNodeName, UaString sMethod, const UaVariantArray &args = UaVariantArray());
     // UaSessionCallback implementation
     void callComplete(OpcUa_UInt32 transactionId, const UaStatus &result, const UaClientSdk::CallOut &callResponse);
 

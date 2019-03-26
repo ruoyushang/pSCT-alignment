@@ -204,9 +204,12 @@ UaStatus PasNodeManagerCommon::createTypeNodes()
     OpcUa::DataItemType*         pDataItem;
     // Method helpers
     OpcUa::BaseMethod*           pMethod = NULL;
+    UaPropertyMethodArgument*    pPropertyArg = NULL;
     // Event helpers
     UaObjectTypeSimple*          pMPESEventType = NULL;
     UaPropertyCache*             pProperty = NULL;
+
+    UaUInt32Array                nullarray;
 
     /**************************************************************
      * Create the MPES Type
@@ -498,6 +501,24 @@ UaStatus PasNodeManagerCommon::createTypeNodes()
       pMethod = new OpcUa::BaseMethod(UaNodeId(m.first, getNameSpaceIndex()), m.second.first.c_str(), getNameSpaceIndex());
       pMethod->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
       addStatus = addNodeAndReference(pACTType, pMethod, OpcUaId_HasComponent);
+      UA_ASSERT(addStatus.isGood());
+      
+      // Add arguments
+      pPropertyArg = new UaPropertyMethodArgument(
+        UaNodeId((std::to_string(m.first) + "_" + m.second.first + "_args").c_str(), getNameSpaceIndex()), // NodeId of the property
+        Ua_AccessLevel_CurrentRead,             // Access level of the property
+        m.second.second.size(),                                      // Number of arguments
+        UaPropertyMethodArgument::INARGUMENTS); // IN arguments
+      for (size_t i = 0; i < m.second.second.size(); i++) {
+        pPropertyArg->setArgument(
+            (OpcUa_UInt32)i,                       // Index of the argument
+            std::get<0>(m.second.second[i]).c_str(),   // Name of the argument
+            std::get<1>(m.second.second[i]),// Data type of the argument
+            -1,                      // Array rank of the argument
+            nullarray,               // Array dimensions of the argument
+            UaLocalizedText("en", (std::get<2>(m.second.second[i])).c_str())); // Description 
+      }
+      addStatus = addNodeAndReference(pMethod, pPropertyArg, OpcUaId_HasProperty);
       UA_ASSERT(addStatus.isGood());
     }
 

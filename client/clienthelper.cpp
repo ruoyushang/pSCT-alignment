@@ -285,7 +285,7 @@ UaStatus Client::write(std::vector<std::string> sNodeNames, const UaVariant *val
 }
 
 
-UaStatus Client::callMethod(std::string sNodeName, UaString sMethod)
+UaStatus Client::callMethod(std::string sNodeName, UaString sMethod, const UaVariantArray& args)
 {
     UaStatus          status;
     CallIn            callRequest;
@@ -312,6 +312,7 @@ UaStatus Client::callMethod(std::string sNodeName, UaString sMethod)
 
     callRequest.objectId = nodes[0];
     callRequest.methodId = nodes[1];
+    callRequest.inputArguments = args;
 
     serviceSettings.callTimeout = 2000*60; // call timeout in ms; set to 2 minutes
     status = m_pSession->call(serviceSettings, callRequest, callResult);
@@ -326,7 +327,7 @@ UaStatus Client::callMethod(std::string sNodeName, UaString sMethod)
     return status;
 }
 
-UaStatus Client::callMethodAsync(std::string sNodeName, UaString sMethod)
+UaStatus Client::callMethodAsync(std::string sNodeName, UaString sMethod, const UaVariantArray& args)
 {
     UaStatus          status;
     CallIn            callRequest;
@@ -352,8 +353,8 @@ UaStatus Client::callMethodAsync(std::string sNodeName, UaString sMethod)
 
     callRequest.objectId = nodes[0];
     callRequest.methodId = nodes[1];
-
-    serviceSettings.callTimeout = 0.; // call timeout in ms; set to 0 -- never times out
+    callRequest.inputArguments = args;
+    
     status = m_pSession->beginCall(serviceSettings, callRequest, m_TransactionId);
 
     if ( status.isBad() )
