@@ -15,7 +15,7 @@ const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, O
 
 const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean>> PasObject::ERRORS;
 
-const std::map<OpcUa_UInt32, std::pair<std::string, int>> PasObject::METHODS;
+const std::map<OpcUa_UInt32, std::pair<std::string, std::vector<std::tuple<std::string, UaNodeId, std::string>>>> PasObject::METHODS;
 
 
 PasObject::PasObject(const UaString& name,
@@ -360,8 +360,8 @@ UaStatus MPESObject::call(
 
 const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, OpcUa_Byte>> ACTObject::VARIABLES = {
     {PAS_ACTType_State, std::make_tuple("State", UaVariant(0), OpcUa_True, Ua_AccessLevel_CurrentRead)},
-    {PAS_ACTType_curLength_mm, std::make_tuple("CurrentLength", UaVariant(0.0), OpcUa_False, Ua_AccessLevel_CurrentRead)},
-    {PAS_ACTType_inLength_mm, std::make_tuple("InputLength", UaVariant(0.0), OpcUa_False, Ua_AccessLevel_CurrentRead)}
+    {PAS_ACTType_Steps, std::make_tuple("Steps", UaVariant(0), OpcUa_False, Ua_AccessLevel_CurrentRead)},
+    {PAS_ACTType_curLength_mm, std::make_tuple("CurrentLength", UaVariant(0.0), OpcUa_False, Ua_AccessLevel_CurrentRead)}
 };
 
 const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean>> ACTObject::ERRORS = {
@@ -381,10 +381,10 @@ const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean>> 
     {PAS_ACTType_Error13, std::make_tuple("Error13", UaVariant(false), OpcUa_False)}
 };
 
-const std::map<OpcUa_UInt32, std::pair<std::string, int>> ACTObject::METHODS = {
-    {PAS_ACTType_Start, {"Start", 0}},
-    {PAS_ACTType_Stop, {"Stop", 0}},
-    {PAS_ACTType_Step, {"Step", 1}}
+const std::map<OpcUa_UInt32, std::pair<std::string, std::vector<std::tuple<std::string, UaNodeId, std::string>>>> ACTObject::METHODS = {
+    {PAS_ACTType_Start, {"Start", {}}},
+    {PAS_ACTType_Stop, {"Stop", {}}},
+    {PAS_ACTType_Step, {"Step", { std::make_tuple("DeltaLength", UaNodeId(OpcUaId_Double), "Target change in length for the actuator (in mm).") }}}
 };
 
 ACTObject::ACTObject(
@@ -423,12 +423,33 @@ ACTObject::ACTObject(
     // Add all child method nodes
     UaString sName;
     UaString sNodeId;
-    for (auto v: getMethodDefs())
+
+    UaPropertyMethodArgument*    pPropertyArg = NULL;
+    UaUInt32Array                nullarray;
+    for (auto m: getMethodDefs())
     {
-      sName = UaString(v.second.first.c_str());
+      sName = UaString(m.second.first.c_str());
       sNodeId = UaString("%1.%2").arg(newNodeId.toString()).arg(sName);
-      m_MethodMap[UaNodeId(sNodeId, nsIdx)] = std::make_pair(new UaMethodGeneric(sName, UaNodeId(sNodeId, nsIdx), m_defaultLocaleId), v.first);
+      m_MethodMap[UaNodeId(sNodeId, nsIdx)] = std::make_pair(new UaMethodGeneric(sName, UaNodeId(sNodeId, nsIdx), m_defaultLocaleId), m.first);
       addStatus = pNodeManager->addNodeAndReference(this, m_MethodMap[UaNodeId(sNodeId, nsIdx)].first, OpcUaId_HasComponent);
+      UA_ASSERT(addStatus.isGood());
+    
+      // Add arguments
+      pPropertyArg = new UaPropertyMethodArgument(
+        UaNodeId((std::string(sNodeId.toUtf8()) + "_" + m.second.first + "_args").c_str(), nsIdx), // NodeId of the property
+        Ua_AccessLevel_CurrentRead,             // Access level of the property
+        m.second.second.size(),                                      // Number of arguments
+        UaPropertyMethodArgument::INARGUMENTS); // IN arguments
+      for (size_t i = 0; i < m.second.second.size(); i++) {
+        pPropertyArg->setArgument(
+            (OpcUa_UInt32)i,                       // Index of the argument
+            std::get<0>(m.second.second[i]).c_str(),   // Name of the argument
+            std::get<1>(m.second.second[i]),// Data type of the argument
+            -1,                      // Array rank of the argument
+            nullarray,               // Array dimensions of the argument
+            UaLocalizedText("en", (std::get<2>(m.second.second[i])).c_str())); // Description 
+      }
+      addStatus = pNodeManager->addNodeAndReference(m_MethodMap[UaNodeId(sNodeId, nsIdx)].first, pPropertyArg, OpcUaId_HasProperty);
       UA_ASSERT(addStatus.isGood());
     }
 }
@@ -472,12 +493,23 @@ UaStatus ACTObject::call(
         if(m_MethodMap.find(pMethod->nodeId()) != m_MethodMap.end())
         {
             methodTypeID = m_MethodMap[pMethod->nodeId()].second;
-            numArgs = METHODS.at(methodTypeID).second;
+            numArgs = METHODS.at(methodTypeID).second.size();
 
-            if ( inputArguments.length() != numArgs )
+            if ( inputArguments.length() != numArgs ) {
                 ret = OpcUa_BadInvalidArgument;
-            else
-                ret = m_pCommIf->OperateDevice(PAS_ACTType, m_Identity, methodTypeID);
+                return ret;
+            }
+            else {
+                for (size_t i = 0; i < numArgs; i++) {
+                    // Type checking (currently not implemented)
+                    //if ( inputArguments[i].Datatype !=  )
+                    //{
+                        //ret = OpcUa_BadInvalidArgument;
+                        //inputArgumentResults[i] = OpcUa_BadTypeMismatch;
+                    //}
+                }
+            }
+            ret = m_pCommIf->OperateDevice(PAS_ACTType, m_Identity, methodTypeID, inputArguments);
         }
         else
         {

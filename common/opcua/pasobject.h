@@ -59,7 +59,7 @@ public:
 
     virtual const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean>> getErrorDefs() { return PasObject::ERRORS; }
 
-    virtual const std::map<OpcUa_UInt32, std::pair<std::string, int>> getMethodDefs() { return PasObject::METHODS; }
+    virtual const std::map<OpcUa_UInt32, std::pair<std::string, std::vector<std::tuple<std::string, UaNodeId, std::string>>>> getMethodDefs() { return PasObject::METHODS; }
 
 protected: 
     // a function that's used very often
@@ -80,7 +80,7 @@ private:
 
     static const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean>> ERRORS;
 
-    static const std::map<OpcUa_UInt32, std::pair<std::string, int>> METHODS;
+    static const std::map<OpcUa_UInt32, std::pair<std::string, std::vector<std::tuple<std::string, UaNodeId, std::string>>>> METHODS;
 };
 
 class PasUserData : public UserDataBase
@@ -170,7 +170,7 @@ public:
 
     const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean>> getErrorDefs() { return ACTObject::ERRORS; }
 
-    const std::map<OpcUa_UInt32, std::pair<std::string, int>> getMethodDefs() { return ACTObject::METHODS; }
+    const std::map<OpcUa_UInt32, std::pair<std::string, std::vector<std::tuple<std::string, UaNodeId, std::string>>>> getMethodDefs() { return ACTObject::METHODS; }
 
     /// @brief Map of OPC UA type ids for all child variables to their name, default value, is_state value, and access level.
     static const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, OpcUa_Byte>> VARIABLES;
@@ -179,7 +179,7 @@ public:
     static const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean>> ERRORS;
 
     /// @brief Map of OPC UA type ids for all child methods to their name and number of arguments.
-    static const std::map<OpcUa_UInt32, std::pair<std::string, int>> METHODS;
+    static const std::map<OpcUa_UInt32, std::pair<std::string, std::vector<std::tuple<std::string, UaNodeId, std::string>>>> METHODS;
 };
 
 

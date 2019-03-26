@@ -24,10 +24,10 @@ const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, O
 const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean>> PanelObject::ERRORS = {
 };
 
-const std::map<OpcUa_UInt32, std::pair<std::string, int>> PanelObject::METHODS = {
-    {PAS_PanelType_StepAll, {"StepAll", 0}},
-    {PAS_PanelType_MoveTo_Acts, {"MoveToActs", 0}},
-    {PAS_PanelType_Stop, {"Stop", 0}}
+const std::map<OpcUa_UInt32, std::pair<std::string, std::vector<std::tuple<std::string, UaNodeId, std::string>>>> PanelObject::METHODS = {
+    {PAS_PanelType_StepAll, {"StepAll", {}}},
+    {PAS_PanelType_MoveTo_Acts, {"MoveToActs", {}}},
+    {PAS_PanelType_Stop, {"Stop", {}}}
 };
 
 std::map<UaNodeId, std::pair<UaMethodGeneric *, OpcUa_UInt32>> m_MethodMap;
@@ -106,7 +106,7 @@ UaStatus PanelObject::call(
         if(m_MethodMap.find(pMethod->nodeId()) != m_MethodMap.end())
         {
             methodTypeID = m_MethodMap[pMethod->nodeId()].second;
-            numArgs = METHODS.at(methodTypeID).second;
+            numArgs = METHODS.at(methodTypeID).second.size();
 
             if ( inputArguments.length() != numArgs )
                 ret = OpcUa_BadInvalidArgument;

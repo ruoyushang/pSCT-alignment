@@ -80,7 +80,7 @@ public:
 
     const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean>> getErrorDefs() { return PanelObject::ERRORS; }
 
-    const std::map<OpcUa_UInt32, std::pair<std::string, int>> getMethodDefs() { return PanelObject::METHODS; }
+    const std::map<OpcUa_UInt32, std::pair<std::string, std::vector<std::tuple<std::string, UaNodeId, std::string>>>> getMethodDefs() { return PanelObject::METHODS; }
 
     /// @brief Map of OPC UA type ids for all child variables to their name, default value, is_state value, and access level.
     static const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, OpcUa_Byte>> VARIABLES;
@@ -89,7 +89,7 @@ public:
     static const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean>> ERRORS;
 
     /// @brief Map of OPC UA type ids for all child methods to their name and number of arguments.
-    static const std::map<OpcUa_UInt32, std::pair<std::string, int>> METHODS;
+    static const std::map<OpcUa_UInt32, std::pair<std::string, std::vector<std::tuple<std::string, UaNodeId, std::string>>>> METHODS;
 };
 
 #endif
