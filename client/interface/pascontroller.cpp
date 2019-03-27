@@ -270,8 +270,6 @@ UaStatus PasMPES::read()
     UaMutexLocker lock(&m_mutex);
     UaStatus status;
 
-    m_updated = false;
-
     cout << "calling read() on " << m_ID << endl;
     if ( m_state == PASState::PAS_On )
     {
@@ -300,6 +298,9 @@ UaStatus PasMPES::read()
                 status = __readRequest();
             }
         }
+    }
+    else {
+        m_updated = false;
     }
 
     return status;
