@@ -6,24 +6,40 @@
 
 #define ERROR_MSG(str) do {std::cout << str << std::endl;} while (false)
 
+#include "common/alignment/actuator.hpp"
+
 #include <cmath>
-#include "actuator.hpp"
 #include <fstream>
 #include <sstream>
-#include <mysql_connection.h>
-#include <mysql_driver.h>
+
 #include <cppconn/driver.h>
 #include <cppconn/exception.h>
 #include <cppconn/resultset.h>
 #include <cppconn/statement.h>
 
-//Destructor
-Actuator::~Actuator()
-{
-}
+#include <mysql_connection.h>
+#include <mysql_driver.h>
 
-//Default Constructor
-Actuator::Actuator() : cbc(0) {} //pass cbc pointer. In this case, pass zero. Actuator cannot move without properly passing cbc object.
+const int Actuator::NUM_ERROR_TYPES = 14;
+const std::array<Platform::ErrorDefinition, NUM_ERROR_TYPES> Actuator::ERROR_DEFINITIONS = {
+    {"Home Position is not calibrated", DeviceState::FatalError},//error 0
+    {"DBFlagNotSet", DeviceState::OperableError},//error 1
+    {"MySQL Communication Error", DeviceState::OperableError},//error 2
+    {"DB Columns does not match what is expected", DeviceState::FatalError},//error 3
+    {"ASF File is Bad", DeviceState::FatalError},//error 4
+    {"ASF File entries does not match what is expected", DeviceState::FatalError},//error 5
+    {"DB recording more recent than ASF and has mismatch with measured angle", DeviceState::FatalError},//error 6
+    {"Voltage Std Dev is entirely too high", DeviceState::FatalError},//error 7
+    {"Actuator Missed too many steps", DeviceState::FatalError},//error 8
+    {"Actuator position is too many steps away to recover safely", DeviceState::FatalError},//error 9
+    {"Actuator position is recovering large amount of steps, should be ok", DeviceState::OperableError},//error 10
+    {"Extend Stop Voltage is too close to the discontinuity. Possible 1 cycle uncertainty with calibrated data", DeviceState::OperableError},//error 11
+    {"End stop is large number of steps away from what is expected. Possible uncertainty in home position", DeviceState::OperableError},//error 12
+    {"Discrepancy between number of steps from extend stop and recorded number of steps from end stop is too high. Possible uncertainty in probed home position", DeviceState::OperableError}//error 13
+};
+
+const ASFStruct DEFAULT_ASF_INFO = {"/.ASF/",".ASF_",".log"};
+const ASFStruct EMERGENCY_ASF_INFO = {"/.ASF/",".ASF_Emergency_Port_",".log"};
 
 //Emergency constructor, pass port number and no serial and do not attempt to log actuator position information.
 Actuator::Actuator(CBC* InputCBC, int InputPortNumber) : cbc(InputCBC)
@@ -106,9 +122,9 @@ void Actuator::ReadConfigurationAndCalibration()//needs to be fixed to new datab
 			sql::ResultSet *res;
 
 			driver = get_driver_instance();
-			std::string hoststring="tcp://"+DBInfo.ip+":"+DBInfo.port;
-			con = driver->connect(hoststring,DBInfo.user,DBInfo.password);
-			con->setSchema(DBInfo.dbname);
+			std::string hoststring="tcp://"+m_DBInfo.ip+":"+m_DBInfo.port;
+			con = driver->connect(hoststring,m_DBInfo.user,m_DBInfo.password);
+			con->setSchema(m_DBInfo.dbname);
 			stmt = con->createStatement();
 
 			std::stringstream stmtvar;
@@ -196,12 +212,12 @@ bool Actuator::ReadStatusFromDB(StatusStruct & RecordedPosition)//read all error
 			sql::Connection *con;
 			sql::Statement *stmt;
 			sql::ResultSet *res;
-			sql::ResultSetMetaData *resmeta; 
+			sql::ResultSetMetaData *resmeta;
 
 			driver = get_driver_instance();
-			std::string hoststring="tcp://"+DBInfo.ip+":"+DBInfo.port;
-			con = driver->connect(hoststring,DBInfo.user,DBInfo.password);
-			con->setSchema(DBInfo.dbname);
+			std::string hoststring="tcp://"+m_DBInfo.ip+":"+m_DBInfo.port;
+			con = driver->connect(hoststring,m_DBInfo.user,m_DBInfo.password);
+			con->setSchema(m_DBInfo.dbname);
 			stmt = con->createStatement();
 
 			std::stringstream stmtvar;
@@ -301,13 +317,13 @@ void Actuator::RecordStatusToDB()//record all error codes to DB. Adjust to new d
 			    sql::Statement *stmt;
 
 			    driver = get_driver_instance();
-			    std::string hoststring="tcp://"+DBInfo.ip+":"+DBInfo.port;
-			    con = driver->connect(hoststring,DBInfo.user,DBInfo.password);
-			    con->setSchema(DBInfo.dbname);
+			    std::string hoststring="tcp://"+m_DBInfo.ip+":"+m_DBInfo.port;
+			    con = driver->connect(hoststring,m_DBInfo.user,m_DBInfo.password);
+			    con->setSchema(m_DBInfo.dbname);
 			    stmt = con->createStatement();
 
 			    std::stringstream stmtvar;
-			    
+
 			    std::string datestring=std::to_string(RecordedPosition.Date.Year)+"-"+std::to_string(RecordedPosition.Date.Month)+"-"+std::to_string(RecordedPosition.Date.Day)+" "+std::to_string(RecordedPosition.Date.Hour)+":"+std::to_string(RecordedPosition.Date.Minute)+":"+std::to_string(RecordedPosition.Date.Second);
 
 			    stmtvar << "INSERT INTO Opt_ActuatorStatus VALUES (null, " << SerialNumber << ", '" << datestring << "', " << RecordedPosition.Position.Revolution << ", " << RecordedPosition.Position.Angle;
@@ -359,7 +375,7 @@ bool Actuator::ReadStatusFromASF(StatusStruct & RecordedPosition)//read all erro
                                                    << ". Assuming it did not exist and will create a default ASF file.");
 		ASF.close();
 		CreateDefaultASF();
-		ASF.open(ASFFullPath);    
+		ASF.open(ASFFullPath);
 		//if(ASF.bad())//check if ASF is good again. If not, set fatal error.
 		if(!ASF.good())//check if ASF is good again. If not, set fatal error.
 		{
@@ -565,7 +581,7 @@ int Actuator::SlowAngleCheck(PositionStruct ExpectedPosition)
 int Actuator::Step(int InputSteps)//Positive Step is Extension of Motor
 {
     DEBUG_MSG("Stepping Actuator " << SerialNumber << " " << InputSteps << " steps");
-    if (ErrorStatus == StatusModes::FatalError)//don't move actuator if there's a fatal error.
+    if(ErrorStatus == DeviceState::FatalError)//don't move actuator if there's a fatal error.
     {
         return InputSteps;
     }
@@ -591,7 +607,7 @@ int Actuator::Step(int InputSteps)//Positive Step is Extension of Motor
     bool KeepStepping=true;
 
 
-    while ((KeepStepping == true) && (ErrorStatus != StatusModes::FatalError))
+    while ((KeepStepping==true) && (ErrorStatus != DeviceState::FatalError))
     {
         if(std::abs(StepsRemaining)<=RecordingInterval)
         {
@@ -616,7 +632,7 @@ int Actuator::Step(int InputSteps)//Positive Step is Extension of Motor
             SetError(6);//fatal
             RecordStatusToASF();
             return StepsRemaining;//quit, don't record or register steps attempted to be taken.
-	}	
+	}
 
         else if( std::abs(MissedSteps) > std::max( int(TolerablePercentOfMissedSteps*std::abs(StepsToTake)) , MinimumMissedStepsToFlagError ) )
         {
@@ -753,7 +769,7 @@ void Actuator::SetASFFullPath(ASFStruct InputASFInfo)
 
 void Actuator::SetDB(DBStruct InputDBInfo)
 {
-    DBInfo=InputDBInfo;
+    m_DBInfo=InputDBInfo;
     DBFlag=true;
 }
 
@@ -826,7 +842,7 @@ void Actuator::UnsetError(int CodeNumber)
 
 void Actuator::SetStatus(StatusModes InputStatus)
 {
-    if (ErrorStatus == StatusModes::FatalError)
+    if (ErrorStatus == DeviceState::FatalError)
     {
         return;
     }
@@ -840,7 +856,7 @@ void Actuator::SetStatus(StatusModes InputStatus)
 
 void Actuator::CheckErrorStatus()//cycle through all errors and set status based on ones triggered.
 {
-    ErrorStatus = StatusModes::Healthy;
+    ErrorStatus=DeviceState::Healthy;
     for (int i=0; i<NumberOfErrorCodes; i++)
     {
         if(ActuatorErrors[i].Triggered == true)
@@ -1164,7 +1180,7 @@ void Actuator::CopyFile(std::string srcfile, std::string destfile)
 int DummyActuator::Step(int InputSteps)//Positive Step is Extension of Motor
 {
     std::cout << "DummyActuator: Stepping Actuator " << SerialNumber << " " << InputSteps << " steps" << std::endl;
-    if (ErrorStatus == StatusModes::FatalError)//don't move actuator if there's a fatal error.
+    if(ErrorStatus == DeviceState::FatalError)//don't move actuator if there's a fatal error.
     {
         ERROR_MSG("DummyActuator: Fatal error");
         return InputSteps;
@@ -1178,11 +1194,12 @@ int DummyActuator::Step(int InputSteps)//Positive Step is Extension of Motor
     std::cout << "DummyActuator: StepsRemaining = " << StepsRemaining << std::endl;
     return StepsRemaining;
 }
+
 float DummyActuator::MeasureLength()
 {
     DEBUG_MSG("Measuring Actuator Length for Dummy Actuator " << SerialNumber);
-    int StepsFromHome=CalculateStepsFromHome(CurrentPosition);
-    float DistanceFromHome=StepsFromHome*mmPerStep;
+    int stepsFromHome = calculateStepsFromHome(currentPosition);
+    float distanceFromHome = stepsFromHome * mmPerStep;
     float CurrentLength=HomeLength-DistanceFromHome;
     return CurrentLength;
 }
@@ -1191,5 +1208,3 @@ void DummyActuator::Initialize()
 {
     std::cout << "Initializing Dummy Actuator ..." << std::endl;
 }
-
-

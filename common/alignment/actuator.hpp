@@ -1,214 +1,181 @@
-#ifndef ACTUATOR_H
-#define ACTUATOR_H
+#ifndef __ACTUATOR_H__
+#define __ACTUATOR_H__
 
 #ifndef _AMD64
 #include "common/cbccode/cbc.hpp"
 #else
-
 #include "common/cbccode/dummycbc.hpp"
-    #define CBC DummyCBC
+#define CBC DummyCBC
 #endif
 
-#include <vector>
 #include <string>
+#include <vector>
+
 
 class Actuator
 {
-
 public:
+    struct PositionStruct {
+        int Revolution;
+        int Angle;
+    };
 
-    enum class StatusModes {
-Healthy=1,//Everything is good
-OperableError=2,//Errors that the user should be aware of, but shouldn't interfere with normal operation of the actuator.
-FatalError=3//Errors that the user should definitely be aware of and handle appropriately. The Actuator should not be able to move with a fatal error without first reconfiguring something.
-};
+    struct DateStruct {
+        int Year;
+        int Month;
+        int Day;
+        int Hour;
+        int Minute;
+        int Second;
+    };
 
-    StatusModes ErrorStatus{StatusModes::OperableError};
+    struct ASFStruct {
+        std::string Directory;
+        std::string FilenamePrefix;
+        std::string FilenameSuffix;
+    };
 
-struct ErrorInfo {
-bool Triggered;
-std::string ErrorDescription;
-StatusModes ErrorType;
-};
+    struct StatusStruct {
+        DateStruct Date;
+        PositionStruct Position;
+        std::vector<int> ErrorCodes;
+    };
 
-struct PositionStruct {
-int Revolution;
-int Angle;
-};
+    static const ASFStruct DEFAULT_ASF_INFO;
+    static const ASFStruct EMERGENCY_ASF_INFO;
 
-struct DateStruct {
-int Year;
-int Month;
-int Day;
-int Hour;
-int Minute;
-int Second;
-};
+    std::string ASFFullPath;
+    std::string OldASFFullPath;
+    std::string NewASFFullPath;
 
-struct DBStruct {
-std::string ip;
-std::string user;
-std::string password;
-std::string dbname;
-std::string port;
-};
+    CBC::ADC::adcData adcdata;
+    std::shared_ptr<CBC> cbc;
 
-struct ASFStruct {
-std::string Directory;
-std::string FilenamePrefix;
-std::string FilenameSuffix;
-};
+    bool DBFlag{false};
+    bool VoltageError{false};
 
+    static const int STEPS_PER_REVOLUTION = 200;
+    static const float MM_PER_STEP = 0.003048;
+    static const float CALIBRATION_TEMPERATURE = 22.0;
+    static const float HOME_LENGTH = 476.2;
+    int RetractRevolutionLimit{100};
+    int ExtendRevolutionLimit{0};
+    PositionStruct CurrentPosition{50,0};
+    PositionStruct RetractStop{103,32};
+    PositionStruct ExtendStop{-3,89};
+    int RecordingInterval{(STEPS_PER_REVOLUTION/2)-20};
+    float VMin{0.593};
+    float VMax{3.06};
+    float dV{(VMax-VMin)/(STEPS_PER_REVOLUTION-1)};
+    int HysteresisSteps{RecordingInterval-10};
+    float StdDevRemeasure{dV/2.0f};
+    int MaxVoltageMeasurementAttempts{20};
+    float StdDevMax{5.0f*dV};
+    int QuickAngleCheckRange{5};
+    int EndstopSearchStepsize{15};
+    int CyclesDefiningHome{3};
+    int MinimumMissedStepsToFlagError{5};
+    float TolerablePercentOfMissedSteps{0.1};
+    int ExtendStopToHomeStepsDeviation{STEPS_PER_REVOLUTION/4};
+    int FlaggedRecoverySteps{RecordingInterval/10};
+    int MaxRecoverySteps{RecordingInterval/2};
+    int EndStopRecoverySteps{STEPS_PER_REVOLUTION/4};
 
-Actuator::ASFStruct DefaultASFInfo {"/.ASF/",".ASF_",".log"};
+    static const int NUM_ERROR_TYPES;
+    static const std::array<Platform::ErrorDefinition, NUM_ERROR_TYPES> ERROR_DEFINITIONS;
 
-Actuator::ASFStruct EmergencyASFInfo {"/.ASF/",".ASF_Emergency_Port_",".log"};
-
-std::string ASFFullPath;
-std::string OldASFFullPath;
-std::string NewASFFullPath;
-CBC::ADC::adcData adcdata; 
-CBC* cbc;
-DBStruct DBInfo;
-ASFStruct ASFInfo;
-bool DBFlag{false};
-bool VoltageError{false};
-int PortNumber{0};
-int SerialNumber{0};
-int StepsPerRevolution{200};
-float mmPerStep{0.003048};
-float CalibrationTemperature{22.0};
-float HomeLength{476.2};
-int RetractRevolutionLimit{100};
-int ExtendRevolutionLimit{0};
-PositionStruct CurrentPosition{50,0};
-PositionStruct RetractStop{103,32};
-PositionStruct ExtendStop{-3,89};
-int RecordingInterval{(StepsPerRevolution/2)-20};
-float VMin{0.593};
-float VMax{3.06};
-float dV{(VMax-VMin)/(StepsPerRevolution-1)};
-int HysteresisSteps{RecordingInterval-10};
-float StdDevRemeasure{dV/2.0f};
-int MaxVoltageMeasurementAttempts{20};
-float StdDevMax{5.0f*dV};
-int QuickAngleCheckRange{5};
-int EndstopSearchStepsize{15};
-int CyclesDefiningHome{3};
-int MinimumMissedStepsToFlagError{3};
-float TolerablePercentOfMissedSteps{0.1};
-int ExtendStopToHomeStepsDeviation{StepsPerRevolution/4};
-int FlaggedRecoverySteps{RecordingInterval/10};
-int MaxRecoverySteps{RecordingInterval/2};
-int EndStopRecoverySteps{StepsPerRevolution/4};
+    int NumberOfIntsInASFHeader{8};//yr,mo,day,hr,min,sec,rev,angle
+    int NumberOfColumnsInDBHeader{5};//id_increment, serial, start_date, rev, angle
+    int NumberOfErrorCodes{(int) ActuatorErrors.size()};
+    int NumberOfIntsInASF{NumberOfIntsInASFHeader+NumberOfErrorCodes};
+    int NumberOfColumnsInDB{NumberOfColumnsInDBHeader+NumberOfErrorCodes};
+    std::vector<float> EncoderCalibration;
 
 
-std::vector<ErrorInfo> ActuatorErrors{
-        {true,  "Home Position is not calibrated",                                                                                                                           StatusModes::FatalError},//error 0
-        {false, "DBFlagNotSet",                                                                                                                                              StatusModes::OperableError},//error 1
-        {false, "MySQL Communication Error",                                                                                                                                 StatusModes::OperableError},//error 2
-        {false, "DB Columns does not match what is expected",                                                                                                                StatusModes::FatalError},//error 3
-        {false, "ASF File is Bad",                                                                                                                                           StatusModes::FatalError},//error 4
-        {false, "ASF File entries does not match what is expected",                                                                                                          StatusModes::FatalError},//error 5
-        {false, "Actuator is not stepping",                                                                                                                                  StatusModes::FatalError},//error 6
-        {false, "Voltage Std Dev is entirely too high",                                                                                                                      StatusModes::FatalError},//error 7
-        {false, "Actuator Missed too many steps",                                                                                                                            StatusModes::FatalError},//error 8
-        {false, "Actuator position is too many steps away from previously recorded position to recover safely",                                                              StatusModes::FatalError},//error 9
-        {false, "Actuator position is far from previously recorded position. It is close enough to automatically recover",                                                   StatusModes::OperableError},//error 10
-        {false, "Extend Stop Voltage is too close to the discontinuity. Possible 1 cycle uncertainty with calibrated data",                                                  StatusModes::OperableError},//error 11
-        {false, "End stop is large number of steps away from what is expected. Possible uncertainty in home position",                                                       StatusModes::OperableError},//error 12
-        {false, "Discrepancy between number of steps from extend stop and recorded number of steps from end stop is too high. Possible uncertainty in probed home position", StatusModes::OperableError}//error 13
-};//do not simply add a new error to this vector without changing the ASF files. If ASF text files are saved with 13 errors and this code is updated to 14 errors, text files must also be updated to 14 errors. otherwise the number of arguments in ASF file won't match, and an error will occur.
 
-int NumberOfIntsInASFHeader{8};//yr,mo,day,hr,min,sec,rev,angle
-int NumberOfColumnsInDBHeader{5};//id_increment, serial, start_date, rev, angle
-int NumberOfErrorCodes{(int) ActuatorErrors.size()};
-int NumberOfIntsInASF{NumberOfIntsInASFHeader+NumberOfErrorCodes};
-int NumberOfColumnsInDB{NumberOfColumnsInDBHeader+NumberOfErrorCodes};
-std::vector<float> EncoderCalibration;
+    //do checks on constructors to make sure numbers are okay. e.g. hysteresis steps are positive, recording interval is less than half of STEPS_PER_REVOLUTION.
 
-struct StatusStruct {
-DateStruct Date;
-PositionStruct Position;
-std::vector<int> ErrorCodes;
-};
+    void ReadConfigurationAndCalibration();
+    bool ReadStatusFromDB(StatusStruct & RecordedPosition);
+    void LoadStatusFromDB();
+    void RecordStatusToDB();
+    bool ReadStatusFromASF(StatusStruct & RecordedPosition);
+    void LoadStatusFromASF();
+    void RecordStatusToASF();
+    float MeasureVoltage();
+    int MeasureAngle();
+    int QuickAngleCheck(PositionStruct ExpectedPosition);
+    int SlowAngleCheck(PositionStruct ExpectedPosition);
+    virtual int Step(int InputSteps);
+    PositionStruct PredictPosition(PositionStruct InputPosition, int InputSteps);
+    int HysteresisMotion(int InputSteps);
+    virtual void Initialize();
+    void SetCurrentPosition(PositionStruct InputPosition);
+    void CheckCurrentPosition();
+    void SetASFFullPath(ASFStruct ASFInfoInfo);
+    void SetDB(DBStruct DBInfoInfo);
+    void UnsetDB();
+    void SetSerialNumber(int InputSerialNumber);
+    void UnsetSerialNumber();
+    void SetPortNumber(int USBPortNumber);
+    void UnsetPortNumber();
+    void SetMM_PER_STEP(float InputMM_PER_STEP);
+    void SetSTEPS_PER_REVOLUTION(int InputSTEPS_PER_REVOLUTION);
+    void SetRecordingInterval(int InputRecordingInterval);
+    void SetHOME_LENGTH(float InputHOME_LENGTH, float InputCALIBRATION_TEMPERATURE);
+    int CalculateStepsFromHome(PositionStruct InputPosition);
+    void SetError(int CodeNumber);
+    void UnsetError(int CodeNumber);
+    void SetStatus(StatusModes InputStatus);
+    void CheckErrorStatus();
+    void ProbeHome();
+    void FindHomeFromEndStop(int Direction);
+    void FindHomeFromExtendStop();
+    void FindHomeFromRetractStop();
+    void ProbeEndStop(int Direction);
+    void ProbeExtendStop();
+    void ProbeRetractStop();
+    int GetPortNumber() const;
+    StatusModes GetStatus();
+    void CreateDefaultASF();
+    virtual float MeasureLength();
+    float MoveToLength(float TargetLength);
+    float MoveDeltaLength(float LengthToMove);
+    void ClearAllErrors();
+    void ForceRecover();
+    void CopyFile(std::string srcfile, std::string destfile);
+    ///////////////////////////////////////////////////////////////
 
-//do checks on constructors to make sure numbers are okay. e.g. hysteresis steps are positive, recording interval is less than half of stepsperrevolution.
+    Actuator(std::shared_ptr<CBC> pCBC, int USBPortNumber);
+    Actuator(std::shared_ptr<CBC> pCBC, int USBPortNumber, int serialNumber);
+    Actuator(std::shared_ptr<CBC> pCBC, int USBPortNumber, int serialNumber, DBStruct DBInfo);
+    Actuator(std::shared_ptr<CBC> pCBC, int USBPortNumber, int serialNumber, DBStruct DBInfo, ASFStruct ASFInfo);
+    ~Actuator() {}
 
-void ReadConfigurationAndCalibration();
-bool ReadStatusFromDB(StatusStruct & RecordedPosition);
-void LoadStatusFromDB();
-void RecordStatusToDB();
-bool ReadStatusFromASF(StatusStruct & RecordedPosition);
-void LoadStatusFromASF();
-void RecordStatusToASF();
-float MeasureVoltage();
-int MeasureAngle();
-int QuickAngleCheck(PositionStruct ExpectedPosition);
-int SlowAngleCheck(PositionStruct ExpectedPosition);
-virtual int Step(int InputSteps);
-PositionStruct PredictPosition(PositionStruct InputPosition, int InputSteps);
-int HysteresisMotion(int InputSteps);
-virtual void Initialize();
-void SetCurrentPosition(PositionStruct InputPosition);
-void CheckCurrentPosition();
-void SetASFFullPath(ASFStruct InputASFInfo);
-void SetDB(DBStruct InputDBInfo);
-void UnsetDB();
-void SetSerialNumber(int InputSerialNumber);
-void UnsetSerialNumber();
-void SetPortNumber(int InputPortNumber);
-void UnsetPortNumber();
-void SetmmPerStep(float InputmmPerStep);
-void SetStepsPerRevolution(int InputStepsPerRevolution);
-void SetRecordingInterval(int InputRecordingInterval);
-void SetHomeLength(float InputHomeLength, float InputCalibrationTemperature);
-int CalculateStepsFromHome(PositionStruct InputPosition);
-void SetError(int CodeNumber);
-void UnsetError(int CodeNumber);
-void SetStatus(StatusModes InputStatus);
-void CheckErrorStatus();
-void ProbeHome();
-void FindHomeFromEndStop(int Direction);
-void FindHomeFromExtendStop();
-void FindHomeFromRetractStop();
-void ProbeEndStop(int Direction);
-void ProbeExtendStop();
-void ProbeRetractStop();
-int GetPortNumber() const;
-StatusModes GetStatus();
-//void RecoverStatusFromDBAndASF();
-void CreateDefaultASF();
-virtual float MeasureLength();
-float MoveToLength(float TargetLength);
-float MoveDeltaLength(float LengthToMove);
-void ClearAllErrors();
-void ForceRecover();
-void CopyFile(std::string srcfile, std::string destfile);
-///////////////////////////////////////////////////////////////
+protected:
+    Platform::DeviceState m_State = Platform::DeviceState::On;
 
-Actuator();
-Actuator(CBC* InputCBC, int InputPortNumber);
-Actuator(CBC* InputCBC, int InputPortNumber, int InputActuatorSerial);
-Actuator(CBC* InputCBC, int InputPortNumber, int InputActuatorSerial, DBStruct InputDB);
-Actuator(CBC* InputCBC, int InputPortNumber, int InputActuatorSerial, DBStruct InputDB, ASFStruct InputASF);
-~Actuator();
+    std::array<bool, NUM_ERROR_TYPES> m_Errors;
+
+    int m_PortNumber{0};
+    int m_SerialNumber{0};
+
+    DBStruct m_DBInfo;
+    ASFStruct m_ASFInfo;
 
 };
 
 class DummyActuator : public Actuator
 {
-    public:
-        DummyActuator(CBC* InputCBC, int InputPortNumber) : Actuator(InputCBC, InputPortNumber) {};
-        DummyActuator(CBC* InputCBC, int InputPortNumber, int InputActuatorSerial) : Actuator(InputCBC, InputPortNumber, InputActuatorSerial) {};
-        DummyActuator(CBC* InputCBC, int InputPortNumber, int InputActuatorSerial, DBStruct InputDB) : Actuator(InputCBC, InputPortNumber, InputActuatorSerial, InputDB) {};
-        DummyActuator(CBC* InputCBC, int InputPortNumber, int InputActuatorSerial, DBStruct InputDB, ASFStruct InputASF) : Actuator(InputCBC, InputPortNumber, InputActuatorSerial, InputDB, InputASF) {};
+public:
+    DummyActuator(std::shared_ptr<CBC> pCBC, int USBPortNumber) : Actuator(pCBC, USBPortNumber) {};
+    DummyActuator(std::shared_ptr<CBC> pCBC, int USBPortNumber, int serialNumber) : Actuator(pCBC, USBPortNumber, serialNumber) {};
+    DummyActuator(std::shared_ptr<CBC> pCBC, int USBPortNumber, int serialNumber, DBStruct DBInfo) : Actuator(pCBC, USBPortNumber, serialNumber, DBInfo) {};
+    DummyActuator(std::shared_ptr<CBC> pCBC, int USBPortNumber, int serialNumber, DBStruct DBInfo, ASFStruct ASFInfo) : Actuator(pCBC, USBPortNumber, serialNumber, DBInfo, ASFInfo) {};
 
-    void Initialize() override;
-
-    int Step(int InputSteps) override;
-
-    float MeasureLength() override;
+    void initialize() override;
+    int step(int inputSteps) override;
+    float measureLength() override;
 
 };
 

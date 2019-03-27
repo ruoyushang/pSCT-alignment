@@ -1,43 +1,40 @@
-/*
- * mpesclass.cpp MPES Control
- */
+#include "common/alignment/mpesclass.hpp"
 
-#include "common/mpescode/MPESImage.h"
-#include "common/mpescode/MPESDevice.h"
-#include "mpesclass.hpp"
-#include "actuator.hpp"
-#include <unistd.h>
-#include <iostream>
+#include <algorithm>
+#include <cstdlib>
+#include <dirent.h>
+#include <fstream>
 #include <iomanip>
+#include <iostream>
 #include <sstream>
 #include <string>
-#include <cstdlib> // NULL, atoi
-#include <dirent.h> // DIR
+#include <unistd.h>
 
-using namespace std;
+#include "common/alignment/platform.hpp"
+#include "common/mpescode/MPESImage.h"
+#include "common/mpescode/MPESDevice.h"
 
-int MPES::sDefaultImagesToCapture = 9;
-string MPES::sDefaultDirToSave = "/home/root/mpesimages/";
-string MPES::matFileString = "/home/root/mpesCalibration/";
-string MPES::calFileString = "/home/root/mpesCalibration/";
+const int MPES::DEFAULT_IMAGES_TO_CAPTURE = 9;
+const std::string MATRIX_CONSTANTS_DIR_PATH = "/home/root/mpesCalibration/";
+const std::string CAL2D_CONSTANTS_DIR_PATH = "/home/root/mpesCalibration/";
 
-//Default Constructor
-////MPES::MPES() : cbc(0) {}
+const float SAFETY_REGION_X_MIN = 60.0;
+const float SAFETY_REGION_X_MAX = 260.0;
+const float SAFETY_REGION_Y_MIN = 40.0;
+const float SAFETY_REGION_Y_MAX = 200.0;
 
-MPES::MPES(CBC* input_cbc, int input_USBPortNumber, int input_MPES_ID) :
-    m_pCBC {input_cbc},
-    m_serialNumber(input_MPES_ID),
-    calibrate(false)
+MPES::MPES(std::shared_ptr<CBC> pCBC, int USBPortNumber, int serialNumber) :
+    m_pCBC {pCBC},
+    m_SerialNumber(serialNumber),
+    m_Calibrate(false)
 {
-    setUSBPortNumber(input_USBPortNumber);
+    setPortNumber(USBPortNumber);
 }
 
-//Destructor
 MPES::~MPES()
 {
     m_pCBC->usb.disable(m_USBPortNumber);
 }
-
 
 // returns intensity of the sensor image.
 // check this value to see if everything is working fine
@@ -45,140 +42,130 @@ bool MPES::Initialize()
 {
     // we toggle the usb port, checking the video devices when it's off and again when it's on.
     // the new video device is the ID of the newly created MPES.
-    //
-    // make sure our USB is off
-    m_pCBC->usb.disable(m_USBPortNumber);
-    // count video devices
-    auto old_video_device_set = __getVideoDevices();
 
-    // switch the usb back on and wait for the video device to show up
-    m_pCBC->usb.enable(m_USBPortNumber);
+    m_pCBC->usb.disable(m_USBPortNumber); // make sure our USB is off
+    std::set<int> oldVideoDevices = getVideoDevices(); // count video devices
+
+    m_pCBC->usb.enable(m_USBPortNumber); // switch the usb back on and wait for the video device to show up
     sleep(4);
-    // count video devices again
-    auto new_video_device_set = __getVideoDevices();
-    // find the new ones compared to the old set
-    for (const auto& dev : old_video_device_set) new_video_device_set.erase(dev);
 
-    // the list should be just one device at this point
-    if (new_video_device_set.size() != 1) return false;
+    std::set<int> newVideoDevices = getVideoDevices(); // count video devices again
 
-    // get the only element in the set -- this is the new device ID
-    int new_video_device_id = *new_video_device_set.begin();
-    // make sure this is a valid video device -- i.e., not -1
-    if (new_video_device_id == -1) return false;
+    std::set<int> toggledDevices;
+    std::set_difference(newVideoDevices.begin(), newVideoDevices.end(), oldVideoDevices.begin(), oldVideoDevices.end(), toggledDevices.begin());
 
-    cout << "MPES::Initialize(): Detected new video device " << new_video_device_id << endl;
-    m_pDevice = new MPESDevice(new_video_device_id);
-    m_pImageSet = new MPESImageSet(m_pDevice, sDefaultImagesToCapture, sDefaultDirToSave.c_str());
-    cout << "MPES::Initialize(): Will be saving captured images to " << sDefaultImagesToCapture << endl;
+    if (toggledDevices.size() == 1) {
+        int newVideoDeviceId = *toggledDevices.begin(); // get the only element in the set -- this is the new device ID
+    }
+    else {
+        return false; // the list should be just one device at this point
+    }
 
-    ostringstream temposs;
-    temposs << setfill('0') << setw(6) << m_serialNumber;
-    string MPES_IDstring = temposs.str();
-    string matFileFullPath = matFileString + MPES_IDstring + "_MatConstants.txt";
-    cout << "trying to access " << matFileFullPath << " for Matrix File" << endl;
-    string calFileFullPath = calFileString + MPES_IDstring + "_2D_Constants.txt";
-    cout << "trying to access " << calFileFullPath << " for Cal2D File" << endl;
+    if (newVideoDeviceId == -1) {
+        return false; // make sure this is a valid video device -- i.e., not -1
+    }
 
-    FILE *matFile, *calFile;
-    if ( (matFile = fopen(matFileFullPath.c_str(), "r")) &&
-         (calFile = fopen(calFileFullPath.c_str(), "r")) )
-    {
-        fclose(matFile);
-        fclose(calFile);
+    std::cout << "MPES::initialize(): Detected new video device " << newVideoDeviceId << std::endl;
+    m_pDevice = std::shared_ptr<MPESDevice>(new MPESDevice(newVideoDeviceId));
+    m_pImageSet = std::unique_ptr<MPESImageSet>(new MPESImageSet(m_pDevice, DEFAULT_IMAGES_TO_CAPTURE));
+
+    std::ostringstream oss;
+    std::oss << std::setfill('0') << std::setw(6) << m_SerialNumber; // pad serial number to 6 digits with zeros
+    std::string MPES_IDstring = oss.str();
+
+    std::string matFileFullPath = MATRIX_CONSTANTS_DIR_PATH + MPES_IDstring + "_MatConstants.txt";
+    std::cout << "Trying to access " << matFileFullPath << " for Matrix File" << std::endl;
+    std::string calFileFullPath = CAL2D_CONSTANTS_DIR_PATH + MPES_IDstring + "_2D_Constants.txt";
+    std::cout << "Trying to access " << calFileFullPath << " for Cal2D File" << std::endl;
+
+    std::ifstream matFile(matFileFullPath);
+    std::ifstream calFile(calFileFullPath);
+
+    if ( matFile.good() && calFile.good() ) { // Check if files exist and can be read
+        matFile.close()
+        calFile.close()
 
         m_pDevice->LoadCalibration(calFileFullPath.c_str());
         m_pDevice->LoadMatrixTransform(matFileFullPath.c_str());
-        cout << "Read calibration data OK -- using calibrated values" << endl;
-        calibrate = true;
+        std::cout << "Read calibration data OK -- using calibrated values\n";
+        m_Calibrate = true;
     }
-    else
-        cout << "Failed to read calibration data -- using raw values" << endl;
-
-    Safety_Region_x_min = 60.0;
-    Safety_Region_x_max = 260.0;
-    Safety_Region_y_min = 40.0;
-    Safety_Region_y_max = 200.0;
+    else {
+        std::cout << "Failed to read calibration data -- using raw values\n";
+    }
 
     return true;
-}
-
-int MPES::setxNominalPosition(float x) {
-    m_position.xNominal = x;
-    return 0;
-}
-
-int MPES::setyNominalPosition(float y) {
-    m_position.yNominal = y;
-    return 0;
 }
 
 // find and set optimal exposure -- assume I(e) is linear
 // returns measured intensity -- check this value to see if things work fine
 int MPES::setExposure()
 {
-    cout << "+++ MPES: Setting exposure for device at USB " << m_USBPortNumber << endl;
+    std::cout << "MPES:: Setting exposure for device at USB " << m_USBPortNumber << std::endl;
     int intensity;
-    // need to check if intensity is non-zero!
-    int counter = 0;
-    while ( (intensity = MeasurePosition())
-            && !m_pDevice->isWithinIntensityTolerance(intensity) )
-    {
-        m_pDevice->SetExposure((int)(m_pDevice->GetTargetIntensity()/intensity
-                   *(float)m_pDevice->GetExposure()));
 
-	if (++counter > 5) break;
+    int counter = 0;
+    while ( (intensity = measurePosition())
+            && (!m_pDevice->isWithinIntensityTolerance(intensity))
+            && (counter <= 5))
+    {
+        m_pDevice->setExposure((int)(m_pDevice->GetTargetIntensity() / intensity * ((float)m_pDevice->GetExposure())));
+
+        ++counter;
     }
-    cout << "setExposure(): DONE" << endl;
+
+    std::cout << "MPES:: setExposure() DONE" << std::endl;
     return intensity;
 }
 
-void MPES::setUSBPortNumber(int input_USBPortNumber)
+void MPES::setPortNumber(int USBPortNumber)
 {
-    if ((input_USBPortNumber < 1) || (input_USBPortNumber > 6))
-    {
-        cout << "USB Port must be between 1-6" << endl;
-        throw 1;
+    if ((USBPortNumber >= 1) && (USBPortNumber <= 6)) {
+        m_USBPortNumber = usbPortNumber;
     }
-    m_USBPortNumber=input_USBPortNumber;
+    else {
+        std::cout << "MPES:: Invalid USB port " << USBPortNumber << " (USB Port must be between 1-6). USB port not set" << std::endl;
+    }
 }
 
 // returns intensity of the beam -- 0 if no beam/device.
 // so check the return value to know if things work fine
-int MPES::MeasurePosition()
+int MPES::measurePosition()
 {
     // initialize to something obvious in case of failure
-    m_position.xCenter = -1.;
-    m_position.yCenter = -1.;
-    m_position.xStdDev = -1.;
-    m_position.yStdDev = -1.;
-    m_position.CleanedIntensity = 0.;
+    m_Position.xCenter = -1.;
+    m_Position.yCenter = -1.;
+    m_Position.xStdDev = -1.;
+    m_Position.yStdDev = -1.;
+    m_Position.cleanedIntensity = 0.;
 
     // read sensor
     if (m_pImageSet->Capture()) {
-        if (calibrate) {
-	    m_pImageSet->Matrix_Transform();
-	    m_pImageSet->Calibrate2D();
+        if (m_Calibrate) {
+    	    m_pImageSet->Matrix_Transform();
+    	    m_pImageSet->Calibrate2D();
         }
-        else
-	    m_pImageSet->simpleAverage();
+        else {
+	        m_pImageSet->simpleAverage();
+        }
 
-        m_position.xCenter = m_pImageSet->SetData.xCentroid;
-        m_position.yCenter = m_pImageSet->SetData.yCentroid;
-        m_position.xStdDev = m_pImageSet->SetData.xSpotSD;
-        m_position.yStdDev = m_pImageSet->SetData.ySpotSD;
-        m_position.CleanedIntensity = m_pImageSet->SetData.CleanedIntensity;
+        m_Position.xCenter = m_pImageSet->SetData.xCentroid;
+        m_Position.yCenter = m_pImageSet->SetData.yCentroid;
+        m_Position.xStdDev = m_pImageSet->SetData.xCentroidSD;
+        m_Position.yStdDev = m_pImageSet->SetData.yCentroidSD;
+        m_Position.CleanedIntensity = m_pImageSet->SetData.CleanedIntensity;
     }
 
-    if (m_position.xCenter == -1. || m_position.yCenter == -1. )
-        cout << "mpes reading -1! potentially lost beam" << endl;
+    if (m_Position.xCenter == -1. || m_Position.yCenter == -1. ) {
+        std::cout << "MPES reading of xCenter or yCenter = -1! Potentially lost beam..." << std::endl;
+    }
 
-    return static_cast<int>(m_position.CleanedIntensity);
+    return static_cast<int>(m_Position.cleanedIntensity);
 }
 
-set<int> MPES::__getVideoDevices()
+std::set<int> MPES::getVideoDevices()
 {
-    set<int> device_set;
+    std::set<int> device_set;
     DIR *dir;
     struct dirent *ent;
     if ((dir = opendir ("/dev")) != NULL) {
@@ -201,38 +188,27 @@ set<int> MPES::__getVideoDevices()
     return device_set;
 }
 
-bool DummyMPES::Initialize()
+bool DummyMPES::initialize()
 {
-
-    cout << "DummyMPES::Initialize(): Creating new video device " << endl;
-    Safety_Region_x_min = 60.0;
-    Safety_Region_x_max = 260.0;
-    Safety_Region_y_min = 40.0;
-    Safety_Region_y_max = 200.0;
-
+    std::cout << "DummyMPES::initialize(): Creating new video device " << std::endl;
     return true;
 }
+
 int DummyMPES::setExposure()
 {
-    cout << "+++ Dummy MPES: Setting exposure for device at USB " << m_USBPortNumber << endl;
-    int intensity;
-    // need to check if intensity is non-zero!
-    int counter = 0;
-    intensity = 1;
-    cout << "setExposure(): DONE" << endl;
+    std::cout << "+++ Dummy MPES: Setting exposure for device at USB " << m_USBPortNumber << std::endl;
+    int intensity = 1; // dummy value
     return intensity;
 }
-int DummyMPES::MeasurePosition()
+
+int DummyMPES::measurePosition()
 {
-    // initialize to something obvious in case of failure
-    m_position.xCenter = 160.;
-    m_position.yCenter = 80.;
-    m_position.xStdDev = 10.;
-    m_position.yStdDev = 10.;
-    m_position.CleanedIntensity = 0.;
+    // dummy values
+    m_Position.xCenter = 160.;
+    m_Position.yCenter = 80.;
+    m_Position.xStdDev = 10.;
+    m_Position.yStdDev = 10.;
+    m_Position.cleanedIntensity = 0.;
 
-    if (m_position.xCenter == -1. || m_position.yCenter == -1. )
-        cout << "mpes reading -1! potentially lost beam" << endl;
-
-    return static_cast<int>(m_position.CleanedIntensity);
+    return static_cast<int>(m_Position.cleanedIntensity);
 }

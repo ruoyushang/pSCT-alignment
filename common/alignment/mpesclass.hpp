@@ -1,87 +1,85 @@
 #ifndef __MPESCLASS_H__
 #define __MPESCLASS_H__
 
-#ifndef _AMD64
-#include "common/cbccode/cbc.hpp"
-#else
+#include <cstring>
+#include <fstream>
+#include <set>
+#include <string>
 
-#include "common/cbccode/dummycbc.hpp"
+#ifndef _AMD64
+    #include "common/cbccode/cbc.hpp"
+#else
+    #include "common/cbccode/dummycbc.hpp"
     #define CBC DummyCBC
 #endif
 
+#include "common/alignment/actuator.hpp"
 #include "common/mpescode/MPESImageSet.h"
-#include "actuator.hpp"
 #include "common/mpescode/MPESDevice.h"
-#include <string>
-#include <fstream>
-#include <cstring>
-#include <set>
 
 class MPES
 {
     public:
-        MPES();
-        MPES(CBC* input_cbc, int input_USBPortNumber, int input_MPES_ID);
-        ~MPES();
-
-        void setUSBPortNumber(int input_USBPortNumber);
-        virtual bool Initialize();
-        virtual int setExposure();
-
-        virtual int MeasurePosition();
         struct Position {
             float xCenter;
             float yCenter;
             float xStdDev;
             float yStdDev;
-            float CleanedIntensity;
+            float cleanedIntensity;
             float xNominal;
             float yNominal;
         };
-        // return const reference to the private member
-        const MPES::Position& getPosition() const { return m_position; };
 
-    int setxNominalPosition(float x);
+        MPES(std::shared_ptr<CBC> pCBC, int USBPortNumber, int serialNumber);
+        ~MPES();
 
-    int setyNominalPosition(float y);
+        int getPortNumber() const { return m_USBPortNumber; };
+        void setPortNumber(int USBPortNumber);
 
-        int GetPortNumber() const {return m_USBPortNumber; };
+        virtual bool initialize();
+        virtual int setExposure();
 
-protected:
-        CBC* m_pCBC;
+        void setxNominalPosition(float x) { m_Position.xNominal = x; }
+        void setyNominalPosition(float y) { m_Position.yNominal = y; }
+
+        virtual int measurePosition();
+
+        MPES::Position getPosition() const { return m_Position; };
+
+    protected:
+        std::shared_ptr<CBC> m_pCBC;
 
         int m_USBPortNumber;
-        int m_serialNumber;
+        int m_SerialNumber;
 
-        static int sDefaultImagesToCapture;
-        static std::string sDefaultDirToSave;
-        bool calibrate;
-        static std::string matFileString;
-        static std::string calFileString;
+        bool m_Calibrate;
 
-        // MPES Reading
-        Position m_position;
+        Position m_Position; // MPES Reading
+
         // helpers
-        MPESImageSet *m_pImageSet;
-        MPESDevice *m_pDevice;
-        std::set<int> __getVideoDevices();
+        std::shared_ptr<MPESImageSet> m_pImageSet;
+        std::unique_ptr<MPESDevice> m_pDevice;
+        std::set<int> getVideoDevices();
 
-        // sanity
-        float Safety_Region_x_min;
-        float Safety_Region_x_max;
-        float Safety_Region_y_min;
-        float Safety_Region_y_max;
+        // Hardcoded constants
+        static const int DEFAULT_IMAGES_TO_CAPTURE;
+        static const std::string MATRIX_CONSTANTS_DIR_PATH;
+        static const std::string CAL2D_CONSTANTS_DIR_PATH;
+
+        static const float SAFETY_REGION_X_MIN;
+        static const float SAFETY_REGION_X_MAX;
+        static const float SAFETY_REGION_Y_MIN;
+        static const float SAFETY_REGION_Y_MAX;
 };
+
 class DummyMPES : public MPES
 {
-        public:
-        DummyMPES();
-        DummyMPES(CBC* input_cbc, int input_USBPortNumber, int input_MPES_ID) : MPES(input_cbc, input_USBPortNumber, input_MPES_ID) {};
+public:
+    DummyMPES(std::shared_ptr<CBC> pCBC, int USBPortNumber, int serialNumber) : MPES(std::shared_ptr<CBC> pCBC, int USBPortNumber, int serialNumber) {};
 
-    bool Initialize();
-        int setExposure();
-
-    int MeasurePosition();
+    bool initialize();
+    int setExposure();
+    int measurePosition();
 };
 
 #endif
