@@ -21,9 +21,7 @@ import argparse
 import subprocess
 import os
 import signal
-#import shutil
 import re
-#from threading import Timer
 
 from opcua import ua, Server
 #the client is used to get RA Dec from the drive system
@@ -41,6 +39,13 @@ import select
 #import importlib
 #astropy_spec = importlib.util.find_spec("astropy")
 #found_astropy = astropy_spec is not None
+
+
+#Hey, here is some ugly stuff:
+
+URL_server = "opc.tcp://172.17.10.15:48800"
+URI_server = "http://172.17.10.15:48800"
+URL_plc = "172.17.3.3"  # pSCT
 
 #if found_astropy:
 try:
@@ -92,14 +97,16 @@ def setup_logger(logger_name, log_file, level=logging.INFO, show_log=True):
         log_setup.addHandler(ch)
 
 
+# opcua client to get current pointing
 def get_opcua_coord_children():
-    plc = "10.0.50.111"      # pSCT
-    client = Client("opc.tcp://" + plc + ":4840/Objects/Logic/")
+    #plc = "172.17.3.3"      # pSCT
+    client = Client("opc.tcp://" + URL_plc + ":4840/Objects/Logic/")
+    client.connect()
     root = client.get_root_node()
     RA_child = root.get_child(["0:Objects", "2:Logic", "2:Application", "2:UserVarGlobal_OPCUA", "2:current_RA"])
     Dec_child = root.get_child(["0:Objects", "2:Logic", "2:Application", "2:UserVarGlobal_OPCUA", "2:current_Dec"])
     time_child = root.get_child(["0:Objects", "2:Logic", "2:Application", "2:UserVarGlobal_OPCUA", "2:current_time"])
-    return time_child, RA_child, Dec_child
+    return client, time_child, RA_child, Dec_child
 
 
 def raw_input_with_timeout(prompt, timeout=5.0):
@@ -520,8 +527,9 @@ class AstrometryScript:
         self.jpeg_read = True
 
 
-    def run(self, scale=None, ra=None, dec=None, downsample=2, radius=5.0, replace=False, timeout=None, verbose=False, extension=None, plot=False, 
-            center=False, wrkr=None):
+    def run(self, scale=None, ra=None, dec=None, downsample=2, radius=5.0,
+            timeout=None, verbose=False, extension=None, plot=False,
+            center=False):
         # '--no-verify: if not specified the output is different
 
         if not self.jpeg_read:
@@ -719,15 +727,12 @@ def run_skycam(args):
                 outf.write("Timestamp,RA,Dec\n")
     try:
         #start opcua server
-        #url="opc.tcp://10.0.50.113:4840/skycam/"
-        url="opc.tcp://10.0.50.113:48800"
-        skycam_logger.info("Starting opcua server for skycam at {}".format(url))
+        skycam_logger.info("Starting opcua server for skycam at {}".format(URL_server))
         #skycam_server = setup_opcua_server()
         skycam_server = Server()
-        skycam_server.set_endpoint(url)
+        skycam_server.set_endpoint(URL_server)
         #uri = "http://10.0.50.113:4840/skycam/"
-        uri = "http://10.0.50.113:48800"
-        idx = skycam_server.register_namespace(uri)
+        idx = skycam_server.register_namespace(URI_server)
         objects = skycam_server.get_objects_node()
         skycam_obj = objects.add_object(idx, "skycam_pointing_data")
         skycam_timestamp = skycam_obj.add_variable(idx, "Timestamp", 0)
@@ -737,7 +742,7 @@ def run_skycam(args):
             tracking_ra = skycam_obj.add_variable(idx, "trackingRA", 0.0)
             tracking_dec = skycam_obj.add_variable(idx, "trackingDec", 0.0)
             #objs for reading RA and Dec from the drive system: 
-            time_child, RA_child, Dec_child = get_opcua_coord_children()
+            plc_client, time_child, RA_child, Dec_child = get_opcua_coord_children()
 
         skycam_server.start()
 
@@ -779,9 +784,21 @@ def run_skycam(args):
                                       astrometry_bin=args.astrometry_bin, cols=args.cols, rows=args.rows, 
                                       verbose=args.verbose)
             astrom.jpeg_read=True
-            radec = astrom.run(scale=args.scale, ra=args.ra, dec=args.dec, downsample=args.downsample,
+
+            if args.get_tracking:
+                tracking_timestamp = time_child.get_value()
+                # Man, RA seeems to be hour angle......
+                #tracking_ra = RA_child.get_value()
+                tracking_ra = RA_child.get_value()*15.
+                tracking_dec = Dec_child.get_value()
+                #print(tracking_ra, tracking_dec)
+                radec = astrom.run(scale=args.scale, ra=tracking_ra, dec=tracking_dec, downsample=args.downsample,
+                                   radius=args.radius, timeout=args.timeout, verbose=args.verbose,
+                                   extension=None, center=False, plot=args.plot)
+            else:
+                radec = astrom.run(scale=args.scale, ra=args.ra, dec=args.dec, downsample=args.downsample,
                        radius=args.radius, timeout=args.timeout, verbose=args.verbose,
-                       extension=None, center=False, wrkr=None, plot=args.plot)
+                       extension=None, center=False, plot=args.plot)
             if radec is None:
                 print("This frame at time {} isn't solved".format(timestamp))
                 skycam_logger.info("This frame at time {} isn't solved".format(timestamp))
@@ -794,18 +811,22 @@ def run_skycam(args):
                     if args.data_outfile is not None: 
                         outf.write("{},{},{},{},{}\n".format(timestamp, radec[0], radec[1], az, el))
                 elif args.get_tracking:
-                    tracking_timestamp = time_child.get_value()
-                    tracking_ra = RA_child.get_value()
-                    tracking_dec = Dec_child.get_value()
-                    print("{}, {}, {}, {}, {}".format(timestamp, radec[0], radec[1], tracking_ra, tracking_dec))
+                    #tracking_timestamp = time_child.get_value()
+                    #tracking_ra = RA_child.get_value()
+                    #tracking_dec = Dec_child.get_value()
+                    print("{}, {}, {}, {}, {}".format(timestamp, radec[0], radec[1],
+                                                          tracking_ra, tracking_dec))
                     if args.data_outfile is not None: 
-                        outf.write("{},{},{},{},{}\n".format(timestamp, radec[0], radec[1], tracking_ra, tracking_dec))
+                        outf.write("{},{},{},{},{}\n".format(timestamp, radec[0], radec[1],
+                                                              tracking_ra, tracking_dec))
+                    skycam_logger.info("{}, {}, {}, {}, {}".format(timestamp, radec[0], radec[1],
+                                                           tracking_ra, tracking_dec))
                 else:
                     print("{}, {}, {}".format(timestamp, radec[0], radec[1]))
                     if args.data_outfile is not None: 
                         outf.write("{},{},{}\n".format(timestamp, radec[0], radec[1]))
 
-                skycam_logger.info("{}, {}, {}".format(timestamp, radec[0], radec[1]))
+                    skycam_logger.info("{}, {}, {}".format(timestamp, radec[0], radec[1]))
                 skycam_timestamp.set_value(timestamp)
                 skycam_ra.set_value(radec[0])
                 skycam_dec.set_value(radec[1])
@@ -819,6 +840,7 @@ def run_skycam(args):
         print("Stopping skycam acquisition and opcua server")
         skycam.stop_acquisition()
         skycam_server.stop()
+        plc_client.disconnect()
         if args.data_outfile is not None: 
             outf.close()
 
