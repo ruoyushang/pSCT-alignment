@@ -22,10 +22,7 @@
 #include "common/alignment/mpesclass.hpp"
 
 
-/**
- * @brief Platform states used to disallow/stop motion based on errors.
- */
-
+/// @brief Platform states used to disallow/stop motion based on errors.
 enum class DeviceState {
     On = 0,
     Off = 1,
@@ -34,17 +31,22 @@ enum class DeviceState {
     FatalError = 4 //Errors that the user should definitely be aware of and handle appropriately. The Actuator should not be able to move with a fatal error without first reconfiguring something.
 };
 
+/// @brief Formal definition of a device error: description and severity.
 struct ErrorDefinition {
     std::string description;
-    DeviceState type;
+    DeviceState severity;
 };
 
 struct DBStruct {
+    DBStruct() : ip(""), user(""), password(""), dbname(""), port("") {}
     std::string ip;
     std::string user;
     std::string password;
     std::string dbname;
     std::string port;
+    bool empty() {
+        return (ip.empty() && user.empty() && password.empty() && dbname.empty() && port.empty());
+    }
 };
 
 
@@ -56,21 +58,16 @@ public:
     static const int NUM_ERROR_TYPES;
     static const std::array<ErrorDefinition, NUM_ERROR_TYPES> ERROR_DEFINITIONS;
 
-    static const float DEFAULT_INTERNAL_TEMPERATURE_SLOPE;
-    static const float DEFAULT_INTERNAL_TEMPERATURE_OFFSET;
-    static const float DEFAULT_EXTERNAL_TEMPERATURE_SLOPE;
-    static const float DEFAULT_EXTERNAL_TEMPERATURE_OFFSET;
-
     Platform();
-    ~Platform();
     Platform(std::array<int,NUM_ACTS_PER_PLATFORM> actuatorPorts, std::array<int,NUM_ACTS_PER_PLATFORM> actuatorSerials);
     Platform(int CBCSerial, std::array<int,NUM_ACTS_PER_PLATFORM> actuatorPorts, std::array<int,NUM_ACTS_PER_PLATFORM> actuatorSerials, Actuator::DBStruct dbInfo);
     Platform(int CBCSerial, std::array<int,NUM_ACTS_PER_PLATFORM> actuatorPorts, std::array<int,NUM_ACTS_PER_PLATFORM> actuatorSerials, Actuator::DBStruct dbInfo, Actuator::ASFStruct asfInfo);
+    ~Platform();
 
-    bool LoadCBCParameters();
+    bool loadCBCParameters();
 
-    void setDbInfo(DBStruct dbInfo) { m_DBInfo = dbInfo; }
-    void UnsetDB();
+    void setDBInfo(DBStruct DBInfo);
+    void unsetDBInfo();
 
     float getInternalTemperature();
     float getExternalTemperature();
@@ -134,26 +131,31 @@ public:
     MPES::Position readMPES(int idx);
 
 private:
-    void setError(int errorCode);
-    void unsetError(int errorCode);
+    static const float DEFAULT_INTERNAL_TEMPERATURE_SLOPE;
+    static const float DEFAULT_INTERNAL_TEMPERATURE_OFFSET;
+    static const float DEFAULT_EXTERNAL_TEMPERATURE_SLOPE;
+    static const float DEFAULT_EXTERNAL_TEMPERATURE_OFFSET;
+
+    int m_CBCserial = 0;
+
+    DBStruct m_DBInfo = DBStruct();
+
+    bool m_HighCurrent = false;
+    bool m_SynchronousRectification = true;
+
+    DeviceState m_State = DeviceState::On;
+    std::array<bool, NUM_ERROR_TYPES> m_Errors = { false };
 
     std::shared_ptr<CBC> m_pCBC;
-
-    float m_InternalTemperatureSlope{100.0};
-    float m_InternalTemperatureOffset{-50.0};
-    float m_ExternalTemperatureSlope{44.444};
-    float m_ExternalTemperatureOffset{-61.111};
-
     std::vector<std::unique_ptr<MPES>> m_MPES;
     std::array<std::unique_ptr<Actuator>, NUM_ACTS_PER_PLATFORM> m_Actuators;
 
-    DeviceState m_State = DeviceState::On;
-    std::array<bool, NUM_ERROR_TYPES> m_Errors;
+    float m_InternalTemperatureSlope = DEFAULT_INTERNAL_TEMPERATURE_SLOPE;
+    float m_InternalTemperatureOffset = DEFAULT_INTERNAL_TEMPERATURE_OFFSET;
+    float m_ExternalTemperatureSlope = DEFAULT_EXTERNAL_TEMPERATURE_SLOPE;
+    float m_ExternalTemperatureOffset = DEFAULT_EXTERNAL_TEMPERATURE_OFFSET;
 
-    DBStruct m_DBInfo;
-    bool DBFlag = false;
-    bool m_HighCurrent = false;
-    bool m_SynchronousRectification = true;
-    int m_CBCserial = 0;
+    void setError(int errorCode);
+    void unsetError(int errorCode);
 };
 #endif

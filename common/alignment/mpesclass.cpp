@@ -56,13 +56,12 @@ bool MPES::Initialize()
 
     if (toggledDevices.size() == 1) {
         int newVideoDeviceId = *toggledDevices.begin(); // get the only element in the set -- this is the new device ID
+        if (newVideoDeviceId == -1) {
+            return false; // make sure this is a valid video device -- i.e., not -1
+        }
     }
     else {
         return false; // the list should be just one device at this point
-    }
-
-    if (newVideoDeviceId == -1) {
-        return false; // make sure this is a valid video device -- i.e., not -1
     }
 
     std::cout << "MPES::initialize(): Detected new video device " << newVideoDeviceId << std::endl;
@@ -85,8 +84,8 @@ bool MPES::Initialize()
         matFile.close()
         calFile.close()
 
-        m_pDevice->LoadCalibration(calFileFullPath.c_str());
-        m_pDevice->LoadMatrixTransform(matFileFullPath.c_str());
+        m_pDevice->loadCalibration(calFileFullPath.c_str());
+        m_pDevice->loadMatrixTransform(matFileFullPath.c_str());
         std::cout << "Read calibration data OK -- using calibrated values\n";
         m_Calibrate = true;
     }
@@ -109,7 +108,7 @@ int MPES::setExposure()
             && (!m_pDevice->isWithinIntensityTolerance(intensity))
             && (counter <= 5))
     {
-        m_pDevice->setExposure((int)(m_pDevice->GetTargetIntensity() / intensity * ((float)m_pDevice->GetExposure())));
+        m_pDevice->setExposure((int)(m_pDevice->getTargetIntensity() / intensity * ((float)m_pDevice->getExposure())));
 
         ++counter;
     }
@@ -165,27 +164,30 @@ int MPES::measurePosition()
 
 std::set<int> MPES::getVideoDevices()
 {
-    std::set<int> device_set;
+    std::set<int> videoDevices;
+
     DIR *dir;
     struct dirent *ent;
-    if ((dir = opendir ("/dev")) != NULL) {
+
+    if ((dir = opendir("/dev")) != NULL) { // Open /dev device directory in filesystem
         /* print all the files and directories within directory */
-        while ((ent = readdir (dir)) != NULL) {
-            string curentry = ent->d_name;
-            size_t index;
-            string dev_to_find = "video";
-            if ( (index = curentry.find(dev_to_find)) != string::npos) {
-                index += dev_to_find.length();
-                int curdev = atoi(curentry.substr(index).c_str());
-                device_set.insert(curdev);
+        while ((ent = readdir(dir)) != NULL) {
+            std::string currentEntry = ent->d_name;
+            size_t pos;
+            std::string substringToFind = "video"; // Locate video devices (name including the string "video")
+            if ((pos = currentEntry.find(substringToFind)) != std::string::npos) { // Found video device
+                pos += substringToFind.length(); // go to immediately after the substring "video"
+                int deviceNumber = std::stoi(currentEntry.substr(pos)); // grab remaining part of device name to get the device number
+                videoDevices.insert(deviceNumber);
             }
         }
-        closedir (dir);
+        closedir(dir);
     }
-    else
-        return {-1};
+    else {
+        videoDevices = {-1};
+    }
 
-    return device_set;
+    return videoDevices;
 }
 
 bool DummyMPES::initialize()

@@ -21,7 +21,7 @@
 // Hardcoded
 const int Platform::NUM_ACTS_PER_PLATFORM = 6;
 
-const int Platform::NUM_ERROR_TYPES = 14;
+const int Platform::NUM_ERROR_TYPES = 15;
 const std::array<ErrorDefinition, NUM_ERROR_TYPES> Platform::ERROR_DEFINITIONS = {
     {"Actuator 0 Operable Error", DeviceState::OperableError},
     {"Actuator 0 Fatal Error", DeviceState::FatalError},
@@ -36,7 +36,7 @@ const std::array<ErrorDefinition, NUM_ERROR_TYPES> Platform::ERROR_DEFINITIONS =
     {"Actuator 5 Operable Error", DeviceState::OperableError},
     {"Actuator 5 Fatal Error", DeviceState::FatalError},
     {"Attempt to move out of Software Range", DeviceState::OperableError},
-    {"DBFlagNotSet", DeviceState::OperableError},
+    {"DBInfo not set", DeviceState::OperableError},
     {"MySQL Communication Error", DeviceState::OperableError}
 };
 
@@ -48,7 +48,7 @@ static const float Platform::DEFAULT_EXTERNAL_TEMPERATURE_OFFSET = -61.111;
 
 Platform::Platform()
 {
-    DEBUG_MSG("Creating emergency Platform object.");
+    DEBUG_MSG("Creating emergency Platform object.")
     m_pCBC = std::shared_ptr<CBC>(new CBC());
     for (int i = 0; i < NUM_ACTS_PER_PLATFORM; i++)
     {
@@ -115,7 +115,6 @@ Platform::~Platform()
     m_pCBC->driver.disableAll();
 }
 
-
 bool Platform::loadCBCcalibrationParams()
 {
     if (CBCSerialNumber==0)
@@ -124,10 +123,10 @@ bool Platform::loadCBCcalibrationParams()
         return false;
     }
     DEBUG_MSG("Loading CBC Parameters for Controller Board " << CBCSerialNumber);
-    if (DBFlag==false)
+    if (m_DBInfo.empty())
     {
         ERROR_MSG("Operable Error: Failed to load CBC parameters from DB because no DB info provided.");
-        SetError(13);
+        setError(13);
         return false;
     }
     float CalibrationTemperature;
@@ -229,25 +228,28 @@ bool Platform::loadCBCcalibrationParams()
     return;
 }
 
-void Platform::UnsetDbInfo()
-{
-    DBFlag=false;
+void Platform::setDBInfo(DBStruct DBInfo) {
+    m_DBInfo = DBInfo;
+    if (m_Errors[13]) {
+        unsetError(13);
+    }
 }
 
-std::array<int, NUM_ACTS_PER_PLATFORM> Platform::step(std::array<int,NUM_ACTS_PER_PLATFORM> InputSteps)
+void Platform::UnsetDbInfo()
 {
-    // mark this as busy
-    m_State = PlatformState::Busy;
+    m_DBInfo = DBStruct();
+}
 
-    DEBUG_MSG("Stepping Platform steps: (" << InputSteps[0] << ", " << InputSteps[1] << ", " << InputSteps[2] << ", " << InputSteps[3] << ", " << InputSteps[4] << ", " << InputSteps[5] << ")");
-    if (status == DeviceStatus::FatalError)
+std::array<int, NUM_ACTS_PER_PLATFORM> Platform::step(std::array<int,NUM_ACTS_PER_PLATFORM> inputSteps)
+{
+    m_State = DeviceState::Busy; // mark platform as busy
+
+    DEBUG_MSG("Stepping Platform steps: (" << inputSteps[0] << ", " << inputSteps[1] << ", " << inputSteps[2] << ", " << inputSteps[3] << ", " << inputSteps[4] << ", " << inputSteps[5] << ")");
+    if (m_State == DeviceState::FatalError)
     {
-        return InputSteps;
-        // reset the state to Off
-        m_State = PlatformState::Off;
+        m_State = DeviceState::Off; // Don't move, turn platform off
+        return inputSteps;
     }
-
-    //add check to make sure we dont step out of range.
 
     std::array<int, NUM_ACTS_PER_PLATFORM> StepsRemaining;
     std::array<int, NUM_ACTS_PER_PLATFORM> ActuatorIterations={0,0,0,0,0,0};
@@ -257,7 +259,7 @@ std::array<int, NUM_ACTS_PER_PLATFORM> Platform::step(std::array<int,NUM_ACTS_PE
     {
         actuator[i]->LoadStatusFromASF();
         actuator[i]->CheckCurrentPosition();
-        FinalPosition[i]=actuator[i]->PredictPosition(actuator[i]->CurrentPosition,-InputSteps[i]);//negative steps because positive step is extension of motor, negative steps increases counter since home is defined (0,0)
+        FinalPosition[i]=actuator[i]->PredictPosition(actuator[i]->CurrentPosition,-inputSteps[i]);//negative steps because positive step is extension of motor, negative steps increases counter since home is defined (0,0)
         StepsRemaining[i]=-(actuator[i]->CalculateStepsFromHome(FinalPosition[i])-actuator[i]->CalculateStepsFromHome(actuator[i]->CurrentPosition));
 
         if (FinalPosition[i].Revolution < actuator[i]->ExtendRevolutionLimit || FinalPosition[i].Revolution >= actuator[i]->RetractRevolutionLimit)
@@ -269,7 +271,7 @@ std::array<int, NUM_ACTS_PER_PLATFORM> Platform::step(std::array<int,NUM_ACTS_PE
             // reset the state to Off
             m_State = PlatformState::Off;
 
-            return InputSteps;
+            return inputSteps;
         }
 
         if(StepsRemaining[i] != 0)
@@ -314,7 +316,7 @@ std::array<int, NUM_ACTS_PER_PLATFORM> Platform::step(std::array<int,NUM_ACTS_PE
                 {
                     Sign=(StepsToTake[i]>0)-(StepsToTake[i]<0);
                     StepsMissed=actuator[i]->Step(Sign*actuator[i]->RecordingInterval);
-                    CheckActuatorErrorStatus(i);
+                    updateActuatorErrorStatus(i);
                     StepsToTake[i]=StepsToTake[i]-(Sign*actuator[i]->RecordingInterval)+StepsMissed;
                     StepsRemaining[i]=-(actuator[i]->CalculateStepsFromHome(FinalPosition[i])-actuator[i]->CalculateStepsFromHome(actuator[i]->CurrentPosition));
                     ActuatorIterations[i]=1+((std::abs(StepsRemaining[i])-1)/actuator[i]->RecordingInterval);
@@ -341,7 +343,7 @@ std::array<int, NUM_ACTS_PER_PLATFORM> Platform::step(std::array<int,NUM_ACTS_PE
             if(StepsRemaining[i] != 0)
             {
                 actuator[i]->HysteresisMotion(StepsRemaining[i]);
-                CheckActuatorErrorStatus(i);
+                updateActuatorErrorStatus(i);
                 StepsRemaining[i]=-(actuator[i]->CalculateStepsFromHome(FinalPosition[i])-actuator[i]->CalculateStepsFromHome(actuator[i]->CurrentPosition));
             }
 
@@ -361,18 +363,17 @@ bool Platform::getActuatorStatus(int actuatorIdx, Actuator::StatusStruct & actua
     return m_Actuators.at(actuatorIdx)->readStatusFromASF(actuatorStatus);
 }
 
-void Platform::CheckActuatorErrorStatus(int actuatorIdx)
+void Platform::updateActuatorErrorStatus(int actuatorIdx)
 {
-    Actuator::StatusModes ErrorStatus=actuator[actuatorIdx]->ErrorStatus;
-    if(ErrorStatus == Actuator::StatusModes::FatalError)
+    DeviceState actuatorState = m_Actuators.at(actuatorIdx)->getState();
+    if(actuatorState == DeviceState::FatalError)
     {
-        SetError((2*actuatorIdx)+1);
+        setError((2*actuatorIdx)+1);
     }
-    else if(ErrorStatus == Actuator::StatusModes::OperableError)
+    else if(actuatorState == DeviceState::OperableError)
     {
-        SetError(2*actuatorIdx);
+        setError(2*actuatorIdx);
     }
-    return;
 }
 
 void Platform::updateErrorStatus()
@@ -380,12 +381,12 @@ void Platform::updateErrorStatus()
     m_State = DeviceState::On;
     for (int i = 0; i < NUM_ACTS_PER_PLATFORM; i++)
     {
-        checkActuatorErrorStatus(i);
+        updateActuatorErrorStatus(i);
     }
     for(int i = 12; i < NUM_ERROR_TYPES; i++)
     {
         if(m_Errors[i]) {
-            setState(Platform::ERROR_DEFINITIONS[i].type);
+            setState(Platform::ERROR_DEFINITIONS[i].severity);
         }
     }
 }
@@ -395,14 +396,16 @@ void Platform::setState(DeviceState state)
     if (state == DeviceState::FatalError) {
         DEBUG_MSG("Fatal Error set! Disallowing Movement of Platform...");
     }
-    m_State = state;
+    if (state > m_State && m_State != DeviceState::Off && m_State != DeviceState::Busy) {
+        m_State = state;
+    }
 }
 
 void Platform::setError(int errorCode)
 {
     DEBUG_MSG("Setting Error " << errorCode << " (" << Platform::ERROR_DEFINITIONS[errorCode].description << ") for Platform");
     m_Errors[errorCode] = true;
-    setState(Platform::ERROR_DEFINITIONS[errorCode].type);
+    setState(Platform::ERROR_DEFINITIONS[errorCode].severity);
 }
 
 void Platform::unsetError(int errorCode)
@@ -427,7 +430,7 @@ void Platform::probeEndStopAll(int direction)
     {
         SearchSteps[i]=Direction*actuator[i]->EndstopSearchStepsize;
         VoltageAfter[i]=actuator[i]->MeasureVoltage();
-        //CheckActuatorErrorStatus(i);
+        //updateActuatorErrorStatus(i);
         if (status == DeviceStatus::FatalError)
         {
             return;
@@ -446,7 +449,7 @@ void Platform::probeEndStopAll(int direction)
                 VoltageBefore[i]=VoltageAfter[i];
                 m_pCBC->driver.step(actuator[i]->PortNumber, SearchSteps[i]);
                 VoltageAfter[i]=actuator[i]->MeasureVoltage();
-                CheckActuatorErrorStatus(i);
+                updateActuatorErrorStatus(i);
                 if (status == DeviceStatus::FatalError)
                 {
                     m_pCBC->driver.disableAll();
@@ -502,7 +505,7 @@ void Platform::FindHomeFromEndStopAll(int Direction)//private
         {
             return;
         }
-        CheckActuatorErrorStatus(i);
+        updateActuatorErrorStatus(i);
         if (status == DeviceStatus::FatalError)
         {
             m_pCBC->driver.disableAll();
@@ -527,7 +530,7 @@ bool Platform::probeHomeAll()
     for (int i = 0; i < NUM_ACTS_PER_PLATFORM; i++)
     {
         m_Actuators.at(i)->probeHome();
-        checkActuatorErrorStatus(i);
+        updateActuatorErrorStatus(i);
         if (m_State == DeviceStatus::FatalError)
         {
             ERROR_MSG("Platform:: Actuator " << i << " encountered a fatal error after probing home. Stopping probeHomeAll...")
@@ -642,7 +645,7 @@ void Platform::recoverActuatorStatusFromDB(int actuatorIdx)
     m_Actuators.at(actuatorIdx)->loadStatusFromDB();
     m_Actuators.at(actuatorIdx)->checkCurrentPosition();
     m_Actuators.at(actuatorIdx)->recordStatusToASF();
-    checkActuatorErrorStatus(actuatorIdx);
+    updateActuatorErrorStatus(actuatorIdx);
 }
 
 void Platform::clearAllPlatformErrors()
