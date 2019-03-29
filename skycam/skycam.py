@@ -43,9 +43,17 @@ import select
 
 #Hey, here is some ugly stuff:
 
-URL_server = "opc.tcp://172.17.10.15:48800"
-URI_server = "http://172.17.10.15:48800"
-URL_plc = "172.17.3.3"  # pSCT
+if "ALIGNMENT_IP" in os.environ:
+    ALIGNMENT_IP = os.getenv('ALIGNMENT_IP')
+else:
+    ALIGNMENT_IP = "172.17.10.15"
+if "DRIVE_PLC_IP" in os.environ:
+    DRIVE_PLC_IP = os.getenv('DRIVE_PLC_IP')
+else:
+    DRIVE_PLC_IP = "172.17.3.3"
+
+URL_server = "opc.tcp://"+ALIGNMENT_IP+":48800"
+URI_server = "http://"+ALIGNMENT_IP+":48800"
 
 #if found_astropy:
 try:
@@ -100,7 +108,7 @@ def setup_logger(logger_name, log_file, level=logging.INFO, show_log=True):
 # opcua client to get current pointing
 def get_opcua_coord_children():
     #plc = "172.17.3.3"      # pSCT
-    client = Client("opc.tcp://" + URL_plc + ":4840/Objects/Logic/")
+    client = Client("opc.tcp://" + DRIVE_PLC_IP + ":4840/Objects/Logic/")
     client.connect()
     root = client.get_root_node()
     RA_child = root.get_child(["0:Objects", "2:Logic", "2:Application", "2:UserVarGlobal_OPCUA", "2:current_RA"])
