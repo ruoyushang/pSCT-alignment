@@ -189,20 +189,20 @@ UaStatusCode PasCommunicationInterface::Initialize()
             // commenting this out so that the devices are there even if they don't get
             // initialized -- we'd like to keep them in case they manage to initialize at some
             // point AFTER the regular startup procedure
-            if (pController->Initialize()) {
+//            if (pController->Initialize()) {
                 m_pControllers[devCount.first].push_back(pController);
                 m_DeviceUsbMap[devCount.first][USB] = m_pControllers.at(devCount.first).size() - 1;
-           }
-           else {
+//           }
+//           else {
            if (!pController->Initialize()) {
                 cout << "Could not Initialize " << m_DeviceTypeNames.at(devCount.first)
                          << " at USB " << USB << endl;
-                delete pController;
+//                delete pController;
                 ++failed;
             }
         }
         // update the number of devices to the ones initialized
-       m_DeviceCounts.at(devCount.first) -= failed;
+//        m_DeviceCounts.at(devCount.first) -= failed;
         if (failed) {
             cout << "\n +++ WARNING +++ Failed to initialize " << failed << " "
                 << m_DeviceTypeNames.at(devCount.first) << " devices!" << endl;
