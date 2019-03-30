@@ -23,7 +23,7 @@ printf "Reading from database...\n"
              continue
          fi
          PANELS+=($position)
-    done < <(mysql --user="CTAreadonly" --password="readCTAdb" --database="CTAonline" --host="remus.ucsc.edu" --port="3406" -ss -e "SELECT position FROM Opt_MPMMapping")
+    done < <(mysql --user=${MYSQL_USER} --password=${MYSQL_PASSWORD} --database=${MYSQL_DATABASE} --host=${MYSQL_HOST} --port=${MYSQL_PORT}-ss -e "SELECT position FROM Opt_MPMMapping")
 else
     PANELS=("$@")
 fi

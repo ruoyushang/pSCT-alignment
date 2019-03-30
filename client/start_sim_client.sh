@@ -7,7 +7,7 @@ do
       continue
   fi
   panel_numbers+=("$position")
-done < <(mysql --user="CTAreadonly" --password="readCTAdb" --database="CTAonline" --host="remus.ucsc.edu" --port="3406" -ss -e "SELECT position FROM Opt_MPMMapping")
+done < <(mysql --user=${MYSQL_USER} --password=${MYSQL_PASSWORD} --database=${MYSQL_DATABASE} --host=${MYSQL_HOST} --port=${MYSQL_PORT} -ss -e "SELECT position FROM Opt_MPMMapping")
 
 count=$((${#panel_numbers[@]}))
 printf "%s total panel servers found in database\n" "$count"
