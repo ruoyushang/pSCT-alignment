@@ -94,7 +94,7 @@ float StdDevMax{5.0f*dV};
 int QuickAngleCheckRange{5};
 int EndstopSearchStepsize{15};
 int CyclesDefiningHome{3};
-int MinimumMissedStepsToFlagError{5};
+int MinimumMissedStepsToFlagError{3};
 float TolerablePercentOfMissedSteps{0.1};
 int ExtendStopToHomeStepsDeviation{StepsPerRevolution/4};
 int FlaggedRecoverySteps{RecordingInterval/10};
@@ -109,11 +109,11 @@ std::vector<ErrorInfo> ActuatorErrors{
 {false, "DB Columns does not match what is expected", FatalError},//error 3
 {false, "ASF File is Bad", FatalError},//error 4
 {false, "ASF File entries does not match what is expected", FatalError},//error 5
-{false, "DB recording more recent than ASF and has mismatch with measured angle", FatalError},//error 6
+{false, "Actuator is not stepping", FatalError},//error 6
 {false, "Voltage Std Dev is entirely too high", FatalError},//error 7
 {false, "Actuator Missed too many steps", FatalError},//error 8
-{false, "Actuator position is too many steps away to recover safely", FatalError},//error 9
-{false, "Actuator position is recovering large amount of steps, should be ok", OperableError},//error 10
+{false, "Actuator position is too many steps away from previously recorded position to recover safely", FatalError},//error 9
+{false, "Actuator position is far from previously recorded position. It is close enough to automatically recover", OperableError},//error 10
 {false, "Extend Stop Voltage is too close to the discontinuity. Possible 1 cycle uncertainty with calibrated data", OperableError},//error 11
 {false, "End stop is large number of steps away from what is expected. Possible uncertainty in home position", OperableError},//error 12
 {false, "Discrepancy between number of steps from extend stop and recorded number of steps from end stop is too high. Possible uncertainty in probed home position", OperableError}//error 13
