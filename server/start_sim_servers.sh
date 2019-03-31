@@ -52,8 +52,6 @@ else
     PANELS=("$@")
 fi
 
-CTAreadonly" --password="readCTAdb" --database="CTAonline" --host="remus.ucsc.edu" --port="3406" "
-MYSQL_HOST=mysql;MYSQL_PASSWORD=write2db4pSCT;MYSQL_DATABASE=CTAonline;MYSQL_PORT=3306;MYSQL_USER=CTAreadwrite
 count=$((${#PANELS[@]}))
 
 if [[ ("$count" > 0) ]]; then
