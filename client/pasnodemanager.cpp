@@ -763,6 +763,31 @@ UaStatus PasNodeManager::amendTypeNodes()
     addStatus = addNodeAndReference(pMethod, pPropertyArg, OpcUaId_HasProperty);
     UA_ASSERT(addStatus.isGood());
 
+    // Add Method "GlobalAlign"
+    pMethod = new OpcUa::BaseMethod(UaNodeId(PAS_MirrorType_GlobalAlign, getNameSpaceIndex()), "GlobalAlign", getNameSpaceIndex());
+    pMethod->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
+    addStatus = addNodeAndReference(pMirrorType, pMethod, OpcUaId_HasComponent);
+    UA_ASSERT(addStatus.isGood());
+
+    // Add Property "InputArguments" -- takes two arguments, the edge to start at and the
+    // direction to move in
+    pPropertyArg = new UaPropertyMethodArgument(
+            UaNodeId(PAS_MirrorType_Align_InPanel, getNameSpaceIndex()), // NodeId of the property
+            Ua_AccessLevel_CurrentRead,             // Access level of the property
+            1,                                      // Number of arguments
+            UaPropertyMethodArgument::INARGUMENTS); // IN arguments
+    // Argument PanelPosition
+    pPropertyArg->setArgument(
+            0,                       // Index of the argument
+            "fixPanel",             // Name of the argument
+            UaNodeId(OpcUaId_UInt32),      // Data type of the argument
+            -1,                      // Array rank of the argument
+            nullarray,               // Array dimensions of the argument
+            UaLocalizedText("en", "This panel will stay fixed. It's the constraining panel for the global fit")); // Description
+    // Add property to method
+    addStatus = addNodeAndReference(pMethod, pPropertyArg, OpcUaId_HasProperty);
+    UA_ASSERT(addStatus.isGood());
+
 
     // Add Method "ReadAlignment"
     pMethod = new OpcUa::BaseMethod(UaNodeId(PAS_MirrorType_ReadAlign, getNameSpaceIndex()), "ReadAlignment", getNameSpaceIndex());

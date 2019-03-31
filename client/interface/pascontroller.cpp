@@ -300,6 +300,20 @@ UaStatus PasMPES::read()
                 status = __readRequest();
             }
         }
+        time_t     now = time(0);
+        struct tm  tstruct;
+        char       buf[80];
+        tstruct = *localtime(&now);
+      // Visit http://en.cppreference.com/w/cpp/chrono/c/strftime
+      //         // for more information about date/time format
+        strftime(buf, sizeof(buf), "%Y-%m-%d %X", &tstruct);
+
+        UaString sql_stmt;
+        sql_stmt = UaString("INSERT INTO Opt_MPESReadings (date, serial_number, xcoord, ycoord, x_RMS, y_RMS, intensity) VALUES  ('%1', '%2', '%3', '%4', '%5', '%6', '%7' );\n").arg(buf).arg(m_ID.serialNumber).arg(data.m_xCentroidAvg).arg(data.m_yCentroidAvg).arg(data.m_xCentroidSD).arg(data.m_yCentroidSD).arg(data.m_CleanedIntensity);
+        //std::cout << sql_stmt.toUtf8() << std::endl;
+        FILE * sql_file = fopen("MPES_readings.sql","a+");
+        std::fprintf(sql_file, sql_stmt.toUtf8());
+        std::fclose(sql_file);
     }
 
     return status;
