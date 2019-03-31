@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 printf "Reading from database...\n"
 
 declare -a panel_numbers

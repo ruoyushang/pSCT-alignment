@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 usage() { echo "Usage: $0  [-a (all)] [panel number(s)] [-h]" 1>&2; exit 1; }
 
 all=false
