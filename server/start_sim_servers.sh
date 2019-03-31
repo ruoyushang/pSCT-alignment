@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -u
 # Script to start simulation mode servers.
 # Receives either a list of panel (position) numbers, or the option -a for all
 # when "all" is selected, it will read all panels from the database except
@@ -13,6 +14,7 @@ usage() { echo "Usage: $0  [-a (all)] [-h (help)] [-b (background)] [panel numbe
 
 all=false
 background=false
+keep_config=false
 extension=".ini"
 
 while getopts "ahbk" o; do
@@ -33,6 +35,11 @@ fi
 if ${all} ; then
     printf "Reading from database...\n"
     PANELS=()
+
+    if [[ -z $MYSQL_USER || -z $MYSQL_PASSWORD || -z $MYSQL_DATABASE || -z $MYSQL_HOST || -z $MYSQL_PORT ]]; then
+        echo "Database credentials not set - check $MYSQL_USER, $MYSQL_PASSWORD, $MYSQL_DATABASE, $MYSQL_HOST, $MYSQL_PORT"
+        exit 1
+    fi
     while read -r position;
     do
          if [[ ${position} = "0" ]] || [[ ${position} = "1" ]] || [[ ${position:1:1} = "0" ]];
@@ -45,6 +52,8 @@ else
     PANELS=("$@")
 fi
 
+CTAreadonly" --password="readCTAdb" --database="CTAonline" --host="remus.ucsc.edu" --port="3406" "
+MYSQL_HOST=mysql;MYSQL_PASSWORD=write2db4pSCT;MYSQL_DATABASE=CTAonline;MYSQL_PORT=3306;MYSQL_USER=CTAreadwrite
 count=$((${#PANELS[@]}))
 
 if [[ ("$count" > 0) ]]; then
@@ -81,7 +90,7 @@ if [[ ("$count" > 0) ]]; then
     if ! ${keep_config} ; then
         # Sleep for 15 seconds before deleting temporary config files
         # To give time for servers to start and read configuration
-        sleep 100
+        sleep 15
 
         for panel_num in "${PANELS[@]}"; do
             config_filename="${panel_num}${extension}"
