@@ -53,10 +53,14 @@ struct DBStruct {
 class Platform
 {
 public:
+    // Public constants
+
     static const int NUM_ACTS_PER_PLATFORM;
 
     static const int NUM_ERROR_TYPES;
     static const std::array<ErrorDefinition, NUM_ERROR_TYPES> ERROR_DEFINITIONS;
+
+    // Initialization methods
 
     Platform();
     Platform(std::array<int,NUM_ACTS_PER_PLATFORM> actuatorPorts, std::array<int,NUM_ACTS_PER_PLATFORM> actuatorSerials);
@@ -64,19 +68,54 @@ public:
     Platform(int CBCSerial, std::array<int,NUM_ACTS_PER_PLATFORM> actuatorPorts, std::array<int,NUM_ACTS_PER_PLATFORM> actuatorSerials, Actuator::DBStruct dbInfo, Actuator::ASFStruct asfInfo);
     ~Platform();
 
-    bool loadCBCParameters();
+    void initialize();
+
+    void setCBCserial(int serial) { m_CBCserial = serial; }
+
+    int getCBCserial() { return m_CBCserial; }
 
     void setDBInfo(DBStruct DBInfo);
     void unsetDBInfo();
 
+    bool loadCBCParameters();
+
+    // Platform settings and readings
+    void enableHighCurrent();
+
+    void disableHighCurrent();
+
+    void enableSynchronousRectification();
+
+    void disableSynchronousRectification();
+
     float getInternalTemperature();
     float getExternalTemperature();
 
-    std::array<int,NUM_ACTS_PER_PLATFORM> step(std::array<int,NUM_ACTS_PER_PLATFORM> InputSteps);
-    bool GetActuatorStatus(int actuatorIdx, Actuator::StatusStruct & ActuatorStatus);
-    void CheckActuatorErrorStatus(int actuatorIdx);
+    // General device methods
 
-    void ProbeEndStopAll(int direction);
+    int getActuatorCount() const { return m_Actuators.size(); }
+
+    std::unique_ptr<Actuator> &getActuator(int idx) { return m_Actuators.at(idx) }
+
+    int getMPESCount() const { return m_MPES.size(); }
+
+    std::unique_ptr<MPES> &getMPES(int idx) { return m_MPES.at(idx) }
+
+    // Actuator-related methods
+
+    std::array<int, NUM_ACTS_PER_PLATFORM> step(std::array<int, NUM_ACTS_PER_PLATFORM> inputSteps);
+
+    bool getActuatorStatus(int actuatorIdx, Actuator::StatusStruct &actuatorStatus);
+
+    void checkActuatorErrorStatus(int actuatorIdx);
+
+    void findHomeFromEndStop(int direction, int actuatorIdx);
+
+    void findHomeFromExtendStop(int actuatorIdx) { findHomeFromEndStop(1, actuatorIdx); }
+
+    void findHomeFromRetractStop(int actuatorIdx) { findHomeFromEndStop(-1, actuatorIdx); }
+
+    void probeEndStopAll(int direction);
     void probeExtendStopAll() { probeEndStopAll(1); }
     void probeRetractStopAll() { probeEndStopAll(-1); }
 
@@ -84,43 +123,29 @@ public:
     void findHomeFromExtendStopAll() { findHomeFromEndStopAll(1); }
     void findHomeFromRetractStopAll() { findHomeFromEndStopAll(-1); }
 
+    void probeHome(int actuatorIdx) { m_Actuators.at(actuatorIdx)->probeHome(); }
     bool probeHomeAll();
 
-    std::array<float,NUM_ACTS_PER_PLATFORM> MeasureLengths();
-    std::array<float,NUM_ACTS_PER_PLATFORM> MoveToLengths(std::array<float,NUM_ACTS_PER_PLATFORM> TargetLengths);
-    std::array<float,NUM_ACTS_PER_PLATFORM> MoveDeltaLengths(std::array<float,NUM_ACTS_PER_PLATFORM> LengthsToMove);
+    std::array<float, NUM_ACTS_PER_PLATFORM> measureLengths();
 
-    void setState(DeviceState state);
-    void enableHighCurrent();
-    void disableHighCurrent();
-    void enableSynchronousRectification();
-    void disableSynchronousRectification();
-    void initialize();
+    std::array<float, NUM_ACTS_PER_PLATFORM> moveToLengths(std::array<float, NUM_ACTS_PER_PLATFORM> targetLengths);
+
+    std::array<float, NUM_ACTS_PER_PLATFORM> moveDeltaLengths(std::array<float, NUM_ACTS_PER_PLATFORM> lengthsToMove);
+
     void recoverActuatorStatusFromDB(int actuatorIdx);
 
-    void setCBCserial(int serial) { m_CBCserial = serial; }
-
-
-    void clearActuatorAllErrors(int actuatorIdx) { m_Actuators.at(actuatorIdx)->clearAllErrors(); }
-    void clearActuatorSingleError(int actuatorIdx, int errorCode) { m_Actuators.at(actuatorIdx)->unsetError(errorCode); }
-    void clearAllPlatformErrors();
-    void checkErrorStatus();
-
-    void findHomeFromEndStop(int direction, int actuatorIdx);
-
-    void findHomeFromExtendStop(int actuatorIdx) { findHomeFromEndStop(1, actuatorIdx); }
-    void findHomeFromRetractStop(int actuatorIdx) { findHomeFromEndStop(-1, actuatorIdx); }
-    void probeHome(int actuatorIdx) { m_Actuators.at(actuatorIdx)->probeHome(); }
-
+    // Error functionality
     DeviceState getState() const { return m_State; }
-    void setState(DeviceState state) { m_State = state; }
 
-    int getActuatorCount() const { return m_Actuators.size(); }
-    std::unique_ptr<Actuator>& getActuator(int idx) { return m_Actuators.at(idx) }
+    void clearAllActuatorErrors(int actuatorIdx) { m_Actuators.at(actuatorIdx)->clearAllErrors(); }
 
-    int getMPESCount() const { return m_MPES.size(); }
-    std::unique_ptr<MPES>& getMPES(int idx) { return m_MPES.at(idx) }
+    void clearActuatorError(int actuatorIdx, int errorCode) { m_Actuators.at(actuatorIdx)->unsetError(errorCode); }
 
+    void clearAllPlatformErrors();
+
+    void updateErrorState();
+
+    // MPES functionality
 
     /**
      * @brief This function adds MPES if they can be initialized at USB ports.
@@ -155,6 +180,7 @@ private:
     float m_ExternalTemperatureSlope = DEFAULT_EXTERNAL_TEMPERATURE_SLOPE;
     float m_ExternalTemperatureOffset = DEFAULT_EXTERNAL_TEMPERATURE_OFFSET;
 
+    void setState(DeviceState state);
     void setError(int errorCode);
     void unsetError(int errorCode);
 };
