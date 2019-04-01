@@ -408,7 +408,7 @@ UaStatus Configuration::loadDeviceConfiguration(const std::vector<std::string>& 
     //string db_ip="172.17.10.10"; // internal ip
     DBConfig myconfig = DBConfig::getDefaultConfig();
     std::string db_ip=myconfig.getHost();
-    std::string db_port=std::to_string(myconfig.getPort());
+    std::string db_port=myconfig.getPort();
     std::string db_user=myconfig.getUser();
     std::string db_password=myconfig.getPassword();
     std::string db_name=myconfig.getDatabase();

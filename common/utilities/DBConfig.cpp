@@ -18,11 +18,11 @@ void DBConfig::overwriteDefaultValues(DBConfig *configptr)
         password = configptr->getPassword();
     if (db_name.empty())
         db_name = configptr->getDatabase();
-    if (port_num == 0)
+    if (port_num.empty())
         port_num = configptr->getPort();
     if (socket_name.empty())
         socket_name = configptr->getSocket();
-    if (flags == 0)
+    if (flags.empty())
         flags = configptr->getFlags();
 }
 
@@ -71,11 +71,11 @@ void DBConfig::setDatabase(const char *db)
 }
 
 
-unsigned int DBConfig::getPort()
+std::string DBConfig::getPort()
 {
     return port_num;
 }
-void DBConfig::setPort(unsigned int port)
+void DBConfig::setPort(const char *port)
 {
     port_num = port;
 }
@@ -92,11 +92,11 @@ void DBConfig::setSocket(const char *socket)
 }
 
 
-unsigned int DBConfig::getFlags()
+std::string DBConfig::getFlags()
 {
     return flags;
 }
-void DBConfig::setFlags(unsigned int flg)
+void DBConfig::setFlags(const char *flg)
 {
     flags = flg;
 }
@@ -126,16 +126,16 @@ DBConfig DBConfig::getDefaultConfig()
     cfg.setPassword(getenv("MYSQL_PASSWORD"));
     cfg.setDatabase(getenv("MYSQL_DATABASE"));
     cfg.setSocket(getenv("MYSQL_SOCKET"));
-    cfg.setPort(std::atoi( getenv("MYSQL_PORT")));
+    cfg.setPort(getenv("MYSQL_PORT"));
     myconfig.overwriteDefaultValues(&cfg);
     //fix hardwired config defaults
     cfg.setHost("");
-    cfg.setUser("CTAreadonly");
+    cfg.setUser("");
     cfg.setPassword("");
-    cfg.setDatabase("CTAonline");
+    cfg.setDatabase("");
     cfg.setSocket("");
-    cfg.setPort(0);
-    cfg.setFlags(0);
+    cfg.setPort("");
+    cfg.setFlags("");
     myconfig.overwriteDefaultValues(&cfg);
     return myconfig;
 }

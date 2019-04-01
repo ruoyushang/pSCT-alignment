@@ -18,9 +18,9 @@ public:
         user_name.clear();
         password.clear();
         db_name.clear();
-        port_num = 0;
+        port_num.clear();
         socket_name.clear();
-        flags = 0;
+        flags.clear();
     };
 
     ~DBConfig() {}
@@ -39,14 +39,14 @@ public:
     std::string getDatabase();
     void setDatabase(const char *db);
 
-    unsigned int getPort();
-    void setPort(unsigned int port);
+    std::string getPort();
+    void setPort(const char *port);
 
     std::string getSocket();
     void setSocket(const char *socket);
 
-    unsigned int getFlags();
-    void setFlags(unsigned int flg);
+    std::string getFlags();
+    void setFlags(const char *flg);
 
     static DBConfig getDefaultConfig();
 
@@ -60,9 +60,9 @@ private:
     std::string user_name;
     std::string password;
     std::string db_name;
-    unsigned int port_num;
+    std::string port_num;
     std::string socket_name;
-    unsigned int flags;
+    std::string flags;
     static DBConfig *currentconfig;
 };
 
