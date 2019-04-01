@@ -81,14 +81,14 @@ void GASPSD::Update()
 
         for (int i = 0; i < 4; i++) {
             if (m_data[i] < 0) {
-                m_data[i] = (m_data[i] - m_Beta[i])*m_AlphaNeg[i];
+                m_data[i] = (m_data[i]*m_AlphaNeg[i]) - m_Beta[i];
                 m_data[i + 4] = m_data[i + 4]*m_AlphaNeg[i];
             }
             else {
-                m_data[i] = (m_data[i] - m_Beta[i])*m_AlphaPos[i];
+                m_data[i] = (m_data[i]*m_AlphaPos[i]) - m_Beta[i];
                 m_data[i + 4] = m_data[i + 4]*m_AlphaPos[i];
             }
-        }
+	}
 
         // log locally
         for (int i = 0; i < 8; i++)
@@ -192,7 +192,7 @@ void GASPSD::set_blocking (int fd, int should_block)
 }
 
 void GASPSD::set_calibration()
-{
+{   /*
     m_AlphaNeg[0] = -9.909807;
     m_AlphaNeg[1] = 10.103729;
     m_AlphaNeg[2] = -9.794860;
@@ -210,4 +210,24 @@ void GASPSD::set_calibration()
 
     m_Theta[0] = 0.;
     m_Theta[1] = 0.;
+    */
+
+    m_AlphaNeg[0] = -9.710132;
+    m_AlphaNeg[1] = 9.871400;
+    m_AlphaNeg[2] = -9.604298;
+    m_AlphaNeg[3] = 10.071177;
+
+    m_AlphaPos[0] = -9.618614;
+    m_AlphaPos[1] = 9.658531;
+    m_AlphaPos[2] = -9.382091;
+    m_AlphaPos[3] = 9.934893;
+
+    m_Beta[0] = 0.011341;
+    m_Beta[1] = 0.118089;
+    m_Beta[2] = 0.023689;
+    m_Beta[3] = 0.116461;
+
+    m_Theta[0] = 0.;
+    m_Theta[1] = 0.;
+
 }

@@ -136,7 +136,7 @@ std::array<float, 6> EncoderTemperatureOffset;
   stmt = con->createStatement();
 
 stringstream stmtvar;
-stmtvar << "SELECT * FROM Opt_ControllerBoardCalibration WHERE serial_number=" << CBCSerialNumber << " ORDER BY start_date DESC LIMIT 1";
+    stmtvar << "SELECT * FROM Opt_ControllerBoardCalibration WHERE end_date is NULL and serial_number=" << CBCSerialNumber << " ORDER BY start_date DESC LIMIT 1";
 stmt->execute(stmtvar.str());
 res = stmt->getResultSet();
 while (res->next())
