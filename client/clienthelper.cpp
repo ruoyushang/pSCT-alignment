@@ -462,8 +462,8 @@ void Client::addDevices(const OpcUa_ReferenceDescription& referenceDescription)
         type = it_typeNameMap.first;
         name = it_typeNameMap.second;
         // if (TYPE) and (in a folder) (as opposed to, say notification area)
-        if (referenceDescription.TypeDefinition.NodeId.Identifier.Numeric == type
-                && referenceDescription.ReferenceTypeId.Identifier.Numeric == OpcUaId_Organizes) 
+        // && referenceDescription.ReferenceTypeId.Identifier.Numeric == OpcUaId_Organizes
+        if (referenceDescription.TypeDefinition.NodeId.Identifier.Numeric == type) 
         {
             // get the node name of the object we're connecting to!
             sprintf(sTemp, "ns=%d;s=%s",
