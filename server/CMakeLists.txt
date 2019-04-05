@@ -44,7 +44,9 @@ SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH FALSE)
 
 # need libusb.so -- might not be on the system!!
 # brute force it for now
-SET(LIBUSB_LIBRARIES "/usr/lib64/libusb-1.0.so.0")
+#SET(LIBUSB_LIBRARIES "/home/root/opcua/pascommon/globalalignment/GlobalAlignment/libusb-1.0.so")
+SET(LIBUSB_LIBRARIES "/usr/local/lib/libusb-1.0.so.0")
+#SET(LIBUSB_LIBRARIES "/usr/lib/libusb-1.0.so.0")
 #SET(LIBUSB_LIBRARIES "/lib/x86_64-linux-gnu/libusb-1.0.so.0")
 #SET(LIBUSB_LIBRARIES "${LD_LIBRARY_PATH}/libusb-1.0.so.0")
 
@@ -253,7 +255,7 @@ IF ( NOT TARGET uastack )
                           ${PLATTFORM_LIBS} ${OpenCV_LIBRARIES} ${ROOT_LIBRARIES} ${MYSQLCONNECTORCPP_LIBRARIES} ${LIBUSB_LIBRARIES})
 
 ELSE ()
-    message(WARNING " UA_LIB_DIR = ${UA_LIB_DIR}")
+    message(WARNING " OpenCV_LIBRARIES = ${OpenCV_LIBRARIES}")
     TARGET_LINK_LIBRARIES(${PROJECT_NAME} uamodule uamodels coremodule uabase
         uastack ${PLATTFORM_LIBS} ${OpenCV_LIBRARIES} ${ROOT_LIBRARIES} ${MYSQLCONNECTORCPP_LIBRARIES} ${LIBUSB_LIBRARIES})
 ENDIF ()
