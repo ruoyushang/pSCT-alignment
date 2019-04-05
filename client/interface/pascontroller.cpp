@@ -739,52 +739,8 @@ UaStatusCode PasPanel::Operate(OpcUa_UInt32 offset, const UaVariantArray &args)
 
         }
 
-        //Ruo, try to estimate new laser spot positions after actuators move
-
-        ///
-        /// This part predicts the new laser spot positions before we move the actuators.
-        /// Will make a new function of this and allow all actuator operations to call this function before moving.
-        ///
-        MatrixXd A; // response matrix
-        VectorXd X; // actuator delta length
-        VectorXd W; // sensor current position
-        VectorXd Y; // sensor delta
-        VectorXd Z; // sensor new position = Y + current sensor reading
-        VectorXd V; // aligned sensor reading
-        for(auto elem :m_pChildren)
-        {
-               std::cout << "Ruo, child of a panel: " << elem.first << "\n";
-               for (auto elem2nd :elem.second)
-               {
-                        std::cout << " " << elem2nd->getId() << "\n";
-               }
-        }
-        for (int edge2align=0; edge2align<m_pChildren.at(PAS_EdgeType).size(); edge2align++)
-        {
-                PasEdge* edge = static_cast<PasEdge *> (m_pChildren.at(PAS_EdgeType).at(edge2align));
-                //edge->Operate(PAS_EdgeType_Read);
-                edge->getAlignedReadings();
-                //cout << "\nTarget MPES readings:\n" << m_AlignedReadings << endl << endl;
-                A = edge->getResponseMatrix(m_ID.position);
-                W = edge->getCurrentReadings();
-                V = edge->getAlignedReadings();
-                cout << "Looking at edge " << edge->getId() << endl;
-                cout << "\nActuator response matrix for this edge:\n" << A << endl;
-                //m_SP.GetActLengths() is the new act length
-                //m_ActuatorLengths is the current act length
-                VectorXd newLengths(6);
-                for (unsigned i = 0; i < 6; i++)
-                    newLengths(i) = m_SP.GetActLengths()[i];
-                cout << "New Act length is \n" << newLengths << endl;
-                cout << "Current Act length is \n" << m_ActuatorLengths << endl;
-                X = newLengths-m_ActuatorLengths;
-                cout << "Delta Act length will be \n" << X << endl;
-                Y = A*X;
-                Z = Y+W;
-                cout << "The new sensor coordinates (x, y) will be:\n" << Z << endl;
-                cout << "\n will deviate from the aligned position by\n" << Z-V << endl;
-        }
-        //Ruo
+        bool collision_protect = __willSensorsBeOutOfRange();
+        if (collision_protect) cout << "Panel will collide!!! Stop!!!" << endl;
 
 
         m_SP.ComputeStewart(actLengths);
