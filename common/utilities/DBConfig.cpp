@@ -18,11 +18,11 @@ void DBConfig::overwriteDefaultValues(DBConfig *configptr)
         password = configptr->getPassword();
     if (db_name.empty())
         db_name = configptr->getDatabase();
-    if (port_num == 0)
+    if (port_num.empty())
         port_num = configptr->getPort();
     if (socket_name.empty())
         socket_name = configptr->getSocket();
-    if (flags == 0)
+    if (flags.empty())
         flags = configptr->getFlags();
 }
 
@@ -31,7 +31,7 @@ std::string DBConfig::getHost()
 {
     return host_name;
 }
-void DBConfig::setHost(const char *host)
+void DBConfig::setHost(std::string const& host)
 {
     if (host != NULL)
         host_name = host;
@@ -42,7 +42,7 @@ std::string DBConfig::getUser()
 {
     return user_name;
 }
-void DBConfig::setUser(const char *user)
+void DBConfig::setUser(std::string const& user)
 {
     if (user != NULL)
         user_name = user;
@@ -53,7 +53,7 @@ std::string DBConfig::getPassword()
 {
     return password;
 }
-void DBConfig::setPassword(const char *pw)
+void DBConfig::setPassword(std::string const& pw)
 {
     if (pw != NULL)
         password = pw;
@@ -64,18 +64,18 @@ std::string DBConfig::getDatabase()
 {
     return db_name;
 }
-void DBConfig::setDatabase(const char *db)
+void DBConfig::setDatabase(std::string const& db)
 {
     if (db != NULL)
         db_name = db;
 }
 
 
-unsigned int DBConfig::getPort()
+std::string DBConfig::getPort()
 {
     return port_num;
 }
-void DBConfig::setPort(unsigned int port)
+void DBConfig::setPort(std::string const& port)
 {
     port_num = port;
 }
@@ -85,18 +85,18 @@ std::string DBConfig::getSocket()
 {
     return socket_name;
 }
-void DBConfig::setSocket(const char *socket)
+void DBConfig::setSocket(std::string const& socket)
 {
     if (socket != NULL)
         socket_name = socket;
 }
 
 
-unsigned int DBConfig::getFlags()
+std::string DBConfig::getFlags()
 {
     return flags;
 }
-void DBConfig::setFlags(unsigned int flg)
+void DBConfig::setFlags(std::string const& flg)
 {
     flags = flg;
 }
@@ -126,16 +126,16 @@ DBConfig DBConfig::getDefaultConfig()
     cfg.setPassword(getenv("MYSQL_PASSWORD"));
     cfg.setDatabase(getenv("MYSQL_DATABASE"));
     cfg.setSocket(getenv("MYSQL_SOCKET"));
-    cfg.setPort(std::atoi( getenv("MYSQL_PORT")));
+    cfg.setPort(getenv("MYSQL_PORT"));
     myconfig.overwriteDefaultValues(&cfg);
     //fix hardwired config defaults
     cfg.setHost("");
-    cfg.setUser("CTAreadonly");
+    cfg.setUser("");
     cfg.setPassword("");
-    cfg.setDatabase("CTAonline");
+    cfg.setDatabase("");
     cfg.setSocket("");
-    cfg.setPort(0);
-    cfg.setFlags(0);
+    cfg.setPort("");
+    cfg.setFlags("");
     myconfig.overwriteDefaultValues(&cfg);
     return myconfig;
 }

@@ -76,7 +76,7 @@ PasMPES::PasMPES(Identity identity, Client *pClient) : PasController(identity, p
     //string db_ip="172.17.10.10"; // internal ip
     DBConfig myconfig = DBConfig::getDefaultConfig();
     string db_ip=myconfig.getHost();
-    string db_port = std::to_string(myconfig.getPort());
+    string db_port = myconfig.getPort();
     string db_user=myconfig.getUser();
     string db_password=myconfig.getPassword();
     string db_name=myconfig.getDatabase();
@@ -280,7 +280,6 @@ UaStatus PasMPES::read()
 
         m_isVisible = true;
         if (data.m_xCentroidAvg < 0.1) m_isVisible = false;
-
         if (m_isVisible) {
             if (data.m_xCentroidSD > kNominalCentroidSD) {
                 cout << "+++ WARNING +++ The width of the image along the X axis for " << m_ID.name
@@ -300,12 +299,11 @@ UaStatus PasMPES::read()
                 status = __readRequest();
             }
         }
+      
         time_t     now = time(0);
         struct tm  tstruct;
         char       buf[80];
         tstruct = *localtime(&now);
-      // Visit http://en.cppreference.com/w/cpp/chrono/c/strftime
-      //         // for more information about date/time format
         strftime(buf, sizeof(buf), "%Y-%m-%d %X", &tstruct);
 
         UaString sql_stmt;

@@ -78,7 +78,7 @@ UaStatusCode PasCommunicationInterface::Initialize()
     Actuator::DBStruct HDB_ID;
     DBConfig myconfig = DBConfig::getDefaultConfig();
     HDB_ID.ip=myconfig.getHost();
-    HDB_ID.port=std::to_string(myconfig.getPort());
+    HDB_ID.port=myconfig.getPort();
     HDB_ID.user=myconfig.getUser();
     HDB_ID.password=myconfig.getPassword();
     HDB_ID.dbname=myconfig.getDatabase();

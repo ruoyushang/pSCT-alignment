@@ -71,6 +71,22 @@ MESSAGE( STATUS "====================================" )
 MESSAGE( STATUS "" )
 
 ####################################### Different Configurations ########################################
+IF (NOT DEFINED ENV{MYSQL_HOST})
+    MESSAGE(FATAL_ERROR "Database variables not found")
+ELSEIF (NOT DEFINED ENV{MYSQL_USER})
+    MESSAGE(FATAL_ERROR "Database variables not found")
+ELSEIF (NOT DEFINED ENV{MYSQL_DATABASE})
+    MESSAGE(FATAL_ERROR "Database variables not found")
+ELSEIF (NOT DEFINED ENV{MYSQL_PASSWORD})
+    MESSAGE(FATAL_ERROR "Database variables not found")
+ELSEIF (NOT DEFINED ENV{MYSQL_PORT})
+    MESSAGE(FATAL_ERROR "Database variables not found")
+ELSEIF (NOT DEFINED ENV{MYSQL_SOCKET})
+    MESSAGE(FATAL_ERROR "Database variables not found")
+else()
+    MESSAGE(STATUS "Database variables found")
+endif()
+
 
 OPTION( USE_XMLCONFIG           "Set to ON to build the XML-Parser and to use the ServerConfig.xml file for the server application." ON )
 OPTION( BUILD_SHARED_STACK      "Set to ON to build the stack as shared object/dll" ON )
