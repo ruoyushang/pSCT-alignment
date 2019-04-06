@@ -76,7 +76,7 @@ PasMPES::PasMPES(Identity identity, Client *pClient) : PasController(identity, p
     //string db_ip="172.17.10.10"; // internal ip
     DBConfig myconfig = DBConfig::getDefaultConfig();
     string db_ip=myconfig.getHost();
-    string db_port = std::to_string(myconfig.getPort());
+    string db_port = myconfig.getPort();
     string db_user=myconfig.getUser();
     string db_password=myconfig.getPassword();
     string db_name=myconfig.getDatabase();
