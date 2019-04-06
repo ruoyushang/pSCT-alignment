@@ -698,14 +698,14 @@ UaStatusCode PasPanel::Operate(OpcUa_UInt32 offset, const UaVariantArray &args)
             pACT.at(act.second)->setData(PAS_ACTType_inLength_mm, val);
         }
 
-        bool collision_protect = __willSensorsBeOutOfRange();
-        if (collision_protect) cout << "Panel will collide!!! Stop!!!" << endl;
+        bool collision_flag = __willSensorsBeOutOfRange();
+        if (collision_flag) cout << "Panel will collide!!! Motion cancelled!!!" << endl;
 
 #ifndef SIMMODE
-        status =  __moveTo();
+        if (!collision_flag) status =  __moveTo();
 #else
         for (int i = 0; i < 6; i++)
-            m_curCoords[i] = m_inCoords[i];
+            if (!collision_flag) m_curCoords[i] = m_inCoords[i];
 #endif
         PASState state;
         getState(state);
@@ -743,22 +743,25 @@ UaStatusCode PasPanel::Operate(OpcUa_UInt32 offset, const UaVariantArray &args)
 
         }
 
-        bool collision_protect = __willSensorsBeOutOfRange();
-        if (collision_protect) cout << "Panel will collide!!! Stop!!!" << endl;
+        bool collision_flag = __willSensorsBeOutOfRange();
+        if (collision_flag) cout << "Panel will collide!!! Motion cancelled!!!" << endl;
 
 
-        m_SP.ComputeStewart(actLengths);
-        cout << "\n\tThe new panel coordinates (x, y ,z xRot, yRot, zRot) will be:\n\t\t";
-        for (int i = 0; i < 6; i++) {
-            cout << m_SP.GetPanelCoords()[i] << " ";
-            m_inCoords[i] = m_SP.GetPanelCoords()[i];
-        }
-        cout << endl;
-        cout << "Input actuator lengths and input panel coords updated accordingly. "
-            << "Call " << m_ID.name << ".MoveToActs or .MoveToCoords to move this panel." << endl;
+        if (!collision_flag) 
+        {
+            m_SP.ComputeStewart(actLengths);
+            cout << "\n\tThe new panel coordinates (x, y ,z xRot, yRot, zRot) will be:\n\t\t";
+            for (int i = 0; i < 6; i++) {
+                cout << m_SP.GetPanelCoords()[i] << " ";
+                m_inCoords[i] = m_SP.GetPanelCoords()[i];
+            }
+            cout << endl;
+            cout << "Input actuator lengths and input panel coords updated accordingly. "
+                << "Call " << m_ID.name << ".MoveToActs or .MoveToCoords to move this panel." << endl;
 
-        if (offset == PAS_PanelType_StepAll_move) { // actually move the panel
-            status = m_pClient->callMethod(string("ns=2;s=Panel_0"), UaString("MoveTo"));
+            if (offset == PAS_PanelType_StepAll_move) { // actually move the panel
+                status = m_pClient->callMethod(string("ns=2;s=Panel_0"), UaString("MoveTo"));
+            }
         }
     }
 
