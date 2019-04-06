@@ -697,6 +697,10 @@ UaStatusCode PasPanel::Operate(OpcUa_UInt32 offset, const UaVariantArray &args)
             val.setDouble(m_SP.GetActLengths()[act.first - 1]);
             pACT.at(act.second)->setData(PAS_ACTType_inLength_mm, val);
         }
+
+        bool collision_protect = __willSensorsBeOutOfRange();
+        if (collision_protect) cout << "Panel will collide!!! Stop!!!" << endl;
+
 #ifndef SIMMODE
         status =  __moveTo();
 #else
@@ -850,11 +854,12 @@ bool PasPanel::__willSensorsBeOutOfRange()
         for (int edge2align=0; edge2align<m_pChildren.at(PAS_EdgeType).size(); edge2align++)
         {
                 PasEdge* edge = static_cast<PasEdge *> (m_pChildren.at(PAS_EdgeType).at(edge2align));
-                edge->getAlignedReadings();
-                //cout << "\nTarget MPES readings:\n" << m_AlignedReadings << endl << endl;
+                //edge->getAlignedReadings();
                 M_response = edge->getResponseMatrix(m_ID.position);
                 Sen_current = edge->getCurrentReadings();
+                cout << "\nCurrent MPES readings:\n" << Sen_current << endl << endl;
                 Sen_aligned = edge->getAlignedReadings();
+                cout << "\nTarget MPES readings:\n" << Sen_aligned << endl << endl;
                 cout << "Looking at edge " << edge->getId() << endl;
                 cout << "\nActuator response matrix for this edge:\n" << M_response << endl;
                 //m_SP.GetActLengths() is the new act length
