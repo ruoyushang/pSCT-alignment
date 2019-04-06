@@ -42,7 +42,7 @@ class MPES
 
         int GetPortNumber() const {return m_USBPortNumber; };
 
-    private:
+    protected:
         CBC* m_pCBC;
 
         int m_USBPortNumber;
@@ -75,29 +75,29 @@ class DummyMPES : public MPES
         int setExposure();
         int MeasurePosition();
 
-        private:
-        CBC* m_pCBC;
+        //private:
+        //CBC* m_pCBC;
 
-        int m_USBPortNumber;
-        int m_serialNumber;
+        //int m_USBPortNumber;
+        //int m_serialNumber;
 
-        static int sDefaultImagesToCapture;
-        bool calibrate;
-        static std::string matFileString;
-        static std::string calFileString;
+        //static int sDefaultImagesToCapture;
+        //bool calibrate;
+        //static std::string matFileString;
+        //static std::string calFileString;
 
-        // MPES Reading
-        Position m_position;
-        // helpers
-        MPESImageSet *m_pImageSet;
-        MPESDevice *m_pDevice;
-        std::set<int> __getVideoDevices();
+        //// MPES Reading
+        //Position m_position;
+        //// helpers
+        //MPESImageSet *m_pImageSet;
+        //MPESDevice *m_pDevice;
+        //std::set<int> __getVideoDevices();
 
-        // sanity
-        float Safety_Region_x_min;
-        float Safety_Region_x_max;
-        float Safety_Region_y_min;
-        float Safety_Region_y_max;
+        //// sanity
+        //float Safety_Region_x_min;
+        //float Safety_Region_x_max;
+        //float Safety_Region_y_min;
+        //float Safety_Region_y_max;
 
 };
 
