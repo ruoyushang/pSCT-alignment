@@ -228,7 +228,7 @@ bool Platform::loadCBCcalibrationParams()
     return;
 }
 
-void Platform::setDBInfo(DBStruct DBInfo) {
+void Platform::setDBInfo(DBInfo DBInfo) {
     m_DBInfo = DBInfo;
     if (m_Errors[13]) {
         unsetError(13);
@@ -237,7 +237,7 @@ void Platform::setDBInfo(DBStruct DBInfo) {
 
 void Platform::UnsetDbInfo()
 {
-    m_DBInfo = DBStruct();
+    m_DBInfo = DBInfo();
 }
 
 std::array<int, NUM_ACTS_PER_PLATFORM> Platform::step(std::array<int,NUM_ACTS_PER_PLATFORM> inputSteps)
@@ -253,7 +253,7 @@ std::array<int, NUM_ACTS_PER_PLATFORM> Platform::step(std::array<int,NUM_ACTS_PE
 
     std::array<int, NUM_ACTS_PER_PLATFORM> StepsRemaining;
     std::array<int, NUM_ACTS_PER_PLATFORM> ActuatorIterations={0,0,0,0,0,0};
-    std::array<Actuator::PositionStruct, NUM_ACTS_PER_PLATFORM> FinalPosition;
+    std::array<Actuator::Position, NUM_ACTS_PER_PLATFORM> FinalPosition;
 
     for (int i=0; i<NUM_ACTS_PER_PLATFORM; i++)
     {
@@ -358,7 +358,7 @@ std::array<int, NUM_ACTS_PER_PLATFORM> Platform::step(std::array<int,NUM_ACTS_PE
     return StepsRemaining;
 }
 
-bool Platform::getActuatorStatus(int actuatorIdx, Actuator::StatusStruct & actuatorStatus)
+bool Platform::getActuatorStatus(int actuatorIdx, Actuator::ActuatorStatus &actuatorStatus)
 {
     return m_Actuators.at(actuatorIdx)->readStatusFromASF(actuatorStatus);
 }

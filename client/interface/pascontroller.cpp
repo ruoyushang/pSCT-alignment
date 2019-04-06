@@ -73,7 +73,7 @@ PasMPES::PasMPES(Identity identity, Client *pClient) : PasController(identity, p
 
     // get the nominal aligned readings and response matrices from DB
     /* BEGIN DATABASE HACK */
-    //string db_ip="172.17.10.10"; // internal ip
+    //string db_ip="172.17.10.10"; // internal host
     DBConfig myconfig = DBConfig::getDefaultConfig();
     string db_ip=myconfig.getHost();
     string db_port = myconfig.getPort();

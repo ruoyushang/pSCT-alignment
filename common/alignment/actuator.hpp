@@ -1,26 +1,31 @@
 #ifndef __ACTUATOR_H__
 #define __ACTUATOR_H__
 
-#ifndef _AMD64
-#include "common/cbccode/cbc.hpp"
-#else
-#include "common/cbccode/dummycbc.hpp"
-#define CBC DummyCBC
-#endif
+# ifndef _AMD64
+#  include "common/cbccode/cbc.hpp"
+# else
 
-#include <string>
-#include <vector>
+#  include "common/cbccode/dummycbc.hpp"
+
+#  define CBC DummyCBC
+# endif
+
+# include <array>
+# include <memory>
+# include <string>
+# include <vector>
 
 
 class Actuator
 {
 public:
-    struct PositionStruct {
+
+    struct Position {
         int Revolution;
         int Angle;
     };
 
-    struct DateStruct {
+    struct Date {
         int Year;
         int Month;
         int Day;
@@ -29,15 +34,15 @@ public:
         int Second;
     };
 
-    struct ASFStruct {
+    struct ASFFileLocation {
         std::string Directory;
         std::string FilenamePrefix;
         std::string FilenameSuffix;
     };
 
-    struct StatusStruct {
-        DateStruct Date;
-        PositionStruct Position;
+    struct ActuatorStatus {
+        Date Date;
+        Position Position;
         std::vector<int> ErrorCodes;
     };
 
@@ -47,37 +52,44 @@ public:
     Actuator(std::shared_ptr<CBC> pCBC, int USBPortNumber);
     Actuator(std::shared_ptr<CBC> pCBC, int USBPortNumber, int serialNumber);
     Actuator(std::shared_ptr<CBC> pCBC, int USBPortNumber, int serialNumber, DBStruct DBInfo);
-    Actuator(std::shared_ptr<CBC> pCBC, int USBPortNumber, int serialNumber, DBStruct DBInfo, ASFStruct ASFInfo);
+
+    Actuator(std::shared_ptr<CBC> pCBC, int USBPortNumber, int serialNumber, DBStruct DBInfo, ASFFileLocation ASFInfo);
     ~Actuator() {}
 
     static const int NumberOfIntsInASFHeader{8};//yr,mo,day,hr,min,sec,rev,angle
-    static const int NumberOfColumnsInDBHeader{5};//id_increment, serial, start_date, rev, angle
+    static const int NumberOfColumnsInDBHeader{5}; //id_increment, serial, start_date, rev, angle
     static const int NumberOfIntsInASF{NumberOfIntsInASFHeader+NUM_ERROR_TYPES};
     int NumberOfColumnsInDB{NumberOfColumnsInDBHeader+NumberOfErrorCodes};
     std::vector<float> EncoderCalibration;
 
-
-
     //do checks on constructors to make sure numbers are okay. e.g. hysteresis steps are positive, recording interval is less than half of STEPS_PER_REVOLUTION.
 
     void ReadConfigurationAndCalibration();
-    bool ReadStatusFromDB(StatusStruct & RecordedPosition);
+
+    bool ReadStatusFromDB(ActuatorStatus &RecordedPosition);
     void LoadStatusFromDB();
     void RecordStatusToDB();
-    bool ReadStatusFromASF(StatusStruct & RecordedPosition);
+
+    bool ReadStatusFromASF(ActuatorStatus &RecordedPosition);
     void LoadStatusFromASF();
     void RecordStatusToASF();
     float MeasureVoltage();
     int MeasureAngle();
-    int QuickAngleCheck(PositionStruct ExpectedPosition);
-    int SlowAngleCheck(PositionStruct ExpectedPosition);
+
+    int QuickAngleCheck(Position ExpectedPosition);
+
+    int SlowAngleCheck(Position ExpectedPosition);
     virtual int Step(int InputSteps);
-    PositionStruct PredictPosition(PositionStruct InputPosition, int InputSteps);
+
+    Position PredictPosition(Position InputPosition, int InputSteps);
     int HysteresisMotion(int InputSteps);
-    virtual void Initialize();
-    void setCurrentPosition(PositionStruct inputPosition) { currentPosition = inputPosition; }
+
+    virtual void initialize();
+
+    void setCurrentPosition(Position inputPosition) { currentPosition = inputPosition; }
     void CheckCurrentPosition();
-    void SetASFFullPath(ASFStruct ASFInfoInfo);
+
+    void SetASFFullPath(ASFFileLocation ASFInfoInfo);
     void SetDB(DBStruct DBInfoInfo);
     void UnsetDB();
 
@@ -90,7 +102,8 @@ public:
     void SetSTEPS_PER_REVOLUTION(int InputSTEPS_PER_REVOLUTION);
     void SetRecordingInterval(int InputRecordingInterval);
     void SetHOME_LENGTH(float InputHOME_LENGTH, float InputCALIBRATION_TEMPERATURE);
-    int CalculateStepsFromHome(PositionStruct InputPosition);
+
+    int CalculateStepsFromHome(Position InputPosition);
     void SetError(int CodeNumber);
     void UnsetError(int CodeNumber);
     void SetStatus(StatusModes InputStatus);
@@ -118,21 +131,6 @@ protected:
     Platform::DeviceState m_State = Platform::DeviceState::On;
 
     std::array<bool, NUM_ERROR_TYPES> m_Errors = { false };
-        true,
-        true,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false
-    };
 
     int m_PortNumber{0};
     int m_SerialNumber = 0;
@@ -192,12 +190,13 @@ public:
     DummyActuator(std::shared_ptr<CBC> pCBC, int USBPortNumber) : Actuator(pCBC, USBPortNumber) {};
     DummyActuator(std::shared_ptr<CBC> pCBC, int USBPortNumber, int serialNumber) : Actuator(pCBC, USBPortNumber, serialNumber) {};
     DummyActuator(std::shared_ptr<CBC> pCBC, int USBPortNumber, int serialNumber, DBStruct DBInfo) : Actuator(pCBC, USBPortNumber, serialNumber, DBInfo) {};
-    DummyActuator(std::shared_ptr<CBC> pCBC, int USBPortNumber, int serialNumber, DBStruct DBInfo, ASFStruct ASFInfo) : Actuator(pCBC, USBPortNumber, serialNumber, DBInfo, ASFInfo) {};
+
+    DummyActuator(std::shared_ptr<CBC> pCBC, int USBPortNumber, int serialNumber, DBStruct DBInfo,
+                  ASFFileLocation ASFInfo) : Actuator(pCBC, USBPortNumber, serialNumber, DBInfo, ASFInfo) {};
 
     void initialize() override;
     int step(int inputSteps) override;
     float measureLength() override;
-
 };
 
 #endif

@@ -6,20 +6,22 @@
 #ifndef __PLATFORM_H__
 #define __PLATFORM_H__
 
-#include <array>
+# include <array>
 #include <string>
 #include <vector>
 
-#ifdef _AMD64
-#include "common/cbccode/dummycbc.hpp"
-#warning "Compiling for AMD64 -- setting CBC to DummyCBC"
-#define CBC DummyCBC
-#else
-#include "common/cbccode/cbc.hpp"
-#endif
+# ifdef _AMD64
 
-#include "common/alignment/actuator.hpp"
-#include "common/alignment/mpesclass.hpp"
+#  include "common/cbccode/dummycbc.hpp"
+
+#  warning "Compiling for AMD64 -- setting CBC to DummyCBC"
+#  define CBC DummyCBC
+# else
+#  include "common/cbccode/cbc.hpp"
+# endif
+
+# include "common/alignment/actuator.hpp"
+# include "common/alignment/mpes.hpp"
 
 
 /// @brief Platform states used to disallow/stop motion based on errors.
@@ -37,15 +39,16 @@ struct ErrorDefinition {
     DeviceState severity;
 };
 
-struct DBStruct {
-    DBStruct() : ip(""), user(""), password(""), dbname(""), port("") {}
-    std::string ip;
+struct DBInfo {
+    DBInfo() : host(""), user(""), password(""), dbname(""), port("") {}
+
+    std::string host;
     std::string user;
     std::string password;
     std::string dbname;
     std::string port;
     bool empty() {
-        return (ip.empty() && user.empty() && password.empty() && dbname.empty() && port.empty());
+        return (host.empty() && user.empty() && password.empty() && dbname.empty() && port.empty());
     }
 };
 
@@ -65,7 +68,10 @@ public:
     Platform();
     Platform(std::array<int,NUM_ACTS_PER_PLATFORM> actuatorPorts, std::array<int,NUM_ACTS_PER_PLATFORM> actuatorSerials);
     Platform(int CBCSerial, std::array<int,NUM_ACTS_PER_PLATFORM> actuatorPorts, std::array<int,NUM_ACTS_PER_PLATFORM> actuatorSerials, Actuator::DBStruct dbInfo);
-    Platform(int CBCSerial, std::array<int,NUM_ACTS_PER_PLATFORM> actuatorPorts, std::array<int,NUM_ACTS_PER_PLATFORM> actuatorSerials, Actuator::DBStruct dbInfo, Actuator::ASFStruct asfInfo);
+
+    Platform(int CBCSerial, std::array<int, NUM_ACTS_PER_PLATFORM> actuatorPorts,
+             std::array<int, NUM_ACTS_PER_PLATFORM> actuatorSerials, Actuator::DBStruct dbInfo,
+             Actuator::ASFFileLocation asfInfo);
     ~Platform();
 
     void initialize();
@@ -74,7 +80,7 @@ public:
 
     int getCBCserial() { return m_CBCserial; }
 
-    void setDBInfo(DBStruct DBInfo);
+    void setDBInfo(DBInfo DBInfo);
     void unsetDBInfo();
 
     bool loadCBCParameters();
@@ -105,7 +111,7 @@ public:
 
     std::array<int, NUM_ACTS_PER_PLATFORM> step(std::array<int, NUM_ACTS_PER_PLATFORM> inputSteps);
 
-    bool getActuatorStatus(int actuatorIdx, Actuator::StatusStruct &actuatorStatus);
+    bool getActuatorStatus(int actuatorIdx, Actuator::ActuatorStatus &actuatorStatus);
 
     void checkActuatorErrorStatus(int actuatorIdx);
 
@@ -163,7 +169,7 @@ private:
 
     int m_CBCserial = 0;
 
-    DBStruct m_DBInfo = DBStruct();
+    DBInfo m_DBInfo = DBInfo();
 
     bool m_HighCurrent = false;
     bool m_SynchronousRectification = true;
@@ -181,6 +187,7 @@ private:
     float m_ExternalTemperatureOffset = DEFAULT_EXTERNAL_TEMPERATURE_OFFSET;
 
     void setState(DeviceState state);
+
     void setError(int errorCode);
     void unsetError(int errorCode);
 };

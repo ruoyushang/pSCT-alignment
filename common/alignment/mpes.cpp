@@ -1,4 +1,4 @@
-#include "common/alignment/mpesclass.hpp"
+#include "common/alignment/mpes.hpp"
 
 #include <algorithm>
 #include <cstdlib>
@@ -38,7 +38,7 @@ MPES::~MPES()
 
 // returns intensity of the sensor image.
 // check this value to see if everything is working fine
-bool MPES::Initialize()
+bool MPES::initialize()
 {
     // we toggle the usb port, checking the video devices when it's off and again when it's on.
     // the new video device is the ID of the newly created MPES.
