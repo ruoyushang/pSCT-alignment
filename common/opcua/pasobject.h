@@ -56,7 +56,7 @@ public:
 
 protected:
     // a function that's used very often
-    OpcUa::DataItemType* addVariable(PasNodeManagerCommon *pNodeManager, OpcUa_UInt32 ParentType, OpcUa_UInt32 VarType, OpcUa_Boolean isState = OpcUa_False, bool addReference = true);
+    OpcUa::DataItemType* addVariable(PasNodeManagerCommon *pNodeManager, OpcUa_UInt32 ParentType, OpcUa_UInt32 VarType, OpcUa_Boolean isState = OpcUa_False, OpcUa_Boolean addReference = OpcUa_True);
 
     UaString                   m_defaultLocaleId;
     UaMutexRefCounted*         m_pSharedMutex;

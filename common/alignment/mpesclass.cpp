@@ -17,6 +17,7 @@
 using namespace std;
 
 int MPES::sDefaultImagesToCapture = 9;
+string MPES::sDefaultDirToSave = "/home/root/mpesimages/";
 string MPES::matFileString = "/home/root/mpesCalibration/";
 string MPES::calFileString = "/home/root/mpesCalibration/";
 
@@ -68,7 +69,8 @@ bool MPES::Initialize()
 
     cout << "MPES::Initialize(): Detected new video device " << new_video_device_id << endl;
     m_pDevice = new MPESDevice(new_video_device_id);
-    m_pImageSet = new MPESImageSet(m_pDevice, sDefaultImagesToCapture);
+    m_pImageSet = new MPESImageSet(m_pDevice, sDefaultImagesToCapture, sDefaultDirToSave.c_str());
+    cout << "MPES::Initialize(): Will be saving captured images to " << sDefaultImagesToCapture << endl;
 
     ostringstream temposs;
     temposs << setfill('0') << setw(6) << m_serialNumber;
@@ -153,8 +155,8 @@ int MPES::MeasurePosition()
 
         m_position.xCenter = m_pImageSet->SetData.xCentroid;
         m_position.yCenter = m_pImageSet->SetData.yCentroid;
-        m_position.xStdDev = m_pImageSet->SetData.xCentroidSD;
-        m_position.yStdDev = m_pImageSet->SetData.yCentroidSD;
+        m_position.xStdDev = m_pImageSet->SetData.xSpotSD;
+        m_position.yStdDev = m_pImageSet->SetData.ySpotSD;
         m_position.CleanedIntensity = m_pImageSet->SetData.CleanedIntensity;
     }
 
@@ -195,7 +197,7 @@ bool DummyMPES::Initialize()
     cout << "DummyMPES::Initialize(): Creating new video device " << endl;
     Safety_Region_x_min = 60.0;
     Safety_Region_x_max = 260.0;
-    Safety_Region_y_min = 40.0;	
+    Safety_Region_y_min = 40.0;
     Safety_Region_y_max = 200.0;
 
     return true;

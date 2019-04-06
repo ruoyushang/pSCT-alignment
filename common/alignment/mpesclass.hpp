@@ -49,6 +49,7 @@ class MPES
         int m_serialNumber;
 
         static int sDefaultImagesToCapture;
+        static std::string sDefaultDirToSave;
         bool calibrate;
         static std::string matFileString;
         static std::string calFileString;

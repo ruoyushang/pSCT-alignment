@@ -112,7 +112,7 @@ void Actuator::ReadConfigurationAndCalibration()//needs to be fixed to new datab
 			stmt = con->createStatement();
 
 			std::stringstream stmtvar;
-			stmtvar << "SELECT * FROM Opt_ActuatorConfigurationAndCalibration WHERE serial_number=" << SerialNumber << " ORDER BY start_date DESC LIMIT 1";
+            stmtvar << "SELECT * FROM Opt_ActuatorConfigurationAndCalibration WHERE end_date is NULL and serial_number=" << SerialNumber << " ORDER BY start_date DESC LIMIT 1";
 			stmt->execute(stmtvar.str());
 			res = stmt->getResultSet();
 			while (res->next())
@@ -146,7 +146,7 @@ void Actuator::ReadConfigurationAndCalibration()//needs to be fixed to new datab
 			for (int i=0; i<StepsPerRevolution; i++)
 			{
 				stmtvar.str(std::string());
-				stmtvar << "SELECT * FROM Opt_ActuatorMotorProfile WHERE (serial_number=" << SerialNumber << " and angle=" << i << ") ORDER BY start_date DESC LIMIT 1";
+                stmtvar << "SELECT * FROM Opt_ActuatorMotorProfile WHERE end_date is NULL and (serial_number=" << SerialNumber << " and angle=" << i << ") ORDER BY start_date DESC LIMIT 1";
 				stmt->execute(stmtvar.str());
 				res = stmt->getResultSet();
 				while (res->next())
@@ -205,7 +205,7 @@ bool Actuator::ReadStatusFromDB(StatusStruct & RecordedPosition)//read all error
 			stmt = con->createStatement();
 
 			std::stringstream stmtvar;
-			stmtvar << "SELECT * FROM Opt_ActuatorStatus WHERE serial_number=" << SerialNumber << " ORDER BY id DESC LIMIT 1";
+            stmtvar << "SELECT * FROM Opt_ActuatorStatus WHERE serial_number=" << SerialNumber << " ORDER BY id DESC LIMIT 1";
 			stmt->execute(stmtvar.str());
 			res = stmt->getResultSet();
 			resmeta = res->getMetaData();

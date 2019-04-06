@@ -72,7 +72,7 @@ UaStatus PasObject::beginCall(
     return ret;
 }
 
-OpcUa::DataItemType* PasObject::addVariable(PasNodeManagerCommon *pNodeManager, OpcUa_UInt32 ParentType, OpcUa_UInt32 VarType, OpcUa_Boolean isState, bool addReference)
+OpcUa::DataItemType* PasObject::addVariable(PasNodeManagerCommon *pNodeManager, OpcUa_UInt32 ParentType, OpcUa_UInt32 VarType, OpcUa_Boolean isState, OpcUa_Boolean addReference)
 {
     // Get the instance declaration node used as base for this variable instance
     UaVariable* pInstanceDeclaration = pNodeManager->getInstanceDeclarationVariable(VarType);

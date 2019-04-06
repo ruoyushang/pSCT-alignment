@@ -425,7 +425,7 @@ UaStatus Configuration::loadDeviceConfiguration(const std::vector<std::string>& 
         for (const auto& position : positionlist) {
             Identity panelId;
             panelId.position = atoi(position.c_str());
-            std::string query = "SELECT serial_number, mpcb_ip_address FROM Opt_MPMMapping WHERE position='" + position + "'";
+            std::string query = "SELECT serial_number, mpcb_ip_address FROM Opt_MPMMapping WHERE end_date is NULL and position='" + position + "'";
             sql_stmt->execute(query);
             sql_results = sql_stmt->getResultSet();
             // should only be one result FOR NOW -- IN THE FUTURE, NEED TO FIX THIS, SORTING BY DATE
@@ -449,7 +449,7 @@ UaStatus Configuration::loadDeviceConfiguration(const std::vector<std::string>& 
             m_PanelAddressMap[panelId.position] = panelId.eAddress;
 
             // get the panel's actuators and add them to all the needed maps
-            query = "SELECT serial_number, position, port FROM Opt_ActuatorMapping WHERE panel=" + std::to_string(panelId.position);
+            query = "SELECT serial_number, position, port FROM Opt_ActuatorMapping WHERE end_date is NULL and panel=" + std::to_string(panelId.position);
             sql_stmt->execute(query);
             sql_results = sql_stmt->getResultSet();
             while (sql_results->next()) {
@@ -477,7 +477,7 @@ UaStatus Configuration::loadDeviceConfiguration(const std::vector<std::string>& 
             }
 
             // get the panel's mpes and add them to all the needed maps
-            query = "SELECT serial_number, w_position, port, l_panel FROM Opt_MPESMapping WHERE w_panel=" + std::to_string(panelId.position);
+            query = "SELECT serial_number, w_position, port, l_panel FROM Opt_MPESMapping WHERE end_date is NULL and w_panel=" + std::to_string(panelId.position);
             sql_stmt->execute(query);
             sql_results = sql_stmt->getResultSet();
             while (sql_results->next()) {
