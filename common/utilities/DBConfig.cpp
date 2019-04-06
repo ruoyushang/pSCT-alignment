@@ -31,7 +31,7 @@ std::string DBConfig::getHost()
 {
     return host_name;
 }
-void DBConfig::setHost(const char *host)
+void DBConfig::setHost(std::string const& host)
 {
     if (host != NULL)
         host_name = host;
@@ -42,7 +42,7 @@ std::string DBConfig::getUser()
 {
     return user_name;
 }
-void DBConfig::setUser(const char *user)
+void DBConfig::setUser(std::string const& user)
 {
     if (user != NULL)
         user_name = user;
@@ -53,7 +53,7 @@ std::string DBConfig::getPassword()
 {
     return password;
 }
-void DBConfig::setPassword(const char *pw)
+void DBConfig::setPassword(std::string const& pw)
 {
     if (pw != NULL)
         password = pw;
@@ -64,7 +64,7 @@ std::string DBConfig::getDatabase()
 {
     return db_name;
 }
-void DBConfig::setDatabase(const char *db)
+void DBConfig::setDatabase(std::string const& db)
 {
     if (db != NULL)
         db_name = db;
@@ -75,7 +75,7 @@ std::string DBConfig::getPort()
 {
     return port_num;
 }
-void DBConfig::setPort(const char *port)
+void DBConfig::setPort(std::string const& port)
 {
     port_num = port;
 }
@@ -85,7 +85,7 @@ std::string DBConfig::getSocket()
 {
     return socket_name;
 }
-void DBConfig::setSocket(const char *socket)
+void DBConfig::setSocket(std::string const& socket)
 {
     if (socket != NULL)
         socket_name = socket;
@@ -96,7 +96,7 @@ std::string DBConfig::getFlags()
 {
     return flags;
 }
-void DBConfig::setFlags(const char *flg)
+void DBConfig::setFlags(std::string const& flg)
 {
     flags = flg;
 }
