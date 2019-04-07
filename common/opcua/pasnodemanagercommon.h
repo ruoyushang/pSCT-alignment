@@ -1,6 +1,8 @@
 #ifndef __PASNODEMANAGERCOMMON_H__
 #define __PASNODEMANAGERCOMMON_H__
 
+#include <memory>
+
 #include "uaserver/nodemanagerbase.h"
 
 class PasComInterfaceCommon;
@@ -23,12 +25,13 @@ public:
     virtual UaStatus OnAcknowledge(const ServiceContext& serviceContext, OpcUa::AcknowledgeableConditionType* pCondition, const UaByteString& EventId, const UaLocalizedText& Comment);
 
     UaVariable* getInstanceDeclarationVariable(OpcUa_UInt32 numericIdentifier);
-    PasComInterfaceCommon *getComInterface() {return m_pCommIf;}
+
+    const std::unique_ptr<PasComInterfaceCommon> &getComInterface() { return m_pCommIf; }
 
 protected:
     UaStatus createTypeNodes();
 
-    PasComInterfaceCommon *m_pCommIf;
+    std::unique_ptr<PasComInterfaceCommon> m_pCommIf;
 };
 
 #endif // __PASNODEMANAGER_H__

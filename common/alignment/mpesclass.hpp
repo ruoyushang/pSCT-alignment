@@ -2,15 +2,16 @@
 #define __MPESCLASS_H__
 
 #ifndef _AMD64
-    #include "cbc.hpp"
+#include "common/cbccode/cbc.hpp"
 #else
-    #include "dummycbc.hpp"
+
+#include "common/cbccode/dummycbc.hpp"
     #define CBC DummyCBC
 #endif
 
-#include "MPESImageSet.h"
+#include "common/mpescode/MPESImageSet.h"
 #include "actuator.hpp"
-#include "MPESDevice.h"
+#include "common/mpescode/MPESDevice.h"
 #include <string>
 #include <fstream>
 #include <cstring>
@@ -40,9 +41,13 @@ class MPES
         // return const reference to the private member
         const MPES::Position& getPosition() const { return m_position; };
 
+    int setxNominalPosition(float x);
+
+    int setyNominalPosition(float y);
+
         int GetPortNumber() const {return m_USBPortNumber; };
 
-    private:
+protected:
         CBC* m_pCBC;
 
         int m_USBPortNumber;
@@ -72,34 +77,11 @@ class DummyMPES : public MPES
         public:
         DummyMPES();
         DummyMPES(CBC* input_cbc, int input_USBPortNumber, int input_MPES_ID) : MPES(input_cbc, input_USBPortNumber, input_MPES_ID) {};
-        bool Initialize();
+
+    bool Initialize();
         int setExposure();
-        int MeasurePosition();
 
-        private:
-        CBC* m_pCBC;
-
-        int m_USBPortNumber;
-        int m_serialNumber;
-
-        static int sDefaultImagesToCapture;
-        bool calibrate;
-        static std::string matFileString;
-        static std::string calFileString;
-
-        // MPES Reading
-        Position m_position;
-        // helpers
-        MPESImageSet *m_pImageSet;
-        MPESDevice *m_pDevice;
-        std::set<int> __getVideoDevices();
-
-        // sanity
-        float Safety_Region_x_min;
-        float Safety_Region_x_max;
-        float Safety_Region_y_min;
-        float Safety_Region_y_max;
-
+    int MeasurePosition();
 };
 
 #endif

@@ -10,7 +10,8 @@ class GASPSD
         ~GASPSD();
         int Initialize(bool isSim = false);
         void setPort(std::string port = "/dev/ttyACM0");
-        double *getOutput() { return &m_data[0]; };
+
+    double getOutput(int offset) { return m_data[offset]; };
         void setNominalValues(int offset, double value);
         const char *getName() const { return "none"; };
         int getSerial() const { return -1; };
