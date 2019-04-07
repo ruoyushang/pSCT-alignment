@@ -29,7 +29,7 @@ PasMirror::PasMirror(Identity identity) : PasCompositeController(identity, nullp
         mirrorprefix = "Unknown";
     m_ID.name = mirrorprefix + "Mirror";
 
-    m_state = PASState::PAS_On;
+    m_state = PASState::On;
 
     // define possible children and initialize the selected children string
     m_ChildrenTypes = {PAS_PanelType, PAS_EdgeType, PAS_MPESType};
@@ -203,7 +203,7 @@ PasMirror::~PasMirror()
         for (auto &dev : devVector.second)
             dev = nullptr;
 
-    m_state = PASState::PAS_Off;
+    m_state = PASState::Off;
 }
 
 UaStatusCode PasMirror::getState(PASState& state)
@@ -510,11 +510,11 @@ void PasMirror::__alignAll(unsigned start_idx, const set<unsigned>& need_alignme
     deque<unsigned> already_aligned {}; // yes, deque, not vector!
 
     unsigned cur_idx = start_idx;
-    while (need_alignment.find(cur_idx) != need_alignment.end() && (m_state == PASState::PAS_On)) {
+    while (need_alignment.find(cur_idx) != need_alignment.end() && (m_state == PASState::On)) {
         already_aligned.push_front(cur_idx);
         // align all the preceding panels
         for (unsigned edge : already_aligned) {
-            if ( m_state != PASState::PAS_On ) break;
+            if (m_state != PASState::On) break;
             // figure out which panel is "greater" and which one is "smaller" in the sense
             // of dir, assuming a two-panel edge for now.
             // get vector of panel positions:
@@ -535,7 +535,7 @@ void PasMirror::__alignAll(unsigned start_idx, const set<unsigned>& need_alignme
 
                 PASState curstate;
                 m_pChildren.at(PAS_PanelType).at(movingPanel_idx)->getState(curstate);
-                while (curstate == PASState::PAS_Busy) {
+                while (curstate == PASState::Busy) {
                     cout << "\tPanel " << curPanels.at(0) << " moving..." << endl;
                     usleep(200*1000); // microseconds
                     m_pChildren.at(PAS_PanelType).at(movingPanel_idx)->getState(curstate);

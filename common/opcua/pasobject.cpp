@@ -1,16 +1,23 @@
-#include "pasobject.h"
-#include "pasnodemanagercommon.h"
-#include "passervertypeids.h"
-#include "pascominterfacecommon.h"
-#include "pasnodemanager.h"
-#include "pascommunicationinterface.h"
+#include "common/opcua/pasobject.h"
+#include "common/opcua/pasnodemanagercommon.h"
+#include "common/opcua/passervertypeids.h"
+#include "common/opcua/pascominterfacecommon.h"
 #include "mpeseventdata.h"
 #include "uaserver/methodhandleuanode.h"
 
 #include <iostream>
 
+#include "uabase/uamutex.h"
+
 // ----------------------------------------------------------------
 // PasObject implementation
+const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, OpcUa_Byte>> PasObject::VARIABLES;
+
+const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean>> PasObject::ERRORS;
+
+const std::map<OpcUa_UInt32, std::pair<std::string, std::vector<std::tuple<std::string, UaNodeId, std::string>>>> PasObject::METHODS;
+
+
 PasObject::PasObject(const UaString& name,
         const UaNodeId& newNodeId,
         const UaString& defaultLocaleId,
@@ -25,13 +32,34 @@ PasObject::PasObject(const UaString& name,
                   m_pCommIf(pCommIf),
                   m_pNodeManager(pNodeManager)
 {
+    OpcUa::DataItemType *pDataItem = NULL;
+    UaStatus addStatus;
+    // Method helper
+    OpcUa_Int16 nsIdx = pNodeManager->getNameSpaceIndex();
 
-    // Store information needed to access device
+    //Store information needed to access device
     //PasUserData* pUserData = new PasUserData(isState, ParentType, m_Identity, VarType);
     //pDataItem->setUserData(pUserData);
-    // Change value handling to get read and write calls to the node manager
+    //Change value handling to get read and write calls to the node manager
     //pDataItem->setValueHandling(UaVariable_Value_Cache);
 
+    // Add all child variable nodes
+    /**
+    for (auto it = getVariableDefs().begin(); it != getVariableDefs().end(); it++) {
+        addVariable(pNodeManager, PAS_PanelType, it->first, std::get<2>(it->second));
+    }
+
+    //Create the folder for the Errors
+    UaFolder *pErrorFolder = new UaFolder("Errors", UaNodeId((std::string(name.toUtf8()) + "_Errors").c_str(), nsIdx), m_defaultLocaleId);
+    addStatus = pNodeManager->addNodeAndReference(this, pErrorFolder, OpcUaId_Organizes);
+    UA_ASSERT(addStatus.isGood());
+
+    // Add all error variable nodes
+    for (auto v : getErrorDefs()) {
+        pDataItem = addVariable(pNodeManager, PAS_ACTType, v.first);
+        addStatus = pNodeManager->addUaReference(pErrorFolder->nodeId(), pDataItem->nodeId(), OpcUaId_Organizes);
+    }
+    */
 }
 
 PasObject::~PasObject() {}
@@ -79,7 +107,7 @@ OpcUa::DataItemType* PasObject::addVariable(PasNodeManagerCommon *pNodeManager, 
     UA_ASSERT(pInstanceDeclaration!=NULL);
     // Create new variable and add it as component to this object
     OpcUa::DataItemType* pDataItem = new OpcUa::DataItemType(this, pInstanceDeclaration, pNodeManager, m_pSharedMutex);
-    
+
     UaStatus addStatus;
     if (addReference)
         addStatus = pNodeManager->addNodeAndReference(this, pDataItem, OpcUaId_HasComponent);
@@ -98,6 +126,7 @@ OpcUa::DataItemType* PasObject::addVariable(PasNodeManagerCommon *pNodeManager, 
 
 // -------------------------------------------------------------------
 // Specialization: MPESObject Implementation
+
 MPESObject::MPESObject(
     const UaString& name,
     const UaNodeId& newNodeId,
@@ -229,7 +258,7 @@ UaStatus MPESObject::call(
                     ret = OpcUa_BadInvalidArgument;
                 else
                     ret = m_pCommIf->setDeviceState(PAS_MPESType, m_Identity,
-                        PASState::PAS_On );
+                                                    PASState::On);
             }
             // Check if we have the stop method
             else if ( pMethod->nodeId() == m_pMethodStop->nodeId())
@@ -239,7 +268,7 @@ UaStatus MPESObject::call(
                     ret = OpcUa_BadInvalidArgument;
                 else
                     ret = m_pCommIf->setDeviceState(PAS_MPESType, m_Identity,
-                        PASState::PAS_Off );
+                                                    PASState::Off);
             }
             // Check if we have the read method
             else if ( pMethod->nodeId() == m_pMethodRead->nodeId())
@@ -280,7 +309,7 @@ UaStatus MPESObject::call(
                 eventData.m_SourceNode.setNodeId(nodeId());
                 eventData.m_SourceName.setString(browseName().toString());
                 UaString messageText;
-                if ( state == PASState::PAS_Off )
+                if (state == PASState::Off)
                 {
                     messageText = UaString("State of %1 changed to OFF").arg(browseName().toString());
                 }
@@ -298,7 +327,7 @@ UaStatus MPESObject::call(
 
                 //--------------------------------------------------------
                 // Change state of alarm condition
-                if ( state == PASState::PAS_Off )
+                if (state == PASState::Off)
                 {
                     m_pStateOffNormalAlarm->setAckedState(OpcUa_False);
                     m_pStateOffNormalAlarm->setActiveState(OpcUa_True);
@@ -329,9 +358,37 @@ UaStatus MPESObject::call(
     return ret;
 }
 
+const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, OpcUa_Byte>> ACTObject::VARIABLES = {
+        {PAS_ACTType_State,        std::make_tuple("State", UaVariant(0), OpcUa_True, Ua_AccessLevel_CurrentRead)},
+        {PAS_ACTType_Steps,        std::make_tuple("Steps", UaVariant(0), OpcUa_False, Ua_AccessLevel_CurrentRead)},
+        {PAS_ACTType_curLength_mm, std::make_tuple("CurrentLength", UaVariant(0.0), OpcUa_False,
+                                                   Ua_AccessLevel_CurrentRead)}
+};
 
-// -------------------------------------------------------------------
-// Specialization: ACTObject Implementation
+const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean>> ACTObject::ERRORS = {
+        {PAS_ACTType_Error0,  std::make_tuple("Error0", UaVariant(false), OpcUa_False)},
+        {PAS_ACTType_Error1,  std::make_tuple("Error1", UaVariant(false), OpcUa_False)},
+        {PAS_ACTType_Error2,  std::make_tuple("Error2", UaVariant(false), OpcUa_False)},
+        {PAS_ACTType_Error3,  std::make_tuple("Error3", UaVariant(false), OpcUa_False)},
+        {PAS_ACTType_Error4,  std::make_tuple("Error4", UaVariant(false), OpcUa_False)},
+        {PAS_ACTType_Error5,  std::make_tuple("Error5", UaVariant(false), OpcUa_False)},
+        {PAS_ACTType_Error6,  std::make_tuple("Error6", UaVariant(false), OpcUa_False)},
+        {PAS_ACTType_Error7,  std::make_tuple("Error7", UaVariant(false), OpcUa_False)},
+        {PAS_ACTType_Error8,  std::make_tuple("Error8", UaVariant(false), OpcUa_False)},
+        {PAS_ACTType_Error9,  std::make_tuple("Error9", UaVariant(false), OpcUa_False)},
+        {PAS_ACTType_Error10, std::make_tuple("Error10", UaVariant(false), OpcUa_False)},
+        {PAS_ACTType_Error11, std::make_tuple("Error11", UaVariant(false), OpcUa_False)},
+        {PAS_ACTType_Error12, std::make_tuple("Error12", UaVariant(false), OpcUa_False)},
+        {PAS_ACTType_Error13, std::make_tuple("Error13", UaVariant(false), OpcUa_False)}
+};
+
+const std::map<OpcUa_UInt32, std::pair<std::string, std::vector<std::tuple<std::string, UaNodeId, std::string>>>> ACTObject::METHODS = {
+        {PAS_ACTType_Start, {"Start", {}}},
+        {PAS_ACTType_Stop,  {"Stop",  {}}},
+        {PAS_ACTType_Step,  {"Step",  {std::make_tuple("DeltaLength", UaNodeId(OpcUaId_Double),
+                                                       "Target change in length for the actuator (in mm).")}}}
+};
+
 ACTObject::ACTObject(
     const UaString& name,
     const UaNodeId& newNodeId,
@@ -342,49 +399,65 @@ ACTObject::ACTObject(
 : PasObject(name, newNodeId, defaultLocaleId, pNodeManager, identity, pCommIf)
 {
     // Use a mutex shared across all variables of this object
-    m_pSharedMutex = new UaMutexRefCounted;
+    m_pSharedMutex = new UaMutexRefCounted();
 
-    OpcUa::DataItemType*         pDataItem            = NULL;
+    OpcUa::DataItemType *pDataItem;
     UaStatus                     addStatus;
     // Method helper
     OpcUa_Int16                  nsIdx = pNodeManager->getNameSpaceIndex();
 
-    /**************************************************************
-     * Create the sensor components
-     **************************************************************/
+    // Add all child variable nodes
+    for (auto v : getVariableDefs()) {
+        addVariable(pNodeManager, PAS_ACTType, v.first, std::get<2>(v.second));
+    }
+
     //Create the folder for the Errors
-    UaFolder *pErrorFolder = new UaFolder("Errors", UaNodeId("Errors", nsIdx), m_defaultLocaleId);
+    UaFolder *pErrorFolder = new UaFolder("Errors", UaNodeId(("ACT_" + identity.eAddress + "_errors").c_str(), nsIdx),
+                                          m_defaultLocaleId);
     addStatus = pNodeManager->addNodeAndReference(this, pErrorFolder, OpcUaId_Organizes);
     UA_ASSERT(addStatus.isGood());
-    
-    // Add Variable "State"
-    pDataItem = addVariable(pNodeManager, PAS_ACTType, PAS_ACTType_State, OpcUa_True);
 
-    // Add Variable "Steps"
-    pDataItem = addVariable(pNodeManager, PAS_ACTType, PAS_ACTType_Steps);
-    pDataItem = addVariable(pNodeManager, PAS_ACTType, PAS_ACTType_curLength_mm);
-    pDataItem = addVariable(pNodeManager, PAS_ACTType, PAS_ACTType_inLength_mm);
+    // Add all error variable nodes
+    for (auto v : getErrorDefs()) {
+        pDataItem = addVariable(pNodeManager, PAS_ACTType, v.first, OpcUa_False, false);
+        addStatus = pNodeManager->addUaReference(pErrorFolder->nodeId(), pDataItem->nodeId(), OpcUaId_Organizes);
+    }
 
-    // Add Method "Start"
-    UaString sName = "Start";
-    UaString sNodeId = UaString("%1.%2").arg(newNodeId.toString()).arg(sName);
-    m_pMethodStart = new UaMethodGeneric(sName, UaNodeId(sNodeId, nsIdx), m_defaultLocaleId);
-    addStatus = pNodeManager->addNodeAndReference(this, m_pMethodStart, OpcUaId_HasComponent);
-    UA_ASSERT(addStatus.isGood());
+    // Add all child method nodes
+    UaString sName;
+    UaString sNodeId;
 
-    // Add Method "Stop"
-    sName = "Stop";
-    sNodeId = UaString("%1.%2").arg(newNodeId.toString()).arg(sName);
-    m_pMethodStop = new UaMethodGeneric(sName, UaNodeId(sNodeId, nsIdx), m_defaultLocaleId);
-    addStatus = pNodeManager->addNodeAndReference(this, m_pMethodStop, OpcUaId_HasComponent);
-    UA_ASSERT(addStatus.isGood());
+    UaPropertyMethodArgument *pPropertyArg = NULL;
+    UaUInt32Array nullarray;
+    for (auto m: getMethodDefs()) {
+        sName = UaString(m.second.first.c_str());
+        sNodeId = UaString("%1.%2").arg(newNodeId.toString()).arg(sName);
+        m_MethodMap[UaNodeId(sNodeId, nsIdx)] = std::make_pair(
+                new UaMethodGeneric(sName, UaNodeId(sNodeId, nsIdx), m_defaultLocaleId), m.first);
+        addStatus = pNodeManager->addNodeAndReference(this, m_MethodMap[UaNodeId(sNodeId, nsIdx)].first,
+                                                      OpcUaId_HasComponent);
+        UA_ASSERT(addStatus.isGood());
 
-    // Add Method "Step"
-    sName = "Step";
-    sNodeId = UaString("%1.%2").arg(newNodeId.toString()).arg(sName);
-    m_pMethodStep = new UaMethodGeneric(sName, UaNodeId(sNodeId, nsIdx), m_defaultLocaleId);
-    addStatus = pNodeManager->addNodeAndReference(this, m_pMethodStep, OpcUaId_HasComponent);
-    UA_ASSERT(addStatus.isGood());
+        // Add arguments
+        pPropertyArg = new UaPropertyMethodArgument(
+                UaNodeId((std::string(sNodeId.toUtf8()) + "_" + m.second.first + "_args").c_str(),
+                         nsIdx), // NodeId of the property
+                Ua_AccessLevel_CurrentRead,             // Access level of the property
+                m.second.second.size(),                                      // Number of arguments
+                UaPropertyMethodArgument::INARGUMENTS); // IN arguments
+        for (size_t i = 0; i < m.second.second.size(); i++) {
+            pPropertyArg->setArgument(
+                    (OpcUa_UInt32) i,                       // Index of the argument
+                    std::get<0>(m.second.second[i]).c_str(),   // Name of the argument
+                    std::get<1>(m.second.second[i]),// Data type of the argument
+                    -1,                      // Array rank of the argument
+                    nullarray,               // Array dimensions of the argument
+                    UaLocalizedText("en", (std::get<2>(m.second.second[i])).c_str())); // Description
+        }
+        addStatus = pNodeManager->addNodeAndReference(m_MethodMap[UaNodeId(sNodeId, nsIdx)].first, pPropertyArg,
+                                                      OpcUaId_HasProperty);
+        UA_ASSERT(addStatus.isGood());
+    }
 }
 
 ACTObject::~ACTObject(void)
@@ -416,51 +489,35 @@ UaStatus ACTObject::call(
     MethodHandleUaNode* pMethodHandleUaNode = static_cast<MethodHandleUaNode*>(pMethodHandle);
     UaMethod*           pMethod             = NULL;
 
+    int numArgs;
+    OpcUa_UInt32 methodTypeID;
+
     if(pMethodHandleUaNode)
     {
         pMethod = pMethodHandleUaNode->pUaMethod();
 
-        if(pMethod)
-        {
-            // Check if we have the step() method
-            if ( pMethod->nodeId() == m_pMethodStep->nodeId())
-            {
-                // Number of input arguments must be 0
-                if ( inputArguments.length() > 0 )
-                    ret = OpcUa_BadInvalidArgument;
-                else
-                    ret = m_pCommIf->OperateDevice(PAS_ACTType, m_Identity);
+        if (m_MethodMap.find(pMethod->nodeId()) != m_MethodMap.end()) {
+            methodTypeID = m_MethodMap[pMethod->nodeId()].second;
+            numArgs = METHODS.at(methodTypeID).second.size();
+
+            if (inputArguments.length() != numArgs) {
+                ret = OpcUa_BadInvalidArgument;
+                return ret;
+            } else {
+                for (size_t i = 0; i < numArgs; i++) {
+                    // Type checking (currently not implemented)
+                    //if ( inputArguments[i].Datatype !=  )
+                    //{
+                    //ret = OpcUa_BadInvalidArgument;
+                    //inputArgumentResults[i] = OpcUa_BadTypeMismatch;
+                    //}
+                }
             }
-            // Check if we have the stop method
-            else if ( pMethod->nodeId() == m_pMethodStop->nodeId())
-            {
-                // Number of input arguments must be 0
-                if ( inputArguments.length() > 0 )
-                    ret = OpcUa_BadInvalidArgument;
-                else
-                    ret = m_pCommIf->setDeviceState(PAS_ACTType, m_Identity,
-                        PASState::PAS_Off );
-            }
-            // Check if we have the start method
-            else if ( pMethod->nodeId() == m_pMethodStart->nodeId())
-            {
-                // Number of input arguments must be 0
-                if ( inputArguments.length() > 0 )
-                    ret = OpcUa_BadInvalidArgument;
-                else
-                    ret = m_pCommIf->setDeviceState(PAS_ACTType, m_Identity,
-                        PASState::PAS_On );
-            }
-        }
-        else
-        {
-            assert(false);
+            ret = m_pCommIf->OperateDevice(PAS_ACTType, m_Identity, methodTypeID, inputArguments);
+        } else {
             ret = OpcUa_BadInvalidArgument;
         }
-    }
-    else
-    {
-        assert(false);
+    } else {
         ret = OpcUa_BadInvalidArgument;
     }
 
@@ -503,7 +560,7 @@ PSDObject::PSDObject(
     pDataItem = addVariable(pNodeManager, PAS_PSDType, PAS_PSDType_dy2);
     pDataItem = addVariable(pNodeManager, PAS_PSDType, PAS_PSDType_Temp);
 
-    // Add Method "StepAll"
+    // Add Method "Update"
     UaString sName = "Update";
     UaString sNodeId = UaString("%1.%2").arg(newNodeId.toString()).arg(sName);
     m_pMethodUpdate = new UaMethodGeneric(sName, UaNodeId(sNodeId, nsIdx), m_defaultLocaleId);

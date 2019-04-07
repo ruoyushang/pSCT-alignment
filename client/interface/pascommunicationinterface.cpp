@@ -47,10 +47,9 @@ PasCommunicationInterface::PasCommunicationInterface() :
 
 PasCommunicationInterface::~PasCommunicationInterface()
 {
-    // Signal Thread to stop
-    m_stop = OpcUa_True;
+    m_stop = OpcUa_True; // Signal Thread to stop
 
-    // free the allocated memory
+    // Free all allocated memory
     for (auto& controllers : m_pControllers)
     {
         while (!controllers.second.empty())
@@ -60,12 +59,12 @@ PasCommunicationInterface::~PasCommunicationInterface()
         }
     }
 
-    cout << "\nclosed and cleaned up CommIf" << endl;
+    std::cout << "Closed and cleaned up PasCommunicationInterface\n";
 }
 
 UaStatusCode PasCommunicationInterface::Initialize()
 {
-    // initialize devices communicating directly with the server
+    // Initialize devices communicating directly with the Alignment server (p2pasclient)
 
     // currently, only GAS CCDs need to be intialized.
     // find what's on the network and compare it to what's expected
@@ -81,7 +80,6 @@ UaStatusCode PasCommunicationInterface::Initialize()
         serial2ip[serial] = ip;
     }
 
-    // getDeviceList is just a reference to the map at index DeviceType. need to be careful here
     try {
         for (const auto& CCD : m_pConfiguration->getDeviceList(PAS_CCDType)) {
             try {
@@ -120,6 +118,9 @@ const Identity PasCommunicationInterface::addDevice(Client *pClient, OpcUa_UInt3
     // check if object already exists -- this way, passing the same object multiple times won't
     // actually add it multiple times
 
+    std::cout << "Attempting to create controller for device with type " << deviceType << " and with Identity "
+              << identity << std::endl;
+
     Identity addedId;
 
     PasController *pController = nullptr;
@@ -140,7 +141,9 @@ const Identity PasCommunicationInterface::addDevice(Client *pClient, OpcUa_UInt3
         pController = new PasPSD(identity, pClient);
     else if (deviceType == GLOB_PositionerType)
         pController = new ControlPositioner(identity, pClient);
-    else return addedId;
+    else {
+        return addedId;
+    }
 
     // get the complete id before testing whether it already exists
     addedId = pController->getId();

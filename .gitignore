@@ -24,7 +24,6 @@
 *.*~
 *.swp
 *.swo
-=======
 *.o
 
 # IDE Files
@@ -37,5 +36,8 @@ doxygen/latex
 
 # Unnecessary SDK files
 sdk/examples
-sdk/buildServerRelease*
-sdk/buildClientRelease*
+sdk/buildServerRelease/
+sdk/buildServerReleaseSIMMODE/
+sdk/buildClientRelease/
+sdk/buildServerReleaseSIMMODE/
+sdk/bin

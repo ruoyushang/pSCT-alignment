@@ -40,8 +40,8 @@
 # managers: a list of hosts to be granted the access rights.
 #    Each can be expressed as any one of the following:
 #    - hostname: hubble
-#    - ip v4 and v6 addresses: 123.456.789.12 , fe80::a00:20ff:fe9b:ea82
-#    - ip v4 and v6 netmask prefix notation: 123.456.789.0/24, 
+#    - host v4 and v6 addresses: 123.456.789.12 , fe80::a00:20ff:fe9b:ea82
+#    - host v4 and v6 netmask prefix notation: 123.456.789.0/24,
 #         fe80::a00:20ff:fe9b:ea82/64  
 #      see RFC 2373 (http://www.ietf.org/rfc/rfc2373.txt)
 #

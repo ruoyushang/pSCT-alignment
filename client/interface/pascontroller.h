@@ -180,6 +180,8 @@ public:
     UaStatusCode getState(PASState& state);
     UaStatusCode getData(OpcUa_UInt32 offset, UaVariant& value);
 
+    UaStatusCode getError(OpcUa_UInt32 offset, UaVariant &value);
+
     // set Controller status and data
     UaStatusCode setState(PASState state);
     UaStatusCode setData(OpcUa_UInt32 offset, UaVariant value);
@@ -188,7 +190,7 @@ public:
 private:
     OpcUa_Float m_DeltaL;
 
-    UaStatus moveDelta();
+    UaStatus moveDelta(const UaVariantArray &args);
 };
 /*===========================================================================*/
 /* Panel class, part of the PAS family of devices.                        */
@@ -319,7 +321,7 @@ public:
     UaStatusCode Operate(OpcUa_UInt32 offset = 0, const UaVariantArray &args = UaVariantArray());
 
 private:
-    PASState m_state = PASState::PAS_Off;
+    PASState m_state = PASState::Off;
     bool m_updated = false;
 
     UaStatus read();

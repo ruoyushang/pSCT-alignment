@@ -3,7 +3,7 @@
 //
 
 #include "DBConfig.hpp"
-
+#include <string>
 
 void DBConfig::overwriteDefaultValues(DBConfig *configptr)
 {

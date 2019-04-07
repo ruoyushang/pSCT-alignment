@@ -2,8 +2,8 @@
  * mpesclass.cpp MPES Control
  */
 
-#include "MPESImage.h"
-#include "MPESDevice.h"
+#include "common/mpescode/MPESImage.h"
+#include "common/mpescode/MPESDevice.h"
 #include "mpesclass.hpp"
 #include "actuator.hpp"
 #include <unistd.h>
@@ -101,6 +101,16 @@ bool MPES::Initialize()
     Safety_Region_y_max = 200.0;
 
     return true;
+}
+
+int MPES::setxNominalPosition(float x) {
+    m_position.xNominal = x;
+    return 0;
+}
+
+int MPES::setyNominalPosition(float y) {
+    m_position.yNominal = y;
+    return 0;
 }
 
 // find and set optimal exposure -- assume I(e) is linear
