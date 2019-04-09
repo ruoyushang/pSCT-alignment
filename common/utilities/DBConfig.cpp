@@ -33,7 +33,7 @@ std::string DBConfig::getHost()
 }
 void DBConfig::setHost(std::string const& host)
 {
-    if (host != NULL)
+    if (!host.empty())
         host_name = host;
 }
 
@@ -44,7 +44,7 @@ std::string DBConfig::getUser()
 }
 void DBConfig::setUser(std::string const& user)
 {
-    if (user != NULL)
+    if (!user.empty())
         user_name = user;
 }
 
@@ -55,7 +55,7 @@ std::string DBConfig::getPassword()
 }
 void DBConfig::setPassword(std::string const& pw)
 {
-    if (pw != NULL)
+    if (!pw.empty())
         password = pw;
 }
 
@@ -66,7 +66,7 @@ std::string DBConfig::getDatabase()
 }
 void DBConfig::setDatabase(std::string const& db)
 {
-    if (db != NULL)
+    if (!db.empty())
         db_name = db;
 }
 
@@ -87,7 +87,7 @@ std::string DBConfig::getSocket()
 }
 void DBConfig::setSocket(std::string const& socket)
 {
-    if (socket != NULL)
+    if (!socket.empty())
         socket_name = socket;
 }
 

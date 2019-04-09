@@ -28,25 +28,32 @@ public:
     void overwriteDefaultValues(DBConfig *configptr);
 
     std::string getHost();
-    void setHost(const char *host);
+
+    void setHost(std::string const &host);
 
     std::string getUser();
-    void setUser(const char *user);
+
+    void setUser(std::string const &user);
 
     std::string getPassword();
-    void setPassword(const char *pw);
+
+    void setPassword(std::string const &pw);
 
     std::string getDatabase();
-    void setDatabase(const char *db);
+
+    void setDatabase(std::string const &db);
 
     std::string getPort();
-    void setPort(const char *port);
+
+    void setPort(std::string const &port);
 
     std::string getSocket();
-    void setSocket(const char *socket);
+
+    void setSocket(std::string const &socket);
 
     std::string getFlags();
-    void setFlags(const char *flg);
+
+    void setFlags(std::string const &flg);
 
     static DBConfig getDefaultConfig();
 
