@@ -750,11 +750,20 @@ UaStatusCode PasPanel::Operate(OpcUa_UInt32 offset, const UaVariantArray &args)
             val.setDouble(m_SP.GetActLengths()[act.first - 1]);
             pACT.at(act.second)->setData(PAS_ACTType_inLength_mm, val);
         }
+
+        bool collision_flag = __willSensorsBeOutOfRange();
+        if (collision_flag) cout << "Error: Sensors will go out of range! Motion cancelled." << endl;
+
 #ifndef SIMMODE
-        status =  __moveTo();
+        if (!collision_flag) {
+            status =  __moveTo();
+        }
 #else
-        for (int i = 0; i < 6; i++)
-            m_curCoords[i] = m_inCoords[i];
+        for (int i = 0; i < 6; i++) {
+            if (!collision_flag) {
+                m_curCoords[i] = m_inCoords[i];
+            }
+        }
 #endif
         PASState state;
         getState(state);
@@ -793,66 +802,25 @@ UaStatusCode PasPanel::Operate(OpcUa_UInt32 offset, const UaVariantArray &args)
 
         }
 
-        //Ruo, try to estimate new laser spot positions after actuators move
+        bool collision_flag = __willSensorsBeOutOfRange();
+        if (collision_flag) cout << "Panel will collide!!! Motion cancelled!!!" << endl;
 
-        ///
-        /// This part predicts the new laser spot positions before we move the actuators.
-        /// Will make a new function of this and allow all actuator operations to call this function before moving.
-        ///
-        MatrixXd A; // response matrix
-        VectorXd X; // actuator delta length
-        VectorXd W; // sensor current position
-        VectorXd Y; // sensor delta
-        VectorXd Z; // sensor new position = Y + current sensor reading
-        VectorXd V; // aligned sensor reading
-        for(auto elem :m_pChildren)
+
+        if (!collision_flag) 
         {
-               std::cout << "Ruo, child of a panel: " << elem.first << "\n";
-               for (auto elem2nd :elem.second)
-               {
-                        std::cout << " " << elem2nd->getId() << "\n";
-               }
-        }
-        for (int edge2align=0; edge2align<m_pChildren.at(PAS_EdgeType).size(); edge2align++)
-        {
-                PasEdge* edge = static_cast<PasEdge *> (m_pChildren.at(PAS_EdgeType).at(edge2align));
-                //edge->Operate(PAS_EdgeType_Read);
-                edge->getAlignedReadings();
-                //cout << "\nTarget MPES readings:\n" << m_AlignedReadings << endl << endl;
-                A = edge->getResponseMatrix(m_ID.position);
-                W = edge->getCurrentReadings();
-                V = edge->getAlignedReadings();
-                cout << "Looking at edge " << edge->getId() << endl;
-                cout << "\nActuator response matrix for this edge:\n" << A << endl;
-                //m_SP.GetActLengths() is the new act length
-                //m_ActuatorLengths is the current act length
-                VectorXd newLengths(6);
-                for (unsigned i = 0; i < 6; i++)
-                    newLengths(i) = m_SP.GetActLengths()[i];
-                cout << "New Act length is \n" << newLengths << endl;
-                cout << "Current Act length is \n" << m_ActuatorLengths << endl;
-                X = newLengths-m_ActuatorLengths;
-                cout << "Delta Act length will be \n" << X << endl;
-                Y = A*X;
-                Z = Y+W;
-                cout << "The new sensor coordinates (x, y) will be:\n" << Z << endl;
-                cout << "\n will deviate from the aligned position by\n" << Z-V << endl;
-        }
-        //Ruo
+            m_SP.ComputeStewart(actLengths);
+            cout << "\n\tThe new panel coordinates (x, y ,z xRot, yRot, zRot) will be:\n\t\t";
+            for (int i = 0; i < 6; i++) {
+                cout << m_SP.GetPanelCoords()[i] << " ";
+                m_inCoords[i] = m_SP.GetPanelCoords()[i];
+            }
+            cout << endl;
+            cout << "Input actuator lengths and input panel coords updated accordingly. "
+                << "Call " << m_ID.name << ".MoveToActs or .MoveToCoords to move this panel." << endl;
 
-
-        m_SP.ComputeStewart(actLengths);
-        cout << "\n\tThe new panel coordinates (x, y ,z xRot, yRot, zRot) will be:\n\t\t";
-        for (int i = 0; i < 6; i++) {
-            cout << m_SP.GetPanelCoords()[i] << " ";
-            m_inCoords[i] = m_SP.GetPanelCoords()[i];
-        }
-        cout << endl;
-        cout << "Input actuator lengths and input panel coords updated accordingly. "
-            << "Call " << m_ID.name << ".MoveToActs or .MoveToCoords to move this panel." << endl;
-
-        if (offset == PAS_PanelType_StepAll_move) { // actually move the panel
-            status = m_pClient->callMethod(string("ns=2;s=Panel_0"), UaString("MoveTo"));
+            if (offset == PAS_PanelType_StepAll_move) { // actually move the panel
+                status = m_pClient->callMethod(string("ns=2;s=Panel_0"), UaString("MoveTo"));
+            }
         }
     }
 
@@ -948,11 +916,11 @@ bool PasPanel::__willSensorsBeOutOfRange()
         for (int edge2align=0; edge2align<m_pChildren.at(PAS_EdgeType).size(); edge2align++)
         {
                 PasEdge* edge = static_cast<PasEdge *> (m_pChildren.at(PAS_EdgeType).at(edge2align));
-                edge->getAlignedReadings();
-                //cout << "\nTarget MPES readings:\n" << m_AlignedReadings << endl << endl;
                 M_response = edge->getResponseMatrix(m_ID.position);
                 Sen_current = edge->getCurrentReadings();
+                cout << "\nCurrent MPES readings:\n" << Sen_current << endl << endl;
                 Sen_aligned = edge->getAlignedReadings();
+                cout << "\nTarget MPES readings:\n" << Sen_aligned << endl << endl;
                 cout << "Looking at edge " << edge->getId() << endl;
                 cout << "\nActuator response matrix for this edge:\n" << M_response << endl;
                 //m_SP.GetActLengths() is the new act length

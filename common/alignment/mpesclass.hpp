@@ -47,7 +47,7 @@ class MPES
 
         int GetPortNumber() const {return m_USBPortNumber; };
 
-protected:
+    protected:
         CBC* m_pCBC;
 
         int m_USBPortNumber;
@@ -77,11 +77,10 @@ class DummyMPES : public MPES
         public:
         DummyMPES();
         DummyMPES(CBC* input_cbc, int input_USBPortNumber, int input_MPES_ID) : MPES(input_cbc, input_USBPortNumber, input_MPES_ID) {};
-
-    bool Initialize();
+        bool Initialize();
         int setExposure();
+        int MeasurePosition();
 
-    int MeasurePosition();
 };
 
 #endif
