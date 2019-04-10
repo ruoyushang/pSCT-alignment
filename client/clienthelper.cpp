@@ -285,7 +285,7 @@ UaStatus Client::write(std::vector<std::string> sNodeNames, const UaVariant *val
 }
 
 
-UaStatus Client::callMethod(std::string sNodeName, UaString sMethod)
+UaStatus Client::callMethod(std::string sNodeName, UaString sMethod, const UaVariantArray &args)
 {
     UaStatus          status;
     CallIn            callRequest;
@@ -312,6 +312,7 @@ UaStatus Client::callMethod(std::string sNodeName, UaString sMethod)
 
     callRequest.objectId = nodes[0];
     callRequest.methodId = nodes[1];
+    callRequest.inputArguments = args;
 
     serviceSettings.callTimeout = 2000*60; // call timeout in ms; set to 2 minutes
     status = m_pSession->call(serviceSettings, callRequest, callResult);
@@ -326,7 +327,7 @@ UaStatus Client::callMethod(std::string sNodeName, UaString sMethod)
     return status;
 }
 
-UaStatus Client::callMethodAsync(std::string sNodeName, UaString sMethod)
+UaStatus Client::callMethodAsync(std::string sNodeName, UaString sMethod, const UaVariantArray &args)
 {
     UaStatus          status;
     CallIn            callRequest;
@@ -352,8 +353,8 @@ UaStatus Client::callMethodAsync(std::string sNodeName, UaString sMethod)
 
     callRequest.objectId = nodes[0];
     callRequest.methodId = nodes[1];
+    callRequest.inputArguments = args;
 
-    serviceSettings.callTimeout = 0.; // call timeout in ms; set to 0 -- never times out
     status = m_pSession->beginCall(serviceSettings, callRequest, m_TransactionId);
 
     if ( status.isBad() )
@@ -404,7 +405,7 @@ UaStatus Client::recurseAddressSpace(const UaNodeId& nodeToBrowse, OpcUa_UInt32 
     browseContext.includeSubtype = OpcUa_True;
     browseContext.maxReferencesToReturn = maxReferencesToReturn;
 
-    // printf("\nBrowsing from Node %s...\n", nodeToBrowse.toXmlString().toUtf8());
+    //printf("\nBrowsing from Node %s...\n", nodeToBrowse.toXmlString().toUtf8());
     result = m_pSession->browse(serviceSettings, nodeToBrowse, browseContext,
             continuationPoint, referenceDescriptions);
 
@@ -456,14 +457,15 @@ void Client::addDevices(const OpcUa_ReferenceDescription& referenceDescription)
 
     std::map<OpcUa_UInt32, std::string> typeNamesMap = {{PAS_MPESType, "MPES"}, {PAS_ACTType, "ACT"}, {PAS_PSDType, "PSD"}};
 
-        OpcUa_UInt32 type;
+    OpcUa_UInt32 type;
     std::string name;
     for (const auto& it_typeNameMap : typeNamesMap) {
         type = it_typeNameMap.first;
         name = it_typeNameMap.second;
         // if (TYPE) and (in a folder) (as opposed to, say notification area)
-        if (referenceDescription.TypeDefinition.NodeId.Identifier.Numeric == type
-                && referenceDescription.ReferenceTypeId.Identifier.Numeric == OpcUaId_Organizes) 
+        //if (referenceDescription.TypeDefinition.NodeId.Identifier.Numeric == type
+        //        && referenceDescription.ReferenceTypeId.Identifier.Numeric == OpcUaId_Organizes)
+        if (referenceDescription.TypeDefinition.NodeId.Identifier.Numeric == type)
         {
             // get the node name of the object we're connecting to!
             sprintf(sTemp, "ns=%d;s=%s",
@@ -481,7 +483,7 @@ void Client::addDevices(const OpcUa_ReferenceDescription& referenceDescription)
             printf("=====================================\n");
             printBrowseResults(referenceDescription);
             printf("will add %s %d as %s\n", name.c_str(), identity.serialNumber, identity.eAddress.c_str());
-            ((PasCommunicationInterface*)m_pNodeManager->getComInterface())->addDevice(this, type, identity);
+            ((PasCommunicationInterface *) m_pNodeManager->getComInterface().get())->addDevice(this, type, identity);
         }
     }
 }

@@ -1,5 +1,5 @@
 // file manipulation and console i/o
-#include "ccdclass.h"
+#include "common/globalalignment/ccdclass.h"
 #include <iostream>
 #include <fstream>
 #include <sstream>

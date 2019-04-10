@@ -24,14 +24,14 @@
 #include <chrono>
 
 // prebuilt Camera interface
-#include "AravisCamera.h"
+#include "common/alignment/ccd/AravisCamera.h"
 
 // the work horse class designed to be a single thread
-#include "CamOutThread.h"
+#include "common/alignment/ccd/CamOutThread.h"
 
 // the i/o structure (should mirror the database and inputs only written from the start)
-#include "LEDinputs.h"
-#include "LEDoutputs.h"
+#include "common/alignment/ccd/LEDinputs.h"
+#include "common/alignment/ccd/LEDoutputs.h"
 
 // save some typing with sin/endl/cout
 using namespace std;

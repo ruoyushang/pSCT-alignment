@@ -37,6 +37,4 @@ count=$((${#PANELS[@]}))
 
 printf "Starting client...\n"
 
-opcua-client &>> /dev/null &
-
-../sdk/bin/p2pasclient "${PANELS[@]}"
+../sdk/bin/p2pasclient "${PANELS[@]}" | tee "$HOME/logs/p2pasclient_log_`date +%Y%m%d%H%M%S`.txt"

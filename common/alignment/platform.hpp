@@ -2,11 +2,12 @@
 #define PLATFORM_H
 
 #ifdef _AMD64
-    #include "dummycbc.hpp"
+
+#include "common/cbccode/dummycbc.hpp"
     #warning "Compiling for AMD64 -- setting CBC to DummyCBC"
     #define CBC DummyCBC
 #else
-    #include "cbc.hpp"
+#include "common/cbccode/cbc.hpp"
 #endif
 
 #include "actuator.hpp"
@@ -17,13 +18,22 @@
 
 
 // hack to be able to stop mid motion
-enum class PlatformState {On = 0, Off = 1, Busy = 2, Error = 3};
+/**
+ * @brief This is the platform class.
+*/
+enum class PlatformState {
+    On = 0,
+    Off = 1,
+    Busy = 2,
+    OperableError = 3,
+    FatalError = 4
+};
 
 class Platform
 {
 public:
 
-Actuator::StatusModes ErrorStatus {Actuator::Healthy};
+    Actuator::StatusModes ErrorStatus{Actuator::StatusModes::Healthy};
 
 bool DisallowMovement{false};
 CBC cbc;
@@ -39,21 +49,21 @@ int CBCSerialNumber{0};
 Actuator::DBStruct DBInfo;
 
 std::vector<Actuator::ErrorInfo> PlatformErrors{
-{false, "Actuator 0 Operable Error", Actuator::OperableError},
-{false, "Actuator 0 Fatal Error", Actuator::FatalError},
-{false, "Actuator 1 Operable Error", Actuator::OperableError},
-{false, "Actuator 1 Fatal Error", Actuator::FatalError},
-{false, "Actuator 2 Operable Error", Actuator::OperableError},
-{false, "Actuator 2 Fatal Error", Actuator::FatalError},
-{false, "Actuator 3 Operable Error", Actuator::OperableError},
-{false, "Actuator 3 Fatal Error", Actuator::FatalError},
-{false, "Actuator 4 Operable Error", Actuator::OperableError},
-{false, "Actuator 4 Fatal Error", Actuator::FatalError},
-{false, "Actuator 5 Operable Error", Actuator::OperableError},
-{false, "Actuator 5 Fatal Error", Actuator::FatalError},
-{false, "Attempt to move out of Software Range", Actuator::OperableError},//error 12
-{false, "DBFlagNotSet", Actuator::OperableError},//error 13
-{false, "MySQL Communication Error", Actuator::OperableError}//error 14
+        {false, "Actuator 0 Operable Error",             Actuator::StatusModes::OperableError},
+        {false, "Actuator 0 Fatal Error",                Actuator::StatusModes::FatalError},
+        {false, "Actuator 1 Operable Error",             Actuator::StatusModes::OperableError},
+        {false, "Actuator 1 Fatal Error",                Actuator::StatusModes::FatalError},
+        {false, "Actuator 2 Operable Error",             Actuator::StatusModes::OperableError},
+        {false, "Actuator 2 Fatal Error",                Actuator::StatusModes::FatalError},
+        {false, "Actuator 3 Operable Error",             Actuator::StatusModes::OperableError},
+        {false, "Actuator 3 Fatal Error",                Actuator::StatusModes::FatalError},
+        {false, "Actuator 4 Operable Error",             Actuator::StatusModes::OperableError},
+        {false, "Actuator 4 Fatal Error",                Actuator::StatusModes::FatalError},
+        {false, "Actuator 5 Operable Error",             Actuator::StatusModes::OperableError},
+        {false, "Actuator 5 Fatal Error",                Actuator::StatusModes::FatalError},
+        {false, "Attempt to move out of Software Range", Actuator::StatusModes::OperableError},//error 12
+        {false, "DBFlagNotSet",                          Actuator::StatusModes::OperableError},//error 13
+        {false, "MySQL Communication Error",             Actuator::StatusModes::OperableError}//error 14
 };
 
 int NumberOfErrorCodes{(int) PlatformErrors.size()};

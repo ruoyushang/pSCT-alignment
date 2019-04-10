@@ -18,9 +18,9 @@ public:
         user_name.clear();
         password.clear();
         db_name.clear();
-        port_num = 0;
+        port_num.clear();
         socket_name.clear();
-        flags = 0;
+        flags.clear();
     };
 
     ~DBConfig() {}
@@ -28,25 +28,32 @@ public:
     void overwriteDefaultValues(DBConfig *configptr);
 
     std::string getHost();
-    void setHost(const char *host);
+
+    void setHost(std::string const &host);
 
     std::string getUser();
-    void setUser(const char *user);
+
+    void setUser(std::string const &user);
 
     std::string getPassword();
-    void setPassword(const char *pw);
+
+    void setPassword(std::string const &pw);
 
     std::string getDatabase();
-    void setDatabase(const char *db);
 
-    unsigned int getPort();
-    void setPort(unsigned int port);
+    void setDatabase(std::string const &db);
+
+    std::string getPort();
+
+    void setPort(std::string const &port);
 
     std::string getSocket();
-    void setSocket(const char *socket);
 
-    unsigned int getFlags();
-    void setFlags(unsigned int flg);
+    void setSocket(std::string const &socket);
+
+    std::string getFlags();
+
+    void setFlags(std::string const &flg);
 
     static DBConfig getDefaultConfig();
 
@@ -60,9 +67,9 @@ private:
     std::string user_name;
     std::string password;
     std::string db_name;
-    unsigned int port_num;
+    std::string port_num;
     std::string socket_name;
-    unsigned int flags;
+    std::string flags;
     static DBConfig *currentconfig;
 };
 

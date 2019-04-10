@@ -2,6 +2,7 @@
 #include "mathtools.h"
 #include "mirrordefinitions.h" // definitions of the mirror surfaces
 #include "AGeoAsphericDisk.h" // ROBAST dependency
+#include <algorithm> // std::count
 #include <string>
 #include <cmath>
 #include <deque>
@@ -10,8 +11,8 @@
 // implementation of the mirror class that controls the whole mirror.
 // math, algorithms and all that coordinate stuff go here
 
-using namespace Eigen;
 using namespace std;
+using namespace Eigen;
 using namespace SCT; // mirrordefinitions.h
 
 PasMirror *PasMirrorCompute::Mirror = nullptr;
@@ -28,7 +29,7 @@ PasMirror::PasMirror(Identity identity) : PasCompositeController(identity, nullp
         mirrorprefix = "Unknown";
     m_ID.name = mirrorprefix + "Mirror";
 
-    m_state = PASState::PAS_On;
+    m_state = PASState::On;
 
     // define possible children and initialize the selected children string
     m_ChildrenTypes = {PAS_PanelType, PAS_EdgeType, PAS_MPESType};
@@ -202,7 +203,7 @@ PasMirror::~PasMirror()
         for (auto &dev : devVector.second)
             dev = nullptr;
 
-    m_state = PASState::PAS_Off;
+    m_state = PASState::Off;
 }
 
 UaStatusCode PasMirror::getState(PASState& state)
@@ -509,11 +510,11 @@ void PasMirror::__alignAll(unsigned start_idx, const set<unsigned>& need_alignme
     deque<unsigned> already_aligned {}; // yes, deque, not vector!
 
     unsigned cur_idx = start_idx;
-    while (need_alignment.find(cur_idx) != need_alignment.end() && (m_state == PASState::PAS_On)) {
+    while (need_alignment.find(cur_idx) != need_alignment.end() && (m_state == PASState::On)) {
         already_aligned.push_front(cur_idx);
         // align all the preceding panels
         for (unsigned edge : already_aligned) {
-            if ( m_state != PASState::PAS_On ) break;
+            if (m_state != PASState::On) break;
             // figure out which panel is "greater" and which one is "smaller" in the sense
             // of dir, assuming a two-panel edge for now.
             // get vector of panel positions:
@@ -534,7 +535,7 @@ void PasMirror::__alignAll(unsigned start_idx, const set<unsigned>& need_alignme
 
                 PASState curstate;
                 m_pChildren.at(PAS_PanelType).at(movingPanel_idx)->getState(curstate);
-                while (curstate == PASState::PAS_Busy) {
+                while (curstate == PASState::Busy) {
                     cout << "\tPanel " << curPanels.at(0) << " moving..." << endl;
                     usleep(200*1000); // microseconds
                     m_pChildren.at(PAS_PanelType).at(movingPanel_idx)->getState(curstate);
@@ -740,107 +741,100 @@ void PasMirror::__alignSector()
 
     VectorXd X; // solutions vector -- this moves actuators
     VectorXd Y; // sensor misalignment vector, we want to fit this
-    // grab all panels to move and sensors to which we want to fit
+
+    // grab all user specified panels to move and sensors to fit
     vector<PasPanel*> panelsToMove;
     vector<PasMPES*> alignMPES;
     for (unsigned idx : m_SelectedChildren.at(PAS_PanelType))
         panelsToMove.push_back(static_cast<PasPanel *>(m_pChildren.at(PAS_PanelType).at(idx)));
-    for (unsigned idx : m_SelectedChildren.at(PAS_MPESType))
-        alignMPES.push_back(static_cast<PasMPES *>(m_pChildren.at(PAS_MPESType).at(idx)));
-
-    VectorXd cur_alignRead(2*alignMPES.size());
-    VectorXd target_alignRead(2*alignMPES.size());
-
-    // get align sensor readings
-    unsigned visible = 0;
-    UaVariant vtmp;
-    for (auto& mpes : alignMPES) {
+    for (unsigned idx : m_SelectedChildren.at(PAS_MPESType)) {
+        PasMPES  *mpes = static_cast<PasMPES *>(m_pChildren.at(PAS_MPESType).at(idx));
         mpes->Operate();
-        if ( !mpes->isVisible() ) continue;
-
-        mpes->getData(PAS_MPESType_xCentroidAvg, vtmp);
-        vtmp.toDouble(cur_alignRead(visible*2));
-        mpes->getData(PAS_MPESType_yCentroidAvg, vtmp);
-        vtmp.toDouble(cur_alignRead(visible*2 + 1));
-
-        target_alignRead.segment(2*visible, 2) = mpes->getAlignedReadings() - mpes->getSystematicOffsets();
-        ++visible;
-    }
-    cur_alignRead.conservativeResize(2*visible);
-    target_alignRead.conservativeResize(2*visible);
-
-    // make sure we have enough constraints to solve this
-    if (visible < 3) {
-        cout << "+++ ERROR! +++ Not enough sensors to constrain the motion. Won't do anything!" << endl;
-        return;
+        if (mpes->isVisible())
+            alignMPES.push_back(mpes);
     }
 
-    // get the overlapping sensors -- these are the constraining ones
-    std::set<unsigned> overlapIndices;
-    vector<PasMPES *> overlapMPES;
+    // get the overlapping sensors -- these are the constraining internal ones
+    set<unsigned> overlapIndices;
+    unsigned idx;
+    bool userOverlap = false;
     for (const auto& panel : panelsToMove) {
         for (const auto& mpes : panel->getChildren(PAS_MPESType)) {
             unsigned overlap = 0;
             for (const auto& overlapPanel : panelsToMove)
                 overlap += (static_cast<PasMPES *>(mpes)->getPanelSide(overlapPanel->getId().position) != 0);
-
-            if (overlap == 2)
-                overlapIndices.insert(m_ChildrenIdentityMap.at(PAS_MPESType).at(mpes->getId()));
+        
+            if (overlap == 2) {
+                idx = m_ChildrenIdentityMap.at(PAS_MPESType).at(mpes->getId());
+                if (!overlapIndices.count(idx)) {
+                    overlapIndices.insert(idx);
+                    if (count(alignMPES.begin(), alignMPES.end(), mpes)) {
+                        cout << "You specified the following internal MPES: " << mpes->getId().serialNumber << endl;
+                        userOverlap = true;
+                    }
+                }
+            }
         }
     }
-    // get the overlapping sensor devices and their readings
-    visible = 0;
 
-    VectorXd cur_overlapRead(2*overlapIndices.size());
-    VectorXd target_overlapRead(2*overlapIndices.size());
-    for (const auto& idx: overlapIndices) {
-        PasMPES *mpes = static_cast<PasMPES *>(m_pChildren.at(PAS_MPESType).at(idx));
-        mpes->Operate();
-        if ( !mpes->isVisible() ) continue;
-
-        overlapMPES.push_back(mpes);
-
-        mpes->getData(PAS_MPESType_xCentroidAvg, vtmp);
-        vtmp.toDouble(cur_overlapRead(visible*2));
-        mpes->getData(PAS_MPESType_yCentroidAvg, vtmp);
-        vtmp.toDouble(cur_overlapRead(visible*2 + 1));
-
-        target_overlapRead.segment(2*visible, 2) = mpes->getAlignedReadings() - mpes->getSystematicOffsets();
-
-        ++visible;
+    // if no user specified overlapping sensors, get their readings
+    if (!userOverlap && overlapIndices.size() > 0) {
+        cout << "\nNo user-speficied internal MPES." << endl;
+        cout << "Reading the automatically identfied internal MPES:" << endl;
+        // only read the internal MPES if no user-specified ones have been found
+        for (const auto& idx: overlapIndices) {
+            PasMPES *mpes = static_cast<PasMPES *>(m_pChildren.at(PAS_MPESType).at(idx));
+            mpes->Operate();
+            if ( mpes->isVisible() )
+                alignMPES.push_back(mpes);
+        }
     }
-    cur_overlapRead.conservativeResize(2*visible);
-    target_overlapRead.conservativeResize(2*visible);
-    Y = VectorXd(cur_alignRead.size() + cur_overlapRead.size());
-    Y.head(cur_alignRead.size()) = target_alignRead - cur_alignRead;
-    Y.tail(cur_overlapRead.size()) = target_overlapRead - cur_overlapRead;
-
-    if (overlapMPES.size() > 0) {
-        cout << "\nIdentified the following overlapping MPES:" << endl;
-        for (auto& mpes : overlapMPES)
-            cout << mpes->getId().serialNumber << " ";
-    }
+    else if (overlapIndices.size() == 0)
+        cout << "\nIdentified NO internal MPES. Are you alignining a single panel?";
     else
-        cout << "\nIdentified NO overlapping MPES. Are you alignining a single panel?";
+        cout << "\nWill be using user-specified internal MPES.";
     cout << endl;
 
-    // get response matrices
-    // get the complete vector of sensors
-    alignMPES.insert(alignMPES.end(), overlapMPES.begin(), overlapMPES.end());
+
+    cout << "Will align the following panels:" << endl;
+    for (auto& panel : panelsToMove)
+        cout << panel->getId().position << " ";
+    cout << endl;
+    cout << "Will use the following sensors for alignment:" << endl;
+    for (auto& mpes: alignMPES)
+        cout << mpes->getId().serialNumber << " ";
+    cout << endl;
+
+    // construct the overall target vector and the response matrix
+    UaVariant vtmp;
+    // store the current readings and the target readings
+    VectorXd curRead(2*alignMPES.size());
+    VectorXd targetRead(2*alignMPES.size());
+    // store individual response matrix;
+    MatrixXd responseMat(2, 6);
+
     unsigned nCols = 6*panelsToMove.size();
     unsigned nRows = 2*alignMPES.size();
     B = MatrixXd(nRows, nCols);
-    MatrixXd responseMat(2, 6);
-    for (unsigned i = 0; i < alignMPES.size(); i++) {
-        for (unsigned j = 0; j < panelsToMove.size(); j++) {
-            auto panelSide = alignMPES.at(i)->getPanelSide(panelsToMove.at(j)->getId().position);
+    Y = VectorXd(nRows);
+    for (int m = 0; m < alignMPES.size(); m++) {
+        alignMPES.at(m)->getData(PAS_MPESType_xCentroidAvg, vtmp);
+        vtmp.toDouble(curRead(m*2));
+        alignMPES.at(m)->getData(PAS_MPESType_yCentroidAvg, vtmp);
+        vtmp.toDouble(curRead(m*2 + 1));
+        targetRead.segment(2*m, 2) = alignMPES.at(m)->getAlignedReadings()
+                                           - alignMPES.at(m)->getSystematicOffsets();
+
+        for (int p = 0; p < panelsToMove.size(); p++) {
+            auto panelSide = alignMPES.at(m)->getPanelSide(panelsToMove.at(p)->getId().position);
             if (panelSide)
-                responseMat = alignMPES.at(i)->getResponseMatrix(panelSide);
+                responseMat = alignMPES.at(m)->getResponseMatrix(panelSide);
             else
-                responseMat.setZero();
-            B.block(2*i, 6*j, 2, 6) = responseMat;
+                responseMat.setZero(); 
+            B.block(2*m, 6*p, 2, 6) = responseMat;
         }
     }
+    Y = targetRead - curRead;
 
     // make sure we have enough constraints to solve this
     if (Y.size() < B.cols()) {
@@ -894,8 +888,8 @@ void PasMirror::__alignGlobal(unsigned fixPanel)
     // first, find which ring we are on:
     unsigned ring = SCTMath::Ring(fixPanel);
     unsigned mirror = SCTMath::Mirror(fixPanel);
-
-    unsigned numPanels;
+    
+    unsigned numPanels = 0;
     if (mirror != m_ID.position) {
         cout << "+++ ERROR +++ The entered fixPanel position is wrong! Check it and try again."
             << endl;

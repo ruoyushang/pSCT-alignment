@@ -20,10 +20,9 @@ import logging
 import argparse
 import subprocess
 import os
-import signal
 import re
 
-from opcua import ua, Server
+from opcua import Server
 #the client is used to get RA Dec from the drive system
 from opcua import Client
 

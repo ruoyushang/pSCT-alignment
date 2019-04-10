@@ -125,6 +125,21 @@
 #define PAS_ACTType_Start                           2111
 #define PAS_ACTType_Stop                            2112
 #define PAS_ACTType_Step                            2113
+// Error variable declarations
+#define PAS_ACTType_Error0                          2900
+#define PAS_ACTType_Error1                          2901
+#define PAS_ACTType_Error2                          2902
+#define PAS_ACTType_Error3                          2903
+#define PAS_ACTType_Error4                          2904
+#define PAS_ACTType_Error5                          2905
+#define PAS_ACTType_Error6                          2906
+#define PAS_ACTType_Error7                          2907
+#define PAS_ACTType_Error8                          2908
+#define PAS_ACTType_Error9                          2909
+#define PAS_ACTType_Error10                         2910
+#define PAS_ACTType_Error11                         2911
+#define PAS_ACTType_Error12                         2912
+#define PAS_ACTType_Error13                         2913
 //----------------------------------------------------------//
 //
 // Optical Table Type

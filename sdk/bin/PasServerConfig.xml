@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<OpcServerConfig xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+<OpcServerConfig>
     <UaServerConfig>
         <!--Trace configuration
             This part of the configuration defines the trace settings for OPC UA Stack and OPC UA Application.-->
@@ -134,7 +134,7 @@
                  This URL is used for Discovery and to open the Endpoints in the UA stack if no StackUrl is configured.
                  [NodeName] can be used as placeholder for the computer name. -->
             <!--<Url>opc.tcp://[NodeName]:48010</Url>-->
-            <Url>opc.tcp://127.0.0.1:48010</Url>-
+            <Url>opc.tcp://127.0.0.1:5000</Url>-
             <!-- Optional URL that allows to define a specific address the stack should use to bind to.
                 Can be used to bind the endpoint to a specific network card or to localhost only.
             <StackUrl>opc.tcp://192.168.0.15:48010</StackUrl>

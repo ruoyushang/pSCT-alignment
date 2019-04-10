@@ -55,7 +55,7 @@ void PasCompositeController::addChild(OpcUa_UInt32 deviceType, PasController *co
             m_pChildren[deviceType].push_back(pController);
             m_ChildrenIdentityMap[deviceType][id] = m_pChildren.at(deviceType).size() - 1;
             // this doesn't work for edges, since they don't have an assigned position
-            m_ChildrenPositionMap[deviceType].insert(make_pair(pos, m_pChildren.at(deviceType).size() - 1));
+            m_ChildrenPositionMap[deviceType][pos] = m_pChildren.at(deviceType).size() - 1;
         }
     }
 
@@ -69,14 +69,14 @@ void PasCompositeController::addChild(OpcUa_UInt32 deviceType, PasController *co
 PasMPES::PasMPES(Identity identity, Client *pClient) : PasController(identity, pClient),
     m_updated(false), m_isVisible(false)
 {
-    m_state = PASState::PAS_On;
+    m_state = PASState::On;
 
     // get the nominal aligned readings and response matrices from DB
     /* BEGIN DATABASE HACK */
     //string db_ip="172.17.10.10"; // internal ip
     DBConfig myconfig = DBConfig::getDefaultConfig();
     string db_ip=myconfig.getHost();
-    string db_port = std::to_string(myconfig.getPort());
+    string db_port = myconfig.getPort();
     string db_user=myconfig.getUser();
     string db_password=myconfig.getPassword();
     string db_name=myconfig.getDatabase();
@@ -92,7 +92,7 @@ PasMPES::PasMPES(Identity identity, Client *pClient) : PasController(identity, p
 
         string query("");
         // obtain topological data
-        query = "SELECT w_panel, l_panel FROM Opt_MPESMapping WHERE serial_number=" + to_string(m_ID.serialNumber);
+        query = "SELECT w_panel, l_panel FROM Opt_MPESMapping WHERE end_date is NULL and serial_number=" + to_string(m_ID.serialNumber);
         sql_stmt->execute(query);
         sql_results = sql_stmt->getResultSet();
         while (sql_results->next()) {
@@ -106,7 +106,7 @@ PasMPES::PasMPES(Identity identity, Client *pClient) : PasController(identity, p
         for (const auto& panel : panelType)
             for (int act = 1; act <= 6; act++)
                 query += ", " + string(1, panel) + "_response_actuator" + to_string(act);
-        query = "SELECT coord, nominal_reading" + query + " FROM Opt_MPESConfigurationAndCalibration WHERE serial_number=" + to_string(m_ID.serialNumber);
+        query = "SELECT coord, nominal_reading" + query + " FROM Opt_MPESConfigurationAndCalibration WHERE end_date is NULL and serial_number=" + to_string(m_ID.serialNumber);
         sql_stmt->execute(query);
         sql_results = sql_stmt->getResultSet();
 
@@ -146,7 +146,7 @@ PasMPES::PasMPES(Identity identity, Client *pClient) : PasController(identity, p
         cout << ", SQLState: " << e.getSQLState() << " )" << endl;
 
         // set state to error
-        m_state = PASState::PAS_Error;
+        m_state = PASState::FatalError;
     }
     /* END DATABASE HACK */
 
@@ -156,7 +156,7 @@ PasMPES::PasMPES(Identity identity, Client *pClient) : PasController(identity, p
 PasMPES::~PasMPES()
 {
     m_pClient = nullptr;
-    m_state = PASState::PAS_Off;
+    m_state = PASState::Off;
 }
 /* ----------------------------------------------------------------------------
     Class        PasMPES
@@ -185,9 +185,9 @@ UaStatusCode PasMPES::setState(PASState state)
     UaMutexLocker lock(&m_mutex);
 
     m_state = state;
-    if ( state == PASState::PAS_Off )
+    if (state == PASState::Off)
         status = m_pClient->callMethod(m_ID.eAddress, UaString("Stop"));
-    else if ( state == PASState::PAS_On )
+    else if (state == PASState::On)
         status = m_pClient->callMethod(m_ID.eAddress, UaString("Start"));
     else
         status = OpcUa_BadInvalidArgument;
@@ -270,36 +270,16 @@ UaStatus PasMPES::read()
     UaMutexLocker lock(&m_mutex);
     UaStatus status;
 
+    m_updated = false;
+
     cout << "calling read() on " << m_ID << endl;
-    if ( m_state == PASState::PAS_On )
+    if (m_state == PASState::On)
     {
         // read the values on the server first
-        status = m_pClient->callMethod(m_ID.eAddress, UaString("Read"));
-        if (!status.isGood()) return status;
-        // get the updated values from the server
-
-        // get all the updated values from the server
-        std::vector<std::string> varstoread {
-            "xCentroidAvg",
-            "yCentroidAvg",
-            "xCentroidSD",
-            "yCentroidSD",
-            "CleanedIntensity",
-            "xCentroidNominal",
-            "yCentroidNominal"};
-        std::transform(varstoread.begin(), varstoread.end(), varstoread.begin(),
-                    [this](std::string& str){ return m_ID.eAddress + "." + str;});
-        UaVariant valstoread[7];
-
-        status = m_pClient->read(varstoread, &valstoread[0]);
-        if (status.isGood()) m_updated = true;
-
-        for (unsigned i = 0; i < varstoread.size(); i++)
-            valstoread[i].toDouble(*(reinterpret_cast<OpcUa_Double *>(&data) + i));
+        status = __readRequest();
 
         m_isVisible = true;
         if (data.m_xCentroidAvg < 0.1) m_isVisible = false;
-
         if (m_isVisible) {
             if (data.m_xCentroidSD > kNominalCentroidSD) {
                 cout << "+++ WARNING +++ The width of the image along the X axis for " << m_ID.name
@@ -316,15 +296,56 @@ UaStatus PasMPES::read()
                     << "+++ WARNING +++ Will readjust the exposure now!" << endl;
                 Operate(PAS_MPESType_SetExposure);
                 // read the sensor again
-                status = read();
+                status = __readRequest();
             }
         }
-    }
-    else
-        m_updated = false;
 
+        time_t     now = time(0);
+        struct tm  tstruct;
+        char       buf[80];
+        tstruct = *localtime(&now);
+        strftime(buf, sizeof(buf), "%Y-%m-%d %X", &tstruct);
+
+        UaString sql_stmt;
+        sql_stmt = UaString("INSERT INTO Opt_MPESReadings (date, serial_number, xcoord, ycoord, x_RMS, y_RMS, intensity) VALUES  ('%1', '%2', '%3', '%4', '%5', '%6', '%7' );\n").arg(buf).arg(m_ID.serialNumber).arg(data.m_xCentroidAvg).arg(data.m_yCentroidAvg).arg(data.m_xCentroidSD).arg(data.m_yCentroidSD).arg(data.m_CleanedIntensity);
+        //std::cout << sql_stmt.toUtf8() << std::endl;
+        FILE * sql_file = fopen("MPES_readings.sql","a+");
+        std::fprintf(sql_file, sql_stmt.toUtf8());
+        std::fclose(sql_file);
+    }
 
     return status;
+}
+
+// a helper for the above that simply requests data from the server without performing any checks
+UaStatus PasMPES::__readRequest()
+{
+    UaMutexLocker lock(&m_mutex);
+    UaStatus status;
+
+    // read the values on the server first
+    status = m_pClient->callMethod(m_ID.eAddress, UaString("Read"));
+    if (!status.isGood()) return status;
+    // get the updated values from the server
+
+    // get all the updated values from the server
+    std::vector<std::string> varstoread {
+        "xCentroidAvg",
+        "yCentroidAvg",
+        "xCentroidSD",
+        "yCentroidSD",
+        "CleanedIntensity",
+        "xCentroidNominal",
+        "yCentroidNominal"};
+    std::transform(varstoread.begin(), varstoread.end(), varstoread.begin(),
+                [this](std::string& str){ return m_ID.eAddress + "." + str;});
+    UaVariant valstoread[7];
+
+    status = m_pClient->read(varstoread, &valstoread[0]);
+    if (status.isGood()) m_updated = true;
+
+    for (unsigned i = 0; i < varstoread.size(); i++)
+        valstoread[i].toDouble(*(reinterpret_cast<OpcUa_Double *>(&data) + i));
 }
 
 char PasMPES::getPanelSide(unsigned panelpos)
@@ -352,13 +373,13 @@ char PasMPES::getPanelSide(unsigned panelpos)
 PasACT::PasACT(Identity identity, Client *pClient) : PasController(identity, pClient),
     m_DeltaL {0.}
 {
-    m_state = PASState::PAS_On;
+    m_state = PASState::On;
 }
 
 PasACT::~PasACT()
 {
     m_pClient = nullptr;
-    m_state = PASState::PAS_Off;
+    m_state = PASState::Off;
 }
 
 /* ----------------------------------------------------------------------------
@@ -387,9 +408,9 @@ UaStatusCode PasACT::setState(PASState state)
         return OpcUa_BadInvalidState;
     }
     m_state = state;
-    if ( state == PASState::PAS_Off )
+    if (state == PASState::Off)
         status = m_pClient->callMethod(m_ID.eAddress, UaString("Stop"));
-    else if ( state == PASState::PAS_On )
+    else if (state == PASState::On)
         status = m_pClient->callMethod(m_ID.eAddress, UaString("Start"));
     else
         status = OpcUa_BadInvalidArgument;
@@ -401,26 +422,55 @@ UaStatusCode PasACT::setState(PASState state)
     Method       getData
     Description  Get Controller data.
 -----------------------------------------------------------------------------*/
+// Temporary - move ACTController to common
 UaStatusCode PasACT::getData(OpcUa_UInt32 offset, UaVariant& value)
 {
-    int dataoffset = offset - PAS_ACTType_Steps;
-    if ( (dataoffset >= 3) || (dataoffset < 0) )
-
-    {
-        return OpcUa_BadInvalidArgument;
-    }
-
     UaMutexLocker lock(&m_mutex);
-    UaStatus status;
+    UaStatusCode status;
 
-    string varstoread[3] {"Steps", "curLength_mm", "inLength_mm"};
+    std::string varName;
 
-    vector<string> vec_curread {m_ID.eAddress + "." + varstoread[dataoffset]};
-    status = m_pClient->read(vec_curread, &value);
-    printf("PasACT::getData -> value = %s\n",value.toString().toUtf8());
+    if (offset >= PAS_ACTType_Error0 && offset <= PAS_ACTType_Error13) {
+        return getError(offset, value);
+    } else {
+        switch (offset) {
+            case PAS_ACTType_Steps:
+                varName = "Steps";
+                break;
+            case PAS_ACTType_curLength_mm:
+                varName = "CurrentLength";
+                break;
+            default:
+                return OpcUa_BadInvalidArgument;
+        }
+        std::vector<std::string> varsToRead = {m_ID.eAddress + "." + varName};
+        status = m_pClient->read(varsToRead, &value);
+        std::cout << "PasACT::getData -> value = " << value.toString().toUtf8() << std::endl;
+    }
 
     return status;
 }
+
+// Temporary - move ACTController to common.
+UaStatusCode PasACT::getError(OpcUa_UInt32 offset, UaVariant &value) {
+    UaMutexLocker lock(&m_mutex);
+    UaStatus status;
+    bool errorStatus;
+
+    OpcUa_UInt32 errorNum = offset - PAS_ACTType_Error0;
+    // Temporary
+    if (errorNum >= 0 && errorNum < 14) {
+        std::string varName = "Error";
+        varName += std::to_string(errorNum);
+        std::vector<std::string> varsToRead = {m_ID.eAddress + "." + varName};
+        status = m_pClient->read(varsToRead, &value);
+        std::cout << "PasACT::getError -> value = " << value.toString().toUtf8() << std::endl;
+    } else {
+        status = OpcUa_BadInvalidArgument;
+    }
+    return status;
+}
+
 /* ----------------------------------------------------------------------------
     Class        PasACT
     Method       setData
@@ -453,15 +503,12 @@ UaStatusCode PasACT::Operate(OpcUa_UInt32 offset, const UaVariantArray &args)
 {
     UaStatusCode  status;
 
-    if ( offset >= 1 )
-        return OpcUa_BadInvalidArgument;
-
     // don't lock the object -- might want to change state while operating the device!
     // UaMutexLocker lock(&m_mutex);
     switch ( offset )
     {
-        case 0:
-            status = moveDelta();
+        case PAS_ACTType_Step:
+            status = moveDelta(args);
             break;
         default:
             status = OpcUa_BadInvalidArgument;
@@ -475,14 +522,17 @@ UaStatusCode PasACT::Operate(OpcUa_UInt32 offset, const UaVariantArray &args)
     Method       step
     Description  Step the actuator
 -----------------------------------------------------------------------------*/
-UaStatus PasACT::moveDelta()
+UaStatus PasACT::moveDelta(const UaVariantArray &args)
 {
     // don't lock the object -- might want to change state while operating the device!
     // UaMutexLocker lock(&m_mutex);
-    if ( m_state == PASState::PAS_On )
+    if (m_state == PASState::On)
     {
-        printf("stepping actuator %d by %5.3f mm\n", m_ID.serialNumber, m_DeltaL);
-        return m_pClient->callMethodAsync(m_ID.eAddress, UaString("Step"));
+        OpcUa_Float deltaLength;
+        UaVariant(args[0]).toFloat(deltaLength);
+
+        printf("stepping actuator %d by %5.3f mm\n", m_ID.serialNumber, deltaLength);
+        return m_pClient->callMethodAsync(m_ID.eAddress, UaString("Step"), args);
     }
 
     return OpcUa_BadInvalidState;
@@ -502,7 +552,7 @@ PasPanel::PasPanel(Identity identity, Client *pClient) :
     m_inCoordsUpdated(false)
 {
     m_ID.name = string("Panel_") + to_string(m_ID.position);
-    m_state = PASState::PAS_On;
+    m_state = PASState::On;
     m_SP.SetPanelType(StewartPlatform::PanelType::OPT);
 
     // define possible children types
@@ -521,7 +571,7 @@ PasPanel::~PasPanel()
        for (auto& dev : devVector.second)
            dev = nullptr;
 
-    m_state = PASState::PAS_Off;
+    m_state = PASState::Off;
 }
 
 unsigned PasPanel::getActuatorCount()
@@ -549,17 +599,20 @@ UaStatusCode PasPanel::getState(PASState& state)
 
     val.toUInt32(intState);
     switch ( intState ) {
-        case static_cast<unsigned>(PASState::PAS_On) :
-            m_state = PASState::PAS_On;
+        case static_cast<unsigned>(PASState::On) :
+            m_state = PASState::On;
             break;
-        case static_cast<unsigned>(PASState::PAS_Off) :
-            m_state = PASState::PAS_Off;
+        case static_cast<unsigned>(PASState::Off) :
+            m_state = PASState::Off;
             break;
-        case static_cast<unsigned>(PASState::PAS_Busy) :
-            m_state = PASState::PAS_Busy;
+        case static_cast<unsigned>(PASState::Busy) :
+            m_state = PASState::Busy;
             break;
-        case static_cast<unsigned>(PASState::PAS_Error) :
-            m_state = PASState::PAS_Error;
+        case static_cast<unsigned>(PASState::OperableError) :
+            m_state = PASState::OperableError;
+            break;
+        case static_cast<unsigned>(PASState::FatalError) :
+            m_state = PASState::FatalError;
             break;
         default:
             return OpcUa_BadInvalidState;
@@ -574,7 +627,7 @@ UaStatusCode PasPanel::getState(PASState& state)
 
 UaStatusCode PasPanel::setState(PASState state)
 {
-    if ( state == PASState::PAS_Error )
+    if (state == PASState::OperableError || state == PASState::FatalError)
     {
         return OpcUa_BadInvalidArgument;
     }
@@ -662,9 +715,9 @@ UaStatusCode PasPanel::Operate(OpcUa_UInt32 offset, const UaVariantArray &args)
     getState(dummy);
 
     if (offset != PAS_PanelType_Stop) {
-        if (m_state == PASState::PAS_Error)
-            cout << m_ID << "::Operate() : Current state is 'Error'! This won't do anything." << endl;
-        if (m_state == PASState::PAS_Busy)
+        if (m_state == PASState::FatalError)
+            cout << m_ID << "::Operate() : Current state is 'FatalError'! This won't do anything." << endl;
+        if (m_state == PASState::Busy)
             cout << m_ID << "::Operate() : Current state is 'Busy'! This won't do anything." << endl;
     }
 
@@ -714,7 +767,8 @@ UaStatusCode PasPanel::Operate(OpcUa_UInt32 offset, const UaVariantArray &args)
 #endif
         PASState state;
         getState(state);
-        cout << "Current State is " << static_cast<unsigned>(m_state) << " and it is equivalent to PASState::PAS_Busy : " << (state == PASState::PAS_Busy) << endl;
+        cout << "Current State is " << static_cast<unsigned>(m_state) << " and it is equivalent to PASState::Busy : "
+             << (state == PASState::Busy) << endl;
     }
 
 
@@ -959,7 +1013,7 @@ PasEdge::PasEdge(Identity identity) : PasCompositeController(identity, nullptr),
     m_DeltaL {0.5}, m_AlignFrac {0.25}, m_isAligned(false)
 {
     m_ID.name = string("Edge_") + m_ID.eAddress;
-    m_state = PASState::PAS_On;
+    m_state = PASState::On;
     // defin possible children types
     m_ChildrenTypes = {PAS_MPESType, PAS_PanelType};
 }
@@ -972,7 +1026,7 @@ PasEdge::~PasEdge()
        for (auto& dev : devVector.second)
            dev = nullptr;
 
-    m_state = PASState::PAS_Off;
+    m_state = PASState::Off;
 }
 
 /* ----------------------------------------------------------------------------
@@ -993,7 +1047,7 @@ UaStatusCode PasEdge::getState(PASState& state)
 -----------------------------------------------------------------------------*/
 UaStatusCode PasEdge::setState(PASState state)
 {
-    if ( state == PASState::PAS_Error )
+    if (state == PASState::OperableError || state == PASState::FatalError)
     {
         return OpcUa_BadInvalidArgument;
     }
@@ -1224,8 +1278,8 @@ UaStatus PasEdge::__findSingleMatrix(unsigned panelidx)
         if (!status.isGood()) return status;
         // Stepping is asynchronous. but here, we want it to actually complete
         // before the next step. So we wait.
-        PASState curState = PASState::PAS_Busy;
-        while (curState == PASState::PAS_Busy) {
+        PASState curState = PASState::Busy;
+        while (curState == PASState::Busy) {
             usleep(300*1000); // microseconds
             pCurPanel->getState(curState);
         }
@@ -1249,8 +1303,8 @@ UaStatus PasEdge::__findSingleMatrix(unsigned panelidx)
         if (!status.isGood()) return status;
         // Stepping is asynchronous. but here, we want it to actually complete
         // before the next step. So we wait.
-        curState = PASState::PAS_Busy;
-        while (curState == PASState::PAS_Busy) {
+        curState = PASState::Busy;
+        while (curState == PASState::Busy) {
             usleep(300*1000); // microseconds
             pCurPanel->getState(curState);
         }
@@ -1682,13 +1736,13 @@ PasCCD::PasCCD(Identity identity) : PasController(identity, nullptr)
     m_ID.name = m_pCCD->getName();
     cout << "assigned the name " << m_ID.name << " to this CCD" << endl;
 
-    if (m_state != PASState::PAS_On)
-        m_state = PASState::PAS_On;
+    if (m_state != PASState::On)
+        m_state = PASState::On;
 }
 
 PasCCD::~PasCCD()
 {
-    m_state = PASState::PAS_Off;
+    m_state = PASState::Off;
 }
 /* ----------------------------------------------------------------------------
     Class        PasCCD
@@ -1708,7 +1762,7 @@ UaStatusCode PasCCD::getState(PASState& state)
 -----------------------------------------------------------------------------*/
 UaStatusCode PasCCD::setState(PASState state)
 {
-    if ( state == PASState::PAS_Error )
+    if (state == PASState::OperableError || state == PASState::FatalError)
     {
         return OpcUa_BadInvalidArgument;
     }
@@ -1791,7 +1845,7 @@ UaStatus PasCCD::read()
 {
     UaMutexLocker lock(&m_mutex);
 
-    if ( m_state == PASState::PAS_On )
+    if (m_state == PASState::On)
     {
         printf("\nReading CCD %s\n", m_ID.name.c_str());
         m_pCCD->Update();
@@ -1815,7 +1869,7 @@ UaStatus PasCCD::read()
 PasPSD::PasPSD(Identity identity, Client *pClient) :
     PasController(identity, pClient, kUpdateInterval)
 {
-    m_state = PASState::PAS_On;
+    m_state = PASState::On;
     cout << "PasPSD: update interval set to " << m_UpdateInterval_ms << " ms" << endl;
 
     m_lastUpdateTime = TIME::now() - chrono::duration<int, ratio<1, 1000>>(m_UpdateInterval_ms);
@@ -1824,7 +1878,7 @@ PasPSD::PasPSD(Identity identity, Client *pClient) :
 PasPSD::~PasPSD()
 {
     m_pClient = nullptr;
-    m_state = PASState::PAS_Off;
+    m_state = PASState::Off;
 }
 
 UaStatusCode PasPSD::getState(PASState& state)

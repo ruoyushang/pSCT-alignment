@@ -158,7 +158,10 @@ private:
     Eigen::Vector2d SystematicOffsets;
     // which side the panel is on { panel position -> side ('w' or 'l')
     std::map< unsigned, char > m_PanelSideMap;
+    // a read that performs such checks and exposure correction
     UaStatus read();
+    // a helper for the above
+    UaStatus __readRequest();
 };
 
 /*===========================================================================*/
@@ -177,6 +180,8 @@ public:
     UaStatusCode getState(PASState& state);
     UaStatusCode getData(OpcUa_UInt32 offset, UaVariant& value);
 
+    UaStatusCode getError(OpcUa_UInt32 offset, UaVariant &value);
+
     // set Controller status and data
     UaStatusCode setState(PASState state);
     UaStatusCode setData(OpcUa_UInt32 offset, UaVariant value);
@@ -185,7 +190,7 @@ public:
 private:
     OpcUa_Float m_DeltaL;
 
-    UaStatus moveDelta();
+    UaStatus moveDelta(const UaVariantArray &args);
 };
 /*===========================================================================*/
 /* Panel class, part of the PAS family of devices.                        */
@@ -316,7 +321,7 @@ public:
     UaStatusCode Operate(OpcUa_UInt32 offset = 0, const UaVariantArray &args = UaVariantArray());
 
 private:
-    PASState m_state = PASState::PAS_Off;
+    PASState m_state = PASState::Off;
     bool m_updated = false;
 
     UaStatus read();

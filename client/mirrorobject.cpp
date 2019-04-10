@@ -33,6 +33,7 @@ MirrorObject::MirrorObject(
     pDataItem = addVariable(pNodeManager, PAS_MirrorType, PAS_MirrorType_State, OpcUa_True);
  
     unsigned vars[] = {
+        PAS_EdgeType_AlignFrac,
         PAS_MirrorType_curCoords_x,
         PAS_MirrorType_curCoords_y,
         PAS_MirrorType_curCoords_z,
@@ -47,15 +48,12 @@ MirrorObject::MirrorObject(
         PAS_MirrorType_inCoords_zRot,
         PAS_MirrorType_selectedPanels,
         PAS_MirrorType_selectedEdges,
-        PAS_MirrorType_selectedMPES,
-        PAS_MirrorType_AlignFrac
-};
+        PAS_MirrorType_selectedMPES};
 
 
-    for (auto &var : vars) { 
+    for (auto &var : vars)
         pDataItem = addVariable(pNodeManager, PAS_MirrorType, var);
-    }
-    
+
     UaFolder *pSysFolder = NULL;
 
     //Create the folder for the Systematic Offsets
@@ -74,7 +72,7 @@ MirrorObject::MirrorObject(
         PAS_MirrorType_sysOffsetsMPES_y3};
     for (auto &var : sysOffsets) {
         // add data variable without creating a reference
-        pDataItem = addVariable(pNodeManager, PAS_MirrorType, var, OpcUa_False, false);
+        pDataItem = addVariable(pNodeManager, PAS_MirrorType, var, false, false);
         addStatus = pNodeManager->addUaReference(pSysFolder->nodeId(), pDataItem->nodeId(), OpcUaId_Organizes);
     }
 
