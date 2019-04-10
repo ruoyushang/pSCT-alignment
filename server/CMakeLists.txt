@@ -120,7 +120,8 @@ endif ( USE_XMLCONFIG )
 
 file(GLOB PASSERVER_SRC
     "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/interface/*.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/controllers/*.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/objects/*.cpp"
     "${COMMON_CODE_DIR}/opcua/*.cpp"
     "${COMMON_CODE_DIR}/utilities/*.cpp"
     "${COMMON_CODE_DIR}/alignment/*.cpp"
@@ -168,9 +169,8 @@ IF (USE_XMLCONFIG)
     include_directories(${LIBXML2_INCLUDE_DIR})
 ENDIF (USE_XMLCONFIG)
 
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/..)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/interface)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/..)
 include_directories(${UASDK_BASE_DIR}/include)
 include_directories(${UASTACK_INCLUDE})
 include_directories(${UABASE_INCLUDE})
@@ -183,7 +183,6 @@ include_directories(${COMMON_CODE_DIR}/alignment)
 include_directories(${COMMON_CODE_DIR}/globalalignment)
 include_directories(${COMMON_CODE_DIR}/utilities)
 include_directories(${COMMON_CODE_DIR}/utilities/linux)
-include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 include_directories(${OpenCV_INCLUDE_DIR})
 include_directories(${ROOT_INCLUDE_DIRS})
 include_directories(${MYSQLCONNECTORCPP_INCLUDE_DIRS})
