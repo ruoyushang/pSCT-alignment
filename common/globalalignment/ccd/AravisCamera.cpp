@@ -1,4 +1,4 @@
-#include "common/alignment/ccd/AravisCamera.h"
+#include "common/globalalignment/ccd/AravisCamera.h"
 using std::string;
 using std::vector;
 

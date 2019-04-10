@@ -1,4 +1,4 @@
-#include "common/alignment/ccd/FitLED.h"
+#include "common/globalalignment/ccd/FitLED.h"
 
 using namespace std;
 

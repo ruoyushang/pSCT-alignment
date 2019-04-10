@@ -1,4 +1,4 @@
-#include "common/alignment/ccd/LEDoutputs.h"
+#include "common/globalalignment/ccd/LEDoutputs.h"
 #include <nlopt.hpp>
 #include <iostream>
 

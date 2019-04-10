@@ -1,4 +1,4 @@
-#include "common/alignment/ccd/Image.h"
+#include "common/globalalignment/ccd/Image.h"
 #include <fstream>
 #include <memory>
 
