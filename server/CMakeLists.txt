@@ -185,7 +185,7 @@ include_directories(${COMMON_CODE_DIR}/utilities)
 include_directories(${COMMON_CODE_DIR}/utilities/linux)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 include_directories(${OpenCV_INCLUDE_DIR})
-include_directories(${ROOT_INCLUDES})
+include_directories(${ROOT_INCLUDE_DIRS})
 include_directories(${MYSQLCONNECTORCPP_INCLUDE_DIRS})
 
 IF (USE_XMLCONFIG)
