@@ -862,7 +862,6 @@ bool PasPanel::__willSensorsBeOutOfRange()
         for (int edge2align=0; edge2align<m_pChildren.at(PAS_EdgeType).size(); edge2align++)
         {
                 PasEdge* edge = static_cast<PasEdge *> (m_pChildren.at(PAS_EdgeType).at(edge2align));
-                //edge->getAlignedReadings();
                 M_response = edge->getResponseMatrix(m_ID.position);
                 Sen_current = edge->getCurrentReadings();
                 cout << "\nCurrent MPES readings:\n" << Sen_current << endl << endl;
