@@ -2,10 +2,10 @@
 #include <vector>
 #include <iostream>
 #include <ctime>
-#include "Image.h"
-#include "ImageStar.h"
-//#include "ImageFilter.h"
-#include "LEDoutputs.h"
+#include "common/alignment/ccd/Image.h"
+#include "common/alignment/ccd/ImageStar.h"
+//#include "common/alignment/ccd/ImageFilter.h"
+#include "common/alignment/ccd/LEDoutputs.h"
 
 class StarDetect {
 public:

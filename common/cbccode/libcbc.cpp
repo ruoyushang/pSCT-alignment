@@ -13,9 +13,9 @@
 #include <stdio.h>
 #include <iostream>
 
-#include <cbc.hpp>
-#include "MirrorControlBoard.hpp"
-#include "TLC3548_ADC.hpp"
+#include "common/cbccode/cbc.hpp"
+#include "common/cbccode/MirrorControlBoard.hpp"
+#include "common/cbccode/TLC3548_ADC.hpp"
 
 void usleep2 (int usdelay)
 {

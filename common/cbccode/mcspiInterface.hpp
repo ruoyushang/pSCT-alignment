@@ -4,7 +4,8 @@
 #include <sys/types.h>
 #include <stdint.h>
 #include <sys/mman.h>
-#include "Layout.hpp"
+
+#include "common/cbccode/Layout.hpp"
 
 class mcspiInterface
 {

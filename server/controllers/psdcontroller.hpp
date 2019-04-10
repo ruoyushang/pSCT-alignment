@@ -11,10 +11,13 @@
 #include "uabase/statuscode.h"
 #include "uaserver/uaobjecttypes.h"
 
+#include "server/controllers/pascontroller.hpp"
+
 class GASPSD;
 
 /// @brief Class representing a device controller for a Position Sensitive Device.
-class PSDController : public PasController {
+class PSDController : public PasController 
+{
     UA_DISABLE_COPY(PSDController);
 
 public:
@@ -48,9 +51,6 @@ private:
     PASState m_state = PASState::Off;
     /// @brief Pointer to the GASPSD object interfacing directly with thee PSD hardware.
     std::unique_ptr<GASPSD> m_pPSD;
-
-    /// @brief Time interval after which internal data is considered to be expired.
-    const int kUpdateInterval_ms;
 
     /// @brief Read all sensors and update internal data variables
     /// @return OPC UA status code indicating success or failure.

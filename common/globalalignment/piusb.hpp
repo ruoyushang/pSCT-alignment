@@ -1,6 +1,6 @@
 #ifndef PIUSB_H
 #define PIUSB_H
-#include <libusb.h>
+#include "common/globalalignment/libusb.h"
 /*
  * Methods common to the Picard USB Communications
  * devices

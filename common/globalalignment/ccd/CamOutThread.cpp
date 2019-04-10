@@ -15,7 +15,7 @@
  * 
  */
 
-#include "CamOutThread.h"
+#include "common/alignment/ccd/CamOutThread.h"
 
 using namespace std;
 

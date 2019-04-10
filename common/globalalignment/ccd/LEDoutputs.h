@@ -1,5 +1,5 @@
 #pragma once
-#include "LEDinputs.h"
+#include "common/alignment/ccd/LEDinputs.h"
 #include <time.h>
 
 // this is the populated encapsulation of the output file
