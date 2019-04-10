@@ -124,6 +124,7 @@ IF ( USE_XMLCONFIG )
 ENDIF ( USE_XMLCONFIG )
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/..)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/interface)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/logic)
 include_directories(${UASDK_BASE_DIR}/include)
