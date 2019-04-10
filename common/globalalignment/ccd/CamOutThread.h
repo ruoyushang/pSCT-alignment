@@ -1,17 +1,17 @@
 #pragma once
 
 // prebuilt Camera interface
-#include "common/alignment/ccd/AravisCamera.h"
+#include "common/globalalignment/ccd/AravisCamera.h"
 
 // image analysis
-#include "common/alignment/ccd/StarDetect.h"
+#include "common/globalalignment/ccd/StarDetect.h"
 
 // position analysis
-#include "common/alignment/ccd/FitLED.h"
+#include "common/globalalignment/ccd/FitLED.h"
 
 // data storage
-#include "common/alignment/ccd/LEDinputs.h"
-#include "common/alignment/ccd/LEDoutputs.h"
+#include "common/globalalignment/ccd/LEDinputs.h"
+#include "common/globalalignment/ccd/LEDoutputs.h"
 #include <time.h>
 
 // needed for waiting
