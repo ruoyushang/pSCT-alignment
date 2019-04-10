@@ -1,5 +1,5 @@
 #include <stdint.h>
-#include <TLC3548_ADC.hpp>
+#include "common/cbccode/TLC3548_ADC.hpp"
 
 namespace TLC3548 {
 

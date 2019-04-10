@@ -6,8 +6,8 @@
 #include <CCfits/FITS.h>
 #include <CCfits/CCfits.h>
 #include <time.h>
-#include "LEDinputs.h"
-#include "LEDoutputs.h"
+#include "common/alignment/ccd/LEDinputs.h"
+#include "common/alignment/ccd/LEDoutputs.h"
 
 class Image {
 public:

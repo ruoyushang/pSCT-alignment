@@ -13,7 +13,8 @@
 #include <unistd.h>
 #include <stdint.h>
 #include <sys/mman.h>
-#include <mcspiInterface.hpp>
+
+#include "common/cbccode/mcspiInterface.hpp"
 
 #define DEBUG 0
 #define debug_print(fmt, ...) \

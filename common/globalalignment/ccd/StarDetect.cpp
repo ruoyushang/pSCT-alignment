@@ -1,4 +1,4 @@
-#include "StarDetect.h"
+#include "common/alignment/ccd/StarDetect.h"
 #include <set>
 
 using namespace std;

@@ -4,8 +4,6 @@
  */
 
 #include <cassert>
-#include <MirrorControlBoard.hpp>
-#include <GPIOInterface.hpp>
 #include <unistd.h>
 #include <time.h>
 #include <math.h>
@@ -16,11 +14,12 @@
 #include <chrono>
 
 // local includes
-#include <SpiInterface.hpp>
-#include <TLC3548_ADC.hpp>
-#include <GPIOInterface.hpp>
-#include <mcspiInterface.hpp>
-#include <Layout.hpp>
+#include "common/cbccode/MirrorControlBoard.hpp"
+#include "common/cbccode/SpiInterface.hpp"
+#include "common/cbccode/TLC3548_ADC.hpp"
+#include "common/cbccode/GPIOInterface.hpp"
+#include "common/cbccode/mcspiInterface.hpp"
+#include "common/cbccode/Layout.hpp"
 
 GPIOInterface gpio;
 mcspiInterface spi;

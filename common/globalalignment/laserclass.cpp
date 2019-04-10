@@ -1,5 +1,5 @@
-#include "laserclass.h"
-#include "piusb.hpp"
+#include "common/globalalignment/laserclass.h"
+#include "common/globalalignment/piusb.hpp"
 
 void GASLaser::setState(bool state)
 {

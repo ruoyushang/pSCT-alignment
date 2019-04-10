@@ -50,19 +50,19 @@ PanelObject::PanelObject(
     UaStatus addStatus;
 
     // Add all child variable nodes
-    for (auto it = getVariableDefs().begin(); it != getVariableDefs().end(); it++) {
-        addVariable(pNodeManager, PAS_PanelType, it->first, std::get<2>(it->second));
+    for (auto& kv : getVariableDefs()) {
+        addVariable(pNodeManager, PAS_PanelType, kv.first, std::get<2>(kv.second));
     }
 
     // Add all child method nodes
     UaString sName;
     UaString sNodeId;
     OpcUa_Int16 nsIdx = pNodeManager->getNameSpaceIndex();
-    for (auto it = getMethodDefs().begin(); it != getMethodDefs().end(); it++) {
-        sName = UaString(it->second.first.c_str());
+    for (auto& kv : getMethodDefs()) {
+        sName = UaString(kv.second.first.c_str());
         sNodeId = UaString("%1.%2").arg(newNodeId.toString()).arg(sName);
         m_MethodMap[UaNodeId(sNodeId, nsIdx)] = std::make_pair(
-                new UaMethodGeneric(sName, UaNodeId(sNodeId, nsIdx), m_defaultLocaleId), it->first);
+                new UaMethodGeneric(sName, UaNodeId(sNodeId, nsIdx), m_defaultLocaleId), kv.first);
         addStatus = pNodeManager->addNodeAndReference(this, m_MethodMap[UaNodeId(sNodeId, nsIdx)].first,
                                                       OpcUaId_HasComponent);
         UA_ASSERT(addStatus.isGood());
