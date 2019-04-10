@@ -699,13 +699,18 @@ UaStatusCode PasPanel::Operate(OpcUa_UInt32 offset, const UaVariantArray &args)
         }
 
         bool collision_flag = __willSensorsBeOutOfRange();
-        if (collision_flag) cout << "Panel will collide!!! Motion cancelled!!!" << endl;
+        if (collision_flag) cout << "Error: Sensors will go out of range! Motion cancelled." << endl;
 
 #ifndef SIMMODE
-        if (!collision_flag) status =  __moveTo();
+        if (!collision_flag) {
+            status =  __moveTo();
+        }
 #else
-        for (int i = 0; i < 6; i++)
-            if (!collision_flag) m_curCoords[i] = m_inCoords[i];
+        for (int i = 0; i < 6; i++) {
+            if (!collision_flag) {
+                m_curCoords[i] = m_inCoords[i];
+            }
+        }
 #endif
         PASState state;
         getState(state);
