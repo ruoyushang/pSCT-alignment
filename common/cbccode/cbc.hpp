@@ -89,7 +89,7 @@ class CBC
 
         static struct Config config_default;
 
-        void configure(struct Config config);
+    virtual void configure(struct Config config);
 
         CBC(struct Config config=CBC::config_default);
         ~CBC();
@@ -535,8 +535,9 @@ class CBC
         /* delay inserted after enabling, before stepping, before
          * disabling, before reading encoders */
         int m_delay; // in milliseconds
-        void setDelayTime(int delay);
-        int getDelayTime();
+    virtual void setDelayTime(int delay);
+
+    virtual int getDelayTime();
 };
 
 /*!
@@ -645,19 +646,19 @@ public:
             float rawVoltageMax;
         } dummyData;
 
-        adcData measure(int adc, int channel) override { return dummyData; };
+        adcData measure(int adc, int channel) { return dummyData; };
 
-        adcData measure(int adc, int channel, int nsamples) override { return dummyData; };
+        adcData measure(int adc, int channel, int nsamples) { return dummyData; };
 
-        adcData readEncoder(int iencoder) override { return dummyData; };
+        adcData readEncoder(int iencoder) { return dummyData; };
 
-        adcData readEncoder(int iencoder, int nsamples) override { return dummyData; };
+        adcData readEncoder(int iencoder, int nsamples) { return dummyData; };
 
-        float readEncoderVoltage(int iencoder) override { return 0; };
+        float readEncoderVoltage(int iencoder) { return 0; };
 
-        float readTemperature() override { return 0; };
+        float readTemperature() { return 0; };
 
-        float readTemperature(int nsamples) override { return 0; };
+        float readTemperature(int nsamples) { return 0; };
 
         adcData readTemperatureVolts() { return dummyData; };
 
