@@ -100,7 +100,7 @@ private:
 
     // mirror coords -- x/y/z, xRot, yRot, zRot
     Eigen::VectorXd m_curCoords, m_curCoordsErr, m_inCoords, m_sysOffsetsMPES;
-    // map ring -> {MPES Position -> Systematic Offset}
+    // map ring -> {MPES position -> Systematic Offset}
     std::map<unsigned, std::map<unsigned, Eigen::VectorXd> > SystematicOffsetsMPESMap;
 
     // in our coordinate system, the ideal panel is located along the x axis, between

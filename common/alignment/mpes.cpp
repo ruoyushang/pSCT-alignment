@@ -11,6 +11,7 @@
 #include <unistd.h>
 
 #include "common/alignment/platform.hpp"
+#include "common/cbccode/cbc.hpp"
 #include "common/mpescode/MPESImage.h"
 #include "common/mpescode/MPESDevice.h"
 
@@ -22,6 +23,9 @@ const float SAFETY_REGION_X_MIN = 60.0;
 const float SAFETY_REGION_X_MAX = 260.0;
 const float SAFETY_REGION_Y_MIN = 40.0;
 const float SAFETY_REGION_Y_MAX = 200.0;
+
+const float NOMINAL_INTENSITY = 150000.;
+const float NOMINAL_CENTROID_SD = 20.;
 
 MPES::MPES(std::shared_ptr<CBC> pCBC, int USBPortNumber, int serialNumber) :
     m_pCBC {pCBC},
@@ -49,7 +53,7 @@ bool MPES::initialize()
     m_pCBC->usb.enable(m_USBPortNumber); // switch the usb back on and wait for the video device to show up
     sleep(4);
 
-    std::set<int> newVideoDevices = getVideoDevices(); // count video devices again
+    std::set<int> newVideoDevices = getVideoDevices(); // check all video devices again
 
     std::set<int> toggledDevices;
     std::set_difference(newVideoDevices.begin(), newVideoDevices.end(), oldVideoDevices.begin(), oldVideoDevices.end(), toggledDevices.begin());
@@ -184,7 +188,7 @@ std::set<int> MPES::getVideoDevices()
         closedir(dir);
     }
     else {
-        videoDevices = {-1};
+        videoDevices = {-1}; // output signalling failure
     }
 
     return videoDevices;
@@ -199,18 +203,18 @@ bool DummyMPES::initialize()
 int DummyMPES::setExposure()
 {
     std::cout << "+++ Dummy MPES: Setting exposure for device at USB " << m_USBPortNumber << std::endl;
-    int intensity = 1; // dummy value
+    int intensity = NOMINAL_INTENSITY; // dummy value
     return intensity;
 }
 
 int DummyMPES::measurePosition()
 {
-    // dummy values
+    // Set internal position variable to dummy values
     m_Position.xCenter = 160.;
     m_Position.yCenter = 80.;
     m_Position.xStdDev = 10.;
     m_Position.yStdDev = 10.;
-    m_Position.cleanedIntensity = 0.;
+    m_Position.cleanedIntensity = NOMINAL_INTENSITY;
 
     return static_cast<int>(m_Position.cleanedIntensity);
 }

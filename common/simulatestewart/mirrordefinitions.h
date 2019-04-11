@@ -39,7 +39,7 @@ namespace SCT {
         // mirror segmentation -- inner and outer ring
         const int kPanels[2] = {16, 32};
 
-        const double kZ      = 0*m; // Primary Position
+        const double kZ = 0 * m; // Primary position
         const double kD      = 4.831875*2*m; // Primary diameter
         const double kDm     = 3.4*2*m; // Primary inner ring outer diameter
         const double kDinner = 2.19350*2*m; // Primary Inner diameter
@@ -80,7 +80,7 @@ namespace SCT {
         const int kPanels[2] = {8, 16};
 
         // notice the origin is at zero! our frame of reference is at the mirror itself
-        const double kZ      = 0.*m; // 3./2.*kFp; // Secondary Position in its frame
+        const double kZ = 0. * m; // 3./2.*kFp; // Secondary position in its frame
         const double kD      = 2.7081*2*m; // Secondary diameter
         const double kDm     = 1.5965*2*m; // Secondary inner ring outer diameter
         const double kDinner = 0.395*2*m; // Secondary inner diameter

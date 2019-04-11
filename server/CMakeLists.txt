@@ -224,7 +224,7 @@ endif (vxWorks)
 
 ####################################### Create executable ###################################
 
-add_executable(${PROJECT_NAME} ${PASSERVER_SRC})
+add_executable(${PROJECT_NAME} ${PASSERVER_SRC} ../common/alignment/device.hpp)
 
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 11) # Set C++ standard to build against
 

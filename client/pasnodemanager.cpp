@@ -535,14 +535,14 @@ UaStatus PasNodeManager::amendTypeNodes()
             UaNodeId(OpcUaId_UInt32),// Data type of the argument
             -1,                      // Array rank of the argument
             nullarray,               // Array dimensions of the argument
-            UaLocalizedText("en", "Position of the panel to move during alignment")); // Description
+            UaLocalizedText("en", "position of the panel to move during alignment")); // Description
     pPropertyArg->setArgument(
             1,                       // Index of the argument
             "fixPanel",               // Name of the argument
             UaNodeId(OpcUaId_UInt32),// Data type of the argument
             -1,                      // Array rank of the argument
             nullarray,               // Array dimensions of the argument
-            UaLocalizedText("en", "Position of the panel to keep fixed during alignment")); // Description
+            UaLocalizedText("en", "position of the panel to keep fixed during alignment")); // Description
 
     // Add property to method
     addStatus = addNodeAndReference(pMethod, pPropertyArg, OpcUaId_HasProperty);

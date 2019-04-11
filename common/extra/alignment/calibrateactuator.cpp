@@ -21,12 +21,12 @@ try{
 int cbc_id=1;
 int actuator_ids[6]={1,2,3,4,5,6};
 int mpes_ids[6]={1,2,3,4,5,6};
-Actuator::DBstruct HDB_ID;
+    Platform::DBInfo HDB_ID;
 HDB_ID.ip="romulus.ucsc.edu";
 HDB_ID.user="CTAreadwrite";
 HDB_ID.password="write2db4pSCT";
 HDB_ID.dbname="CTAoffline";
-Actuator::ASFstruct ASF_ID;
+    Actuator::ASFFileInfo ASF_ID;
 ASF_ID.directory="/home/root/actuator/";
 
 Platform platform(HDB_ID, ASF_ID, cbc_ID, actuator_ids, mpes_ids);

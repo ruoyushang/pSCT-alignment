@@ -6,13 +6,13 @@
 
 namespace SCTMath {
 
-    // get mirror, quadrant, ring and panel from Position
+    // get mirror, quadrant, ring and panel from position
     inline unsigned Mirror(unsigned pos) { return pos / 1000; };
     inline unsigned Quadrant(unsigned pos) {return (pos % 1000) / 100; };
     inline unsigned Ring(unsigned pos) { return (pos % 100) / 10; };
     inline unsigned Panel(unsigned pos) { return pos % 10; };
 
-    // get Position from mirror, quadrant, ring and panel
+    // get position from mirror, quadrant, ring and panel
     unsigned Position(unsigned mirror, unsigned quadrant, unsigned ring, unsigned panel);
 
     // add inc to a panel position along the ring -- essentially

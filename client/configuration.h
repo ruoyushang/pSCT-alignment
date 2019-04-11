@@ -106,7 +106,7 @@ private:
     // completely insane map for device type -> {its panel address -> { Port->Serial } mappings
     // this one has to map to a map because different panels have different port mappings
     std::map< OpcUa_UInt32, std::map<UaString, std::map<UaString, OpcUa_Int32> > > m_DeviceSerialMap;
-    // ridiculous map for device type -> { serial->Position } mappings
+    // ridiculous map for device type -> { serial->position } mappings
     std::map< OpcUa_UInt32, std::map<OpcUa_UInt32, OpcUa_UInt32> > m_DevicePositionMap;
     // simple map from panel position to its address.
     // so with the above, this also gives us serial to address.

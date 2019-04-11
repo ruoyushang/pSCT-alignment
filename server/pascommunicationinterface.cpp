@@ -56,7 +56,7 @@ UaStatusCode PasCommunicationInterface::Initialize() {
     UaStatusCode status;
 
     /// @warning Hardcoded database information. Should be moved to external configuration.
-    Actuator::DBStruct DbInfo;
+    Platform::DBInfo DbInfo;
     DbInfo.ip = "remus.ucsc.edu";
     DbInfo.port = "3406";
     DbInfo.user = "CTAreadonly";
@@ -79,7 +79,7 @@ UaStatusCode PasCommunicationInterface::Initialize() {
         std::unique_ptr<sql::Statement> pSqlStmt = std::unique_ptr<sql::Statement>(pSqlConn->createStatement());
         std::unique_ptr<sql::ResultSet> pSqlResults;
 
-        // Query DB for panel position and cbc id by IP address
+        // Query DB for panel position and m_pCBC id by IP address
         std::string query = "SELECT mpcb_id, position FROM Opt_MPMMapping WHERE position='"
                             + m_panelNum + "'";
         pSqlStmt->execute(query);

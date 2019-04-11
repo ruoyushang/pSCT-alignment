@@ -3,95 +3,57 @@
  * @brief Header file for the platform/controller board hardware interface class.
  */
 
-#ifndef __PLATFORM_H__
-#define __PLATFORM_H__
+#ifndef ALIGNMENT_PLATFORM_HPP
+#define ALIGNMENT_PLATFORM_HPP
 
-# include <array>
+#include <array>
+#include <memory>
 #include <string>
 #include <vector>
 
-# ifdef _AMD64
+#include "common/alignment/device.hpp"
+#include "common/alignment/mpes.hpp"
+#include "common/alignment/actuator.hpp"
 
-#  include "common/cbccode/dummycbc.hpp"
-
-#  warning "Compiling for AMD64 -- setting CBC to DummyCBC"
-#  define CBC DummyCBC
-# else
-#  include "common/cbccode/cbc.hpp"
-# endif
-
-# include "common/alignment/actuator.hpp"
-# include "common/alignment/mpes.hpp"
-
-
-/// @brief Platform states used to disallow/stop motion based on errors.
-enum class DeviceState {
-    On = 0,
-    Off = 1,
-    Busy = 2,
-    OperableError = 3, //Errors that the user should be aware of, but shouldn't interfere with normal operation of the actuator.
-    FatalError = 4 //Errors that the user should definitely be aware of and handle appropriately. The Actuator should not be able to move with a fatal error without first reconfiguring something.
-};
-
-/// @brief Formal definition of a device error: description and severity.
-struct ErrorDefinition {
-    std::string description;
-    DeviceState severity;
-};
-
-struct DBInfo {
-    DBInfo() : host(""), user(""), password(""), dbname(""), port("") {}
-
-    std::string host;
-    std::string user;
-    std::string password;
-    std::string dbname;
-    std::string port;
-    bool empty() {
-        return (host.empty() && user.empty() && password.empty() && dbname.empty() && port.empty());
-    }
-};
-
+class CBC;
 
 class Platform
 {
 public:
     // Public constants
 
-    static const int NUM_ACTS_PER_PLATFORM;
+    static constexpr const int NUM_ACTS_PER_PLATFORM = 6;
 
-    static const int NUM_ERROR_TYPES;
-    static const std::array<ErrorDefinition, NUM_ERROR_TYPES> ERROR_DEFINITIONS;
+    static constexpr const int NUM_ERROR_TYPES = 15;
+    static const std::array<Device::ErrorDefinition, NUM_ERROR_TYPES> ERROR_DEFINITIONS;
 
     // Initialization methods
-
     Platform();
     Platform(std::array<int,NUM_ACTS_PER_PLATFORM> actuatorPorts, std::array<int,NUM_ACTS_PER_PLATFORM> actuatorSerials);
-    Platform(int CBCSerial, std::array<int,NUM_ACTS_PER_PLATFORM> actuatorPorts, std::array<int,NUM_ACTS_PER_PLATFORM> actuatorSerials, Actuator::DBStruct dbInfo);
 
     Platform(int CBCSerial, std::array<int, NUM_ACTS_PER_PLATFORM> actuatorPorts,
-             std::array<int, NUM_ACTS_PER_PLATFORM> actuatorSerials, Actuator::DBStruct dbInfo,
-             Actuator::ASFFileLocation asfInfo);
+             std::array<int, NUM_ACTS_PER_PLATFORM> actuatorSerials, Device::DBInfo dbInfo);
+
+    Platform(int CBCSerial, std::array<int, NUM_ACTS_PER_PLATFORM> actuatorPorts,
+             std::array<int, NUM_ACTS_PER_PLATFORM> actuatorSerials, Device::DBInfo dbInfo,
+             Actuator::ASFFileInfo asfInfo);
     ~Platform();
 
     void initialize();
 
     void setCBCserial(int serial) { m_CBCserial = serial; }
-
     int getCBCserial() { return m_CBCserial; }
 
-    void setDBInfo(DBInfo DBInfo);
+    void setDBInfo(Device::DBInfo DBInfo);
     void unsetDBInfo();
 
     bool loadCBCParameters();
 
     // Platform settings and readings
     void enableHighCurrent();
-
     void disableHighCurrent();
 
     void enableSynchronousRectification();
-
     void disableSynchronousRectification();
 
     float getInternalTemperature();
@@ -101,24 +63,16 @@ public:
 
     int getActuatorCount() const { return m_Actuators.size(); }
 
-    std::unique_ptr<Actuator> &getActuator(int idx) { return m_Actuators.at(idx) }
+    std::unique_ptr<Actuator> &getActuator(int idx) { return m_Actuators.at(idx); }
 
     int getMPESCount() const { return m_MPES.size(); }
 
-    std::unique_ptr<MPES> &getMPES(int idx) { return m_MPES.at(idx) }
+    std::unique_ptr<MPES> &getMPES(int idx) { return m_MPES.at(idx); }
 
     // Actuator-related methods
 
-    std::array<int, NUM_ACTS_PER_PLATFORM> step(std::array<int, NUM_ACTS_PER_PLATFORM> inputSteps);
-
-    bool getActuatorStatus(int actuatorIdx, Actuator::ActuatorStatus &actuatorStatus);
-
-    void checkActuatorErrorStatus(int actuatorIdx);
-
     void findHomeFromEndStop(int direction, int actuatorIdx);
-
     void findHomeFromExtendStop(int actuatorIdx) { findHomeFromEndStop(1, actuatorIdx); }
-
     void findHomeFromRetractStop(int actuatorIdx) { findHomeFromEndStop(-1, actuatorIdx); }
 
     void probeEndStopAll(int direction);
@@ -129,27 +83,21 @@ public:
     void findHomeFromExtendStopAll() { findHomeFromEndStopAll(1); }
     void findHomeFromRetractStopAll() { findHomeFromEndStopAll(-1); }
 
-    void probeHome(int actuatorIdx) { m_Actuators.at(actuatorIdx)->probeHome(); }
     bool probeHomeAll();
 
+    std::array<int, NUM_ACTS_PER_PLATFORM> step(std::array<int, NUM_ACTS_PER_PLATFORM> inputSteps);
     std::array<float, NUM_ACTS_PER_PLATFORM> measureLengths();
-
     std::array<float, NUM_ACTS_PER_PLATFORM> moveToLengths(std::array<float, NUM_ACTS_PER_PLATFORM> targetLengths);
-
     std::array<float, NUM_ACTS_PER_PLATFORM> moveDeltaLengths(std::array<float, NUM_ACTS_PER_PLATFORM> lengthsToMove);
 
-    void recoverActuatorStatusFromDB(int actuatorIdx);
-
     // Error functionality
-    DeviceState getState() const { return m_State; }
+    const Device::DeviceStatus &getStatus();
 
-    void clearAllActuatorErrors(int actuatorIdx) { m_Actuators.at(actuatorIdx)->clearAllErrors(); }
+    void clearActuatorErrors();
 
-    void clearActuatorError(int actuatorIdx, int errorCode) { m_Actuators.at(actuatorIdx)->unsetError(errorCode); }
+    void clearPlatformErrors();
 
-    void clearAllPlatformErrors();
-
-    void updateErrorState();
+    void updateStatus();
 
     // MPES functionality
 
@@ -158,7 +106,6 @@ public:
      In the Sim mode, MPES are added regardlessly.
      */
     bool addMPES(int USB, int serial);
-
     MPES::Position readMPES(int idx);
 
 private:
@@ -169,12 +116,12 @@ private:
 
     int m_CBCserial = 0;
 
-    DBInfo m_DBInfo = DBInfo();
+    Device::DBInfo m_DBInfo = Device::DBInfo();
 
     bool m_HighCurrent = false;
     bool m_SynchronousRectification = true;
 
-    DeviceState m_State = DeviceState::On;
+    Device::DeviceStatus m_Status = Device::DeviceStatus::On;
     std::array<bool, NUM_ERROR_TYPES> m_Errors = { false };
 
     std::shared_ptr<CBC> m_pCBC;
@@ -186,9 +133,10 @@ private:
     float m_ExternalTemperatureSlope = DEFAULT_EXTERNAL_TEMPERATURE_SLOPE;
     float m_ExternalTemperatureOffset = DEFAULT_EXTERNAL_TEMPERATURE_OFFSET;
 
-    void setState(DeviceState state);
+    void setStatus(Device::DeviceStatus state);
 
     void setError(int errorCode);
     void unsetError(int errorCode);
 };
-#endif
+
+#endif // ALIGNMENT_PLATFORM_HPP

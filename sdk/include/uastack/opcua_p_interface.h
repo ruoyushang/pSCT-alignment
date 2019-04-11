@@ -395,7 +395,7 @@ struct S_OpcUa_Port_CallTable
                                                                     OpcUa_UInt32                uMemorySize);
 
     /**@} Memory Functions */
-    /**@name Date and Time Functions */
+    /**@name date and Time Functions */
     /**@{*/
 
     /** @brief Returns the current time in the OpcUa_DateTime format.
@@ -423,7 +423,7 @@ struct S_OpcUa_Port_CallTable
     OpcUa_StatusCode    (OPCUA_DLLCALL* GetDateTimeFromString)    ( const OpcUa_CharA*          DateTimeString,
                                                                     OpcUa_DateTime*             DateTime);
 
-    /**@} Date and Time Functions */
+    /**@} date and Time Functions */
     /**@name Mutex Functions */
     /**@{*/
 

@@ -60,7 +60,7 @@ int MPESImageSet::Capture()
     if (!device || !device->isOn()) { // read from folder
         DIR * path = opendir(dir); 
         if(!path) {
-            fprintf(stderr ,"Directory not found \n ");
+            fprintf(stderr, "directory not found \n ");
             return capturedImages;
         }
 
@@ -662,7 +662,8 @@ void MPESImageSet::Calibrate()
 			}
 
 			if(verbosity) printf("Resolution: %d x %.0f \n", device->GetResolution(), (device->GetResolution()*(0.75)));
-			if(verbosity) printf("Position ranges x: [%f - %f] y: [%f - %f] \n", xcalposmin, xcalposmax, ycalposmin,ycalposmax);
+            if (verbosity)
+                printf("position ranges x: [%f - %f] y: [%f - %f] \n", xcalposmin, xcalposmax, ycalposmin, ycalposmax);
 			if(verbosity) printf("Constant ranges x: [%f - %f] y: [%f - %f] \n", xcalmin, xcalmax, ycalmin,ycalmax);
 			float slopex,slopey, Bx, By;
 			slopex = ((xcalmax-xcalmin))/((xcalposmax-xcalposmin));

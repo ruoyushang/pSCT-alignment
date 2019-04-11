@@ -30,9 +30,10 @@ ControlPositioner::~ControlPositioner()
     m_pClient = nullptr;
     m_state = PASState::GLOB_Positioner_notMoving;
 }
+
 /* ----------------------------------------------------------------------------
     Class        ControlPositioner
-    Method       getState
+    Method       getStatus
     Description  Get Controller status.
 -----------------------------------------------------------------------------*/
 UaStatusCode ControlPositioner::getState(PASState& state)
@@ -54,9 +55,10 @@ UaStatusCode ControlPositioner::getState(PASState& state)
 
     return status;
 }
+
 /* ----------------------------------------------------------------------------
     Class        ControlPositioner
-    Method       setState
+    Method       setStatus
     Description  Set Controller status.
 -----------------------------------------------------------------------------*/
 UaStatusCode ControlPositioner::setState(PASState state)

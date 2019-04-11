@@ -30,9 +30,6 @@ int PasPanel::kUpdateInterval = 1000;
 // 500 ms update interval for PSDs
 int PasPSD::kUpdateInterval = 500;
 
-float PasMPES::kNominalIntensity = 150000.;
-float PasMPES::kNominalCentroidSD = 20.;
-
 // implement PasCompositeController::addChild()
 void PasCompositeController::addChild(OpcUa_UInt32 deviceType, PasController *const pController)
 {
@@ -158,9 +155,10 @@ PasMPES::~PasMPES()
     m_pClient = nullptr;
     m_state = PASState::Off;
 }
+
 /* ----------------------------------------------------------------------------
     Class        PasMPES
-    Method       getState
+    Method       getStatus
     Description  Get Controller status.
 -----------------------------------------------------------------------------*/
 UaStatusCode PasMPES::getState(PASState& state)
@@ -169,9 +167,10 @@ UaStatusCode PasMPES::getState(PASState& state)
     state = m_state;
     return OpcUa_Good;
 }
+
 /* ----------------------------------------------------------------------------
     Class        PasMPES
-    Method       setState
+    Method       setStatus
     Description  Set Controller status.
 -----------------------------------------------------------------------------*/
 UaStatusCode PasMPES::setState(PASState state)
@@ -384,7 +383,7 @@ PasACT::~PasACT()
 
 /* ----------------------------------------------------------------------------
     Class        PasACT
-    Method       getState
+    Method       getStatus
     Description  Get Controller status.
 -----------------------------------------------------------------------------*/
 UaStatusCode PasACT::getState(PASState& state)
@@ -392,9 +391,10 @@ UaStatusCode PasACT::getState(PASState& state)
     state = m_state;
     return OpcUa_Good;
 }
+
 /* ----------------------------------------------------------------------------
     Class        PasACT
-    Method       setState
+    Method       setStatus
     Description  Set Controller status.
 -----------------------------------------------------------------------------*/
 UaStatusCode PasACT::setState(PASState state)
@@ -1063,7 +1063,7 @@ PasEdge::~PasEdge()
 
 /* ----------------------------------------------------------------------------
     Class        PasEdge
-    Method       getState
+    Method       getStatus
     Description  Get Controller status.
 -----------------------------------------------------------------------------*/
 UaStatusCode PasEdge::getState(PASState& state)
@@ -1072,9 +1072,10 @@ UaStatusCode PasEdge::getState(PASState& state)
     state = m_state;
     return OpcUa_Good;
 }
+
 /* ----------------------------------------------------------------------------
     Class        PasEdge
-    Method       setState
+    Method       setStatus
     Description  Set Controller status.
 -----------------------------------------------------------------------------*/
 UaStatusCode PasEdge::setState(PASState state)
@@ -1776,9 +1777,10 @@ PasCCD::~PasCCD()
 {
     m_state = PASState::Off;
 }
+
 /* ----------------------------------------------------------------------------
     Class        PasCCD
-    Method       getState
+    Method       getStatus
     Description  Get Controller status.
 -----------------------------------------------------------------------------*/
 UaStatusCode PasCCD::getState(PASState& state)
@@ -1787,9 +1789,10 @@ UaStatusCode PasCCD::getState(PASState& state)
     state = m_state;
     return OpcUa_Good;
 }
+
 /* ----------------------------------------------------------------------------
     Class        PasCCD
-    Method       setState
+    Method       setStatus
     Description  Set Controller status.
 -----------------------------------------------------------------------------*/
 UaStatusCode PasCCD::setState(PASState state)

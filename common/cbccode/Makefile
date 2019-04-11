@@ -23,8 +23,8 @@ clean:
 install: 
 	cp $(TARGET) /a/home/tehanu/ap3115/mpes/lib/$(TARGET)
 	chmod 755 /a/home/tehanu/ap3115/mpes/lib/$(TARGET)
-	cp cbc.hpp  /a/home/tehanu/ap3115/mpes/include/cbc.hpp
-	chmod 644 /a/home/tehanu/ap3115/mpes/include/cbc.hpp
+	cp m_pCBC.hpp  /a/home/tehanu/ap3115/mpes/include/m_pCBC.hpp
+	chmod 644 /a/home/tehanu/ap3115/mpes/include/m_pCBC.hpp
 
 tar: 
 	tar czvf libcbc.tar.gz ../libcbc/*.cpp ../libcbc/*.hpp ../libcbc/Makefile

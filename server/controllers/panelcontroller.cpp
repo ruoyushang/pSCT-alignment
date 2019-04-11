@@ -33,20 +33,20 @@ UaStatus PanelController::getState(PASState &state) {
 UaStatus PanelController::updateState() {
     UaMutexLocker lock(&m_mutex);
     // update internal state to match the underlying platform object
-    switch (m_pPlatform->getState()) {
-        case PlatformState::On :
+    switch (m_pPlatform->getStatus()) {
+        case Device::DeviceStatus::On :
             m_state = PASState::On;
             break;
-        case PlatformState::Off :
+        case Device::DeviceStatus::Off :
             m_state = PASState::Off;
             break;
-        case PlatformState::Busy :
+        case Device::DeviceStatus::Busy :
             m_state = PASState::Busy;
             break;
-        case PlatformState::OperableError :
+        case Device::DeviceStatus::OperableError :
             m_state = PASState::OperableError;
             break;
-        case PlatformState::FatalError :
+        case Device::DeviceStatus::FatalError :
             m_state = PASState::FatalError;
             break;
         default :
@@ -63,11 +63,11 @@ UaStatus PanelController::setState(PASState state) {
     switch (state) {
         case PASState::On:
             m_state = state;
-            m_pPlatform->setState(PlatformState::On);
+            m_pPlatform->setStatus(Device::DeviceStatus::On);
             break;
         case PASState::Off:
             m_state = state;
-            m_pPlatform->setState(PlatformState::Off);
+            m_pPlatform->setStatus(Device::DeviceStatus::Off);
             break;
         case PASState::FatalError:
             return OpcUa_BadInvalidArgument;
