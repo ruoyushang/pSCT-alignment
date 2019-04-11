@@ -1102,7 +1102,7 @@ OpcUa_Int32 PasNodeManager::Panic()
         if (status.isGood())
         {
             printf("Will try changing state for %s\n", id.eAddress.c_str());
-            status = m_pCommIf->setDeviceState(PAS_ACTType, id, PASState::Off);
+            status = m_pCommIf->setDeviceState(PAS_ACTType, id, Device::DeviceState::Off);
         }
         else
             printf("Problem changing state for %s\n", id.eAddress.c_str());
@@ -1115,7 +1115,7 @@ OpcUa_Int32 PasNodeManager::Panic()
         if (status.isGood())
         {
             printf("Will try changing state for %s again\n", id.eAddress.c_str());
-            status = m_pCommIf->setDeviceState(PAS_ACTType, id, PASState::On);
+            status = m_pCommIf->setDeviceState(PAS_ACTType, id, Device::DeviceState::On);
         }
         else
             printf("Problem changing state for %s\n", id.eAddress.c_str());

@@ -49,11 +49,11 @@ public:
     const Identity& getId() const {return m_ID;}
 
     /* Get Controller status and data */
-    virtual UaStatusCode getState(PASState& state) = 0;
+    virtual UaStatusCode getState(Device::DeviceState &state) = 0;
     virtual UaStatusCode getData(OpcUa_UInt32 offset, UaVariant& value) = 0;
 
     /* set Controller status and data */
-    virtual UaStatusCode setState(PASState state) = 0;
+    virtual UaStatusCode setState(Device::DeviceState state) = 0;
     virtual UaStatusCode setData(OpcUa_UInt32 offset, UaVariant value) = 0;
 
     virtual UaStatusCode operate(OpcUa_UInt32 offset = 0,
@@ -63,7 +63,7 @@ public:
 
 protected:
     UaMutex m_mutex;
-    PASState m_state;
+    Device::DeviceState m_state;
 
     Identity m_ID;
     Client *m_pClient;
@@ -122,11 +122,11 @@ public:
     ~PasMPES();
 
     /* Get Controller status and data */
-    UaStatusCode getState(PASState& state);
+    UaStatusCode getState(Device::DeviceState &state);
     UaStatusCode getData(OpcUa_UInt32 offset, UaVariant& value);
 
     /* set Controller status and data */
-    UaStatusCode setState(PASState state);
+    UaStatusCode setState(Device::DeviceState state);
     UaStatusCode setData(OpcUa_UInt32 offset, UaVariant value);
 
     UaStatusCode operate(OpcUa_UInt32 offset = 0, const UaVariantArray &args = UaVariantArray());
@@ -179,13 +179,13 @@ public:
     virtual ~PasACT();
 
     // Get Controller status and data
-    UaStatusCode getState(PASState& state);
+    UaStatusCode getState(Device::DeviceState &state);
     UaStatusCode getData(OpcUa_UInt32 offset, UaVariant& value);
 
     UaStatusCode getError(OpcUa_UInt32 offset, UaVariant &value);
 
     // set Controller status and data
-    UaStatusCode setState(PASState state);
+    UaStatusCode setState(Device::DeviceState state);
     UaStatusCode setData(OpcUa_UInt32 offset, UaVariant value);
 
     UaStatusCode operate(OpcUa_UInt32 offset = 0, const UaVariantArray &args = UaVariantArray());
@@ -210,11 +210,11 @@ public:
     virtual ~PasPanel();
 
     // Get Controller status and data
-    UaStatusCode getState(PASState& state);
+    UaStatusCode getState(Device::DeviceState &state);
     UaStatusCode getData(OpcUa_UInt32 offset, UaVariant& value);
 
     // set Controller status and data
-    UaStatusCode setState(PASState state);
+    UaStatusCode setState(Device::DeviceState state);
     UaStatusCode setData(OpcUa_UInt32 offset, UaVariant value);
 
     UaStatusCode operate(OpcUa_UInt32 offset = 0, const UaVariantArray &args = UaVariantArray());
@@ -264,11 +264,11 @@ public:
     virtual ~PasEdge();
 
     // Get Controller status and data
-    UaStatusCode getState(PASState& state);
+    UaStatusCode getState(Device::DeviceState &state);
     UaStatusCode getData(OpcUa_UInt32 offset, UaVariant& value);
 
     // set Controller status and data
-    UaStatusCode setState(PASState state);
+    UaStatusCode setState(Device::DeviceState state);
     UaStatusCode setData(OpcUa_UInt32 offset, UaVariant value);
 
     UaStatusCode operate(OpcUa_UInt32 offset = 0, const UaVariantArray &args = UaVariantArray());
@@ -317,17 +317,17 @@ public:
     ~PasCCD();
 
     /* Get Controller status and data */
-    UaStatusCode getState(PASState& state);
+    UaStatusCode getState(Device::DeviceState &state);
     UaStatusCode getData(OpcUa_UInt32 offset, UaVariant& value);
 
     /* set Controller status and data */
-    UaStatusCode setState(PASState state);
+    UaStatusCode setState(Device::DeviceState state);
     UaStatusCode setData(OpcUa_UInt32 offset, UaVariant value);
 
     UaStatusCode operate(OpcUa_UInt32 offset = 0, const UaVariantArray &args = UaVariantArray());
 
 private:
-    PASState m_state = PASState::Off;
+    Device::DeviceState m_state = Device::DeviceState::Off;
     bool m_updated = false;
 
     UaStatus read();
@@ -345,11 +345,11 @@ public:
     virtual ~PasPSD();
 
     // Get Controller status and data
-    UaStatusCode getState(PASState& state);
+    UaStatusCode getState(Device::DeviceState &state);
     UaStatusCode getData(OpcUa_UInt32 offset, UaVariant& value);
 
     // set Controller status and data
-    UaStatusCode setState(PASState state);
+    UaStatusCode setState(Device::DeviceState state);
     UaStatusCode setData(OpcUa_UInt32 offset, UaVariant value);
 
     UaStatusCode operate(OpcUa_UInt32 offset = 0, const UaVariantArray &args = UaVariantArray());

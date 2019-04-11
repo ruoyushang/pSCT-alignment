@@ -66,7 +66,7 @@ UaStatus PasNodeManagerCommon::readValues(const UaVariableArray &arrUaVariables,
                 {
                     // Read of a state variable
                     // We need to get the state of the sensor
-                    PASState state;
+                    Device::DeviceState state;
 
                     // Get the data for the sensor from the communication interface
                     status = m_pCommIf->getDeviceState(pUserData->DeviceType(), pUserData->DeviceId(),
@@ -140,7 +140,8 @@ UaStatus PasNodeManagerCommon::writeValues(const UaVariableArray &arrUaVariables
                         unsigned stateInt;
                         vTemp.toUInt32(stateInt);
                         // Get the data for the controller from the communication interface
-                        status = m_pCommIf->setDeviceState(pUserData->DeviceType(), pUserData->DeviceId(), static_cast<PASState>(stateInt));
+                        status = m_pCommIf->setDeviceState(pUserData->DeviceType(), pUserData->DeviceId(),
+                                                           static_cast<Device::DeviceState>(stateInt));
                     }
                     arrStatusCodes[i] = status.statusCode();
                 }

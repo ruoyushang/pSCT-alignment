@@ -258,7 +258,7 @@ UaStatus MPESObject::call(
                     ret = OpcUa_BadInvalidArgument;
                 else
                     ret = m_pCommIf->setDeviceState(PAS_MPESType, m_Identity,
-                                                    PASState::On);
+                                                    Device::DeviceState::On);
             }
             // Check if we have the stop method
             else if ( pMethod->nodeId() == m_pMethodStop->nodeId())
@@ -268,7 +268,7 @@ UaStatus MPESObject::call(
                     ret = OpcUa_BadInvalidArgument;
                 else
                     ret = m_pCommIf->setDeviceState(PAS_MPESType, m_Identity,
-                                                    PASState::Off);
+                                                    Device::DeviceState::Off);
             }
             // Check if we have the read method
             else if ( pMethod->nodeId() == m_pMethodRead->nodeId())
@@ -277,7 +277,7 @@ UaStatus MPESObject::call(
                 if ( inputArguments.length() > 0 )
                     ret = OpcUa_BadInvalidArgument;
                 else
-                    ret = m_pCommIf->OperateDevice(PAS_MPESType, m_Identity, PAS_MPESType_Read);
+                    ret = m_pCommIf->operateDevice(PAS_MPESType, m_Identity, PAS_MPESType_Read);
             }
             // Check if we have the SetExposure method
             else if ( pMethod->nodeId() == m_pMethodSetExposure->nodeId())
@@ -286,7 +286,7 @@ UaStatus MPESObject::call(
                 if ( inputArguments.length() > 0 )
                     ret = OpcUa_BadInvalidArgument;
                 else
-                    ret = m_pCommIf->OperateDevice(PAS_MPESType, m_Identity, PAS_MPESType_SetExposure);
+                    ret = m_pCommIf->operateDevice(PAS_MPESType, m_Identity, PAS_MPESType_SetExposure);
             }
             // Create Sensor Events if state change succeeded
             if ( ret.isGood() )
@@ -301,7 +301,7 @@ UaStatus MPESObject::call(
                 m_pCommIf->getDeviceData(PAS_MPESType, m_Identity, PAS_MPESType_xCentroidSD, eventData.m_xCentroidSD);
                 m_pCommIf->getDeviceData(PAS_MPESType, m_Identity, PAS_MPESType_yCentroidSD, eventData.m_yCentroidSD);
                 m_pCommIf->getDeviceData(PAS_MPESType, m_Identity, PAS_MPESType_CleanedIntensity, eventData.m_CleanedIntensity);
-                PASState state;
+                Device::DeviceState state;
                 m_pCommIf->getDeviceState(PAS_MPESType, m_Identity, state);
                 eventData.m_State.setUInt32(static_cast<unsigned>(state));
 
@@ -309,7 +309,7 @@ UaStatus MPESObject::call(
                 eventData.m_SourceNode.setNodeId(nodeId());
                 eventData.m_SourceName.setString(browseName().toString());
                 UaString messageText;
-                if (state == PASState::Off)
+                if (state == Device::DeviceState::Off)
                 {
                     messageText = UaString("State of %1 changed to OFF").arg(browseName().toString());
                 }
@@ -327,7 +327,7 @@ UaStatus MPESObject::call(
 
                 //--------------------------------------------------------
                 // Change state of alarm condition
-                if (state == PASState::Off)
+                if (state == Device::DeviceState::Off)
                 {
                     m_pStateOffNormalAlarm->setAckedState(OpcUa_False);
                     m_pStateOffNormalAlarm->setActiveState(OpcUa_True);
@@ -513,7 +513,7 @@ UaStatus ACTObject::call(
                     //}
                 }
             }
-            ret = m_pCommIf->OperateDevice(PAS_ACTType, m_Identity, methodTypeID, inputArguments);
+            ret = m_pCommIf->operateDevice(PAS_ACTType, m_Identity, methodTypeID, inputArguments);
         } else {
             ret = OpcUa_BadInvalidArgument;
         }
@@ -610,7 +610,7 @@ UaStatus PSDObject::call(
                 if ( inputArguments.length() > 0 )
                     ret = OpcUa_BadInvalidArgument;
                 else
-                    ret = m_pCommIf->OperateDevice(PAS_PSDType, m_Identity);
+                    ret = m_pCommIf->operateDevice(PAS_PSDType, m_Identity);
             }
         }
         else

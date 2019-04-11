@@ -143,7 +143,7 @@ UaStatus EdgeObject::call(
                 if ( inputArguments.length() > 0 )
                     ret = OpcUa_BadInvalidArgument;
                 else
-                    ret = m_pCommIf->OperateDevice(PAS_EdgeType, m_Identity, PAS_EdgeType_Stop);
+                    ret = m_pCommIf->operateDevice(PAS_EdgeType, m_Identity, PAS_EdgeType_Stop);
             }
             else if ( pMethod->nodeId() == m_pMethodMove->nodeId())
             {
@@ -151,7 +151,7 @@ UaStatus EdgeObject::call(
                 if ( inputArguments.length() > 0 )
                     ret = OpcUa_BadInvalidArgument;
                 else
-                    ret = m_pCommIf->OperateDevice(PAS_EdgeType, m_Identity, PAS_EdgeType_Move);
+                    ret = m_pCommIf->operateDevice(PAS_EdgeType, m_Identity, PAS_EdgeType_Move);
             }
             else if ( pMethod->nodeId() == m_pMethodFindMatrix->nodeId())
             {
@@ -159,7 +159,7 @@ UaStatus EdgeObject::call(
                 if ( inputArguments.length() > 0 )
                     ret = OpcUa_BadInvalidArgument;
                 else
-                    ret = m_pCommIf->OperateDevice(PAS_EdgeType, m_Identity, PAS_EdgeType_FindMatrix);
+                    ret = m_pCommIf->operateDevice(PAS_EdgeType, m_Identity, PAS_EdgeType_FindMatrix);
             }
             else if ( pMethod->nodeId() == m_pMethodRead->nodeId())
             {
@@ -167,7 +167,7 @@ UaStatus EdgeObject::call(
                 if ( inputArguments.length() > 0 )
                     ret = OpcUa_BadInvalidArgument;
                 else
-                    ret = m_pCommIf->OperateDevice(PAS_EdgeType, m_Identity, PAS_EdgeType_Read);
+                    ret = m_pCommIf->operateDevice(PAS_EdgeType, m_Identity, PAS_EdgeType_Read);
             }
             else if ( pMethod->nodeId() == m_pMethodAlign->nodeId())
             {
@@ -187,7 +187,7 @@ UaStatus EdgeObject::call(
                         inputArgumentResults[1] = OpcUa_BadTypeMismatch;
                     }
                     if (ret.isGood())
-                        ret = m_pCommIf->OperateDevice(PAS_EdgeType, m_Identity, PAS_EdgeType_Align, inputArguments);
+                        ret = m_pCommIf->operateDevice(PAS_EdgeType, m_Identity, PAS_EdgeType_Align, inputArguments);
                 }
             }
         }

@@ -29,7 +29,7 @@ PasMirror::PasMirror(Identity identity) : PasCompositeController(identity, nullp
         mirrorprefix = "Unknown";
     m_ID.name = mirrorprefix + "Mirror";
 
-    m_state = PASState::On;
+    m_state = Device::DeviceState::On;
 
     // define possible children and initialize the selected children string
     m_ChildrenTypes = {PAS_PanelType, PAS_EdgeType, PAS_MPESType};
@@ -203,24 +203,24 @@ PasMirror::~PasMirror()
         for (auto &dev : devVector.second)
             dev = nullptr;
 
-    m_state = PASState::Off;
+    m_state = Device::DeviceState::Off;
 }
 
-UaStatusCode PasMirror::getState(PASState& state)
+UaStatus PasMirror::getState(Device::DeviceState &state)
 {
     UaMutexLocker lock(&m_mutex);
     state = m_state;
     return OpcUa_Good;
 }
 
-UaStatusCode PasMirror::setState(PASState state)
+UaStatus PasMirror::setState(Device::DeviceState state)
 {
     UaMutexLocker lock(&m_mutex);
     m_state = state;
     return OpcUa_Good;
 }
 
-UaStatusCode PasMirror::getData(OpcUa_UInt32 offset, UaVariant& value)
+UaStatus PasMirror::getData(OpcUa_UInt32 offset, UaVariant &value)
 {
     UaMutexLocker lock(&m_mutex);
 
@@ -252,7 +252,7 @@ UaStatusCode PasMirror::getData(OpcUa_UInt32 offset, UaVariant& value)
     return OpcUa_Good;
 }
 
-UaStatusCode PasMirror::setData(OpcUa_UInt32 offset, UaVariant value)
+UaStatus PasMirror::setData(OpcUa_UInt32 offset, UaVariant value)
 {
     UaMutexLocker lock(&m_mutex);
 
@@ -288,7 +288,7 @@ UaStatusCode PasMirror::setData(OpcUa_UInt32 offset, UaVariant value)
     return OpcUa_Good;
 }
 
-UaStatusCode PasMirror::operate(OpcUa_UInt32 offset, const UaVariantArray &args)
+UaStatus PasMirror::operate(OpcUa_UInt32 offset, const UaVariantArray &args)
 {
     UaMutexLocker lock(&m_mutex);
 
@@ -510,11 +510,11 @@ void PasMirror::__alignAll(unsigned start_idx, const set<unsigned>& need_alignme
     deque<unsigned> already_aligned {}; // yes, deque, not vector!
 
     unsigned cur_idx = start_idx;
-    while (need_alignment.find(cur_idx) != need_alignment.end() && (m_state == PASState::On)) {
+    while (need_alignment.find(cur_idx) != need_alignment.end() && (m_state == Device::DeviceState::On)) {
         already_aligned.push_front(cur_idx);
         // align all the preceding panels
         for (unsigned edge : already_aligned) {
-            if (m_state != PASState::On) break;
+            if (m_state != Device::DeviceState::On) break;
             // figure out which panel is "greater" and which one is "smaller" in the sense
             // of dir, assuming a two-panel edge for now.
             // get vector of panel positions:
@@ -533,9 +533,9 @@ void PasMirror::__alignAll(unsigned start_idx, const set<unsigned>& need_alignme
                 m_pChildren.at(PAS_EdgeType).at(edge)->operate(PAS_EdgeType_Move);
                 usleep(400*1000); // microseconds
 
-                PASState curstate;
+                Device::DeviceState curstate;
                 m_pChildren.at(PAS_PanelType).at(movingPanel_idx)->getState(curstate);
-                while (curstate == PASState::Busy) {
+                while (curstate == Device::DeviceState::Busy) {
                     cout << "\tPanel " << curPanels.at(0) << " moving..." << endl;
                     usleep(200*1000); // microseconds
                     m_pChildren.at(PAS_PanelType).at(movingPanel_idx)->getState(curstate);

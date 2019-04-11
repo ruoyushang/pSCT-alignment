@@ -105,7 +105,7 @@ UaStatus PanelObject::call(
             if (inputArguments.length() != numArgs)
                 ret = OpcUa_BadInvalidArgument;
             else
-                ret = m_pCommIf->OperateDevice(PAS_PanelType, m_Identity, methodTypeID);
+                ret = m_pCommIf->operateDevice(PAS_PanelType, m_Identity, methodTypeID);
         } else {
             ret = OpcUa_BadInvalidArgument;
         }

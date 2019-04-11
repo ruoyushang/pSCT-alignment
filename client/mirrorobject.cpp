@@ -225,7 +225,7 @@ UaStatus MirrorObject::call(
                 if ( inputArguments.length() > 0 )
                     ret = OpcUa_BadInvalidArgument;
                 else
-                    ret = m_pCommIf->OperateDevice(PAS_MirrorType, m_Identity, PAS_MirrorType_Stop);
+                    ret = m_pCommIf->operateDevice(PAS_MirrorType, m_Identity, PAS_MirrorType_Stop);
             }
             else if ( pMethod->nodeId() == m_pMethodMove->nodeId())
             {
@@ -233,7 +233,7 @@ UaStatus MirrorObject::call(
                 if ( inputArguments.length() > 0 )
                     ret = OpcUa_BadInvalidArgument;
                 else
-                    ret = m_pCommIf->OperateDevice(PAS_MirrorType, m_Identity, PAS_MirrorType_MoveTo_Coords);
+                    ret = m_pCommIf->operateDevice(PAS_MirrorType, m_Identity, PAS_MirrorType_MoveTo_Coords);
             }
             else if ( pMethod->nodeId() == m_pMethodMoveSector->nodeId())
             {
@@ -241,7 +241,7 @@ UaStatus MirrorObject::call(
                 if ( inputArguments.length() > 0 )
                     ret = OpcUa_BadInvalidArgument;
                 else
-                    ret = m_pCommIf->OperateDevice(PAS_MirrorType, m_Identity, PAS_MirrorType_MoveSector);
+                    ret = m_pCommIf->operateDevice(PAS_MirrorType, m_Identity, PAS_MirrorType_MoveSector);
             }
             else if ( pMethod->nodeId() == m_pMethodAlignSector->nodeId())
             {
@@ -249,7 +249,7 @@ UaStatus MirrorObject::call(
                 if ( inputArguments.length() > 0 )
                     ret = OpcUa_BadInvalidArgument;
                 else
-                    ret = m_pCommIf->OperateDevice(PAS_MirrorType, m_Identity, PAS_MirrorType_AlignSector);
+                    ret = m_pCommIf->operateDevice(PAS_MirrorType, m_Identity, PAS_MirrorType_AlignSector);
             }
 
             else if ( pMethod->nodeId() == m_pMethodAlign->nodeId())
@@ -270,7 +270,8 @@ UaStatus MirrorObject::call(
                         inputArgumentResults[1] = OpcUa_BadTypeMismatch;
                     }
                     if (ret.isGood())
-                        ret = m_pCommIf->OperateDevice(PAS_MirrorType, m_Identity, PAS_MirrorType_Align, inputArguments);
+                        ret = m_pCommIf->operateDevice(PAS_MirrorType, m_Identity, PAS_MirrorType_Align,
+                                                       inputArguments);
                 }
             }
             else if ( pMethod->nodeId() == m_pMethodGlobalAlign->nodeId())
@@ -287,7 +288,8 @@ UaStatus MirrorObject::call(
                         inputArgumentResults[0] = OpcUa_BadTypeMismatch;
                     }
                     if (ret.isGood())
-                        ret = m_pCommIf->OperateDevice(PAS_MirrorType, m_Identity, PAS_MirrorType_GlobalAlign, inputArguments);
+                        ret = m_pCommIf->operateDevice(PAS_MirrorType, m_Identity, PAS_MirrorType_GlobalAlign,
+                                                       inputArguments);
                 }
             }
 
@@ -297,7 +299,7 @@ UaStatus MirrorObject::call(
                 if ( inputArguments.length() > 0 )
                     ret = OpcUa_BadInvalidArgument;
                 else
-                    ret = m_pCommIf->OperateDevice(PAS_MirrorType, m_Identity, PAS_MirrorType_ReadPos);
+                    ret = m_pCommIf->operateDevice(PAS_MirrorType, m_Identity, PAS_MirrorType_ReadPos);
             }
             else if ( pMethod->nodeId() == m_pMethodReadAlign->nodeId())
             {
@@ -305,7 +307,7 @@ UaStatus MirrorObject::call(
                 if ( inputArguments.length() > 0 )
                     ret = OpcUa_BadInvalidArgument;
                 else
-                    ret = m_pCommIf->OperateDevice(PAS_MirrorType, m_Identity, PAS_MirrorType_ReadAlign);
+                    ret = m_pCommIf->operateDevice(PAS_MirrorType, m_Identity, PAS_MirrorType_ReadAlign);
             }
         }
         else

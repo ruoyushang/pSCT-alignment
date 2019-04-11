@@ -99,7 +99,7 @@ UaStatus OptTableObject::call(
                 if ( inputArguments.length() > 0 )
                     ret = OpcUa_BadInvalidArgument;
                 else
-                    ret = m_pCommIf->OperateDevice(PAS_OptTableType, m_Identity, PAS_OptTableType_FindMatrix);
+                    ret = m_pCommIf->operateDevice(PAS_OptTableType, m_Identity, PAS_OptTableType_FindMatrix);
             }
             else if ( pMethod->nodeId() == m_pMethodAlign->nodeId())
             {
@@ -107,7 +107,7 @@ UaStatus OptTableObject::call(
                 if ( inputArguments.length() > 0 )
                     ret = OpcUa_BadInvalidArgument;
                 else
-                    ret = m_pCommIf->OperateDevice(PAS_OptTableType, m_Identity, PAS_OptTableType_Align);
+                    ret = m_pCommIf->operateDevice(PAS_OptTableType, m_Identity, PAS_OptTableType_Align);
             }
             else if ( pMethod->nodeId() == m_pMethodStepAll->nodeId())
             {
@@ -115,7 +115,7 @@ UaStatus OptTableObject::call(
                 if ( inputArguments.length() > 0 )
                     ret = OpcUa_BadInvalidArgument;
                 else
-                    ret = m_pCommIf->OperateDevice(PAS_OptTableType, m_Identity, PAS_OptTableType_StepAll);
+                    ret = m_pCommIf->operateDevice(PAS_OptTableType, m_Identity, PAS_OptTableType_StepAll);
             }
         }
         else
@@ -238,7 +238,7 @@ UaStatus CCDObject::call(
                     ret = OpcUa_BadInvalidArgument;
                 else
                     ret = m_pCommIf->setDeviceState(PAS_CCDType, m_Identity,
-                                                    PASState::On);
+                                                    Device::DeviceState::On);
             }
             // Check if we have the stop method
             else if ( pMethod->nodeId() == m_pMethodStop->nodeId())
@@ -249,7 +249,7 @@ UaStatus CCDObject::call(
                     ret = OpcUa_BadInvalidArgument;
                 else
                     ret = m_pCommIf->setDeviceState(PAS_CCDType, m_Identity,
-                                                    PASState::Off);
+                                                    Device::DeviceState::Off);
             }
             // Check if we have the read method
             else if ( pMethod->nodeId() == m_pMethodRead->nodeId())
@@ -258,7 +258,7 @@ UaStatus CCDObject::call(
                 if ( inputArguments.length() > 0 )
                     ret = OpcUa_BadInvalidArgument;
                 else
-                    ret = m_pCommIf->OperateDevice(PAS_CCDType, m_Identity);
+                    ret = m_pCommIf->operateDevice(PAS_CCDType, m_Identity);
             }
         }
         else

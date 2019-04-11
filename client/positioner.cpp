@@ -131,7 +131,7 @@ UaStatus PositionerObject::call(
                 if ( inputArguments.length() > 0 )
                     ret = OpcUa_BadInvalidArgument;
                 else
-                    ret = m_pCommIf->OperateDevice(GLOB_PositionerType, m_Identity, GLOB_PositionerType_Init);
+                    ret = m_pCommIf->operateDevice(GLOB_PositionerType, m_Identity, GLOB_PositionerType_Init);
             }
 
             if ( pMethod->nodeId() == m_pMethodMoveTo->nodeId())
@@ -139,7 +139,7 @@ UaStatus PositionerObject::call(
                 if ( inputArguments.length() > 0 )
                     ret = OpcUa_BadInvalidArgument;
                 else
-                    ret = m_pCommIf->OperateDevice(GLOB_PositionerType, m_Identity, GLOB_PositionerType_Move);
+                    ret = m_pCommIf->operateDevice(GLOB_PositionerType, m_Identity, GLOB_PositionerType_Move);
             }
 
             if ( pMethod->nodeId() == m_pMethodStop->nodeId())
@@ -148,7 +148,7 @@ UaStatus PositionerObject::call(
                 if ( inputArguments.length() > 0 )
                     ret = OpcUa_BadInvalidArgument;
                 else
-                    ret = m_pCommIf->OperateDevice(GLOB_PositionerType, m_Identity, GLOB_PositionerType_Stop);
+                    ret = m_pCommIf->operateDevice(GLOB_PositionerType, m_Identity, GLOB_PositionerType_Stop);
             }
 
             if ( pMethod->nodeId() == m_pMethodSetEnergy->nodeId())
@@ -157,7 +157,7 @@ UaStatus PositionerObject::call(
                 if ( inputArguments.length() > 0 )
                     ret = OpcUa_BadInvalidArgument;
                 else
-                    ret = m_pCommIf->OperateDevice(GLOB_PositionerType, m_Identity, GLOB_PositionerType_SetEnergy);
+                    ret = m_pCommIf->operateDevice(GLOB_PositionerType, m_Identity, GLOB_PositionerType_SetEnergy);
             }
         }
         else

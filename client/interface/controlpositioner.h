@@ -12,6 +12,7 @@
 #include "pascommunicationinterface.h"
 #include "uamutex.h"
 #include "components.h"
+#include "common/alignment/device.hpp"
 
 class Client;
 
@@ -27,14 +28,16 @@ public:
     ~ControlPositioner();
 
     /* Get Controller status and data */
-    UaStatusCode getState(PASState& state);
-    UaStatusCode getData(OpcUa_UInt32 offset, UaVariant& value);
+    UaStatus getState(Device::DeviceState &state);
+
+    UaStatus getData(OpcUa_UInt32 offset, UaVariant &value);
 
     /* set Controller status and data */
-    UaStatusCode setState(PASState state);
-    UaStatusCode setData(OpcUa_UInt32 offset, UaVariant value);
+    UaStatus setState(Device::DeviceState state);
 
-    UaStatusCode operate(OpcUa_UInt32 offset = 0, const UaVariantArray &args = UaVariantArray());
+    UaStatus setData(OpcUa_UInt32 offset, UaVariant value);
+
+    UaStatus operate(OpcUa_UInt32 offset = 0, const UaVariantArray &args = UaVariantArray());
 
 private:
     struct Position {

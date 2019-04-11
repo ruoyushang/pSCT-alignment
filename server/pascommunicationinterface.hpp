@@ -119,7 +119,7 @@ public:
     /// @param offset A number used to uniquely identify the method to call.
     /// @param args Array of method arguments as UaVariants.
     /// @return OPC UA status code indicating success/failure.
-    UaStatus OperateDevice(
+    UaStatus operateDevice(
             OpcUa_UInt32 deviceType,
             const Identity &identity,
             OpcUa_UInt32 offset,

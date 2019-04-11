@@ -119,7 +119,7 @@ UaStatus PanelObject::call(
                 if ( inputArguments.length() > 0 )
                     ret = OpcUa_BadInvalidArgument;
                 else
-                    ret = m_pCommIf->OperateDevice(PAS_PanelType, m_Identity, PAS_PanelType_MoveTo_Acts);
+                    ret = m_pCommIf->operateDevice(PAS_PanelType, m_Identity, PAS_PanelType_MoveTo_Acts);
             }
             else if ( pMethod->nodeId() == m_pMethodMoveToCoords->nodeId())
             {
@@ -127,7 +127,7 @@ UaStatus PanelObject::call(
                 if ( inputArguments.length() > 0 )
                     ret = OpcUa_BadInvalidArgument;
                 else
-                    ret = m_pCommIf->OperateDevice(PAS_PanelType, m_Identity, PAS_PanelType_MoveTo_Coords);
+                    ret = m_pCommIf->operateDevice(PAS_PanelType, m_Identity, PAS_PanelType_MoveTo_Coords);
             }
             else if ( pMethod->nodeId() == m_pMethodRead->nodeId())
             {
@@ -135,7 +135,7 @@ UaStatus PanelObject::call(
                 if ( inputArguments.length() > 0 )
                     ret = OpcUa_BadInvalidArgument;
                 else
-                    ret = m_pCommIf->OperateDevice(PAS_PanelType, m_Identity, PAS_PanelType_Read);
+                    ret = m_pCommIf->operateDevice(PAS_PanelType, m_Identity, PAS_PanelType_Read);
             }
             else if ( pMethod->nodeId() == m_pMethodStop->nodeId())
             {
@@ -143,7 +143,7 @@ UaStatus PanelObject::call(
                 if ( inputArguments.length() > 0 )
                     ret = OpcUa_BadInvalidArgument;
                 else
-                    ret = m_pCommIf->OperateDevice(PAS_PanelType, m_Identity, PAS_PanelType_Stop);
+                    ret = m_pCommIf->operateDevice(PAS_PanelType, m_Identity, PAS_PanelType_Stop);
             }
 
         }

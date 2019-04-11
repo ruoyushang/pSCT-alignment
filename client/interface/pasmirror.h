@@ -10,6 +10,8 @@
 // Eigen3 for linear algebra needs
 #include <Eigen/Dense>
 
+#include "common/alignment/device.hpp"
+
 class AGeoAsphericDisk;
 
 class PasMirror; // need this forward declaration for the friend class
@@ -28,7 +30,7 @@ class PasMirrorCompute : public TObject
             return instance;
         }
 
-        ~PasMirrorCompute() { Mirror = nullptr; };
+    ~PasMirrorCompute() override { Mirror = nullptr; };
         // make sure we don't create accidental copies -- can't use assignment or copy constructor
         PasMirrorCompute(PasMirrorCompute const&) = delete;
         void operator=(PasMirrorCompute const&) = delete;
@@ -40,7 +42,9 @@ class PasMirrorCompute : public TObject
         static PasMirror *Mirror;
 
     private :
-        PasMirrorCompute(PasMirror *mirror) { Mirror = mirror; };
+    PasMirrorCompute(PasMirror *mirror)
+
+    explicit { Mirror = mirror; };
 };
 
 
@@ -55,12 +59,15 @@ public:
     bool initialize();
 
     // same as before -- get/set status/data and operate:
-    UaStatusCode getState(PASState& state);
-    UaStatusCode getData(OpcUa_UInt32 offset, UaVariant& value);
-    UaStatusCode setState(PASState state);
-    UaStatusCode setData(OpcUa_UInt32 offset, UaVariant value);
+    UaStatus getState(Device::DeviceState &state);
 
-    UaStatusCode operate(OpcUa_UInt32 offset = 0, const UaVariantArray &args = UaVariantArray());
+    UaStatus getData(OpcUa_UInt32 offset, UaVariant &value);
+
+    UaStatus setState(Device::DeviceState state);
+
+    UaStatus setData(OpcUa_UInt32 offset, UaVariant value);
+
+    UaStatus operate(OpcUa_UInt32 offset = 0, const UaVariantArray &args = UaVariantArray());
 
     // own implementation
     void addChild(OpcUa_UInt32 deviceType, PasController *const pController);
@@ -70,13 +77,11 @@ public:
 
 protected:
     // compute chiSq for all panels given a perturbation to the mirror
-    virtual double chiSq(Eigen::VectorXd telDleta);
+    virtual double chiSq(Eigen::VectorXd telDelta);
 
 private:
     OpcUa_Float m_AlignFrac;
     // private methods for the actions we can take
-    UaStatus __align();
-    UaStatus __moveTo();
 
     // helper method to process the selected children string and convert it into a set
     // of vector indices

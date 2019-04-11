@@ -245,7 +245,7 @@ std::vector<Identity> PasCommunicationInterface::getValidDeviceIdentities(OpcUa_
 UaStatus PasCommunicationInterface::getDeviceState(
         OpcUa_UInt32 deviceType,
         const Identity &identity,
-        PASState &state) {
+        Device::DeviceState &state) {
     try {
         return m_pControllers.at(deviceType).at(identity)->getState(state);
     }
@@ -257,7 +257,7 @@ UaStatus PasCommunicationInterface::getDeviceState(
 UaStatus PasCommunicationInterface::setDeviceState(
         OpcUa_UInt32 deviceType,
         const Identity &identity,
-        PASState state) {
+        Device::DeviceState state) {
     try {
         return m_pControllers.at(deviceType).at(identity)->setState(state);
     }
@@ -293,13 +293,13 @@ UaStatus PasCommunicationInterface::setDeviceData(
     }
 }
 
-UaStatus PasCommunicationInterface::OperateDevice(
-        OpcUa_UInt32 deviceType,
+UaStatus PasCommunicationInterface::operateDevice(
+        OpcUa_UInt32 type,
         const Identity &identity,
         OpcUa_UInt32 offset,
         const UaVariantArray &args) {
     try {
-        return m_pControllers.at(deviceType).at(identity)->operate(offset, args);
+        return m_pControllers.at(type).at(identity)->operate(offset, args);
     }
     catch (std::out_of_range &e) {
         return OpcUa_BadInvalidArgument;

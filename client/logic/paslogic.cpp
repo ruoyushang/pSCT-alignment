@@ -235,7 +235,7 @@ UaStatus PasLogic::__move_OT(unsigned otNo, const double coords[6])
     }
 
     tee << TIME << "set new panel coords for OPT" << otNo+1 << "; moving..." << std::endl;
-    UaStatus status = m_pCommIf->OperateDevice(PAS_PanelType, m_optId[otNo], PAS_PanelType_MoveTo_Coords);
+    UaStatus status = m_pCommIf->operateDevice(PAS_PanelType, m_optId[otNo], PAS_PanelType_MoveTo_Coords);
     tee << TIME << "done moving" << std::endl;
     if (!status.isGood())
         tee << TIME << "!!! THERE WAS A PROBLEM MOVING THE PANEL !!!" << std::endl;

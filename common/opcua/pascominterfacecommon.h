@@ -30,22 +30,22 @@ public:
             Identity& identity) = 0;
 
     /* Get device status and data */
-    virtual UaStatus getDeviceState(OpcUa_UInt32 type, const Identity &identity, PASState &state) = 0;
+    virtual UaStatus getDeviceState(OpcUa_UInt32 type, const Identity &identity, Device::DeviceState &state) = 0;
 
     virtual UaStatus getDeviceData(OpcUa_UInt32 type, const Identity &identity,
                                    OpcUa_UInt32 offset,
                                    UaVariant &value) = 0;
 
     /* Set device status and data*/
-    virtual UaStatus setDeviceState(OpcUa_UInt32 type, const Identity &identity, PASState state) = 0;
+    virtual UaStatus setDeviceState(OpcUa_UInt32 type, const Identity &identity, Device::DeviceState state) = 0;
 
     virtual UaStatus setDeviceData(OpcUa_UInt32 type, const Identity &identity,
             OpcUa_UInt32 offset,
             UaVariant value) = 0;
 
-    virtual UaStatus OperateDevice(OpcUa_UInt32 type, const Identity &identity,
+    virtual UaStatus operateDevice(OpcUa_UInt32 type, const Identity &identity,
                                    OpcUa_UInt32 offset = 0,
-                                   const UaVariantArray& args = UaVariantArray()) = 0;
+                                   const UaVariantArray &args = UaVariantArray()) = 0;
 };
 
 #endif

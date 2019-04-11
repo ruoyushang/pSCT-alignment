@@ -17,6 +17,8 @@
 #include <string>
 #include <utility> // pair
 
+#include "common/alignment/device.hpp"
+
 struct Identity;
 class Client;
 class PasController;
@@ -55,7 +57,7 @@ public:
     UaStatus getDeviceState(
             OpcUa_UInt32 type,
             const Identity &identity,
-            PASState &state);
+            Device::DeviceState &state);
 
     UaStatus getDeviceData(
             OpcUa_UInt32 type,
@@ -67,18 +69,18 @@ public:
     UaStatus setDeviceState(
             OpcUa_UInt32 type,
             const Identity &identity,
-            PASState state);
+            Device::DeviceState state);
 
-    UaStatusCode setDeviceData(
+    UaStatus setDeviceData(
         OpcUa_UInt32 type,
         const Identity& identity,
         OpcUa_UInt32 offset,
         UaVariant value);
 
     /* operate a device -- run a method */
-    UaStatusCode OperateDevice(OpcUa_UInt32 type, const Identity& identity,
-            OpcUa_UInt32 offset = 0,
-            const UaVariantArray& args = UaVariantArray());
+    UaStatus operateDevice(OpcUa_UInt32 type, const Identity &identity,
+                           OpcUa_UInt32 offset = 0,
+                           const UaVariantArray &args = UaVariantArray());
 
     PasController* getDeviceFromId(OpcUa_UInt32 type, const Identity& identity);
 
