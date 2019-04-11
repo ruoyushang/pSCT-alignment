@@ -12,6 +12,8 @@
 #include "statuscode.h"
 #include "uaarraytemplates.h"
 
+#include "common/alignment/device.hpp"
+
 struct Identity;
 
 class PasComInterfaceCommon
