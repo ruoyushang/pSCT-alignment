@@ -32,8 +32,6 @@ const std::map<OpcUa_UInt32, std::pair<std::string, std::vector<std::tuple<std::
         {PAS_PanelType_Stop,        {"Stop",       {}}}
 };
 
-std::map<UaNodeId, std::pair<UaMethodGeneric *, OpcUa_UInt32>> m_MethodMap;
-
 /// @details Adds all child variable nodes and child method nodes. nitializes a reference-counting shared mutex for thread locking.
 PanelObject::PanelObject(
         const UaString &name,
@@ -42,7 +40,7 @@ PanelObject::PanelObject(
         PasNodeManager *pNodeManager,
         Identity identity,
         PasCommunicationInterface *pCommIf)
-        : PasObject(name, newNodeId, defaultLocaleId, pNodeManager, identity, pCommIf) {
+        : PasObject(name, newNodeId, defaultLocaleId, pNodeManager, std::move(identity), pCommIf) {
     // Use a mutex shared across all variables of this object
     // This will ensure thread-locking is applied across all variables sharing the same mutex
     m_pSharedMutex = new UaMutexRefCounted;
@@ -50,19 +48,19 @@ PanelObject::PanelObject(
     UaStatus addStatus;
 
     // Add all child variable nodes
-    for (auto it = getVariableDefs().begin(); it != getVariableDefs().end(); it++) {
-        addVariable(pNodeManager, PAS_PanelType, it->first, std::get<2>(it->second));
+    for (auto &v : getVariableDefs()) {
+        addVariable(pNodeManager, PAS_PanelType, v.first, std::get<2>(v.second));
     }
 
     // Add all child method nodes
     UaString sName;
     UaString sNodeId;
     OpcUa_Int16 nsIdx = pNodeManager->getNameSpaceIndex();
-    for (auto it = getMethodDefs().begin(); it != getMethodDefs().end(); it++) {
-        sName = UaString(it->second.first.c_str());
+    for (auto &m : getMethodDefs()) {
+        sName = UaString(m.second.first.c_str());
         sNodeId = UaString("%1.%2").arg(newNodeId.toString()).arg(sName);
         m_MethodMap[UaNodeId(sNodeId, nsIdx)] = std::make_pair(
-                new UaMethodGeneric(sName, UaNodeId(sNodeId, nsIdx), m_defaultLocaleId), it->first);
+                new UaMethodGeneric(sName, UaNodeId(sNodeId, nsIdx), m_defaultLocaleId), m.first);
         addStatus = pNodeManager->addNodeAndReference(this, m_MethodMap[UaNodeId(sNodeId, nsIdx)].first,
                                                       OpcUaId_HasComponent);
         UA_ASSERT(addStatus.isGood());
@@ -73,7 +71,7 @@ PanelObject::PanelObject(
 PanelObject::~PanelObject() {
     if (m_pSharedMutex) {
         m_pSharedMutex->releaseReference(); // Release our local reference
-        m_pSharedMutex = NULL;
+        m_pSharedMutex = nullptr;
     }
 }
 
@@ -91,10 +89,10 @@ UaStatus PanelObject::call(
         UaStatusCodeArray &inputArgumentResults,
         UaDiagnosticInfos &inputArgumentDiag) {
     UaStatus ret;
-    MethodHandleUaNode *pMethodHandleUaNode = static_cast<MethodHandleUaNode *>(pMethodHandle);
-    UaMethod *pMethod = NULL;
+    auto pMethodHandleUaNode = dynamic_cast<MethodHandleUaNode *>(pMethodHandle);
+    UaMethod *pMethod = nullptr;
 
-    int numArgs;
+    unsigned numArgs;
     OpcUa_UInt32 methodTypeID;
 
     if (pMethodHandleUaNode) {

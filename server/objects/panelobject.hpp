@@ -3,8 +3,8 @@
  * @brief Header file for OPC UA panel object class.
  */
 
-#ifndef __PANELOBJECT_H__
-#define __PANELOBJECT_H__
+#ifndef SERVER_OBJECTS_PANELOBJECT_HPP
+#define SERVER_OBJECTS_PANELOBJECT_HPP
 
 #include <vector>
 #include <map>
@@ -96,6 +96,8 @@ public:
 
     /// @brief Map of OPC UA type ids for all child methods to their name and number of arguments.
     static const std::map<OpcUa_UInt32, std::pair<std::string, std::vector<std::tuple<std::string, UaNodeId, std::string>>>> METHODS;
+
+    std::map<UaNodeId, std::pair<UaMethodGeneric *, OpcUa_UInt32>> m_MethodMap;
 };
 
-#endif
+#endif //SERVER_OBJECTS_PANELOBJECT_HPP

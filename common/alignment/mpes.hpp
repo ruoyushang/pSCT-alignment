@@ -78,12 +78,8 @@ protected:
 class DummyMPES : public MPES
 {
 public:
-    DummyMPES(std::shared_ptr<CBC> pCBC, int portNumber, int serialNumber) : MPES(std::shared_ptr<CBC>
-
-    pCBC,
-    int portNumber,
-    int serialNumber
-    ) {};
+    DummyMPES(std::shared_ptr<CBC> pCBC, int portNumber, int serialNumber) : MPES(
+            std::shared_ptr<CBC pCBC, int portNumber, int serialNumber) {};
 
     bool initialize() override;
 

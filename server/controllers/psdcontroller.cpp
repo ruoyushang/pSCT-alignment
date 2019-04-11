@@ -10,31 +10,36 @@
 
 #include "uabase/statuscode.h"
 #include "uabase/uamutex.h"
-#include "uabase/uaobjecttypes.h"
+#include "uaserver/uaobjecttypes.h"
 
 #include "server/controllers/psdcontroller.hpp"
+#include "server/controllers/pascontroller.hpp"
 
 #include "common/globalalignment/psdclass.h"
 #include "common/opcua/pascominterfacecommon.h"
 
+#include "common/opcua/passervertypeids.h"
+
+#include "common/alignment/device.hpp"
+
 /// @details By default, sets the update interval to 500 ms. Creates a new GASPSD object,
 /// sets its port, and initializes. Sets its state to On.
-PSDController::PSDController(int ID) : PasController(ID, 500)
+PSDController::PSDController(int ID) : PasController::PasController(ID, 500)
 {
-    m_pPSD = new GASPSD();
+    m_pPSD = std::unique_ptr<GASPSD>(new GASPSD());
     m_pPSD->setPort();
     m_pPSD->Initialize();
-    m_state = PASState::On;
+    m_state = Device::DeviceState::On;
 }
 
 /// @details Sets the device state to off.
 PSDController::~PSDController()
 {
-    m_state = PASState::Off;
+    m_state = Device::DeviceState::Off;
 }
 
 /// @details Calls GASPSD.getOutput() to read data. Locks the shared mutex to prevent concurrent actions while reading data.
-UaStatusCode PSDController::getData(OpcUa_UInt32 offset, UaVariant& value)
+UaStatus PSDController::getData(OpcUa_UInt32 offset, UaVariant& value)
 {
     UaMutexLocker lock(&m_mutex);
     UaStatus status;
@@ -54,13 +59,13 @@ UaStatusCode PSDController::getData(OpcUa_UInt32 offset, UaVariant& value)
 }
 
 /// @details Has no effect, as PSDs have no writable data variables.
-UaStatusCode PSDController::setData(OpcUa_UInt32 offset, UaVariant value)
+UaStatus PSDController::setData(OpcUa_UInt32 offset, UaVariant value)
 {
     return OpcUa_BadNotWritable;
 }
 
 /// @details Locks the shared mutex to prevent concurrent actions while calling methods.
-UaStatusCode PSDController::Operate(OpcUa_UInt32 offset, const UaVariantArray& args)
+UaStatus PSDController::Operate(OpcUa_UInt32 offset, const UaVariantArray& args)
 {
     UaMutexLocker lock(&m_mutex);
 
@@ -82,17 +87,16 @@ UaStatus PSDController::read()
 {
     UaMutexLocker lock(&m_mutex);
 
-    if ( m_state == PASState::On )
+    if ( m_state == Device::DeviceState::On )
     {
         std::cout << "\nReading PSD " <<  m_ID << std::endl;
         m_pPSD->Update();
         m_lastUpdateTime = std::chrono::system_clock::now();
         return OpcUa_Good;
     }
-    else
+    else {
         return OpcUa_BadOutOfService;
-
-    return OpcUa_BadUnexpectedError;
+    }
 }
 
 #endif

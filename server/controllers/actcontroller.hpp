@@ -3,8 +3,8 @@
  * @brief Header file for actuator device controller.
  */
 
-#ifndef __ACTCONTROLLER_H__
-#define __ACTCONTROLLER_H__
+#ifndef SERVER_CONTROLLERS_ACTCONTROLLER_HPP
+#define SERVER_CONTROLLERS_ACTCONTROLLER_HPP
 
 #include "server/controllers/pascontroller.hpp"
 
@@ -16,6 +16,7 @@
 #include "uabase/uastring.h"
 
 #include "common/alignment/platform.hpp"
+#include "common/alignment/device.hpp"
 #include "common/opcua/pascominterfacecommon.h"
 
 /// @brief Class representing an actuator device controller.
@@ -37,7 +38,7 @@ public:
     /// @brief Get the internal state of the actuator device.
     /// @param state Variable to store the retrieved state value.
     /// @return OPC UA status code indicating success or failure.
-    UaStatus getState(PASState &state);
+    UaStatus getState(Device::DeviceState &state);
 
     /// @brief Get the value of an actuator data variable.
     /// @param offset A number used to uniquely identify the data variable to access.
@@ -67,11 +68,11 @@ public:
     /// @param offset A number used to uniquely identify the method to call.
     /// @param args Array of method arguments as UaVariants.
     /// @return OPC UA status code indicating success or failure.
-    UaStatus Operate(OpcUa_UInt32 offset, const UaVariantArray &args);
+    UaStatus operate(OpcUa_UInt32 offset, const UaVariantArray &args);
 
 private:
     /// @brief The internal device state.
-    PASState m_state = PASState::Off;
+    Device::DeviceState m_state = Device::DeviceState::Off;
     /// @brief The distance between the current actuator length and the target length.
     OpcUa_Float m_DeltaL;
 
@@ -80,4 +81,4 @@ private:
     UaStatus moveDelta(const UaVariantArray &args);
 };
 
-#endif
+#endif //SERVER_CONTROLLERS_ACTCONTROLLER_HPP

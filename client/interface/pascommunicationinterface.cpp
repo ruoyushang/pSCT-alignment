@@ -64,7 +64,7 @@ PasCommunicationInterface::~PasCommunicationInterface()
 
 UaStatusCode PasCommunicationInterface::Initialize()
 {
-    // Initialize devices communicating directly with the Alignment server (p2pasclient)
+    // initialize devices communicating directly with the Alignment server (p2pasclient)
 
     // currently, only GAS CCDs need to be intialized.
     // find what's on the network and compare it to what's expected
@@ -84,7 +84,7 @@ UaStatusCode PasCommunicationInterface::Initialize()
         for (const auto& CCD : m_pConfiguration->getDeviceList(PAS_CCDType)) {
             try {
                 if (serial2ip.at(to_string(CCD.serialNumber)) != CCD.eAddress) {
-                        cout << " +++ WARNING +++ PasCommunicationInterface::Initialize(): "
+                    cout << " +++ WARNING +++ PasCommunicationInterface::initialize(): "
                             "mismatch in recorded config and actual IP assignment:" << endl;
                         cout << "        " << CCD.serialNumber << " is assigned "
                             << CCD.eAddress << ", but actually obtained "
@@ -93,15 +93,15 @@ UaStatusCode PasCommunicationInterface::Initialize()
                 addDevice(nullptr, PAS_CCDType, CCD);
             }
             catch (out_of_range) {
-                cout << " +++ WARNING +++ PasCommunicationInterface::Initialize(): CCD "
-                    << CCD.serialNumber << " with assigned IP " << CCD.eAddress
-                    << " isn't found on the network. Check your connection and restart."
-                    << " Skipping..." << endl;
+                cout << " +++ WARNING +++ PasCommunicationInterface::initialize(): CCD "
+                     << CCD.serialNumber << " with assigned IP " << CCD.eAddress
+                     << " isn't found on the network. Check your connection and restart."
+                     << " Skipping..." << endl;
             }
         }
     }
     catch (out_of_range) {
-        cout << " +++ WARNING +++ PasCommunicationInterface::Initialize(): "
+        cout << " +++ WARNING +++ PasCommunicationInterface::initialize(): "
             "no CCD configurations found." << endl;
     }
 
@@ -165,8 +165,8 @@ const Identity PasCommunicationInterface::addDevice(Client *pClient, OpcUa_UInt3
         // do nothing -- simply continue to add the device
     }
 
-    // Initialize this controller or return if unable to do so for whatever reason
-    if (!pController->Initialize()) {
+    // initialize this controller or return if unable to do so for whatever reason
+    if (!pController->initialize()) {
         cout << " failed" << endl;
         delete pController;
         return addedId;
@@ -303,13 +303,12 @@ UaStatusCode PasCommunicationInterface::getDeviceConfig(
     Method       getDeviceState
     Description  Get Device status.
 -----------------------------------------------------------------------------*/
-UaStatusCode PasCommunicationInterface::getDeviceState(
-        OpcUa_UInt32 type,
-        const Identity& identity,
-        PASState& state)
-{
-    if (getDeviceFromId(type, identity) != nullptr)
-        return getDeviceFromId(type, identity)->getState(state);
+UaStatus PasCommunicationInterface::getDeviceState(
+        OpcUa_UInt32 deviceType,
+        const Identity &identity,
+        PASState &state) {
+    if (getDeviceFromId(deviceType, identity) != nullptr)
+        return getDeviceFromId(deviceType, identity)->getState(state);
 
     return OpcUa_BadInvalidArgument;
 }
@@ -318,13 +317,12 @@ UaStatusCode PasCommunicationInterface::getDeviceState(
     Method       setSensorState
     Description  Set Sensor status.
 -----------------------------------------------------------------------------*/
-UaStatusCode PasCommunicationInterface::setDeviceState(
-        OpcUa_UInt32 type,
-        const Identity& identity,
-        PASState  state)
-{
-    if (getDeviceFromId(type, identity) != nullptr)
-        return getDeviceFromId(type, identity)->setState(state);
+UaStatus PasCommunicationInterface::setDeviceState(
+        OpcUa_UInt32 deviceType,
+        const Identity &identity,
+        PASState state) {
+    if (getDeviceFromId(deviceType, identity) != nullptr)
+        return getDeviceFromId(deviceType, identity)->setState(state);
 
     return OpcUa_BadInvalidArgument;
 }
@@ -333,14 +331,13 @@ UaStatusCode PasCommunicationInterface::setDeviceState(
     Method       getDeviceData
     Description  Get Sensor data.
 -----------------------------------------------------------------------------*/
-UaStatusCode PasCommunicationInterface::getDeviceData(
-        OpcUa_UInt32 type,
-        const Identity& identity,
+UaStatus PasCommunicationInterface::getDeviceData(
+        OpcUa_UInt32 deviceType,
+        const Identity &identity,
         OpcUa_UInt32 offset,
-        UaVariant& value)
-{
-    if (getDeviceFromId(type, identity) != nullptr)
-        return getDeviceFromId(type, identity)->getData(offset, value);
+        UaVariant &value) {
+    if (getDeviceFromId(deviceType, identity) != nullptr)
+        return getDeviceFromId(deviceType, identity)->getData(offset, value);
 
     return OpcUa_BadInvalidArgument;
 }
@@ -375,7 +372,7 @@ UaStatusCode PasCommunicationInterface::OperateDevice(
     OpcUa_UInt32 offset, const UaVariantArray& args)
 {
     if (getDeviceFromId(type, identity) != nullptr)
-        return getDeviceFromId(type, identity)->Operate(offset, args);
+        return getDeviceFromId(type, identity)->operate(offset, args);
 
     return OpcUa_BadInvalidArgument;
 }

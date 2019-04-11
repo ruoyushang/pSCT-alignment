@@ -3,8 +3,8 @@
  * @brief Header file for mirror panel edge sensor device controller.
  */
 
-#ifndef __MPESCONTROLLER_H__
-#define __MPESCONTROLLER_H__
+#ifndef SERVER_CONTROLLERS_MPESCONTROLLER_HPP
+#define SERVER_CONTROLLERS_MPESCONTROLLER_HPP
 
 #include "server/controllers/pascontroller.hpp"
 
@@ -16,6 +16,7 @@
 #include "uabase/uastring.h"
 
 #include "common/opcua/pascominterfacecommon.h"
+#include "common/alignment/device.hpp"
 
 class Platform;
 
@@ -33,7 +34,7 @@ public:
 
     /// @brief Initialize the MPES by setting its exposure.
     /// #return 0 on success, -1 on failure.
-    int Initialize();
+    int initialize();
 
     /// @brief Get the value of an MPES data variable.
     /// @return OPC UA status code indicating success or failure.
@@ -45,11 +46,11 @@ public:
 
     /// @brief Call a method on the MPES device.
     /// @return OPC UA status code indicating success or failure.
-    UaStatus Operate(OpcUa_UInt32 offset, const UaVariantArray &args);
+    UaStatus operate(OpcUa_UInt32 offset, const UaVariantArray &args);
 
 private:
     /// @brief The internal device state.
-    PASState m_state = PASState::Off;
+    Device::DeviceState m_state = Device::DeviceState::Off;
     /// @brief Whether the MPES data has been read at least once since initialization.
     bool m_updated = false;
 
@@ -57,4 +58,4 @@ private:
     OpcUa_Int32 read();
 };
 
-#endif
+#endif //SERVER_CONTROLLERS_MPESCONTROLLER_HPP

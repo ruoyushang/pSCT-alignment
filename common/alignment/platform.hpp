@@ -36,10 +36,14 @@ public:
 
     Platform(int CBCSerial, std::array<int, NUM_ACTS_PER_PLATFORM> actuatorPorts,
              std::array<int, NUM_ACTS_PER_PLATFORM> actuatorSerials, Device::DBInfo dbInfo,
-             Actuator::ASFFileInfo asfInfo);
+             Actuator::ASFInfo asfInfo);
     ~Platform();
 
     void initialize();
+
+    void turnOn() { setState(Device::DeviceState::On); }
+
+    void turnOff() { setState(Device::DeviceState::Off); }
 
     void setCBCserial(int serial) { m_CBCserial = serial; }
     int getCBCserial() { return m_CBCserial; }
@@ -91,13 +95,13 @@ public:
     std::array<float, NUM_ACTS_PER_PLATFORM> moveDeltaLengths(std::array<float, NUM_ACTS_PER_PLATFORM> lengthsToMove);
 
     // Error functionality
-    const Device::DeviceStatus &getStatus();
+    const Device::DeviceState &getState();
 
     void clearActuatorErrors();
 
     void clearPlatformErrors();
 
-    void updateStatus();
+    void updateState();
 
     // MPES functionality
 
@@ -121,7 +125,7 @@ private:
     bool m_HighCurrent = false;
     bool m_SynchronousRectification = true;
 
-    Device::DeviceStatus m_Status = Device::DeviceStatus::On;
+    Device::DeviceState m_State = Device::DeviceState::On;
     std::array<bool, NUM_ERROR_TYPES> m_Errors = { false };
 
     std::shared_ptr<CBC> m_pCBC;
@@ -133,7 +137,7 @@ private:
     float m_ExternalTemperatureSlope = DEFAULT_EXTERNAL_TEMPERATURE_SLOPE;
     float m_ExternalTemperatureOffset = DEFAULT_EXTERNAL_TEMPERATURE_OFFSET;
 
-    void setStatus(Device::DeviceStatus state);
+    void setState(Device::DeviceState state);
 
     void setError(int errorCode);
     void unsetError(int errorCode);

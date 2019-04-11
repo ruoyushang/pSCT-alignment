@@ -35,7 +35,7 @@
 /// @return 0 on success and -1 on failure.
 int CheckSystem(double &size)
 {
-    struct statvfs sysBuf;
+    struct statvfs sysBuf{};
     if (statvfs("/", &sysBuf) == 0)
         size = ((double) sysBuf.f_bsize * sysBuf.f_bfree) / (1024 * 1024 * 1024);
     else return -1;
@@ -48,21 +48,21 @@ int CheckSystem(double &size)
 /// @param configFilePath The file path to the server configuration file.
 /// @param serverIP The IP address for the server endpoint.
 /// @return 0 on success and -1 on failure.
-int OpcServerMain(std::string szAppPath, std::string configFilePath, std::string panelNumber) {
+int OpcServerMain(const std::string &szAppPath, const std::string &configFilePath, const std::string &panelNumber) {
     int ret;
 
 #if SUPPORT_XML_PARSER
-    UaXmlDocument::initParser(); // Initialize the XML Parser
+    UaXmlDocument::initParser(); // initialize the XML Parser
 #endif
 
-    ret = UaPlatformLayer::init(); // Initialize the UA Stack platform layer
+    ret = UaPlatformLayer::init(); // initialize the UA Stack platform layer
 
     if (ret == 0) {
         UaString sAppPath(szAppPath.c_str()); // Set server app path
         UaString sConfigFileName(configFilePath.c_str()); // Set config filename
 
         std::unique_ptr<OpcServer> pServer = std::unique_ptr<OpcServer>(
-                new OpcServer()); // Initialize and configure server object
+                new OpcServer()); // initialize and configure server object
         pServer->setServerConfig(sConfigFileName, sAppPath);
 
         /**
@@ -77,10 +77,10 @@ int OpcServerMain(std::string szAppPath, std::string configFilePath, std::string
         */
 
         std::unique_ptr<PasCommunicationInterface> pCommIf = std::unique_ptr<PasCommunicationInterface>(
-                new PasCommunicationInterface()); // Initialize communication interface
-        pCommIf->setPanelNumber(panelNumber.c_str());
-        UaStatus ret = pCommIf->Initialize();
-        UA_ASSERT(ret.isGood());
+                new PasCommunicationInterface()); // initialize communication interface
+        pCommIf->setPanelNumber(panelNumber);
+        UaStatus retStatus = pCommIf->Initialize();
+        UA_ASSERT(retStatus.isGood());
 
         std::unique_ptr<PasNodeManager> pNodeManager = std::unique_ptr<PasNodeManager>(
                 new PasNodeManager()); // Create Node Manager for the server
@@ -143,6 +143,8 @@ int main(int argc, char* argv[])
             case '?':
                 if (optopt == 'c')
                     std::cout << "Must provide a config file path with option c\n";
+            default:
+                abort();
         }
     }
 
@@ -168,7 +170,6 @@ int main(int argc, char* argv[])
         configFilePath = std::string(pszAppPath) + sConfigFileName;
     }
 
-
     double sysFree;
     std::cout << "********************SYSTEM INFO********************\n";
     if (!CheckSystem(sysFree)) // check available disk space
@@ -182,7 +183,7 @@ int main(int argc, char* argv[])
 
     int ret = OpcServerMain(pszAppPath, configFilePath, cbcIPAddress);
 
-    if (pszAppPath) delete[] pszAppPath; // release pszAppPath memory manually
+    delete[] pszAppPath; // release pszAppPath memory manually
 
     return ret;
 }

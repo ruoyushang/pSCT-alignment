@@ -46,26 +46,24 @@ PasCommunicationInterface::~PasCommunicationInterface() {
     m_stop = OpcUa_True; // Signal thread to stop
     // wait(); // Wait until thread stopped
 
-    std::cout << "\nClosed and cleaned up Communication Interface\n";
+    std::cout << "Closed and cleaned up Communication Interface\n";
 }
 
 /// @details Uses hardcoded DB login info to access the device database and retrieve
 /// all device mappings and positions. Then, initializes all corresponding controllers, adds all MPES to the platform object,
 /// and attaches all actuator controllers to the corresponding panel controller.
-UaStatusCode PasCommunicationInterface::Initialize() {
-    UaStatusCode status;
-
+UaStatus PasCommunicationInterface::initialize() {
     /// @warning Hardcoded database information. Should be moved to external configuration.
-    Platform::DBInfo DbInfo;
-    DbInfo.ip = "remus.ucsc.edu";
+    Device::DBInfo DbInfo;
+    DbInfo.host = "remus.ucsc.edu";
     DbInfo.port = "3406";
     DbInfo.user = "CTAreadonly";
     DbInfo.password = "readCTAdb";
     DbInfo.dbname = "CTAonline";
-    std::string dbAddress = "tcp://" + DbInfo.ip + ":" + DbInfo.port;
+    std::string dbAddress = "tcp://" + DbInfo.host + ":" + DbInfo.port;
 
-    int cbcID;
-    int panelPosition;
+    int cbcID = -1;
+    int panelPosition = -1;
     std::map<int, int> actPositionToSerial;
     std::map<int, int> actPositionToPort;
     std::map<int, int> mpesPositionToSerial;
@@ -89,6 +87,11 @@ UaStatusCode PasCommunicationInterface::Initialize() {
         while (pSqlResults->next()) {
             cbcID = pSqlResults->getInt(1);
             panelPosition = pSqlResults->getInt(2);
+        }
+
+        if (panelPosition == -1 || cbcID == -1) {
+            std::cout << "PasCommunicationInterface:: Failed to load panel position/CBC ID from database.\n";
+            return OpcUa_Bad;
         }
         std::cout << "Will initialize Panel " << panelPosition << " with CBC " << cbcID << std::endl;
 
@@ -124,14 +127,14 @@ UaStatusCode PasCommunicationInterface::Initialize() {
 
     // construct arrays of the actuator ports and serial numbers
     // ordered by position
-    std::array<int, 6> actuatorPorts;
-    std::array<int, 6> actuatorSerials;
+    std::array<int, 6> actuatorPorts{};
+    std::array<int, 6> actuatorSerials{};
     for (auto act : actPositionToPort)
         actuatorPorts[act.first - 1] = act.second;
     for (auto act : actPositionToSerial)
         actuatorSerials[act.first - 1] = act.second;
 
-    m_platform = std::shared_ptr<Platform>(new Platform(cbcID, actuatorPorts, actuatorSerials, DbInfo));
+    m_platform = std::make_shared<Platform>(new Platform(cbcID, actuatorPorts, actuatorSerials, DbInfo));
 
     // initialize the MPES in the positional order. Not strictly necessary, but keeps things tidy
     // addMPES(port, serial)
@@ -139,7 +142,7 @@ UaStatusCode PasCommunicationInterface::Initialize() {
         m_platform->addMPES(mpes.second, mpesPositionToSerial.at(mpes.first));
     }
 
-    // Initialize expected devices
+    // initialize expected devices
     Identity identity;
     std::map<OpcUa_UInt32, int> expectedDeviceCounts;
     expectedDeviceCounts[PAS_PanelType] = 1;
@@ -167,10 +170,10 @@ UaStatusCode PasCommunicationInterface::Initialize() {
                 eAddress = i;
             } else if (devCount.first == PAS_MPESType) {
                 pController.reset(new MPESController(i, m_platform));
-                eAddress = m_platform->getMPESAt(i)->GetPortNumber();
+                eAddress = m_platform->getMPES(i)->getPortNumber();
             } else if (devCount.first == PAS_ACTType) {
                 pController.reset(new ActController(i, m_platform));
-                eAddress = m_platform->getActuatorAt(i)->GetPortNumber();
+                eAddress = m_platform->getActuator(i)->getPortNumber();
             }
 #ifndef _AMD64
             else if (devCount.first == PAS_PSDType) {
@@ -178,11 +181,15 @@ UaStatusCode PasCommunicationInterface::Initialize() {
                 eAddress = i;
             }
 #endif
+            else {
+                std::cout << "PasCommunicationInterface:: Invalid device type found.\n";
+                return OpcUa_Bad;
+            }
             identity.eAddress = std::to_string(eAddress);
-            if (pController->Initialize() == 0) {
+            if (pController->initialize() == 0) {
                 m_pControllers.at(devCount.first).emplace(identity, pController);
             } else {
-                std::cout << "Could not Initialize " << deviceTypes.at(devCount.first)
+                std::cout << "Could not initialize " << deviceTypes.at(devCount.first)
                           << " with identity " << identity << std::endl;
             }
         }
@@ -196,22 +203,22 @@ UaStatusCode PasCommunicationInterface::Initialize() {
 
     try {
         std::vector<std::shared_ptr<PasController>> panels;
-        for (auto it = m_pControllers[PAS_PanelType].begin(); it != m_pControllers[PAS_PanelType].end(); ++it) {
-            panels.push_back(it->second);
+        for (const auto &panel : m_pControllers[PAS_PanelType]) {
+            panels.push_back(panel.second);
         }
         std::shared_ptr<PanelController> pPanel = std::dynamic_pointer_cast<PanelController>(
                 panels.at(0)); // get the first panel and assign actuators to it
         std::shared_ptr<ActController> pACT;
-        for (auto a : m_pControllers.at(PAS_ACTType)) {
-            pACT = std::dynamic_pointer_cast<ActController>(a.second);
+        for (const auto &act : m_pControllers.at(PAS_ACTType)) {
+            pACT = std::dynamic_pointer_cast<ActController>(act.second);
             pPanel->addActuator(pACT);
         }
     }
-    catch (std::out_of_range) {
+    catch (std::out_of_range &e) {
     }
 
-    // start(); // start the thread mananged by this object
-    return status;
+    // start(); // start the thread managed by this object
+    return OpcUa_Good;
 }
 
 /// @details Returns -1 on invalid device type ID.
@@ -219,7 +226,7 @@ std::size_t PasCommunicationInterface::getDeviceCount(OpcUa_UInt32 deviceType) {
     try {
         return m_pControllers.at(deviceType).size();
     }
-    catch (std::out_of_range) {
+    catch (std::out_of_range &e) {
         return -1;
     }
 }
@@ -228,66 +235,38 @@ std::vector<Identity> PasCommunicationInterface::getValidDeviceIdentities(OpcUa_
     std::vector<Identity> validIdentities;
     std::map<Identity, std::shared_ptr<PasController>> devices = m_pControllers.at(deviceType);
 
-    for (auto it = devices.begin(); it != devices.end(); ++it) {
-        validIdentities.push_back(it->first);
+    for (const auto &dev : devices) {
+        validIdentities.push_back(dev.first);
     }
 
     return validIdentities;
 }
 
-/**
-/// @details Retreives the device index (on the platform) for the desired controller
-/// and uses it to get the identity in
-UaStatusCode PasCommunicationInterface::getDeviceInfo(
-    OpcUa_UInt32 deviceType,
-    int idx,
-    UaString& sName,
-    Identity& identity)
-{
-    if ( deviceType == PAS_MPESType)
-        identity.eAddress = to_string(m_platform->getMPESAt(idx)->GetPortNumber());
-    else if (deviceType == PAS_ACTType)
-        identity.eAddress = to_string(m_platform->getActuatorAt(idx)->GetPortNumber());
-    else
-        identity.eAddress = to_string(idx);
-
-    std::map<OpcUa_UInt32, std::string> deviceTypeToName;
-    for (auto it = deviceTypes.begin(); it != deviceTypes.end(); ++it)
-    {
-      deviceTypeToName[it->second] = it->first;
-    }
-
-    sName = UaString(deviceTypeToName.at(deviceType).c_str()) + "_" + identity.eAddress.c_str();
-
-    return OpcUa_Good;
-}
-*/
-
-UaStatusCode PasCommunicationInterface::getDeviceState(
+UaStatus PasCommunicationInterface::getDeviceState(
         OpcUa_UInt32 deviceType,
         const Identity &identity,
         PASState &state) {
     try {
         return m_pControllers.at(deviceType).at(identity)->getState(state);
     }
-    catch (std::out_of_range) {
+    catch (std::out_of_range &e) {
         return OpcUa_BadInvalidArgument;
     }
 }
 
-UaStatusCode PasCommunicationInterface::setDeviceState(
+UaStatus PasCommunicationInterface::setDeviceState(
         OpcUa_UInt32 deviceType,
         const Identity &identity,
         PASState state) {
     try {
         return m_pControllers.at(deviceType).at(identity)->setState(state);
     }
-    catch (std::out_of_range) {
+    catch (std::out_of_range &e) {
         return OpcUa_BadInvalidArgument;
     }
 }
 
-UaStatusCode PasCommunicationInterface::getDeviceData(
+UaStatus PasCommunicationInterface::getDeviceData(
         OpcUa_UInt32 deviceType,
         const Identity &identity,
         OpcUa_UInt32 offset,
@@ -295,13 +274,13 @@ UaStatusCode PasCommunicationInterface::getDeviceData(
     try {
         return m_pControllers.at(deviceType).at(identity)->getData(offset, value);
     }
-    catch (std::out_of_range) {
+    catch (std::out_of_range &e) {
         std::cout << "failed to find controller " << deviceType << " " << identity << std::endl;
         return OpcUa_BadInvalidArgument;
     }
 }
 
-UaStatusCode PasCommunicationInterface::setDeviceData(
+UaStatus PasCommunicationInterface::setDeviceData(
         OpcUa_UInt32 deviceType,
         const Identity &identity,
         OpcUa_UInt32 offset,
@@ -309,20 +288,20 @@ UaStatusCode PasCommunicationInterface::setDeviceData(
     try {
         return m_pControllers.at(deviceType).at(identity)->setData(offset, value);
     }
-    catch (std::out_of_range) {
+    catch (std::out_of_range &e) {
         return OpcUa_BadInvalidArgument;
     }
 }
 
-UaStatusCode PasCommunicationInterface::OperateDevice(
+UaStatus PasCommunicationInterface::OperateDevice(
         OpcUa_UInt32 deviceType,
         const Identity &identity,
         OpcUa_UInt32 offset,
         const UaVariantArray &args) {
     try {
-        return m_pControllers.at(deviceType).at(identity)->Operate(offset, args);
+        return m_pControllers.at(deviceType).at(identity)->operate(offset, args);
     }
-    catch (std::out_of_range) {
+    catch (std::out_of_range &e) {
         return OpcUa_BadInvalidArgument;
     }
 }

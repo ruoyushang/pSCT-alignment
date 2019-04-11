@@ -45,7 +45,7 @@ PositionerObject::PositionerObject(
     pDataItem = addVariable(pNodeManager, GLOB_PositionerType, GLOB_PositionerType_inEl);
     pDataItem = addVariable(pNodeManager, GLOB_PositionerType, GLOB_PositionerType_EnergyLevel);
 
-    // Add Method "Initialize"
+    // Add Method "initialize"
     UaString sName = "InitializeDrives";
     UaString sNodeId = UaString("%1.%2").arg(newNodeId.toString()).arg(sName);
     m_pMethodInit = new UaMethodGeneric(sName, UaNodeId(sNodeId, nsIdx), m_defaultLocaleId);

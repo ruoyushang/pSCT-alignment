@@ -3,13 +3,18 @@
  * @brief Header file for position sensitive device controller class
  */
 
-#ifndef __PSDCONTROLLER_H__
-#define __PSDCONTROLLER_H__
+#ifndef SERVER_CONTROLLERS_PSDCONTROLLER_HPP
+#define SERVER_CONTROLLERS_PSDCONTROLLER_HPP
 
 #include <memory>
 
 #include "uabase/statuscode.h"
 #include "uaserver/uaobjecttypes.h"
+
+#include "common/alignment/device.hpp"
+
+#include "server/controllers/pascontroller.hpp"
+
 
 class GASPSD;
 
@@ -41,20 +46,17 @@ public:
     /// @param offset A number used to uniquely identify the method to call.
     /// @param args Array of method arguments as UaVariants.
     /// @return OPC UA status code indicating success or failure.
-    UaStatus Operate(OpcUa_UInt32 offset, const UaVariantArray &args);
+    UaStatus operate(OpcUa_UInt32 offset, const UaVariantArray &args);
 
 private:
     /// @brief The internal device state.
-    PASState m_state = PASState::Off;
+    Device::DeviceState m_state = Device::DeviceState::Off;
     /// @brief Pointer to the GASPSD object interfacing directly with thee PSD hardware.
     std::unique_ptr<GASPSD> m_pPSD;
-
-    /// @brief Time interval after which internal data is considered to be expired.
-    const int kUpdateInterval_ms;
 
     /// @brief Read all sensors and update internal data variables
     /// @return OPC UA status code indicating success or failure.
     UaStatus read();
 };
 
-#endif
+#endif //SERVER_CONTROLLERS_PSDCONTROLLER_HPP

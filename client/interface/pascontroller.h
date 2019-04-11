@@ -55,10 +55,11 @@ public:
     /* set Controller status and data */
     virtual UaStatusCode setState(PASState state) = 0;
     virtual UaStatusCode setData(OpcUa_UInt32 offset, UaVariant value) = 0;
-    virtual UaStatusCode Operate(OpcUa_UInt32 offset = 0,
-                                  const UaVariantArray &args = UaVariantArray()) = 0;
 
-    virtual bool Initialize() { return true; }
+    virtual UaStatusCode operate(OpcUa_UInt32 offset = 0,
+                                 const UaVariantArray &args = UaVariantArray()) = 0;
+
+    virtual bool initialize() { return true; }
 
 protected:
     UaMutex m_mutex;
@@ -127,7 +128,8 @@ public:
     /* set Controller status and data */
     UaStatusCode setState(PASState state);
     UaStatusCode setData(OpcUa_UInt32 offset, UaVariant value);
-    UaStatusCode Operate(OpcUa_UInt32 offset = 0, const UaVariantArray &args = UaVariantArray());
+
+    UaStatusCode operate(OpcUa_UInt32 offset = 0, const UaVariantArray &args = UaVariantArray());
     // test if current panel is this sensor's webcam-side panel
     char getPanelSide(unsigned panelpos);
     bool isVisible() const {return m_isVisible;};
@@ -185,7 +187,8 @@ public:
     // set Controller status and data
     UaStatusCode setState(PASState state);
     UaStatusCode setData(OpcUa_UInt32 offset, UaVariant value);
-    UaStatusCode Operate(OpcUa_UInt32 offset = 0, const UaVariantArray &args = UaVariantArray());
+
+    UaStatusCode operate(OpcUa_UInt32 offset = 0, const UaVariantArray &args = UaVariantArray());
 
 private:
     OpcUa_Float m_DeltaL;
@@ -213,7 +216,8 @@ public:
     // set Controller status and data
     UaStatusCode setState(PASState state);
     UaStatusCode setData(OpcUa_UInt32 offset, UaVariant value);
-    UaStatusCode Operate(OpcUa_UInt32 offset = 0, const UaVariantArray &args = UaVariantArray());
+
+    UaStatusCode operate(OpcUa_UInt32 offset = 0, const UaVariantArray &args = UaVariantArray());
 
     unsigned getActuatorCount();
     void getActuatorSteps(UaVariantArray &args) const;
@@ -266,7 +270,8 @@ public:
     // set Controller status and data
     UaStatusCode setState(PASState state);
     UaStatusCode setData(OpcUa_UInt32 offset, UaVariant value);
-    UaStatusCode Operate(OpcUa_UInt32 offset = 0, const UaVariantArray &args = UaVariantArray());
+
+    UaStatusCode operate(OpcUa_UInt32 offset = 0, const UaVariantArray &args = UaVariantArray());
 
     const Eigen::MatrixXd& getResponseMatrix(unsigned panelpos);
     const Eigen::VectorXd& getAlignedReadings();
@@ -318,7 +323,8 @@ public:
     /* set Controller status and data */
     UaStatusCode setState(PASState state);
     UaStatusCode setData(OpcUa_UInt32 offset, UaVariant value);
-    UaStatusCode Operate(OpcUa_UInt32 offset = 0, const UaVariantArray &args = UaVariantArray());
+
+    UaStatusCode operate(OpcUa_UInt32 offset = 0, const UaVariantArray &args = UaVariantArray());
 
 private:
     PASState m_state = PASState::Off;
@@ -345,7 +351,8 @@ public:
     // set Controller status and data
     UaStatusCode setState(PASState state);
     UaStatusCode setData(OpcUa_UInt32 offset, UaVariant value);
-    UaStatusCode Operate(OpcUa_UInt32 offset = 0, const UaVariantArray &args = UaVariantArray());
+
+    UaStatusCode operate(OpcUa_UInt32 offset = 0, const UaVariantArray &args = UaVariantArray());
     UaStatus step(OpcUa_Double steps);
 
     // update interval in ms

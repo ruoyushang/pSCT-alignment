@@ -20,16 +20,16 @@ public:
         int angle;
     };
 
-    struct ASFFileInfo {
-        ASFFileInfo() : directory("/.ASF/"), filenamePrefix(".ASF_"), filenameSuffix(".log") {}
+    struct ASFInfo {
+        ASFInfo() : directory("/.ASF/"), prefix(".ASF_"), suffix(".log") {}
 
-        ASFFileInfo(std::string directory, std::string prefix, std::string suffix) : directory(directory),
-                                                                                     filenamePrefix(prefix),
-                                                                                     filenameSuffix(suffix) {}
+        ASFInfo(std::string directory, std::string prefix, std::string suffix) : directory(directory),
+                                                                                 prefix(prefix),
+                                                                                 suffix(suffix) {}
 
         std::string directory;
-        std::string filenamePrefix;
-        std::string filenameSuffix;
+        std::string prefix;
+        std::string suffix;
     };
 
     struct ActuatorStatus {
@@ -42,42 +42,29 @@ public:
     static const std::array<Device::ErrorDefinition, NUM_ERROR_TYPES> ERROR_DEFINITIONS;
 
     Actuator(std::shared_ptr<CBC> pCBC, int USBPortNumber, int serialNumber = -1,
-             Device::DBInfo DBInfo = Device::DBInfo(), ASFFileInfo ASFFileInfo = Actuator::ASFFileInfo());
+             Device::DBInfo DBInfo = Device::DBInfo(), ASFInfo ASFFileInfo = Actuator::ASFInfo());
     ~Actuator() {}
 
-    virtual void initialize();
-
     int getPortNumber() const { return m_PortNumber; }
-
     int getSerialNumber() const { return m_SerialNumber; }
 
     float readVoltage();
-
     int readAngle();
-
-    virtual float measureLength();
-
-    bool getError(int errorCode) { return m_Errors[errorCode]; }
-
     const Position &getCurrentPosition() { return m_CurrentPosition; }
 
-    int convertPositionToSteps(Position position);
-
+    virtual float measureLength();
     float moveToLength(float targetLength);
-
     float moveDeltaLength(float lengthToMove);
 
-    void recoverPosition();
-
-    Device::DeviceStatus getStatus() { return m_Status; }
+    Device::DeviceState getState() { return m_State; }
 
     void probeHome();
     void findHomeFromExtendStop() { findHomeFromEndStop(1); }
-
     void findHomeFromRetractStop() { findHomeFromEndStop(-1); }
     void probeExtendStop() { probeEndStop(1); }
     void probeRetractStop() { probeEndStop(-1); }
 
+    bool getError(int errorCode) { return m_Errors[errorCode]; }
     void clearErrors();
     bool forceRecover();
 
@@ -88,28 +75,28 @@ protected:
     static constexpr const int NUM_DB_HEADER_COLUMNS = 5; //id_increment, serial, start_date, rev, angle
     static const int NUM_DB_COLUMNS{NUM_DB_HEADER_COLUMNS + NUM_ERROR_TYPES};
 
-    Device::DeviceStatus m_Status = Device::DeviceStatus::On;
-
+    Device::DeviceState m_State = Device::DeviceState::On;
     std::array<bool, NUM_ERROR_TYPES> m_Errors = { false };
 
-    int m_PortNumber{0};
-    int m_SerialNumber = 0;
+    int m_PortNumber = -1;
+    int m_SerialNumber = -1;
 
     Device::DBInfo m_DBInfo;
-    ASFFileInfo m_ASFInfo;
+    ASFInfo m_ASFInfo;
 
     void copyFile(std::string srcFilePath, std::string destFilePath);
 
     // Constants
-    static const ASFFileInfo EMERGENCY_ASF_INFO;
+    static const ASFInfo EMERGENCY_ASF_INFO;
 
-    std::string m_ASFFullPath;
-    std::string m_OldASFFullPath;
-    std::string m_NewASFFullPath;
+    std::string m_ASFPath;
+    std::string m_OldASFPath;
+    std::string m_NewASFPath;
 
     CBC::ADC::adcData m_ADCdata;
     std::shared_ptr<CBC> m_pCBC;
 
+    // Calibration Parameters (defaults)
     int m_StepsPerRevolution = 200;
     float m_mmPerStep = 0.003048;
     float m_CalibrationTemperature = 22.0;
@@ -139,61 +126,52 @@ protected:
     int m_EndStopRecoverySteps{m_StepsPerRevolution / 4};
     std::vector<float> m_encoderScale;
 
+    virtual void initialize();
     void loadConfigurationAndCalibration();
 
     void setSerialNumber(int serialNumber) { m_SerialNumber = serialNumber; }
-
     void unsetSerialNumber() { m_SerialNumber = 0; }
 
     void setPortNumber(int portNumber) { m_PortNumber = portNumber; }
-
     void unsetPortNumber() { m_PortNumber = 0; }
 
     void createDefaultASF();
 
-    void setASFInfo(ASFFileInfo ASFInfo);
-
+    void setASFInfo(ASFInfo ASFInfo);
     void setDBInfo(Device::DBInfo DBInfo);
-
     void unsetDBInfo();
 
     bool readStatusFromDB(ActuatorStatus &status);
-
     bool readStatusFromASF(ActuatorStatus &status);
-
     void loadStatusFromDB();
-
     void saveStatusToDB();
-
     void loadStatusFromASF();
-
     void saveStatusToASF();
-
     void recoverStatusFromDB();
 
-    void setStatus(Device::DeviceStatus state);
+    void setState(Device::DeviceState state);
 
-    void updateStatus();
+    void updateState();
 
     void setError(int errorCode);
-
     void unsetError(int errorCode);
 
     int checkAngleQuick(Position expectedPosition);
-
     int checkAngleSlow(Position expectedPosition);
 
+    void setCurrentPosition(Position position) { m_CurrentPosition = position; }
+    Position predictNewPosition(Position position, int steps);
+
+    int convertPositionToSteps(Position position);
+
     virtual int step(int inputSteps);
+    int performHysteresisMotion(int steps);
 
     void findHomeFromEndStop(int direction);
 
     void probeEndStop(int direction);
 
-    void setCurrentPosition(Position position) { m_CurrentPosition = position; }
-
-    Position predictNewPosition(Position position, int steps);
-
-    int performHysteresisMotion(int steps);
+    void recoverPosition();
 };
 
 class DummyActuator : public Actuator
@@ -206,10 +184,9 @@ public:
             pCBC, USBPortNumber, serialNumber, DBInfo) {};
 
     DummyActuator(std::shared_ptr<CBC> pCBC, int USBPortNumber, int serialNumber, Device::DBInfo DBInfo,
-                  ASFFileInfo ASFInfo) : Actuator(pCBC, USBPortNumber, serialNumber, DBInfo, ASFInfo) {};
+                  ASFInfo ASFInfo) : Actuator(pCBC, USBPortNumber, serialNumber, DBInfo, ASFInfo) {};
 
     void initialize() override;
-
     int step(int steps) override;
     float measureLength() override;
 };

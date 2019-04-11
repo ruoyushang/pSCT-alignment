@@ -2580,7 +2580,7 @@ UaTransactionManager
 
 * UaSimpleAttributeOperand
   Fix getting deep copy of empty UaSimplaeAttributeOperand
-  Initialize out parameter in UaSimpleAttributeOperand::getSimpleAttributeOperand
+  initialize out parameter in UaSimpleAttributeOperand::getSimpleAttributeOperand
 
 * Fixed crash of sprintf with null string on certain non Windows platforms
   Base library classes are using OpcUa_StringA_snprintf to create string

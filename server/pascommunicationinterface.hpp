@@ -2,8 +2,8 @@
  * @file pascommunicationinterface.hpp
  * @brief Header file for panel server PAS communication interface
  */
-#ifndef __PASCOMMUNICATIONINTERFACE_H__
-#define __PASCOMMUNICATIONINTERFACE_H__
+#ifndef SERVER_PASCOMMUNICATIONINTERFACE_HPP
+#define SERVER_PASCOMMUNICATIONINTERFACE_HPP
 
 #include "uabase/uabase.h"
 #include "uabase/uastring.h"
@@ -38,7 +38,7 @@ public:
 
     /// @brief Initialize all device controllers using information from the database.
     /// @return OPC UA status code indicating success/failure.
-    UaStatusCode Initialize();
+    UaStatus initialize();
 
     /// @brief Set the panel number used when retreiving information from the database.
     /// @param panelNumber Position number of the panel for this server.
@@ -66,10 +66,14 @@ public:
     /// @param identity The unique identity of the device.
     /// @param state Variable to store the retrieved state value.
     /// @return OPC UA status code indicating success/failure.
-    UaStatusCode getDeviceState(
+    UaStatus getDeviceState(
             OpcUa_UInt32 deviceType,
             const Identity &identity,
-            PASState &state);
+            Device
+
+    :
+    DeviceStatus &state
+    );
 
     /// @brief Get a device's data through its controller.
     /// @param deviceType OPC UA type ID for the desired device object type.
@@ -77,7 +81,7 @@ public:
     /// @param offset A number used to uniquely identify the data variable to access.
     /// @param value Variable to store the retrieved data value.
     /// @return OPC UA status code indicating success/failure.
-    UaStatusCode getDeviceData(
+    UaStatus getDeviceData(
             OpcUa_UInt32 deviceType,
             const Identity &identity,
             OpcUa_UInt32 offset,
@@ -88,10 +92,14 @@ public:
     /// @param identity The unique identity of the device.
     /// @param state State value to set the device state to.
     /// @return OPC UA status code indicating success/failure.
-    UaStatusCode setDeviceState(
+    UaStatus setDeviceState(
             OpcUa_UInt32 deviceType,
             const Identity &identity,
-            PASState state);
+            Device
+
+    :
+    DeviceStatus state
+    );
 
     /// @brief Set a device's data through its controller.
     /// @param deviceType OPC UA type ID for the desired device object type.
@@ -99,7 +107,7 @@ public:
     /// @param offset A number used to uniquely identify the data variable to access.
     /// @param value Value to write to the data variable.
     /// @return OPC UA status code indicating success/failure.
-    UaStatusCode setDeviceData(
+    UaStatus setDeviceData(
             OpcUa_UInt32 deviceType,
             const Identity &identity,
             OpcUa_UInt32 offset,
@@ -111,7 +119,7 @@ public:
     /// @param offset A number used to uniquely identify the method to call.
     /// @param args Array of method arguments as UaVariants.
     /// @return OPC UA status code indicating success/failure.
-    UaStatusCode OperateDevice(
+    UaStatus OperateDevice(
             OpcUa_UInt32 deviceType,
             const Identity &identity,
             OpcUa_UInt32 offset,
@@ -146,4 +154,4 @@ private:
     std::shared_ptr<Platform> m_platform;
 };
 
-#endif
+#endif //SERVER_PASCOMMUNICATIONINTERFACE_HPP

@@ -33,7 +33,7 @@ ControlPositioner::~ControlPositioner()
 
 /* ----------------------------------------------------------------------------
     Class        ControlPositioner
-    Method       getStatus
+    Method       getState
     Description  Get Controller status.
 -----------------------------------------------------------------------------*/
 UaStatusCode ControlPositioner::getState(PASState& state)
@@ -58,7 +58,7 @@ UaStatusCode ControlPositioner::getState(PASState& state)
 
 /* ----------------------------------------------------------------------------
     Class        ControlPositioner
-    Method       setStatus
+    Method       setState
     Description  Set Controller status.
 -----------------------------------------------------------------------------*/
 UaStatusCode ControlPositioner::setState(PASState state)
@@ -119,12 +119,13 @@ UaStatusCode ControlPositioner::setData(
 
     return status;
 }
+
 /* ----------------------------------------------------------------------------
     Class        ControlPositioner
-    Method       Operate
+    Method       operate
     Description  run a method on the sensor
 -----------------------------------------------------------------------------*/
-UaStatusCode ControlPositioner::Operate(OpcUa_UInt32 offset, const UaVariantArray& args)
+UaStatusCode ControlPositioner::operate(OpcUa_UInt32 offset, const UaVariantArray &args)
 {
     UaMutexLocker lock(&m_mutex);
     UaStatusCode  status;

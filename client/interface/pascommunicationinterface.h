@@ -52,22 +52,22 @@ public:
         Identity& identity);
 
     /* Get device status and data */
-    UaStatusCode getDeviceState(
-        OpcUa_UInt32 type,
-        const Identity& identity,
-        PASState& state);
+    UaStatus getDeviceState(
+            OpcUa_UInt32 type,
+            const Identity &identity,
+            PASState &state);
 
-    UaStatusCode getDeviceData(
-        OpcUa_UInt32 type,
-        const Identity& identity,
-        OpcUa_UInt32 offset,
-        UaVariant& value);
+    UaStatus getDeviceData(
+            OpcUa_UInt32 type,
+            const Identity &identity,
+            OpcUa_UInt32 offset,
+            UaVariant &value);
 
     /* Set device status and data*/
-    UaStatusCode setDeviceState(
-        OpcUa_UInt32 type,
-        const Identity& identity,
-        PASState state);
+    UaStatus setDeviceState(
+            OpcUa_UInt32 type,
+            const Identity &identity,
+            PASState state);
 
     UaStatusCode setDeviceData(
         OpcUa_UInt32 type,
@@ -75,7 +75,7 @@ public:
         OpcUa_UInt32 offset,
         UaVariant value);
 
-    /* Operate a device -- run a method */
+    /* operate a device -- run a method */
     UaStatusCode OperateDevice(OpcUa_UInt32 type, const Identity& identity,
             OpcUa_UInt32 offset = 0,
             const UaVariantArray& args = UaVariantArray());

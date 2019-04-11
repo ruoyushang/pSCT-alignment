@@ -6,7 +6,7 @@
 class GASPSD
 {
     public:
-        GASPSD() : m_fdOut(nullptr) {}; // nothing to do -- everything is set in Initialize()
+    GASPSD() : m_fdOut(nullptr) {}; // nothing to do -- everything is set in initialize()
         ~GASPSD();
         int Initialize(bool isSim = false);
         void setPort(std::string port = "/dev/ttyACM0");

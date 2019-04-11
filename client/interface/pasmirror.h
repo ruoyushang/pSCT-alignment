@@ -52,14 +52,15 @@ public:
     virtual ~PasMirror();
 
     // initialize and precompute everything
-    bool Initialize();
+    bool initialize();
 
-    // same as before -- get/set status/data and Operate:
+    // same as before -- get/set status/data and operate:
     UaStatusCode getState(PASState& state);
     UaStatusCode getData(OpcUa_UInt32 offset, UaVariant& value);
     UaStatusCode setState(PASState state);
     UaStatusCode setData(OpcUa_UInt32 offset, UaVariant value);
-    UaStatusCode Operate(OpcUa_UInt32 offset = 0, const UaVariantArray &args = UaVariantArray());
+
+    UaStatusCode operate(OpcUa_UInt32 offset = 0, const UaVariantArray &args = UaVariantArray());
 
     // own implementation
     void addChild(OpcUa_UInt32 deviceType, PasController *const pController);
@@ -114,7 +115,7 @@ private:
 
     // precomputed ideal panel origin in the telescope frame -- both the inner and outer rings
     // ring->{location vector}
-    // currently setting to zeros and populating in Initialize()
+    // currently setting to zeros and populating in initialize()
     std::map<unsigned, Eigen::Vector3d> m_PanelOriginTelFrame;
 
     // pad positions in the telescope frame for both rings -
@@ -124,7 +125,7 @@ private:
     // precomputed ideal panel reference frame (basis vectors) in the telescope frame,
     // both the inner and outer rings. This to facilitate coordinate transformations
     // ring->{Column Matrix}
-    // Populated in Initialize()
+    // Populated in initialize()
     std::map<unsigned, Eigen::Matrix3d> m_PanelFrame;
 
     // the direction of the norm of the whole mirror: +1 for Primary, -1 for secondary

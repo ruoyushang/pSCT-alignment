@@ -2,8 +2,8 @@
  * @file pascontroller.hpp
  * @brief Header file for generic device controller class.
  */
-#ifndef __PASCONTROLLER_H__
-#define __PASCONTROLLER_H__
+#ifndef SERVER_CONTROLLERS_PASCONTROLLER_HPP
+#define SERVER_CONTROLLERS_PASCONTROLLER_HPP
 
 #include <chrono>
 #include <map>
@@ -16,6 +16,7 @@
 #include "uabase/uavariant.h"
 
 #include "common/opcua/pascominterfacecommon.h"
+#include "common/alignment/device.hpp"
 
 class Platform;
 
@@ -37,10 +38,10 @@ public:
 
     /// @brief Initialize the controller object.
     /// @return 0 on success, -1 on failure.
-    virtual int Initialize() { return 0; } // only MPES overload this for now
+    virtual int initialize() { return 0; } // only MPES overload this for now
     /// @brief Get the device ID/index.
     /// @return The device ID.
-    int getId() { return m_ID; }
+    int getID() { return m_ID; }
 
     /// @brief Destroy a controller object.
     virtual ~PasController() {}
@@ -48,7 +49,7 @@ public:
     /// @brief Get the device's state.
     /// @param state Variable to store the retrieved state value.
     /// @return OPC UA status code indicating success or failure.
-    virtual UaStatus getState(PASState &state);
+    virtual UaStatus getState(Device::DeviceState &state);
 
     /// @brief Get data from a device variable.
     /// @param offset A number used to uniquely identify the data variable to access.
@@ -59,7 +60,7 @@ public:
     /// @brief Set the device's state.
     /// @param state Value to set the device state to.
     /// @return OPC UA status code indicating success or failure.
-    virtual UaStatus setState(PASState state);
+    virtual UaStatus setState(Device::DeviceState state);
 
     /// @brief Set a device data variable.
     /// @param offset A number used to uniquely identify the data variable to access.
@@ -71,7 +72,7 @@ public:
     /// @param args Array of method arguments as UaVariants.
     /// @return OPC UA status code indicating success or failure.
     virtual UaStatus
-    Operate(OpcUa_UInt32 offset, const UaVariantArray &args = UaVariantArray()) = 0; // Pure virtual function
+    operate(OpcUa_UInt32 offset, const UaVariantArray &args = UaVariantArray()) = 0; // Pure virtual function
 
 protected:
     /// @brief Shared mutex used to lock parallel access to controller variables.
@@ -79,7 +80,7 @@ protected:
     /// @brief Integer index of the device within its type.
     int m_ID;
     /// @brief The device's internal state.
-    PASState m_state;
+    Device::DeviceState m_state;
     /// @brief Pointer to the Platform object used to interface with hardware.
     std::shared_ptr<Platform> m_pPlatform;
 
@@ -97,4 +98,4 @@ protected:
     std::chrono::time_point<std::chrono::system_clock> m_lastUpdateTime;
 };
 
-#endif
+#endif //SERVER_CONTROLLERS_PASCONTROLLER_HPP

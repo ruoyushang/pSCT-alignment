@@ -154,7 +154,7 @@ bool GASCCD::Initialize(bool isSim)
         logout << "------------------------------------------\n";
     }
 
-    //Initialize Camera
+    //initialize Camera
     //make the string camera_name -> char* char_camera_name
     const char * char_camera_name = fLEDsIn.CCDNAME.empty() ? NULL : fLEDsIn.CCDNAME.c_str();
 
@@ -163,7 +163,8 @@ bool GASCCD::Initialize(bool isSim)
         std::this_thread::sleep_for(std::chrono::milliseconds(200));
         pfCamera = new AravisCamera(char_camera_name);
         if (!pfCamera->isReady()) {
-            std::string strout = "GASCCD::Initialize(): Camera [" + fLEDsIn.CCDNAME + "] reports not ready. Trying again...\n";
+            std::string strout =
+                    "GASCCD::initialize(): Camera [" + fLEDsIn.CCDNAME + "] reports not ready. Trying again...\n";
             std::cout << strout;
 
             if(fLEDsIn.VERBOSE) {
@@ -173,7 +174,7 @@ bool GASCCD::Initialize(bool isSim)
             continue;
         }
         if (!pfCamera->setGain(fLEDsIn.CCDGAIN)) {
-            std::string strout = "+++ WARNING: GASCCD::Initialize(): Error setting gain, using stock value\n";
+            std::string strout = "+++ WARNING: GASCCD::initialize(): Error setting gain, using stock value\n";
             std::cout << strout;
 
             if(fLEDsIn.VERBOSE) {
@@ -181,7 +182,7 @@ bool GASCCD::Initialize(bool isSim)
             }
         }
         if (!pfCamera->setExposure(fLEDsIn.CCDEXP)) {
-            std::string strout = "+++ WARNING: GASCCD::Initialize(): Error setting exposure, using stock value\n";
+            std::string strout = "+++ WARNING: GASCCD::initialize(): Error setting exposure, using stock value\n";
             std::cout << strout;
 
             if(fLEDsIn.VERBOSE) {
@@ -192,10 +193,10 @@ bool GASCCD::Initialize(bool isSim)
 
     //End Camera Init	
     if (fLEDsIn.VERBOSE) {
-        std::string strout = "GASCCD::Initialize(): Set camera gain to "
-            + std::to_string(pfCamera->getGain()) + "\n";
-        strout += "GASCCD::Initialize(): Set camera exposure to " 
-            + std::to_string(pfCamera->getExposure()) + "\n";
+        std::string strout = "GASCCD::initialize(): Set camera gain to "
+                             + std::to_string(pfCamera->getGain()) + "\n";
+        strout += "GASCCD::initialize(): Set camera exposure to "
+                  + std::to_string(pfCamera->getExposure()) + "\n";
         logout << strout;
     }
 
@@ -206,7 +207,7 @@ bool GASCCD::Initialize(bool isSim)
     pfCamThread = new CamOutThread(pfCamera, &fLEDsIn);
 
     if (fLEDsIn.VERBOSE) {
-        std::string strout = "GASCCD::Initialize(): Set up a new camera working thread.\n";
+        std::string strout = "GASCCD::initialize(): Set up a new camera working thread.\n";
         logout << strout;
     }
 

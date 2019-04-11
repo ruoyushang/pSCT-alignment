@@ -158,7 +158,7 @@ PasMPES::~PasMPES()
 
 /* ----------------------------------------------------------------------------
     Class        PasMPES
-    Method       getStatus
+    Method       getState
     Description  Get Controller status.
 -----------------------------------------------------------------------------*/
 UaStatusCode PasMPES::getState(PASState& state)
@@ -170,7 +170,7 @@ UaStatusCode PasMPES::getState(PASState& state)
 
 /* ----------------------------------------------------------------------------
     Class        PasMPES
-    Method       setStatus
+    Method       setState
     Description  Set Controller status.
 -----------------------------------------------------------------------------*/
 UaStatusCode PasMPES::setState(PASState state)
@@ -238,12 +238,13 @@ UaStatusCode PasMPES::setData(OpcUa_UInt32 offset, UaVariant value)
 
     return status;
 }
+
 /* ----------------------------------------------------------------------------
     Class        PasMPES
-    Method       Operate
+    Method       operate
     Description  run a method on the sensor
 -----------------------------------------------------------------------------*/
-UaStatusCode PasMPES::Operate(OpcUa_UInt32 offset, const UaVariantArray &args)
+UaStatusCode PasMPES::operate(OpcUa_UInt32 offset, const UaVariantArray &args)
 {
     UaMutexLocker lock(&m_mutex);
     UaStatusCode  status;
@@ -293,7 +294,7 @@ UaStatus PasMPES::read()
                 cout << "+++ WARNING +++ The intensity of " << m_ID.name
                     << " differs from the magic value by more than 20%\n"
                     << "+++ WARNING +++ Will readjust the exposure now!" << endl;
-                Operate(PAS_MPESType_SetExposure);
+                operate(PAS_MPESType_SetExposure);
                 // read the sensor again
                 status = __readRequest();
             }
@@ -383,7 +384,7 @@ PasACT::~PasACT()
 
 /* ----------------------------------------------------------------------------
     Class        PasACT
-    Method       getStatus
+    Method       getState
     Description  Get Controller status.
 -----------------------------------------------------------------------------*/
 UaStatusCode PasACT::getState(PASState& state)
@@ -394,7 +395,7 @@ UaStatusCode PasACT::getState(PASState& state)
 
 /* ----------------------------------------------------------------------------
     Class        PasACT
-    Method       setStatus
+    Method       setState
     Description  Set Controller status.
 -----------------------------------------------------------------------------*/
 UaStatusCode PasACT::setState(PASState state)
@@ -494,12 +495,13 @@ UaStatusCode PasACT::setData(OpcUa_UInt32 offset, UaVariant value)
 
     return status;
 }
+
 /* ----------------------------------------------------------------------------
     Class        PasACT
-    Method       Operate
+    Method       operate
     Description  run a method on the actuator
 -----------------------------------------------------------------------------*/
-UaStatusCode PasACT::Operate(OpcUa_UInt32 offset, const UaVariantArray &args)
+UaStatusCode PasACT::operate(OpcUa_UInt32 offset, const UaVariantArray &args)
 {
     UaStatusCode  status;
 
@@ -700,13 +702,13 @@ UaStatusCode PasPanel::setData(OpcUa_UInt32 offset, UaVariant value)
 }
 
 // move actuators to the preset length or panel to the preset coords
-UaStatusCode PasPanel::Operate(OpcUa_UInt32 offset, const UaVariantArray &args)
+UaStatusCode PasPanel::operate(OpcUa_UInt32 offset, const UaVariantArray &args)
 {
     UaMutexLocker lock(&m_mutex);
     UaStatusCode  status;
 
     if (getActuatorCount() == 0) {
-        cout << m_ID << "::Operate() : no actuators, nothing to be done." << endl;
+        cout << m_ID << "::operate() : no actuators, nothing to be done." << endl;
         return OpcUa_Good;
     }
 
@@ -716,9 +718,9 @@ UaStatusCode PasPanel::Operate(OpcUa_UInt32 offset, const UaVariantArray &args)
 
     if (offset != PAS_PanelType_Stop) {
         if (m_state == PASState::FatalError)
-            cout << m_ID << "::Operate() : Current state is 'FatalError'! This won't do anything." << endl;
+            cout << m_ID << "::operate() : Current state is 'FatalError'! This won't do anything." << endl;
         if (m_state == PASState::Busy)
-            cout << m_ID << "::Operate() : Current state is 'Busy'! This won't do anything." << endl;
+            cout << m_ID << "::operate() : Current state is 'Busy'! This won't do anything." << endl;
     }
 
     auto& actuatorPositionMap = m_ChildrenPositionMap.at(PAS_ACTType);
@@ -816,7 +818,7 @@ UaStatusCode PasPanel::Operate(OpcUa_UInt32 offset, const UaVariantArray &args)
         for (int edge2align=0; edge2align<m_pChildren.at(PAS_EdgeType).size(); edge2align++)
         {
                 PasEdge* edge = static_cast<PasEdge *> (m_pChildren.at(PAS_EdgeType).at(edge2align));
-                //edge->Operate(PAS_EdgeType_Read);
+            //edge->operate(PAS_EdgeType_Read);
                 edge->getAlignedReadings();
                 //cout << "\nTarget MPES readings:\n" << m_AlignedReadings << endl << endl;
                 A = edge->getResponseMatrix(m_ID.position);
@@ -883,7 +885,7 @@ UaStatusCode PasPanel::Operate(OpcUa_UInt32 offset, const UaVariantArray &args)
      * stop the motion in progress                  *
      * **********************************************/
     else if (offset == PAS_PanelType_Stop) {
-        cout << m_ID << "::Operate() : Attempting to gracefully stop the motion." << endl;
+        cout << m_ID << "::operate() : Attempting to gracefully stop the motion." << endl;
         status = m_pClient->callMethod(string("ns=2;s=Panel_0"), UaString("Stop"));
     }
     else
@@ -1063,7 +1065,7 @@ PasEdge::~PasEdge()
 
 /* ----------------------------------------------------------------------------
     Class        PasEdge
-    Method       getStatus
+    Method       getState
     Description  Get Controller status.
 -----------------------------------------------------------------------------*/
 UaStatusCode PasEdge::getState(PASState& state)
@@ -1075,7 +1077,7 @@ UaStatusCode PasEdge::getState(PASState& state)
 
 /* ----------------------------------------------------------------------------
     Class        PasEdge
-    Method       setStatus
+    Method       setState
     Description  Set Controller status.
 -----------------------------------------------------------------------------*/
 UaStatusCode PasEdge::setState(PASState state)
@@ -1131,12 +1133,13 @@ UaStatusCode PasEdge::setData(OpcUa_UInt32 offset, UaVariant value)
 
     return status;
 }
+
 /* ----------------------------------------------------------------------------
     Class        PasEdge
-    Method       Operate
+    Method       operate
     Description  run a method on the actuator
 -----------------------------------------------------------------------------*/
-UaStatusCode PasEdge::Operate(OpcUa_UInt32 offset, const UaVariantArray &args)
+UaStatusCode PasEdge::operate(OpcUa_UInt32 offset, const UaVariantArray &args)
 {
     UaMutexLocker lock(&m_mutex);
     UaStatusCode  status;
@@ -1224,7 +1227,7 @@ UaStatusCode PasEdge::Operate(OpcUa_UInt32 offset, const UaVariantArray &args)
                 // move assigned panels
                 for (auto panel2move : m_PanelsToMove) {
                     auto panel = m_pChildren.at(PAS_PanelType).at(panel2move);
-                    panel->Operate(PAS_PanelType_MoveTo_Acts);
+                    panel->operate(PAS_PanelType_MoveTo_Acts);
                 }
                 // motion done, don't risk repeating it
                 m_PanelsToMove.clear();
@@ -1234,7 +1237,7 @@ UaStatusCode PasEdge::Operate(OpcUa_UInt32 offset, const UaVariantArray &args)
             {
                 // stop motion of all panels
                 for (const auto& panel : m_pChildren.at(PAS_PanelType))
-                    panel->Operate(PAS_PanelType_Stop);
+                    panel->operate(PAS_PanelType_Stop);
                 break;
             }
         default:
@@ -1307,7 +1310,7 @@ UaStatus PasEdge::__findSingleMatrix(unsigned panelidx)
 
         printf("attempting to move actuator %d by %5.3f mm\n", j, m_DeltaL);
         deltaL.copyTo(&deltas[j]);
-        status = pCurPanel->Operate(PAS_PanelType_StepAll_move, deltas);
+        status = pCurPanel->operate(PAS_PanelType_StepAll_move, deltas);
         if (!status.isGood()) return status;
         // Stepping is asynchronous. but here, we want it to actually complete
         // before the next step. So we wait.
@@ -1332,7 +1335,7 @@ UaStatus PasEdge::__findSingleMatrix(unsigned panelidx)
         // move the same actuator back
         printf("moving actuator %d back", j);
         minusdeltaL.copyTo(&deltas[j]);
-        status = pCurPanel->Operate(PAS_PanelType_StepAll_move, deltas);
+        status = pCurPanel->operate(PAS_PanelType_StepAll_move, deltas);
         if (!status.isGood()) return status;
         // Stepping is asynchronous. but here, we want it to actually complete
         // before the next step. So we wait.
@@ -1370,7 +1373,7 @@ UaStatus PasEdge::__findSingleMatrix(unsigned panelidx)
             outputstr << " \""; // begin quoted list of values
             // -------------------- //
 
-            output << pMPES.at(mpes.second)->getId().serialNumber << " " << coord << " " << panelside;
+            output << pMPES.at(mpes.second)->getID().serialNumber << " " << coord << " " << panelside;
             for (unsigned j = 0; j < nACTs; j++) {
                 output << " " << responseMatrix[2*i + int(coord - 'x')][j];
                 outputstr << " " << responseMatrix[2*i + int(coord - 'x')][j];
@@ -1507,7 +1510,7 @@ UaStatus PasEdge::__alignSinglePanel(unsigned panelpos, bool moveit)
         UaVariant vtmp;
         unsigned visible = 0;
         for (auto& mpes : overlapMPES) {
-            mpes->Operate();
+            mpes->operate();
             if ( !mpes->isVisible() ) continue;
 
             mpes->getData(PAS_MPESType_xCentroidAvg, vtmp);
@@ -1614,7 +1617,7 @@ UaStatus PasEdge::__alignSinglePanel(unsigned panelpos, bool moveit)
             for (unsigned i = 0; i < nACT; i++)
                 deltas[i].Value.Float = X(j++); // X has dimension of 6*nPanelsToMove !
 
-            status = pCurPanel->Operate(PAS_PanelType_StepAll, deltas);
+            status = pCurPanel->operate(PAS_PanelType_StepAll, deltas);
             if (!status.isGood()) return status;
             m_PanelsToMove.push_back(panelPair.second);
         }
@@ -1721,13 +1724,13 @@ const Eigen::VectorXd& PasEdge::getCurrentReadings()
 
     UaVariant vtmp;
     for (unsigned nMPES = 0; nMPES < maxMPES; nMPES++) {
-        pMPES.at(nMPES)->Operate();
+        pMPES.at(nMPES)->operate();
         if ( !static_cast<PasMPES *>(pMPES.at(nMPES))->isVisible() ) {
             cout << "+++ WARNING +++ " << pMPES.at(nMPES)->getId().name
     //for (const auto& mpes : m_ChildrenPositionMap.at(PAS_MPESType)) {
-    //    pMPES.at(mpes.second)->Operate();
+                 //    pMPES.at(mpes.second)->operate();
     //    if ( !static_cast<PasMPES *>(pMPES.at(mpes.second))->isVisible() ) {
-    //        cout << "+++ WARNING +++ " << pMPES.at(mpes.second)->getId().name
+                 //        cout << "+++ WARNING +++ " << pMPES.at(mpes.second)->getID().name
                 << " is not in the field of view! Will ignore it." << endl;
                 continue;
         }
@@ -1780,7 +1783,7 @@ PasCCD::~PasCCD()
 
 /* ----------------------------------------------------------------------------
     Class        PasCCD
-    Method       getStatus
+    Method       getState
     Description  Get Controller status.
 -----------------------------------------------------------------------------*/
 UaStatusCode PasCCD::getState(PASState& state)
@@ -1792,7 +1795,7 @@ UaStatusCode PasCCD::getState(PASState& state)
 
 /* ----------------------------------------------------------------------------
     Class        PasCCD
-    Method       setStatus
+    Method       setState
     Description  Set Controller status.
 -----------------------------------------------------------------------------*/
 UaStatusCode PasCCD::setState(PASState state)
@@ -1847,12 +1850,13 @@ UaStatusCode PasCCD::setData(OpcUa_UInt32 offset, UaVariant value)
 
     return OpcUa_BadNotWritable;
 }
+
 /* ----------------------------------------------------------------------------
     Class        PasCCD
-    Method       Operate
+    Method       operate
     Description  run a method on the sensor
 -----------------------------------------------------------------------------*/
-UaStatusCode PasCCD::Operate(OpcUa_UInt32 offset, const UaVariantArray &args)
+UaStatusCode PasCCD::operate(OpcUa_UInt32 offset, const UaVariantArray &args)
 {
     UaMutexLocker lock(&m_mutex);
     UaStatusCode  status;
@@ -1953,7 +1957,7 @@ UaStatusCode PasPSD::setData(OpcUa_UInt32 offset, UaVariant value)
     return OpcUa_BadNotWritable;
 }
 
-UaStatusCode PasPSD::Operate(OpcUa_UInt32 offset, const UaVariantArray &args)
+UaStatusCode PasPSD::operate(OpcUa_UInt32 offset, const UaVariantArray &args)
 {
     UaStatusCode  status;
 

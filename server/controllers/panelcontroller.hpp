@@ -3,8 +3,8 @@
  * @brief Header file for panel device controller class.
  */
 
-#ifndef __PANELCONTROLLER_H__
-#define __PANELCONTROLLER_H__
+#ifndef SERVER_CONTROLLERS_PANELCONTROLLER_HPP
+#define SERVER_CONTROLLERS_PANELCONTROLLER_HPP
 
 #include <memory>
 #include <vector>
@@ -16,6 +16,7 @@
 #include "uabase/uavariant.h"
 
 #include "common/opcua/pascominterfacecommon.h"
+#include "common/alignment/device.hpp"
 
 #include "server/controllers/actcontroller.hpp"
 #include "server/controllers/pascontroller.hpp"
@@ -35,7 +36,7 @@ public:
     /// @brief Get the internal state of the panel device.
     /// @param state Variable to store the retrieved state value.
     /// @return OPC UA status code indicating success or failure.
-    UaStatus getState(PASState &state);
+    UaStatus getState(Device::DeviceState &state);
 
     /// @brief Get the value of a panel data variable.
     /// @param offset A number used to uniquely identify the data variable to access.
@@ -46,7 +47,7 @@ public:
     /// @brief Set the internal state of the panel device.
     /// @param state Value to set the state to.
     /// @return OPC UA status code indicating success or failure.
-    UaStatus setState(PASState state);
+    UaStatus setState(Device::DeviceState state);
 
     /// @brief Set the value of an panel data variable.
     /// @param offset A number used to uniquely identify the data variable to access.
@@ -58,7 +59,7 @@ public:
     /// @param offset A number used to uniquely identify the method to call.
     /// @param args Array of method arguments as UaVariants.
     /// @return OPC UA status code indicating success or failure.
-    UaStatus Operate(OpcUa_UInt32 offset, const UaVariantArray &args);
+    UaStatus operate(OpcUa_UInt32 offset, const UaVariantArray &args);
 
     /// @brief Update the controller's internal state to match the underlying Platform object's state.
     /// @return OPC UA status code indicating success or failure.
@@ -70,10 +71,10 @@ public:
 
 private:
     /// @brief The internal state of the panel device.
-    PASState m_state = PASState::Off;
+    Device::DeviceState m_state = Device::DeviceState::Off;
 
     /// @brief A vector of all actuator controllers belonging to this panel.
     std::vector<std::shared_ptr<ActController>> m_pActuators;
 };
 
-#endif
+#endif //SERVER_CONTROLLERS_PANELCONTROLLER_HPP

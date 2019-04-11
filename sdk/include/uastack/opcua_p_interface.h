@@ -769,7 +769,7 @@ struct S_OpcUa_Port_CallTable
      */
     OpcUa_StatusCode    (OPCUA_DLLCALL* SocketGetLastError)       ( OpcUa_Socket                hSocket);
 
-    /** @brief Initialize all network resources required by the platform layer. Called during proxystub initialization.
+    /** @brief initialize all network resources required by the platform layer. Called during proxystub initialization.
      *  @ingroup opcua_platformlayer_interface
      */
     OpcUa_StatusCode    (OPCUA_DLLCALL* NetworkInitialize)        ();

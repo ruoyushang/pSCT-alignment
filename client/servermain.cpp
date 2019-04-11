@@ -110,9 +110,9 @@ int OpcMain(const char* szAppPath, std::vector<std::string> serverlist)
     int ret = 0;
 
 #if SUPPORT_XML_PARSER
-    UaXmlDocument::initParser(); // Initialize the XML Parser
+    UaXmlDocument::initParser(); // initialize the XML Parser
 #endif
-    ret = UaPlatformLayer::init(); // Initialize the UA Stack platform layer
+    ret = UaPlatformLayer::init(); // initialize the UA Stack platform layer
  
     UaStatus status;
 

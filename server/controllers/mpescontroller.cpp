@@ -18,18 +18,18 @@
 #include "common/opcua/passervertypeids.h"
 
 /// @details Turns state to On.
-MPESController::MPESController(int ID, std::shared_ptr<Platform> pPlatform) : PasController(ID, pPlatform) {
-    m_state = PASState::On;
+MPESController::MPESController(int ID, std::shared_ptr<Platform> pPlatform) : PasController(ID, std::move(pPlatform)) {
+    m_state = Device::DeviceState::On;
 }
 
 /// @details Turns state to Off.
 MPESController::~MPESController() {
-    m_state = PASState::Off;
+    m_state = Device::DeviceState::Off;
 }
 
 /// @details Sets exposure for this MPES.
-int MPESController::Initialize() {
-    int ret = m_pPlatform->getMPESAt(m_ID)->setExposure();
+int MPESController::initialize() {
+    int ret = m_pPlatform->getMPES(m_ID)->setExposure();
     if (ret > 0) {
         return 0;
     } else {
@@ -46,8 +46,7 @@ UaStatus MPESController::getData(OpcUa_UInt32 offset, UaVariant &value) {
         status = read();
 
     int dataOffset = offset - PAS_MPESType_xCentroidAvg;
-    const MPES::Position &position = m_pPlatform->getMPESAt(m_ID)->getPosition();
-    float data;
+    const MPES::Position &position = m_pPlatform->getMPES(m_ID)->getPosition();
     switch (dataOffset) {
         case 0:
             value.setFloat(position.xCenter);
@@ -62,7 +61,7 @@ UaStatus MPESController::getData(OpcUa_UInt32 offset, UaVariant &value) {
             value.setFloat(position.yStdDev);
             break;
         case 4:
-            value.setFloat(position.CleanedIntensity);
+            value.setFloat(position.cleanedIntensity);
             break;
         case 5:
             value.setFloat(position.xNominal);
@@ -87,10 +86,10 @@ UaStatus MPESController::setData(OpcUa_UInt32 offset, UaVariant value) {
     value.toFloat(v);
     switch (dataOffset) {
         case 5:
-            m_pPlatform->getMPESAt(m_ID)->setxNominalPosition(v);
+            m_pPlatform->getMPES(m_ID)->setxNominalPosition(v);
             break;
         case 6:
-            m_pPlatform->getMPESAt(m_ID)->setyNominalPosition(v);
+            m_pPlatform->getMPES(m_ID)->setyNominalPosition(v);
             break;
         default:
             status = OpcUa_BadNotWritable;
@@ -100,7 +99,7 @@ UaStatus MPESController::setData(OpcUa_UInt32 offset, UaVariant value) {
 }
 
 /// @details Locks the shared mutex while calling methods.
-UaStatus MPESController::Operate(OpcUa_UInt32 offset, const UaVariantArray &args) {
+UaStatus MPESController::operate(OpcUa_UInt32 offset, const UaVariantArray &args) {
     UaMutexLocker lock(&m_mutex);
     UaStatus status;
 
@@ -109,7 +108,7 @@ UaStatus MPESController::Operate(OpcUa_UInt32 offset, const UaVariantArray &args
             status = read();
             break;
         case PAS_MPESType_SetExposure:
-            m_pPlatform->getMPESAt(m_ID)->setExposure();
+            m_pPlatform->getMPES(m_ID)->setExposure();
             break;
         default:
             status = OpcUa_BadInvalidArgument;
@@ -123,9 +122,9 @@ UaStatus MPESController::Operate(OpcUa_UInt32 offset, const UaVariantArray &args
 OpcUa_Int32 MPESController::read() {
     UaMutexLocker lock(&m_mutex);
 
-    if (m_state == PASState::On) {
+    if (m_state == Device::DeviceState::On) {
         std::cout << "\nReading MPES " << m_ID << std::endl;
-        m_pPlatform->ReadMPES(m_ID);
+        m_pPlatform->readMPES(m_ID);
         m_updated = true;
         return 0;
     } else
