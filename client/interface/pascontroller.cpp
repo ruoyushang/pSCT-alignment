@@ -767,8 +767,7 @@ UaStatusCode PasPanel::Operate(OpcUa_UInt32 offset, const UaVariantArray &args)
 #endif
         PASState state;
         getState(state);
-        cout << "Current State is " << static_cast<unsigned>(m_state) << " and it is equivalent to PASState::Busy : "
-             << (state == PASState::Busy) << endl;
+        cout << "Current State is " << PASStateNames.at(static_cast<int>(m_state)) << endl;
     }
 
 
@@ -870,8 +869,10 @@ UaStatus PasPanel::__moveTo()
 
     // this should have already been caught, but let's do it nevertheless
     // nothing to be done, but all good
-    if (getActuatorCount() == 0)
+    if (getActuatorCount() == 0) {
+        std::cout << "No actuators found. Nothing to do.\n";
         return OpcUa_Good;
+    }
 
     auto& actuatorPositionMap = m_ChildrenPositionMap.at(PAS_ACTType);
     auto& pACT = m_pChildren.at(PAS_ACTType);
