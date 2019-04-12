@@ -120,6 +120,7 @@ UaStatus ActController::Operate(OpcUa_UInt32 offset, const UaVariantArray &args)
     UaMutexLocker lock(&m_mutex); // Lock the object to prevent other actions while operating.
 
     UaStatus status;
+    UaVariantArray tempArgs;
     switch (offset) {
         case PAS_ACTType_MoveDeltaLength:
             if (args.length() != 1) {
@@ -131,9 +132,10 @@ UaStatus ActController::Operate(OpcUa_UInt32 offset, const UaVariantArray &args)
             if (args.length() != 1) {
                 return OpcUa_BadInvalidArgument;
             }
-            UaVariant(args[0]).toFloat(m_TargetLength);
-            args[0] = UaVariant(m_TargetLength - m_pPlatform->getActuatorAt(m_ID)->MeasureLength())[0];
-            status = moveDelta(args);
+            tempArgs.create(1);
+	    UaVariant(args[0]).toFloat(m_TargetLength);
+            tempArgs[0] = UaVariant(m_TargetLength - m_pPlatform->getActuatorAt(m_ID)->MeasureLength())[0];
+            status = moveDelta(tempArgs);
             break;
         default:
             status = OpcUa_BadInvalidArgument;
