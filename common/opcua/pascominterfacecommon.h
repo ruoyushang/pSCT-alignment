@@ -24,17 +24,6 @@ enum class PASState {
         GLOB_Positioner_notMoving = 11
     };
 
-std::map<int, std::string> PASStateNames = {
-        {0,  "On"},
-        {1,  "Off"},
-        {2,  "Busy"},
-        {3,  "FatalError"},
-        {4,  "OperableError"},
-        {10, "GLOB_Positioner_Moving"},
-        {11, "GLOB_Positioner_notMoving"},
-};
-
-
 struct Identity;
 
 class PasComInterfaceCommon
