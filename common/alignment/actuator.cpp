@@ -731,6 +731,7 @@ void Actuator::setState(Device::DeviceState state) {
     } else {
         DEBUG_MSG("Setting Actuator " << SerialNumber << " Status to " << state);
         m_State = state;
+
     }
 }
 

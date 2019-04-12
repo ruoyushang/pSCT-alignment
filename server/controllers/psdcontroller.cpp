@@ -29,14 +29,21 @@ PSDController::PSDController(int ID) : PasController::PasController(ID, 500)
     m_pPSD = std::unique_ptr<GASPSD>(new GASPSD());
     m_pPSD->setPort();
     m_pPSD->Initialize();
-    m_state = Device::DeviceState::On;
 }
 
-/// @details Sets the device state to off.
-PSDController::~PSDController()
-{
-    m_state = Device::DeviceState::Off;
+/// @details Locks the shared mutex while retrieving the state.
+UaStatus PSDController::getState(Device::DeviceState &state) {
+    UaMutexLocker lock(&m_mutex);
+    state = _getState();
+    return OpcUa_Good;
 }
+
+/// @details Does not allow setting the state to error or setting the state to
+/// its current value. Locks the shared mutex while setting the state.
+UaStatus PSDController::setState(Device::DeviceState state) {
+    return OpcUa_Good;
+}
+
 
 /// @details Calls GASPSD.getOutput() to read data. Locks the shared mutex to prevent concurrent actions while reading data.
 UaStatus PSDController::getData(OpcUa_UInt32 offset, UaVariant& value)
@@ -87,7 +94,7 @@ UaStatus PSDController::read()
 {
     UaMutexLocker lock(&m_mutex);
 
-    if ( m_state == Device::DeviceState::On )
+    if ( _getState() == Device::DeviceState::On )
     {
         std::cout << "\nReading PSD " <<  m_ID << std::endl;
         m_pPSD->Update();

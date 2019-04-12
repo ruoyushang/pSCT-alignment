@@ -17,6 +17,8 @@
 
 class CBC;
 
+class Platform;
+
 class MPES
 {
 public:
@@ -47,6 +49,8 @@ public:
 
 protected:
     std::shared_ptr<CBC> m_pCBC;
+
+    std::shared_ptr<Platform> m_pPlatform;
 
     int m_USBPortNumber;
     int m_SerialNumber;

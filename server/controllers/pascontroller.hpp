@@ -49,7 +49,7 @@ public:
     /// @brief Get the device's state.
     /// @param state Variable to store the retrieved state value.
     /// @return OPC UA status code indicating success or failure.
-    virtual UaStatus getState(Device::DeviceState &state);
+    virtual UaStatus getState(Device::DeviceState &state) = 0;
 
     /// @brief Get data from a device variable.
     /// @param offset A number used to uniquely identify the data variable to access.
@@ -60,7 +60,7 @@ public:
     /// @brief Set the device's state.
     /// @param state Value to set the device state to.
     /// @return OPC UA status code indicating success or failure.
-    virtual UaStatus setState(Device::DeviceState state);
+    virtual UaStatus setState(Device::DeviceState state) = 0;
 
     /// @brief Set a device data variable.
     /// @param offset A number used to uniquely identify the data variable to access.
@@ -79,8 +79,6 @@ protected:
     UaMutex m_mutex;
     /// @brief Integer index of the device within its type.
     int m_ID;
-    /// @brief The device's internal state.
-    Device::DeviceState m_state;
     /// @brief Pointer to the Platform object used to interface with hardware.
     std::shared_ptr<Platform> m_pPlatform;
 

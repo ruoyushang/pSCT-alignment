@@ -6,8 +6,6 @@
 #ifndef SERVER_CONTROLLERS_MPESCONTROLLER_HPP
 #define SERVER_CONTROLLERS_MPESCONTROLLER_HPP
 
-#include "server/controllers/pascontroller.hpp"
-
 #include <memory>
 
 #include "uabase/statuscode.h"
@@ -15,8 +13,9 @@
 #include "uabase/uamutex.h"
 #include "uabase/uastring.h"
 
-#include "common/opcua/pascominterfacecommon.h"
 #include "common/alignment/device.hpp"
+#include "server/controllers/pascontroller.hpp"
+
 
 class Platform;
 
@@ -27,14 +26,24 @@ public:
     /// @brief Instantiate an MPES device controller object.
     /// @param ID The integer index of the device within its type.
     /// @param pPlatform Platform object used to interface with hardware.
-    MPESController(int ID, std::shared_ptr<Platform> pPlatform);
+    MPESController(int ID, std::shared_ptr<Platform> pPlatform) : PasController(ID, std::move(pPlatform)) {}
 
     /// @brief Destroy an MPES device controller object.
-    ~MPESController();
+    ~MPESController() {}
 
     /// @brief Initialize the MPES by setting its exposure.
     /// #return 0 on success, -1 on failure.
     int initialize();
+
+    /// @brief Get the device's state.
+    /// @param state Variable to store the retrieved state value.
+    /// @return OPC UA status code indicating success or failure.
+    UaStatus getState(Device::DeviceState &state);
+
+    /// @brief Set the device's state.
+    /// @param state Value to set the device state to.
+    /// @return OPC UA status code indicating success or failure.
+    UaStatus setState(Device::DeviceState state);
 
     /// @brief Get the value of an MPES data variable.
     /// @return OPC UA status code indicating success or failure.
@@ -49,8 +58,8 @@ public:
     UaStatus operate(OpcUa_UInt32 offset, const UaVariantArray &args);
 
 private:
-    /// @brief The internal device state.
-    Device::DeviceState m_state = Device::DeviceState::Off;
+    Device::DeviceState _getState() { return m_pPlatform->getMPES(m_ID)->getState(); }
+
     /// @brief Whether the MPES data has been read at least once since initialization.
     bool m_updated = false;
 

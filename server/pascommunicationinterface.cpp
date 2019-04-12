@@ -213,6 +213,11 @@ UaStatus PasCommunicationInterface::initialize() {
             pACT = std::dynamic_pointer_cast<ActController>(act.second);
             pPanel->addActuator(pACT);
         }
+        std::shared_ptr<MPESController> pMPES;
+        for (const auto &mpes : m_pControllers.at(PAS_MPESType)) {
+            pMPES = std::dynamic_pointer_cast<MPESController>(mpes.second);
+            pPanel->addMPES(pMPES);
+        }
     }
     catch (std::out_of_range &e) {
     }

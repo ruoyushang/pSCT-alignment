@@ -8,33 +8,38 @@
 #include "uabase/uamutex.h"
 #include "uabase/uastring.h"
 
+#include "common/alignment/device.hpp"
+#include "common/alignment/platform.hpp"
 #include "common/opcua/pasobject.h"
 #include "common/opcua/passervertypeids.h"
-#include "common/alignment/device.hpp"
 
-/// @details Sets state to On, inLength to current length, and DeltaL to 0.
-ActController::ActController(int ID, std::shared_ptr<Platform> pPlatform) : PasController(ID, std::move(pPlatform)) {
-    m_state = Device::DeviceState::On;
-    m_DeltaL = 0.;
-}
-
-/// @details Sets state to off.
-ActController::~ActController() {
-    m_state = Device::DeviceState::Off; // NOTE: This shouldn't do anything, as the object is destroyed anyways.
-}
 
 /// @details Calls update state before returning the current state.
 UaStatus ActController::getState(Device::DeviceState &state) {
     UaMutexLocker lock(&m_mutex);
-    updateState();
-    state = m_state;
+    state = _getState();
     return OpcUa_Good;
 }
 
-UaStatus ActController::updateState() {
+UaStatus ActController::setState(Device::DeviceState state) {
     UaMutexLocker lock(&m_mutex);
-    // update internal state to match teh underlying platform object
-    m_state = m_pPlatform->getActuator(m_ID)->getState();
+
+    switch (state) {
+        case Device::DeviceState::On:
+            m_pPlatform->getActuator(m_ID)->turnOn();
+            break;
+        case Device::DeviceState::Off:
+            m_pPlatform->getActuator(m_ID)->turnOff();
+            break;
+        case Device::DeviceState::FatalError:
+            return OpcUa_BadInvalidArgument;
+        case Device::DeviceState::OperableError:
+            return OpcUa_BadInvalidArgument;
+        case Device::DeviceState::Busy:
+            return OpcUa_BadInvalidArgument;
+        default:
+            return OpcUa_BadInvalidArgument;
+    }
 
     return OpcUa_Good;
 }
@@ -107,6 +112,8 @@ UaStatus ActController::operate(OpcUa_UInt32 offset, const UaVariantArray &args)
     UaStatus status;
     switch (offset) {
         case PAS_ACTType_Step:
+            if (!(_getState() == Device::DeviceState::On))
+                return OpcUa_BadNothingToDo;
             status = moveDelta(args);
             break;
         default:
@@ -119,8 +126,6 @@ UaStatus ActController::operate(OpcUa_UInt32 offset, const UaVariantArray &args)
 /// @details Calls MoveDeltaLengths on the Platform object with the desired length change for this actuator and zero for all others.
 // Applies lock to shared mutex to prevent other actions. Will fail unless device state is PAS_On.
 UaStatus ActController::moveDelta(const UaVariantArray &args) {
-    if (!(m_state == Device::DeviceState::On))
-        return OpcUa_BadNothingToDo;
 
     std::array<OpcUa_Float, 6> deltaL = {0., 0., 0., 0., 0., 0.}; // Set delta lengths to move to
     UaVariant length = UaVariant(args[0]);

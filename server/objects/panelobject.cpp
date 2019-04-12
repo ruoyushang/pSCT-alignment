@@ -32,7 +32,7 @@ const std::map<OpcUa_UInt32, std::pair<std::string, std::vector<std::tuple<std::
         {PAS_PanelType_Stop,        {"Stop",       {}}}
 };
 
-/// @details Adds all child variable nodes and child method nodes. nitializes a reference-counting shared mutex for thread locking.
+/// @details Adds all child variable nodes and child method nodes. initializes a reference-counting shared mutex for thread locking.
 PanelObject::PanelObject(
         const UaString &name,
         const UaNodeId &newNodeId,

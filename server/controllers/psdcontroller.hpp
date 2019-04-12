@@ -28,7 +28,17 @@ public:
     PSDController(int ID);
 
     /// @brief Destroy a position sensitive device controller.
-    ~PSDController();
+    ~PSDController() {}
+
+    /// @brief Get the device's state.
+    /// @param state Variable to store the retrieved state value.
+    /// @return OPC UA status code indicating success or failure.
+    UaStatus getState(Device::DeviceState &state);
+
+    /// @brief Set the device's state.
+    /// @param state Value to set the device state to.
+    /// @return OPC UA status code indicating success or failure.
+    UaStatus setState(Device::DeviceState state);
 
     /// @brief Get the value of a PSD data variable.
     /// @param offset A number used to uniquely identify the data variable to access.
@@ -49,8 +59,7 @@ public:
     UaStatus operate(OpcUa_UInt32 offset, const UaVariantArray &args);
 
 private:
-    /// @brief The internal device state.
-    Device::DeviceState m_state = Device::DeviceState::Off;
+    Device::DeviceState _getState() { return Device::DeviceState:On; }
     /// @brief Pointer to the GASPSD object interfacing directly with thee PSD hardware.
     std::unique_ptr<GASPSD> m_pPSD;
 

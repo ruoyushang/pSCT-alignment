@@ -11,44 +11,29 @@
 
 #include "common/opcua/passervertypeids.h"
 
-// @details Sets the state to On.
-PanelController::PanelController(int ID, std::shared_ptr<Platform> pPlatform) : PasController(ID,
-                                                                                              std::move(pPlatform)) {
-    m_state = Device::DeviceState::On;
-}
+#include "common/alignment/platform.hpp"
 
-// @details Sets the state to Off.
-PanelController::~PanelController() {
-    m_state = Device::DeviceState::Off;
-}
+#include "server/controllers/actcontroller.hpp"
+#include "server/controllers/mpescontroller.hpp"
 
-// @details Locks the shared mutex while reading the state.
+
+/// @details Locks the shared mutex while retrieving the state.
 UaStatus PanelController::getState(Device::DeviceState &state) {
     UaMutexLocker lock(&m_mutex);
-    updateState();
-    state = m_state;
+    state = _getState();
     return OpcUa_Good;
 }
 
-// @details Locks the shared mutex while updating the state.
-UaStatus PanelController::updateState() {
-    UaMutexLocker lock(&m_mutex);
-    // update internal state to match the underlying platform object
-    m_state = m_pPlatform->getState();
-    return OpcUa_Good;
-}
-
-// @details Locks the shared mutex while setting the state. Only the On and Off states are allowed to be set manually.
+/// @details Does not allow setting the state to error or setting the state to
+/// its current value. Locks the shared mutex while setting the state.
 UaStatus PanelController::setState(Device::DeviceState state) {
     UaMutexLocker lock(&m_mutex);
 
     switch (state) {
         case Device::DeviceState::On:
-            m_state = state;
             m_pPlatform->turnOn();
             break;
         case Device::DeviceState::Off:
-            m_state = state;
             m_pPlatform->turnOff();
             break;
         case Device::DeviceState::FatalError:
@@ -111,24 +96,23 @@ UaStatus PanelController::setData(OpcUa_UInt32 offset, UaVariant value) {
 UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &args) {
     UaStatus status;
 
-    updateState(); // Update the current state
+    Device::DeviceState state;
+    getState(state);
 
-    if (m_state == Device::DeviceState::FatalError) {
+    if (state == Device::DeviceState::FatalError) {
         std::cout << "PasPanel::operate(): Panel in fatal error state! "
                   << "Check what's wrong, fix it, and try again.\n";
         return OpcUa_BadInvalidState;
     }
 
     if (offset == PAS_PanelType_StepAll) {
-        if (m_state == Device::DeviceState::Off)
+        if (_getState() == Device::DeviceState::Off)
             setState(Device::DeviceState::On);
-        else if (m_state == Device::DeviceState::Busy) {
+        else if (_getState() == Device::DeviceState::Busy) {
             std::cout << "PanelController::operate(): Busy at the moment. "
                       << "Wait for the current operation to finish and try again.\n";
             return OpcUa_Good;
         }
-
-        m_state = Device::DeviceState::Busy; // set the state immadiately
 
         std::array<float, 6> deltaLengths{};
 
@@ -146,15 +130,13 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
 
         status = OpcUa_Good;
     } else if (offset == PAS_PanelType_MoveTo_Acts) {
-        if (m_state == Device::DeviceState::Off)
+        if (_getState() == Device::DeviceState::Off)
             setState(Device::DeviceState::On);
-        else if (m_state == Device::DeviceState::Busy) {
+        else if (_getState() == Device::DeviceState::Busy) {
             std::cout << "PanelController::operate(): Busy at the moment. "
                       << "Wait for the current operation to finish and try again.\n";
             return OpcUa_Good;
         }
-
-        m_state = Device::DeviceState::Busy; // set the state immeadiately
 
         std::array<float, 6> lengths{};
         UaVariant vTemp;
@@ -171,7 +153,13 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
     } else
         status = OpcUa_BadInvalidArgument;
 
-    updateState(); // update the state again
-
     return status;
+}
+
+void PanelController::addActuator(const std::shared_ptr<ActController> &pActuator) {
+    m_pActuators.push_back(pActuator);
+}
+
+void PanelController::addMPES(const std::shared_ptr<MPESController> &pMPES) {
+    m_pMPES.push_back(pMPES);
 }

@@ -68,6 +68,10 @@ public:
     void clearErrors();
     bool forceRecover();
 
+    void turnOn() { setState(Device::DeviceState::On); };
+
+    void turnOff() { setState(Device::DeviceState::Off); };
+
 protected:
     static constexpr const int NUM_ASF_HEADER_COLUMNS = 8;//yr,mo,day,hr,min,sec,rev,angle
     static const int NUM_ASF_COLUMNS{NUM_ASF_HEADER_COLUMNS + NUM_ERROR_TYPES};

@@ -14,19 +14,39 @@
 #include "uabase/uastring.h"
 
 #include "common/alignment/platform.hpp"
-#include "common/opcua/pascominterfacecommon.h"
 #include "common/opcua/passervertypeids.h"
 
-/// @details Turns state to On.
-MPESController::MPESController(int ID, std::shared_ptr<Platform> pPlatform) : PasController(ID, std::move(pPlatform)) {
-    m_state = Device::DeviceState::On;
+/// @details Locks the shared mutex while retrieving the state.
+UaStatus MPESController::getState(Device::DeviceState &state) {
+    UaMutexLocker lock(&m_mutex);
+    state = _getState();
+    return OpcUa_Good;
 }
 
-/// @details Turns state to Off.
-MPESController::~MPESController() {
-    m_state = Device::DeviceState::Off;
-}
+/// @details Does not allow setting the state to error or setting the state to
+/// its current value. Locks the shared mutex while setting the state.
+UaStatus MPESController::setState(Device::DeviceState state) {
+    UaMutexLocker lock(&m_mutex);
 
+    switch (state) {
+        case Device::DeviceState::On:
+            m_pPlatform->getMPES(m_ID)->turnOn();
+            break;
+        case Device::DeviceState::Off:
+            m_pPlatform->getMPES(m_ID)->turnOff();
+            break;
+        case Device::DeviceState::FatalError:
+            return OpcUa_BadInvalidArgument;
+        case Device::DeviceState::OperableError:
+            return OpcUa_BadInvalidArgument;
+        case Device::DeviceState::Busy:
+            return OpcUa_BadInvalidArgument;
+        default:
+            return OpcUa_BadInvalidArgument;
+    }
+
+    return OpcUa_Good;
+}
 /// @details Sets exposure for this MPES.
 int MPESController::initialize() {
     int ret = m_pPlatform->getMPES(m_ID)->setExposure();
@@ -122,7 +142,7 @@ UaStatus MPESController::operate(OpcUa_UInt32 offset, const UaVariantArray &args
 OpcUa_Int32 MPESController::read() {
     UaMutexLocker lock(&m_mutex);
 
-    if (m_state == Device::DeviceState::On) {
+    if (_getState() == Device::DeviceState::On) {
         std::cout << "\nReading MPES " << m_ID << std::endl;
         m_pPlatform->readMPES(m_ID);
         m_updated = true;

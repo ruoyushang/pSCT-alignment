@@ -42,8 +42,9 @@ public:
     void initialize();
 
     void turnOn() { setState(Device::DeviceState::On); }
-
     void turnOff() { setState(Device::DeviceState::Off); }
+
+    void setBusy() { setState(Device::DeviceState::Busy); }
 
     void setCBCserial(int serial) { m_CBCserial = serial; }
     int getCBCserial() { return m_CBCserial; }
@@ -109,6 +110,7 @@ public:
      * @brief This function adds MPES if they can be initialized at USB ports.
      In the Sim mode, MPES are added regardlessly.
      */
+    bool addActuator();
     bool addMPES(int USB, int serial);
     MPES::Position readMPES(int idx);
 
