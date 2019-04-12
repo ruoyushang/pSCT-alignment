@@ -907,15 +907,15 @@ bool PasPanel::__willSensorsBeOutOfRange()
         VectorXd Sen_deviation; // deviated sensor reading
         for(auto elem :m_pChildren)
         {
-               std::cout << "Ruo, child of a panel: " << elem.first << "\n";
+            std::cout << "Ruo, child of a panel: " << elem.first << std::endl;
                for (auto elem2nd :elem.second)
                {
-                        std::cout << " " << elem2nd->getId() << "\n";
+                   std::cout << elem2nd->getId() << std::endl;
                }
         }
-        for (int edge2align=0; edge2align<m_pChildren.at(PAS_EdgeType).size(); edge2align++)
+    for (auto &e : m_pChildren.at(PAS_EdgeType))
         {
-                PasEdge* edge = static_cast<PasEdge *> (m_pChildren.at(PAS_EdgeType).at(edge2align));
+            PasEdge *edge = static_cast<PasEdge *>(e);
                 M_response = edge->getResponseMatrix(m_ID.position);
                 Sen_current = edge->getCurrentReadings();
                 cout << "\nCurrent MPES readings:\n" << Sen_current << endl << endl;
