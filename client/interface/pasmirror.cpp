@@ -303,7 +303,7 @@ UaStatusCode PasMirror::Operate(OpcUa_UInt32 offset, const UaVariantArray &args)
      * ********************************************************/
     if (offset == PAS_MirrorType_MoveSector) {
         for (unsigned idx : m_SelectedChildren.at(PAS_PanelType))
-             m_pChildren.at(PAS_PanelType).at(idx)->Operate(PAS_PanelType_MoveTo_Acts);
+            m_pChildren.at(PAS_PanelType).at(idx)->Operate(PAS_PanelType_MoveToLengths);
     }
 
     /**********************************************************
@@ -416,7 +416,7 @@ void PasMirror::__readPositionAll()
 {
     auto type = PAS_PanelType;
     for (const auto& idx : m_SelectedChildren.at(type)) {
-        m_pChildren.at(type).at(idx)->Operate(PAS_PanelType_Read);
+        m_pChildren.at(type).at(idx)->Operate(PAS_PanelType_ReadAll);
 
         auto pos = m_pChildren.at(type).at(idx)->getId().position;
 
@@ -446,7 +446,7 @@ void PasMirror::__move()
         pCurObject = m_pChildren.at(type).at(idx);
         curpos = pCurObject->getId().position;
         cout << "Panel " << curpos << ":" << endl;
-        static_cast<PasPanel *>(pCurObject)->Operate(PAS_PanelType_Read);
+        static_cast<PasPanel *>(pCurObject)->Operate(PAS_PanelType_ReadAll);
         // for this panel, we get PRF pad coords, transform them to TRF,
         // move them in TRF, transform back to PRF, and then compute new ACT lengths
         // based on the new pad coords. so simple!
@@ -487,7 +487,7 @@ void PasMirror::__move()
     // i'm looping with iterators instead of the range-based for-loop to hopefully
     // not let the compiler optimize this away and merge the two loops
     for (auto it = childrenSet.begin(); it != childrenSet.end(); it++)
-        m_pChildren.at(type).at(*it)->Operate(PAS_PanelType_MoveTo_Coords);
+        m_pChildren.at(type).at(*it)->Operate(PAS_PanelType_MoveToCoords);
 }
 
 // Align all edges between start_idx and end_idx moving in the direction dir
@@ -875,7 +875,7 @@ void PasMirror::__alignSector()
         for (unsigned i = 0; i < nACT; i++)
             deltas[i].Value.Float = X(j++); // X has dimension of 6*nPanelsToMove !
 
-        pCurPanel->Operate(PAS_PanelType_StepAll, deltas);
+        pCurPanel->Operate(PAS_PanelType_MoveDeltaLengths, deltas);
     }
 }
 
@@ -1074,7 +1074,7 @@ void PasMirror::__alignGlobal(unsigned fixPanel)
         for (unsigned i = 0; i < nACT; i++)
             deltas[i].Value.Float = m_AlignFrac*globDisplaceVec(j++); // X has dimension of 6*nPanelsToMove !
 
-        pCurPanel->Operate(PAS_PanelType_StepAll, deltas);
+        pCurPanel->Operate(PAS_PanelType_MoveDeltaLengths, deltas);
     }
     // remember to update selected panels
     __updateSelectedChildren(PAS_PanelType);

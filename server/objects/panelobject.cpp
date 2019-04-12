@@ -27,9 +27,9 @@ const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean>> 
 };
 
 const std::map<OpcUa_UInt32, std::pair<std::string, std::vector<std::tuple<std::string, UaNodeId, std::string>>>> PanelObject::METHODS = {
-        {PAS_PanelType_StepAll,     {"StepAll",    {}}},
-        {PAS_PanelType_MoveTo_Acts, {"MoveToActs", {}}},
-        {PAS_PanelType_Stop,        {"Stop",       {}}}
+        {PAS_PanelType_MoveDeltaLengths, {"StepAll",    {}}},
+        {PAS_PanelType_MoveToLengths,    {"MoveToActs", {}}},
+        {PAS_PanelType_Stop,             {"Stop",       {}}}
 };
 
 std::map<UaNodeId, std::pair<UaMethodGeneric *, OpcUa_UInt32>> m_MethodMap;

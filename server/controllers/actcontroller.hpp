@@ -72,10 +72,12 @@ public:
 private:
     /// @brief The internal device state.
     PASState m_state = PASState::Off;
-    /// @brief The distance between the current actuator length and the target length.
-    OpcUa_Float m_DeltaL;
+    /// @brief The remaining distance between the current actuator length and the target length.
+    OpcUa_Float m_DeltaLength;
+    /// @brief The last requested target length.
+    OpcUa_Float m_TargetLength;
 
-    /// @brief Move the panel a desired number of steps
+    /// @brief Change the actuator length by a desired amount
     /// @param args Array of method arguments as UaVariants.
     UaStatus moveDelta(const UaVariantArray &args);
 };

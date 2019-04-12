@@ -14,7 +14,7 @@
 /// @details Sets state to On, inLength to current length, and DeltaL to 0.
 ActController::ActController(int ID, std::shared_ptr<Platform> pPlatform) : PasController(ID, pPlatform) {
     m_state = PASState::On;
-    m_DeltaL = 0.;
+    m_DeltaLength = 0.;
 }
 
 /// @details Sets state to off.
@@ -57,11 +57,14 @@ UaStatus ActController::getData(OpcUa_UInt32 offset, UaVariant &value) {
 
     if (ACTObject::VARIABLES.find(offset) != ACTObject::VARIABLES.end()) {
         switch (offset) {
-            case PAS_ACTType_Steps:
-                value.setFloat(m_DeltaL);
+            case PAS_ACTType_DeltaLength:
+                value.setFloat(m_DeltaLength);
                 break;
-            case PAS_ACTType_curLength_mm:
+            case PAS_ACTType_CurrentLength:
                 value.setFloat(m_pPlatform->getActuatorAt(m_ID)->MeasureLength());
+                break;
+            case PAS_ACTType_TargetLength:
+                value.setFloat(m_TargetLength);
                 break;
             default:
                 status = OpcUa_BadInvalidArgument;
@@ -95,9 +98,10 @@ UaStatus ActController::setData(OpcUa_UInt32 offset, UaVariant value) {
     UaStatus status;
 
     switch (offset) {
-        case PAS_ACTType_Steps:
-            value.toFloat(m_DeltaL);
-            status = OpcUa_Good;
+        case PAS_ACTType_DeltaLength:
+            //value.toFloat(m_DeltaL);
+            //status = OpcUa_Good;
+            status = OpcUa_BadNotWritable;
             break;
         default:
             status = OpcUa_BadNotWritable;
@@ -117,7 +121,18 @@ UaStatus ActController::Operate(OpcUa_UInt32 offset, const UaVariantArray &args)
 
     UaStatus status;
     switch (offset) {
-        case PAS_ACTType_Step:
+        case PAS_ACTType_MoveDeltaLength:
+            if (args.length() != 1) {
+                return OpcUa_BadInvalidArgument;
+            }
+            status = moveDelta(args);
+            break;
+        case PAS_ACTType_MoveToLength:
+            if (args.length() != 1) {
+                return OpcUa_BadInvalidArgument;
+            }
+            UaVariant(args[0]).toFloat(m_TargetLength);
+            args[0] = UaVariant(m_TargetLength - m_pPlatform->getActuatorAt(m_ID)->MeasureLength())[0];
             status = moveDelta(args);
             break;
         default:
@@ -137,9 +152,9 @@ UaStatus ActController::moveDelta(const UaVariantArray &args) {
     UaVariant length = UaVariant(args[0]);
     length.toFloat(deltaL[m_ID]);
 
-    std::cout << "ActController :: Moving actuator " << m_ID << " by " << m_DeltaL << " mm." << std::endl;
+    std::cout << "ActController :: Moving actuator " << m_ID << " by " << m_DeltaLength << " mm." << std::endl;
     deltaL = m_pPlatform->MoveDeltaLengths(deltaL);
-    m_DeltaL = deltaL[m_ID];
+    m_DeltaLength = deltaL[m_ID];
 
     return OpcUa_Good;
 }

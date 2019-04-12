@@ -49,7 +49,7 @@ void PasLogic::run()
     for (int i = 0; i < 2; i++) {
         tee << TIME << "--- PasLogic: Initial OPT" <<i+1<<" coords: ";
         for (int j = 0; j < 6; j++) {
-            m_pCommIf->getDeviceData(PAS_PanelType, m_optId[i], PAS_PanelType_curCoords_x + j, val);
+            m_pCommIf->getDeviceData(PAS_PanelType, m_optId[i], PAS_PanelType_x + j, val);
             val.toDouble(panelCoords[j]);
             tee << panelCoords[j] << " ";
         }
@@ -209,13 +209,13 @@ void PasLogic::__align_PSD(unsigned psdNo)
     UaVariant val;
     double panelCoords[6];
     for (int i = 0; i < 6; i++) {
-        m_pCommIf->getDeviceData(PAS_PanelType, m_optId[psdNo], PAS_PanelType_curCoords_x + i, val);
+        m_pCommIf->getDeviceData(PAS_PanelType, m_optId[psdNo], PAS_PanelType_x + i, val);
         val.toDouble(panelCoords[i]);
     }
     
     // new ones are just an additional rotation
-    panelCoords[PAS_PanelType_curCoords_xRot - PAS_PanelType_curCoords_x] += x_rot*m_SP.kRp;
-    panelCoords[PAS_PanelType_curCoords_yRot - PAS_PanelType_curCoords_x] += y_rot*m_SP.kRp;
+    panelCoords[PAS_PanelType_xRot - PAS_PanelType_x] += x_rot * m_SP.kRp;
+    panelCoords[PAS_PanelType_yRot - PAS_PanelType_x] += y_rot * m_SP.kRp;
 
     tee << TIME << "New OPT" << psdNo + 1 << " coords: ";
     for (int i = 0; i < 6; i++)
@@ -235,7 +235,7 @@ UaStatus PasLogic::__move_OT(unsigned otNo, const double coords[6])
     }
 
     tee << TIME << "set new panel coords for OPT" << otNo+1 << "; moving..." << std::endl;
-    UaStatus status = m_pCommIf->OperateDevice(PAS_PanelType, m_optId[otNo], PAS_PanelType_MoveTo_Coords);
+    UaStatus status = m_pCommIf->OperateDevice(PAS_PanelType, m_optId[otNo], PAS_PanelType_MoveToCoords);
     tee << TIME << "done moving" << std::endl;
     if (!status.isGood())
         tee << TIME << "!!! THERE WAS A PROBLEM MOVING THE PANEL !!!" << std::endl;

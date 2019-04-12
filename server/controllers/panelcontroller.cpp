@@ -137,33 +137,39 @@ UaStatus PanelController::Operate(OpcUa_UInt32 offset, const UaVariantArray &arg
         return OpcUa_BadInvalidState;
     }
 
-    if (offset == PAS_PanelType_StepAll) {
+    if (offset == PAS_PanelType_MoveDeltaLengths) {
+        if (args.length() != 6) {
+            return OpcUa_BadInvalidArgument;
+        }
         if (m_state == PASState::Off)
             setState(PASState::On);
         else if (m_state == PASState::Busy) {
             std::cout << "PanelController::Operate(): Busy at the moment. "
                       << "Wait for the current operation to finish and try again.\n";
-            return OpcUa_Good;
+            return OpcUa_BadInvalidState;
         }
 
-        m_state = PASState::Busy; // set the state immadiately
+        m_state = PASState::Busy; // set the state immediately
 
         std::array<float, 6> deltaLengths;
 
-        UaVariant vTemp;
+        UaVariant dL;
         for (int i = 0; i < 6; i++) {
-            m_pActuators.at(i)->getData(PAS_ACTType_Steps, vTemp);
-            vTemp.toFloat(deltaLengths[i]);
+            dL = UaVariant(args[i]);
+            dL.toFloat(deltaLengths[i]);
         }
         deltaLengths = m_pPlatform->MoveDeltaLengths(deltaLengths);
         // update missed lengths
         for (int i = 0; i < 6; i++) {
-            vTemp.setFloat(deltaLengths[i]);
-            m_pActuators.at(i)->setData(PAS_ACTType_Steps, vTemp);
+            dL.setFloat(deltaLengths[i]);
+            m_pActuators.at(i)->setData(PAS_ACTType_DeltaLength, dL);
         }
 
         status = OpcUa_Good;
-    } else if (offset == PAS_PanelType_MoveTo_Acts) {
+    } else if (offset == PAS_PanelType_MoveToLengths) {
+        if (args.length() != 6) {
+            return OpcUa_BadInvalidArgument;
+        }
         if (m_state == PASState::Off)
             setState(PASState::On);
         else if (m_state == PASState::Busy) {
@@ -172,13 +178,13 @@ UaStatus PanelController::Operate(OpcUa_UInt32 offset, const UaVariantArray &arg
             return OpcUa_Good;
         }
 
-        m_state = PASState::Busy; // set the state immeadiately
+        m_state = PASState::Busy; // set the state immediately
 
         std::array<float, 6> lengths;
-        UaVariant vTemp;
+        UaVariant len;
         for (int i = 0; i < 6; i++) {
-            m_pActuators.at(i)->getData(PAS_ACTType_inLength_mm, vTemp);
-            vTemp.toFloat(lengths[i]);
+            len = UaVariant(args[i]);
+            len.toFloat(lengths[i]);
         }
         lengths = m_pPlatform->MoveToLengths(lengths);
 

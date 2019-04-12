@@ -434,10 +434,10 @@ UaStatusCode PasACT::getData(OpcUa_UInt32 offset, UaVariant& value)
         return getError(offset, value);
     } else {
         switch (offset) {
-            case PAS_ACTType_Steps:
+            case PAS_ACTType_RemainingLength:
                 varName = "Steps";
                 break;
-            case PAS_ACTType_curLength_mm:
+            case PAS_ACTType_CurrentLength:
                 varName = "CurrentLength";
                 break;
             default:
@@ -480,13 +480,9 @@ UaStatusCode PasACT::setData(OpcUa_UInt32 offset, UaVariant value)
 {
     UaStatusCode  status;
 
-    if (offset == PAS_ACTType_Steps) {
+    if (offset == PAS_ACTType_RemainingLength) {
         vector<string> vec_curwrite {m_ID.eAddress + ".Steps"};
         value.toFloat(m_DeltaL);
-        status = m_pClient->write(vec_curwrite, &value);
-    }
-    else if (offset == PAS_ACTType_inLength_mm) {
-        vector<string> vec_curwrite {m_ID.eAddress + ".inLength_mm"};
         status = m_pClient->write(vec_curwrite, &value);
     }
     else
@@ -507,7 +503,7 @@ UaStatusCode PasACT::Operate(OpcUa_UInt32 offset, const UaVariantArray &args)
     // UaMutexLocker lock(&m_mutex);
     switch ( offset )
     {
-        case PAS_ACTType_Step:
+        case PAS_ACTType_MoveDeltaLength:
             status = moveDelta(args);
             break;
         default:
@@ -647,10 +643,10 @@ UaStatusCode PasPanel::getData(OpcUa_UInt32 offset, UaVariant& value)
         return OpcUa_Good;
     }
 
-    if (offset >= PAS_PanelType_curCoords_x && offset <= PAS_PanelType_curCoords_zRot) {
+    if (offset >= PAS_PanelType_x && offset <= PAS_PanelType_zRot) {
         // update current coordinates
         __updateCoords();
-        int dataoffset = offset - PAS_PanelType_curCoords_x;
+        int dataoffset = offset - PAS_PanelType_x;
         value.setDouble(m_curCoords[dataoffset]);
     }
     else if (offset >= PAS_PanelType_inCoords_x && offset <= PAS_PanelType_inCoords_zRot) {
@@ -728,7 +724,7 @@ UaStatusCode PasPanel::Operate(OpcUa_UInt32 offset, const UaVariantArray &args)
     /************************************************
      * move actuators to the preset lengths         *
      * **********************************************/
-    if (offset == PAS_PanelType_MoveTo_Acts) {
+    if (offset == PAS_PanelType_MoveToLengths) {
 #ifndef SIMMODE
         status =  __moveTo();
 #else
@@ -741,14 +737,14 @@ UaStatusCode PasPanel::Operate(OpcUa_UInt32 offset, const UaVariantArray &args)
     /************************************************
      * move the panel to the preset coordinates     *
      * **********************************************/
-    else if (offset == PAS_PanelType_MoveTo_Coords) {
+    else if (offset == PAS_PanelType_MoveToCoords) {
         // find actuator lengths needed
         m_SP.ComputeActsFromPanel(m_inCoords);
         // set actuator lengths
         UaVariant val;
         for (const auto& act : actuatorPositionMap) {
             val.setDouble(m_SP.GetActLengths()[act.first - 1]);
-            pACT.at(act.second)->setData(PAS_ACTType_inLength_mm, val);
+            //pACT.at(act.second)->setData(PAS_ACTType_inLength_mm, val);
         }
 
         bool collision_flag = __willSensorsBeOutOfRange();
@@ -774,7 +770,7 @@ UaStatusCode PasPanel::Operate(OpcUa_UInt32 offset, const UaVariantArray &args)
     /************************************************
      * move all actuators by the specified deltas   *
      * **********************************************/
-    else if (offset == PAS_PanelType_StepAll || offset == PAS_PanelType_StepAll_move) {
+    else if (offset == PAS_PanelType_MoveDeltaLengths || offset == PAS_PanelType_StepAll_move) {
         cout << endl << m_ID << ":" << endl;
         if (args.length() != pACT.size())
             return OpcUa_BadInvalidArgument;
@@ -826,7 +822,7 @@ UaStatusCode PasPanel::Operate(OpcUa_UInt32 offset, const UaVariantArray &args)
     /************************************************
      * read current position and actuator lengths   *
      * **********************************************/
-    else if (offset == PAS_PanelType_Read) {
+    else if (offset == PAS_PanelType_ReadAll) {
         UaVariant val;
         __updateCoords();
         cout << endl << m_ID << " :" << endl;
@@ -863,7 +859,7 @@ UaStatusCode PasPanel::Operate(OpcUa_UInt32 offset, const UaVariantArray &args)
 // actual execution method to move the panel
 UaStatus PasPanel::__moveTo()
 {
-    UaVariant val;
+    UaVariantArray args;
     float in_length = 0.;
     UaStatus status;
 
@@ -879,14 +875,14 @@ UaStatus PasPanel::__moveTo()
 
     // map is ordered by the first index, in our case, the position
     for (const auto& i : actuatorPositionMap) {
-        pACT.at(i.second)->getData(PAS_ACTType_inLength_mm, val);
-        val.toFloat(in_length);
+        //pACT.at(i.second)->getData(PAS_ACTType_inLength_mm, val);
+        //val.toFloat(in_length);
         cout << "Will move actuator " << pACT.at(i.second)->getId().serialNumber
             << " at position " << m_ID.position
             << "." << i.first << " to " << in_length << " mm" << endl;
     }
 
-    status = m_pClient->callMethodAsync(string("ns=2;s=Panel_0"), UaString("MoveTo"));
+    status = m_pClient->callMethodAsync(string("ns=2;s=Panel_0"), UaString("MoveTo"), args);
 
     return status;
 }
@@ -963,7 +959,7 @@ void PasPanel::__updateCoords(bool printout)
 
     for (const auto& i : actuatorPositionMap)
     {
-        pACT.at(i.second)->getData(PAS_ACTType_curLength_mm, val);
+        pACT.at(i.second)->getData(PAS_ACTType_CurrentLength, val);
         val.toDouble(m_ActuatorLengths(i.first - 1));
 
         if (printout) {
@@ -997,7 +993,7 @@ void PasPanel::getActuatorSteps(UaVariantArray &args) const
     // set args to missed steps:
     UaVariant vtmp;
     for (const auto& act : actuatorPositionMap) {
-        pACT.at(act.second)->getData(PAS_ACTType_Steps, vtmp);
+        pACT.at(act.second)->getData(PAS_ACTType_RemainingLength, vtmp);
         vtmp.copyTo(&args[act.first - 1]);
     }
 }
@@ -1193,7 +1189,7 @@ UaStatusCode PasEdge::Operate(OpcUa_UInt32 offset, const UaVariantArray &args)
                 // move assigned panels
                 for (auto panel2move : m_PanelsToMove) {
                     auto panel = m_pChildren.at(PAS_PanelType).at(panel2move);
-                    panel->Operate(PAS_PanelType_MoveTo_Acts);
+                    panel->Operate(PAS_PanelType_MoveToLengths);
                 }
                 // motion done, don't risk repeating it
                 m_PanelsToMove.clear();
@@ -1583,7 +1579,7 @@ UaStatus PasEdge::__alignSinglePanel(unsigned panelpos, bool moveit)
             for (unsigned i = 0; i < nACT; i++)
                 deltas[i].Value.Float = X(j++); // X has dimension of 6*nPanelsToMove !
 
-            status = pCurPanel->Operate(PAS_PanelType_StepAll, deltas);
+            status = pCurPanel->Operate(PAS_PanelType_MoveDeltaLengths, deltas);
             if (!status.isGood()) return status;
             m_PanelsToMove.push_back(panelPair.second);
         }
