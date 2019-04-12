@@ -72,6 +72,7 @@
 #define PAS_EdgeType_Read                           1014
 #define PAS_EdgeType_Stop                           1020
 #define PAS_EdgeType_Align_InPanel                  1021
+//----------------------------------------------------------//
 // MPES Type
 #define PAS_MPESType                                1100
 // Instance declaration

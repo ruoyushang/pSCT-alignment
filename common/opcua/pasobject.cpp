@@ -359,10 +359,12 @@ UaStatus MPESObject::call(
 }
 
 const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, OpcUa_Byte>> ACTObject::VARIABLES = {
-        {PAS_ACTType_State,           std::make_tuple("State", UaVariant(0), OpcUa_True, Ua_AccessLevel_CurrentRead)},
-        {PAS_ACTType_RemainingLength, std::make_tuple("RemainingLength", UaVariant(0), OpcUa_False,
-                                                      Ua_AccessLevel_CurrentRead)},
-        {PAS_ACTType_CurrentLength,   std::make_tuple("CurrentLength", UaVariant(0.0), OpcUa_False,
+        {PAS_ACTType_State,         std::make_tuple("State", UaVariant(0), OpcUa_True, Ua_AccessLevel_CurrentRead)},
+        {PAS_ACTType_DeltaLength,   std::make_tuple("DeltaLength", UaVariant(0), OpcUa_False,
+                                                    Ua_AccessLevel_CurrentRead)},
+        {PAS_ACTType_TargetLength,  std::make_tuple("TargetLength", UaVariant(0), OpcUa_False,
+                                                    Ua_AccessLevel_CurrentRead)},
+        {PAS_ACTType_CurrentLength, std::make_tuple("CurrentLength", UaVariant(0.0), OpcUa_False,
                                                    Ua_AccessLevel_CurrentRead)}
 };
 
@@ -386,8 +388,10 @@ const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean>> 
 const std::map<OpcUa_UInt32, std::pair<std::string, std::vector<std::tuple<std::string, UaNodeId, std::string>>>> ACTObject::METHODS = {
         {PAS_ACTType_Start,           {"Start", {}}},
         {PAS_ACTType_Stop,            {"Stop",  {}}},
-        {PAS_ACTType_MoveDeltaLength, {"Move",  {std::make_tuple("DeltaLength", UaNodeId(OpcUaId_Double),
-                                                                 "Target change in length for the actuator (in mm).")}}}
+        {PAS_ACTType_MoveDeltaLength, {"MoveDeltaLength", {std::make_tuple("DeltaLength", UaNodeId(OpcUaId_Double),
+                                                                           "Desired change in length for the actuator (in mm).")}}},
+        {PAS_ACTType_MoveToLength, {"MoveToLength", {std::make_tuple("TargetLength", UaNodeId(OpcUaId_Double),
+                                                                     "Target length for the actuator to move to (in mm).")}}}
 };
 
 ACTObject::ACTObject(

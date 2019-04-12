@@ -45,29 +45,27 @@ UaStatus MPESController::getData(OpcUa_UInt32 offset, UaVariant &value) {
     if (!m_updated)
         status = read();
 
-    int dataOffset = offset - PAS_MPESType_xCentroidAvg;
     const MPES::Position &position = m_pPlatform->getMPESAt(m_ID)->getPosition();
-    float data;
-    switch (dataOffset) {
-        case 0:
+    switch (offset) {
+        case PAS_MPESType_xCentroidAvg:
             value.setFloat(position.xCenter);
             break;
-        case 1:
+        case PAS_MPESType_yCentroidAvg:
             value.setFloat(position.yCenter);
             break;
-        case 2:
+        case PAS_MPESType_xCentroidSD:
             value.setFloat(position.xStdDev);
             break;
-        case 3:
+        case PAS_MPESType_yCentroidSD:
             value.setFloat(position.yStdDev);
             break;
-        case 4:
+        case PAS_MPESType_CleanedIntensity:
             value.setFloat(position.CleanedIntensity);
             break;
-        case 5:
+        case PAS_MPESType_xCentroidNominal:
             value.setFloat(position.xNominal);
             break;
-        case 6:
+        case PAS_MPESType_yCentroidNominal:
             value.setFloat(position.yNominal);
             break;
         default:
@@ -82,14 +80,13 @@ UaStatus MPESController::setData(OpcUa_UInt32 offset, UaVariant value) {
     UaMutexLocker lock(&m_mutex);
     UaStatus status;
 
-    int dataOffset = offset - PAS_MPESType_xCentroidAvg;
     float v;
     value.toFloat(v);
-    switch (dataOffset) {
-        case 5:
+    switch (offset) {
+        case PAS_MPESType_xCentroidNominal:
             m_pPlatform->getMPESAt(m_ID)->setxNominalPosition(v);
             break;
-        case 6:
+        case PAS_MPESType_yCentroidNominal:
             m_pPlatform->getMPESAt(m_ID)->setyNominalPosition(v);
             break;
         default:
@@ -105,6 +102,12 @@ UaStatus MPESController::Operate(OpcUa_UInt32 offset, const UaVariantArray &args
     UaStatus status;
 
     switch (offset) {
+        case PAS_MPESType_Start:
+            status = OpcUa_BadNotImplemented;
+            break;
+        case PAS_MPESType_Stop:
+            status = OpcUa_BadNotImplemented;
+            break;
         case PAS_MPESType_Read:
             status = read();
             break;

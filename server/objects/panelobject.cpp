@@ -27,9 +27,49 @@ const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean>> 
 };
 
 const std::map<OpcUa_UInt32, std::pair<std::string, std::vector<std::tuple<std::string, UaNodeId, std::string>>>> PanelObject::METHODS = {
-        {PAS_PanelType_MoveDeltaLengths, {"StepAll",    {}}},
-        {PAS_PanelType_MoveToLengths,    {"MoveToActs", {}}},
-        {PAS_PanelType_Stop,             {"Stop",       {}}}
+        {PAS_PanelType_MoveDeltaLengths, {"MoveDeltaLengths", {
+                                                                      std::make_tuple("Delta Length 1",
+                                                                                      UaNodeId(OpcUaId_Double),
+                                                                                      "Desired change in length for Actuator 1 (in mm)."),
+                                                                      std::make_tuple("Delta Length 2",
+                                                                                      UaNodeId(OpcUaId_Double),
+                                                                                      "Desired change in length for Actuator 2 (in mm)."),
+                                                                      std::make_tuple("Delta Length 3",
+                                                                                      UaNodeId(OpcUaId_Double),
+                                                                                      "Desired change in length for Actuator 3 (in mm)."),
+                                                                      std::make_tuple("Delta Length 4",
+                                                                                      UaNodeId(OpcUaId_Double),
+                                                                                      "Desired change in length for Actuator 4 (in mm)."),
+                                                                      std::make_tuple("Delta Length 5",
+                                                                                      UaNodeId(OpcUaId_Double),
+                                                                                      "Desired change in length for Actuator 5 (in mm)."),
+                                                                      std::make_tuple("Delta Length 6",
+                                                                                      UaNodeId(OpcUaId_Double),
+                                                                                      "Desired change in length for Actuator 6 (in mm)."),
+                                                              }}
+        },
+        {PAS_PanelType_MoveToLengths,    {"MoveToLengths",    {
+                                                                      std::make_tuple("Target Length 1",
+                                                                                      UaNodeId(OpcUaId_Double),
+                                                                                      "Target length for Actuator 1 (in mm)."),
+                                                                      std::make_tuple("Target Length 2",
+                                                                                      UaNodeId(OpcUaId_Double),
+                                                                                      "Target length for Actuator 2 (in mm)."),
+                                                                      std::make_tuple("Target Length 3",
+                                                                                      UaNodeId(OpcUaId_Double),
+                                                                                      "Target length for Actuator 3 (in mm)."),
+                                                                      std::make_tuple("Target Length 4",
+                                                                                      UaNodeId(OpcUaId_Double),
+                                                                                      "Target length for Actuator 4 (in mm)."),
+                                                                      std::make_tuple("Target Length 5",
+                                                                                      UaNodeId(OpcUaId_Double),
+                                                                                      "Target length for Actuator 5 (in mm)."),
+                                                                      std::make_tuple("Target Length 6",
+                                                                                      UaNodeId(OpcUaId_Double),
+                                                                                      "Target length for Actuator 6 (in mm)."),
+                                                              }}
+        },
+        {PAS_PanelType_Stop,             {"Stop",}}
 };
 
 std::map<UaNodeId, std::pair<UaMethodGeneric *, OpcUa_UInt32>> m_MethodMap;
