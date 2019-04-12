@@ -295,7 +295,7 @@ UaStatusCode PasMirror::Operate(OpcUa_UInt32 offset, const UaVariantArray &args)
     /**********************************************************
      * Move the whole mirror in the telescope reference frame *
      * ********************************************************/
-    if (offset == PAS_MirrorType_MoveTo_Coords)
+    if (offset == PAS_MirrorType_MoveToCoords)
         __move();
 
     /**********************************************************

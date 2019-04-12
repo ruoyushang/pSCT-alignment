@@ -434,8 +434,8 @@ UaStatusCode PasACT::getData(OpcUa_UInt32 offset, UaVariant& value)
         return getError(offset, value);
     } else {
         switch (offset) {
-            case PAS_ACTType_RemainingLength:
-                varName = "Steps";
+            case PAS_ACTType_DeltaLength:
+                varName = "DeltaLength";
                 break;
             case PAS_ACTType_CurrentLength:
                 varName = "CurrentLength";
@@ -480,8 +480,8 @@ UaStatusCode PasACT::setData(OpcUa_UInt32 offset, UaVariant value)
 {
     UaStatusCode  status;
 
-    if (offset == PAS_ACTType_RemainingLength) {
-        vector<string> vec_curwrite {m_ID.eAddress + ".Steps"};
+    if (offset == PAS_ACTType_DeltaLength) {
+        vector<string> vec_curwrite{m_ID.eAddress + ".DeltaLength"};
         value.toFloat(m_DeltaL);
         status = m_pClient->write(vec_curwrite, &value);
     }

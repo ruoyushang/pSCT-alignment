@@ -738,7 +738,8 @@ UaStatus PasNodeManager::amendTypeNodes()
      
 
     // Add Method "Move"
-    pMethod = new OpcUa::BaseMethod(UaNodeId(PAS_MirrorType_MoveTo_Coords, getNameSpaceIndex()), "Move", getNameSpaceIndex());
+    pMethod = new OpcUa::BaseMethod(UaNodeId(PAS_MirrorType_MoveToCoords, getNameSpaceIndex()), "Move",
+                                    getNameSpaceIndex());
     pMethod->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
     addStatus = addNodeAndReference(pMirrorType, pMethod, OpcUaId_HasComponent);
     UA_ASSERT(addStatus.isGood());

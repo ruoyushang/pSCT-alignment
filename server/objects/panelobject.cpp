@@ -97,14 +97,36 @@ PanelObject::PanelObject(
     // Add all child method nodes
     UaString sName;
     UaString sNodeId;
+    UaPropertyMethodArgument *pPropertyArg;
+    UaUInt32Array nullarray;
     OpcUa_Int16 nsIdx = pNodeManager->getNameSpaceIndex();
-    for (auto& kv : getMethodDefs()) {
-        sName = UaString(kv.second.first.c_str());
+    for (auto &m : getMethodDefs()) {
+        sName = UaString(m.second.first.c_str());
         sNodeId = UaString("%1.%2").arg(newNodeId.toString()).arg(sName);
         m_MethodMap[UaNodeId(sNodeId, nsIdx)] = std::make_pair(
-                new UaMethodGeneric(sName, UaNodeId(sNodeId, nsIdx), m_defaultLocaleId), kv.first);
+                new UaMethodGeneric(sName, UaNodeId(sNodeId, nsIdx), m_defaultLocaleId), m.first);
         addStatus = pNodeManager->addNodeAndReference(this, m_MethodMap[UaNodeId(sNodeId, nsIdx)].first,
                                                       OpcUaId_HasComponent);
+        UA_ASSERT(addStatus.isGood());
+
+        // Add arguments
+        pPropertyArg = new UaPropertyMethodArgument(
+                UaNodeId((std::string(sNodeId.toUtf8()) + "_" + m.second.first + "_args").c_str(),
+                         nsIdx), // NodeId of the property
+                Ua_AccessLevel_CurrentRead,             // Access level of the property
+                m.second.second.size(),                                      // Number of arguments
+                UaPropertyMethodArgument::INARGUMENTS); // IN arguments
+        for (size_t i = 0; i < m.second.second.size(); i++) {
+            pPropertyArg->setArgument(
+                    (OpcUa_UInt32) i,                       // Index of the argument
+                    std::get<0>(m.second.second[i]).c_str(),   // Name of the argument
+                    std::get<1>(m.second.second[i]),// Data type of the argument
+                    -1,                      // Array rank of the argument
+                    nullarray,               // Array dimensions of the argument
+                    UaLocalizedText("en", (std::get<2>(m.second.second[i])).c_str())); // Description
+        }
+        addStatus = pNodeManager->addNodeAndReference(m_MethodMap[UaNodeId(sNodeId, nsIdx)].first, pPropertyArg,
+                                                      OpcUaId_HasProperty);
         UA_ASSERT(addStatus.isGood());
     }
 }

@@ -233,7 +233,7 @@ UaStatus MirrorObject::call(
                 if ( inputArguments.length() > 0 )
                     ret = OpcUa_BadInvalidArgument;
                 else
-                    ret = m_pCommIf->OperateDevice(PAS_MirrorType, m_Identity, PAS_MirrorType_MoveTo_Coords);
+                    ret = m_pCommIf->OperateDevice(PAS_MirrorType, m_Identity, PAS_MirrorType_MoveToCoords);
             }
             else if ( pMethod->nodeId() == m_pMethodMoveSector->nodeId())
             {

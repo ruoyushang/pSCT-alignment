@@ -28,7 +28,7 @@
 // Instance declaration
 #define PAS_MirrorType_State                         101
 #define PAS_MirrorType_ReadPos                       111
-#define PAS_MirrorType_MoveTo_Coords                 112
+#define PAS_MirrorType_MoveToCoords                 112
 #define PAS_MirrorType_ReadAlign                     113
 #define PAS_MirrorType_Align                         114
 #define PAS_MirrorType_AlignSector                   115
