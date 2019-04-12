@@ -907,14 +907,14 @@ bool PasPanel::__willSensorsBeOutOfRange()
         VectorXd Sen_deviation; // deviated sensor reading
         for(auto elem :m_pChildren)
         {
-            std::cout << "Ruo, child of a panel: " << elem.first << std::endl;
+            //std::cout << "Ruo, child of a panel: " << elem.first << std::endl;
                for (auto elem2nd :elem.second)
                {
-                   std::cout << elem2nd->getId() << std::endl;
+                   //std::cout << elem2nd->getId() << std::endl;
                }
         }
-    for (auto &e : m_pChildren.at(PAS_EdgeType))
-        {
+    if (m_pChildren.count(PAS_EdgeType) > 0) {
+        for (auto &e : m_pChildren.at(PAS_EdgeType)) {
             PasEdge *edge = static_cast<PasEdge *>(e);
                 M_response = edge->getResponseMatrix(m_ID.position);
                 Sen_current = edge->getCurrentReadings();
@@ -930,18 +930,19 @@ bool PasPanel::__willSensorsBeOutOfRange()
                     newLengths(i) = m_SP.GetActLengths()[i];
                 cout << "New Act length is \n" << newLengths << endl;
                 cout << "Current Act length is \n" << m_ActuatorLengths << endl;
-                Act_delta = newLengths-m_ActuatorLengths;
+            Act_delta = newLengths - m_ActuatorLengths;
                 cout << "Delta Act length will be \n" << Act_delta << endl;
-                Sen_delta = M_response*Act_delta;
-                Sen_new = Sen_delta+Sen_current;
+            Sen_delta = M_response * Act_delta;
+            Sen_new = Sen_delta + Sen_current;
                 cout << "The new sensor coordinates (x, y) will be:\n" << Sen_new << endl;
-                Sen_deviation = Sen_new-Sen_aligned;
-                cout << "\n will deviate from the aligned position by\n" << Sen_new-Sen_aligned << endl;
+            Sen_deviation = Sen_new - Sen_aligned;
+            cout << "\n will deviate from the aligned position by\n" << Sen_new - Sen_aligned << endl;
                 double deviation = 0;
                 for (unsigned i = 0; i < 6; i++)
-                    deviation += pow(Sen_deviation(i),2);
-                deviation = pow(deviation,0.5);
-                if (deviation>40) return true;
+                    deviation += pow(Sen_deviation(i), 2);
+            deviation = pow(deviation, 0.5);
+            if (deviation > 40) return true;
+        }
         }
 
         return false;
