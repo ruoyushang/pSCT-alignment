@@ -763,7 +763,7 @@ UaStatusCode PasPanel::Operate(OpcUa_UInt32 offset, const UaVariantArray &args)
 #endif
         PASState state;
         getState(state);
-        cout << "Current State is " << PASStateNames.at(static_cast<int>(m_state)) << endl;
+        cout << "Current State is " << static_cast<int>(m_state) << endl;
     }
 
 
