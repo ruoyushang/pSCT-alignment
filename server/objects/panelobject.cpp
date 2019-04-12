@@ -48,7 +48,7 @@ const std::map<OpcUa_UInt32, std::pair<std::string, std::vector<std::tuple<std::
                                                                                       "Desired change in length for Actuator 6 (in mm)."),
                                                               }}
         },
-        {PAS_PanelType_MoveToLengths,    {"MoveToLengths",    {
+        {PAS_PanelType_MoveToLengths, {"MoveToLengths", {
                                                                       std::make_tuple("Target Length 1",
                                                                                       UaNodeId(OpcUaId_Double),
                                                                                       "Target length for Actuator 1 (in mm)."),
@@ -69,7 +69,7 @@ const std::map<OpcUa_UInt32, std::pair<std::string, std::vector<std::tuple<std::
                                                                                       "Target length for Actuator 6 (in mm)."),
                                                               }}
         },
-        {PAS_PanelType_Stop,             {"Stop",}}
+        {PAS_PanelType_Stop,          {"Stop",          {}}}
 };
 
 std::map<UaNodeId, std::pair<UaMethodGeneric *, OpcUa_UInt32>> m_MethodMap;

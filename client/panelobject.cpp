@@ -37,12 +37,6 @@ PanelObject::PanelObject(
             PAS_PanelType_xRot,
             PAS_PanelType_yRot,
             PAS_PanelType_zRot,
-            PAS_PanelType_inCoords_x,
-            PAS_PanelType_inCoords_y,
-            PAS_PanelType_inCoords_z,
-            PAS_PanelType_inCoords_xRot,
-            PAS_PanelType_inCoords_yRot,
-            PAS_PanelType_inCoords_zRot,
             PAS_PanelType_IntTemperature,
             PAS_PanelType_ExtTemperature};
     for (auto &var : vars)

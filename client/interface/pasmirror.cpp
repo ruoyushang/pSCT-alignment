@@ -442,6 +442,7 @@ void PasMirror::__move()
     unsigned curpos;
     VectorXd prf_coords;
     const auto& childrenSet = m_SelectedChildren.at(type);
+    UaVariantArray args;
     for (const auto& idx : childrenSet) {
         pCurObject = m_pChildren.at(type).at(idx);
         curpos = pCurObject->getId().position;
@@ -473,21 +474,20 @@ void PasMirror::__move()
 
         double curcoord;
         UaVariant val;
+        args.create(6);
         cout << "\tNew Coords:";
         for (int i = 0; i < 6; i++) {
             curcoord = m_SP.GetPanelCoords()[i];
             cout << " " << curcoord;
-            val.setDouble(curcoord);
-            pCurObject->setData(PAS_PanelType_inCoords_x + i, val);
-        }
+            args[i] = UaVariant(curcoord)[0];
+        };
         cout << endl << endl;
+        pCurObject->Operate(PAS_PanelType_MoveToCoords, args);
     }
     // we have populated all the values, now start moving.
     // this is done as its own loop so that all the = panels move simulataneously.
     // i'm looping with iterators instead of the range-based for-loop to hopefully
     // not let the compiler optimize this away and merge the two loops
-    for (auto it = childrenSet.begin(); it != childrenSet.end(); it++)
-        m_pChildren.at(type).at(*it)->Operate(PAS_PanelType_MoveToCoords);
 }
 
 // Align all edges between start_idx and end_idx moving in the direction dir
