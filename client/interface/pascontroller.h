@@ -12,7 +12,7 @@
 #include "passervertypeids.h"
 #include "stewartplatform.h"
 #include "uamutex.h"
-#include "components.h"
+#include "common/alignment/device.hpp"
 #include <vector>
 #include <set>
 #include <map>
@@ -41,12 +41,12 @@ public:
     static int kUpdateInterval;
 
     /* construction / destruction */
-    PasController(Identity identity, Client *pClient, int updateInterval = 0) :
+    PasController(Device::Identity identity, Client *pClient, int updateInterval = 0) :
         m_ID(identity),
         m_pClient(pClient), m_UpdateInterval_ms(updateInterval) { };
     virtual ~PasController() {};
 
-    const Identity& getId() const {return m_ID;}
+    const Device::Identity &getId() const { return m_ID; }
 
     /* Get Controller status and data */
     virtual UaStatusCode getState(Device::DeviceState &state) = 0;
@@ -65,7 +65,7 @@ protected:
     UaMutex m_mutex;
     Device::DeviceState m_state;
 
-    Identity m_ID;
+    Device::Identity m_ID;
     Client *m_pClient;
 
     // update interval in milliseconds
@@ -81,7 +81,7 @@ protected:
 class PasCompositeController : public PasController
 {
     public:
-        PasCompositeController(Identity identity, Client *pClient, int updateInterval = 0) :
+    PasCompositeController(Device::Identity identity, Client *pClient, int updateInterval = 0) :
             PasController(identity, pClient, updateInterval) {};
         virtual ~PasCompositeController(){}
 
@@ -106,7 +106,7 @@ class PasCompositeController : public PasController
         // almost a duplicate of the above, but not quite.
         // This guarantees that sensors along the 4-sensor edge are not discarded if their
         // positions are the same; this also provides a map for edges within a mirror
-        std::map< unsigned, std::map<Identity, unsigned> > m_ChildrenIdentityMap;
+        std::map<unsigned, std::map<Device::Identity, unsigned> > m_ChildrenIdentityMap;
 };
 /*===========================================================================*/
 /* Edge sensor class, part of the PAS family of devices.                     */
@@ -118,7 +118,7 @@ public:
     friend PasEdge;
     friend PasMirror;
     /* construction / destruction */
-    PasMPES(Identity identity, Client *pClient);
+    PasMPES(Device::Identity identity, Client *pClient);
     ~PasMPES();
 
     /* Get Controller status and data */
@@ -152,7 +152,7 @@ private:
     static float kNominalIntensity;
     static float kNominalCentroidSD;
 
-    Identity m_wPanelId; // id of the webcam-side panel
+    Device::Identity m_wPanelId; // id of the webcam-side panel
     // actuator response matrix map -- {panel position -> matrix}
     std::map< char,  Eigen::Matrix<double, 2, 6> > m_ResponseMatMap;
     // aligned readings
@@ -175,7 +175,7 @@ class PasACT : public PasController
 public:
     friend PasPanel;
     // construction / destruction
-    PasACT(Identity identity, Client *pClient);
+    PasACT(Device::Identity identity, Client *pClient);
     virtual ~PasACT();
 
     // Get Controller status and data
@@ -206,7 +206,7 @@ public:
     friend PasEdge; // access internal methods for compute
 
     // construction / destruction
-    PasPanel(Identity identity, Client *pClient);
+    PasPanel(Device::Identity identity, Client *pClient);
     virtual ~PasPanel();
 
     // Get Controller status and data
@@ -260,7 +260,7 @@ class PasEdge : public PasCompositeController
 public:
     friend PasMirror;
     // construction / destruction
-    PasEdge(Identity identity);
+    PasEdge(Device::Identity identity);
     virtual ~PasEdge();
 
     // Get Controller status and data
@@ -313,7 +313,7 @@ class PasCCD : public PasController
 public:
     friend PasMirror;
     /* construction / destruction */
-    PasCCD(Identity identity);
+    PasCCD(Device::Identity identity);
     ~PasCCD();
 
     /* Get Controller status and data */
@@ -341,7 +341,7 @@ class PasPSD : public PasController
 public:
     friend PasMirror;
     // construction / destruction
-    PasPSD(Identity identity, Client *pClient);
+    PasPSD(Device::Device::Identity identity, Client *pClient);
     virtual ~PasPSD();
 
     // Get Controller status and data

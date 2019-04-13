@@ -11,7 +11,7 @@
 #include "statuscode.h"
 #include "uaarraytemplates.h"
 #include "pascominterfacecommon.h"
-#include "components.h"
+#include "common/alignment/device.hpp"
 #include <vector>
 #include <map>
 #include <string>

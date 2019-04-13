@@ -4,7 +4,7 @@
 #include "pascommunicationinterface.h"
 #include "pascominterfacecommon.h"
 #include "pasnodemanagercommon.h"
-#include "components.h"
+#include "common/alignment/device.hpp"
 #include "pasobject.h"
 #include "gasobject.h"
 #include "mirrorobject.h"
@@ -17,7 +17,7 @@ PasObject* PasObjectFactory::Create(
         const UaNodeId& newNodeId,
         const UaString& defaultLocaleId,
         PasNodeManager *pNodeManager,
-        Identity identity,
+        Device::Identity identity,
         PasCommunicationInterface *pCommIf)
 {
     switch (deviceType)

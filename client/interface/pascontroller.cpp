@@ -6,7 +6,7 @@
 #include "pascontroller.h"
 #include "ccdclass.h"
 #include "clienthelper.h"
-#include "components.h"
+#include "common/alignment/device.hpp"
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -63,8 +63,8 @@ void PasCompositeController::addChild(OpcUa_UInt32 deviceType, PasController *co
     Begin Class    PasMPES
     constructors / destructors
 -----------------------------------------------------------------------------*/
-PasMPES::PasMPES(Identity identity, Client *pClient) : PasController(identity, pClient),
-    m_updated(false), m_isVisible(false)
+PasMPES::PasMPES(Device::Identity identity, Client *pClient) : PasController(identity, pClient),
+                                                               m_updated(false), m_isVisible(false)
 {
     m_state = Device::DeviceState::On;
 
@@ -370,8 +370,8 @@ char PasMPES::getPanelSide(unsigned panelpos)
     constructors / destructors
 -----------------------------------------------------------------------------*/
 
-PasACT::PasACT(Identity identity, Client *pClient) : PasController(identity, pClient),
-    m_DeltaL {0.}
+PasACT::PasACT(Device::Identity identity, Client *pClient) : PasController(identity, pClient),
+                                                             m_DeltaL {0.}
 {
     m_state = Device::DeviceState::On;
 }
@@ -549,7 +549,7 @@ UaStatus PasACT::moveDelta(const UaVariantArray &args)
 -----------------------------------------------------------------------------*/
 
 // update interval set to 500ms -- sample every half a second
-PasPanel::PasPanel(Identity identity, Client *pClient) :
+PasPanel::PasPanel(Device::Identity identity, Client *pClient) :
     PasCompositeController(identity, pClient, kUpdateInterval),
     m_inCoordsUpdated(false)
 {
@@ -1043,8 +1043,8 @@ void PasPanel::getActuatorSteps(UaVariantArray &args) const
     constructors / destructors
 -----------------------------------------------------------------------------*/
 
-PasEdge::PasEdge(Identity identity) : PasCompositeController(identity, nullptr),
-    m_DeltaL {0.5}, m_AlignFrac {0.25}, m_isAligned(false)
+PasEdge::PasEdge(Device::Identity identity) : PasCompositeController(identity, nullptr),
+                                              m_DeltaL {0.5}, m_AlignFrac {0.25}, m_isAligned(false)
 {
     m_ID.name = string("Edge_") + m_ID.eAddress;
     m_state = Device::DeviceState::On;
@@ -1760,7 +1760,7 @@ const Eigen::VectorXd& PasEdge::getCurrentReadings()
     Begin Class    PasCCD
     constructors / destructors
 -----------------------------------------------------------------------------*/
-PasCCD::PasCCD(Identity identity) : PasController(identity, nullptr)
+PasCCD::PasCCD(Device::Identity identity) : PasController(identity, nullptr)
 {
     m_pCCD = new GASCCD();
     m_pCCD->setConfig(m_ID.eAddress);
@@ -1903,7 +1903,7 @@ UaStatus PasCCD::read()
     constructors / destructors
 -----------------------------------------------------------------------------*/
 
-PasPSD::PasPSD(Identity identity, Client *pClient) :
+PasPSD::PasPSD(Device::Identity identity, Client *pClient) :
     PasController(identity, pClient, kUpdateInterval)
 {
     m_state = Device::DeviceState::On;

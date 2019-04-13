@@ -6,7 +6,7 @@
 #include "passervertypeids.h"
 #include "pasnodemanager.h"
 #include "pascommunicationinterface.h"
-#include "components.h"
+#include "common/alignment/device.hpp"
 #include "uaclient/uasession.h"
 
 #include <map>
@@ -452,7 +452,7 @@ UaStatus Client::recurseAddressSpace(const UaNodeId& nodeToBrowse, OpcUa_UInt32 
 void Client::addDevices(const OpcUa_ReferenceDescription& referenceDescription)
 {
     UaStatus ret;
-    Identity identity;
+    Device::Identity identity;
     char sTemp[100];
 
     std::map<OpcUa_UInt32, std::string> typeNamesMap = {{PAS_MPESType, "MPES"}, {PAS_ACTType, "ACT"}, {PAS_PSDType, "PSD"}};

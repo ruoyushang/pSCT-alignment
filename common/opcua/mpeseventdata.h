@@ -1,5 +1,5 @@
-#ifndef MPESEVENTDATA_H
-#define MPESEVENTDATA_H
+#ifndef COMMON_OPCUA_MPESEVENTDATA_HPP
+#define COMMON_OPCUA_MPESEVENTDATA_HPP
 
 #include "uaserver/uaeventdata.h"
 
@@ -38,4 +38,4 @@ private:
     static std::map<OpcUa_UInt32, OpcUa_UInt32> s_MPESEventTypeDataFields;
 };
 
-#endif // MPESEVENTDATA_H
+#endif //COMMON_OPCUA_MPESEVENTDATA_HPP

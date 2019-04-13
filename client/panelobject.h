@@ -2,13 +2,12 @@
 #define __PASPANEL_H__
 
 #include "uaserver/methodmanager.h"
-#include "components.h"
+#include "common/alignment/device.hpp"
 #include "pasobject.h"
 
 class PasNodeManager;
 class PasCommunicationInterface;
 class UaMethodGeneric;
-struct Identity;
 
 class PanelObject : public PasObject
 {

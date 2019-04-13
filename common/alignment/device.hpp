@@ -1,6 +1,9 @@
 #ifndef ALIGNMENT_DEVICE_HPP
 #define ALIGNMENT_DEVICE_HPP
 
+#include <iostream>
+#include <string>
+
 namespace Device {
     /// @brief Platform states used to disallow/stop motion based on errors.
     enum class DeviceState {
@@ -39,6 +42,27 @@ namespace Device {
         int minute;
         int second;
     };
+
+
+    struct Identity {
+        int serialNumber = -1; // engraved serial number
+        std::string eAddress = "";     // electronic address: IP, USB port, serial port etc.
+        std::string name = ""; // name of the device
+        int position = -1;     // location within the immediate parent (see positioning schematic)
+        // comparison operator to be able to construct associative maps with this struct as key
+        bool operator<(const Identity &r) const;
+
+        bool operator==(const Identity &r) const;
+
+        bool operator!=(const Identity &r) const;
+    };
+}
+
+inline std::ostream &operator<<(std::ostream &out, const Device::Identity &id) {
+    out << "("
+        << id.serialNumber << ", " << id.eAddress << ", " << id.name << ", " << id.position
+        << ")";
+    return out;
 }
 
 #endif //ALIGNMENT_DEVICE_HPP

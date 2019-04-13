@@ -113,7 +113,8 @@ UaStatusCode PasCommunicationInterface::Initialize()
     Method       addDevice
     Description  add a device of specified type
 -----------------------------------------------------------------------------*/
-const Identity PasCommunicationInterface::addDevice(Client *pClient, OpcUa_UInt32 deviceType, const Identity& identity)
+const Device::Identity
+PasCommunicationInterface::addDevice(Client *pClient, OpcUa_UInt32 deviceType, const Identity &identity)
 {
     // check if object already exists -- this way, passing the same object multiple times won't
     // actually add it multiple times
@@ -121,7 +122,7 @@ const Identity PasCommunicationInterface::addDevice(Client *pClient, OpcUa_UInt3
     std::cout << "Attempting to create controller for device with type " << deviceType << " and with Identity "
               << identity << std::endl;
 
-    Identity addedId;
+    Device::Identity addedId;
 
     PasController *pController = nullptr;
     // up-casting is implicit
@@ -151,7 +152,7 @@ const Identity PasCommunicationInterface::addDevice(Client *pClient, OpcUa_UInt3
     cout << " --- PasCommunicationInterface::addDevice() adding " << addedId;
     try {
         int index = m_DeviceIdentityMap.at(deviceType).at(addedId);
-        Identity id = m_pControllers.at(deviceType).at(index)->getId();
+        Device::Identity id = m_pControllers.at(deviceType).at(index)->getId();
 
         cout <<": already exists as "
             << PasCommunicationInterface::deviceTypeNames.at(deviceType) << "[" << index << "]. Moving on..." << endl;
@@ -196,7 +197,7 @@ const Identity PasCommunicationInterface::addDevice(Client *pClient, OpcUa_UInt3
             auto parent = parentList.at(i);
             // parent.first is type; parent.second is id
             if (!parent.second.eAddress.empty()) {
-                Identity parentId = addDevice(pClient, parent.first, parent.second);
+                Device::Identity parentId = addDevice(pClient, parent.first, parent.second);
                 // update this parent with the full ID
                 parentList.at(i) = make_pair(parent.first, parentId);
 
@@ -261,10 +262,10 @@ OpcUa_Int32 PasCommunicationInterface::getDevices(OpcUa_UInt32 deviceType)
     Description  Get configuration of a sensor.
 -----------------------------------------------------------------------------*/
 UaStatusCode PasCommunicationInterface::getDeviceConfig(
-    OpcUa_UInt32 type,
-    OpcUa_UInt32 deviceIndex,
-    UaString& sName,
-    Identity& identity)
+        OpcUa_UInt32 type,
+        OpcUa_UInt32 deviceIndex,
+        UaString& sName,
+        Device::Identity &identity)
 {
 
     OpcUa_UInt32 devCount = getDevices(type);
@@ -291,9 +292,9 @@ UaStatusCode PasCommunicationInterface::getDeviceConfig(
     Description  Get configuration of a sensor -- overloaded.
 -----------------------------------------------------------------------------*/
 UaStatusCode PasCommunicationInterface::getDeviceConfig(
-    OpcUa_UInt32 type,
-    OpcUa_UInt32 deviceIndex,
-    Identity& identity)
+        OpcUa_UInt32 type,
+        OpcUa_UInt32 deviceIndex,
+        Device::Identity &identity)
 {
     UaString sDiscard;
     return getDeviceConfig(type, deviceIndex, sDiscard, identity);
@@ -305,7 +306,7 @@ UaStatusCode PasCommunicationInterface::getDeviceConfig(
 -----------------------------------------------------------------------------*/
 UaStatus PasCommunicationInterface::getDeviceState(
         OpcUa_UInt32 deviceType,
-        const Identity &identity,
+        const Device::Identity &identity,
         Device::DeviceState &state) {
     if (getDeviceFromId(deviceType, identity) != nullptr)
         return getDeviceFromId(deviceType, identity)->getState(state);
@@ -319,7 +320,7 @@ UaStatus PasCommunicationInterface::getDeviceState(
 -----------------------------------------------------------------------------*/
 UaStatus PasCommunicationInterface::setDeviceState(
         OpcUa_UInt32 deviceType,
-        const Identity &identity,
+        const Device::Identity &identity,
         Device::DeviceState state) {
     if (getDeviceFromId(deviceType, identity) != nullptr)
         return getDeviceFromId(deviceType, identity)->setState(state);
@@ -333,7 +334,7 @@ UaStatus PasCommunicationInterface::setDeviceState(
 -----------------------------------------------------------------------------*/
 UaStatus PasCommunicationInterface::getDeviceData(
         OpcUa_UInt32 deviceType,
-        const Identity &identity,
+        const Device::Identity &identity,
         OpcUa_UInt32 offset,
         UaVariant &value) {
     if (getDeviceFromId(deviceType, identity) != nullptr)
@@ -348,7 +349,7 @@ UaStatus PasCommunicationInterface::getDeviceData(
 -----------------------------------------------------------------------------*/
 UaStatus PasCommunicationInterface::setDeviceData(
         OpcUa_UInt32 type,
-        const Identity& identity,
+        const Device::Identity &identity,
         OpcUa_UInt32 offset,
         UaVariant value)
 {
@@ -368,7 +369,7 @@ UaStatus PasCommunicationInterface::setDeviceData(
     Description  Run a method on a device.
 -----------------------------------------------------------------------------*/
 UaStatus PasCommunicationInterface::operateDevice(
-        OpcUa_UInt32 type, const Identity &identity,
+        OpcUa_UInt32 type, const Device::Identity &identity,
         OpcUa_UInt32 offset, const UaVariantArray &args)
 {
     if (getDeviceFromId(type, identity) != nullptr)
@@ -382,7 +383,7 @@ UaStatus PasCommunicationInterface::operateDevice(
     Description  Return a device with the specified id.
 -----------------------------------------------------------------------------*/
 PasController* PasCommunicationInterface::getDeviceFromId(OpcUa_UInt32 type,
-    const Identity& identity)
+                                                          const Device::Identity &identity)
 {
     int index;
     // try accessing the map for this type

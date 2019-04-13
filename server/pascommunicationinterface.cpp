@@ -15,7 +15,7 @@
 
 #include "common/alignment/actuator.hpp"
 #include "common/alignment/platform.hpp"
-#include "common/opcua/components.h"
+#include "common/alignment/device.hpp"
 #include "common/opcua/passervertypeids.h"
 
 #include "server/controllers/pascontroller.hpp"

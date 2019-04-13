@@ -2,25 +2,24 @@
 #define __PAS_GAS_H__
 
 #include "uaserver/methodmanager.h"
-#include "components.h"
+#include "common/alignment/device.hpp"
 #include "pasobject.h"
 
 class PasNodeManager;
 class PasCommunicationInterface;
 class UaMethodGeneric;
-struct Identity;
 
 class OptTableObject : public PasObject
 {
     UA_DISABLE_COPY(OptTableObject);
 public:
     OptTableObject(
-        const UaString& name,
-        const UaNodeId& newNodeId,
-        const UaString& defaultLocaleId,
-        PasNodeManager* pNodeManager,
-        Identity identity,
-        PasCommunicationInterface *pCommIf);
+            const UaString& name,
+            const UaNodeId& newNodeId,
+            const UaString& defaultLocaleId,
+            PasNodeManager* pNodeManager,
+            Device::Identity identity,
+            PasCommunicationInterface *pCommIf);
     virtual ~OptTableObject(void);
 
     UaStatus call(
@@ -44,12 +43,12 @@ class CCDObject : public PasObject
     UA_DISABLE_COPY(CCDObject);
 public:
     CCDObject(
-        const UaString& name,
-        const UaNodeId& newNodeId,
-        const UaString& defaultLocaleId,
-        PasNodeManagerCommon* pNodeManager,
-        Identity identity,
-        PasComInterfaceCommon *pCommIf);
+            const UaString& name,
+            const UaNodeId& newNodeId,
+            const UaString& defaultLocaleId,
+            PasNodeManagerCommon* pNodeManager,
+            Device::Identity identity,
+            PasComInterfaceCommon *pCommIf);
     virtual ~CCDObject(void);
 
     // implement the synchronous call

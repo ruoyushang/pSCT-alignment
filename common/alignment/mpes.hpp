@@ -12,12 +12,15 @@
 #include <set>
 #include <string>
 
-#include "common/mpescode/MPESImageSet.h"
-#include "common/mpescode/MPESDevice.h"
+#include "common/alignment/device.hpp"
 
 class CBC;
-
 class Platform;
+
+class MPESImageSet;
+
+class MPESDevice;
+
 
 class MPES
 {
@@ -47,6 +50,12 @@ public:
     virtual int updatePosition();
     MPES::Position getPosition() const { return m_Position; };
 
+    Device::DeviceState getState() { return m_state; }
+
+    void turnOn() { setState(Device::DeviceState::On); }
+
+    void turnOff() { setState(Device::DeviceState::Off); }
+
 protected:
     std::shared_ptr<CBC> m_pCBC;
 
@@ -56,6 +65,10 @@ protected:
     int m_SerialNumber;
 
     bool m_Calibrate;
+
+    Device::DeviceState m_state;
+
+    void setState(Device::DeviceState state) { m_state = state; }
 
     Position m_Position; // MPES Reading
 
@@ -85,9 +98,7 @@ public:
     DummyMPES(std::shared_ptr<CBC> pCBC, int portNumber, int serialNumber) : MPES(pCBC, portNumber, serialNumber) {};
 
     bool initialize() override;
-
     int setExposure() override;
-
     int updatePosition() override;
 };
 

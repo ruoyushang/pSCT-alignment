@@ -208,7 +208,7 @@ ENDIF (vxWorks)
 ####################################### Create executable ###################################
 
 
-ADD_EXECUTABLE(${PROJECT_NAME} ${P2PAS_SRC} ../common/alignment/device.hpp)
+ADD_EXECUTABLE(${PROJECT_NAME} ${P2PAS_SRC} ../common/alignment/device.hpp ../common/alignment/device.cpp)
 
 IF ( UASTACK_WITH_OPENSSL )
     IF ( NOT TARGET uastack )

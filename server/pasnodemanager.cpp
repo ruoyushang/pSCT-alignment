@@ -19,7 +19,7 @@
 #include "uaserver/opcua_offnormalalarmtype.h"
 #include "uaserver/uaobjecttypes.h"
 
-#include "common/opcua/components.h"
+#include "common/alignment/device.hpp"
 #include "common/opcua/mpeseventdata.h"
 #include "common/opcua/pascominterfacecommon.h"
 #include "common/opcua/pasnodemanagercommon.h"
@@ -62,7 +62,7 @@ UaStatus PasNodeManager::afterStartUp()
 
     std::string deviceTypeName, folderName;
 
-    std::vector<Identity> validDeviceIdentities;
+    std::vector<Device::Identity> validDeviceIdentities;
 
     ret = createTypeNodes(); // create default type nodes
     UA_ASSERT(ret.isGood());

@@ -10,7 +10,7 @@
 #include "uaserver/opcua_analogitemtype.h"
 
 #include "common/opcua/passervertypeids.h"
-#include "common/opcua/components.h"
+#include "common/alignment/device.hpp"
 
 #include "server/pasnodemanager.hpp"
 #include "server/pascommunicationinterface.hpp"

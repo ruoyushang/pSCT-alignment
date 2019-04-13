@@ -11,7 +11,7 @@
 #include "pascommunicationinterface.h"
 #include "pasobjectfactory.h"
 #include "passervertypeids.h"
-#include "components.h"
+#include "common/alignment/device.hpp"
 #include <iostream>
 #include <memory>
 #include "uaserver/opcua_analogitemtype.h"
@@ -68,7 +68,7 @@ UaStatus PasNodeManager::afterStartUp()
 
     // connect to positioner:
     std::cout << "Attempting to create controller for positioner...\n";
-    Identity id;
+    Device::Device::Identity id;
     UaString positioner_address = m_pConfiguration->getPositionerUrl();
     m_pPositioner->setAddress(positioner_address);
     ret = m_pPositioner->connect();
@@ -128,7 +128,7 @@ UaStatus PasNodeManager::afterStartUp()
     unsigned deviceType;
 
     OpcUa_UInt32 count;
-    Identity identity;
+    Device::Device::Identity identity;
     UaString sDeviceName;
 
     // Add folder for devices by category to object folder
@@ -1095,7 +1095,7 @@ OpcUa_Int32 PasNodeManager::Panic()
 
     OpcUa_Int32 actcount = m_pCommIf->getDevices(PAS_ACTType);
 
-    Identity id;
+    Device::Identity id;
     for (OpcUa_Int32 i = 0; i < actcount; i++)
     {
         status = dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->getDeviceConfig(PAS_ACTType, i, id);

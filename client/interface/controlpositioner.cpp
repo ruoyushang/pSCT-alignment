@@ -6,7 +6,7 @@
 #include "controlpositioner.h"
 #include "passervertypeids.h"
 #include "clienthelper.h"
-#include "components.h"
+#include "common/alignment/device.hpp"
 #include "stdlib.h"
 #include <vector>
 #include <sstream>

@@ -8,7 +8,7 @@
 #include "uaserver/opcua_analogitemtype.h"
 #include "uaserver/nodemanagerroot.h"
 #include "userdatabase.h"
-#include "components.h"
+#include "common/alignment/device.hpp"
 
 class PasNodeManager;
 class PasCommunicationInterface;

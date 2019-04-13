@@ -8,12 +8,12 @@
 // -------------------------------------------------------------------
 // Specialization: PanelObject Implementation
 PanelObject::PanelObject(
-    const UaString& name,
-    const UaNodeId& newNodeId,
-    const UaString& defaultLocaleId,
-    PasNodeManager *pNodeManager,
-    Identity identity,
-    PasCommunicationInterface *pCommIf)
+        const UaString& name,
+        const UaNodeId& newNodeId,
+        const UaString& defaultLocaleId,
+        PasNodeManager *pNodeManager,
+        Device::Identity identity,
+        PasCommunicationInterface *pCommIf)
 : PasObject(name, newNodeId, defaultLocaleId, pNodeManager, identity, pCommIf)
 {
     // Use a mutex shared across all variables of this object

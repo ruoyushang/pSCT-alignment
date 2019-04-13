@@ -15,7 +15,7 @@
 
 #include "uaserver/methodmanager.h"
 
-#include "common/opcua/components.h"
+#include "common/alignment/device.hpp"
 #include "common/opcua/pasobject.h"
 
 class PasNodeManager;

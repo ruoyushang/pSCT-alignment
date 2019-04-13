@@ -8,7 +8,7 @@
 #include "pasnodemanager.h"
 #include "passervertypeids.h"
 #include "pascommunicationinterface.h"
-#include "components.h"
+#include "common/alignment/device.hpp"
 #include "uaserver/methodhandleuanode.h"
 #include "uaserver/opcua_analogitemtype.h"
 

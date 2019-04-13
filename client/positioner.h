@@ -7,7 +7,7 @@
 #define __POSITIONER_H__
 
 #include "uaserver/methodmanager.h"
-#include "components.h"
+#include "common/alignment/device.hpp"
 #include "pasobject.h"
 
 class PasNodeManager;

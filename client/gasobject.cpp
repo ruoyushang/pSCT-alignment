@@ -3,19 +3,19 @@
 #include "pasnodemanager.h"
 #include "passervertypeids.h"
 #include "pascommunicationinterface.h"
-#include "components.h"
+#include "common/alignment/device.hpp"
 #include "uaserver/methodhandleuanode.h"
 #include "uaserver/opcua_analogitemtype.h"
 
 // -------------------------------------------------------------------
 // Specialization: OptTableObject Implementation
 OptTableObject::OptTableObject(
-    const UaString& name,
-    const UaNodeId& newNodeId,
-    const UaString& defaultLocaleId,
-    PasNodeManager *pNodeManager,
-    Identity identity,
-    PasCommunicationInterface *pCommIf)
+        const UaString& name,
+        const UaNodeId& newNodeId,
+        const UaString& defaultLocaleId,
+        PasNodeManager *pNodeManager,
+        Device::Identity identity,
+        PasCommunicationInterface *pCommIf)
 : PasObject(name, newNodeId, defaultLocaleId, pNodeManager, identity, pCommIf)
 {
     // Use a mutex shared across all variables of this object
@@ -135,12 +135,12 @@ UaStatus OptTableObject::call(
 // ----------------------------------------------------------------
 //  CCDObject Implementation
 CCDObject::CCDObject(
-    const UaString& name,
-    const UaNodeId& newNodeId,
-    const UaString& defaultLocaleId,
-    PasNodeManagerCommon *pNodeManager,
-    Identity identity,
-    PasComInterfaceCommon *pCommIf)
+        const UaString& name,
+        const UaNodeId& newNodeId,
+        const UaString& defaultLocaleId,
+        PasNodeManagerCommon *pNodeManager,
+        Device::Identity identity,
+        PasComInterfaceCommon *pCommIf)
 : PasObject(name, newNodeId, defaultLocaleId, pNodeManager, identity, pCommIf)
   {
     // Use a mutex shared across all variables of this object

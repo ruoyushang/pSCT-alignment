@@ -12,7 +12,7 @@
 #include "uabase/statuscode.h"
 #include "uabase/uaarraytemplates.h"
 
-#include "common/opcua/components.h"
+#include "common/alignment/device.hpp"
 #include "common/opcua/pascominterfacecommon.h"
 #include "common/opcua/passervertypeids.h"
 

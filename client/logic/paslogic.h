@@ -7,7 +7,7 @@
 
 #include "uathread.h"
 #include "stewartplatform.h"
-#include "components.h"
+#include "common/alignment/device.hpp"
 #include "pascommunicationinterface.h"
 #include <string>
 #include <chrono>
@@ -76,9 +76,9 @@ class PasLogic : public UaThread
         std::ofstream m_logstream;
         tee_device tee;
 
-        Identity m_positionerId;
-        Identity m_psdId;
-        Identity m_optId[2];
+    Device::Identity m_positionerId;
+    Device::Identity m_psdId;
+    Device::Identity m_optId[2];
 };
 
 #endif // __PASLOGIC_H__

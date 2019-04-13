@@ -11,7 +11,7 @@
 #include "pascontroller.h"
 #include "pascommunicationinterface.h"
 #include "uamutex.h"
-#include "components.h"
+#include "common/alignment/device.hpp"
 #include "common/alignment/device.hpp"
 
 class Client;

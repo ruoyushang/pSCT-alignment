@@ -191,7 +191,7 @@ UaStatus Configuration::loadDeviceConfiguration(const std::vector<std::string>& 
 
         // get panel IP and serial from position
         for (const auto& position : positionlist) {
-            Identity panelId;
+            Device::Identity panelId;
             panelId.position = std::stoi(position);
 
             query = "SELECT serial_number, mpcb_ip_address FROM Opt_MPMMapping WHERE position='" + position + "'";
@@ -222,7 +222,7 @@ UaStatus Configuration::loadDeviceConfiguration(const std::vector<std::string>& 
             sql_stmt->execute(query);
             sql_results = sql_stmt->getResultSet();
             while (sql_results->next()) {
-                Identity actId;
+                Device::Identity actId;
                 actId.serialNumber = sql_results->getInt(1);
                 actId.position = sql_results->getInt(2);
                 std::string port = std::to_string(sql_results->getInt(3));
@@ -249,7 +249,7 @@ UaStatus Configuration::loadDeviceConfiguration(const std::vector<std::string>& 
             sql_stmt->execute(query);
             sql_results = sql_stmt->getResultSet();
             while (sql_results->next()) {
-                Identity mpesId;
+                Device::Identity mpesId;
                 mpesId.serialNumber = sql_results->getInt(1);
                 mpesId.position = sql_results->getInt(2);
                 std::string port = std::to_string(sql_results->getInt(3));
@@ -460,12 +460,13 @@ OpcUa_Int32 Configuration::getDevicePosition(OpcUa_UInt32 deviceType, OpcUa_UInt
 
 // need to pass around the whole object!
 // can't return this by reference, since we're creating the objects right here
-std::vector< std::pair<OpcUa_UInt32, Identity> > Configuration::getParents(OpcUa_UInt32 deviceType, const Identity& id)
+std::vector<std::pair<OpcUa_UInt32, Device::Identity> >
+Configuration::getParents(OpcUa_UInt32 deviceType, const Identity &id)
 {
     // for actuators, the parent is the ACT's panel. ACT's parent's address in the map
     // is the panel position. so pretty straighforward.
     if (deviceType == PAS_ACTType) {
-        Identity parentId;
+        Device::Identity parentId;
         parentId.position = std::stoi(m_ParentMap.at(deviceType).at(id.serialNumber));
         // need to fill in the address of the parent as well!
         parentId.eAddress = m_PanelAddressMap.at(parentId.position);
@@ -477,7 +478,7 @@ std::vector< std::pair<OpcUa_UInt32, Identity> > Configuration::getParents(OpcUa
     // so also pretty straighforward
     else if (deviceType == PAS_MPESType) {
         unsigned w_pos, l_pos;
-        Identity w_panelId, edgeId;
+        Device::Identity w_panelId, edgeId;
         std::string parentAddress = m_ParentMap.at(deviceType).at(id.serialNumber);
 
         // w panel should be first in the address, but let's be safe in case someone forgets
@@ -530,7 +531,7 @@ std::vector< std::pair<OpcUa_UInt32, Identity> > Configuration::getParents(OpcUa
         }
 
         // find the mirror this sensor is on
-        Identity mirrorId;
+        Device::Identity mirrorId;
         mirrorId.position = SCTMath::Mirror(w_pos);
         // the mirror has no Address or serial, so we set these to be equal to the position
         mirrorId.serialNumber = mirrorId.position;
@@ -544,7 +545,7 @@ std::vector< std::pair<OpcUa_UInt32, Identity> > Configuration::getParents(OpcUa
     }
     // For a panel, the parent is the mirror it's on
     else if (deviceType == PAS_PanelType) {
-        Identity mirrorId;
+        Device::Identity mirrorId;
         // the position is the first digit of the panel's position
         mirrorId.position = SCTMath::Mirror(id.position);
         // the mirror has no Address or serial, so we set these to be equal to the position
@@ -555,7 +556,7 @@ std::vector< std::pair<OpcUa_UInt32, Identity> > Configuration::getParents(OpcUa
     }
     // For an edge, the parent is the mirror it's on
     else if (deviceType == PAS_EdgeType) {
-        Identity mirrorId;
+        Device::Identity mirrorId;
         // the position is the first digit of the position of either of the panels of the edge;
         // the mirror has no Address or serial, so we set these to be equal to the position
         mirrorId.position = SCTMath::Mirror(SCTMath::GetPanelsFromEdge(id.eAddress, 1).at(0));

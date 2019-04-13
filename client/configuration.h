@@ -4,7 +4,7 @@
 #include "uabase.h"
 #include "uaclient/uaclientsdk.h"
 #include "passervertypeids.h"
-#include "components.h"
+#include "common/alignment/device.hpp"
 #include <vector>
 #include <string>
 #include <map>

@@ -1,7 +1,7 @@
 #ifndef __PASOBJECTFACTORY_H__
 #define __PASOBJECTFACTORY_H__
 
-#include "components.h"
+#include "common/alignment/device.hpp"
 #include "pasobject.h"
 
 class PasObjectFactory
@@ -16,7 +16,7 @@ class PasObjectFactory
                 const UaNodeId& newNodeId,
                 const UaString& defaultLocaleId,
                 PasNodeManager *pNodeManager,
-                Identity identity,
+                Device::Identity identity,
                 PasCommunicationInterface *pCommIf);
 };
 
