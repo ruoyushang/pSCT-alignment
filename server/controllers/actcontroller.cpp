@@ -62,7 +62,7 @@ UaStatus ActController::getData(OpcUa_UInt32 offset, UaVariant &value) {
                 break;
             case PAS_ACTType_CurrentLength:
                 value.setFloat(m_pPlatform->getActuatorAt(m_ID)->MeasureLength());
-                break;
+		break;
             case PAS_ACTType_TargetLength:
                 value.setFloat(m_TargetLength);
                 break;
