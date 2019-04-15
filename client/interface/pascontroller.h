@@ -226,7 +226,7 @@ private:
     UaStatus __moveTo();
 
     // helper
-    void __updateCoords(bool printout = false);
+    void updateCoords(bool printout = false);
 
     // x, y, z, xRot, yRot, zRot
     double m_curCoords[6], m_inCoords[6];
@@ -243,7 +243,7 @@ private:
     // track if inCoords have been updated on initial boot
     bool m_inCoordsUpdated;
 
-    bool __willSensorsBeOutOfRange();
+    bool checkForCollision();
 };
 
 
@@ -284,7 +284,7 @@ private:
     UaStatus align(unsigned panel_pos, bool moveit);
     UaStatus findMatrix();
     // helpers for the above
-    UaStatus __findSingleMatrix(unsigned panelidx);
+    UaStatus __findSingleMatrix(unsigned panelIdx);
     UaStatus __alignSinglePanel(unsigned panelpos, bool moveit = true);
 
     // keep track of the panels we want to move

@@ -31,14 +31,14 @@ class PasCommunicationInterface : public PasComInterfaceCommon {
 public:
 
     /// @brief Instantiate a communication interface object.
-    PasCommunicationInterface();
+    PasCommunicationInterface() {};
 
     /// @brief Destroy a communication interface object.
-    ~PasCommunicationInterface();
+    ~PasCommunicationInterface() { std::cout << "Closed and cleaned up Communication Interface\n"; }
 
     /// @brief Initialize all device controllers using information from the database.
     /// @return OPC UA status code indicating success/failure.
-    UaStatusCode Initialize();
+    UaStatus Initialize();
 
     /// @brief Set the panel number used when retreiving information from the database.
     /// @param panelNumber Position number of the panel for this server.
@@ -66,7 +66,7 @@ public:
     /// @param identity The unique identity of the device.
     /// @param state Variable to store the retrieved state value.
     /// @return OPC UA status code indicating success/failure.
-    UaStatusCode getDeviceState(
+    UaStatus getDeviceState(
             OpcUa_UInt32 deviceType,
             const Identity &identity,
             PASState &state);
@@ -77,7 +77,7 @@ public:
     /// @param offset A number used to uniquely identify the data variable to access.
     /// @param value Variable to store the retrieved data value.
     /// @return OPC UA status code indicating success/failure.
-    UaStatusCode getDeviceData(
+    UaStatus getDeviceData(
             OpcUa_UInt32 deviceType,
             const Identity &identity,
             OpcUa_UInt32 offset,
@@ -88,7 +88,7 @@ public:
     /// @param identity The unique identity of the device.
     /// @param state State value to set the device state to.
     /// @return OPC UA status code indicating success/failure.
-    UaStatusCode setDeviceState(
+    UaStatus setDeviceState(
             OpcUa_UInt32 deviceType,
             const Identity &identity,
             PASState state);
@@ -99,7 +99,7 @@ public:
     /// @param offset A number used to uniquely identify the data variable to access.
     /// @param value Value to write to the data variable.
     /// @return OPC UA status code indicating success/failure.
-    UaStatusCode setDeviceData(
+    UaStatus setDeviceData(
             OpcUa_UInt32 deviceType,
             const Identity &identity,
             OpcUa_UInt32 offset,
@@ -111,7 +111,7 @@ public:
     /// @param offset A number used to uniquely identify the method to call.
     /// @param args Array of method arguments as UaVariants.
     /// @return OPC UA status code indicating success/failure.
-    UaStatusCode OperateDevice(
+    UaStatus OperateDevice(
             OpcUa_UInt32 deviceType,
             const Identity &identity,
             OpcUa_UInt32 offset,
@@ -123,10 +123,10 @@ public:
     // Placeholders to implement pure virtual methods in PasCommInterfaceCommon
     OpcUa_Int32 getDevices(OpcUa_UInt32 deviceType) { return 0; }
 
-    UaStatusCode getDeviceConfig(OpcUa_UInt32 type,
-                                 OpcUa_UInt32 deviceIndex,
-                                 UaString &sName,
-                                 Identity &identity) { return OpcUa_BadNotImplemented; }
+    UaStatus getDeviceConfig(OpcUa_UInt32 type,
+                             OpcUa_UInt32 deviceIndex,
+                             UaString &sName,
+                             Identity &identity) { return OpcUa_BadNotImplemented; }
 
 private:
     /// @brief Shared mutex used to control multi thread access to controller.
@@ -137,10 +137,6 @@ private:
 
     /// @brief Map from OPC UA device type to Identity to a unique pointer to the controller object.
     std::map<OpcUa_UInt32, std::map<Identity, std::shared_ptr<PasController>>> m_pControllers;
-
-    /// @brief Flag indicating that the internal thread should be stopped.
-    /// @warning Unused.
-    OpcUa_Boolean m_stop;
 
     /// @brief Pointer to the platform object used by all devices to interface with the hardware.
     std::shared_ptr<Platform> m_platform;

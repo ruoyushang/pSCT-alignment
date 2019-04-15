@@ -303,7 +303,7 @@ UaStatusCode PasMirror::Operate(OpcUa_UInt32 offset, const UaVariantArray &args)
      * ********************************************************/
     if (offset == PAS_MirrorType_MoveSector) {
         for (unsigned idx : m_SelectedChildren.at(PAS_PanelType))
-            m_pChildren.at(PAS_PanelType).at(idx)->Operate(PAS_PanelType_MoveToLengths);
+            m_pChildren.at(PAS_PanelType).at(idx)->Operate(PAS_PanelType_MoveToLengths,);
     }
 
     /**********************************************************

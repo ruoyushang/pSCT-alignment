@@ -80,6 +80,10 @@ private:
     /// @brief Change the actuator length by a desired amount
     /// @param args Array of method arguments as UaVariants.
     UaStatus moveDelta(const UaVariantArray &args);
+
+    /// @brief Move the actuator to a desired length
+    /// @param args Array of method arguments as UaVariants.
+    UaStatus moveToLength(const UaVariantArray &args);
 };
 
 #endif

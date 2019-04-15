@@ -32,32 +32,32 @@ public:
     PasComInterfaceCommon() {};
     virtual ~PasComInterfaceCommon() {};
 
-    virtual UaStatusCode Initialize() = 0;
+    virtual UaStatus Initialize() = 0;
 
     virtual OpcUa_Int32 getDevices(OpcUa_UInt32 deviceType) = 0;
 
-    virtual UaStatusCode getDeviceConfig(OpcUa_UInt32 type, 
-            OpcUa_UInt32 deviceIndex,
-            UaString& sName,
-            Identity& identity) = 0;
+    virtual UaStatus getDeviceConfig(OpcUa_UInt32 type,
+                                     OpcUa_UInt32 deviceIndex,
+                                     UaString &sName,
+                                     Identity &identity) = 0;
 
     /* Get device status and data */
-    virtual UaStatusCode getDeviceState(OpcUa_UInt32 type, const Identity& identity, PASState& state) = 0;
+    virtual UaStatus getDeviceState(OpcUa_UInt32 type, const Identity &identity, PASState &state) = 0;
 
-    virtual UaStatusCode getDeviceData(OpcUa_UInt32 type, const Identity& identity,
-            OpcUa_UInt32 offset,
-            UaVariant &value) = 0;
+    virtual UaStatus getDeviceData(OpcUa_UInt32 type, const Identity &identity,
+                                   OpcUa_UInt32 offset,
+                                   UaVariant &value) = 0;
 
     /* Set device status and data*/
-    virtual UaStatusCode setDeviceState(OpcUa_UInt32 type, const Identity& identity, PASState state) = 0;
+    virtual UaStatus setDeviceState(OpcUa_UInt32 type, const Identity &identity, PASState state) = 0;
 
-    virtual UaStatusCode setDeviceData(OpcUa_UInt32 type, const Identity& identity,
-            OpcUa_UInt32 offset,
-            UaVariant value) = 0;
+    virtual UaStatus setDeviceData(OpcUa_UInt32 type, const Identity &identity,
+                                   OpcUa_UInt32 offset,
+                                   UaVariant value) = 0;
 
-    virtual UaStatusCode OperateDevice(OpcUa_UInt32 type, const Identity& identity,
-            OpcUa_UInt32 offset = 0,
-            const UaVariantArray& args = UaVariantArray()) = 0;
+    virtual UaStatus OperateDevice(OpcUa_UInt32 type, const Identity &identity,
+                                   OpcUa_UInt32 offset = 0,
+                                   const UaVariantArray &args = UaVariantArray()) = 0;
 };
 
 #endif

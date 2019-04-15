@@ -132,10 +132,7 @@ UaStatus ActController::Operate(OpcUa_UInt32 offset, const UaVariantArray &args)
             if (args.length() != 1) {
                 return OpcUa_BadInvalidArgument;
             }
-            tempArgs.create(1);
-	    UaVariant(args[0]).toFloat(m_TargetLength);
-            tempArgs[0] = UaVariant(m_TargetLength - m_pPlatform->getActuatorAt(m_ID)->MeasureLength())[0];
-            status = moveDelta(tempArgs);
+            status = moveDelta(args);
             break;
         default:
             status = OpcUa_BadInvalidArgument;
@@ -159,4 +156,19 @@ UaStatus ActController::moveDelta(const UaVariantArray &args) {
     m_DeltaLength = deltaL[m_ID];
 
     return OpcUa_Good;
+}
+
+UaStatus ActController::moveToLength(const UaVariantArray &args) {
+    if (!(m_state == PASState::On))
+        return OpcUa_BadNothingToDo;
+
+    UaStatus status;
+
+    UaVariantArray tempArgs;
+    tempArgs.create(1);
+    UaVariant(args[0]).toFloat(m_TargetLength);
+    tempArgs[0] = UaVariant(m_TargetLength - m_pPlatform->getActuatorAt(m_ID)->MeasureLength())[0];
+    status = moveDelta(tempArgs);
+
+    return status;
 }

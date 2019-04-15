@@ -110,18 +110,20 @@ UaStatus PanelObject::call(
             if ( pMethod->nodeId() == m_pMethodMoveToActs->nodeId())
             {
                 // Number of input arguments must be 0
-                if ( inputArguments.length() > 0 )
+                if (inputArguments.length() != 6)
                     ret = OpcUa_BadInvalidArgument;
                 else
-                    ret = m_pCommIf->OperateDevice(PAS_PanelType, m_Identity, PAS_PanelType_MoveToLengths);
+                    ret = m_pCommIf->OperateDevice(PAS_PanelType, m_Identity, PAS_PanelType_MoveToLengths,
+                                                   inputArguments);
             }
             else if ( pMethod->nodeId() == m_pMethodMoveToCoords->nodeId())
             {
                 // Number of input arguments must be 0
-                if ( inputArguments.length() > 0 )
+                if (inputArguments.length() != 6)
                     ret = OpcUa_BadInvalidArgument;
                 else
-                    ret = m_pCommIf->OperateDevice(PAS_PanelType, m_Identity, PAS_PanelType_MoveToCoords);
+                    ret = m_pCommIf->OperateDevice(PAS_PanelType, m_Identity, PAS_PanelType_MoveToCoords,
+                                                   inputArguments);
             }
             else if ( pMethod->nodeId() == m_pMethodRead->nodeId())
             {

@@ -213,7 +213,7 @@ UaStatus PasNodeManager::amendTypeNodes()
 
     // Register all methods
     OpcUa::BaseMethod *pMethod;
-    for (auto m : PanelObject::METHODS) {
+    for (const auto &m : PanelObject::METHODS) {
         pMethod = new OpcUa::BaseMethod(UaNodeId(m.first, getNameSpaceIndex()), m.second.first.c_str(),
                                         getNameSpaceIndex());
         pMethod->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);

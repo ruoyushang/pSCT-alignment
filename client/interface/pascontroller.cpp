@@ -7,6 +7,7 @@
 #include "ccdclass.h"
 #include "clienthelper.h"
 #include "components.h"
+#include "common/opcua/pasobject.h"
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -36,8 +37,8 @@ float PasMPES::kNominalCentroidSD = 20.;
 // implement PasCompositeController::addChild()
 void PasCompositeController::addChild(OpcUa_UInt32 deviceType, PasController *const pController)
 {
-    cout << " --- " << m_ID.name << "::addChild(): "
-        << m_ID.name << ": adding " << pController->getId() << endl;
+    std::cout << " --- " << m_ID.name << "::addChild(): "
+              << m_ID.name << ": adding " << pController->getId() << std::endl;
 
     auto id = pController->getId();
     auto pos = pController->getId().position;
@@ -430,7 +431,7 @@ UaStatusCode PasACT::getData(OpcUa_UInt32 offset, UaVariant& value)
 
     std::string varName;
 
-    if (offset >= PAS_ACTType_Error0 && offset <= PAS_ACTType_Error13) {
+    if (ACTObject::ERRORS.count(offset) > 0) {
         return getError(offset, value);
     } else {
         switch (offset) {
@@ -440,12 +441,14 @@ UaStatusCode PasACT::getData(OpcUa_UInt32 offset, UaVariant& value)
             case PAS_ACTType_CurrentLength:
                 varName = "CurrentLength";
                 break;
+            case PAS_ACTType_TargetLength:
+                varName = "TargetLength";
+                break;
             default:
                 return OpcUa_BadInvalidArgument;
         }
         std::vector<std::string> varsToRead = {m_ID.eAddress + "." + varName};
         status = m_pClient->read(varsToRead, &value);
-        std::cout << "PasACT::getData -> value = " << value.toString().toUtf8() << std::endl;
     }
 
     return status;
@@ -478,17 +481,7 @@ UaStatusCode PasACT::getError(OpcUa_UInt32 offset, UaVariant &value) {
 -----------------------------------------------------------------------------*/
 UaStatusCode PasACT::setData(OpcUa_UInt32 offset, UaVariant value)
 {
-    UaStatusCode  status;
-
-    if (offset == PAS_ACTType_DeltaLength) {
-        vector<string> vec_curwrite{m_ID.eAddress + ".DeltaLength"};
-        value.toFloat(m_DeltaL);
-        status = m_pClient->write(vec_curwrite, &value);
-    }
-    else
-        status = OpcUa_BadNotWritable;
-
-    return status;
+    return OpcUa_BadNotWritable;
 }
 /* ----------------------------------------------------------------------------
     Class        PasACT
@@ -501,10 +494,19 @@ UaStatusCode PasACT::Operate(OpcUa_UInt32 offset, const UaVariantArray &args)
 
     // don't lock the object -- might want to change state while operating the device!
     // UaMutexLocker lock(&m_mutex);
+    float deltaLength;
     switch ( offset )
     {
         case PAS_ACTType_MoveDeltaLength:
-            status = moveDelta(args);
+            UaVariant(args[0]).toFloat(deltaLength);
+            std::cout << "Stepping actuator " << m_ID.serialNumber << "by " << deltaLength << " mm\n";
+            status = m_pClient->callMethodAsync(m_ID.eAddress, UaString("MoveDeltaLength"), args);
+            break;
+        case PAS_ACTType_MoveToLength:
+            if (args.length() != 1) {
+                return OpcUa_BadInvalidArgument;
+            }
+            status = m_pClient->callMethodAsync(m_ID.eAddress, UaString("MoveToLength"), args);
             break;
         default:
             status = OpcUa_BadInvalidArgument;
@@ -513,26 +515,6 @@ UaStatusCode PasACT::Operate(OpcUa_UInt32 offset, const UaVariantArray &args)
     return status;
 }
 
-/* ----------------------------------------------------------------------------
-    Class        PasACT
-    Method       step
-    Description  Step the actuator
------------------------------------------------------------------------------*/
-UaStatus PasACT::moveDelta(const UaVariantArray &args)
-{
-    // don't lock the object -- might want to change state while operating the device!
-    // UaMutexLocker lock(&m_mutex);
-    if (m_state == PASState::On)
-    {
-        OpcUa_Float deltaLength;
-        UaVariant(args[0]).toFloat(deltaLength);
-
-        printf("stepping actuator %d by %5.3f mm\n", m_ID.serialNumber, deltaLength);
-        return m_pClient->callMethodAsync(m_ID.eAddress, UaString("Step"), args);
-    }
-
-    return OpcUa_BadInvalidState;
-}
 /* ----------------------------------------------------------------------------
     END Class    PasACT
 ==============================================================================*/
@@ -555,7 +537,7 @@ PasPanel::PasPanel(Identity identity, Client *pClient) :
     m_ChildrenTypes = {PAS_ACTType, PAS_MPESType, PAS_EdgeType};
 
     // make sure things update on the first boot up
-    // duration takes seconds -- hence the conversion with the 1/1000 ratiot
+    // duration takes seconds -- hence the conversion with the 1/1000 ratio
     m_lastUpdateTime = TIME::now() - chrono::duration<int, ratio<1, 1000>>(m_UpdateInterval_ms);
 }
 
@@ -620,7 +602,6 @@ UaStatusCode PasPanel::getState(PASState& state)
 
 }
 
-
 UaStatusCode PasPanel::setState(PASState state)
 {
     if (state == PASState::OperableError || state == PASState::FatalError)
@@ -645,21 +626,9 @@ UaStatusCode PasPanel::getData(OpcUa_UInt32 offset, UaVariant& value)
 
     if (offset >= PAS_PanelType_x && offset <= PAS_PanelType_zRot) {
         // update current coordinates
-        __updateCoords();
-        int dataoffset = offset - PAS_PanelType_x;
-        value.setDouble(m_curCoords[dataoffset]);
-    }
-    else if (offset >= PAS_PanelType_inCoords_x && offset <= PAS_PanelType_inCoords_zRot) {
-        // update coordinates on initial boot
-        if (!m_inCoordsUpdated) {
-            __updateCoords();
-            for (int i = 0; i < 6; i++)
-                m_inCoords[i] = m_curCoords[i];
-            m_inCoordsUpdated = true;
-        }
-
-        int dataoffset = offset - PAS_PanelType_inCoords_x;
-        value.setDouble(m_inCoords[dataoffset]);
+        updateCoords();
+        int dataOffset = offset - PAS_PanelType_x;
+        value.setDouble(m_curCoords[dataOffset]);
     }
     else if (offset == PAS_PanelType_IntTemperature)
         status = m_pClient->read({"ns=2;s=Panel_0.InternalTemperature"}, &value);
@@ -675,34 +644,17 @@ UaStatusCode PasPanel::getData(OpcUa_UInt32 offset, UaVariant& value)
 UaStatusCode PasPanel::setData(OpcUa_UInt32 offset, UaVariant value)
 {
     UaMutexLocker lock(&m_mutex);
-    UaStatusCode  status = OpcUa_Good;
-
-    // update coordinates on initial boot
-    if (!m_inCoordsUpdated) {
-        __updateCoords();
-        for (int i = 0; i < 6; i++)
-            m_inCoords[i] = m_curCoords[i];
-        m_inCoordsUpdated = true;
-    }
-
-    if (offset >= PAS_PanelType_inCoords_x && offset <= PAS_PanelType_inCoords_zRot) {
-        int dataoffset = offset - PAS_PanelType_inCoords_x;
-        value.toDouble(m_inCoords[dataoffset]);
-    }
-    else
-        status = OpcUa_BadInvalidArgument;
-
-    return status;
+    return OpcUa_BadInvalidArgument;
 }
 
 // move actuators to the preset length or panel to the preset coords
 UaStatusCode PasPanel::Operate(OpcUa_UInt32 offset, const UaVariantArray &args)
 {
     UaMutexLocker lock(&m_mutex);
-    UaStatusCode  status;
+    UaStatusCode status;
 
     if (getActuatorCount() == 0) {
-        cout << m_ID << "::Operate() : no actuators, nothing to be done." << endl;
+        std::cout << m_ID << "::Operate() : No actuators found, nothing to be done." << std::endl;
         return OpcUa_Good;
     }
 
@@ -720,39 +672,24 @@ UaStatusCode PasPanel::Operate(OpcUa_UInt32 offset, const UaVariantArray &args)
     auto& actuatorPositionMap = m_ChildrenPositionMap.at(PAS_ACTType);
     auto& pACT = m_pChildren.at(PAS_ACTType);
 
-
     /************************************************
      * move actuators to the preset lengths         *
      * **********************************************/
-    if (offset == PAS_PanelType_MoveToLengths) {
+    bool collisionFlag = false;
+    if (offset == PAS_PanelType_MoveDeltaLengths) {
 #ifndef SIMMODE
-        status =  __moveTo();
+        status = m_pClient->callMethodAsync(string("ns=2;s=Panel_0"), UaString("MoveDeltaLengths"), args);
 #else
         for (int i = 0; i < 6; i++)
             m_curCoords[i] = m_inCoords[i];
 #endif
-    }
-
-
-    /************************************************
-     * move the panel to the preset coordinates     *
-     * **********************************************/
-    else if (offset == PAS_PanelType_MoveToCoords) {
-        // find actuator lengths needed
-        m_SP.ComputeActsFromPanel(m_inCoords);
-        // set actuator lengths
-        UaVariant val;
-        for (const auto& act : actuatorPositionMap) {
-            val.setDouble(m_SP.GetActLengths()[act.first - 1]);
-            //pACT.at(act.second)->setData(PAS_ACTType_inLength_mm, val);
-        }
-
-        bool collision_flag = __willSensorsBeOutOfRange();
+    } else if (offset == PAS_PanelType_MoveToLengths) {
+        bool collision_flag = checkForCollision();
         if (collision_flag) cout << "Error: Sensors will go out of range! Motion cancelled." << endl;
 
 #ifndef SIMMODE
         if (!collision_flag) {
-            status =  __moveTo();
+            status = m_pClient->callMethodAsync(string("ns=2;s=Panel_0"), UaString("MoveToLengths"), args);
         }
 #else
         for (int i = 0; i < 6; i++) {
@@ -761,45 +698,24 @@ UaStatusCode PasPanel::Operate(OpcUa_UInt32 offset, const UaVariantArray &args)
             }
         }
 #endif
-        PASState state;
-        getState(state);
-        cout << "Current State is " << static_cast<int>(m_state) << endl;
-    }
-
-
-    /************************************************
-     * move all actuators by the specified deltas   *
-     * **********************************************/
-    else if (offset == PAS_PanelType_MoveDeltaLengths || offset == PAS_PanelType_StepAll_move) {
+    } else if (offset == PAS_PanelType_MoveToCoords) {
         cout << endl << m_ID << ":" << endl;
         if (args.length() != pACT.size())
             return OpcUa_BadInvalidArgument;
 
+
+        UaVariantArray lengthArgs;
         double actLengths[6];
         UaVariant val;
-        __updateCoords();
+        updateCoords(); // update coordinates
         cout << "\tCurrent panel coordinates (x, y ,z xRot, yRot, zRot):\n\t\t";
-        for (int i = 0; i < 6; i++)
+        for (int i = 0; i < 6; i++) {
             cout << m_curCoords[i] << " ";
+        }
         cout << endl << endl;
 
-        for (const auto& act : actuatorPositionMap) {
-            cout << "\t\tThis will change the length of Actuator "
-                << pACT.at(act.second)->getId().serialNumber
-                << " at position " << act.first << " by " << args[act.first - 1].Value.Float
-                << " mm" << endl;
-
-            // current actuator lengths were updated in __updateCoords();
-            actLengths[act.first - 1] = m_ActuatorLengths(act.first - 1) + args[act.first - 1].Value.Float;
-            val.setFloat(actLengths[act.first - 1]);
-            status = pACT.at(act.second)->setData(PAS_ACTType_inLength_mm, val);
-            if (!status.isGood()) return status;
-
-        }
-
-        bool collision_flag = __willSensorsBeOutOfRange();
-        if (collision_flag) cout << "Panel will collide!!! Motion cancelled!!!" << endl;
-
+        bool collision_flag = checkForCollision();
+        if (collision_flag) cout << "Error: Sensors will go out of range! Motion cancelled." << endl;
 
         if (!collision_flag) 
         {
@@ -807,24 +723,20 @@ UaStatusCode PasPanel::Operate(OpcUa_UInt32 offset, const UaVariantArray &args)
             cout << "\n\tThe new panel coordinates (x, y ,z xRot, yRot, zRot) will be:\n\t\t";
             for (int i = 0; i < 6; i++) {
                 cout << m_SP.GetPanelCoords()[i] << " ";
-                m_inCoords[i] = m_SP.GetPanelCoords()[i];
             }
-            cout << endl;
-            cout << "Input actuator lengths and input panel coords updated accordingly. "
-                << "Call " << m_ID.name << ".MoveToActs or .MoveToCoords to move this panel." << endl;
 
-            if (offset == PAS_PanelType_StepAll_move) { // actually move the panel
-                status = m_pClient->callMethod(string("ns=2;s=Panel_0"), UaString("MoveTo"));
+            // Get actuator lengths for motion
+            for (int i = 0; i < 6; i++) {
+
+                lengthArgs[i] = UaVariant(m_SP.GetActLengths()[i])[0];
             }
+
+            status = m_pClient->callMethodAsync(string("ns=2;s=Panel_0"), UaString("MoveToLengths"), lengthArgs);
         }
     }
-
-    /************************************************
-     * read current position and actuator lengths   *
-     * **********************************************/
     else if (offset == PAS_PanelType_ReadAll) {
         UaVariant val;
-        __updateCoords();
+        updateCoords();
         cout << endl << m_ID << " :" << endl;
         cout << "\tCurrent coordinates (x, y ,z xRot, yRot, zRot):\n\t\t";
         for (int i = 0; i < 6; i++)
@@ -840,13 +752,11 @@ UaStatusCode PasPanel::Operate(OpcUa_UInt32 offset, const UaVariantArray &args)
 
         status = OpcUa_Good;
     }
-
-
     /************************************************
      * stop the motion in progress                  *
      * **********************************************/
     else if (offset == PAS_PanelType_Stop) {
-        cout << m_ID << "::Operate() : Attempting to gracefully stop the motion." << endl;
+        std::cout << m_ID << "::Operate() : Attempting to gracefully stop the motion." << std::endl;
         status = m_pClient->callMethod(string("ns=2;s=Panel_0"), UaString("Stop"));
     }
     else
@@ -855,97 +765,55 @@ UaStatusCode PasPanel::Operate(OpcUa_UInt32 offset, const UaVariantArray &args)
     return status;
 }
 
+bool PasPanel::checkForCollision() {
+    ///
+    /// This part predicts the new laser spot positions before we move the actuators.
+    /// Will make a new function of this and allow all actuator operations to call this function before moving.
+    ///
+    MatrixXd M_response; // response matrix
+    VectorXd Act_delta; // actuator delta length
+    VectorXd Sen_current; // sensor current position
+    VectorXd Sen_delta; // sensor delta
+    VectorXd Sen_new; // sensor new position = Sen_delta + current sensor reading
+    VectorXd Sen_aligned; // aligned sensor reading
+    VectorXd Sen_deviation; // deviated sensor reading
 
-// actual execution method to move the panel
-UaStatus PasPanel::__moveTo()
-{
-    UaVariantArray args;
-    float in_length = 0.;
-    UaStatus status;
+    VectorXd newLengths(6);
+    for (unsigned i = 0; i < 6; i++)
+        newLengths(i) = m_SP.GetActLengths()[i];
+    cout << "New Act length is \n" << newLengths << endl;
+    cout << "Current Act length is \n" << m_ActuatorLengths << endl;
+    Act_delta = newLengths - m_ActuatorLengths;
+    cout << "Delta Act length will be \n" << Act_delta << endl;
 
-    // this should have already been caught, but let's do it nevertheless
-    // nothing to be done, but all good
-    if (getActuatorCount() == 0) {
-        std::cout << "No actuators found. Nothing to do.\n";
-        return OpcUa_Good;
-    }
-
-    auto& actuatorPositionMap = m_ChildrenPositionMap.at(PAS_ACTType);
-    auto& pACT = m_pChildren.at(PAS_ACTType);
-
-    // map is ordered by the first index, in our case, the position
-    for (const auto& i : actuatorPositionMap) {
-        //pACT.at(i.second)->getData(PAS_ACTType_inLength_mm, val);
-        //val.toFloat(in_length);
-        cout << "Will move actuator " << pACT.at(i.second)->getId().serialNumber
-            << " at position " << m_ID.position
-            << "." << i.first << " to " << in_length << " mm" << endl;
-    }
-
-    status = m_pClient->callMethodAsync(string("ns=2;s=Panel_0"), UaString("MoveTo"), args);
-
-    return status;
-}
-
-bool PasPanel::__willSensorsBeOutOfRange()
-{
-        //Ruo, try to estimate new laser spot positions after actuators move
-
-        ///
-        /// This part predicts the new laser spot positions before we move the actuators.
-        /// Will make a new function of this and allow all actuator operations to call this function before moving.
-        ///
-        MatrixXd M_response; // response matrix
-        VectorXd Act_delta; // actuator delta length
-        VectorXd Sen_current; // sensor current position
-        VectorXd Sen_delta; // sensor delta
-        VectorXd Sen_new; // sensor new position = Sen_delta + current sensor reading
-        VectorXd Sen_aligned; // aligned sensor reading
-        VectorXd Sen_deviation; // deviated sensor reading
-        for(auto elem :m_pChildren)
-        {
-            //std::cout << "Ruo, child of a panel: " << elem.first << std::endl;
-               for (auto elem2nd :elem.second)
-               {
-                   //std::cout << elem2nd->getId() << std::endl;
-               }
-        }
     if (m_pChildren.count(PAS_EdgeType) > 0) {
         for (auto &e : m_pChildren.at(PAS_EdgeType)) {
             PasEdge *edge = static_cast<PasEdge *>(e);
-                M_response = edge->getResponseMatrix(m_ID.position);
-                Sen_current = edge->getCurrentReadings();
-                cout << "\nCurrent MPES readings:\n" << Sen_current << endl << endl;
-                Sen_aligned = edge->getAlignedReadings();
-                cout << "\nTarget MPES readings:\n" << Sen_aligned << endl << endl;
-                cout << "Looking at edge " << edge->getId() << endl;
-                cout << "\nActuator response matrix for this edge:\n" << M_response << endl;
-                //m_SP.GetActLengths() is the new act length
-                //m_ActuatorLengths is the current act length
-                VectorXd newLengths(6);
-                for (unsigned i = 0; i < 6; i++)
-                    newLengths(i) = m_SP.GetActLengths()[i];
-                cout << "New Act length is \n" << newLengths << endl;
-                cout << "Current Act length is \n" << m_ActuatorLengths << endl;
-            Act_delta = newLengths - m_ActuatorLengths;
-                cout << "Delta Act length will be \n" << Act_delta << endl;
+            M_response = edge->getResponseMatrix(m_ID.position);
+            Sen_current = edge->getCurrentReadings();
+            cout << "Looking at edge " << edge->getId() << endl;
+            cout << "\nCurrent MPES readings:\n" << Sen_current << endl << endl;
+            Sen_aligned = edge->getAlignedReadings();
+            cout << "\nTarget MPES readings:\n" << Sen_aligned << endl << endl;
+            cout << "\nActuator response matrix for this edge:\n" << M_response << endl;
             Sen_delta = M_response * Act_delta;
             Sen_new = Sen_delta + Sen_current;
-                cout << "The new sensor coordinates (x, y) will be:\n" << Sen_new << endl;
+            cout << "The new sensor coordinates (x, y) will be:\n" << Sen_new << endl;
             Sen_deviation = Sen_new - Sen_aligned;
             cout << "\n will deviate from the aligned position by\n" << Sen_new - Sen_aligned << endl;
-                double deviation = 0;
-                for (unsigned i = 0; i < 6; i++)
-                    deviation += pow(Sen_deviation(i), 2);
+            double deviation = 0;
+            for (unsigned i = 0; i < 6; i++)
+                deviation += pow(Sen_deviation(i), 2);
             deviation = pow(deviation, 0.5);
             if (deviation > 40) return true;
         }
-        }
+    }
 
-        return false;
+    return false;
 
 }
-void PasPanel::__updateCoords(bool printout)
+
+void PasPanel::updateCoords(bool printout)
 {
     // do nothing if values haven't expired
     if (!__expired())
@@ -980,22 +848,6 @@ void PasPanel::__updateCoords(bool printout)
             m_PadCoords.col(pad)(coord) = m_SP.GetPadCoords(pad)[coord];
 
     m_lastUpdateTime = TIME::now();
-}
-
-
-// helper function that updates actuator steps
-// unsafe -- expects args to be of the right size
-void PasPanel::getActuatorSteps(UaVariantArray &args) const
-{
-    auto& actuatorPositionMap = m_ChildrenPositionMap.at(PAS_ACTType);
-    auto& pACT = m_pChildren.at(PAS_ACTType);
-
-    // set args to missed steps:
-    UaVariant vtmp;
-    for (const auto& act : actuatorPositionMap) {
-        pACT.at(act.second)->getData(PAS_ACTType_RemainingLength, vtmp);
-        vtmp.copyTo(&args[act.first - 1]);
-    }
 }
 
 /* ----------------------------------------------------------------------------
@@ -1184,17 +1036,6 @@ UaStatusCode PasEdge::Operate(OpcUa_UInt32 offset, const UaVariantArray &args)
             cout << "\nMisalignment:\n" << m_AlignedReadings - m_CurrentReadings << endl << endl;
             status = OpcUa_Good;
             break;
-        case PAS_EdgeType_Move:
-            {
-                // move assigned panels
-                for (auto panel2move : m_PanelsToMove) {
-                    auto panel = m_pChildren.at(PAS_PanelType).at(panel2move);
-                    panel->Operate(PAS_PanelType_MoveToLengths);
-                }
-                // motion done, don't risk repeating it
-                m_PanelsToMove.clear();
-                break;
-            }
         case PAS_EdgeType_Stop:
             {
                 // stop motion of all panels
@@ -1232,7 +1073,7 @@ UaStatus PasEdge::findMatrix()
 }
 
 // helper method for the above -- actually moving the panel and measuring the matrix
-UaStatus PasEdge::__findSingleMatrix(unsigned panelidx)
+UaStatus PasEdge::__findSingleMatrix(unsigned panelIdx)
 {
     UaMutexLocker lock(&m_mutex);
     UaStatus status;
@@ -1242,7 +1083,7 @@ UaStatus PasEdge::__findSingleMatrix(unsigned panelidx)
     // convenience variable;
     // no need to check with a try/catch block anymore as this has already been done
     // by the caller
-    PasPanel *pCurPanel = static_cast<PasPanel *>(m_pChildren.at(PAS_PanelType).at(panelidx));
+    PasPanel *pCurPanel = static_cast<PasPanel *>(m_pChildren.at(PAS_PanelType).at(panelIdx));
     unsigned nACTs = pCurPanel->getActuatorCount();
 
     VectorXd vector0(6); // maximum possible size
@@ -1272,10 +1113,11 @@ UaStatus PasEdge::__findSingleMatrix(unsigned panelidx)
 
         printf("attempting to move actuator %d by %5.3f mm\n", j, m_DeltaL);
         deltaL.copyTo(&deltas[j]);
-        status = pCurPanel->Operate(PAS_PanelType_StepAll_move, deltas);
+        status = pCurPanel->Operate(PAS_PanelType_MoveDeltaLengths, deltas);
         if (!status.isGood()) return status;
         // Stepping is asynchronous. but here, we want it to actually complete
         // before the next step. So we wait.
+        // Need to change stepping to not be asynchronous?
         PASState curState = PASState::Busy;
         while (curState == PASState::Busy) {
             usleep(300*1000); // microseconds
@@ -1297,7 +1139,7 @@ UaStatus PasEdge::__findSingleMatrix(unsigned panelidx)
         // move the same actuator back
         printf("moving actuator %d back", j);
         minusdeltaL.copyTo(&deltas[j]);
-        status = pCurPanel->Operate(PAS_PanelType_StepAll_move, deltas);
+        status = pCurPanel->Operate(PAS_PanelType_MoveDeltaLengths, deltas);
         if (!status.isGood()) return status;
         // Stepping is asynchronous. but here, we want it to actually complete
         // before the next step. So we wait.

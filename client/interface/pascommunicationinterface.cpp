@@ -62,7 +62,7 @@ PasCommunicationInterface::~PasCommunicationInterface()
     std::cout << "Closed and cleaned up PasCommunicationInterface\n";
 }
 
-UaStatusCode PasCommunicationInterface::Initialize()
+UaStatus PasCommunicationInterface::Initialize()
 {
     // Initialize devices communicating directly with the Alignment server (p2pasclient)
 
@@ -260,11 +260,11 @@ OpcUa_Int32 PasCommunicationInterface::getDevices(OpcUa_UInt32 deviceType)
     Method       getDeviceConfig
     Description  Get configuration of a sensor.
 -----------------------------------------------------------------------------*/
-UaStatusCode PasCommunicationInterface::getDeviceConfig(
-    OpcUa_UInt32 type,
-    OpcUa_UInt32 deviceIndex,
-    UaString& sName,
-    Identity& identity)
+UaStatus PasCommunicationInterface::getDeviceConfig(
+        OpcUa_UInt32 type,
+        OpcUa_UInt32 deviceIndex,
+        UaString &sName,
+        Identity &identity)
 {
 
     OpcUa_UInt32 devCount = getDevices(type);
@@ -303,10 +303,10 @@ UaStatusCode PasCommunicationInterface::getDeviceConfig(
     Method       getDeviceState
     Description  Get Device status.
 -----------------------------------------------------------------------------*/
-UaStatusCode PasCommunicationInterface::getDeviceState(
+UaStatus PasCommunicationInterface::getDeviceState(
         OpcUa_UInt32 type,
-        const Identity& identity,
-        PASState& state)
+        const Identity &identity,
+        PASState &state)
 {
     if (getDeviceFromId(type, identity) != nullptr)
         return getDeviceFromId(type, identity)->getState(state);
@@ -318,10 +318,10 @@ UaStatusCode PasCommunicationInterface::getDeviceState(
     Method       setSensorState
     Description  Set Sensor status.
 -----------------------------------------------------------------------------*/
-UaStatusCode PasCommunicationInterface::setDeviceState(
+UaStatus PasCommunicationInterface::setDeviceState(
         OpcUa_UInt32 type,
-        const Identity& identity,
-        PASState  state)
+        const Identity &identity,
+        PASState state)
 {
     if (getDeviceFromId(type, identity) != nullptr)
         return getDeviceFromId(type, identity)->setState(state);
@@ -333,11 +333,11 @@ UaStatusCode PasCommunicationInterface::setDeviceState(
     Method       getDeviceData
     Description  Get Sensor data.
 -----------------------------------------------------------------------------*/
-UaStatusCode PasCommunicationInterface::getDeviceData(
+UaStatus PasCommunicationInterface::getDeviceData(
         OpcUa_UInt32 type,
-        const Identity& identity,
+        const Identity &identity,
         OpcUa_UInt32 offset,
-        UaVariant& value)
+        UaVariant &value)
 {
     if (getDeviceFromId(type, identity) != nullptr)
         return getDeviceFromId(type, identity)->getData(offset, value);
@@ -349,9 +349,9 @@ UaStatusCode PasCommunicationInterface::getDeviceData(
     Method       setSensorData
     Description  Set Sensor data.
 -----------------------------------------------------------------------------*/
-UaStatusCode PasCommunicationInterface::setDeviceData(
+UaStatus PasCommunicationInterface::setDeviceData(
         OpcUa_UInt32 type,
-        const Identity& identity,
+        const Identity &identity,
         OpcUa_UInt32 offset,
         UaVariant value)
 {
@@ -370,7 +370,7 @@ UaStatusCode PasCommunicationInterface::setDeviceData(
     Method       OperateDevice
     Description  Run a method on a device.
 -----------------------------------------------------------------------------*/
-UaStatusCode PasCommunicationInterface::OperateDevice(
+UaStatus PasCommunicationInterface::OperateDevice(
     OpcUa_UInt32 type, const Identity& identity,
     OpcUa_UInt32 offset, const UaVariantArray& args)
 {

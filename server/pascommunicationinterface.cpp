@@ -38,21 +38,10 @@ const std::map<OpcUa_UInt32, std::string> PasCommunicationInterface::deviceTypes
         {PAS_PSDType,   "PSD"}
 };
 
-PasCommunicationInterface::PasCommunicationInterface() :
-        m_stop(OpcUa_False) {
-}
-
-PasCommunicationInterface::~PasCommunicationInterface() {
-    m_stop = OpcUa_True; // Signal thread to stop
-    // wait(); // Wait until thread stopped
-
-    std::cout << "\nClosed and cleaned up Communication Interface\n";
-}
-
 /// @details Uses hardcoded DB login info to access the device database and retrieve
 /// all device mappings and positions. Then, initializes all corresponding controllers, adds all MPES to the platform object,
 /// and attaches all actuator controllers to the corresponding panel controller.
-UaStatusCode PasCommunicationInterface::Initialize() {
+UaStatus PasCommunicationInterface::Initialize() {
     UaStatusCode status;
 
     /// @warning Hardcoded database information. Should be moved to external configuration.
@@ -235,35 +224,7 @@ std::vector<Identity> PasCommunicationInterface::getValidDeviceIdentities(OpcUa_
     return validIdentities;
 }
 
-/**
-/// @details Retreives the device index (on the platform) for the desired controller
-/// and uses it to get the identity in
-UaStatusCode PasCommunicationInterface::getDeviceInfo(
-    OpcUa_UInt32 deviceType,
-    int idx,
-    UaString& sName,
-    Identity& identity)
-{
-    if ( deviceType == PAS_MPESType)
-        identity.eAddress = to_string(m_platform->getMPESAt(idx)->GetPortNumber());
-    else if (deviceType == PAS_ACTType)
-        identity.eAddress = to_string(m_platform->getActuatorAt(idx)->GetPortNumber());
-    else
-        identity.eAddress = to_string(idx);
-
-    std::map<OpcUa_UInt32, std::string> deviceTypeToName;
-    for (auto it = deviceTypes.begin(); it != deviceTypes.end(); ++it)
-    {
-      deviceTypeToName[it->second] = it->first;
-    }
-
-    sName = UaString(deviceTypeToName.at(deviceType).c_str()) + "_" + identity.eAddress.c_str();
-
-    return OpcUa_Good;
-}
-*/
-
-UaStatusCode PasCommunicationInterface::getDeviceState(
+UaStatus PasCommunicationInterface::getDeviceState(
         OpcUa_UInt32 deviceType,
         const Identity &identity,
         PASState &state) {
@@ -275,7 +236,7 @@ UaStatusCode PasCommunicationInterface::getDeviceState(
     }
 }
 
-UaStatusCode PasCommunicationInterface::setDeviceState(
+UaStatus PasCommunicationInterface::setDeviceState(
         OpcUa_UInt32 deviceType,
         const Identity &identity,
         PASState state) {
@@ -287,7 +248,7 @@ UaStatusCode PasCommunicationInterface::setDeviceState(
     }
 }
 
-UaStatusCode PasCommunicationInterface::getDeviceData(
+UaStatus PasCommunicationInterface::getDeviceData(
         OpcUa_UInt32 deviceType,
         const Identity &identity,
         OpcUa_UInt32 offset,
@@ -301,7 +262,7 @@ UaStatusCode PasCommunicationInterface::getDeviceData(
     }
 }
 
-UaStatusCode PasCommunicationInterface::setDeviceData(
+UaStatus PasCommunicationInterface::setDeviceData(
         OpcUa_UInt32 deviceType,
         const Identity &identity,
         OpcUa_UInt32 offset,
@@ -314,7 +275,7 @@ UaStatusCode PasCommunicationInterface::setDeviceData(
     }
 }
 
-UaStatusCode PasCommunicationInterface::OperateDevice(
+UaStatus PasCommunicationInterface::OperateDevice(
         OpcUa_UInt32 deviceType,
         const Identity &identity,
         OpcUa_UInt32 offset,
