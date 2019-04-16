@@ -40,12 +40,6 @@ MirrorObject::MirrorObject(
         PAS_MirrorType_curCoords_xRot,
         PAS_MirrorType_curCoords_yRot,
         PAS_MirrorType_curCoords_zRot,
-        PAS_MirrorType_inCoords_x,
-        PAS_MirrorType_inCoords_y,
-        PAS_MirrorType_inCoords_z,
-        PAS_MirrorType_inCoords_xRot,
-        PAS_MirrorType_inCoords_yRot,
-        PAS_MirrorType_inCoords_zRot,
         PAS_MirrorType_selectedPanels,
         PAS_MirrorType_selectedEdges,
         PAS_MirrorType_selectedMPES};
@@ -241,7 +235,7 @@ UaStatus MirrorObject::call(
                 if ( inputArguments.length() > 0 )
                     ret = OpcUa_BadInvalidArgument;
                 else
-                    ret = m_pCommIf->OperateDevice(PAS_MirrorType, m_Identity, PAS_MirrorType_MoveSector);
+                    ret = m_pCommIf->OperateDevice(PAS_MirrorType, m_Identity, PAS_MirrorType_SimulateAlignSector);
             }
             else if ( pMethod->nodeId() == m_pMethodAlignSector->nodeId())
             {

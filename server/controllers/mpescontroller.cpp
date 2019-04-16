@@ -97,7 +97,7 @@ UaStatus MPESController::setData(OpcUa_UInt32 offset, UaVariant value) {
 }
 
 /// @details Locks the shared mutex while calling methods.
-UaStatus MPESController::Operate(OpcUa_UInt32 offset, const UaVariantArray &args) {
+UaStatus MPESController::operate(OpcUa_UInt32 offset, const UaVariantArray &args) {
     UaMutexLocker lock(&m_mutex);
     UaStatus status;
 

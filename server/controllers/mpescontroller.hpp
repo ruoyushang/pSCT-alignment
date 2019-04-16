@@ -45,7 +45,7 @@ public:
 
     /// @brief Call a method on the MPES device.
     /// @return OPC UA status code indicating success or failure.
-    UaStatus Operate(OpcUa_UInt32 offset, const UaVariantArray &args);
+    UaStatus operate(OpcUa_UInt32 offset, const UaVariantArray &args);
 
 private:
     /// @brief The internal device state.

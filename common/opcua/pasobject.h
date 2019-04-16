@@ -47,12 +47,12 @@ public:
 
     /* Own synchronous call implementation that has to be implemented in subclasses */
     virtual UaStatus call(
-        const ServiceContext&  serviceContext,
-        MethodHandle*          pMethodHandle,
-        const UaVariantArray&  inputArguments,
-        UaVariantArray&        outputArguments,
-        UaStatusCodeArray&     inputArgumentResults,
-        UaDiagnosticInfos&     inputArgumentDiag) = 0;
+            const ServiceContext&  serviceContext,
+            MethodHandle*          pMethodHandle,
+            const UaVariantArray&  inputArguments,
+            UaVariantArray&        outputArguments,
+            UaStatusCodeArray&     inputArgumentResults,
+            UaDiagnosticInfos &inputArgumentDiag);
 
 
     virtual const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, OpcUa_Byte>>
@@ -119,30 +119,34 @@ class MPESObject : public PasObject
     UA_DISABLE_COPY(MPESObject);
 public:
     MPESObject(
-        const UaString& name,
-        const UaNodeId& newNodeId,
-        const UaString& defaultLocaleId,
-        PasNodeManagerCommon* pNodeManager,
-        Identity identity,
-        PasComInterfaceCommon *pCommIf);
-    virtual ~MPESObject(void);
+            const UaString& name,
+            const UaNodeId& newNodeId,
+            const UaString& defaultLocaleId,
+            PasNodeManagerCommon* pNodeManager,
+            Identity identity,
+            PasComInterfaceCommon *pCommIf) : PasObject(name, newNodeId, defaultLocaleId, pNodeManager, identity,
+                                                        pCommIf) {}
 
-    // implement the synchronous call
-    UaStatus call(
-        const ServiceContext&  serviceContext,
-        MethodHandle*          pMethodHandle,
-        const UaVariantArray&  inputArguments,
-        UaVariantArray&        outputArguments,
-        UaStatusCodeArray&     inputArgumentResults,
-        UaDiagnosticInfos&     inputArgumentDiag);
+    UaNodeId typeDefinitionId() const override;
 
-    UaNodeId typeDefinitionId() const;
+    const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, OpcUa_Byte>>
+    getVariableDefs() { return MPESObject::VARIABLES; }
 
-private:
-    UaMethodGeneric* m_pMethodStart;
-    UaMethodGeneric* m_pMethodStop;
-    UaMethodGeneric* m_pMethodRead;
-    UaMethodGeneric* m_pMethodSetExposure;
+    const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean>>
+    getErrorDefs() { return MPESObject::ERRORS; }
+
+    const std::map<OpcUa_UInt32, std::pair<std::string, std::vector<std::tuple<std::string, UaNodeId, std::string>>>>
+    getMethodDefs() { return MPESObject::METHODS; }
+
+    /// @brief Map of OPC UA type ids for all child variables to their name, default value, is_state value, and access level.
+    static const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, OpcUa_Byte>> VARIABLES;
+
+    /// @brief Map of OPC UA type ids for all child error variables to their name, default value, and is_state value.
+    static const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean>> ERRORS;
+
+    /// @brief Map of OPC UA type ids for all child methods to their name and number of arguments.
+    static const std::map<OpcUa_UInt32, std::pair<std::string, std::vector<std::tuple<std::string, UaNodeId, std::string>>>> METHODS;
+
 };
 
 class ACTObject : public PasObject
@@ -150,22 +154,13 @@ class ACTObject : public PasObject
     UA_DISABLE_COPY(ACTObject);
 public:
     ACTObject(
-        const UaString& name,
-        const UaNodeId& newNodeId,
-        const UaString& defaultLocaleId,
-        PasNodeManagerCommon* pNodeManager,
-        Identity identity,
-        PasComInterfaceCommon *pCommIf);
-    virtual ~ACTObject(void);
-
-    // implement the synchronous call
-    UaStatus call(
-        const ServiceContext&  serviceContext,
-        MethodHandle*          pMethodHandle,
-        const UaVariantArray&  inputArguments,
-        UaVariantArray&        outputArguments,
-        UaStatusCodeArray&     inputArgumentResults,
-        UaDiagnosticInfos&     inputArgumentDiag);
+            const UaString& name,
+            const UaNodeId& newNodeId,
+            const UaString& defaultLocaleId,
+            PasNodeManagerCommon* pNodeManager,
+            Identity identity,
+            PasComInterfaceCommon *pCommIf) : PasObject(name, newNodeId, defaultLocaleId, pNodeManager, identity,
+                                                        pCommIf) {}
 
     UaNodeId typeDefinitionId() const;
 
@@ -194,26 +189,33 @@ class PSDObject : public PasObject
     UA_DISABLE_COPY(PSDObject);
 public:
     PSDObject(
-        const UaString& name,
-        const UaNodeId& newNodeId,
-        const UaString& defaultLocaleId,
-        PasNodeManagerCommon* pNodeManager,
-        Identity identity,
-        PasComInterfaceCommon *pCommIf);
-    virtual ~PSDObject(void);
-
-    UaStatus call(
-        const ServiceContext&  serviceContext,
-        MethodHandle*          pMethodHandle,
-        const UaVariantArray&  inputArguments,
-        UaVariantArray&        outputArguments,
-        UaStatusCodeArray&     inputArgumentResults,
-        UaDiagnosticInfos&     inputArgumentDiag);
+            const UaString& name,
+            const UaNodeId& newNodeId,
+            const UaString& defaultLocaleId,
+            PasNodeManagerCommon* pNodeManager,
+            Identity identity,
+            PasComInterfaceCommon *pCommIf) : PasObject(name, newNodeId, defaultLocaleId, pNodeManager, identity,
+                                                        pCommIf) {}
 
     UaNodeId typeDefinitionId() const;
 
-private:
-    UaMethodGeneric* m_pMethodUpdate;
+    const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, OpcUa_Byte>>
+    getVariableDefs() { return PSDObject::VARIABLES; }
+
+    const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean>>
+    getErrorDefs() { return PSDObject::ERRORS; }
+
+    const std::map<OpcUa_UInt32, std::pair<std::string, std::vector<std::tuple<std::string, UaNodeId, std::string>>>>
+    getMethodDefs() { return PSDObject::METHODS; }
+
+    /// @brief Map of OPC UA type ids for all child variables to their name, default value, is_state value, and access level.
+    static const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, OpcUa_Byte>> VARIABLES;
+
+    /// @brief Map of OPC UA type ids for all child error variables to their name, default value, and is_state value.
+    static const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean>> ERRORS;
+
+    /// @brief Map of OPC UA type ids for all child methods to their name and number of arguments.
+    static const std::map<OpcUa_UInt32, std::pair<std::string, std::vector<std::tuple<std::string, UaNodeId, std::string>>>> METHODS;
 };
 
 #endif

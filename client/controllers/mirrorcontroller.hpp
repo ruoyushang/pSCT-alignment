@@ -1,7 +1,7 @@
 #ifndef __PASMIRROR_H__
 #define __PASMIRROR_H__
 
-#include "pascontroller.h"
+#include "client/controllers/pascontroller.h"
 #include "TObject.h" // to be able to use ROOT's MINUIT implementation
 // these are included in pascontroller.h, but we add them just in case something changes there
 #include "stewartplatform.h"
@@ -12,7 +12,7 @@
 
 class AGeoAsphericDisk;
 
-class PasMirror; // need this forward declaration for the friend class
+class MirrorController; // need this forward declaration for the friend class
 
 // This is an interface to be able to use ROOT's MINUIT, which requires a static ChiSq function.
 // ROOT Requires that objects inherit from its TObject. I don't want such multiple inheritance
@@ -20,52 +20,56 @@ class PasMirror; // need this forward declaration for the friend class
 //
 // Making this a singleton to make sure this doesn't live longer than the actual compute --
 // otherwise the static m_pMirror may cause trouble
-class PasMirrorCompute : public TObject
+class MirrorControllerCompute : public TObject
 {
     public:
-        static PasMirrorCompute& getInstance(PasMirror *mirror) {
-            static PasMirrorCompute instance(mirror); // guarantees destruction
+    static MirrorControllerCompute &getInstance(MirrorController *mirror) {
+        static MirrorControllerCompute instance(mirror); // guarantees destruction
             return instance;
         }
 
-        ~PasMirrorCompute() { Mirror = nullptr; };
+    ~MirrorControllerCompute() { Mirror = nullptr; };
         // make sure we don't create accidental copies -- can't use assignment or copy constructor
-        PasMirrorCompute(PasMirrorCompute const&) = delete;
-        void operator=(PasMirrorCompute const&) = delete;
+        MirrorControllerCompute(MirrorControllerCompute const &) = delete;
+
+    void operator=(MirrorControllerCompute const &) = delete;
 
         // MINUIT interface
         static void chiSqFCN(int &npar, double *gin, double &f, double *par, int iflag);
 
         // and the mirror object accessed by the above
-        static PasMirror *Mirror;
+        static MirrorController *Mirror;
 
     private :
-        PasMirrorCompute(PasMirror *mirror) { Mirror = mirror; };
+    MirrorControllerCompute(MirrorController *mirror) { Mirror = mirror; };
 };
 
 
-class PasMirror : public PasCompositeController
-{
-    UA_DISABLE_COPY(PasMirror);
+class MirrorController : public PasCompositeController {
+    UA_DISABLE_COPY(MirrorController);
 public:
-    PasMirror(Identity identity);
-    virtual ~PasMirror();
+    MirrorController(Identity identity);
+
+    virtual ~MirrorController();
 
     // initialize and precompute everything
     bool Initialize();
 
     // same as before -- get/set status/data and Operate:
-    UaStatusCode getState(PASState& state);
-    UaStatusCode getData(OpcUa_UInt32 offset, UaVariant& value);
-    UaStatusCode setState(PASState state);
-    UaStatusCode setData(OpcUa_UInt32 offset, UaVariant value);
+    UaStatus getState(PASState &state);
+
+    UaStatus getData(OpcUa_UInt32 offset, UaVariant &value);
+
+    UaStatus setState(PASState state);
+
+    UaStatus setData(OpcUa_UInt32 offset, UaVariant value);
     UaStatusCode Operate(OpcUa_UInt32 offset = 0, const UaVariantArray &args = UaVariantArray());
 
     // own implementation
     void addChild(OpcUa_UInt32 deviceType, PasController *const pController);
 
     // let PasMirrorCompute access the internal chiSq function
-    friend void PasMirrorCompute::chiSqFCN(int &npar, double *gin, double &f, double *par, int iflag);
+    friend void MirrorControllerCompute::chiSqFCN(int &npar, double *gin, double &f, double *par, int iflag);
 
 protected:
     // compute chiSq for all panels given a perturbation to the mirror
@@ -89,8 +93,11 @@ private:
     // Align all edges fron need_alignment starting at start_idx and  moving in the direction dir
     void __alignAll(unsigned start_idx, const std::set<unsigned>& need_alignment, bool dir);
     void __alignSector();
+
+    void simulateAlignSector();
     void __alignGlobal(unsigned fixPanel);
-    void __move();
+
+    void __move(UaVariantArray args);
     // the children that we have selected to perform common actions on
     // if this is empty, no action is performed
     // maps deviceType->{indices of selected children in the m_pChildren.at(deviceType) vector}
@@ -99,7 +106,7 @@ private:
     std::map<unsigned, std::string> m_SelectedChildrenString;
 
     // mirror coords -- x/y/z, xRot, yRot, zRot
-    Eigen::VectorXd m_curCoords, m_curCoordsErr, m_inCoords, m_sysOffsetsMPES;
+    Eigen::VectorXd m_curCoords, m_curCoordsErr, m_sysOffsetsMPES;
     // map ring -> {MPES Position -> Systematic Offset}
     std::map<unsigned, std::map<unsigned, Eigen::VectorXd> > SystematicOffsetsMPESMap;
 

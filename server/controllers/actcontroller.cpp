@@ -116,7 +116,7 @@ UaStatus ActController::setError(OpcUa_UInt32 offset, UaVariant value) {
 }
 
 /// @details Locks shared mutex while operating device.
-UaStatus ActController::Operate(OpcUa_UInt32 offset, const UaVariantArray &args) {
+UaStatus ActController::operate(OpcUa_UInt32 offset, const UaVariantArray &args) {
     UaMutexLocker lock(&m_mutex); // Lock the object to prevent other actions while operating.
 
     UaStatus status;
@@ -132,7 +132,7 @@ UaStatus ActController::Operate(OpcUa_UInt32 offset, const UaVariantArray &args)
             if (args.length() != 1) {
                 return OpcUa_BadInvalidArgument;
             }
-            status = moveDelta(args);
+            status = moveToLength(args);
             break;
         default:
             status = OpcUa_BadInvalidArgument;

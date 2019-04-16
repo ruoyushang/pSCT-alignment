@@ -281,7 +281,7 @@ UaStatus PasCommunicationInterface::OperateDevice(
         OpcUa_UInt32 offset,
         const UaVariantArray &args) {
     try {
-        return m_pControllers.at(deviceType).at(identity)->Operate(offset, args);
+        return m_pControllers.at(deviceType).at(identity)->operate(offset, args);
     }
     catch (std::out_of_range) {
         return OpcUa_BadInvalidArgument;

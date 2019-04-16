@@ -58,7 +58,7 @@ public:
     /// @param offset A number used to uniquely identify the method to call.
     /// @param args Array of method arguments as UaVariants.
     /// @return OPC UA status code indicating success or failure.
-    UaStatus Operate(OpcUa_UInt32 offset, const UaVariantArray &args);
+    UaStatus operate(OpcUa_UInt32 offset, const UaVariantArray &args);
 
     /// @brief Update the controller's internal state to match the underlying Platform object's state.
     /// @return OPC UA status code indicating success or failure.

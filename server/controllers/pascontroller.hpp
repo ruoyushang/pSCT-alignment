@@ -71,7 +71,7 @@ public:
     /// @param args Array of method arguments as UaVariants.
     /// @return OPC UA status code indicating success or failure.
     virtual UaStatus
-    Operate(OpcUa_UInt32 offset, const UaVariantArray &args = UaVariantArray()) = 0; // Pure virtual function
+    operate(OpcUa_UInt32 offset, const UaVariantArray &args = UaVariantArray()) = 0; // Pure virtual function
 
 protected:
     /// @brief Shared mutex used to lock parallel access to controller variables.

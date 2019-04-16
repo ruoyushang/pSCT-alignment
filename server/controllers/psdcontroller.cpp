@@ -42,7 +42,7 @@ PSDController::~PSDController()
 }
 
 /// @details Calls GASPSD.getOutput() to read data. Locks the shared mutex to prevent concurrent actions while reading data.
-UaStatus PSDController::getData(OpcUa_UInt32 offset, UaVariant& value)
+UaStatus PSDController::getData(OpcUa_UInt32 offset, UaVariant &value)
 {
     UaMutexLocker lock(&m_mutex);
     UaStatus status;
@@ -68,7 +68,7 @@ UaStatus PSDController::setData(OpcUa_UInt32 offset, UaVariant value)
 }
 
 /// @details Locks the shared mutex to prevent concurrent actions while calling methods.
-UaStatus PSDController::Operate(OpcUa_UInt32 offset, const UaVariantArray& args)
+UaStatus PSDController::operate(OpcUa_UInt32 offset, const UaVariantArray &args)
 {
     UaMutexLocker lock(&m_mutex);
 

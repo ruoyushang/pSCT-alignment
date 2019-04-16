@@ -126,7 +126,7 @@ UaStatus PanelController::setData(OpcUa_UInt32 offset, UaVariant value) {
 
 /// @details Updates the state and then checks it before attempting to call any methods. When the state is FatalError or Busy, prevents panel operation.
 /// If the stop method is called, sets the platform state to off in order to halt any motion.
-UaStatus PanelController::Operate(OpcUa_UInt32 offset, const UaVariantArray &args) {
+UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &args) {
     UaStatus status;
 
     updateState(); // Update the current state
@@ -151,7 +151,7 @@ UaStatus PanelController::Operate(OpcUa_UInt32 offset, const UaVariantArray &arg
 
         m_state = PASState::Busy; // set the state immediately
 
-        std::array<float, 6> deltaLengths;
+        std::array<float, 6> deltaLengths{};
 
         UaVariant dL;
         for (int i = 0; i < 6; i++) {
@@ -180,7 +180,7 @@ UaStatus PanelController::Operate(OpcUa_UInt32 offset, const UaVariantArray &arg
 
         m_state = PASState::Busy; // set the state immediately
 
-        std::array<float, 6> lengths;
+        std::array<float, 6> lengths{};
         UaVariant len;
         for (int i = 0; i < 6; i++) {
             len = UaVariant(args[i]);

@@ -32,37 +32,72 @@ PasObject::PasObject(const UaString& name,
                   m_pCommIf(pCommIf),
                   m_pNodeManager(pNodeManager)
 {
-    OpcUa::DataItemType *pDataItem = NULL;
     UaStatus addStatus;
-    // Method helper
+    UaString sName;
+    UaString sNodeId;
+    UaPropertyMethodArgument *pPropertyArg;
+    UaUInt32Array nullarray;
     OpcUa_Int16 nsIdx = pNodeManager->getNameSpaceIndex();
-
-    //Store information needed to access device
-    //PasUserData* pUserData = new PasUserData(isState, ParentType, m_Identity, VarType);
-    //pDataItem->setUserData(pUserData);
-    //Change value handling to get read and write calls to the node manager
-    //pDataItem->setValueHandling(UaVariable_Value_Cache);
+    OpcUa::DataItemType *pDataItem;
 
     // Add all child variable nodes
-    /**
-    for (auto it = getVariableDefs().begin(); it != getVariableDefs().end(); it++) {
-        addVariable(pNodeManager, PAS_PanelType, it->first, std::get<2>(it->second));
+
+    for (auto &kv : getVariableDefs()) {
+        addVariable(pNodeManager, typeDefinitionId().identifierNumeric(), kv.first, std::get<2>(kv.second));
     }
 
     //Create the folder for the Errors
-    UaFolder *pErrorFolder = new UaFolder("Errors", UaNodeId((std::string(name.toUtf8()) + "_Errors").c_str(), nsIdx), m_defaultLocaleId);
+    UaFolder *pErrorFolder = new UaFolder("Errors", UaNodeId(
+            (std::to_string(typeDefinitionId().identifierNumeric()) + "_" + identity.eAddress + "_errors").c_str(),
+            nsIdx),
+                                          m_defaultLocaleId);
     addStatus = pNodeManager->addNodeAndReference(this, pErrorFolder, OpcUaId_Organizes);
     UA_ASSERT(addStatus.isGood());
 
     // Add all error variable nodes
     for (auto v : getErrorDefs()) {
-        pDataItem = addVariable(pNodeManager, PAS_ACTType, v.first);
+        pDataItem = addVariable(pNodeManager, typeDefinitionId().identifierNumeric(), v.first, OpcUa_False, false);
         addStatus = pNodeManager->addUaReference(pErrorFolder->nodeId(), pDataItem->nodeId(), OpcUaId_Organizes);
     }
-    */
+
+    // Add all child method nodes
+    for (auto &m : getMethodDefs()) {
+        sName = UaString(m.second.first.c_str());
+        sNodeId = UaString("%1.%2").arg(newNodeId.toString()).arg(sName);
+        m_MethodMap[UaNodeId(sNodeId, nsIdx)] = std::make_pair(
+                new UaMethodGeneric(sName, UaNodeId(sNodeId, nsIdx), m_defaultLocaleId), m.first);
+        addStatus = pNodeManager->addNodeAndReference(this, m_MethodMap[UaNodeId(sNodeId, nsIdx)].first,
+                                                      OpcUaId_HasComponent);
+        UA_ASSERT(addStatus.isGood());
+
+        // Add arguments
+        pPropertyArg = new UaPropertyMethodArgument(
+                UaNodeId((std::string(sNodeId.toUtf8()) + "_" + m.second.first + "_args").c_str(),
+                         nsIdx), // NodeId of the property
+                Ua_AccessLevel_CurrentRead,             // Access level of the property
+                m.second.second.size(),                                      // Number of arguments
+                UaPropertyMethodArgument::INARGUMENTS); // IN arguments
+        for (size_t i = 0; i < m.second.second.size(); i++) {
+            pPropertyArg->setArgument(
+                    (OpcUa_UInt32) i,                       // Index of the argument
+                    std::get<0>(m.second.second[i]).c_str(),   // Name of the argument
+                    std::get<1>(m.second.second[i]),// Data type of the argument
+                    -1,                      // Array rank of the argument
+                    nullarray,               // Array dimensions of the argument
+                    UaLocalizedText("en", (std::get<2>(m.second.second[i])).c_str())); // Description
+        }
+        addStatus = pNodeManager->addNodeAndReference(m_MethodMap[UaNodeId(sNodeId, nsIdx)].first, pPropertyArg,
+                                                      OpcUaId_HasProperty);
+        UA_ASSERT(addStatus.isGood());
+    }
 }
 
-PasObject::~PasObject() {}
+PasObject::~PasObject() {
+    if (m_pSharedMutex) {
+        m_pSharedMutex->releaseReference(); // Release our local reference
+        m_pSharedMutex = NULL;
+    }
+}
 
 OpcUa_Byte PasObject::eventNotifier() const
 {
@@ -100,6 +135,51 @@ UaStatus PasObject::beginCall(
     return ret;
 }
 
+UaStatus PasObject::call(
+        const ServiceContext &serviceContext,
+        MethodHandle *pMethodHandle,
+        const UaVariantArray &inputArguments,
+        UaVariantArray &outputArguments,
+        UaStatusCodeArray &inputArgumentResults,
+        UaDiagnosticInfos &inputArgumentDiag) {
+    UaStatus ret;
+    MethodHandleUaNode *pMethodHandleUaNode = static_cast<MethodHandleUaNode *>(pMethodHandle);
+    UaMethod *pMethod = NULL;
+
+    int numArgs;
+    OpcUa_UInt32 methodTypeID;
+
+    if (pMethodHandleUaNode) {
+        pMethod = pMethodHandleUaNode->pUaMethod();
+
+        if (m_MethodMap.find(pMethod->nodeId()) != m_MethodMap.end()) {
+            methodTypeID = m_MethodMap[pMethod->nodeId()].second;
+            numArgs = METHODS.at(methodTypeID).second.size();
+
+            if (inputArguments.length() != numArgs)
+                ret = OpcUa_BadInvalidArgument;
+
+            /**
+             * Type checking
+            for (int i = 0; i < METHODS.at(methodTypeID).second.size(); i++) {
+                if ( inputArguments[i].Datatype != std::get<3>(METHODS.at(methodTypeID).second[i])) {
+                    ret = OpcUa_BadInvalidArgument;
+                    inputArgumentResults[i] = OpcUa_BadTypeMismatch;
+                }
+            }
+            */
+            if (ret.isGood()) {
+                ret = m_pCommIf->OperateDevice(typeDefinitionId().identifierNumeric(), m_Identity, methodTypeID,
+                                               inputArguments);
+            }
+        } else {
+            ret = OpcUa_BadInvalidArgument;
+        }
+    } else {
+        ret = OpcUa_BadInvalidArgument;
+    }
+}
+
 OpcUa::DataItemType* PasObject::addVariable(PasNodeManagerCommon *pNodeManager, OpcUa_UInt32 ParentType, OpcUa_UInt32 VarType, OpcUa_Boolean isState, OpcUa_Boolean addReference)
 {
     // Get the instance declaration node used as base for this variable instance
@@ -124,8 +204,64 @@ OpcUa::DataItemType* PasObject::addVariable(PasNodeManagerCommon *pNodeManager, 
     return pDataItem;
 }
 
-// -------------------------------------------------------------------
-// Specialization: MPESObject Implementation
+
+const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, OpcUa_Byte>> MPESObject::VARIABLES = {
+        {PAS_PanelType_State,          std::make_tuple("State", UaVariant(0), OpcUa_True, Ua_AccessLevel_CurrentRead)},
+        {PAS_PanelType_ExtTemperature, std::make_tuple("ExternalTemperature", UaVariant(0.0), OpcUa_False,
+                                                       Ua_AccessLevel_CurrentRead)},
+        {PAS_PanelType_IntTemperature, std::make_tuple("InternalTemperature", UaVariant(0.0), OpcUa_False,
+                                                       Ua_AccessLevel_CurrentRead)}
+};
+
+const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean>> MPESObject::ERRORS = {
+};
+
+const std::map<OpcUa_UInt32, std::pair<std::string, std::vector<std::tuple<std::string, UaNodeId, std::string>>>> PanelObject::METHODS = {
+        {PAS_PanelType_MoveDeltaLengths, {"MoveDeltaLengths", {
+                                                                      std::make_tuple("Delta Length 1",
+                                                                                      UaNodeId(OpcUaId_Double),
+                                                                                      "Desired change in length for Actuator 1 (in mm)."),
+                                                                      std::make_tuple("Delta Length 2",
+                                                                                      UaNodeId(OpcUaId_Double),
+                                                                                      "Desired change in length for Actuator 2 (in mm)."),
+                                                                      std::make_tuple("Delta Length 3",
+                                                                                      UaNodeId(OpcUaId_Double),
+                                                                                      "Desired change in length for Actuator 3 (in mm)."),
+                                                                      std::make_tuple("Delta Length 4",
+                                                                                      UaNodeId(OpcUaId_Double),
+                                                                                      "Desired change in length for Actuator 4 (in mm)."),
+                                                                      std::make_tuple("Delta Length 5",
+                                                                                      UaNodeId(OpcUaId_Double),
+                                                                                      "Desired change in length for Actuator 5 (in mm)."),
+                                                                      std::make_tuple("Delta Length 6",
+                                                                                      UaNodeId(OpcUaId_Double),
+                                                                                      "Desired change in length for Actuator 6 (in mm)."),
+                                                              }}
+        },
+        {PAS_PanelType_MoveToLengths,    {"MoveToLengths",    {
+                                                                      std::make_tuple("Length Actuator 1",
+                                                                                      UaNodeId(OpcUaId_Double),
+                                                                                      "Target length for Actuator 1 (in mm)."),
+                                                                      std::make_tuple("Length Actuator 2",
+                                                                                      UaNodeId(OpcUaId_Double),
+                                                                                      "Target length for Actuator 2 (in mm)."),
+                                                                      std::make_tuple("Length Actuator 3",
+                                                                                      UaNodeId(OpcUaId_Double),
+                                                                                      "Target length for Actuator 3 (in mm)."),
+                                                                      std::make_tuple("Length Actuator 4",
+                                                                                      UaNodeId(OpcUaId_Double),
+                                                                                      "Target length for Actuator 4 (in mm)."),
+                                                                      std::make_tuple("Length Actuator 5",
+                                                                                      UaNodeId(OpcUaId_Double),
+                                                                                      "Target length for Actuator 5 (in mm)."),
+                                                                      std::make_tuple("Length Actuator 6",
+                                                                                      UaNodeId(OpcUaId_Double),
+                                                                                      "Target length for Actuator 6 (in mm)."),
+                                                              }}
+        },
+        {PAS_PanelType_Stop,             {"Stop",             {}}}
+};
+
 
 MPESObject::MPESObject(
     const UaString& name,

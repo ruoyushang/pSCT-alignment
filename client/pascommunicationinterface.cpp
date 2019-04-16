@@ -6,9 +6,9 @@
 #include "pascommunicationinterface.h"
 #include "configuration.h"
 #include "passervertypeids.h"
-#include "pascontroller.h"
-#include "pasmirror.h"
-#include "controlpositioner.h"
+#include "client/controllers/pascontroller.h"
+#include "client/controllers/pasmirror.h"
+#include "client/controllers/controlpositioner.h"
 #include "uadatetime.h"
 #include <dirent.h>
 #include <string>
@@ -375,7 +375,7 @@ UaStatus PasCommunicationInterface::OperateDevice(
     OpcUa_UInt32 offset, const UaVariantArray& args)
 {
     if (getDeviceFromId(type, identity) != nullptr)
-        return getDeviceFromId(type, identity)->Operate(offset, args);
+        return getDeviceFromId(type, identity)->operate(offset, args);
 
     return OpcUa_BadInvalidArgument;
 }

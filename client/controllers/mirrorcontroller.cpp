@@ -1,4 +1,4 @@
-#include "pasmirror.h"
+#include "mirrorcontroller.hpp"
 #include "mathtools.h"
 #include "mirrordefinitions.h" // definitions of the mirror surfaces
 #include "AGeoAsphericDisk.h" // ROBAST dependency
@@ -15,9 +15,9 @@ using namespace std;
 using namespace Eigen;
 using namespace SCT; // mirrordefinitions.h
 
-PasMirror *PasMirrorCompute::Mirror = nullptr;
+MirrorController *MirrorControllerCompute::Mirror = nullptr;
 
-PasMirror::PasMirror(Identity identity) : PasCompositeController(identity, nullptr),
+MirrorController::MirrorController(Identity identity) : PasCompositeController(identity, nullptr),
     m_pSurface(nullptr), m_AlignFrac(0.25)
 {
     string mirrorprefix;
@@ -35,7 +35,6 @@ PasMirror::PasMirror(Identity identity) : PasCompositeController(identity, nullp
     m_ChildrenTypes = {PAS_PanelType, PAS_EdgeType, PAS_MPESType};
 
     // define coordinate vectors -- these are of size 6
-    m_inCoords = VectorXd(6);
     m_curCoords = VectorXd(6);
     m_curCoordsErr = VectorXd(6);
     m_sysOffsetsMPES = VectorXd(6);
@@ -51,7 +50,7 @@ PasMirror::PasMirror(Identity identity) : PasCompositeController(identity, nullp
     };
 }
 
-void PasMirror::addChild(OpcUa_UInt32 deviceType, PasController *const pController)
+void MirrorController::addChild(OpcUa_UInt32 deviceType, PasController *const pController)
 {
     // call the base type's method
     PasCompositeController::addChild(deviceType, pController);
@@ -68,7 +67,7 @@ void PasMirror::addChild(OpcUa_UInt32 deviceType, PasController *const pControll
 }
 
 
-bool PasMirror::Initialize()
+bool MirrorController::Initialize()
 {
     cout << "\n\tInitializing " << m_ID.name << "..." << endl;
 
@@ -191,7 +190,7 @@ bool PasMirror::Initialize()
 }
 
 
-PasMirror::~PasMirror()
+MirrorController::~MirrorController()
 {
     m_pClient = nullptr; // this shouldn't have been changed anyway, but just in case
 
@@ -206,21 +205,21 @@ PasMirror::~PasMirror()
     m_state = PASState::Off;
 }
 
-UaStatusCode PasMirror::getState(PASState& state)
+UaStatus MirrorController::getState(PASState &state)
 {
     UaMutexLocker lock(&m_mutex);
     state = m_state;
     return OpcUa_Good;
 }
 
-UaStatusCode PasMirror::setState(PASState state)
+UaStatus MirrorController::setState(PASState state)
 {
     UaMutexLocker lock(&m_mutex);
     m_state = state;
     return OpcUa_Good;
 }
 
-UaStatusCode PasMirror::getData(OpcUa_UInt32 offset, UaVariant& value)
+UaStatus MirrorController::getData(OpcUa_UInt32 offset, UaVariant &value)
 {
     UaMutexLocker lock(&m_mutex);
 
@@ -229,10 +228,6 @@ UaStatusCode PasMirror::getData(OpcUa_UInt32 offset, UaVariant& value)
         __updateCoords();
         int dataoffset = offset - PAS_MirrorType_curCoords_x;
         value.setDouble(m_curCoords(dataoffset));
-    }
-    else if (offset >= PAS_MirrorType_inCoords_x && offset <= PAS_MirrorType_inCoords_zRot) {
-        int dataoffset = offset - PAS_MirrorType_inCoords_x;
-        value.setDouble(m_inCoords(dataoffset));
     }
     else if (offset >= PAS_MirrorType_sysOffsetsMPES_x1 && offset <= PAS_MirrorType_sysOffsetsMPES_y3) {
         int dataoffset = offset - PAS_MirrorType_sysOffsetsMPES_x1;
@@ -252,15 +247,12 @@ UaStatusCode PasMirror::getData(OpcUa_UInt32 offset, UaVariant& value)
     return OpcUa_Good;
 }
 
-UaStatusCode PasMirror::setData(OpcUa_UInt32 offset, UaVariant value)
+UaStatus MirrorController::setData(OpcUa_UInt32 offset, UaVariant value)
 {
     UaMutexLocker lock(&m_mutex);
 
-    if (offset >= PAS_MirrorType_inCoords_x && offset <= PAS_MirrorType_inCoords_zRot) {
-        int dataoffset = offset - PAS_MirrorType_inCoords_x;
-        value.toDouble(m_inCoords(dataoffset));
-    }
-    else if (offset >= PAS_MirrorType_sysOffsetsMPES_x1 && offset <= PAS_MirrorType_sysOffsetsMPES_y3) {
+
+    if (offset >= PAS_MirrorType_sysOffsetsMPES_x1 && offset <= PAS_MirrorType_sysOffsetsMPES_y3) {
         int dataoffset = offset - PAS_MirrorType_sysOffsetsMPES_x1;
         value.toDouble(m_sysOffsetsMPES(dataoffset));
     }
@@ -288,7 +280,7 @@ UaStatusCode PasMirror::setData(OpcUa_UInt32 offset, UaVariant value)
     return OpcUa_Good;
 }
 
-UaStatusCode PasMirror::Operate(OpcUa_UInt32 offset, const UaVariantArray &args)
+UaStatusCode MirrorController::Operate(OpcUa_UInt32 offset, const UaVariantArray &args)
 {
     UaMutexLocker lock(&m_mutex);
 
@@ -296,14 +288,10 @@ UaStatusCode PasMirror::Operate(OpcUa_UInt32 offset, const UaVariantArray &args)
      * Move the whole mirror in the telescope reference frame *
      * ********************************************************/
     if (offset == PAS_MirrorType_MoveToCoords)
-        __move();
+        __move(args);
 
-    /**********************************************************
-     * Move the selected sector                                *
-     * ********************************************************/
-    if (offset == PAS_MirrorType_MoveSector) {
-        for (unsigned idx : m_SelectedChildren.at(PAS_PanelType))
-            m_pChildren.at(PAS_PanelType).at(idx)->Operate(PAS_PanelType_MoveToLengths,);
+    if (offset == PAS_MirrorType_SimulateAlignSector) {
+        simulateAlignSector();
     }
 
     /**********************************************************
@@ -378,17 +366,22 @@ UaStatusCode PasMirror::Operate(OpcUa_UInt32 offset, const UaVariantArray &args)
     /**********************************************************
      * Read out all current edge sensors                      *
      * ********************************************************/
-    else if (offset == PAS_MirrorType_ReadAlign)
-        __readAlignmentAll();
+    else if (offset == PAS_MirrorType_ReadAlign) {
+        for (const auto &idx : m_SelectedChildren.at(PAS_EdgeType))
+            m_pChildren.at(PAS_EdgeType).at(idx)->Operate(PAS_EdgeType_Read);
+    }
 
     /************************************************
      * stop the motion in progress                  *
      * **********************************************/
-    else if (offset == PAS_MirrorType_Stop)
-        __stopAll();
-
-    else
+    else if (offset == PAS_MirrorType_Stop) {
+        cout << m_ID.name << "::Operate() : Attempting to gracefully stop all motions." << endl;
+        for (const auto &idx: m_SelectedChildren.at(PAS_PanelType)) {
+            m_pChildren.at(PAS_PanelType).at(idx)->Operate(PAS_PanelType_Stop);
+        }
+    } else {
         return OpcUa_BadNotImplemented;
+    }
 
     return OpcUa_Good;
 }
@@ -396,31 +389,13 @@ UaStatusCode PasMirror::Operate(OpcUa_UInt32 offset, const UaVariantArray &args)
 
 /* ================= INTERNAL IMPLEMENTATIONS OF ALL METHODS ================== */
 
-void PasMirror::__stopAll()
-{
-    auto type = PAS_PanelType;
-    cout << m_ID.name << "::Operate() : Attempting to gracefully stop all motions." << endl;
-    for (const auto& idx: m_SelectedChildren.at(type))
-        m_pChildren.at(type).at(idx)->Operate(PAS_PanelType_Stop);
-}
+void MirrorController::__readPositionAll() {
+    for (const auto &idx : m_SelectedChildren.at(PAS_PanelType)) {
+        m_pChildren.at(PAS_PanelType).at(idx)->Operate(PAS_PanelType_ReadAll);
 
-void PasMirror::__readAlignmentAll()
-{
-    auto type = PAS_EdgeType;
-    for (const auto& idx : m_SelectedChildren.at(type))
-        m_pChildren.at(type).at(idx)->Operate(PAS_EdgeType_Read);
-}
+        auto pos = m_pChildren.at(PAS_PanelType).at(idx)->getId().position;
 
-
-void PasMirror::__readPositionAll()
-{
-    auto type = PAS_PanelType;
-    for (const auto& idx : m_SelectedChildren.at(type)) {
-        m_pChildren.at(type).at(idx)->Operate(PAS_PanelType_ReadAll);
-
-        auto pos = m_pChildren.at(type).at(idx)->getId().position;
-
-        auto padCoordsActs = static_cast<PasPanel *>(m_pChildren.at(type).at(idx))->getPadCoords();
+        auto padCoordsActs = static_cast<PasPanel *>(m_pChildren.at(PAS_PanelType).at(idx))->getPadCoords();
         cout << "Panel frame pad coordinates:\n" << padCoordsActs << endl;
         // and transform this to the telescope reference frame:
         // these are pad coordinates in TRF as computed from actuator lengths
@@ -430,21 +405,23 @@ void PasMirror::__readPositionAll()
     }
 }
 
-void PasMirror::__move()
-{
+void MirrorController::__move(UaVariantArray args) {
+    Eigen::VectorXd targetMirrorCoords;
+    for (int i = 0; i < 6; i++) {
+        UaVariant(args[i]).toDouble(targetMirrorCoords[i]);
+    }
 
     cout << "\t\t*** MOVING MIRROR " << m_ID.position << " BY THE FOLLOWING AMOUNT :\n"
-        << m_inCoords << endl;
+         << targetMirrorCoords << endl;
 
     PasController *pCurObject;
 
-    auto type = PAS_PanelType;
+    UaVariantArray targetPanelCoords;
     unsigned curpos;
     VectorXd prf_coords;
-    const auto& childrenSet = m_SelectedChildren.at(type);
-    UaVariantArray args;
+    const auto &childrenSet = m_SelectedChildren.at(PAS_PanelType);
     for (const auto& idx : childrenSet) {
-        pCurObject = m_pChildren.at(type).at(idx);
+        pCurObject = m_pChildren.at(PAS_PanelType).at(idx);
         curpos = pCurObject->getId().position;
         cout << "Panel " << curpos << ":" << endl;
         static_cast<PasPanel *>(pCurObject)->Operate(PAS_PanelType_ReadAll);
@@ -458,7 +435,7 @@ void PasMirror::__move()
             // transform to TRF
             padCoords_TelRF.col(pad) = __toTelRF(curpos, padCoords_PanelRF.col(pad));
             // move by the desired telescope coordinates
-            padCoords_TelRF.col(pad) = __moveInCurrentRF(padCoords_TelRF.col(pad), m_inCoords);
+            padCoords_TelRF.col(pad) = __moveInCurrentRF(padCoords_TelRF.col(pad), targetMirrorCoords);
             // transform back to PRF
             padCoords_PanelRF.col(pad) = __toPanelRF(curpos, padCoords_TelRF.col(pad));
             for (unsigned coord = 0; coord < 3; coord++)
@@ -474,15 +451,15 @@ void PasMirror::__move()
 
         double curcoord;
         UaVariant val;
-        args.create(6);
+        targetPanelCoords.create(6);
         cout << "\tNew Coords:";
         for (int i = 0; i < 6; i++) {
             curcoord = m_SP.GetPanelCoords()[i];
             cout << " " << curcoord;
-            args[i] = UaVariant(curcoord)[0];
+            targetPanelCoords[i] = UaVariant(curcoord)[0];
         };
         cout << endl << endl;
-        pCurObject->Operate(PAS_PanelType_MoveToCoords, args);
+        pCurObject->Operate(PAS_PanelType_MoveToCoords, targetPanelCoords);
     }
     // we have populated all the values, now start moving.
     // this is done as its own loop so that all the = panels move simulataneously.
@@ -491,7 +468,7 @@ void PasMirror::__move()
 }
 
 // Align all edges between start_idx and end_idx moving in the direction dir
-void PasMirror::__alignAll(unsigned start_idx, const set<unsigned>& need_alignment, bool dir)
+void MirrorController::__alignAll(unsigned start_idx, const set<unsigned> &need_alignment, bool dir)
 {
     // we need to traverse the mirror in the correct order of edges.
     // dir = 0 decreases panel position (+z rotation);
@@ -530,7 +507,6 @@ void PasMirror::__alignAll(unsigned start_idx, const set<unsigned>& need_alignme
             m_pChildren.at(PAS_EdgeType).at(edge)->Operate(PAS_EdgeType_Align, alignPanels);
             while (!static_cast<PasEdge *>(m_pChildren.at(PAS_EdgeType).at(edge))->isAligned()) {
                 cout << "\nAlignment Iteration " << aligniter << endl << endl;
-                m_pChildren.at(PAS_EdgeType).at(edge)->Operate(PAS_EdgeType_Move);
                 usleep(400*1000); // microseconds
 
                 PASState curstate;
@@ -559,7 +535,7 @@ void PasMirror::__alignAll(unsigned start_idx, const set<unsigned>& need_alignme
     }
 }
 
-void PasMirror::__updateSelectedChildren(unsigned deviceType)
+void MirrorController::__updateSelectedChildren(unsigned deviceType)
 {
     // clear the current list
     m_SelectedChildren[deviceType].clear();
@@ -623,12 +599,12 @@ void PasMirror::__updateSelectedChildren(unsigned deviceType)
     cout << endl << endl;
 }
 
-void PasMirror::__updateCoords()
+void MirrorController::__updateCoords()
 {
     // minimize chisq and get telescope coordinates
     TMinuit *minuit = new TMinuit(6); // 6 parameters for 6 telescope coords
     minuit->SetPrintLevel(-1); // suppress all output
-    minuit->SetFCN(PasMirrorCompute::getInstance(this).chiSqFCN);
+    minuit->SetFCN(MirrorControllerCompute::getInstance(this).chiSqFCN);
     // mnparm implements parameter definition:
     // void mnparm(I index, S "name", D start, D step, D LoLim, D HiLim, I& errflag)
     int ierflg;
@@ -659,7 +635,7 @@ void PasMirror::__updateCoords()
     return;
 }
 
-MatrixXd PasMirror::__computeSystematicsMatrix(unsigned pos1, unsigned pos2)
+MatrixXd MirrorController::__computeSystematicsMatrix(unsigned pos1, unsigned pos2)
 {
     // find influence of moving panel at pos1 on the panel at pos2
     MatrixXd res(6,6);
@@ -732,8 +708,7 @@ MatrixXd PasMirror::__computeSystematicsMatrix(unsigned pos1, unsigned pos2)
     return res;
 }
 
-
-void PasMirror::__alignSector()
+void MirrorController::simulateAlignSector()
 {
     // following the align method for an edge:
     MatrixXd C; // constraint
@@ -763,7 +738,7 @@ void PasMirror::__alignSector()
             unsigned overlap = 0;
             for (const auto& overlapPanel : panelsToMove)
                 overlap += (static_cast<PasMPES *>(mpes)->getPanelSide(overlapPanel->getId().position) != 0);
-        
+
             if (overlap == 2) {
                 idx = m_ChildrenIdentityMap.at(PAS_MPESType).at(mpes->getId());
                 if (!overlapIndices.count(idx)) {
@@ -823,14 +798,14 @@ void PasMirror::__alignSector()
         alignMPES.at(m)->getData(PAS_MPESType_yCentroidAvg, vtmp);
         vtmp.toDouble(curRead(m*2 + 1));
         targetRead.segment(2*m, 2) = alignMPES.at(m)->getAlignedReadings()
-                                           - alignMPES.at(m)->getSystematicOffsets();
+                                     - alignMPES.at(m)->getSystematicOffsets();
 
         for (int p = 0; p < panelsToMove.size(); p++) {
             auto panelSide = alignMPES.at(m)->getPanelSide(panelsToMove.at(p)->getId().position);
             if (panelSide)
                 responseMat = alignMPES.at(m)->getResponseMatrix(panelSide);
             else
-                responseMat.setZero(); 
+                responseMat.setZero();
             B.block(2*m, 6*p, 2, 6) = responseMat;
         }
     }
@@ -839,7 +814,7 @@ void PasMirror::__alignSector()
     // make sure we have enough constraints to solve this
     if (Y.size() < B.cols()) {
         cout << "+++ ERROR! +++ There are " << B.rows()/2 << " sensors and " << B.cols()
-            << " actuators -- not enough sensors to constrain the motion. Won't do anything!" << endl;
+             << " actuators -- not enough sensors to constrain the motion. Won't do anything!" << endl;
         return;
     }
 
@@ -848,7 +823,7 @@ void PasMirror::__alignSector()
     }
     catch (...) {
         cout << "+++ WARNING! +++ Failed to perform Singular Value Decomposition. "
-            << "Check your sensor readings! Discarding this result!" << endl;
+             << "Check your sensor readings! Discarding this result!" << endl;
         return;
     }
 
@@ -868,7 +843,7 @@ void PasMirror::__alignSector()
         auto nACT = pCurPanel->getActuatorCount();
         // print out to make sure
         cout << "Will move actuators of "
-            << pCurPanel->getId().name << " by\n" << X.segment(j, 6) << endl;
+             << pCurPanel->getId().name << " by\n" << X.segment(j, 6) << endl;
 
         UaVariantArray deltas;
         deltas.create(nACT);
@@ -880,8 +855,153 @@ void PasMirror::__alignSector()
 }
 
 
+void MirrorController::__alignSector() {
+    // following the align method for an edge:
+    MatrixXd C; // constraint
+    MatrixXd B; // complete matrix
 
-void PasMirror::__alignGlobal(unsigned fixPanel)
+    VectorXd X; // solutions vector -- this moves actuators
+    VectorXd Y; // sensor misalignment vector, we want to fit this
+
+    // grab all user specified panels to move and sensors to fit
+    vector<PasPanel *> panelsToMove;
+    vector<PasMPES *> alignMPES;
+    for (unsigned idx : m_SelectedChildren.at(PAS_PanelType))
+        panelsToMove.push_back(static_cast<PasPanel *>(m_pChildren.at(PAS_PanelType).at(idx)));
+    for (unsigned idx : m_SelectedChildren.at(PAS_MPESType)) {
+        PasMPES *mpes = static_cast<PasMPES *>(m_pChildren.at(PAS_MPESType).at(idx));
+        mpes->Operate();
+        if (mpes->isVisible())
+            alignMPES.push_back(mpes);
+    }
+
+    // get the overlapping sensors -- these are the constraining internal ones
+    set<unsigned> overlapIndices;
+    unsigned idx;
+    bool userOverlap = false;
+    for (const auto &panel : panelsToMove) {
+        for (const auto &mpes : panel->getChildren(PAS_MPESType)) {
+            unsigned overlap = 0;
+            for (const auto &overlapPanel : panelsToMove)
+                overlap += (static_cast<PasMPES *>(mpes)->getPanelSide(overlapPanel->getId().position) != 0);
+
+            if (overlap == 2) {
+                idx = m_ChildrenIdentityMap.at(PAS_MPESType).at(mpes->getId());
+                if (!overlapIndices.count(idx)) {
+                    overlapIndices.insert(idx);
+                    if (count(alignMPES.begin(), alignMPES.end(), mpes)) {
+                        cout << "You specified the following internal MPES: " << mpes->getId().serialNumber << endl;
+                        userOverlap = true;
+                    }
+                }
+            }
+        }
+    }
+
+    // if no user specified overlapping sensors, get their readings
+    if (!userOverlap && overlapIndices.size() > 0) {
+        cout << "\nNo user-speficied internal MPES." << endl;
+        cout << "Reading the automatically identfied internal MPES:" << endl;
+        // only read the internal MPES if no user-specified ones have been found
+        for (const auto &idx: overlapIndices) {
+            PasMPES *mpes = static_cast<PasMPES *>(m_pChildren.at(PAS_MPESType).at(idx));
+            mpes->Operate();
+            if (mpes->isVisible())
+                alignMPES.push_back(mpes);
+        }
+    } else if (overlapIndices.size() == 0)
+        cout << "\nIdentified NO internal MPES. Are you alignining a single panel?";
+    else
+        cout << "\nWill be using user-specified internal MPES.";
+    cout << endl;
+
+
+    cout << "Will align the following panels:" << endl;
+    for (auto &panel : panelsToMove)
+        cout << panel->getId().position << " ";
+    cout << endl;
+    cout << "Will use the following sensors for alignment:" << endl;
+    for (auto &mpes: alignMPES)
+        cout << mpes->getId().serialNumber << " ";
+    cout << endl;
+
+    // construct the overall target vector and the response matrix
+    UaVariant vtmp;
+    // store the current readings and the target readings
+    VectorXd curRead(2 * alignMPES.size());
+    VectorXd targetRead(2 * alignMPES.size());
+    // store individual response matrix;
+    MatrixXd responseMat(2, 6);
+
+    unsigned nCols = 6 * panelsToMove.size();
+    unsigned nRows = 2 * alignMPES.size();
+    B = MatrixXd(nRows, nCols);
+    Y = VectorXd(nRows);
+    for (int m = 0; m < alignMPES.size(); m++) {
+        alignMPES.at(m)->getData(PAS_MPESType_xCentroidAvg, vtmp);
+        vtmp.toDouble(curRead(m * 2));
+        alignMPES.at(m)->getData(PAS_MPESType_yCentroidAvg, vtmp);
+        vtmp.toDouble(curRead(m * 2 + 1));
+        targetRead.segment(2 * m, 2) = alignMPES.at(m)->getAlignedReadings()
+                                       - alignMPES.at(m)->getSystematicOffsets();
+
+        for (int p = 0; p < panelsToMove.size(); p++) {
+            auto panelSide = alignMPES.at(m)->getPanelSide(panelsToMove.at(p)->getId().position);
+            if (panelSide)
+                responseMat = alignMPES.at(m)->getResponseMatrix(panelSide);
+            else
+                responseMat.setZero();
+            B.block(2 * m, 6 * p, 2, 6) = responseMat;
+        }
+    }
+    Y = targetRead - curRead;
+
+    // make sure we have enough constraints to solve this
+    if (Y.size() < B.cols()) {
+        cout << "+++ ERROR! +++ There are " << B.rows() / 2 << " sensors and " << B.cols()
+             << " actuators -- not enough sensors to constrain the motion. Won't do anything!" << endl;
+        return;
+    }
+
+    try {
+        X = B.jacobiSvd(ComputeThinU | ComputeThinV).solve(Y);
+    }
+    catch (...) {
+        cout << "+++ WARNING! +++ Failed to perform Singular Value Decomposition. "
+             << "Check your sensor readings! Discarding this result!" << endl;
+        return;
+    }
+
+    cout << "\nThe vector to solve for is\n" << Y << endl;
+    cout << "\nThe matrix to solve with is\n" << B << endl;
+    cout << "\nThe least squares solution is\n" << X << endl;
+
+    if (m_AlignFrac < 1.) {
+        cout << "+++ WARNING +++ You requested fractional motion: will move fractionally by " << m_AlignFrac
+             << " of the above:" << endl;
+        X *= m_AlignFrac;
+        cout << X << endl;
+    }
+
+    /* MOVE ACTUATORS */
+    unsigned j = 0;
+    for (auto &pCurPanel : panelsToMove) {
+        auto nACT = pCurPanel->getActuatorCount();
+        // print out to make sure
+        cout << "Will move actuators of "
+             << pCurPanel->getId().name << " by\n" << X.segment(j, 6) << endl;
+
+        UaVariantArray deltas;
+        deltas.create(nACT);
+        for (unsigned i = 0; i < nACT; i++)
+            deltas[i].Value.Float = X(j++); // X has dimension of 6*nPanelsToMove !
+
+        pCurPanel->Operate(PAS_PanelType_MoveDeltaLengths, deltas);
+    }
+}
+
+
+void MirrorController::__alignGlobal(unsigned fixPanel)
 {
     // we want to fit all sensors simultaneously while constraining the motion of 'fixPanel'
 
@@ -1057,7 +1177,7 @@ void PasMirror::__alignGlobal(unsigned fixPanel)
         cout << "\n+++ WARNING +++ You requested fractional motion: will move fractionally by "
             << m_AlignFrac << " of the computed displacement" << endl;
 
-    // loop through panels and set the dispalements
+    // loop through panels and set the displacements
     /* MOVE ACTUATORS */
     // remember to update selected panels too
     m_SelectedChildrenString.at(PAS_PanelType) = "";
@@ -1079,15 +1199,13 @@ void PasMirror::__alignGlobal(unsigned fixPanel)
     // remember to update selected panels
     __updateSelectedChildren(PAS_PanelType);
 
-    cout << "Target actuator lengths set, you can move the panels now by calling .moveSector()" << endl;
-
     return;
 }
 
 /* =========== Coordinate Transformations =========== */
 
 // get the angular offset of this panel from our ideal one for which everything is precomputed
-double PasMirror::__getAzOffset(unsigned pos)
+double MirrorController::__getAzOffset(unsigned pos)
 {
     // we have the ideal origin and norm of the "nominal" panel.
     // Need to identify the current panel placement and transform accordingly
@@ -1110,7 +1228,7 @@ double PasMirror::__getAzOffset(unsigned pos)
 }
 
 
-Vector3d PasMirror::__toPanelRF(unsigned pos, Vector3d in_coords)
+Vector3d MirrorController::__toPanelRF(unsigned pos, Vector3d in_coords)
 {
     // all angles in radians
 
@@ -1125,7 +1243,7 @@ Vector3d PasMirror::__toPanelRF(unsigned pos, Vector3d in_coords)
     return panelFrame.transpose() * (in_coords - panelOrigin);
 }
 
-Vector3d PasMirror::__toTelRF(unsigned pos, Vector3d in_coords)
+Vector3d MirrorController::__toTelRF(unsigned pos, Vector3d in_coords)
 {
     // all angles in radians
     // The inverse of the above
@@ -1142,7 +1260,7 @@ Vector3d PasMirror::__toTelRF(unsigned pos, Vector3d in_coords)
     return panelFrame * in_coords + panelOrigin;
 }
 
-Matrix3d PasMirror::__rotMat(int axis, double a)
+Matrix3d MirrorController::__rotMat(int axis, double a)
 {
     double c = cos(a);
     double s = sin(a);
@@ -1164,7 +1282,7 @@ Matrix3d PasMirror::__rotMat(int axis, double a)
     return rot;
 }
 
-Vector3d PasMirror::__moveInCurrentRF(Vector3d in_vec, VectorXd tr_coords)
+Vector3d MirrorController::__moveInCurrentRF(Vector3d in_vec, VectorXd tr_coords)
 {
     // check that we have 6 coords. if not, resize if necessary
     VectorXd tr(6);
@@ -1185,7 +1303,7 @@ Vector3d PasMirror::__moveInCurrentRF(Vector3d in_vec, VectorXd tr_coords)
 
 
 /* ============== MINUIT INTERFACE ============== */
-double PasMirror::chiSq(VectorXd telDelta)
+double MirrorController::chiSq(VectorXd telDelta)
 {
     // tel delta is a perturbation to the coordinates of the mirror
     double chiSq = 0.;
@@ -1225,7 +1343,7 @@ double PasMirror::chiSq(VectorXd telDelta)
     return chiSq;
 }
 
-void PasMirrorCompute::chiSqFCN(int &npar, double *gin, double &f, double *par, int iflag) // MINUIT interface
+void MirrorControllerCompute::chiSqFCN(int &npar, double *gin, double &f, double *par, int iflag) // MINUIT interface
 {
     Matrix<double, 6, 1> vecPars(par);
     f = Mirror->chiSq(vecPars);

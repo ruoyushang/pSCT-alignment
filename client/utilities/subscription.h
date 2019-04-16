@@ -8,9 +8,9 @@
 #ifndef __SUBSCRIPTION_H__
 #define __SUBSCRIPTION_H__
 
-#include "uabase.h"
+#include "uabase/uabase.h"
 #include "uaclient/uaclientsdk.h"
-#include "configuration.h"
+#include "client/utilities/configuration.h"
 
 /// @brief Class to manage subscriptions to OPC UA nodes. Wraps the standard
 /// UaSubscription and UaSubscriptionCallback classes and takes a configuration
@@ -24,7 +24,7 @@ public:
     /// object, used to get a list of OPC UA nodes to monitor.
     Subscription(Configuration* pConfiguration);
     /// @brief Destructor for a Subscription object.
-    virtual ~Subscription();
+    ~Subscription() override;
 
     // UaSubscriptionCallback implementation ----------------------------------------------------
 
@@ -35,9 +35,9 @@ public:
     /// subscription which failed.
     /// @param status OPC UA status code which indicates the status of the
     /// subscription.
-    virtual void subscriptionStatusChanged(
-        OpcUa_UInt32      clientSubscriptionHandle,
-        const UaStatus&   status);
+    void subscriptionStatusChanged(
+            OpcUa_UInt32      clientSubscriptionHandle,
+            const UaStatus &status) override;
     /// @brief Callback function called when a monitored node has a data change.
     /// @param clientSubscriptionHandle Unique handle which identifies the
     /// subscription which had the data change.
@@ -45,19 +45,19 @@ public:
     /// last publishing period).
     /// @param diagnosticInfos List of additional diagnostic info about the
     /// data change notifications
-    virtual void dataChange(
-        OpcUa_UInt32               clientSubscriptionHandle,
-        const UaDataNotifications& dataNotifications,
-        const UaDiagnosticInfos&   diagnosticInfos);
+    void dataChange(
+            OpcUa_UInt32               clientSubscriptionHandle,
+            const UaDataNotifications& dataNotifications,
+            const UaDiagnosticInfos &diagnosticInfos) override;
     /// @brief Callback function called when an OPC UA event occurs at a
     /// monitored node.
     /// @param clientSubscriptionHandle Unique handle which identifies the
     /// subscription which received the event.
     /// @param eventFieldList List of event notifications (since the
     /// last publishing period).
-    virtual void newEvents(
-        OpcUa_UInt32                clientSubscriptionHandle,
-        UaEventFieldLists&          eventFieldList);
+    void newEvents(
+            OpcUa_UInt32                clientSubscriptionHandle,
+            UaEventFieldLists &eventFieldList) override;
 
     // UaSubscriptionCallback implementation ----------------------------------
 

@@ -28,11 +28,11 @@
 // Instance declaration
 #define PAS_MirrorType_State                         101
 #define PAS_MirrorType_ReadPos                       111
-#define PAS_MirrorType_MoveToCoords                 112
+#define PAS_MirrorType_MoveToCoords                  112
 #define PAS_MirrorType_ReadAlign                     113
 #define PAS_MirrorType_Align                         114
 #define PAS_MirrorType_AlignSector                   115
-#define PAS_MirrorType_MoveSector                    116
+#define PAS_MirrorType_SimulateAlignSector           116
 #define PAS_MirrorType_GlobalAlign                   117
 #define PAS_MirrorType_Stop                          120
 #define PAS_MirrorType_curCoords_x                   121
@@ -41,12 +41,6 @@
 #define PAS_MirrorType_curCoords_xRot                124
 #define PAS_MirrorType_curCoords_yRot                125
 #define PAS_MirrorType_curCoords_zRot                126
-#define PAS_MirrorType_inCoords_x                    131
-#define PAS_MirrorType_inCoords_y                    132
-#define PAS_MirrorType_inCoords_z                    133
-#define PAS_MirrorType_inCoords_xRot                 134
-#define PAS_MirrorType_inCoords_yRot                 135
-#define PAS_MirrorType_inCoords_zRot                 136
 #define PAS_MirrorType_sysOffsetsMPES_x1             137
 #define PAS_MirrorType_sysOffsetsMPES_y1             138
 #define PAS_MirrorType_sysOffsetsMPES_x2             139
@@ -64,14 +58,10 @@
 #define PAS_EdgeType                                1000
 // Instance declaration
 #define PAS_EdgeType_State                          1001
-#define PAS_EdgeType_StepSize                       1002
-#define PAS_EdgeType_AlignFrac                      1003
 #define PAS_EdgeType_FindMatrix                     1011
 #define PAS_EdgeType_Align                          1012
-#define PAS_EdgeType_Move                           1013
-#define PAS_EdgeType_Read                           1014
-#define PAS_EdgeType_Stop                           1020
-#define PAS_EdgeType_Align_InPanel                  1021
+#define PAS_EdgeType_Read                           1013
+#define PAS_EdgeType_Stop                           1014
 //----------------------------------------------------------//
 // MPES Type
 #define PAS_MPESType                                1100

@@ -6,10 +6,10 @@
 #include "pasnodemanagercommon.h"
 #include "components.h"
 #include "pasobject.h"
-#include "gasobject.h"
-#include "mirrorobject.h"
-#include "panelobject.h"
-#include "edgeobject.h"
+#include "client/objects/gasobject.h"
+#include "client/objects/mirrorobject.h"
+#include "client/objects/panelobject.h"
+#include "client/objects/edgeobject.h"
 
 PasObject* PasObjectFactory::Create(
         unsigned deviceType,

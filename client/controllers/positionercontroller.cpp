@@ -3,7 +3,7 @@
 **
 ** Description: implementation of Positioner.
 ******************************************************************************/
-#include "controlpositioner.h"
+#include "positionercontroller.hpp"
 #include "passervertypeids.h"
 #include "clienthelper.h"
 #include "components.h"
@@ -20,12 +20,12 @@
     Begin Class    ControlPositioner
     constructors / destructors
 -----------------------------------------------------------------------------*/
-ControlPositioner::ControlPositioner(Identity identity, Client *pClient) : PasController(identity, pClient)
+PositionerController::PositionerController(Identity identity, Client *pClient) : PasController(identity, pClient)
 {
     m_state = PASState::GLOB_Positioner_notMoving;
-} 
+}
 
-ControlPositioner::~ControlPositioner()
+PositionerController::~PositionerController()
 {
     m_pClient = nullptr;
     m_state = PASState::GLOB_Positioner_notMoving;
@@ -35,7 +35,7 @@ ControlPositioner::~ControlPositioner()
     Method       getState
     Description  Get Controller status.
 -----------------------------------------------------------------------------*/
-UaStatusCode ControlPositioner::getState(PASState& state)
+UaStatus PositionerController::getState(PASState &state)
 {
     UaStatus status;
     UaMutexLocker lock(&m_mutex);
@@ -59,7 +59,7 @@ UaStatusCode ControlPositioner::getState(PASState& state)
     Method       setState
     Description  Set Controller status.
 -----------------------------------------------------------------------------*/
-UaStatusCode ControlPositioner::setState(PASState state)
+UaStatus PositionerController::setState(PASState state)
 {
     return OpcUa_BadInvalidArgument;
 }
@@ -68,7 +68,7 @@ UaStatusCode ControlPositioner::setState(PASState state)
     Method       getData
     Description  Get Controller data.
 -----------------------------------------------------------------------------*/
-UaStatusCode ControlPositioner::getData(OpcUa_UInt32 offset, UaVariant& value)
+UaStatus PositionerController::getData(OpcUa_UInt32 offset, UaVariant &value)
 {
     UaStatus status;
     UaMutexLocker lock(&m_mutex);
@@ -97,9 +97,9 @@ UaStatusCode ControlPositioner::getData(OpcUa_UInt32 offset, UaVariant& value)
     Method       setData
     Description  Set Controller data.
 -----------------------------------------------------------------------------*/
-UaStatusCode ControlPositioner::setData(
-    OpcUa_UInt32 offset,
-    UaVariant value)
+UaStatus PositionerController::setData(
+        OpcUa_UInt32 offset,
+        UaVariant value)
 {
     UaStatus status;
 
@@ -122,7 +122,7 @@ UaStatusCode ControlPositioner::setData(
     Method       Operate
     Description  run a method on the sensor
 -----------------------------------------------------------------------------*/
-UaStatusCode ControlPositioner::Operate(OpcUa_UInt32 offset, const UaVariantArray& args)
+UaStatusCode PositionerController::Operate(OpcUa_UInt32 offset, const UaVariantArray &args)
 {
     UaMutexLocker lock(&m_mutex);
     UaStatusCode  status;

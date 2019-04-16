@@ -4,8 +4,8 @@
 ** Description: Main entry for the application
 **
 ******************************************************************************/
-#include "opcserver.h"
-#include "shutdown.h"
+#include "common/utilities/opcserver.h"
+#include "common/utilities/shutdown.h"
 #include "uaplatformlayer.h"
 #include "uathread.h"
 #if SUPPORT_XML_PARSER
@@ -194,7 +194,7 @@ int OpcMain(const char* szAppPath, std::vector<std::string> serverlist)
             std::cout << " Shutting down server/client\n";
             std::cout << "*************************************\n";
 
-            // Stop the logic thread;
+            // Stop the utilities thread;
             //pLogic->stop();
 
             // Stop the server and wait three seconds if clients are connected
