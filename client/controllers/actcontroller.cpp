@@ -1,8 +1,9 @@
 #include "client/controllers/actcontroller.hpp"
 
 #include "client/clienthelper.h"
+#include "common/opcua/pasobject.h"
 
-ActController::ActController(Identity identity, Client *pClient) : PasController(identity, pClient) {
+ActController::ActController(Identity identity, Client *pClient) : PasController(std::move(identity), pClient) {
     m_state = PASState::On;
 }
 
@@ -52,7 +53,7 @@ UaStatus ActController::setState(PASState state) {
 // Temporary - move ActController to common
 UaStatus ActController::getData(OpcUa_UInt32 offset, UaVariant &value) {
     UaMutexLocker lock(&m_mutex);
-    UaStatusCode status;
+    UaStatus status;
 
     std::string varName;
 
@@ -80,10 +81,9 @@ UaStatus ActController::getData(OpcUa_UInt32 offset, UaVariant &value) {
 }
 
 // Temporary - move ActController to common.
-UaStatusCode ActController::getError(OpcUa_UInt32 offset, UaVariant &value) {
+UaStatus ActController::getError(OpcUa_UInt32 offset, UaVariant &value) {
     UaMutexLocker lock(&m_mutex);
     UaStatus status;
-    bool errorStatus;
 
     OpcUa_UInt32 errorNum = offset - PAS_ACTType_Error0;
     // Temporary
@@ -113,8 +113,8 @@ UaStatus ActController::setData(OpcUa_UInt32 offset, UaVariant value) {
     Method       Operate
     Description  run a method on the actuator
 -----------------------------------------------------------------------------*/
-UaStatusCode ActController::operate(OpcUa_UInt32 offset, const UaVariantArray &args) {
-    UaStatusCode status;
+UaStatus ActController::operate(OpcUa_UInt32 offset, const UaVariantArray &args) {
+    UaStatus status;
 
     // don't lock the object -- might want to change state while operating the device!
     // UaMutexLocker lock(&m_mutex);

@@ -4,7 +4,8 @@
 ** Description: implementation of Positioner.
 ******************************************************************************/
 #include "positionercontroller.hpp"
-#include "passervertypeids.h"
+
+#includse "passervertypeids.h"
 #include "clienthelper.h"
 #include "components.h"
 #include "stdlib.h"
@@ -122,7 +123,7 @@ UaStatus PositionerController::setData(
     Method       Operate
     Description  run a method on the sensor
 -----------------------------------------------------------------------------*/
-UaStatusCode PositionerController::Operate(OpcUa_UInt32 offset, const UaVariantArray &args)
+UaStatus PositionerController::operate(OpcUa_UInt32 offset, const UaVariantArray &args)
 {
     UaMutexLocker lock(&m_mutex);
     UaStatusCode  status;

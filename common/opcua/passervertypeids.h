@@ -170,6 +170,7 @@
 #define PAS_PSDType_dx2                             3208
 #define PAS_PSDType_dy2                             3209
 #define PAS_PSDType_Temp                            3210
+#define PAS_PSDType_Read                            3220
 //----------------------------------------------------------//
 
 /************************************************************

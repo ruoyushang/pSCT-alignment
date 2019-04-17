@@ -1,5 +1,5 @@
-#ifndef ALIGNMENT_PANELCONTROLLER_HPP
-#define ALIGNMENT_PANELCONTROLLER_HPP
+#ifndef CLIENT_PANELCONTROLLER_HPP
+#define CLIENT_PANELCONTROLLER_HPP
 
 #include <Eigen/Dense>
 
@@ -29,7 +29,7 @@ public:
 
     UaStatus setData(OpcUa_UInt32 offset, UaVariant value);
 
-    UaStatusCode operate(OpcUa_UInt32 offset = 0, const UaVariantArray &args = UaVariantArray());
+    UaStatus operate(OpcUa_UInt32 offset = 0, const UaVariantArray &args = UaVariantArray());
 
     unsigned getActuatorCount();
 
@@ -63,4 +63,4 @@ private:
     bool checkForCollision();
 };
 
-#endif //ALIGNMENT_PANELCONTROLLER_HPP
+#endif //CLIENT_PANELCONTROLLER_HPP

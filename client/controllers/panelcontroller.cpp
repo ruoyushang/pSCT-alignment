@@ -40,7 +40,7 @@ unsigned PanelController::getActuatorCount() {
     try {
         return m_pChildren.at(PAS_ACTType).size();
     }
-    catch (out_of_range) {
+    catch (std::out_of_range) {
         return 0;
     }
 }
@@ -196,7 +196,7 @@ UaStatusCode PanelController::Operate(OpcUa_UInt32 offset, const UaVariantArray 
         std::cout << "\tTarget panel coordinates (x, y ,z xRot, yRot, zRot):\n\t\t";
         for (int i = 0; i < 6; i++) {
             UaVariant(args[i]).toDouble(inputCoordinates[i]);
-            std::std::cout << inputCoordinates[i] << " ";
+            std::cout << inputCoordinates[i] << " ";
         }
 
         // find actuator lengths needed
@@ -252,15 +252,15 @@ bool PanelController::checkForCollision() {
     /// This part predicts the new laser spot positions before we move the actuators.
     /// Will make a new function of this and allow all actuator operations to call this function before moving.
     ///
-    MatrixXd M_response; // response matrix
-    VectorXd Act_delta; // actuator delta length
-    VectorXd Sen_current; // sensor current position
-    VectorXd Sen_delta; // sensor delta
-    VectorXd Sen_new; // sensor new position = Sen_delta + current sensor reading
-    VectorXd Sen_aligned; // aligned sensor reading
-    VectorXd Sen_deviation; // deviated sensor reading
+    Eigen::MatrixXd M_response; // response matrix
+    Eigen::VectorXd Act_delta; // actuator delta length
+    Eigen::VectorXd Sen_current; // sensor current position
+    Eigen::VectorXd Sen_delta; // sensor delta
+    Eigen::VectorXd Sen_new; // sensor new position = Sen_delta + current sensor reading
+    Eigen::VectorXd Sen_aligned; // aligned sensor reading
+    Eigen::VectorXd Sen_deviation; // deviated sensor reading
 
-    VectorXd newLengths(6);
+    Eigen::VectorXd newLengths(6);
     for (unsigned i = 0; i < 6; i++)
         newLengths(i) = m_SP.GetActLengths()[i];
     std::cout << "New Act length is \n" << newLengths << std::endl;

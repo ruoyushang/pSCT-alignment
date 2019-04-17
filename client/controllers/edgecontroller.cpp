@@ -1,7 +1,12 @@
 #include "client/controllers/edgecontroller.hpp"
 
-EdgeController::EdgeController(Identity identity) : PasCompositeController(identity, nullptr), m_isAligned(false) {
-    m_ID.name = string("Edge_") + m_ID.eAddress;
+#include <string>
+#include <iostream>
+#include <Eigen/Dense>
+
+EdgeController::EdgeController(Identity identity) : PasCompositeController(std::move(identity), nullptr),
+                                                    m_isAligned(false) {
+    m_ID.name = std::string("Edge_") + m_ID.eAddress;
     m_state = PASState::On;
     // defin possible children types
     m_ChildrenTypes = {PAS_MPESType, PAS_PanelType};
@@ -81,10 +86,10 @@ UaStatusCode EdgeController::Operate(OpcUa_UInt32 offset, const UaVariantArray &
         numPanels = m_pChildren.at(PAS_PanelType).size();
         m_pChildren.at(PAS_MPESType).size();
     }
-    catch (out_of_range) {
+    catch (std::out_of_range &e) {
         // this should never happen -- and edge should never exist without panels
-        cout << m_ID << "::findMatrix() : no panels or sensors, nothing to do. "
-             << "This should never happen, by the way. Just saying." << endl;
+        std::cout << m_ID << "::findMatrix() : no panels or sensors, nothing to do. "
+                  << "This should never happen, by the way. Just saying." << std::endl;
         return OpcUa_BadInvalidState;
     }
 
@@ -136,24 +141,24 @@ UaStatusCode EdgeController::Operate(OpcUa_UInt32 offset, const UaVariantArray &
         }
         case PAS_EdgeType_Read:
             // update current and target readings and print them out
-            cout << "\n" << m_ID.name << " :" << endl;;
+            std::cout << "\n" << m_ID.name << " :" << std::endl;;
             getCurrentReadings();
             getAlignedReadings();
 
             if (!m_CurrentReadings.size() || !m_AlignedReadings.size()) {
-                cout
+                std::cout
                         << "+++ ERROR +++ No physical sensor readings! Make sure the sensors are in the field of view. Nothing to do for now."
-                        << endl;
+                        << std::endl;
                 status = OpcUa_Bad;
                 break;
             }
 
-            cout << "\nCurrent MPES readings:\n";
+            std::cout << "\nCurrent MPES readings:\n";
             for (unsigned i = 0; i < m_CurrentReadings.size(); i++)
-                cout << m_CurrentReadings(i) << " +/- " << m_CurrentReadingsSD(i) << endl;
+                std::cout << m_CurrentReadings(i) << " +/- " << m_CurrentReadingsSD(i) << std::endl;
 
-            cout << "\nTarget MPES readings:\n" << m_AlignedReadings << endl << endl;
-            cout << "\nMisalignment:\n" << m_AlignedReadings - m_CurrentReadings << endl << endl;
+            std::cout << "\nTarget MPES readings:\n" << m_AlignedReadings << std::endl << std::endl;
+            std::cout << "\nMisalignment:\n" << m_AlignedReadings - m_CurrentReadings << std::endl << std::endl;
             status = OpcUa_Good;
             break;
         case PAS_EdgeType_Stop: {
@@ -185,7 +190,7 @@ UaStatus EdgeController::findMatrix(UaVariantArray args) {
     unsigned numPanels = m_pChildren.at(PAS_PanelType).size();
 
     for (unsigned i = 0; i < numPanels; i++) {
-        status = __findSingleMatrix(i, stepSize);
+        status = findSingleMatrix(i, stepSize);
         if (!status.isGood())
             return status;
     }
@@ -194,7 +199,7 @@ UaStatus EdgeController::findMatrix(UaVariantArray args) {
 }
 
 // helper method for the above -- actually moving the panel and measuring the matrix
-UaStatus EdgeController::__findSingleMatrix(unsigned panelIdx, double stepSize) {
+UaStatus EdgeController::findSingleMatrix(unsigned panelIdx, double stepSize) {
     UaMutexLocker lock(&m_mutex);
     UaStatus status;
 
@@ -228,7 +233,7 @@ UaStatus EdgeController::__findSingleMatrix(unsigned panelIdx, double stepSize) 
         missedDelta = 0.;
 
         vector0 = getCurrentReadings();
-        cout << "+++ CURRENT READINGS:\n" << vector0 << endl << "Sleeping for 1s" << endl;
+        std::cout << "+++ CURRENT READINGS:\n" << vector0 << std::endl << "Sleeping for 1s" << std::endl;
         sleep(1); // seconds
 
         printf("attempting to move actuator %d by %5.3f mm\n", j, stepSize);
@@ -243,7 +248,7 @@ UaStatus EdgeController::__findSingleMatrix(unsigned panelIdx, double stepSize) 
             usleep(300 * 1000); // microseconds
             pCurPanel->getState(curState);
         }
-        cout << "+++ MOTION SHOULD HAVE FINISHED. Sleeping for 2s" << endl;
+        std::cout << "+++ MOTION SHOULD HAVE FINISHED. Sleeping for 2s" << std::endl;
         sleep(2);
 
         // update missed steps
@@ -253,9 +258,9 @@ UaStatus EdgeController::__findSingleMatrix(unsigned panelIdx, double stepSize) 
         printf("actuator %d missed target by %5.3f mm\n", j, missedDelta);
 
         vector1 = getCurrentReadings();
-        cout << "+++ CURRENT READINGS:\n" << vector1 << endl << "Sleeping for 1s" << endl;
+        std::cout << "+++ CURRENT READINGS:\n" << vector1 << std::endl << "Sleeping for 1s" << std::endl;
         sleep(1); // seconds
-        cout << "+++ Difference in sensor readings:\n" << vector1 - vector0 << endl;
+        std::cout << "+++ Difference in sensor readings:\n" << vector1 - vector0 << std::endl;
         // move the same actuator back
         printf("moving actuator %d back", j);
         minusdeltaL.copyTo(&deltas[j]);
@@ -268,46 +273,21 @@ UaStatus EdgeController::__findSingleMatrix(unsigned panelIdx, double stepSize) 
             usleep(300 * 1000); // microseconds
             pCurPanel->getState(curState);
         }
-        cout << "+++ MOTION SHOULD HAVE FINISHED. Sleeping for 2s" << endl;
+        std::cout << "+++ MOTION SHOULD HAVE FINISHED. Sleeping for 2s" << std::endl;
         sleep(2);
 
         responseMatrix.col(j) = (vector1 - vector0) / (stepSize - missedDelta);
-        cout << "+++ CURRENT RESPONSE MATRIX:\n" << responseMatrix << endl;
+        std::cout << "+++ CURRENT RESPONSE MATRIX:\n" << responseMatrix << std::endl;
     }
-    cout << "\n+++ ALL DONE FOR THIS PANEL!" << endl;
-    cout << "+++ Response matrix for " << m_ID.eAddress << ": panel " << pCurPanel->getId().position << endl;
-    cout << responseMatrix << endl;
+    std::cout << "\n+++ ALL DONE FOR THIS PANEL!" << std::endl;
+    std::cout << "+++ Response matrix for " << m_ID.eAddress << ": panel " << pCurPanel->getId().position << std::endl;
+    std::cout << responseMatrix << std::endl;
 
-    string outfilename = "/home/ctauser/PanelAlignmentData/ResponseMatrix_" + m_ID.eAddress + ".txt";
+    std::string outfilename = "/home/ctauser/PanelAlignmentData/ResponseMatrix_" + m_ID.eAddress + ".txt";
     ofstream output(outfilename, ios_base::in | ios_base::out | ios_base::app);
-    stringstream outputstr;
-    output << pCurPanel->getId().position << endl << responseMatrix << endl;
+    std::stringstream outputstr;
+    output << pCurPanel->getId().position << std::endl << responseMatrix << std::endl;
 
-    /*
-    auto& pMPES = m_pChildren.at(PAS_MPESType);
-    for (const auto& mpes : m_ChildrenPositionMap.at(PAS_MPESType)) {
-        for (auto const& coord : {'x', 'y'}) {
-            // explicit cast here
-            char panelside = static_cast<PasMPES *>(pMPES.at(mpes.second))->getPanelSide(pCurPanel->getId().position);
-
-            // prepare command for DB
-            outputstr.str(string());
-            outputstr << "addResponseMatrix2db "
-                << pMPES.at(mpes.second)->getId().serialNumber << " " << coord << " " << panelside;
-            outputstr << " \""; // begin quoted list of values
-            // -------------------- //
-
-            output << pMPES.at(mpes.second)->getId().serialNumber << " " << coord << " " << panelside;
-            for (unsigned j = 0; j < nACTs; j++) {
-                output << " " << responseMatrix[2*i + int(coord - 'x')][j];
-                outputstr << " " << responseMatrix[2*i + int(coord - 'x')][j];
-            }
-            output << endl;
-
-            outputstr << "\""; //end quoted list of values
-        //    system(outputstr.str().c_str());
-        }
-    } */
     output.close();
 
     return status;
@@ -322,13 +302,13 @@ UaStatus EdgeController::align(unsigned panel_pos, bool moveit, double alignFrac
     UaMutexLocker lock(&m_mutex);
     UaStatus status;
 
-    cout << "\nAligning " << m_ID.name << ": ";
+    std::cout << "\nAligning " << m_ID.name << ": ";
     if (moveit)
-        cout << "Will align panel " << panel_pos << endl;
+        std::cout << "Will align panel " << panel_pos << std::endl;
     else
-        cout << "Will keep fixed panel " << panel_pos << endl;
+        std::cout << "Will keep fixed panel " << panel_pos << std::endl;
 
-    status = __alignSinglePanel(panel_pos, moveit, alignFrac);
+    status = alignSinglePanel(panel_pos, moveit, alignFrac);
 
 
 /*
@@ -339,15 +319,15 @@ UaStatus EdgeController::align(unsigned panel_pos, bool moveit, double alignFrac
     }
     catch (out_of_range) {
         // this should never happen -- and edge should never exist without panels
-        cout << m_ID << "::align() : no panels or sensors, nothing to do. "
-            << "This should never happen, by the way. Just saying." << endl;
+        std::cout << m_ID << "::align() : no panels or sensors, nothing to do. "
+            << "This should never happen, by the way. Just saying." << std::endl;
         return OpcUa_BadInvalidState;
     }
 
     // FOR NOW: move only the panel with the lower position value
     // (this will move P1/S1 in the case of the P1-P2/S1-S2 edge)
     for (const auto& panelPair : m_ChildrenPositionMap.at(PAS_PanelType)) {
-        cout << "Will align panel " << panelPair.first << endl;
+        std::cout << "Will align panel " << panelPair.first << std::endl;
         status = __alignSinglePanel(panelPair.second);
         // return after the first panel
         //if (!status.isGood())
@@ -367,9 +347,9 @@ UaStatus EdgeController::__alignSinglePanel(unsigned panelpos, bool moveit, doub
     VectorXd current_read = getCurrentReadings();
     VectorXd aligned_read = getAlignedReadings() - getSystematicOffsets();
     if (!current_read.size() || !aligned_read.size()) {
-        cout
+        std::cout
                 << "+++ ERROR +++ No physical sensor readings! Make sure the sensors are in the field of view. Nothing to do for now."
-                << endl;
+                << std::endl;
         return OpcUa_Bad;
     }
 
@@ -483,7 +463,7 @@ UaStatus EdgeController::__alignSinglePanel(unsigned panelpos, bool moveit, doub
 
     // make sure we have enough constraints to solve this
     if (Y.size() < B.cols()) {
-        cout << "+++ ERROR! +++ Not enough sensors to constrain the motion. Won't do anything!" << endl;
+        std::cout << "+++ ERROR! +++ Not enough sensors to constrain the motion. Won't do anything!" << std::endl;
         return OpcUa_Bad;
     }
 
@@ -491,16 +471,16 @@ UaStatus EdgeController::__alignSinglePanel(unsigned panelpos, bool moveit, doub
         X = B.jacobiSvd(ComputeThinU | ComputeThinV).solve(Y);
     }
     catch (...) {
-        cout << "+++ WARNING! +++ Failed to perform Singular Value Decomposition. "
-             << "Check your sensor readings! Discarding this result!" << endl;
+        std::cout << "+++ WARNING! +++ Failed to perform Singular Value Decomposition. "
+                  << "Check your sensor readings! Discarding this result!" << std::endl;
         return OpcUa_Bad;
     }
 
-    cout << "\nCurrent MPES readings:\n" << current_read << endl;
-    cout << "\nTarget MPES readings (accounting for systematics):\n" << aligned_read << endl;
-    cout << "\nActuator response matrix for this edge:\n" << A << endl;
+    std::cout << "\nCurrent MPES readings:\n" << current_read << std::endl;
+    std::cout << "\nTarget MPES readings (accounting for systematics):\n" << aligned_read << std::endl;
+    std::cout << "\nActuator response matrix for this edge:\n" << A << std::endl;
     if (!C.isZero(0))
-        cout << "\nConstraint matrix for this edge:\n" << C << endl;
+        std::cout << "\nConstraint matrix for this edge:\n" << C << std::endl;
 
     // in the case of moving this panel (3 sensors and 6 actuators),
     // we want to solve delS = A * delL for delL.
@@ -515,13 +495,13 @@ UaStatus EdgeController::__alignSinglePanel(unsigned panelpos, bool moveit, doub
     // delL = (A^T * A) \ A^T * delS - (A^T * A) \ C^T * [C(A^T * A) \ C^T]\C * (A^T * A) \ A^T * delS
     // We do this partly through brute force and partly through SVD.
 
-    cout << "\nLEAST SQUARES SOLUTION:\n" << X << endl;
+    std::cout << "\nLEAST SQUARES SOLUTION:\n" << X << std::endl;
     // while (X.norm() >= 14*(X.size()/6)) { // heuristic -- don't want to move by more than the panel gap
     if (alignFrac < 1.) {
-        cout << "+++ WARNING +++ You requested fractional motion: will move fractionally by " << alignFrac
-             << " of the above:" << endl;
+        std::cout << "+++ WARNING +++ You requested fractional motion: will move fractionally by " << alignFrac
+                  << " of the above:" << std::endl;
         X *= alignFrac;
-        cout << X << endl;
+        std::cout << X << std::endl;
     }
 
     // make sure we don't move what we're not supposed to
@@ -535,8 +515,8 @@ UaStatus EdgeController::__alignSinglePanel(unsigned panelpos, bool moveit, doub
             pCurPanel = static_cast<PasPanel *>(m_pChildren.at(PAS_PanelType).at(panelPair.second));
             auto nACT = pCurPanel->getActuatorCount();
             // print out to make sure
-            cout << "Will move actuators of "
-                 << pCurPanel->getId().name << " by\n" << X.segment(j, 6) << endl;
+            std::cout << "Will move actuators of "
+                      << pCurPanel->getId().name << " by\n" << X.segment(j, 6) << std::endl;
 
             UaVariantArray deltas;
             deltas.create(nACT);
@@ -555,7 +535,7 @@ UaStatus EdgeController::__alignSinglePanel(unsigned panelpos, bool moveit, doub
     else
         m_isAligned = true;
 
-    cout << "\nYou can also call " << m_ID.name << ".Move to move the panel(s).\n" << endl;
+    std::cout << "\nYou can also call " << m_ID.name << ".Move to move the panel(s).\n" << std::endl;
 
     return status;
 }
@@ -649,12 +629,12 @@ const Eigen::VectorXd &EdgeController::getCurrentReadings() {
     for (unsigned nMPES = 0; nMPES < maxMPES; nMPES++) {
         pMPES.at(nMPES)->operate();
         if (!static_cast<PasMPES *>(pMPES.at(nMPES))->isVisible()) {
-            cout << "+++ WARNING +++ " << pMPES.at(nMPES)->getId().name
+            std::cout << "+++ WARNING +++ " << pMPES.at(nMPES)->getId().name
                  //for (const auto& mpes : m_ChildrenPositionMap.at(PAS_MPESType)) {
                  //    pMPES.at(mpes.second)->Operate();
                  //    if ( !static_cast<PasMPES *>(pMPES.at(mpes.second))->isVisible() ) {
-                 //        cout << "+++ WARNING +++ " << pMPES.at(mpes.second)->getId().name
-                 << " is not in the field of view! Will ignore it." << endl;
+                      //        std::cout << "+++ WARNING +++ " << pMPES.at(mpes.second)->getId().name
+                      << " is not in the field of view! Will ignore it." << std::endl;
             continue;
         }
 

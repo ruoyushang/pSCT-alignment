@@ -3,8 +3,8 @@
  * @brief Header file for position sensitive device controller class
  */
 
-#ifndef __PSDCONTROLLER_H__
-#define __PSDCONTROLLER_H__
+#ifndef SERVER_PSDCONTROLLER_HPP
+#define SERVER_PSDCONTROLLER_HPP
 
 #include <memory>
 
@@ -57,4 +57,4 @@ private:
     UaStatus read();
 };
 
-#endif
+#endif //SERVER_PSDCONTROLLER_HPP

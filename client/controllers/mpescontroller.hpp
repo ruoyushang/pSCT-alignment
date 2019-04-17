@@ -1,5 +1,5 @@
-#ifndef ALIGNMENT_MPESCONTROLLER_HPP
-#define ALIGNMENT_MPESCONTROLLER_HPP
+#ifndef CLIENT_MPESCONTROLLER_HPP
+#define CLIENT_MPESCONTROLLER_HPP
 
 #include "uabase/statuscode.h"
 #include "uabase/uabase.h"
@@ -34,7 +34,7 @@ public:
 
     UaStatus setData(OpcUa_UInt32 offset, UaVariant value);
 
-    UaStatus Operate(OpcUa_UInt32 offset = 0, const UaVariantArray &args = UaVariantArray());
+    UaStatus operate(OpcUa_UInt32 offset = 0, const UaVariantArray &args = UaVariantArray());
 
     // test if current panel is this sensor's webcam-side panel
     char getPanelSide(unsigned panelpos);
@@ -80,4 +80,4 @@ private:
     UaStatus __readRequest();
 };
 
-#endif //ALIGNMENT_MPESCONTROLLER_HPP
+#endif //CLIENT_MPESCONTROLLER_HPP

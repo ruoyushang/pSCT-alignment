@@ -75,7 +75,7 @@ UaStatus PSDController::operate(OpcUa_UInt32 offset, const UaVariantArray &args)
     UaStatus status;
     switch ( offset )
     {
-        case 0:
+        case PAS_PSDType_Read:
             status = read();
             break;
         default:

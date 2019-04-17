@@ -3,8 +3,8 @@
  * @brief Header file for the server-side node manager class.
  */
 
-#ifndef __PASNODEMANAGER_H__
-#define __PASNODEMANAGER_H__
+#ifndef SERVER_PASNODEMANAGER_HPP
+#define SERVER_PASNODEMANAGER_HPP
 
 #include <memory>
 
@@ -42,4 +42,4 @@ private:
     UaStatus amendTypeNodes();
 };
 
-#endif
+#endif //SERVER_PASNODEMANAGER_HPP

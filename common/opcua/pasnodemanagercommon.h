@@ -1,5 +1,5 @@
-#ifndef __PASNODEMANAGERCOMMON_H__
-#define __PASNODEMANAGERCOMMON_H__
+#ifndef COMMON_PASNODEMANAGERCOMMON_HPP
+#define COMMON_PASNODEMANAGERCOMMON_HPP
 
 #include <memory>
 
@@ -34,4 +34,4 @@ protected:
     std::unique_ptr<PasComInterfaceCommon> m_pCommIf;
 };
 
-#endif // __PASNODEMANAGER_H__
+#endif // COMMON_PASNODEMANAGER_HPP

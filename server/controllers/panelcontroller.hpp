@@ -3,8 +3,8 @@
  * @brief Header file for panel device controller class.
  */
 
-#ifndef __PANELCONTROLLER_H__
-#define __PANELCONTROLLER_H__
+#ifndef SERVER_PANELCONTROLLER_HPP
+#define SERVER_PANELCONTROLLER_HPP
 
 #include <memory>
 #include <vector>
@@ -76,4 +76,4 @@ private:
     std::vector<std::shared_ptr<ActController>> m_pActuators;
 };
 
-#endif
+#endif //SERVER_PANELCONTROLLER_HPP

@@ -1,5 +1,5 @@
-#ifndef __PASPANEL_H__
-#define __PASPANEL_H__
+#ifndef CLIENT_PANELOBJECT_HPP
+#define CLIENT_PANELOBJECT_HPP
 
 #include "uaserver/methodmanager.h"
 #include "components.h"
@@ -51,4 +51,4 @@ public:
     static const std::map<OpcUa_UInt32, std::pair<std::string, std::vector<std::tuple<std::string, UaNodeId, std::string>>>> METHODS;
 };
 
-#endif
+#endif //CLIENT_PANELOBJECT_HPP

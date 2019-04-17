@@ -2,7 +2,7 @@
 
 #include "common/globalalignment/ccdclass.h"
 
-CCDController::CCDController(Identity identity) : PasController(identity, nullptr) {
+CCDController::CCDController(Identity identity) : PasController(std::move(identity), nullptr) {
     m_pCCD = new GASCCD();
     m_pCCD->setConfig(m_ID.eAddress);
     m_pCCD->Initialize();
@@ -90,9 +90,9 @@ UaStatus CCDController::setData(OpcUa_UInt32 offset, UaVariant value) {
     Method       Operate
     Description  run a method on the sensor
 -----------------------------------------------------------------------------*/
-UaStatusCode CCDController::Operate(OpcUa_UInt32 offset, const UaVariantArray &args) {
+UaStatus CCDController::operate(OpcUa_UInt32 offset, const UaVariantArray &args) {
     UaMutexLocker lock(&m_mutex);
-    UaStatusCode status;
+    UaStatus status;
 
     if (offset >= 1)
         return OpcUa_BadInvalidArgument;

@@ -2,8 +2,8 @@
  * @file pascontroller.hpp
  * @brief Header file for generic device controller class.
  */
-#ifndef __PASCONTROLLER_H__
-#define __PASCONTROLLER_H__
+#ifndef SERVER_PASCONTROLLER_HPP
+#define SERVER_PASCONTROLLER_HPP
 
 #include <chrono>
 #include <map>
@@ -97,4 +97,4 @@ protected:
     std::chrono::time_point<std::chrono::system_clock> m_lastUpdateTime;
 };
 
-#endif
+#endif //SERVER_PASCONTROLLER_HPP

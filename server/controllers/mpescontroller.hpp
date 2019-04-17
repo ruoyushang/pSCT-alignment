@@ -3,8 +3,8 @@
  * @brief Header file for mirror panel edge sensor device controller.
  */
 
-#ifndef __MPESCONTROLLER_H__
-#define __MPESCONTROLLER_H__
+#ifndef SERVER_MPESCONTROLLER_HPP
+#define SERVER_MPESCONTROLLER_HPP
 
 #include "server/controllers/pascontroller.hpp"
 
@@ -57,4 +57,4 @@ private:
     OpcUa_Int32 read();
 };
 
-#endif
+#endif //SERVER_MPESCONTROLLER_HPP

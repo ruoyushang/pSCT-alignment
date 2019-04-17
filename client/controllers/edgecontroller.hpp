@@ -47,9 +47,9 @@ private:
     UaStatus findMatrix(UaVariantArray args);
 
     // helpers for the above
-    UaStatus __findSingleMatrix(unsigned panelIdx, double stepSize = 0.5);
+    UaStatus findSingleMatrix(unsigned panelIdx, double stepSize = 0.5);
 
-    UaStatus __alignSinglePanel(unsigned panelpos, double alignFrac, bool moveit = true);
+    UaStatus alignSinglePanel(unsigned panelpos, double alignFrac, bool moveit = true);
 
     // keep track of the panels we want to move
     std::vector<unsigned> m_PanelsToMove;

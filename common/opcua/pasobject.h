@@ -1,5 +1,5 @@
-#ifndef __PASOBJECT_H__
-#define __PASOBJECT_H__
+#ifndef COMMON_PASOBJECT_HPP
+#define COMMON_PASOBJECT_HPP
 
 #include "uaserver/uaobjecttypes.h"
 #include "uaserver/methodmanager.h"
@@ -76,7 +76,6 @@ protected:
     Identity                   m_Identity;
     PasComInterfaceCommon*     m_pCommIf;
     PasNodeManagerCommon*      m_pNodeManager;
-    OpcUa::OffNormalAlarmType* m_pStateOffNormalAlarm;
 
 private:
     static const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, OpcUa_Byte>> VARIABLES;
@@ -130,13 +129,13 @@ public:
     UaNodeId typeDefinitionId() const override;
 
     const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, OpcUa_Byte>>
-    getVariableDefs() { return MPESObject::VARIABLES; }
+    getVariableDefs() override { return MPESObject::VARIABLES; }
 
     const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean>>
-    getErrorDefs() { return MPESObject::ERRORS; }
+    getErrorDefs() override { return MPESObject::ERRORS; }
 
     const std::map<OpcUa_UInt32, std::pair<std::string, std::vector<std::tuple<std::string, UaNodeId, std::string>>>>
-    getMethodDefs() { return MPESObject::METHODS; }
+    getMethodDefs() override { return MPESObject::METHODS; }
 
     /// @brief Map of OPC UA type ids for all child variables to their name, default value, is_state value, and access level.
     static const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, OpcUa_Byte>> VARIABLES;
@@ -218,4 +217,4 @@ public:
     static const std::map<OpcUa_UInt32, std::pair<std::string, std::vector<std::tuple<std::string, UaNodeId, std::string>>>> METHODS;
 };
 
-#endif
+#endif //COMMON_PASOBJECT_HPP

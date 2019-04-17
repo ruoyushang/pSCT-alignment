@@ -3,8 +3,8 @@
  * @brief Header file for OPC UA panel object class.
  */
 
-#ifndef __PANELOBJECT_H__
-#define __PANELOBJECT_H__
+#ifndef SERVER_PANELOBJECT_HPP
+#define SERVER_PANELOBJECT_HPP
 
 #include <vector>
 #include <map>
@@ -72,4 +72,4 @@ public:
     static const std::map<OpcUa_UInt32, std::pair<std::string, std::vector<std::tuple<std::string, UaNodeId, std::string>>>> METHODS;
 };
 
-#endif
+#endif //SERVER_PANELOBJECT_HPP

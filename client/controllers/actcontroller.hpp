@@ -1,5 +1,5 @@
-#ifndef ALIGNMENT_ACTCONTROLLER_HPP
-#define ALIGNMENT_ACTCONTROLLER_HPP
+#ifndef CLIENT_ACTCONTROLLER_HPP
+#define CLIENT_ACTCONTROLLER_HPP
 
 #include "uabase/statuscode.h"
 #include "uabase/uabase.h"
@@ -30,17 +30,17 @@ public:
 
     UaStatus getData(OpcUa_UInt32 offset, UaVariant &value);
 
-    UaStatusCode getError(OpcUa_UInt32 offset, UaVariant &value);
+    UaStatus getError(OpcUa_UInt32 offset, UaVariant &value);
 
     // set Controller status and data
     UaStatus setState(PASState state);
 
     UaStatus setData(OpcUa_UInt32 offset, UaVariant value);
 
-    UaStatusCode operate(OpcUa_UInt32 offset = 0, const UaVariantArray &args = UaVariantArray());
+    UaStatus operate(OpcUa_UInt32 offset = 0, const UaVariantArray &args = UaVariantArray());
 
 private:
     UaStatus moveDelta(const UaVariantArray &args);
 };
 
-#endif //ALIGNMENT_ACTCONTROLLER_HPP
+#endif //CLIENT_ACTCONTROLLER_HPP

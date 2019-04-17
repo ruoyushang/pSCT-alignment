@@ -28,19 +28,19 @@ public:
             Identity identity,
             PasCommunicationInterface *pCommIf) : PasObject(name, newNodeId, defaultLocaleId,
                                                             dynamic_cast<PasNodeManagerCommon *>(pNodeManager),
-                                                            identity,
+                                                            std::move(identity),
                                                             dynamic_cast<PasComInterfaceCommon *>(pCommIf)) {};
 
-    UaNodeId typeDefinitionId() const;
+    UaNodeId typeDefinitionId() const override;
 
     const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, OpcUa_Byte>>
-    getVariableDefs() { return EdgeObject::VARIABLES; }
+    getVariableDefs() override { return EdgeObject::VARIABLES; }
 
     const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean>>
-    getErrorDefs() { return EdgeObject::ERRORS; }
+    getErrorDefs() override { return EdgeObject::ERRORS; }
 
     const std::map<OpcUa_UInt32, std::pair<std::string, std::vector<std::tuple<std::string, UaNodeId, std::string>>>>
-    getMethodDefs() { return EdgeObject::METHODS; }
+    getMethodDefs() override { return EdgeObject::METHODS; }
 
     /// @brief Map of OPC UA type ids for all child variables to their name, default value, is_state value, and access level.
     static const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, OpcUa_Byte>> VARIABLES;

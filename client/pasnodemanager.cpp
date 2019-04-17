@@ -5,7 +5,7 @@
 #include "client/objects/panelobject.h"
 #include "client/objects/edgeobject.h"
 #include "client/objects/gasobject.h"
-#include "client/objects/positioner.h"
+#include "client/objects/positionerobject.h"
 #include "clienthelper.h"
 #include "configuration.h"
 #include "pascommunicationinterface.h"

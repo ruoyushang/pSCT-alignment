@@ -1,5 +1,8 @@
 #include "client/controllers/mpescontroller.hpp"
 
+#include "common/utilities/DBConfig.hpp"
+#include "client/clienthelper.h"
+
 float MPESController::kNominalIntensity = 150000.;
 float MPESController::kNominalCentroidSD = 20.;
 
@@ -9,16 +12,16 @@ MPESController::MPESController(Identity identity, Client *pClient) : PasControll
 
     // get the nominal aligned readings and response matrices from DB
     /* BEGIN DATABASE HACK */
-    //string db_ip="172.17.10.10"; // internal ip
+    //std::string db_ip="172.17.10.10"; // internal ip
     DBConfig myconfig = DBConfig::getDefaultConfig();
-    string db_ip = myconfig.getHost();
-    string db_port = myconfig.getPort();
-    string db_user = myconfig.getUser();
-    string db_password = myconfig.getPassword();
-    string db_name = myconfig.getDatabase();
-    string db_address = "tcp://" + db_ip + ":" + db_port;
+    std::string db_ip = myconfig.getHost();
+    std::string db_port = myconfig.getPort();
+    std::string db_user = myconfig.getUser();
+    std::string db_password = myconfig.getPassword();
+    std::string db_name = myconfig.getDatabase();
+    std::string db_address = "tcp://" + db_ip + ":" + db_port;
 
-    cout << "Initializing MPES " << m_ID.serialNumber << endl;
+    std::cout << "Initializing MPES " << m_ID.serialNumber << std::endl;
     try {
         sql::Driver *sql_driver = get_driver_instance();
         sql::Connection *sql_conn = sql_driver->connect(db_address, db_user, db_password);
@@ -26,7 +29,7 @@ MPESController::MPESController(Identity identity, Client *pClient) : PasControll
         sql::Statement *sql_stmt = sql_conn->createStatement();
         sql::ResultSet *sql_results;
 
-        string query("");
+        std::string query("");
         // obtain topological data
         query = "SELECT w_panel, l_panel FROM Opt_MPESMapping WHERE end_date is NULL and serial_number=" +
                 to_string(m_ID.serialNumber);
@@ -42,7 +45,7 @@ MPESController::MPESController(Identity identity, Client *pClient) : PasControll
         const char panelType[2] = {'w', 'l'};
         for (const auto &panel : panelType)
             for (int act = 1; act <= 6; act++)
-                query += ", " + string(1, panel) + "_response_actuator" + to_string(act);
+                query += ", " + std::string(1, panel) + "_response_actuator" + to_string(act);
         query = "SELECT coord, nominal_reading" + query +
                 " FROM Opt_MPESConfigurationAndCalibration WHERE end_date is NULL and serial_number=" +
                 to_string(m_ID.serialNumber);
@@ -60,10 +63,10 @@ MPESController::MPESController(Identity identity, Client *pClient) : PasControll
         }
 
         // print out the loaded values
-        cout << "\t Aligned readings:\n" << m_AlignedReadings << endl;
+        std::cout << "\t Aligned readings:\n" << m_AlignedReadings << std::endl;
         for (const auto &matrixPair : m_ResponseMatMap)
-            cout << "\t " << matrixPair.first << "-side response matrix:\n"
-                 << matrixPair.second << endl;
+            std::cout << "\t " << matrixPair.first << "-side response matrix:\n"
+                      << matrixPair.second << std::endl;
 
         // pass the aligned readings on to the server
         UaVariant value;
@@ -78,11 +81,11 @@ MPESController::MPESController(Identity identity, Client *pClient) : PasControll
         sql_driver->threadEnd();
     }
     catch (sql::SQLException &e) {
-        cout << "# ERR: SQLException in " << __FILE__;
-        cout << "(" << __FUNCTION__ << ") on line " << __LINE__ << endl;
-        cout << "# ERR: " << e.what();
-        cout << " (MySQL error code: " << e.getErrorCode();
-        cout << ", SQLState: " << e.getSQLState() << " )" << endl;
+        std::cout << "# ERR: SQLException in " << __FILE__;
+        std::cout << "(" << __FUNCTION__ << ") on line " << __LINE__ << std::endl;
+        std::cout << "# ERR: " << e.what();
+        std::cout << " (MySQL error code: " << e.getErrorCode();
+        std::cout << ", SQLState: " << e.getSQLState() << " )" << std::endl;
 
         // set state to error
         m_state = PASState::FatalError;
@@ -166,8 +169,8 @@ UaStatus MPESController::setData(OpcUa_UInt32 offset, UaVariant value) {
     if ((dataoffset > 6) | (dataoffset < 5))
         return OpcUa_BadNotWritable;
 
-    string varstowrite[2]{".xCentroidNominal", ".yCentroidNominal"};
-    vector <string> vec_curwrite{m_ID.eAddress + varstowrite[dataoffset - 5]};
+    std::string varstowrite[2]{".xCentroidNominal", ".yCentroidNominal"};
+    vector<std::string> vec_curwrite{m_ID.eAddress + varstowrite[dataoffset - 5]};
 
     // set local variable
     value.toDouble(*(reinterpret_cast<OpcUa_Double *>(&data) + dataoffset));
@@ -189,7 +192,7 @@ UaStatus MPESController::operate(OpcUa_UInt32 offset, const UaVariantArray &args
     if (offset == 0 || offset == PAS_MPESType_Read)
         return read();
     else if (offset == PAS_MPESType_SetExposure) {
-        cout << "+++ Adjusting exposure for " << m_ID << endl;
+        std::cout << "+++ Adjusting exposure for " << m_ID << std::endl;
         status = m_pClient->callMethod(m_ID.eAddress, UaString("SetExposure"));
         return status;
     } else
@@ -208,7 +211,7 @@ UaStatus MPESController::read() {
 
     m_updated = false;
 
-    cout << "calling read() on " << m_ID << endl;
+    std::cout << "calling read() on " << m_ID << std::endl;
     if (m_state == PASState::On) {
         // read the values on the server first
         status = __readRequest();
@@ -217,18 +220,18 @@ UaStatus MPESController::read() {
         if (data.m_xCentroidAvg < 0.1) m_isVisible = false;
         if (m_isVisible) {
             if (data.m_xCentroidSD > kNominalCentroidSD) {
-                cout << "+++ WARNING +++ The width of the image along the X axis for " << m_ID.name
-                     << " is greater than 20px. Consider fixing things." << endl;
+                std::cout << "+++ WARNING +++ The width of the image along the X axis for " << m_ID.name
+                          << " is greater than 20px. Consider fixing things." << std::endl;
             }
             if (data.m_yCentroidSD > kNominalCentroidSD) {
-                cout << "+++ WARNING +++ The width of the image along the Y axis for " << m_ID.name
-                     << " is greater than 20px. Consider fixing things." << endl;
+                std::cout << "+++ WARNING +++ The width of the image along the Y axis for " << m_ID.name
+                          << " is greater than 20px. Consider fixing things." << std::endl;
             }
 
             if (fabs(data.m_CleanedIntensity - kNominalIntensity) / kNominalIntensity > 0.2) {
-                cout << "+++ WARNING +++ The intensity of " << m_ID.name
-                     << " differs from the magic value by more than 20%\n"
-                     << "+++ WARNING +++ Will readjust the exposure now!" << endl;
+                std::cout << "+++ WARNING +++ The intensity of " << m_ID.name
+                          << " differs from the magic value by more than 20%\n"
+                          << "+++ WARNING +++ Will readjust the exposure now!" << std::endl;
                 operate(PAS_MPESType_SetExposure);
                 // read the sensor again
                 status = __readRequest();
@@ -246,7 +249,7 @@ UaStatus MPESController::read() {
                 "INSERT INTO Opt_MPESReadings (date, serial_number, xcoord, ycoord, x_RMS, y_RMS, intensity) VALUES  ('%1', '%2', '%3', '%4', '%5', '%6', '%7' );\n").arg(
                 buf).arg(m_ID.serialNumber).arg(data.m_xCentroidAvg).arg(data.m_yCentroidAvg).arg(
                 data.m_xCentroidSD).arg(data.m_yCentroidSD).arg(data.m_CleanedIntensity);
-        //std::cout << sql_stmt.toUtf8() << std::endl;
+        //std::cout << sql_stmt.toUtf8() << std::endl
         FILE *sql_file = fopen("MPES_readings.sql", "a+");
         std::fprintf(sql_file, sql_stmt.toUtf8());
         std::fclose(sql_file);
@@ -290,7 +293,7 @@ char MPESController::getPanelSide(unsigned panelpos) {
     try {
         panelside = m_PanelSideMap.at(panelpos);
     }
-    catch (out_of_range) {
+    catch (std::out_of_range &e) {
         panelside = 0;
     }
 

@@ -4,7 +4,7 @@
  */
 
 #include <iostream>
-#include "positioner.h"
+#include "positionerobject.h"
 #include "pasnodemanager.h"
 #include "passervertypeids.h"
 #include "pascommunicationinterface.h"

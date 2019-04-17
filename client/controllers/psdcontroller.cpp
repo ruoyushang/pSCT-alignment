@@ -55,7 +55,7 @@ UaStatus PSDController::setData(OpcUa_UInt32 offset, UaVariant value) {
 }
 
 UaStatus PSDController::operate(OpcUa_UInt32 offset, const UaVariantArray &args) {
-    UaStatusCode status;
+    UaStatus status;
 
     if (offset >= 1)
         return OpcUa_BadInvalidArgument;

@@ -3,8 +3,8 @@
  * @brief Header file for actuator device controller.
  */
 
-#ifndef __ACTCONTROLLER_H__
-#define __ACTCONTROLLER_H__
+#ifndef SERVER_ACTCONTROLLER_HPP
+#define SERVER_ACTCONTROLLER_HPP
 
 #include "server/controllers/pascontroller.hpp"
 
@@ -86,4 +86,4 @@ private:
     UaStatus moveToLength(const UaVariantArray &args);
 };
 
-#endif
+#endif //SERVER_ACTCONTROLLER_HPP

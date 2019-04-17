@@ -4,8 +4,8 @@
 ** Description: Common description of the communication interface to access devices.
 ** Abstract class to meant to be implemented on both sides.
 ******************************************************************************/
-#ifndef __PASCOMUNICATIONINTERFACECOMMON_H__
-#define __PASCOMUNICATIONINTERFACECOMMON_H__
+#ifndef COMMON_PASCOMUNICATIONINTERFACECOMMON_HPP
+#define COMMON_PASCOMUNICATIONINTERFACECOMMON_HPP
 
 #include "uabase.h"
 #include "uavariant.h"
@@ -60,4 +60,4 @@ public:
                                    const UaVariantArray &args = UaVariantArray()) = 0;
 };
 
-#endif
+#endif //COMMON_PASCOMUNICATIONINTERFACECOMMON_HPP

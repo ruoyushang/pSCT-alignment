@@ -2,8 +2,8 @@
  * @file pascommunicationinterface.hpp
  * @brief Header file for panel server PAS communication interface
  */
-#ifndef __PASCOMMUNICATIONINTERFACE_H__
-#define __PASCOMMUNICATIONINTERFACE_H__
+#ifndef SERVER_PASCOMMUNICATIONINTERFACE_HPP
+#define SERVER_PASCOMMUNICATIONINTERFACE_HPP
 
 #include "uabase/uabase.h"
 #include "uabase/uastring.h"
@@ -142,4 +142,4 @@ private:
     std::shared_ptr<Platform> m_platform;
 };
 
-#endif
+#endif //SERVER_PASCOMMUNICATIONINTERFACE_HPP
