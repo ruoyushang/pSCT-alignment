@@ -11,8 +11,11 @@
 // implementation of the mirror class that controls the whole mirror.
 // math, algorithms and all that coordinate stuff go here
 
-using namespace std;
-using namespace Eigen;
+#include "client/controllers/panelcontroller.hpp"
+#include "client/controllers/mpescontroller.hpp"
+#include "client/controllers/edgecontroller.hpp"
+#include "client/controllers/pascontroller.hpp"
+
 using namespace SCT; // mirrordefinitions.h
 
 MirrorController *MirrorControllerCompute::Mirror = nullptr;
@@ -20,7 +23,7 @@ MirrorController *MirrorControllerCompute::Mirror = nullptr;
 MirrorController::MirrorController(Identity identity) : PasCompositeController(identity, nullptr),
     m_pSurface(nullptr), m_AlignFrac(0.25)
 {
-    string mirrorprefix;
+    std::string mirrorprefix;
     if (m_ID.position == 1)
         mirrorprefix = "Primary";
     else if (m_ID.position == 2)
@@ -35,10 +38,11 @@ MirrorController::MirrorController(Identity identity) : PasCompositeController(i
     m_ChildrenTypes = {PAS_PanelType, PAS_EdgeType, PAS_MPESType};
 
     // define coordinate vectors -- these are of size 6
-    m_curCoords = VectorXd(6);
-    m_curCoordsErr = VectorXd(6);
-    m_sysOffsetsMPES = VectorXd(6);
-    VectorXd tmp = VectorXd(2); tmp.setZero();
+    m_curCoords = Eigen::VectorXd(6);
+    m_curCoordsErr = Eigen::VectorXd(6);
+    m_sysOffsetsMPES = Eigen::VectorXd(6);
+    Eigen::VectorXd tmp = Eigen::VectorXd(2);
+    tmp.setZero();
     // initialize the systematic offsets map to zeros
     SystematicOffsetsMPESMap = {
         {1, {
@@ -57,7 +61,7 @@ void MirrorController::addChild(OpcUa_UInt32 deviceType, PasController *const pC
 
     // add this to selected children
     if (deviceType == PAS_PanelType)
-        m_SelectedChildrenString[deviceType] += to_string(pController->getId().position) + " ";
+        m_SelectedChildrenString[deviceType] += std::to_string(pController->getId().position) + " ";
     else if (deviceType == PAS_EdgeType)
         m_SelectedChildrenString[deviceType] += pController->getId().eAddress + " ";
 
@@ -142,14 +146,14 @@ bool MirrorController::Initialize()
             // get the norm
             m_pSurface->ComputeNormal(m_PanelOriginTelFrame.at(ring + 1).data(), dir, norm);
             // save the norm in the third column
-            m_PanelFrame[ring + 1].col(2) = Vector3d(norm);
+            m_PanelFrame[ring + 1].col(2) = Eigen::Vector3d(norm);
             // make sure this is pointing where we need it to
-            if ( m_PanelFrame.at(ring + 1).col(2).dot(Vector3d(dir)) <   0. )
+            if (m_PanelFrame.at(ring + 1).col(2).dot(Eigen::Vector3d(dir)) < 0.)
                 m_PanelFrame.at(ring + 1).col(2) *= -1;
 
             // get the x and y axes:
             for (int i = 0; i < 2; i++) {
-                Vector3d axis {0., 0., 0};
+                Eigen::Vector3d axis{0., 0., 0};
                 axis(i) = 1.0;
                 // subtract the projection onto the norm
                 axis -= axis.dot(m_PanelFrame.at(ring + 1).col(2))*m_PanelFrame.at(ring+1).col(2);
@@ -165,7 +169,7 @@ bool MirrorController::Initialize()
             for (int i = 0; i < 6; i++)
                 actL[i] = kActuatorLength;
             m_SP.ComputeStewart(actL);
-            Vector3d PanelCenterPanelFrame(m_SP.GetPanelCoords());
+            Eigen::Vector3d PanelCenterPanelFrame(m_SP.GetPanelCoords());
             // this is the center of the mirror panel in the panel frame;
             // what we obtained before was the center of the mirror panel in the TRF --
             // need to shift those coordinates by this much opposite to the mirror norm
@@ -259,17 +263,17 @@ UaStatus MirrorController::setData(OpcUa_UInt32 offset, UaVariant value)
     else if (offset == PAS_EdgeType_AlignFrac)
         value.toFloat(m_AlignFrac);
     else if (offset == PAS_MirrorType_selectedPanels) {
-        string tmp = value.toString().toUtf8();
+        std::string tmp = value.toString().toUtf8();
         m_SelectedChildrenString[PAS_PanelType] = tmp;
         __updateSelectedChildren(PAS_PanelType);
     }
     else if (offset == PAS_MirrorType_selectedMPES) {
-        string tmp = value.toString().toUtf8();
+        std::string tmp = value.toString().toUtf8();
         m_SelectedChildrenString[PAS_MPESType] = tmp;
         __updateSelectedChildren(PAS_MPESType);
     }
     else if (offset == PAS_MirrorType_selectedEdges) {
-        string tmp = value.toString().toUtf8();
+        std::string tmp = value.toString().toUtf8();
         m_SelectedChildrenString[PAS_EdgeType] = tmp;
         __updateSelectedChildren(PAS_EdgeType);
     }
@@ -406,7 +410,7 @@ void MirrorController::__readPositionAll() {
 }
 
 void MirrorController::__move(UaVariantArray args) {
-    Eigen::VectorXd targetMirrorCoords;
+    Eigen::Eigen::VectorXd targetMirrorCoords;
     for (int i = 0; i < 6; i++) {
         UaVariant(args[i]).toDouble(targetMirrorCoords[i]);
     }
@@ -418,7 +422,7 @@ void MirrorController::__move(UaVariantArray args) {
 
     UaVariantArray targetPanelCoords;
     unsigned curpos;
-    VectorXd prf_coords;
+    Eigen::VectorXd prf_coords;
     const auto &childrenSet = m_SelectedChildren.at(PAS_PanelType);
     for (const auto& idx : childrenSet) {
         pCurObject = m_pChildren.at(PAS_PanelType).at(idx);
@@ -542,12 +546,12 @@ void MirrorController::__updateSelectedChildren(unsigned deviceType)
 
     // process a separated string and find the panels or edges described by it
     // pad by a space from the right so we don't hit the end of the line without a delimiter
-    string inStr = m_SelectedChildrenString.at(deviceType) + " ";
-    vector<string> strList;
+    std::string inStr = m_SelectedChildrenString.at(deviceType) + " ";
+    std::vector<std::string> strList;
     // working with comma, space and semicolon
-    string delim = " ,;:\"\'{}";
+    std::string delim = " ,;:\"\'{}";
     size_t prev = 0, cur;
-    while ( (cur = inStr.find_first_of(delim, prev)) != string::npos ) {
+    while ((cur = inStr.find_first_of(delim, prev)) != std::string::npos) {
         if (cur > prev)
             strList.push_back(inStr.substr(prev, cur-prev));
         prev = cur + 1;
@@ -556,7 +560,7 @@ void MirrorController::__updateSelectedChildren(unsigned deviceType)
     // add all the items to the selected children set of indices
     if (deviceType == PAS_PanelType) { // expect a list of panel positions
         unsigned curpos;
-        for (const string& item : strList) {
+        for (const std::string &item : strList) {
             curpos = stoi(item);
             try {
                 m_SelectedChildren[deviceType].insert(m_ChildrenPositionMap.at(deviceType).at(curpos));
@@ -568,7 +572,7 @@ void MirrorController::__updateSelectedChildren(unsigned deviceType)
     }
     else if (deviceType == PAS_MPESType) { // expect a list of Sensor serials
         Identity curid;
-        for (const string& item : strList) {
+        for (const std::string &item : strList) {
             curid.serialNumber = stoi(item);
             try {
                 m_SelectedChildren[deviceType].insert(m_ChildrenIdentityMap.at(deviceType).at(curid));
@@ -581,7 +585,7 @@ void MirrorController::__updateSelectedChildren(unsigned deviceType)
 
     else if (deviceType == PAS_EdgeType) { // expect a list of edge addresses
         Identity curid;
-        for (const string& item : strList) {
+        for (const std::string &item : strList) {
             curid.eAddress = item;
             try {
                 m_SelectedChildren[deviceType].insert(m_ChildrenIdentityMap.at(deviceType).at(curid));
@@ -656,7 +660,7 @@ MatrixXd MirrorController::__computeSystematicsMatrix(unsigned pos1, unsigned po
     Matrix3d orig_padCoords2;
     Matrix3d orig_padCoords2_PRF2;
     // original panel coords in PRF2:
-    VectorXd orig_panelCoords2(6);
+    Eigen::VectorXd orig_panelCoords2(6);
     for (auto pad = 0; pad < 3; pad++) {
         orig_padCoords2.col(pad) = tr2 * m_PadCoordsTelFrame.at(ring).col(pad);
         orig_padCoords2_PRF2.col(pad) = __toPanelRF(pos2, orig_padCoords2.col(pad));
@@ -673,8 +677,8 @@ MatrixXd MirrorController::__computeSystematicsMatrix(unsigned pos1, unsigned po
 
     // handle pads coords of panel 2
     Matrix3d padCoords2;
-    VectorXd panelCoords2(6);
-    VectorXd TRANSFORM(6);
+    Eigen::VectorXd panelCoords2(6);
+    Eigen::VectorXd TRANSFORM(6);
     for (auto TR = 0; TR < 6; TR++) {
         TRANSFORM.setZero();
         TRANSFORM(TR) = 1. * (TR > 2) ? 1./320. : 1.;
@@ -714,12 +718,12 @@ void MirrorController::simulateAlignSector()
     MatrixXd C; // constraint
     MatrixXd B; // complete matrix
 
-    VectorXd X; // solutions vector -- this moves actuators
-    VectorXd Y; // sensor misalignment vector, we want to fit this
+    Eigen::VectorXd X; // solutions vector -- this moves actuators
+    Eigen::VectorXd Y; // sensor misalignment vector, we want to fit this
 
     // grab all user specified panels to move and sensors to fit
-    vector<PanelController *> panelsToMove;
-    vector<MPESController *> alignMPES;
+    std::vector<PanelController *> panelsToMove;
+    std::vector<MPESController *> alignMPES;
     for (unsigned idx : m_SelectedChildren.at(PAS_PanelType))
         panelsToMove.push_back(static_cast<PanelController *>(m_pChildren.at(PAS_PanelType).at(idx)));
     for (unsigned idx : m_SelectedChildren.at(PAS_MPESType)) {
@@ -783,15 +787,15 @@ void MirrorController::simulateAlignSector()
     // construct the overall target vector and the response matrix
     UaVariant vtmp;
     // store the current readings and the target readings
-    VectorXd curRead(2*alignMPES.size());
-    VectorXd targetRead(2*alignMPES.size());
+    Eigen::VectorXd curRead(2 * alignMPES.size());
+    Eigen::VectorXd targetRead(2 * alignMPES.size());
     // store individual response matrix;
     MatrixXd responseMat(2, 6);
 
     unsigned nCols = 6*panelsToMove.size();
     unsigned nRows = 2*alignMPES.size();
     B = MatrixXd(nRows, nCols);
-    Y = VectorXd(nRows);
+    Y = Eigen::VectorXd(nRows);
     for (int m = 0; m < alignMPES.size(); m++) {
         alignMPES.at(m)->getData(PAS_MPESType_xCentroidAvg, vtmp);
         vtmp.toDouble(curRead(m*2));
@@ -860,12 +864,12 @@ void MirrorController::__alignSector() {
     MatrixXd C; // constraint
     MatrixXd B; // complete matrix
 
-    VectorXd X; // solutions vector -- this moves actuators
-    VectorXd Y; // sensor misalignment vector, we want to fit this
+    Eigen::VectorXd X; // solutions vector -- this moves actuators
+    Eigen::VectorXd Y; // sensor misalignment vector, we want to fit this
 
     // grab all user specified panels to move and sensors to fit
-    vector<PanelController *> panelsToMove;
-    vector<MPESController *> alignMPES;
+    std::vector<PanelController *> panelsToMove;
+    std::vector<MPESController *> alignMPES;
     for (unsigned idx : m_SelectedChildren.at(PAS_PanelType))
         panelsToMove.push_back(static_cast<PanelController *>(m_pChildren.at(PAS_PanelType).at(idx)));
     for (unsigned idx : m_SelectedChildren.at(PAS_MPESType)) {
@@ -928,15 +932,15 @@ void MirrorController::__alignSector() {
     // construct the overall target vector and the response matrix
     UaVariant vtmp;
     // store the current readings and the target readings
-    VectorXd curRead(2 * alignMPES.size());
-    VectorXd targetRead(2 * alignMPES.size());
+    Eigen::VectorXd curRead(2 * alignMPES.size());
+    Eigen::VectorXd targetRead(2 * alignMPES.size());
     // store individual response matrix;
     MatrixXd responseMat(2, 6);
 
     unsigned nCols = 6 * panelsToMove.size();
     unsigned nRows = 2 * alignMPES.size();
     B = MatrixXd(nRows, nCols);
-    Y = VectorXd(nRows);
+    Y = Eigen::VectorXd(nRows);
     for (int m = 0; m < alignMPES.size(); m++) {
         alignMPES.at(m)->getData(PAS_MPESType_xCentroidAvg, vtmp);
         vtmp.toDouble(curRead(m * 2));
@@ -1026,17 +1030,17 @@ void MirrorController::__alignGlobal(unsigned fixPanel)
     MatrixXd globResponse = MatrixXd(numPanels*6, numPanels*6);
     globResponse.setZero();
     // initialize the misalignment vector
-    VectorXd localAlignRead;
-    VectorXd localCurRead;
-    VectorXd misalignVec;
-    VectorXd globMisalignVec;
+    Eigen::VectorXd localAlignRead;
+    Eigen::VectorXd localCurRead;
+    Eigen::VectorXd misalignVec;
+    Eigen::VectorXd globMisalignVec;
     // initialize the displacement vector
-    VectorXd globDisplaceVec = VectorXd(numPanels*6);
+    Eigen::VectorXd globDisplaceVec = Eigen::VectorXd(numPanels * 6);
 
     // get all the edges we need to fit:
-    vector<EdgeController *> edgesToFit; // we actually don't need to keep these in a vector,
+    std::vector<EdgeController *> edgesToFit; // we actually don't need to keep these in a vector,
                                   // but doing this for possible future needs
-    vector<PanelController *> panelsToMove;
+    std::vector<PanelController *> panelsToMove;
     unsigned curPanel = fixPanel, nextPanel, cursize = 0;
     Identity id;
     // keep track of the position in the global response matrix
@@ -1146,7 +1150,7 @@ void MirrorController::__alignGlobal(unsigned fixPanel)
     // panel displacements
     globDisplaceVec = globResponse.jacobiSvd(ComputeThinU | ComputeThinV).solve(globMisalignVec);
 
-    VectorXd check = globResponse*globDisplaceVec - globMisalignVec;
+    Eigen::VectorXd check = globResponse * globDisplaceVec - globMisalignVec;
     cout << "+++ DEBUG +++ Checking that the found solution is correct: looking at (R*Solution - MisAlign): norm = " << check.norm() << endl;
     cout << "\t\t First 12 entries\n" << check.head(12) << endl;
     cout << "\t\t Last 12 entries\n" << check.tail(12) << endl;
@@ -1183,7 +1187,7 @@ void MirrorController::__alignGlobal(unsigned fixPanel)
     m_SelectedChildrenString.at(PAS_PanelType) = "";
     unsigned j = 6;
     for (auto& pCurPanel : panelsToMove) {
-        m_SelectedChildrenString.at(PAS_PanelType) += to_string(pCurPanel->getId().position) + " ";
+        m_SelectedChildrenString.at(PAS_PanelType) += std::to_string(pCurPanel->getId().position) + " ";
         auto nACT = pCurPanel->getActuatorCount();
         // print out to make sure
         cout << "Will move actuators of "
@@ -1228,7 +1232,7 @@ double MirrorController::__getAzOffset(unsigned pos)
 }
 
 
-Vector3d MirrorController::__toPanelRF(unsigned pos, Vector3d in_coords)
+Eigen::Vector3d MirrorController::__toPanelRF(unsigned pos, Eigen::Vector3d in_coords)
 {
     // all angles in radians
 
@@ -1238,12 +1242,12 @@ Vector3d MirrorController::__toPanelRF(unsigned pos, Vector3d in_coords)
     // this panel's frame is the rotated frame of the ideal panel
     Matrix3d zRot = __rotMat(2, phi);
     Matrix3d panelFrame =  zRot * m_PanelFrame.at(ring);
-    Vector3d panelOrigin = zRot * m_PanelOriginTelFrame.at(ring);
+    Eigen::Vector3d panelOrigin = zRot * m_PanelOriginTelFrame.at(ring);
 
     return panelFrame.transpose() * (in_coords - panelOrigin);
 }
 
-Vector3d MirrorController::__toTelRF(unsigned pos, Vector3d in_coords)
+Eigen::Vector3d MirrorController::__toTelRF(unsigned pos, Eigen::Vector3d in_coords)
 {
     // all angles in radians
     // The inverse of the above
@@ -1254,7 +1258,7 @@ Vector3d MirrorController::__toTelRF(unsigned pos, Vector3d in_coords)
     // this panel's frame is the rotated frame of the ideal panel
     Matrix3d zRot = __rotMat(2, phi);
     Matrix3d panelFrame =  zRot * m_PanelFrame.at(ring);
-    Vector3d panelOrigin = zRot * m_PanelOriginTelFrame.at(ring);
+    Eigen::Vector3d panelOrigin = zRot * m_PanelOriginTelFrame.at(ring);
 
     // remember panel frame is an orthogonal matrix -- very simple inversion
     return panelFrame * in_coords + panelOrigin;
@@ -1282,15 +1286,15 @@ Matrix3d MirrorController::__rotMat(int axis, double a)
     return rot;
 }
 
-Vector3d MirrorController::__moveInCurrentRF(Vector3d in_vec, VectorXd tr_coords)
+Eigen::Vector3d MirrorController::__moveInCurrentRF(Eigen::Vector3d in_vec, Eigen::VectorXd tr_coords)
 {
     // check that we have 6 coords. if not, resize if necessary
-    VectorXd tr(6);
+    Eigen::VectorXd tr(6);
     tr.head(tr_coords.size()) = tr_coords;
     if (tr_coords.size() != 6)
         tr.tail(6 - tr_coords.size()).setZero();
 
-    Vector3d out_vec = in_vec;
+    Eigen::Vector3d out_vec = in_vec;
     // compute the transform due to the change in TRF: Rot(z -> x -> y)*v + T
     out_vec = __rotMat(2, tr(5)) * out_vec;
     out_vec = __rotMat(0, tr(3)) * out_vec;
@@ -1303,16 +1307,16 @@ Vector3d MirrorController::__moveInCurrentRF(Vector3d in_vec, VectorXd tr_coords
 
 
 /* ============== MINUIT INTERFACE ============== */
-double MirrorController::chiSq(VectorXd telDelta)
+double MirrorController::chiSq(Eigen::VectorXd telDelta)
 {
     // tel delta is a perturbation to the coordinates of the mirror
     double chiSq = 0.;
     const auto& panels = m_pChildren.at(PAS_PanelType);
 
     // pad coordinates in TRF as computed from actuator lengths
-    Vector3d padCoordsActs;
+    Eigen::Vector3d padCoordsActs;
     // pad coordinates in TRF as computed from telescope perturbation
-    Vector3d padCoordsTel;
+    Eigen::Vector3d padCoordsTel;
 
     UaVariant val;
     // go over all panels

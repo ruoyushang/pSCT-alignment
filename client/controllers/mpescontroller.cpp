@@ -95,7 +95,7 @@ MPESController::MPESController(Identity identity, Client *pClient) : PasControll
     }
     /* END DATABASE HACK */
 
-    SystematicOffsets = Vector2d::Zero();
+    SystematicOffsets = Eigen::Vector2d::Zero();
 }
 
 MPESController::~MPESController() {

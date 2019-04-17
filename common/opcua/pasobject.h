@@ -31,6 +31,8 @@ public:
     virtual ~PasObject();
     virtual UaNodeId typeDefinitionId() const = 0;
 
+    void initialize();
+
     // Implement UaObject interface
     OpcUa_Byte eventNotifier() const;
     // Override UaObject method implementation
@@ -77,6 +79,7 @@ protected:
     Identity                   m_Identity;
     PasComInterfaceCommon*     m_pCommIf;
     PasNodeManagerCommon*      m_pNodeManager;
+    UaNodeId m_newNodeId;
 
 private:
     static const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, OpcUa_Byte>> VARIABLES;

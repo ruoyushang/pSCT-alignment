@@ -24,50 +24,53 @@ PasObject::PasObject(const UaString& name,
         PasNodeManagerCommon *pNodeManager,
         Identity identity,
         PasComInterfaceCommon *pCommIf) :
-                  BaseObjectType(newNodeId, name, pNodeManager->getNameSpaceIndex(),
+        BaseObjectType(newNodeId, name, pNodeManager->getNameSpaceIndex(),
                          pNodeManager->getNodeManagerConfig()),
-                  m_defaultLocaleId(defaultLocaleId),
-                  m_pSharedMutex(NULL),
-                  m_Identity(identity),
-                  m_pCommIf(pCommIf),
-                  m_pNodeManager(pNodeManager)
-{
+        m_defaultLocaleId(defaultLocaleId),
+        m_pSharedMutex(NULL),
+        m_Identity(identity),
+        m_pCommIf(pCommIf),
+        m_pNodeManager(pNodeManager),
+        m_newNodeId(newNodeId) {
+    initialize();
+}
+
+void PasObject::initialize() {
     UaStatus addStatus;
     UaString sName;
     UaString sNodeId;
     UaPropertyMethodArgument *pPropertyArg;
     UaUInt32Array nullarray;
-    OpcUa_Int16 nsIdx = pNodeManager->getNameSpaceIndex();
+    OpcUa_Int16 nsIdx = m_pNodeManager->getNameSpaceIndex();
     OpcUa::DataItemType *pDataItem;
 
     // Add all child variable nodes
-
     for (auto &kv : getVariableDefs()) {
-        addVariable(pNodeManager, typeDefinitionId().identifierNumeric(), kv.first, std::get<2>(kv.second));
+        addVariable(m_pNodeManager, typeDefinitionId().identifierNumeric(), kv.first, std::get<2>(kv.second));
     }
 
     //Create the folder for the Errors
     UaFolder *pErrorFolder = new UaFolder("Errors", UaNodeId(
-            (std::to_string(typeDefinitionId().identifierNumeric()) + "_" + identity.eAddress + "_errors").c_str(),
+            (std::to_string(typeDefinitionId().identifierNumeric()) + "_" + m_Identity.eAddress + "_errors").c_str(),
             nsIdx),
                                           m_defaultLocaleId);
-    addStatus = pNodeManager->addNodeAndReference(this, pErrorFolder, OpcUaId_Organizes);
+    addStatus = m_pNodeManager->addNodeAndReference(this, pErrorFolder, OpcUaId_Organizes);
     UA_ASSERT(addStatus.isGood());
 
     // Add all error variable nodes
     for (auto v : getErrorDefs()) {
-        pDataItem = addVariable(pNodeManager, typeDefinitionId().identifierNumeric(), v.first, OpcUa_False, false);
-        addStatus = pNodeManager->addUaReference(pErrorFolder->nodeId(), pDataItem->nodeId(), OpcUaId_Organizes);
+        pDataItem = addVariable(m_pNodeManager, typeDefinitionId().identifierNumeric(), v.first, OpcUa_False, false);
+        addStatus = m_pNodeManager->addUaReference(pErrorFolder->nodeId(), pDataItem->nodeId(), OpcUaId_Organizes);
     }
 
     // Add all child method nodes
     for (auto &m : getMethodDefs()) {
         sName = UaString(m.second.first.c_str());
-        sNodeId = UaString("%1.%2").arg(newNodeId.toString()).arg(sName);
+        sNodeId = UaString("%1.%2").arg(m_newNodeId.toString()).arg(sName);
         m_MethodMap[UaNodeId(sNodeId, nsIdx)] = std::make_pair(
                 new UaMethodGeneric(sName, UaNodeId(sNodeId, nsIdx), m_defaultLocaleId), m.first);
-        addStatus = pNodeManager->addNodeAndReference(this, m_MethodMap[UaNodeId(sNodeId, nsIdx)].first,
-                                                      OpcUaId_HasComponent);
+        addStatus = m_pNodeManager->addNodeAndReference(this, m_MethodMap[UaNodeId(sNodeId, nsIdx)].first,
+                                                        OpcUaId_HasComponent);
         UA_ASSERT(addStatus.isGood());
 
         // Add arguments
@@ -86,8 +89,8 @@ PasObject::PasObject(const UaString& name,
                     nullarray,               // Array dimensions of the argument
                     UaLocalizedText("en", (std::get<2>(m.second.second[i])).c_str())); // Description
         }
-        addStatus = pNodeManager->addNodeAndReference(m_MethodMap[UaNodeId(sNodeId, nsIdx)].first, pPropertyArg,
-                                                      OpcUaId_HasProperty);
+        addStatus = m_pNodeManager->addNodeAndReference(m_MethodMap[UaNodeId(sNodeId, nsIdx)].first, pPropertyArg,
+                                                        OpcUaId_HasProperty);
         UA_ASSERT(addStatus.isGood());
     }
 }

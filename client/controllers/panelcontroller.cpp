@@ -22,7 +22,7 @@ PanelController::PanelController(Identity identity, Client *pClient) :
 
     // make sure things update on the first boot up
     // duration takes seconds -- hence the conversion with the 1/1000 ratio
-    m_lastUpdateTime = TIME::now() - std::chrono::duration<int, ratio < 1, 1000>>
+    m_lastUpdateTime = TIME::now() - std::chrono::duration<int, std::ratio<1, 1000>>
     (m_UpdateInterval_ms);
 }
 
@@ -52,7 +52,7 @@ UaStatus PanelController::getState(PASState &state) {
     UaVariant val;
     unsigned intState;
 
-    vector <std::string> vec_curread{"ns=2;s=Panel_0.State"};
+    std::vector<std::string> vec_curread{"ns=2;s=Panel_0.State"};
     status = m_pClient->read(vec_curread, &val);
     if (!status.isGood())
         return status;
