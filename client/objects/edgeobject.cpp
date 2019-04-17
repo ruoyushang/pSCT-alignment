@@ -26,9 +26,9 @@ const std::map<OpcUa_UInt32, std::pair<std::string, std::vector<std::tuple<std::
                                                                          "Fraction of motion to carry out (between 0.0 and 1.0, default = 0.25)"),
                                                  }}
         },
-        {PAS_EdgeType_FindMatrix, {"FindMatrix", std::make_tuple("Step Size",
-                                                                 UaNodeId(OpcUaId_Double),
-                                                                 "Size of step to use when calculating response matrix (in mm)"),}},
+        {PAS_EdgeType_FindMatrix, {"FindMatrix", {       std::make_tuple("Step Size",
+                                                                         UaNodeId(OpcUaId_Double),
+                                                                         "Size of step to use when calculating response matrix (in mm)")}}},
         {PAS_EdgeType_Read,       {"Read",       {}}},
         {PAS_EdgeType_Stop,       {"Stop",       {}}}
 };
