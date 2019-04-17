@@ -125,12 +125,12 @@ UaStatus PanelController::setData(OpcUa_UInt32 offset, UaVariant value) {
 }
 
 // move actuators to the preset length or panel to the preset coords
-UaStatusCode PanelController::Operate(OpcUa_UInt32 offset, const UaVariantArray &args) {
+UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &args) {
     UaMutexLocker lock(&m_mutex);
-    UaStatusCode status;
+    UaStatus status;
 
     if (getActuatorCount() == 0) {
-        std::std::cout << m_ID << "::Operate() : No actuators found, nothing to be done." << std::std::endl;
+        std::cout << m_ID << "::Operate() : No actuators found, nothing to be done." << std::endl;
         return OpcUa_Good;
     }
 

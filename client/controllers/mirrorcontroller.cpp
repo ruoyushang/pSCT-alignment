@@ -4,6 +4,7 @@
 #include "AGeoAsphericDisk.h" // ROBAST dependency
 #include <algorithm> // std::count
 #include <string>
+#include <iostream>
 #include <cmath>
 #include <deque>
 #include "TMinuit.h" // ROOT's implementation of MINUIT for chiSq minimization
@@ -73,7 +74,7 @@ void MirrorController::addChild(OpcUa_UInt32 deviceType, PasController *const pC
 
 bool MirrorController::Initialize()
 {
-    cout << "\n\tInitializing " << m_ID.name << "..." << endl;
+    std::cout << "\n\tInitializing " << m_ID.name << "..." << std::endl;
 
     // precompute everything we need
     if (m_ID.position == 1) {
@@ -131,7 +132,7 @@ bool MirrorController::Initialize()
         }
     }
     else {
-        cout << "\tNo mirror at position " << m_ID.position << " -- nothing to do!" << endl;
+        std::cout << "\tNo mirror at position " << m_ID.position << " -- nothing to do!" << std::endl;
         return false;
     }
 
@@ -176,17 +177,17 @@ bool MirrorController::Initialize()
             // to get the origin of the panel frame in the TRF:
             m_PanelOriginTelFrame.at(ring + 1) -= m_PanelFrame.at(ring+1)*PanelCenterPanelFrame;
 
-            cout << "Ideal Panel Frame origin for Ring " << ring + 1 << " in the Telescope frame :"
-                << endl << m_PanelOriginTelFrame.at(ring + 1) << endl;
-            cout << "Ideal Panel Frame for Ring " << ring + 1 << " in the Telescope frame :"
-                << endl << m_PanelFrame.at(ring + 1) << endl << endl;
+            std::cout << "Ideal Panel Frame origin for Ring " << ring + 1 << " in the Telescope frame :"
+                      << std::endl << m_PanelOriginTelFrame.at(ring + 1) << std::endl;
+            std::cout << "Ideal Panel Frame for Ring " << ring + 1 << " in the Telescope frame :"
+                      << std::endl << m_PanelFrame.at(ring + 1) << std::endl << std::endl;
         }
     }
 
-//    cout << "SYSTEMATICS MATRIX FOR 2112 from 2111:\n" << __computeSystematicsMatrix(2111, 2112) << endl;
-//    cout << "SYSTEMATICS MATRIX FOR 2111 from 2112:\n" << __computeSystematicsMatrix(2112, 2111) << endl;
+//    std::cout << "SYSTEMATICS MATRIX FOR 2112 from 2111:\n" << __computeSystematicsMatrix(2111, 2112) << std::endl;
+//    std::cout << "SYSTEMATICS MATRIX FOR 2111 from 2112:\n" << __computeSystematicsMatrix(2112, 2111) << std::endl;
 
-    cout << "Done Initializing " << m_ID.name << endl << endl;
+    std::cout << "Done Initializing " << m_ID.name << std::endl << std::endl;
 
     m_SelectedChildrenString[PAS_MPESType] = "";
 
@@ -314,7 +315,7 @@ UaStatusCode MirrorController::Operate(OpcUa_UInt32 offset, const UaVariantArray
     else if (offset == PAS_MirrorType_AlignSector) {
         // make sure there are some selected sensors
         if (m_SelectedChildren.at(PAS_MPESType).size() < 1) {
-            cout << "+++ ERROR +++ No sensors selected! Nothing to do." << endl;
+            std::cout << "+++ ERROR +++ No sensors selected! Nothing to do." << std::endl;
             return OpcUa_BadInvalidArgument;
         }
 
@@ -332,7 +333,7 @@ UaStatusCode MirrorController::Operate(OpcUa_UInt32 offset, const UaVariantArray
             m_ChildrenPositionMap.at(PAS_PanelType).at(fixPanel);
         }
         catch (out_of_range) {
-            cout << "+++ ERROR +++ The selected panel is not connected! Nothing to do." << endl;
+            std::cout << "+++ ERROR +++ The selected panel is not connected! Nothing to do." << std::endl;
             return OpcUa_BadInvalidArgument;
         }
 
@@ -379,7 +380,7 @@ UaStatusCode MirrorController::Operate(OpcUa_UInt32 offset, const UaVariantArray
      * stop the motion in progress                  *
      * **********************************************/
     else if (offset == PAS_MirrorType_Stop) {
-        cout << m_ID.name << "::Operate() : Attempting to gracefully stop all motions." << endl;
+        std::cout << m_ID.name << "::Operate() : Attempting to gracefully stop all motions." << std::endl;
         for (const auto &idx: m_SelectedChildren.at(PAS_PanelType)) {
             m_pChildren.at(PAS_PanelType).at(idx)->operate(PAS_PanelType_Stop);
         }
@@ -400,12 +401,12 @@ void MirrorController::__readPositionAll() {
         auto pos = m_pChildren.at(PAS_PanelType).at(idx)->getId().position;
 
         auto padCoordsActs = static_cast<PanelController *>(m_pChildren.at(PAS_PanelType).at(idx))->getPadCoords();
-        cout << "Panel frame pad coordinates:\n" << padCoordsActs << endl;
+        std::cout << "Panel frame pad coordinates:\n" << padCoordsActs << std::endl;
         // and transform this to the telescope reference frame:
         // these are pad coordinates in TRF as computed from actuator lengths
         for (int i = 0; i < padCoordsActs.cols(); i++)
             padCoordsActs.col(i) = __toTelRF(pos, padCoordsActs.col(i));
-        cout << "Telescope frame pad coordinates:\n" << padCoordsActs << endl;
+        std::cout << "Telescope frame pad coordinates:\n" << padCoordsActs << std::endl;
     }
 }
 
@@ -415,8 +416,8 @@ void MirrorController::__move(UaVariantArray args) {
         UaVariant(args[i]).toDouble(targetMirrorCoords[i]);
     }
 
-    cout << "\t\t*** MOVING MIRROR " << m_ID.position << " BY THE FOLLOWING AMOUNT :\n"
-         << targetMirrorCoords << endl;
+    std::cout << "\t\t*** MOVING MIRROR " << m_ID.position << " BY THE FOLLOWING AMOUNT :\n"
+              << targetMirrorCoords << std::endl;
 
     PasController *pCurObject;
 
@@ -427,7 +428,7 @@ void MirrorController::__move(UaVariantArray args) {
     for (const auto& idx : childrenSet) {
         pCurObject = m_pChildren.at(PAS_PanelType).at(idx);
         curpos = pCurObject->getId().position;
-        cout << "Panel " << curpos << ":" << endl;
+        std::cout << "Panel " << curpos << ":" << std::endl;
         static_cast<PanelController *>(pCurObject)->operate(PAS_PanelType_ReadAll);
         // for this panel, we get PRF pad coords, transform them to TRF,
         // move them in TRF, transform back to PRF, and then compute new ACT lengths
@@ -456,13 +457,13 @@ void MirrorController::__move(UaVariantArray args) {
         double curcoord;
         UaVariant val;
         targetPanelCoords.create(6);
-        cout << "\tNew Coords:";
+        std::cout << "\tNew Coords:";
         for (int i = 0; i < 6; i++) {
             curcoord = m_SP.GetPanelCoords()[i];
-            cout << " " << curcoord;
+            std::cout << " " << curcoord;
             targetPanelCoords[i] = UaVariant(curcoord)[0];
         };
-        cout << endl << endl;
+        std::cout << std::endl << std::endl;
         pCurObject->operate(PAS_PanelType_MoveToCoords, targetPanelCoords);
     }
     // we have populated all the values, now start moving.
@@ -510,21 +511,21 @@ void MirrorController::__alignAll(unsigned start_idx, const set<unsigned> &need_
             int aligniter = 1;
             m_pChildren.at(PAS_EdgeType).at(edge)->operate(PAS_EdgeType_Align, alignPanels);
             while (!static_cast<EdgeController *>(m_pChildren.at(PAS_EdgeType).at(edge))->isAligned()) {
-                cout << "\nAlignment Iteration " << aligniter << endl << endl;
+                std::cout << "\nAlignment Iteration " << aligniter << std::endl << std::endl;
                 usleep(400*1000); // microseconds
 
                 PASState curstate;
                 m_pChildren.at(PAS_PanelType).at(movingPanel_idx)->getState(curstate);
                 while (curstate == PASState::Busy) {
-                    cout << "\tPanel " << curPanels.at(0) << " moving..." << endl;
+                    std::cout << "\tPanel " << curPanels.at(0) << " moving..." << std::endl;
                     usleep(200*1000); // microseconds
                     m_pChildren.at(PAS_PanelType).at(movingPanel_idx)->getState(curstate);
                 }
                 aligniter++;
                 m_pChildren.at(PAS_EdgeType).at(edge)->operate(PAS_EdgeType_Align, alignPanels);
             }
-            cout << "\n" << m_pChildren.at(PAS_EdgeType).at(edge)->getId().name
-                << " is aligned!" << endl;
+            std::cout << "\n" << m_pChildren.at(PAS_EdgeType).at(edge)->getId().name
+                      << " is aligned!" << std::endl;
         }
 
         // get the next edge
@@ -597,10 +598,10 @@ void MirrorController::__updateSelectedChildren(unsigned deviceType)
     }
 
     if (m_SelectedChildren.at(deviceType).size() > 0)
-        cout << endl << m_ID.name << " selected the following children:\n\t";
+        std::cout << std::endl << m_ID.name << " selected the following children:\n\t";
     for (auto selected : m_SelectedChildren.at(deviceType))
-        cout << m_pChildren.at(deviceType).at(selected)->getId().name << " ";
-    cout << endl << endl;
+        std::cout << m_pChildren.at(deviceType).at(selected)->getId().name << " ";
+    std::cout << std::endl << std::endl;
 }
 
 void MirrorController::__updateCoords()
@@ -629,20 +630,20 @@ void MirrorController::__updateCoords()
     for (int i = 0; i < 6; i++)
         minuit->GetParameter(i, m_curCoords(i), m_curCoordsErr(i));
 
-    cout << "\n" << m_ID.name << " coordinates:\n";
+    std::cout << "\n" << m_ID.name << " coordinates:\n";
     for (int i = 0; i < 6; i++)
-       cout << m_curCoords(i) << " +/- " << m_curCoordsErr(i) << endl;
+        std::cout << m_curCoords(i) << " +/- " << m_curCoordsErr(i) << std::endl;
     // display angle in common coordinates -- angle*baseRad
 //    for (int i = 3; i < 6; i++)
-//       cout << m_curCoords(i)*kBaseRadius << " +/- " << m_curCoordsErr(i)*kBaseRadius << endl;
+//       std::cout << m_curCoords(i)*kBaseRadius << " +/- " << m_curCoordsErr(i)*kBaseRadius << std::endl;
 
     return;
 }
 
-MatrixXd MirrorController::__computeSystematicsMatrix(unsigned pos1, unsigned pos2)
+Eigen::MatrixXd MirrorController::__computeSystematicsMatrix(unsigned pos1, unsigned pos2)
 {
     // find influence of moving panel at pos1 on the panel at pos2
-    MatrixXd res(6,6);
+    Eigen::MatrixXd res(6, 6);
     // repeat for 6 coords:
     // take panel at pos1, panel1
     // take the coordinates of its neighbor pos2 in the PRF of panel1
@@ -657,8 +658,8 @@ MatrixXd MirrorController::__computeSystematicsMatrix(unsigned pos1, unsigned po
     double PadCoords[3][3];
 
     // original pad coords in TRF:
-    Matrix3d orig_padCoords2;
-    Matrix3d orig_padCoords2_PRF2;
+    Eigen::Matrix3d orig_padCoords2;
+    Eigen::Matrix3d orig_padCoords2_PRF2;
     // original panel coords in PRF2:
     Eigen::VectorXd orig_panelCoords2(6);
     for (auto pad = 0; pad < 3; pad++) {
@@ -676,7 +677,7 @@ MatrixXd MirrorController::__computeSystematicsMatrix(unsigned pos1, unsigned po
         orig_panelCoords2(coord) = m_SP.GetPanelCoords()[coord];
 
     // handle pads coords of panel 2
-    Matrix3d padCoords2;
+    Eigen::Matrix3d padCoords2;
     Eigen::VectorXd panelCoords2(6);
     Eigen::VectorXd TRANSFORM(6);
     for (auto TR = 0; TR < 6; TR++) {
@@ -715,8 +716,8 @@ MatrixXd MirrorController::__computeSystematicsMatrix(unsigned pos1, unsigned po
 void MirrorController::simulateAlignSector()
 {
     // following the align method for an edge:
-    MatrixXd C; // constraint
-    MatrixXd B; // complete matrix
+    Eigen::MatrixXd C; // constraint
+    Eigen::MatrixXd B; // complete matrix
 
     Eigen::VectorXd X; // solutions vector -- this moves actuators
     Eigen::VectorXd Y; // sensor misalignment vector, we want to fit this
@@ -748,7 +749,8 @@ void MirrorController::simulateAlignSector()
                 if (!overlapIndices.count(idx)) {
                     overlapIndices.insert(idx);
                     if (count(alignMPES.begin(), alignMPES.end(), mpes)) {
-                        cout << "You specified the following internal MPES: " << mpes->getId().serialNumber << endl;
+                        std::cout << "You specified the following internal MPES: " << mpes->getId().serialNumber
+                                  << std::endl;
                         userOverlap = true;
                     }
                 }
@@ -758,8 +760,8 @@ void MirrorController::simulateAlignSector()
 
     // if no user specified overlapping sensors, get their readings
     if (!userOverlap && overlapIndices.size() > 0) {
-        cout << "\nNo user-speficied internal MPES." << endl;
-        cout << "Reading the automatically identfied internal MPES:" << endl;
+        std::cout << "\nNo user-speficied internal MPES." << std::endl;
+        std::cout << "Reading the automatically identfied internal MPES:" << std::endl;
         // only read the internal MPES if no user-specified ones have been found
         for (const auto& idx: overlapIndices) {
             MPESController *mpes = static_cast<MPESController *>(m_pChildren.at(PAS_MPESType).at(idx));
@@ -769,20 +771,20 @@ void MirrorController::simulateAlignSector()
         }
     }
     else if (overlapIndices.size() == 0)
-        cout << "\nIdentified NO internal MPES. Are you alignining a single panel?";
+        std::cout << "\nIdentified NO internal MPES. Are you alignining a single panel?";
     else
-        cout << "\nWill be using user-specified internal MPES.";
-    cout << endl;
+        std::cout << "\nWill be using user-specified internal MPES.";
+    std::cout << std::endl;
 
 
-    cout << "Will align the following panels:" << endl;
+    std::cout << "Will align the following panels:" << std::endl;
     for (auto& panel : panelsToMove)
-        cout << panel->getId().position << " ";
-    cout << endl;
-    cout << "Will use the following sensors for alignment:" << endl;
+        std::cout << panel->getId().position << " ";
+    std::cout << std::endl;
+    std::cout << "Will use the following sensors for alignment:" << std::endl;
     for (auto& mpes: alignMPES)
-        cout << mpes->getId().serialNumber << " ";
-    cout << endl;
+        std::cout << mpes->getId().serialNumber << " ";
+    std::cout << std::endl;
 
     // construct the overall target vector and the response matrix
     UaVariant vtmp;
@@ -790,11 +792,11 @@ void MirrorController::simulateAlignSector()
     Eigen::VectorXd curRead(2 * alignMPES.size());
     Eigen::VectorXd targetRead(2 * alignMPES.size());
     // store individual response matrix;
-    MatrixXd responseMat(2, 6);
+    Eigen::MatrixXd responseMat(2, 6);
 
     unsigned nCols = 6*panelsToMove.size();
     unsigned nRows = 2*alignMPES.size();
-    B = MatrixXd(nRows, nCols);
+    B = Eigen::MatrixXd(nRows, nCols);
     Y = Eigen::VectorXd(nRows);
     for (int m = 0; m < alignMPES.size(); m++) {
         alignMPES.at(m)->getData(PAS_MPESType_xCentroidAvg, vtmp);
@@ -817,8 +819,8 @@ void MirrorController::simulateAlignSector()
 
     // make sure we have enough constraints to solve this
     if (Y.size() < B.cols()) {
-        cout << "+++ ERROR! +++ There are " << B.rows()/2 << " sensors and " << B.cols()
-             << " actuators -- not enough sensors to constrain the motion. Won't do anything!" << endl;
+        std::cout << "+++ ERROR! +++ There are " << B.rows() / 2 << " sensors and " << B.cols()
+                  << " actuators -- not enough sensors to constrain the motion. Won't do anything!" << std::endl;
         return;
     }
 
@@ -826,19 +828,20 @@ void MirrorController::simulateAlignSector()
         X = B.jacobiSvd(ComputeThinU | ComputeThinV).solve(Y);
     }
     catch (...) {
-        cout << "+++ WARNING! +++ Failed to perform Singular Value Decomposition. "
-             << "Check your sensor readings! Discarding this result!" << endl;
+        std::cout << "+++ WARNING! +++ Failed to perform Singular Value Decomposition. "
+                  << "Check your sensor readings! Discarding this result!" << std::endl;
         return;
     }
 
-    cout << "\nThe vector to solve for is\n" << Y << endl;
-    cout << "\nThe matrix to solve with is\n" << B << endl;
-    cout << "\nThe least squares solution is\n" << X << endl;
+    std::cout << "\nThe vector to solve for is\n" << Y << std::endl;
+    std::cout << "\nThe matrix to solve with is\n" << B << std::endl;
+    std::cout << "\nThe least squares solution is\n" << X << std::endl;
 
     if (m_AlignFrac < 1.) {
-        cout << "+++ WARNING +++ You requested fractional motion: will move fractionally by " << m_AlignFrac << " of the above:" << endl;
+        std::cout << "+++ WARNING +++ You requested fractional motion: will move fractionally by " << m_AlignFrac
+                  << " of the above:" << std::endl;
         X *= m_AlignFrac;
-        cout << X << endl;
+        std::cout << X << std::endl;
     }
 
     /* MOVE ACTUATORS */
@@ -846,8 +849,8 @@ void MirrorController::simulateAlignSector()
     for (auto& pCurPanel : panelsToMove) {
         auto nACT = pCurPanel->getActuatorCount();
         // print out to make sure
-        cout << "Will move actuators of "
-             << pCurPanel->getId().name << " by\n" << X.segment(j, 6) << endl;
+        std::cout << "Will move actuators of "
+                  << pCurPanel->getId().name << " by\n" << X.segment(j, 6) << std::endl;
 
         UaVariantArray deltas;
         deltas.create(nACT);
@@ -861,8 +864,8 @@ void MirrorController::simulateAlignSector()
 
 void MirrorController::__alignSector() {
     // following the align method for an edge:
-    MatrixXd C; // constraint
-    MatrixXd B; // complete matrix
+    Eigen::MatrixXd C; // constraint
+    Eigen::MatrixXd B; // complete matrix
 
     Eigen::VectorXd X; // solutions vector -- this moves actuators
     Eigen::VectorXd Y; // sensor misalignment vector, we want to fit this
@@ -894,7 +897,8 @@ void MirrorController::__alignSector() {
                 if (!overlapIndices.count(idx)) {
                     overlapIndices.insert(idx);
                     if (count(alignMPES.begin(), alignMPES.end(), mpes)) {
-                        cout << "You specified the following internal MPES: " << mpes->getId().serialNumber << endl;
+                        std::cout << "You specified the following internal MPES: " << mpes->getId().serialNumber
+                                  << std::endl;
                         userOverlap = true;
                     }
                 }
@@ -904,8 +908,8 @@ void MirrorController::__alignSector() {
 
     // if no user specified overlapping sensors, get their readings
     if (!userOverlap && overlapIndices.size() > 0) {
-        cout << "\nNo user-speficied internal MPES." << endl;
-        cout << "Reading the automatically identfied internal MPES:" << endl;
+        std::cout << "\nNo user-speficied internal MPES." << std::endl;
+        std::cout << "Reading the automatically identfied internal MPES:" << std::endl;
         // only read the internal MPES if no user-specified ones have been found
         for (const auto &idx: overlapIndices) {
             MPESController *mpes = static_cast<MPESController *>(m_pChildren.at(PAS_MPESType).at(idx));
@@ -914,20 +918,20 @@ void MirrorController::__alignSector() {
                 alignMPES.push_back(mpes);
         }
     } else if (overlapIndices.size() == 0)
-        cout << "\nIdentified NO internal MPES. Are you alignining a single panel?";
+        std::cout << "\nIdentified NO internal MPES. Are you alignining a single panel?";
     else
-        cout << "\nWill be using user-specified internal MPES.";
-    cout << endl;
+        std::cout << "\nWill be using user-specified internal MPES.";
+    std::cout << std::endl;
 
 
-    cout << "Will align the following panels:" << endl;
+    std::cout << "Will align the following panels:" << std::endl;
     for (auto &panel : panelsToMove)
-        cout << panel->getId().position << " ";
-    cout << endl;
-    cout << "Will use the following sensors for alignment:" << endl;
+        std::cout << panel->getId().position << " ";
+    std::cout << std::endl;
+    std::cout << "Will use the following sensors for alignment:" << std::endl;
     for (auto &mpes: alignMPES)
-        cout << mpes->getId().serialNumber << " ";
-    cout << endl;
+        std::cout << mpes->getId().serialNumber << " ";
+    std::cout << std::endl;
 
     // construct the overall target vector and the response matrix
     UaVariant vtmp;
@@ -935,11 +939,11 @@ void MirrorController::__alignSector() {
     Eigen::VectorXd curRead(2 * alignMPES.size());
     Eigen::VectorXd targetRead(2 * alignMPES.size());
     // store individual response matrix;
-    MatrixXd responseMat(2, 6);
+    Eigen::MatrixXd responseMat(2, 6);
 
     unsigned nCols = 6 * panelsToMove.size();
     unsigned nRows = 2 * alignMPES.size();
-    B = MatrixXd(nRows, nCols);
+    B = Eigen::MatrixXd(nRows, nCols);
     Y = Eigen::VectorXd(nRows);
     for (int m = 0; m < alignMPES.size(); m++) {
         alignMPES.at(m)->getData(PAS_MPESType_xCentroidAvg, vtmp);
@@ -952,7 +956,7 @@ void MirrorController::__alignSector() {
         for (int p = 0; p < panelsToMove.size(); p++) {
             auto panelSide = alignMPES.at(m)->getPanelSide(panelsToMove.at(p)->getId().position);
             if (panelSide)
-                responseMat = alignMPES.at(m)->getResponseMatrix(panelSide);
+                responseMat = alignMPES.at(m)->getResponseEigen::Matrix(panelSide);
             else
                 responseMat.setZero();
             B.block(2 * m, 6 * p, 2, 6) = responseMat;
@@ -962,8 +966,8 @@ void MirrorController::__alignSector() {
 
     // make sure we have enough constraints to solve this
     if (Y.size() < B.cols()) {
-        cout << "+++ ERROR! +++ There are " << B.rows() / 2 << " sensors and " << B.cols()
-             << " actuators -- not enough sensors to constrain the motion. Won't do anything!" << endl;
+        std::cout << "+++ ERROR! +++ There are " << B.rows() / 2 << " sensors and " << B.cols()
+                  << " actuators -- not enough sensors to constrain the motion. Won't do anything!" << std::endl;
         return;
     }
 
@@ -971,20 +975,20 @@ void MirrorController::__alignSector() {
         X = B.jacobiSvd(ComputeThinU | ComputeThinV).solve(Y);
     }
     catch (...) {
-        cout << "+++ WARNING! +++ Failed to perform Singular Value Decomposition. "
-             << "Check your sensor readings! Discarding this result!" << endl;
+        std::cout << "+++ WARNING! +++ Failed to perform Singular Value Decomposition. "
+                  << "Check your sensor readings! Discarding this result!" << std::endl;
         return;
     }
 
-    cout << "\nThe vector to solve for is\n" << Y << endl;
-    cout << "\nThe matrix to solve with is\n" << B << endl;
-    cout << "\nThe least squares solution is\n" << X << endl;
+    std::cout << "\nThe vector to solve for is\n" << Y << std::endl;
+    std::cout << "\nThe matrix to solve with is\n" << B << std::endl;
+    std::cout << "\nThe least squares solution is\n" << X << std::endl;
 
     if (m_AlignFrac < 1.) {
-        cout << "+++ WARNING +++ You requested fractional motion: will move fractionally by " << m_AlignFrac
-             << " of the above:" << endl;
+        std::cout << "+++ WARNING +++ You requested fractional motion: will move fractionally by " << m_AlignFrac
+                  << " of the above:" << std::endl;
         X *= m_AlignFrac;
-        cout << X << endl;
+        std::cout << X << std::endl;
     }
 
     /* MOVE ACTUATORS */
@@ -992,8 +996,8 @@ void MirrorController::__alignSector() {
     for (auto &pCurPanel : panelsToMove) {
         auto nACT = pCurPanel->getActuatorCount();
         // print out to make sure
-        cout << "Will move actuators of "
-             << pCurPanel->getId().name << " by\n" << X.segment(j, 6) << endl;
+        std::cout << "Will move actuators of "
+                  << pCurPanel->getId().name << " by\n" << X.segment(j, 6) << std::endl;
 
         UaVariantArray deltas;
         deltas.create(nACT);
@@ -1015,8 +1019,8 @@ void MirrorController::__alignGlobal(unsigned fixPanel)
     
     unsigned numPanels = 0;
     if (mirror != m_ID.position) {
-        cout << "+++ ERROR +++ The entered fixPanel position is wrong! Check it and try again."
-            << endl;
+        std::cout << "+++ ERROR +++ The entered fixPanel position is wrong! Check it and try again."
+                  << std::endl;
         return;
     }
 
@@ -1026,8 +1030,8 @@ void MirrorController::__alignGlobal(unsigned fixPanel)
         numPanels = Secondary::kPanels[ring - 1];
 
     // initialize the response matrices
-    MatrixXd localResponse;
-    MatrixXd globResponse = MatrixXd(numPanels*6, numPanels*6);
+    Eigen::MatrixXd localResponse;
+    Eigen::MatrixXd globResponse = Eigen::MatrixXd(numPanels * 6, numPanels * 6);
     globResponse.setZero();
     // initialize the misalignment vector
     Eigen::VectorXd localAlignRead;
@@ -1045,19 +1049,19 @@ void MirrorController::__alignGlobal(unsigned fixPanel)
     Identity id;
     // keep track of the position in the global response matrix
     unsigned blockRow = 0;
-    cout << "+++ DEBUG +++ Traversing Ring " << ring << " of Mirror " << mirror << " clockwise\n"
-        << endl;
+    std::cout << "+++ DEBUG +++ Traversing Ring " << ring << " of Mirror " << mirror << " clockwise\n"
+              << std::endl;
 
-    MatrixXd T; // Vladimir's T operator
-    MatrixXd Eye = MatrixXd::Identity(6,6);
-    MatrixXd MCurPrev, MCurNext, MNextCur;
-    MatrixXd E;
+    Eigen::MatrixXd T; // Vladimir's T operator
+    Eigen::MatrixXd Eye = Eigen::MatrixXd::Identity(6, 6);
+    Eigen::MatrixXd MCurPrev, MCurNext, MNextCur;
+    Eigen::MatrixXd E;
     T = Eye;
 
     do {
         nextPanel = SCTMath::GetPanelNeighbor(curPanel, 0);
-        cout << "+++ DEBUG +++ Currently on panels (" << curPanel << ", " << nextPanel << ")"
-            << endl;
+        std::cout << "+++ DEBUG +++ Currently on panels (" << curPanel << ", " << nextPanel << ")"
+                  << std::endl;
 
         panelsToMove.push_back(static_cast<PanelController *> (
                     m_pChildren.at(PAS_PanelType).at(m_ChildrenPositionMap.at(PAS_PanelType).at(curPanel)) ) );
@@ -1065,15 +1069,15 @@ void MirrorController::__alignGlobal(unsigned fixPanel)
         id.eAddress = SCTMath::GetEdgeFromPanels({curPanel, nextPanel});
         edgesToFit.push_back(static_cast<EdgeController *>(
                     m_pChildren.at(PAS_EdgeType).at(m_ChildrenIdentityMap.at(PAS_EdgeType).at(id)) ) );
-        cout << "\t\tThese correspond to the edge " << edgesToFit.back()->getId() << endl;
+        std::cout << "\t\tThese correspond to the edge " << edgesToFit.back()->getId() << std::endl;
 
-        cout << "\t\tReading the sensors of this edge." << endl;
+        std::cout << "\t\tReading the sensors of this edge." << std::endl;
         localCurRead = edgesToFit.back()->getCurrentReadings();
         localAlignRead = edgesToFit.back()->getAlignedReadings();
 
         misalignVec = localAlignRead - localCurRead;
-        cout << "+++ DEBUG +++ The current misalignment is\n" << misalignVec << endl;
-        cout << "+++ DEBUG +++ Adding this to the the end of the global misalignment vector" << endl;
+        std::cout << "+++ DEBUG +++ The current misalignment is\n" << misalignVec << std::endl;
+        std::cout << "+++ DEBUG +++ Adding this to the the end of the global misalignment vector" << std::endl;
         globMisalignVec.conservativeResize(cursize + misalignVec.size());
         globMisalignVec.tail(misalignVec.size()) = misalignVec;
         cursize = globMisalignVec.size();
@@ -1081,19 +1085,19 @@ void MirrorController::__alignGlobal(unsigned fixPanel)
 
         // get the response of this edge
         localResponse = edgesToFit.back()->getResponseMatrix(curPanel);
-        cout << "\t\tResponse matrix [" << curPanel << "][" << nextPanel << "]:\n"
-            << localResponse << endl;
-        cout << "+++ DEBUG +++ Placing this at location [" << blockRow << "x6]["
-            << blockRow << "x6] of the global response matrix" << endl;
+        std::cout << "\t\tResponse matrix [" << curPanel << "][" << nextPanel << "]:\n"
+                  << localResponse << std::endl;
+        std::cout << "+++ DEBUG +++ Placing this at location [" << blockRow << "x6]["
+                  << blockRow << "x6] of the global response matrix" << std::endl;
         globResponse.block(blockRow*6, blockRow*6,
                 localResponse.rows(), localResponse.cols()) = localResponse;
         MCurNext = localResponse;
 
         localResponse = edgesToFit.back()->getResponseMatrix(nextPanel);
-        cout << "\t\tResponse matrix [" << nextPanel << "][" << curPanel << "]:\n"
-            << localResponse << endl;
-        cout << "+++ DEBUG +++ Placing this at location [" << blockRow << "x6]["
-            << (blockRow + 1) % numPanels << "x6] of the global response matrix" << endl;
+        std::cout << "\t\tResponse matrix [" << nextPanel << "][" << curPanel << "]:\n"
+                  << localResponse << std::endl;
+        std::cout << "+++ DEBUG +++ Placing this at location [" << blockRow << "x6]["
+                  << (blockRow + 1) % numPanels << "x6] of the global response matrix" << std::endl;
         globResponse.block(blockRow*6, ((blockRow + 1) % numPanels)*6,
                 localResponse.rows(), localResponse.cols()) = localResponse;
 
@@ -1103,7 +1107,7 @@ void MirrorController::__alignGlobal(unsigned fixPanel)
         // replace the first 6 columns of the response matrix with 6x6 identity matrices:
         // this gets rid of the response matrices corresponding to the fixed panel
         // and replaces them with the Systematic Offset Response matrix (just identity)
-        globResponse.block(blockRow*6, 0, 6, 6) = MatrixXd::Identity(6, 6);
+        globResponse.block(blockRow * 6, 0, 6, 6) = Eigen::MatrixXd::Identity(6, 6);
 
         curPanel = nextPanel;
         ++blockRow;
@@ -1111,10 +1115,10 @@ void MirrorController::__alignGlobal(unsigned fixPanel)
         // nothing to do if on the first panel
         if (blockRow != 1) {
             E = MCurNext*MCurPrev.inverse();
-            cout << "+++ SPECIAL DEBUG +++ ML = \n" << MCurPrev << endl;
-            cout << "+++ SPECIAL DEBUG +++ ML*ML.invserse() = \n" << MCurPrev*MCurPrev.inverse() << endl;
-            cout << "+++ SPECIAL DEBUG +++ MR = \n" << MCurNext << endl;
-            cout << "+++ SPECIAL DEBUG +++ Operator E = MR*ML.inverse() \n" << E << endl;
+            std::cout << "+++ SPECIAL DEBUG +++ ML = \n" << MCurPrev << std::endl;
+            std::cout << "+++ SPECIAL DEBUG +++ ML*ML.invserse() = \n" << MCurPrev * MCurPrev.inverse() << std::endl;
+            std::cout << "+++ SPECIAL DEBUG +++ MR = \n" << MCurNext << std::endl;
+            std::cout << "+++ SPECIAL DEBUG +++ Operator E = MR*ML.inverse() \n" << E << std::endl;
             T = Eye - E*T;
         }
 
@@ -1122,24 +1126,26 @@ void MirrorController::__alignGlobal(unsigned fixPanel)
 
     } while ( curPanel != fixPanel );
 
-    cout << "+++ SPECIAL DEBUG +++ Operator T = \n" << T << endl;
-    cout << "+++ SPECIAL DEBUG +++ Operator -1*T.inverse() = \n" << -1*T.inverse() << endl;
-    cout << "+++ SPECIAL DEBUG +++ Operator T*T.inverse() = \n" << T*T.inverse() << endl;
-    cout << "+++ SPECIAL DEBUG +++ You want to compute -1*T.inverse*misalignmentOfLastEdge..." << endl;
+    std::cout << "+++ SPECIAL DEBUG +++ Operator T = \n" << T << std::endl;
+    std::cout << "+++ SPECIAL DEBUG +++ Operator -1*T.inverse() = \n" << -1 * T.inverse() << std::endl;
+    std::cout << "+++ SPECIAL DEBUG +++ Operator T*T.inverse() = \n" << T * T.inverse() << std::endl;
+    std::cout << "+++ SPECIAL DEBUG +++ You want to compute -1*T.inverse*misalignmentOfLastEdge..." << std::endl;
 
     // check that we have enough sensor readings
     if (globMisalignVec.size() < globResponse.rows()) {
-        cout << "+++ ERROR +++ Not enough sensor readings to perform the fit! Go through the output above and find which sensor is not in the field of view, fix it, and come back." << endl;
+        std::cout
+                << "+++ ERROR +++ Not enough sensor readings to perform the fit! Go through the output above and find which sensor is not in the field of view, fix it, and come back."
+                << std::endl;
         return;
     }
 
-    cout << "+++ DEBUG +++ misalignment vector size is " << globMisalignVec.size() << endl;
-    cout << "+++ DEBUG +++ The first 12 entries:\n" << globMisalignVec.head(12) << endl;
-    cout << "+++ DEBUG +++ The last 12 entries:\n" << globMisalignVec.tail(12) << endl;
-    cout << "+++ DEBUG +++ The first 12x18 block of the global response matrix:\n"
-        << globResponse.block(0,0,12,18) << endl;
-    cout << "+++ DEBUG +++ The last 12x18 block of the global response matrix:\n"
-        << globResponse.block(globResponse.rows() - 12, globResponse.cols() - 18, 12, 18) << endl;
+    std::cout << "+++ DEBUG +++ misalignment vector size is " << globMisalignVec.size() << std::endl;
+    std::cout << "+++ DEBUG +++ The first 12 entries:\n" << globMisalignVec.head(12) << std::endl;
+    std::cout << "+++ DEBUG +++ The last 12 entries:\n" << globMisalignVec.tail(12) << std::endl;
+    std::cout << "+++ DEBUG +++ The first 12x18 block of the global response matrix:\n"
+              << globResponse.block(0, 0, 12, 18) << std::endl;
+    std::cout << "+++ DEBUG +++ The last 12x18 block of the global response matrix:\n"
+              << globResponse.block(globResponse.rows() - 12, globResponse.cols() - 18, 12, 18) << std::endl;
 
     // erase the first element of panelsToMove -- this is the panel we decided to keep fixed
     panelsToMove.erase(panelsToMove.begin());
@@ -1151,9 +1157,11 @@ void MirrorController::__alignGlobal(unsigned fixPanel)
     globDisplaceVec = globResponse.jacobiSvd(ComputeThinU | ComputeThinV).solve(globMisalignVec);
 
     Eigen::VectorXd check = globResponse * globDisplaceVec - globMisalignVec;
-    cout << "+++ DEBUG +++ Checking that the found solution is correct: looking at (R*Solution - MisAlign): norm = " << check.norm() << endl;
-    cout << "\t\t First 12 entries\n" << check.head(12) << endl;
-    cout << "\t\t Last 12 entries\n" << check.tail(12) << endl;
+    std::cout
+            << "+++ DEBUG +++ Checking that the found solution is correct: looking at (R*Solution - MisAlign): norm = "
+            << check.norm() << std::endl;
+    std::cout << "\t\t First 12 entries\n" << check.head(12) << std::endl;
+    std::cout << "\t\t Last 12 entries\n" << check.tail(12) << std::endl;
 
     m_sysOffsetsMPES = globDisplaceVec.head(6);
     // get the order of read sensors:
@@ -1165,8 +1173,8 @@ void MirrorController::__alignGlobal(unsigned fixPanel)
     // make sure we read out the systematic vector in the same order as the sensors
     // and assign it correctly to outer/middle/inner
 
-    cout << "The fitted systematic offset is, in the order of read sensors:\n"
-        << m_sysOffsetsMPES << endl;
+    std::cout << "The fitted systematic offset is, in the order of read sensors:\n"
+              << m_sysOffsetsMPES << std::endl;
 
     // set the offset for each sensor edge
     for (const auto& edge : edgesToFit) {
@@ -1178,8 +1186,8 @@ void MirrorController::__alignGlobal(unsigned fixPanel)
     }
 
     if (m_AlignFrac < 1.)
-        cout << "\n+++ WARNING +++ You requested fractional motion: will move fractionally by "
-            << m_AlignFrac << " of the computed displacement" << endl;
+        std::cout << "\n+++ WARNING +++ You requested fractional motion: will move fractionally by "
+                  << m_AlignFrac << " of the computed displacement" << std::endl;
 
     // loop through panels and set the displacements
     /* MOVE ACTUATORS */
@@ -1190,8 +1198,9 @@ void MirrorController::__alignGlobal(unsigned fixPanel)
         m_SelectedChildrenString.at(PAS_PanelType) += std::to_string(pCurPanel->getId().position) + " ";
         auto nACT = pCurPanel->getActuatorCount();
         // print out to make sure
-        cout << "Will move actuators of "
-            << pCurPanel->getId().name << " by (accounting for fractional motion)\n" << m_AlignFrac*globDisplaceVec.segment(j, 6) << endl;
+        std::cout << "Will move actuators of "
+                  << pCurPanel->getId().name << " by (accounting for fractional motion)\n"
+                  << m_AlignFrac * globDisplaceVec.segment(j, 6) << std::endl;
 
         UaVariantArray deltas;
         deltas.create(nACT);
@@ -1240,8 +1249,8 @@ Eigen::Vector3d MirrorController::__toPanelRF(unsigned pos, Eigen::Vector3d in_c
     double phi = __getAzOffset(pos);
 
     // this panel's frame is the rotated frame of the ideal panel
-    Matrix3d zRot = __rotMat(2, phi);
-    Matrix3d panelFrame =  zRot * m_PanelFrame.at(ring);
+    Eigen::Matrix3d zRot = __rotMat(2, phi);
+    Eigen::Matrix3d panelFrame = zRot * m_PanelFrame.at(ring);
     Eigen::Vector3d panelOrigin = zRot * m_PanelOriginTelFrame.at(ring);
 
     return panelFrame.transpose() * (in_coords - panelOrigin);
@@ -1256,20 +1265,20 @@ Eigen::Vector3d MirrorController::__toTelRF(unsigned pos, Eigen::Vector3d in_coo
     double phi = __getAzOffset(pos);
 
     // this panel's frame is the rotated frame of the ideal panel
-    Matrix3d zRot = __rotMat(2, phi);
-    Matrix3d panelFrame =  zRot * m_PanelFrame.at(ring);
+    Eigen::Matrix3d zRot = __rotMat(2, phi);
+    Eigen::Matrix3d panelFrame = zRot * m_PanelFrame.at(ring);
     Eigen::Vector3d panelOrigin = zRot * m_PanelOriginTelFrame.at(ring);
 
     // remember panel frame is an orthogonal matrix -- very simple inversion
     return panelFrame * in_coords + panelOrigin;
 }
 
-Matrix3d MirrorController::__rotMat(int axis, double a)
+Eigen::Matrix3d MirrorController::__rotMat(int axis, double a)
 {
     double c = cos(a);
     double s = sin(a);
 
-    Matrix3d rot;
+    Eigen::Matrix3d rot;
     if (axis == 0) // x rotation
         rot << 1., 0., 0.,
                0., c, -s,
@@ -1349,6 +1358,6 @@ double MirrorController::chiSq(Eigen::VectorXd telDelta)
 
 void MirrorControllerCompute::chiSqFCN(int &npar, double *gin, double &f, double *par, int iflag) // MINUIT interface
 {
-    Matrix<double, 6, 1> vecPars(par);
+    Eigen::Matrix<double, 6, 1> vecPars(par);
     f = Mirror->chiSq(vecPars);
 }
