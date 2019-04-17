@@ -38,22 +38,6 @@ const std::map<OpcUa_UInt32, std::pair<std::string, std::vector<std::tuple<std::
 
 };
 
-/// @details Inherits from the PasObject constructor. Uses a UaMutexRefCounted
-/// shared mutex to allow only one thread to access the object at a time and to
-/// clean up the object once all references to it are deleted. Gets the
-/// namespace index from the PasNodeManager, then creates all OPC UA variable
-///and method nodes as children of the object using the PasNodeManager.
-PositionerObject::PositionerObject(
-    const UaString& name,
-    const UaNodeId& newNodeId,
-    const UaString& defaultLocaleId,
-    PasNodeManager *pNodeManager,
-    Identity identity,
-    PasCommunicationInterface *pCommIf)
-        : PasObject(name, newNodeId, defaultLocaleId, pNodeManager, identity, pCommIf) {
-    initialize();
-}
-
 /// @details Uses the PositionerType id number defined in passervertypeids.h
 /// along with the namspace index to construct the UaNodeId for the Positioner
 /// type node.
