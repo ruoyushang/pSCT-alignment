@@ -228,14 +228,13 @@ void PasLogic::__align_PSD(unsigned psdNo)
 
 UaStatus PasLogic::__move_OT(unsigned otNo, const double coords[6])
 {
-    UaVariant val;
+    UaVariantArray args;
     for (int i = 0; i < 6; i++) {
-        val.setDouble(coords[i]);
-        m_pCommIf->setDeviceData(PAS_PanelType, m_optId[otNo], PAS_PanelType_inCoords_x + i, val);
+        args[i] = UaVariant(coords[i])[0];
     }
 
     tee << TIME << "set new panel coords for OPT" << otNo+1 << "; moving..." << std::endl;
-    UaStatus status = m_pCommIf->OperateDevice(PAS_PanelType, m_optId[otNo], PAS_PanelType_MoveToCoords);
+    UaStatus status = m_pCommIf->OperateDevice(PAS_PanelType, m_optId[otNo], PAS_PanelType_MoveToCoords, args);
     tee << TIME << "done moving" << std::endl;
     if (!status.isGood())
         tee << TIME << "!!! THERE WAS A PROBLEM MOVING THE PANEL !!!" << std::endl;
