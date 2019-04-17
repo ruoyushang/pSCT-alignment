@@ -245,7 +245,7 @@ UaStatus EdgeController::findSingleMatrix(unsigned panelIdx, double stepSize) {
 
         printf("attempting to move actuator %d by %5.3f mm\n", j, stepSize);
         deltaL.copyTo(&deltas[j]);
-        status = pCurPanel->Operate(PAS_PanelType_MoveDeltaLengths, deltas);
+        status = pCurPanel->operate(PAS_PanelType_MoveDeltaLengths, deltas);
         if (!status.isGood()) return status;
         // Stepping is asynchronous. but here, we want it to actually complete
         // before the next step. So we wait.
@@ -371,7 +371,7 @@ UaStatus EdgeController::alignSinglePanel(unsigned panelpos, double alignFrac, b
         Y = aligned_read - current_read;
     } else { // this panel kept fixed -- we have three panels
         // get the response matrix, which is [A1 | A2]
-        vector <Eigen::MatrixXd> responseMats;
+        std::vector<Eigen::MatrixXd> responseMats;
         for (const auto &panelPair : m_ChildrenPositionMap.at(PAS_PanelType))
             if (panelPair.first != panelpos)
                 responseMats.push_back(getResponseMatrix(panelPair.first)); // get response from the two other panels
@@ -638,8 +638,8 @@ const Eigen::Eigen::VectorXd &EdgeController::getCurrentReadings() {
         pMPES.at(nMPES)->operate();
         if (!static_cast<MPESController *>(pMPES.at(nMPES))->isVisible()) {
             std::cout << "+++ WARNING +++ " << pMPES.at(nMPES)->getId().name
-                 //for (const auto& mpes : m_ChildrenPositionMap.at(PAS_MPESType)) {
-                 //    pMPES.at(mpes.second)->Operate();
+                      //for (const auto& mpes : m_ChildrenPositionMap.at(PAS_MPESType)) {
+                      //    pMPES.at(mpes.second)->Operate();
                       //    if ( !static_cast<MPESController *>(pMPES.at(mpes.second))->isVisible() ) {
                       //        std::cout << "+++ WARNING +++ " << pMPES.at(mpes.second)->getId().name
                       << " is not in the field of view! Will ignore it." << std::endl;
@@ -662,3 +662,4 @@ const Eigen::Eigen::VectorXd &EdgeController::getCurrentReadings() {
     m_CurrentReadingsSD.conservativeResize(2 * visibleMPES);
 
     return m_CurrentReadings;
+}

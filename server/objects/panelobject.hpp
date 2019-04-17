@@ -47,8 +47,9 @@ public:
             PasNodeManager *pNodeManager,
             Identity identity,
             PasCommunicationInterface *pCommIf) : PasObject(name, newNodeId, defaultLocaleId,
-                                                            dynamic_cast<PasNodeManagerCommon *>pNodeManager, identity,
-                                                                    dynamic_cast<PasComInterfaceCommon *>pCommIf) {}
+                                                            dynamic_cast<PasNodeManagerCommon *>(pNodeManager),
+                                                            identity,
+                                                            dynamic_cast<PasComInterfaceCommon *>(pCommIf)) {}
 
     /// @brief Destroy an OPC UA panel object.
     virtual ~PanelObject();

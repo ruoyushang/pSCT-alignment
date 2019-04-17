@@ -49,7 +49,7 @@ public:
 
     virtual UaStatus setData(OpcUa_UInt32 offset, UaVariant value) = 0;
 
-    virtual UaStatus operate(OpcUa_UInt32 offset, const UaVariantArray &args) = 0;
+    virtual UaStatus operate(OpcUa_UInt32 offset = 0, const UaVariantArray &args = UaVariantArray()) = 0;
 
     virtual bool Initialize() { return true; }
 
