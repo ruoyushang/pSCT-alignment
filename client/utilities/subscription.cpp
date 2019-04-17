@@ -5,7 +5,7 @@
  * @see http://documentation.unified-automation.com/uasdkcpp/1.5.4/html/classUaClientSdk_1_1UaSubscriptionCallback.html
  */
 
-#include "subscription.h"
+#include "subscription.hpp"
 #include "uaclient/uasubscription.h"
 #include "uaclient/uasession.h"
 

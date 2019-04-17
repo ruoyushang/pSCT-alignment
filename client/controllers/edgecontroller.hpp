@@ -42,7 +42,7 @@ public:
 private:
 
     // methods
-    UaStatus align(unsigned panel_pos, bool moveit, double alignFrac = 0.25);
+    UaStatus align(unsigned panel_pos, double alignFrac = 0.25, bool moveit = true);
 
     UaStatus findMatrix(UaVariantArray args);
 

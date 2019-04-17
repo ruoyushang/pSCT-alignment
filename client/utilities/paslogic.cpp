@@ -1,4 +1,4 @@
-#include "paslogic.h"
+#include "paslogic.hpp"
 #include "passervertypeids.hpp"
 #include <uastring.h>
 #include <uavariant.h>

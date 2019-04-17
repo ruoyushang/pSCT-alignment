@@ -4,8 +4,8 @@
  */
 
 #include <string>
-#include "database.h"
-#include "configuration.h"
+#include "database.hpp"
+#include "configuration.hpp"
 
 // MySQL C++ Connector includes
 #include "cppconn/driver.h"

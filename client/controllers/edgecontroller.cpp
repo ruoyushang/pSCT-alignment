@@ -291,7 +291,7 @@ UaStatus EdgeController::findSingleMatrix(unsigned panelIdx, double stepSize) {
     std::cout << responseMatrix << std::endl;
 
     std::string outfilename = "/home/ctauser/PanelAlignmentData/ResponseMatrix_" + m_ID.eAddress + ".txt";
-    std::ofstream output(outfilename, std::ios_base::in | std::ios_base::out | std::ios_base::app);
+    std::ofstream output(outfilename, std::ofstream::in | std::ofstream::out | std::ofstream::app);
     std::stringstream outputstr;
     output << pCurPanel->getId().position << std::endl << responseMatrix << std::endl;
 
@@ -305,7 +305,7 @@ UaStatus EdgeController::findSingleMatrix(unsigned panelIdx, double stepSize) {
     Method       align
     Description  Align this edge to the nominal position using the found matrix
 -----------------------------------------------------------------------------*/
-UaStatus EdgeController::align(unsigned panel_pos, bool moveit, double alignFrac) {
+UaStatus EdgeController::align(unsigned panel_pos, double alignFrac, bool moveit) {
     UaMutexLocker lock(&m_mutex);
     UaStatus status;
 
@@ -315,7 +315,7 @@ UaStatus EdgeController::align(unsigned panel_pos, bool moveit, double alignFrac
     else
         std::cout << "Will keep fixed panel " << panel_pos << std::endl;
 
-    status = alignSinglePanel(panel_pos, moveit, alignFrac);
+    status = alignSinglePanel(panel_pos, alignFrac, moveit);
 
 
 /*
@@ -476,7 +476,7 @@ UaStatus EdgeController::alignSinglePanel(unsigned panelpos, double alignFrac, b
     }
 
     try {
-        X = B.jacobiSvd(ComputeThinU | ComputeThinV).solve(Y);
+        X = B.jacobiSvd(Eigen::ComputeThinU | Eigen::ComputeThinV).solve(Y);
     }
     catch (...) {
         std::cout << "+++ WARNING! +++ Failed to perform Singular Value Decomposition. "

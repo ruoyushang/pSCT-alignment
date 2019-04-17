@@ -131,9 +131,13 @@ UaStatus ActController::operate(OpcUa_UInt32 offset, const UaVariantArray &args)
 
     // don't lock the object -- might want to change state while operating the device!
     // UaMutexLocker lock(&m_mutex);
-    float deltaLength;
+
     switch (offset) {
         case PAS_ACTType_MoveDeltaLength:
+            if (args.length() != 1) {
+                return OpcUa_BadInvalidArgument;
+            }
+            float deltaLength;
             UaVariant(args[0]).toFloat(deltaLength);
             std::cout << "Stepping actuator " << m_ID.serialNumber << "by " << deltaLength << " mm\n";
             status = m_pClient->callMethodAsync(m_ID.eAddress, UaString("MoveDeltaLength"), args);
@@ -142,6 +146,9 @@ UaStatus ActController::operate(OpcUa_UInt32 offset, const UaVariantArray &args)
             if (args.length() != 1) {
                 return OpcUa_BadInvalidArgument;
             }
+            float targetLength;
+            UaVariant(args[0]).toFloat(targetLength);
+            std::cout << "Stepping actuator " << m_ID.serialNumber << "to target length " << targetLength << " mm\n";
             status = m_pClient->callMethodAsync(m_ID.eAddress, UaString("MoveToLength"), args);
             break;
         default:

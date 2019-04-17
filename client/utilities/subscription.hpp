@@ -10,7 +10,7 @@
 
 #include "uabase/uabase.h"
 #include "uaclient/uaclientsdk.h"
-#include "client/utilities/configuration.h"
+#include "client/utilities/configuration.hpp"
 
 /// @brief Class to manage subscriptions to OPC UA nodes. Wraps the standard
 /// UaSubscription and UaSubscriptionCallback classes and takes a configuration

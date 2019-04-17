@@ -7,7 +7,7 @@
 #include "client/objects/opttableobject.hpp"
 #include "client/objects/positionerobject.hpp"
 #include "clienthelper.hpp"
-#include "configuration.h"
+#include "configuration.hpp"
 #include "pascommunicationinterface.hpp"
 #include "pasobjectfactory.hpp"
 #include "passervertypeids.hpp"

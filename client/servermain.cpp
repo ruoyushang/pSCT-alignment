@@ -13,9 +13,9 @@
 #endif
 
 #include "pasnodemanager.hpp"
-#include "configuration.h"
+#include "configuration.hpp"
 #include "pascommunicationinterface.hpp"
-#include "paslogic.h"
+#include "paslogic.hpp"
 #include "shutdown.hpp"
 
 #include <vector>

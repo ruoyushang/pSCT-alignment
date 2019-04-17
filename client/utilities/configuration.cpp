@@ -1,4 +1,4 @@
-#include "configuration.h"
+#include "configuration.hpp"
 #include "mathtools.h"
 #include "uasettings.h"
 #include "uadir.h"

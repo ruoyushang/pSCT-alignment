@@ -4,7 +4,7 @@
 ** Description: Communication interface to access the devices.
 ******************************************************************************/
 #include "pascommunicationinterface.hpp"
-#include "configuration.h"
+#include "configuration.hpp"
 #include "passervertypeids.hpp"
 #include "client/controllers/pascontroller.hpp"
 #include "client/controllers/pasmirror.h"
