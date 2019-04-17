@@ -9,6 +9,11 @@
 #include "client/controllers/pascontroller.hpp"
 #include "client/controllers/mirrorcontroller.hpp"
 #include "client/controllers/positionercontroller.hpp"
+#include "client/controllers/panelcontroller.hpp"
+#include "client/controllers/edgecontroller.hpp"
+#include "client/controllers/mpescontroller.hpp"
+#include "client/controllers/ccdcontroller.hpp"
+#include "client/controllers/psdcontroller.hpp"
 #include "uadatetime.h"
 #include <dirent.h>
 #include <string>

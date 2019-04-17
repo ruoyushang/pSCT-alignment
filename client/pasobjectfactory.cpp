@@ -10,6 +10,7 @@
 #include "client/objects/mirrorobject.hpp"
 #include "client/objects/panelobject.hpp"
 #include "client/objects/edgeobject.hpp"
+#include "client/objects/ccdobject.hpp"
 
 PasObject* PasObjectFactory::Create(
         unsigned deviceType,
