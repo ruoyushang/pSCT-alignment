@@ -20,9 +20,9 @@
 #include "server/controllers/pascontroller.hpp"
 
 #include "common/globalalignment/psdclass.h"
-#include "common/opcua/pascominterfacecommon.h"
-#include "common/opcua/pasobject.h"
-#include "common/opcua/passervertypeids.h"
+#include "common/opcua/pascominterfacecommon.hpp"
+#include "common/opcua/pasobject.hpp"
+#include "common/opcua/passervertypeids.hpp"
 
 
 /// @details By default, sets the update interval to 500 ms. Creates a new GASPSD object,
