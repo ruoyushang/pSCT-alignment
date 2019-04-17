@@ -169,7 +169,7 @@ UaStatus PasObject::call(
             }
             */
             if (ret.isGood()) {
-                ret = m_pCommIf->OperateDevice(typeDefinitionId().identifierNumeric(), m_Identity, methodTypeID,
+                ret = m_pCommIf->operateDevice(typeDefinitionId().identifierNumeric(), m_Identity, methodTypeID,
                                                inputArguments);
             }
         } else {

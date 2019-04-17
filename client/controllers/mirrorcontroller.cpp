@@ -368,7 +368,7 @@ UaStatusCode MirrorController::Operate(OpcUa_UInt32 offset, const UaVariantArray
      * ********************************************************/
     else if (offset == PAS_MirrorType_ReadAlign) {
         for (const auto &idx : m_SelectedChildren.at(PAS_EdgeType))
-            m_pChildren.at(PAS_EdgeType).at(idx)->Operate(PAS_EdgeType_Read);
+            m_pChildren.at(PAS_EdgeType).at(idx)->operate(PAS_EdgeType_Read);
     }
 
     /************************************************
@@ -377,7 +377,7 @@ UaStatusCode MirrorController::Operate(OpcUa_UInt32 offset, const UaVariantArray
     else if (offset == PAS_MirrorType_Stop) {
         cout << m_ID.name << "::Operate() : Attempting to gracefully stop all motions." << endl;
         for (const auto &idx: m_SelectedChildren.at(PAS_PanelType)) {
-            m_pChildren.at(PAS_PanelType).at(idx)->Operate(PAS_PanelType_Stop);
+            m_pChildren.at(PAS_PanelType).at(idx)->operate(PAS_PanelType_Stop);
         }
     } else {
         return OpcUa_BadNotImplemented;
@@ -391,7 +391,7 @@ UaStatusCode MirrorController::Operate(OpcUa_UInt32 offset, const UaVariantArray
 
 void MirrorController::__readPositionAll() {
     for (const auto &idx : m_SelectedChildren.at(PAS_PanelType)) {
-        m_pChildren.at(PAS_PanelType).at(idx)->Operate(PAS_PanelType_ReadAll);
+        m_pChildren.at(PAS_PanelType).at(idx)->operate(PAS_PanelType_ReadAll);
 
         auto pos = m_pChildren.at(PAS_PanelType).at(idx)->getId().position;
 
@@ -424,7 +424,7 @@ void MirrorController::__move(UaVariantArray args) {
         pCurObject = m_pChildren.at(PAS_PanelType).at(idx);
         curpos = pCurObject->getId().position;
         cout << "Panel " << curpos << ":" << endl;
-        static_cast<PasPanel *>(pCurObject)->Operate(PAS_PanelType_ReadAll);
+        static_cast<PasPanel *>(pCurObject)->operate(PAS_PanelType_ReadAll);
         // for this panel, we get PRF pad coords, transform them to TRF,
         // move them in TRF, transform back to PRF, and then compute new ACT lengths
         // based on the new pad coords. so simple!
@@ -459,7 +459,7 @@ void MirrorController::__move(UaVariantArray args) {
             targetPanelCoords[i] = UaVariant(curcoord)[0];
         };
         cout << endl << endl;
-        pCurObject->Operate(PAS_PanelType_MoveToCoords, targetPanelCoords);
+        pCurObject->operate(PAS_PanelType_MoveToCoords, targetPanelCoords);
     }
     // we have populated all the values, now start moving.
     // this is done as its own loop so that all the = panels move simulataneously.
@@ -504,7 +504,7 @@ void MirrorController::__alignAll(unsigned start_idx, const set<unsigned> &need_
             auto movingPanel_idx = m_ChildrenPositionMap.at(PAS_PanelType).at(curPanels.at(0));
             // do this until the edge is aligned
             int aligniter = 1;
-            m_pChildren.at(PAS_EdgeType).at(edge)->Operate(PAS_EdgeType_Align, alignPanels);
+            m_pChildren.at(PAS_EdgeType).at(edge)->operate(PAS_EdgeType_Align, alignPanels);
             while (!static_cast<PasEdge *>(m_pChildren.at(PAS_EdgeType).at(edge))->isAligned()) {
                 cout << "\nAlignment Iteration " << aligniter << endl << endl;
                 usleep(400*1000); // microseconds
@@ -517,7 +517,7 @@ void MirrorController::__alignAll(unsigned start_idx, const set<unsigned> &need_
                     m_pChildren.at(PAS_PanelType).at(movingPanel_idx)->getState(curstate);
                 }
                 aligniter++;
-                m_pChildren.at(PAS_EdgeType).at(edge)->Operate(PAS_EdgeType_Align, alignPanels);
+                m_pChildren.at(PAS_EdgeType).at(edge)->operate(PAS_EdgeType_Align, alignPanels);
             }
             cout << "\n" << m_pChildren.at(PAS_EdgeType).at(edge)->getId().name
                 << " is aligned!" << endl;
@@ -724,7 +724,7 @@ void MirrorController::simulateAlignSector()
         panelsToMove.push_back(static_cast<PasPanel *>(m_pChildren.at(PAS_PanelType).at(idx)));
     for (unsigned idx : m_SelectedChildren.at(PAS_MPESType)) {
         PasMPES  *mpes = static_cast<PasMPES *>(m_pChildren.at(PAS_MPESType).at(idx));
-        mpes->Operate();
+        mpes->operate();
         if (mpes->isVisible())
             alignMPES.push_back(mpes);
     }
@@ -759,7 +759,7 @@ void MirrorController::simulateAlignSector()
         // only read the internal MPES if no user-specified ones have been found
         for (const auto& idx: overlapIndices) {
             PasMPES *mpes = static_cast<PasMPES *>(m_pChildren.at(PAS_MPESType).at(idx));
-            mpes->Operate();
+            mpes->operate();
             if ( mpes->isVisible() )
                 alignMPES.push_back(mpes);
         }
@@ -850,7 +850,7 @@ void MirrorController::simulateAlignSector()
         for (unsigned i = 0; i < nACT; i++)
             deltas[i].Value.Float = X(j++); // X has dimension of 6*nPanelsToMove !
 
-        pCurPanel->Operate(PAS_PanelType_MoveDeltaLengths, deltas);
+        pCurPanel->operate(PAS_PanelType_MoveDeltaLengths, deltas);
     }
 }
 
@@ -870,7 +870,7 @@ void MirrorController::__alignSector() {
         panelsToMove.push_back(static_cast<PasPanel *>(m_pChildren.at(PAS_PanelType).at(idx)));
     for (unsigned idx : m_SelectedChildren.at(PAS_MPESType)) {
         PasMPES *mpes = static_cast<PasMPES *>(m_pChildren.at(PAS_MPESType).at(idx));
-        mpes->Operate();
+        mpes->operate();
         if (mpes->isVisible())
             alignMPES.push_back(mpes);
     }
@@ -905,7 +905,7 @@ void MirrorController::__alignSector() {
         // only read the internal MPES if no user-specified ones have been found
         for (const auto &idx: overlapIndices) {
             PasMPES *mpes = static_cast<PasMPES *>(m_pChildren.at(PAS_MPESType).at(idx));
-            mpes->Operate();
+            mpes->operate();
             if (mpes->isVisible())
                 alignMPES.push_back(mpes);
         }
@@ -996,7 +996,7 @@ void MirrorController::__alignSector() {
         for (unsigned i = 0; i < nACT; i++)
             deltas[i].Value.Float = X(j++); // X has dimension of 6*nPanelsToMove !
 
-        pCurPanel->Operate(PAS_PanelType_MoveDeltaLengths, deltas);
+        pCurPanel->operate(PAS_PanelType_MoveDeltaLengths, deltas);
     }
 }
 
@@ -1194,7 +1194,7 @@ void MirrorController::__alignGlobal(unsigned fixPanel)
         for (unsigned i = 0; i < nACT; i++)
             deltas[i].Value.Float = m_AlignFrac*globDisplaceVec(j++); // X has dimension of 6*nPanelsToMove !
 
-        pCurPanel->Operate(PAS_PanelType_MoveDeltaLengths, deltas);
+        pCurPanel->operate(PAS_PanelType_MoveDeltaLengths, deltas);
     }
     // remember to update selected panels
     __updateSelectedChildren(PAS_PanelType);

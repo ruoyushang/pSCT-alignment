@@ -3,6 +3,9 @@
 #include "common/utilities/DBConfig.hpp"
 #include "client/clienthelper.h"
 
+#include "mysql_driver.h"
+#include "cppconn/statement.h"
+
 float MPESController::kNominalIntensity = 150000.;
 float MPESController::kNominalCentroidSD = 20.;
 

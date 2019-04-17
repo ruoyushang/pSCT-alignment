@@ -271,7 +271,7 @@ UaStatus EdgeController::findSingleMatrix(unsigned panelIdx, double stepSize) {
         // move the same actuator back
         printf("moving actuator %d back", j);
         minusdeltaL.copyTo(&deltas[j]);
-        status = pCurPanel->Operate(PAS_PanelType_MoveDeltaLengths, deltas);
+        status = pCurPanel->operate(PAS_PanelType_MoveDeltaLengths, deltas);
         if (!status.isGood()) return status;
         // Stepping is asynchronous. but here, we want it to actually complete
         // before the next step. So we wait.
@@ -422,7 +422,7 @@ UaStatus EdgeController::alignSinglePanel(unsigned panelpos, double alignFrac, b
         UaVariant vtmp;
         unsigned visible = 0;
         for (auto &mpes : overlapMPES) {
-            mpes->Operate();
+            mpes->operate();
             if (!mpes->isVisible()) continue;
 
             mpes->getData(PAS_MPESType_xCentroidAvg, vtmp);
@@ -531,7 +531,7 @@ UaStatus EdgeController::alignSinglePanel(unsigned panelpos, double alignFrac, b
             for (unsigned i = 0; i < nACT; i++)
                 deltas[i].Value.Float = X(j++); // X has dimension of 6*nPanelsToMove !
 
-            status = pCurPanel->Operate(PAS_PanelType_MoveDeltaLengths, deltas);
+            status = pCurPanel->operate(PAS_PanelType_MoveDeltaLengths, deltas);
             if (!status.isGood()) return status;
             m_PanelsToMove.push_back(panelPair.second);
         }
@@ -623,7 +623,7 @@ const Eigen::VectorXd &EdgeController::getSystematicOffsets() {
     return m_systematicOffsets;
 }
 
-const Eigen::Eigen::VectorXd &EdgeController::getCurrentReadings() {
+const Eigen::VectorXd &EdgeController::getCurrentReadings() {
     // edge should have at least one sensor by definition -- otherwise it wouldn't be created.
     // so this is safe.
     auto &pMPES = m_pChildren.at(PAS_MPESType);
