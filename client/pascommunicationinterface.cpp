@@ -7,8 +7,8 @@
 #include "configuration.hpp"
 #include "passervertypeids.hpp"
 #include "client/controllers/pascontroller.hpp"
-#include "client/controllers/pasmirror.h"
-#include "client/controllers/controlpositioner.h"
+#include "client/controllers/mirrorcontroller.hpp"
+#include "client/controllers/positionercontroller.hpp"
 #include "uadatetime.h"
 #include <dirent.h>
 #include <string>
