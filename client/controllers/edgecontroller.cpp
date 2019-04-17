@@ -1,8 +1,15 @@
 #include "client/controllers/edgecontroller.hpp"
 
-#include <string>
+#include <ios>
 #include <iostream>
+#include <string>
+#include <vector>
+
 #include <Eigen/Dense>
+
+#include "client/controllers/mpescontroller.hpp"
+#include "client/controllers/panelcontroller.hpp"
+
 
 EdgeController::EdgeController(Identity identity) : PasCompositeController(std::move(identity), nullptr),
                                                     m_isAligned(false) {
@@ -284,7 +291,7 @@ UaStatus EdgeController::findSingleMatrix(unsigned panelIdx, double stepSize) {
     std::cout << responseMatrix << std::endl;
 
     std::string outfilename = "/home/ctauser/PanelAlignmentData/ResponseMatrix_" + m_ID.eAddress + ".txt";
-    ofstream output(outfilename, ios_base::in | ios_base::out | ios_base::app);
+    std::ofstream output(outfilename, std::ios_base::in | std::ios_base::out | std::ios_base::app);
     std::stringstream outputstr;
     output << pCurPanel->getId().position << std::endl << responseMatrix << std::endl;
 
@@ -337,7 +344,7 @@ UaStatus EdgeController::align(unsigned panel_pos, bool moveit, double alignFrac
     return status;
 }
 
-UaStatus EdgeController::alignSinglePanel(unsigned panelpos, bool moveit, double alignFrac) {
+UaStatus EdgeController::alignSinglePanel(unsigned panelpos, double alignFrac, bool moveit) {
     UaMutexLocker lock(&m_mutex);
     UaStatus status;
 
@@ -393,7 +400,7 @@ UaStatus EdgeController::alignSinglePanel(unsigned panelpos, bool moveit, double
             if (panelPair.first != panelpos)
                 twopanels[i++] = panelPair.first;
 
-        vector < MPESController * > overlapMPES;
+        std::vector<MPESController *> overlapMPES;
         for (const auto &panelPair : m_ChildrenPositionMap.at(PAS_PanelType)) {
             if (panelPair.first == panelpos)
                 continue;
