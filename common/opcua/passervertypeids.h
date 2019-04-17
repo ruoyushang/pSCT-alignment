@@ -131,7 +131,6 @@
 #define PAS_OptTableType                            3000
 // Instance declaration
 #define PAS_OptTableType_State                      3001
-#define PAS_OptTableType_StepSize                   3002
 #define PAS_OptTableType_FindMatrix                 3011
 #define PAS_OptTableType_Align                      3012
 #define PAS_OptTableType_StepAll                    3013

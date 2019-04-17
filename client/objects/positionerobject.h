@@ -71,15 +71,23 @@ public:
     /// @return A UaNodeId uniquely identifying the Positioner object type node.
     UaNodeId typeDefinitionId() const;
 
-private:
-    /// @brief Pointer to OPC UA method node for positioner init method.
-    UaMethodGeneric* m_pMethodInit;
-    /// @brief Pointer to OPC UA method node for positioner stop method.
-    UaMethodGeneric* m_pMethodStop;
-    /// @brief Pointer to OPC UA method node for positioner set energy method.
-    UaMethodGeneric* m_pMethodSetEnergy;
-    /// @brief Pointer to OPC UA method node for positioner move to method.
-    UaMethodGeneric* m_pMethodMoveTo;
+    const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, OpcUa_Byte>>
+    getVariableDefs() { return PositionerObject::VARIABLES; }
+
+    const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean>>
+    getErrorDefs() { return PositionerObject::ERRORS; }
+
+    const std::map<OpcUa_UInt32, std::pair<std::string, std::vector<std::tuple<std::string, UaNodeId, std::string>>>>
+    getMethodDefs() { return PositionerObject::METHODS; }
+
+    /// @brief Map of OPC UA type ids for all child variables to their name, default value, is_state value, and access level.
+    static const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, OpcUa_Byte>> VARIABLES;
+
+    /// @brief Map of OPC UA type ids for all child error variables to their name, default value, and is_state value.
+    static const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean>> ERRORS;
+
+    /// @brief Map of OPC UA type ids for all child methods to their name and number of arguments.
+    static const std::map<OpcUa_UInt32, std::pair<std::string, std::vector<std::tuple<std::string, UaNodeId, std::string>>>> METHODS;
 };
 
 #endif

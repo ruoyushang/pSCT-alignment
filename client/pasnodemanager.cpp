@@ -4,7 +4,7 @@
 #include "client/objects/mirrorobject.h"
 #include "client/objects/panelobject.h"
 #include "client/objects/edgeobject.h"
-#include "client/objects/gasobject.h"
+#include "client/objects/opttableobject.hpp"
 #include "client/objects/positionerobject.h"
 #include "clienthelper.h"
 #include "configuration.h"

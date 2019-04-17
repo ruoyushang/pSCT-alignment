@@ -33,16 +33,16 @@ MirrorObject::MirrorObject(
     pDataItem = addVariable(pNodeManager, PAS_MirrorType, PAS_MirrorType_State, OpcUa_True);
  
     unsigned vars[] = {
-        PAS_EdgeType_AlignFrac,
-        PAS_MirrorType_curCoords_x,
-        PAS_MirrorType_curCoords_y,
-        PAS_MirrorType_curCoords_z,
-        PAS_MirrorType_curCoords_xRot,
-        PAS_MirrorType_curCoords_yRot,
-        PAS_MirrorType_curCoords_zRot,
-        PAS_MirrorType_selectedPanels,
-        PAS_MirrorType_selectedEdges,
-        PAS_MirrorType_selectedMPES};
+            PAS_MirrorType_curCoords_x,
+            PAS_MirrorType_curCoords_y,
+            PAS_MirrorType_curCoords_z,
+            PAS_MirrorType_curCoords_xRot,
+            PAS_MirrorType_curCoords_yRot,
+            PAS_MirrorType_curCoords_zRot,
+            PAS_MirrorType_selectedPanels,
+            PAS_MirrorType_selectedEdges,
+            PAS_MirrorType_selectedMPES
+    };
 
 
     for (auto &var : vars)
@@ -175,16 +175,6 @@ MirrorObject::MirrorObject(
     addStatus = pNodeManager->addNodeAndReference(this, m_pMethodStop, OpcUaId_HasComponent);
     UA_ASSERT(addStatus.isGood());
 
-}
-
-MirrorObject::~MirrorObject(void)
-{
-    if ( m_pSharedMutex )
-    {
-        // Release our local reference
-        m_pSharedMutex->releaseReference();
-        m_pSharedMutex = NULL;
-    }
 }
 
 UaNodeId MirrorObject::typeDefinitionId() const

@@ -1,11 +1,6 @@
-/******************************************************************************
-** Project: pSCT Alignment system
-**
-** Description: implementation of Positioner.
-******************************************************************************/
-#include "positionercontroller.hpp"
+#include "client/controllers/positionercontroller.hpp"
 
-#includse "passervertypeids.h"
+#include "passervertypeids.h"
 #include "clienthelper.h"
 #include "components.h"
 #include "stdlib.h"
@@ -17,10 +12,7 @@
 #include <string>
 #include <unistd.h>
 
-/* ----------------------------------------------------------------------------
-    Begin Class    PositionerController
-    constructors / destructors
------------------------------------------------------------------------------*/
+
 PositionerController::PositionerController(Identity identity, Client *pClient) : PasController(identity, pClient)
 {
     m_state = PASState::GLOB_Positioner_notMoving;
@@ -32,11 +24,7 @@ PositionerController::~PositionerController()
     m_state = PASState::GLOB_Positioner_notMoving;
 }
 
-/* ----------------------------------------------------------------------------
-    Class        PositionerController
-    Method       getState
-    Description  Get Controller status.
------------------------------------------------------------------------------*/
+
 UaStatus PositionerController::getState(PASState &state)
 {
     UaStatus status;

@@ -6,7 +6,7 @@
 #include "pasnodemanagercommon.h"
 #include "components.h"
 #include "pasobject.h"
-#include "client/objects/gasobject.h"
+#include "client/objects/opttableobject.hpp"
 #include "client/objects/mirrorobject.h"
 #include "client/objects/panelobject.h"
 #include "client/objects/edgeobject.h"

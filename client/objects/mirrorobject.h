@@ -21,7 +21,6 @@ public:
         PasNodeManager* pNodeManager,
         Identity identity,
         PasCommunicationInterface *pCommIf);
-    virtual ~MirrorObject(void);
 
     UaStatus call(
         const ServiceContext&  serviceContext,
