@@ -121,6 +121,12 @@ UaStatus CCDController::operate(OpcUa_UInt32 offset, const UaVariantArray &args)
         case PAS_CCDType_Read:
             status = read();
             break;
+        case PAS_CCDType_Start:
+            status = setState(PASState::On);
+            break;
+        case PAS_CCDType_Stop:
+            status = setState(PASState::Off);
+            break;
         default:
             status = OpcUa_BadInvalidArgument;
     }

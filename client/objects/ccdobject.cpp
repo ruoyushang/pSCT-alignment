@@ -38,66 +38,12 @@ const std::map <OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean>>
 
 const std::map <OpcUa_UInt32, std::pair<std::string, std::vector < std::tuple < std::string, UaNodeId, std::string>>>>
 CCDObject::METHODS = {
-        {PAS_CCDType_Start,   {"Start", {}}},
-        {PAS_CCDType_ReadAll, {"Read",  {}}},
-        {PAS_CCDType_Stop,    {"Stop",  {}}}
+        {PAS_CCDType_Start, {"Start", {}}},
+        {PAS_CCDType_Read,  {"Read",  {}}},
+        {PAS_CCDType_Stop,  {"Stop",  {}}}
 };
 
 UaNodeId CCDObject::typeDefinitionId() const {
     UaNodeId ret(PAS_CCDType, browseName().namespaceIndex());
-    return ret;
-}
-
-UaStatus CCDObject::call(
-        const ServiceContext &serviceContext,
-        MethodHandle *pMethodHandle,
-        const UaVariantArray &inputArguments,
-        UaVariantArray &outputArguments,
-        UaStatusCodeArray &inputArgumentResults,
-        UaDiagnosticInfos &inputArgumentDiag) {
-    UaStatus ret;
-    MethodHandleUaNode *pMethodHandleUaNode = static_cast<MethodHandleUaNode *>(pMethodHandle);
-    UaMethod *pMethod = NULL;
-
-    if (pMethodHandleUaNode) {
-        pMethod = pMethodHandleUaNode->pUaMethod();
-
-        if (pMethod) {
-            // Check if we have the start method
-            if (pMethod->nodeId() == m_pMethodStart->nodeId()) {
-                // Number of input arguments must be 0
-                if (inputArguments.length() > 0)
-                    ret = OpcUa_BadInvalidArgument;
-                else
-                    ret = m_pCommIf->setDeviceState(PAS_CCDType, m_Identity,
-                                                    PASState::On);
-            }
-                // Check if we have the stop method
-            else if (pMethod->nodeId() == m_pMethodStop->nodeId()) {
-                // Number of input arguments must be 0
-                // Number of input arguments must be 0
-                if (inputArguments.length() > 0)
-                    ret = OpcUa_BadInvalidArgument;
-                else
-                    ret = m_pCommIf->setDeviceState(PAS_CCDType, m_Identity,
-                                                    PASState::Off);
-            }
-                // Check if we have the read method
-            else if (pMethod->nodeId() == m_pMethodRead->nodeId()) {
-                // Number of input arguments must be 0
-                if (inputArguments.length() > 0)
-                    ret = OpcUa_BadInvalidArgument;
-                else
-                    ret = m_pCommIf->OperateDevice(PAS_CCDType, m_Identity);
-            }
-        } else {
-            assert(false);
-            ret = OpcUa_BadInvalidArgument;
-        }
-    } else {
-        assert(false);
-        ret = OpcUa_BadInvalidArgument;
-    }
-
     return ret;
 }
