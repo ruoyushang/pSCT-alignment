@@ -238,8 +238,6 @@ UaStatus MirrorController::getData(OpcUa_UInt32 offset, UaVariant &value)
         int dataoffset = offset - PAS_MirrorType_sysOffsetsMPES_x1;
         value.setDouble(m_sysOffsetsMPES(dataoffset));
     }
-    else if (offset == PAS_EdgeType_AlignFrac)
-        value.setFloat(m_AlignFrac);
     else if (offset == PAS_MirrorType_selectedPanels)
         value.setString(m_SelectedChildrenString.at(PAS_PanelType).c_str());
     else if (offset == PAS_MirrorType_selectedMPES)
@@ -261,8 +259,6 @@ UaStatus MirrorController::setData(OpcUa_UInt32 offset, UaVariant value)
         int dataoffset = offset - PAS_MirrorType_sysOffsetsMPES_x1;
         value.toDouble(m_sysOffsetsMPES(dataoffset));
     }
-    else if (offset == PAS_EdgeType_AlignFrac)
-        value.toFloat(m_AlignFrac);
     else if (offset == PAS_MirrorType_selectedPanels) {
         std::string tmp = value.toString().toUtf8();
         m_SelectedChildrenString[PAS_PanelType] = tmp;
@@ -285,7 +281,7 @@ UaStatus MirrorController::setData(OpcUa_UInt32 offset, UaVariant value)
     return OpcUa_Good;
 }
 
-UaStatusCode MirrorController::Operate(OpcUa_UInt32 offset, const UaVariantArray &args)
+UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &args)
 {
     UaMutexLocker lock(&m_mutex);
 
@@ -332,7 +328,7 @@ UaStatusCode MirrorController::Operate(OpcUa_UInt32 offset, const UaVariantArray
         try {
             m_ChildrenPositionMap.at(PAS_PanelType).at(fixPanel);
         }
-        catch (out_of_range) {
+        catch (std::out_of_range) {
             std::cout << "+++ ERROR +++ The selected panel is not connected! Nothing to do." << std::endl;
             return OpcUa_BadInvalidArgument;
         }
@@ -361,7 +357,7 @@ UaStatusCode MirrorController::Operate(OpcUa_UInt32 offset, const UaVariantArray
         try {
             idx = m_ChildrenIdentityMap.at(PAS_EdgeType).at(startId);
         }
-        catch (out_of_range) {
+        catch (std::out_of_range) {
             return OpcUa_BadInvalidArgument;
         }
 
@@ -411,7 +407,7 @@ void MirrorController::__readPositionAll() {
 }
 
 void MirrorController::__move(UaVariantArray args) {
-    Eigen::Eigen::VectorXd targetMirrorCoords;
+    Eigen::VectorXd targetMirrorCoords;
     for (int i = 0; i < 6; i++) {
         UaVariant(args[i]).toDouble(targetMirrorCoords[i]);
     }
@@ -473,7 +469,7 @@ void MirrorController::__move(UaVariantArray args) {
 }
 
 // Align all edges between start_idx and end_idx moving in the direction dir
-void MirrorController::__alignAll(unsigned start_idx, const set<unsigned> &need_alignment, bool dir)
+void MirrorController::__alignAll(unsigned start_idx, const std::set<unsigned> &need_alignment, bool dir)
 {
     // we need to traverse the mirror in the correct order of edges.
     // dir = 0 decreases panel position (+z rotation);
@@ -489,7 +485,7 @@ void MirrorController::__alignAll(unsigned start_idx, const set<unsigned> &need_
     // preceding panels to it (so going in the direction opposite to dir);
     // increment the current edge in the direction dir.
 
-    deque<unsigned> already_aligned {}; // yes, deque, not vector!
+    std::deque<unsigned> already_aligned{}; // yes, deque, not vector!
 
     unsigned cur_idx = start_idx;
     while (need_alignment.find(cur_idx) != need_alignment.end() && (m_state == PASState::On)) {
@@ -534,7 +530,7 @@ void MirrorController::__alignAll(unsigned start_idx, const set<unsigned> &need_
         try {
             cur_idx = m_ChildrenIdentityMap.at(PAS_EdgeType).at(id);
         }
-        catch (out_of_range) {
+        catch (std::out_of_range) {
             cur_idx = -1; // max element of unsigned
         }
     }
@@ -735,7 +731,7 @@ void MirrorController::simulateAlignSector()
     }
 
     // get the overlapping sensors -- these are the constraining internal ones
-    set<unsigned> overlapIndices;
+    std::set<unsigned> overlapIndices;
     unsigned idx;
     bool userOverlap = false;
     for (const auto& panel : panelsToMove) {
@@ -825,7 +821,7 @@ void MirrorController::simulateAlignSector()
     }
 
     try {
-        X = B.jacobiSvd(ComputeThinU | ComputeThinV).solve(Y);
+        X = B.jacobiSvd(Eigen::ComputeThinU | Eigen::ComputeThinV).solve(Y);
     }
     catch (...) {
         std::cout << "+++ WARNING! +++ Failed to perform Singular Value Decomposition. "
@@ -883,7 +879,7 @@ void MirrorController::__alignSector() {
     }
 
     // get the overlapping sensors -- these are the constraining internal ones
-    set<unsigned> overlapIndices;
+    std::set<unsigned> overlapIndices;
     unsigned idx;
     bool userOverlap = false;
     for (const auto &panel : panelsToMove) {
@@ -956,7 +952,7 @@ void MirrorController::__alignSector() {
         for (int p = 0; p < panelsToMove.size(); p++) {
             auto panelSide = alignMPES.at(m)->getPanelSide(panelsToMove.at(p)->getId().position);
             if (panelSide)
-                responseMat = alignMPES.at(m)->getResponseEigen::Matrix(panelSide);
+                responseMat = alignMPES.at(m)->getResponseMatrix(panelSide);
             else
                 responseMat.setZero();
             B.block(2 * m, 6 * p, 2, 6) = responseMat;
@@ -972,7 +968,7 @@ void MirrorController::__alignSector() {
     }
 
     try {
-        X = B.jacobiSvd(ComputeThinU | ComputeThinV).solve(Y);
+        X = B.jacobiSvd(Eigen::ComputeThinU | Eigen::ComputeThinV).solve(Y);
     }
     catch (...) {
         std::cout << "+++ WARNING! +++ Failed to perform Singular Value Decomposition. "
@@ -1154,7 +1150,7 @@ void MirrorController::__alignGlobal(unsigned fixPanel)
     // globResponse * globDisplaceVec = globMisalignVec;
     // the first 6 elements of the solution are the systematic vectors, the others are the
     // panel displacements
-    globDisplaceVec = globResponse.jacobiSvd(ComputeThinU | ComputeThinV).solve(globMisalignVec);
+    globDisplaceVec = globResponse.jacobiSvd(Eigen::ComputeThinU | Eigen::ComputeThinV).solve(globMisalignVec);
 
     Eigen::VectorXd check = globResponse * globDisplaceVec - globMisalignVec;
     std::cout
