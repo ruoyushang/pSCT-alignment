@@ -77,9 +77,9 @@ UaStatus EdgeController::setData(OpcUa_UInt32 offset, UaVariant value) {
     Method       Operate
     Description  run a method on the actuator
 -----------------------------------------------------------------------------*/
-UaStatusCode EdgeController::Operate(OpcUa_UInt32 offset, const UaVariantArray &args) {
+UaStatus EdgeController::operate(OpcUa_UInt32 offset, const UaVariantArray &args) {
     UaMutexLocker lock(&m_mutex);
-    UaStatusCode status;
+    UaStatus status;
 
     unsigned numPanels;
     try {
@@ -203,16 +203,16 @@ UaStatus EdgeController::findSingleMatrix(unsigned panelIdx, double stepSize) {
     UaMutexLocker lock(&m_mutex);
     UaStatus status;
 
-    MatrixXd responseMatrix(6, 6);
+    Eigen::MatrixXd responseMatrix(6, 6);
     responseMatrix.setZero();
     // convenience variable;
     // no need to check with a try/catch block anymore as this has already been done
     // by the caller
-    PasPanel *pCurPanel = static_cast<PasPanel *>(m_pChildren.at(PAS_PanelType).at(panelIdx));
+    PanelController *pCurPanel = static_cast<PanelController *>(m_pChildren.at(PAS_PanelType).at(panelIdx));
     unsigned nACTs = pCurPanel->getActuatorCount();
 
-    VectorXd vector0(6); // maximum possible size
-    VectorXd vector1(6); // maximum possible size
+    Eigen::VectorXd vector0(6); // maximum possible size
+    Eigen::VectorXd vector1(6); // maximum possible size
 
     UaVariant minusdeltaL, deltaL, zeroDelta;
     deltaL.setFloat(stepSize);
@@ -341,11 +341,11 @@ UaStatus EdgeController::__alignSinglePanel(unsigned panelpos, bool moveit, doub
     UaMutexLocker lock(&m_mutex);
     UaStatus status;
 
-    MatrixXd A; // response matrix
-    MatrixXd C; // constraint matrix
-    MatrixXd B; // complete matrix we want to solve for
-    VectorXd current_read = getCurrentReadings();
-    VectorXd aligned_read = getAlignedReadings() - getSystematicOffsets();
+    Eigen::MatrixXd A; // response matrix
+    Eigen::MatrixXd C; // constraint matrix
+    Eigen::MatrixXd B; // complete matrix we want to solve for
+    Eigen::VectorXd current_read = getCurrentReadings();
+    Eigen::VectorXd aligned_read = getAlignedReadings() - getSystematicOffsets();
     if (!current_read.size() || !aligned_read.size()) {
         std::cout
                 << "+++ ERROR +++ No physical sensor readings! Make sure the sensors are in the field of view. Nothing to do for now."
@@ -353,8 +353,8 @@ UaStatus EdgeController::__alignSinglePanel(unsigned panelpos, bool moveit, doub
         return OpcUa_Bad;
     }
 
-    VectorXd X; // solutions vector
-    VectorXd Y; // sensor misalignment vector, we want to fit to this
+    Eigen::VectorXd X; // solutions vector
+    Eigen::VectorXd Y; // sensor misalignment vector, we want to fit to this
 
     if (moveit) {
         A = getResponseMatrix(panelpos);
@@ -364,16 +364,16 @@ UaStatus EdgeController::__alignSinglePanel(unsigned panelpos, bool moveit, doub
         Y = aligned_read - current_read;
     } else { // this panel kept fixed -- we have three panels
         // get the response matrix, which is [A1 | A2]
-        vector <MatrixXd> responseMats;
+        vector <Eigen::MatrixXd> responseMats;
         for (const auto &panelPair : m_ChildrenPositionMap.at(PAS_PanelType))
             if (panelPair.first != panelpos)
                 responseMats.push_back(getResponseMatrix(panelPair.first)); // get response from the two other panels
         auto totalRows = max_element(responseMats.begin(), responseMats.end(),
-                                     [](MatrixXd a, MatrixXd b) { return a.rows() < b.rows(); })->rows();
+                                     [](Eigen::MatrixXd a, Eigen::MatrixXd b) { return a.rows() < b.rows(); })->rows();
         auto totalCols = accumulate(responseMats.begin(), responseMats.end(), 0,
-                                    [](int curval, MatrixXd a) { return curval + a.cols(); });
+                                    [](int curval, Eigen::MatrixXd a) { return curval + a.cols(); });
 
-        A = MatrixXd(totalRows, totalCols);
+        A = Eigen::MatrixXd(totalRows, totalCols);
         A.setZero();
 
         int curcol = 0;
@@ -398,7 +398,8 @@ UaStatus EdgeController::__alignSinglePanel(unsigned panelpos, bool moveit, doub
             if (panelPair.first == panelpos)
                 continue;
 
-            auto pMPES = static_cast<PasPanel *>(m_pChildren.at(PAS_PanelType).at(panelPair.second))->getChildren(
+            auto pMPES = static_cast<PanelController *>(m_pChildren.at(PAS_PanelType).at(
+                    panelPair.second))->getChildren(
                     PAS_MPESType);
             for (const auto &mpes : pMPES)
                 if (static_cast<PasMPES *>(mpes)->getPanelSide(twopanels[0])
@@ -409,8 +410,8 @@ UaStatus EdgeController::__alignSinglePanel(unsigned panelpos, bool moveit, doub
         auto blockCols = overlapMPES.front()->getResponseMatrix().cols();
 
         // get misalignment of overlap sensors
-        VectorXd overlap_current(overlapMPES.size() * 2);
-        VectorXd overlap_aligned(overlapMPES.size() * 2);
+        Eigen::VectorXd overlap_current(overlapMPES.size() * 2);
+        Eigen::VectorXd overlap_aligned(overlapMPES.size() * 2);
         UaVariant vtmp;
         unsigned visible = 0;
         for (auto &mpes : overlapMPES) {
@@ -430,7 +431,7 @@ UaStatus EdgeController::__alignSinglePanel(unsigned panelpos, bool moveit, doub
         overlap_current.conservativeResize(2 * visible);
         overlap_aligned.conservativeResize(2 * visible);
 
-        C = MatrixXd(visible * blockRows, 2 * blockCols);
+        C = Eigen::MatrixXd(visible * blockRows, 2 * blockCols);
         C.setZero();
 
         for (int j = 0; j < 2; j++) {
@@ -447,11 +448,11 @@ UaStatus EdgeController::__alignSinglePanel(unsigned panelpos, bool moveit, doub
         //     |C|
         // Y = |y1|, where y1,2 = aligned - current
         //     |y2|
-        B = MatrixXd(A.rows() + C.rows(), A.cols());
+        B = Eigen::MatrixXd(A.rows() + C.rows(), A.cols());
         B.block(0, 0, A.rows(), A.cols()) = A;
         B.block(A.rows(), 0, C.rows(), A.cols()) =
                 sqrt(2.) * C; // increase the weight of the constraint due to the degenaracy along the P1-P2 edge
-        Y = VectorXd(aligned_read.size() + overlap_current.size());
+        Y = Eigen::VectorXd(aligned_read.size() + overlap_current.size());
         Y.head(aligned_read.size()) = aligned_read - current_read;
         Y.tail(overlap_current.size()) = sqrt(2.) * (overlap_aligned - overlap_current);
 
@@ -508,11 +509,11 @@ UaStatus EdgeController::__alignSinglePanel(unsigned panelpos, bool moveit, doub
     m_PanelsToMove.clear();
 
     /* MOVE ACTUATORS */
-    PasPanel *pCurPanel;
+    PanelController *pCurPanel;
     int j = 0;
     for (const auto &panelPair : m_ChildrenPositionMap.at(PAS_PanelType)) {
         if ((panelPair.first == panelpos) == moveit) { // clever but not clear...
-            pCurPanel = static_cast<PasPanel *>(m_pChildren.at(PAS_PanelType).at(panelPair.second));
+            pCurPanel = static_cast<PanelController *>(m_pChildren.at(PAS_PanelType).at(panelPair.second));
             auto nACT = pCurPanel->getActuatorCount();
             // print out to make sure
             std::cout << "Will move actuators of "
@@ -542,7 +543,7 @@ UaStatus EdgeController::__alignSinglePanel(unsigned panelpos, bool moveit, doub
 
 // Get response matrix for the panel defined by 'panelpos'
 // this is the response of the sensors on this edge to the motion of the requested panel
-const MatrixXd &EdgeController::getResponseMatrix(unsigned panelpos) {
+const Eigen::MatrixXd &EdgeController::getResponseMatrix(unsigned panelpos) {
     auto &pMPES = m_pChildren.at(PAS_MPESType);
     unsigned maxMPES = pMPES.size();
     unsigned nACT = static_cast<PasMPES *>(pMPES.front())->getResponseMatrix().cols();
@@ -551,7 +552,7 @@ const MatrixXd &EdgeController::getResponseMatrix(unsigned panelpos) {
         unsigned panel = panelPair.first;
 
         unsigned visibleMPES = 0;
-        m_ResponseMatMap[panel] = MatrixXd(maxMPES * 2, nACT);
+        m_ResponseMatMap[panel] = Eigen::MatrixXd(maxMPES * 2, nACT);
         m_ResponseMatMap.at(panel).setZero();
         for (unsigned nMPES = 0; nMPES < maxMPES; nMPES++) {
 //        for (const auto& mpes : m_ChildrenPositionMap.at(PAS_MPESType)) {
@@ -575,12 +576,12 @@ const MatrixXd &EdgeController::getResponseMatrix(unsigned panelpos) {
 }
 
 
-const VectorXd &EdgeController::getAlignedReadings() {
+const Eigen::VectorXd &EdgeController::getAlignedReadings() {
     auto &pMPES = m_pChildren.at(PAS_MPESType);
     unsigned maxMPES = pMPES.size();
     unsigned visibleMPES = 0;
 
-    m_AlignedReadings = VectorXd(2 * pMPES.size());
+    m_AlignedReadings = Eigen::VectorXd(2 * pMPES.size());
     for (unsigned nMPES = 0; nMPES < maxMPES; nMPES++) {
         if (!static_cast<PasMPES *>(pMPES.at(nMPES))->isVisible()) continue;
 //    for (const auto& mpes : m_ChildrenPositionMap.at(PAS_MPESType)) {
@@ -595,12 +596,12 @@ const VectorXd &EdgeController::getAlignedReadings() {
     return m_AlignedReadings;
 }
 
-const VectorXd &EdgeController::getSystematicOffsets() {
+const Eigen::VectorXd &EdgeController::getSystematicOffsets() {
     auto &pMPES = m_pChildren.at(PAS_MPESType);
     unsigned maxMPES = pMPES.size();
     unsigned visibleMPES = 0;
 
-    m_systematicOffsets = VectorXd(2 * pMPES.size());
+    m_systematicOffsets = Eigen::VectorXd(2 * pMPES.size());
     for (unsigned nMPES = 0; nMPES < maxMPES; nMPES++) {
         if (!static_cast<PasMPES *>(pMPES.at(nMPES))->isVisible()) continue;
 //    for (const auto& mpes : m_ChildrenPositionMap.at(PAS_MPESType)) {
@@ -615,15 +616,15 @@ const VectorXd &EdgeController::getSystematicOffsets() {
     return m_systematicOffsets;
 }
 
-const Eigen::VectorXd &EdgeController::getCurrentReadings() {
+const Eigen::Eigen::VectorXd &EdgeController::getCurrentReadings() {
     // edge should have at least one sensor by definition -- otherwise it wouldn't be created.
     // so this is safe.
     auto &pMPES = m_pChildren.at(PAS_MPESType);
     unsigned maxMPES = pMPES.size();
     unsigned visibleMPES = 0;
 
-    m_CurrentReadings = VectorXd(2 * maxMPES);
-    m_CurrentReadingsSD = VectorXd(2 * maxMPES);
+    m_CurrentReadings = Eigen::VectorXd(2 * maxMPES);
+    m_CurrentReadingsSD = Eigen::VectorXd(2 * maxMPES);
 
     UaVariant vtmp;
     for (unsigned nMPES = 0; nMPES < maxMPES; nMPES++) {

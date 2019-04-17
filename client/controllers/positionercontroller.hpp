@@ -3,7 +3,7 @@
 
 #include "uabase.h"
 #include "statuscode.h"
-#include "client/controllers/pascontroller.h"
+#include "client/controllers/pascontroller.hpp"
 #include "pascommunicationinterface.h"
 #include "uamutex.h"
 #include "components.h"

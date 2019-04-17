@@ -4,7 +4,7 @@
 #include <Eigen/Dense>
 
 #include "client/controllers/mirrorcontroller.hpp"
-#include "client/controllers/pascontroller.h"
+#include "client/controllers/pascontroller.hpp"
 
 class EdgeController : public PasCompositeController {
     UA_DISABLE_COPY(EdgeController);
@@ -27,7 +27,7 @@ public:
 
     UaStatus setData(OpcUa_UInt32 offset, UaVariant value);
 
-    UaStatusCode Operate(OpcUa_UInt32 offset = 0, const UaVariantArray &args = UaVariantArray());
+    UaStatus operate(OpcUa_UInt32 offset = 0, const UaVariantArray &args = UaVariantArray());
 
     const Eigen::MatrixXd &getResponseMatrix(unsigned panelpos);
 

@@ -3,7 +3,7 @@
 
 #include <Eigen/Dense>
 
-#include "client/controllers/pascontroller.h"
+#include "client/controllers/pascontroller.hpp"
 #include "client/controllers/mirrorcontroller.hpp"
 #include "client/controllers/edgecontroller.hpp"
 

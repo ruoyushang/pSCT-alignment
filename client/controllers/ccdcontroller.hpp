@@ -7,7 +7,7 @@
 #include "uabase/uastring.h"
 #include "uabase/uavariant.h"
 
-#include "client/controllers/pascontroller.h"
+#include "client/controllers/pascontroller.hpp"
 #include "client/controllers/mirrorcontroller.hpp"
 
 class GASCCD;

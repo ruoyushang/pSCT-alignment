@@ -1,7 +1,7 @@
 #ifndef ALIGNMENT_PSDCONTROLLER_HPP
 #define ALIGNMENT_PSDCONTROLLER_HPP
 
-#include "client/controllers/pascontroller.h"
+#include "client/controllers/pascontroller.hpp"
 #include "client/controllers/mirrorcontroller.hpp"
 
 class PSDController : public PasController {

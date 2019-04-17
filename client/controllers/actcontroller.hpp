@@ -3,16 +3,14 @@
 
 #include "uabase/statuscode.h"
 #include "uabase/uabase.h"
-#include "uabase/uamutex.h"
-#include "uabase/uastring.h"
 #include "uabase/uavariant.h"
 
-#include "common/opcua/pascominterfacecommon.h"
-#include "client/controllers/pascontroller.h"
+#include "client/controllers/pascontroller.hpp"
 #include "client/controllers/panelcontroller.hpp"
 
 class Client;
 
+enum class PASState;
 
 class ActController : public PasController {
     UA_DISABLE_COPY(ActController);

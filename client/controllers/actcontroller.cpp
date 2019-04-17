@@ -1,7 +1,20 @@
 #include "client/controllers/actcontroller.hpp"
 
-#include "client/clienthelper.h"
+#include <iostream>
+#include <string>
+#include <vector>
+
+#include "uabase/statuscode.h"
+#include "uabase/uabase.h"
+#include "uabase/uastring.h"
+#include "uabase/uavariant.h"
+
+#include "common/opcua/pascominterfacecommon.h"
 #include "common/opcua/pasobject.h"
+#include "common/opcua/passervertypeids.h"
+
+#include "client/clienthelper.h"
+#include "client/controllers/pascontroller.hpp"
 
 ActController::ActController(Identity identity, Client *pClient) : PasController(std::move(identity), pClient) {
     m_state = PASState::On;

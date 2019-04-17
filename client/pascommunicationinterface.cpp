@@ -6,7 +6,7 @@
 #include "pascommunicationinterface.h"
 #include "configuration.h"
 #include "passervertypeids.h"
-#include "client/controllers/pascontroller.h"
+#include "client/controllers/pascontroller.hpp"
 #include "client/controllers/pasmirror.h"
 #include "client/controllers/controlpositioner.h"
 #include "uadatetime.h"

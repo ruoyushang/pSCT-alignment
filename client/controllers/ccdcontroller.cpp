@@ -1,6 +1,22 @@
 #include "client/controllers/ccdcontroller.hpp"
 
+#include <iostream>
+#include <string>
+#include <vector>
+
+#include "uabase/statuscode.h"
+#include "uabase/uabase.h"
+#include "uabase/uastring.h"
+#include "uabase/uavariant.h"
+
 #include "common/globalalignment/ccdclass.h"
+#include "common/opcua/pascominterfacecommon.h"
+#include "common/opcua/pasobject.h"
+#include "common/opcua/passervertypeids.h"
+
+#include "client/clienthelper.h"
+#include "client/controllers/pascontroller.hpp"
+
 
 CCDController::CCDController(Identity identity) : PasController(std::move(identity), nullptr) {
     m_pCCD = new GASCCD();

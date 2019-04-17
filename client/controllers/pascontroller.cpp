@@ -1,4 +1,4 @@
-#include "pascontroller.h"
+#include "pascontroller.hpp"
 #include "ccdclass.h"
 #include "clienthelper.h"
 #include "components.h"

@@ -1,4 +1,4 @@
-#include "client/controllers/pascontroller.h"
+#include "client/controllers/pascontroller.hpp"
 #include "pasnodemanager.h"
 #include "pasobject.h"
 #include "client/objects/mirrorobject.h"
