@@ -18,9 +18,11 @@
 #include "common/opcua/components.h"
 #include "common/opcua/pasobject.h"
 
-class PasNodeManager;
+#include "server/pasnodemanager.hpp"
+#include "server/pascommunicationinterface.hpp"
 
-class PasCommunicationInterface;
+#include "common/opcua/pasnodemanagercommon.h"
+#include "common/opcua/pascominterfacecommon.h"
 
 class UaMethodGeneric;
 
