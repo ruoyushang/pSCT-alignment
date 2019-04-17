@@ -53,9 +53,6 @@ public:
                                                             identity,
                                                             dynamic_cast<PasComInterfaceCommon *>(pCommIf)) { initialize(); }
 
-    /// @brief Destroy an OPC UA panel object.
-    virtual ~PanelObject();
-
     /// @brief Return the UaNodeId for the Panel object type definition node.
     /// @return The UaNodeId uniquely identifying the Panel object type node.
     UaNodeId typeDefinitionId() const;
