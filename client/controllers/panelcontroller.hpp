@@ -33,14 +33,10 @@ public:
 
     unsigned getActuatorCount();
 
-    void getActuatorSteps(UaVariantArray &args) const;
-
     // update interval in ms
     static int kUpdateInterval;
 
 private:
-    // methods
-    UaStatus __moveTo();
 
     // helper
     void updateCoords(bool printout = false);

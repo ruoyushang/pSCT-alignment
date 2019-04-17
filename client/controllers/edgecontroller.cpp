@@ -10,6 +10,7 @@
 
 #include "client/controllers/mpescontroller.hpp"
 #include "client/controllers/panelcontroller.hpp"
+#include "client/controllers/actcontroller.hpp"
 
 
 EdgeController::EdgeController(Identity identity) : PasCompositeController(std::move(identity), nullptr),
@@ -231,6 +232,7 @@ UaStatus EdgeController::findSingleMatrix(unsigned panelIdx, double stepSize) {
     deltas.create(nACTs);
 
     UaVariant vtmp;
+    ActController *actuator;
     float missedDelta;
 
     for (unsigned j = 0; j < nACTs; j++) {
@@ -260,8 +262,9 @@ UaStatus EdgeController::findSingleMatrix(unsigned panelIdx, double stepSize) {
         sleep(2);
 
         // update missed steps
-        pCurPanel->getActuatorSteps(deltas);
-        missedDelta = deltas[j].Value.Float;
+        actuator = dynamic_cast<ActController *>(pCurPanel->getChildren(PAS_ACTType)[j]);
+        actuator->getData(PAS_ACTType_DeltaLength, vtmp);
+        vtmp.toFloat(missedDelta);
 
         printf("actuator %d missed target by %5.3f mm\n", j, missedDelta);
 

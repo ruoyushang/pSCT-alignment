@@ -10,6 +10,12 @@
 #include "components.hpp"
 #include "pasobject.hpp"
 
+#include "common/opcua/pascominterfacecommon.hpp"
+#include "common/opcua/pasnodemanagercommon.hpp"
+
+#include "client/pascommunicationinterface.hpp"
+#include "client/pasnodemanager.hpp"
+
 class PasNodeManager;
 class PasCommunicationInterface;
 class UaMethodGeneric;
@@ -32,39 +38,15 @@ public:
     /// @param pCommIf Pointer to a PasCommunicationInterface which controls
     /// device operation/reading.
     PositionerObject(
-        const UaString& name,
-        const UaNodeId& newNodeId,
-        const UaString& defaultLocaleId,
-        PasNodeManager* pNodeManager,
-        Identity identity,
-        PasCommunicationInterface *pCommIf);
-    /// @brief Destructor for a PositionerObject object.
-    virtual ~PositionerObject();
-
-    /// @brief General function to call an OPC UA method from a Positioner
-    /// object.
-    /// @warning The /p outputArguments and /p inputArgumentDiag parameters are
-    /// unused.
-    /// @param serviceContext ServiceContext object containing various client
-    /// settings as well as the current Session object.
-    /// @param pMethodHandle Pointer to a MethodHandle instance containing
-    /// information about the object and method being called.
-    /// @param inputArguments Array of method arguments of different types,
-    /// represented as OPC UA Variants.
-    /// @param outputArguments Array of OPC UA variants to hold the method
-    /// outputs [UNUSED].
-    /// @param inputArgumentResults Array of OPC UA status codes indicating
-    /// which inputs caused an error. Any invalid inputs will cause a
-    /// OpcUa_BadInvalidArgument code to be placed in that position in the array.
-    /// @param inputArgumentDiag Array of diagnostic info objects describing
-    /// the inputs [UNUSED].
-    UaStatus call(
-        const ServiceContext&  serviceContext,
-        MethodHandle*          pMethodHandle,
-        const UaVariantArray&  inputArguments,
-        UaVariantArray&        outputArguments,
-        UaStatusCodeArray&     inputArgumentResults,
-        UaDiagnosticInfos&     inputArgumentDiag);
+            const UaString &name,
+            const UaNodeId &newNodeId,
+            const UaString &defaultLocaleId,
+            PasNodeManager *pNodeManager,
+            Identity identity,
+            PasCommunicationInterface *pCommIf) : PasObject(name, newNodeId, defaultLocaleId,
+                                                            dynamic_cast<PasNodeManagerCommon *>(pNodeManager),
+                                                            identity,
+                                                            dynamic_cast<PasComInterfaceCommon *>(pCommIf)) { initialize(); }
 
     /// @brief Method returning the UaNodeId for the Positioner object type
     /// definition node.

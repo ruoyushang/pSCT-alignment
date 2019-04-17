@@ -28,26 +28,15 @@ public:
             PasComInterfaceCommon *pCommIf) : PasObject(name, newNodeId, defaultLocaleId, pNodeManager, identity,
                                                         pCommIf) { initialize(); }
 
-    // implement the synchronous call
-    UaStatus call(
-            const ServiceContext &serviceContext,
-            MethodHandle *pMethodHandle,
-            const UaVariantArray &inputArguments,
-            UaVariantArray &outputArguments,
-            UaStatusCodeArray &inputArgumentResults,
-            UaDiagnosticInfos &inputArgumentDiag);
-
     UaNodeId typeDefinitionId() const;
 
-    const std::map <OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, OpcUa_Byte>>
+    const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, OpcUa_Byte>>
     getVariableDefs() override { return CCDObject::VARIABLES; }
 
-    const std::map <OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean>>
+    const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean>>
     getErrorDefs() override { return CCDObject::ERRORS; }
 
-    const std::map <OpcUa_UInt32, std::pair<std::string,
-            std::vector < std::tuple < std::string, UaNodeId, std::string>>>>
-
+    const std::map<OpcUa_UInt32, std::pair<std::string, std::vector<std::tuple<std::string, UaNodeId, std::string>>>>
     getMethodDefs() override { return CCDObject::METHODS; }
 
     /// @brief Map of OPC UA type ids for all child variables to their name, default value, is_state value, and access level.
