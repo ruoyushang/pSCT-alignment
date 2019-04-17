@@ -10,8 +10,8 @@
 #include "uastring.h"
 #include "statuscode.h"
 #include "uaarraytemplates.h"
-#include "pascominterfacecommon.h"
-#include "components.h"
+#include "pascominterfacecommon.hpp"
+#include "components.hpp"
 #include <vector>
 #include <map>
 #include <string>

@@ -1,5 +1,5 @@
 #include "paslogic.h"
-#include "passervertypeids.h"
+#include "passervertypeids.hpp"
 #include <uastring.h>
 #include <uavariant.h>
 #include <statuscode.h>

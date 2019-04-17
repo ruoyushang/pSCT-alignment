@@ -3,8 +3,8 @@
 
 #include "uabase.h"
 #include "uaclient/uaclientsdk.h"
-#include "passervertypeids.h"
-#include "components.h"
+#include "passervertypeids.hpp"
+#include "components.hpp"
 #include <vector>
 #include <string>
 #include <map>

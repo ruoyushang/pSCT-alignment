@@ -15,7 +15,7 @@
 #include "uabase/uamutex.h"
 #include "uabase/uastring.h"
 
-#include "common/opcua/pascominterfacecommon.h"
+#include "common/opcua/pascominterfacecommon.hpp"
 
 class Platform;
 

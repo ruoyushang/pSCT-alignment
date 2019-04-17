@@ -22,8 +22,8 @@
 #include "xmlparser/xmldocument.h"
 #endif
 
-#include "common/utilities/opcserver.h"
-#include "common/utilities/shutdown.h"
+#include "common/utilities/opcserver.hpp"
+#include "common/utilities/shutdown.hpp"
 
 #include "server/pascommunicationinterface.hpp"
 #include "server/pasnodemanager.hpp"

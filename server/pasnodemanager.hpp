@@ -10,7 +10,7 @@
 
 #include "uabase/statuscode.h"
 
-#include "common/opcua/pasnodemanagercommon.h"
+#include "common/opcua/pasnodemanagercommon.hpp"
 
 class PasCommunicationInterface;
 

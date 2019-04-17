@@ -1,8 +1,8 @@
 #include "client/controllers/positionercontroller.hpp"
 
-#include "passervertypeids.h"
-#include "clienthelper.h"
-#include "components.h"
+#include "passervertypeids.hpp"
+#include "clienthelper.hpp"
+#include "components.hpp"
 #include "stdlib.h"
 #include <vector>
 #include <sstream>

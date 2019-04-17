@@ -16,7 +16,7 @@
 #include "uabase/uastring.h"
 
 #include "common/alignment/platform.hpp"
-#include "common/opcua/pascominterfacecommon.h"
+#include "common/opcua/pascominterfacecommon.hpp"
 
 /// @brief Class representing an actuator device controller.
 class ActController : public PasController {

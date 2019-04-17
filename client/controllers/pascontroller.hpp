@@ -1,10 +1,10 @@
 #ifndef __PASCONTROLLER_H__
 #define __PASCONTROLLER_H__
 
-#include "client/pascommunicationinterface.h"
-#include "passervertypeids.h"
+#include "client/pascommunicationinterface.hpp"
+#include "passervertypeids.hpp"
 #include "stewartplatform.h"
-#include "components.h"
+#include "components.hpp"
 
 #include "uabase/statuscode.h"
 #include "uabase/uabase.h"

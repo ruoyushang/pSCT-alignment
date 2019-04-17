@@ -4,11 +4,11 @@
  */
 
 #include <iostream>
-#include "positionerobject.h"
-#include "pasnodemanager.h"
-#include "passervertypeids.h"
-#include "pascommunicationinterface.h"
-#include "components.h"
+#include "positionerobject.hpp"
+#include "pasnodemanager.hpp"
+#include "passervertypeids.hpp"
+#include "pascommunicationinterface.hpp"
+#include "components.hpp"
 #include "uaserver/methodhandleuanode.h"
 #include "uaserver/opcua_analogitemtype.h"
 

@@ -12,9 +12,9 @@
 #include "uabase/statuscode.h"
 #include "uabase/uaarraytemplates.h"
 
-#include "common/opcua/components.h"
-#include "common/opcua/pascominterfacecommon.h"
-#include "common/opcua/passervertypeids.h"
+#include "common/opcua/components.hpp"
+#include "common/opcua/pascominterfacecommon.hpp"
+#include "common/opcua/passervertypeids.hpp"
 
 #include <map>
 #include <memory>

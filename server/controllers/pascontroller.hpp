@@ -15,7 +15,7 @@
 #include "uabase/uastring.h"
 #include "uabase/uavariant.h"
 
-#include "common/opcua/pascominterfacecommon.h"
+#include "common/opcua/pascominterfacecommon.hpp"
 
 class Platform;
 

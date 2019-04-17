@@ -1,8 +1,8 @@
 #ifndef __PASOBJECTFACTORY_H__
 #define __PASOBJECTFACTORY_H__
 
-#include "components.h"
-#include "pasobject.h"
+#include "components.hpp"
+#include "pasobject.hpp"
 
 class PasObjectFactory
 {

@@ -19,12 +19,12 @@
 #include "uaserver/opcua_offnormalalarmtype.h"
 #include "uaserver/uaobjecttypes.h"
 
-#include "common/opcua/components.h"
-#include "common/opcua/mpeseventdata.h"
-#include "common/opcua/pascominterfacecommon.h"
-#include "common/opcua/pasnodemanagercommon.h"
-#include "common/opcua/pasobject.h"
-#include "common/opcua/passervertypeids.h"
+#include "common/opcua/components.hpp"
+#include "common/opcua/mpeseventdata.hpp"
+#include "common/opcua/pascominterfacecommon.hpp"
+#include "common/opcua/pasnodemanagercommon.hpp"
+#include "common/opcua/pasobject.hpp"
+#include "common/opcua/passervertypeids.hpp"
 
 #include "server/objects/panelobject.hpp"
 #include "server/pascommunicationinterface.hpp"

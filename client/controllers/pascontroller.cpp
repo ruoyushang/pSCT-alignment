@@ -1,8 +1,8 @@
 #include "pascontroller.hpp"
 #include "ccdclass.h"
-#include "clienthelper.h"
-#include "components.h"
-#include "common/opcua/pasobject.h"
+#include "clienthelper.hpp"
+#include "components.hpp"
+#include "common/opcua/pasobject.hpp"
 #include <iostream>
 #include <fstream>
 #include <sstream>

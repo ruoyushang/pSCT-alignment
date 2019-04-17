@@ -5,7 +5,7 @@
 
 #include <Eigen/Dense>
 
-#include "client/clienthelper.h"
+#include "client/clienthelper.hpp"
 
 // 1 s update interval for panels
 int PanelController::kUpdateInterval = 1000;

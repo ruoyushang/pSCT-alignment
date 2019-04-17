@@ -15,14 +15,14 @@
 
 #include "uaserver/methodmanager.h"
 
-#include "common/opcua/components.h"
-#include "common/opcua/pasobject.h"
+#include "common/opcua/components.hpp"
+#include "common/opcua/pasobject.hpp"
 
 #include "server/pasnodemanager.hpp"
 #include "server/pascommunicationinterface.hpp"
 
-#include "common/opcua/pasnodemanagercommon.h"
-#include "common/opcua/pascominterfacecommon.h"
+#include "common/opcua/pasnodemanagercommon.hpp"
+#include "common/opcua/pascominterfacecommon.hpp"
 
 class UaMethodGeneric;
 

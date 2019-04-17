@@ -14,8 +14,8 @@
 #include "uabase/uastring.h"
 
 #include "common/alignment/platform.hpp"
-#include "common/opcua/pascominterfacecommon.h"
-#include "common/opcua/passervertypeids.h"
+#include "common/opcua/pascominterfacecommon.hpp"
+#include "common/opcua/passervertypeids.hpp"
 
 /// @details Turns state to On.
 MPESController::MPESController(int ID, std::shared_ptr<Platform> pPlatform) : PasController(ID, pPlatform) {

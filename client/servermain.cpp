@@ -4,18 +4,19 @@
 ** Description: Main entry for the application
 **
 ******************************************************************************/
-#include "common/utilities/opcserver.h"
-#include "common/utilities/shutdown.h"
+#include "common/utilities/opcserver.hpp"
+#include "common/utilities/shutdown.hpp"
 #include "uaplatformlayer.h"
 #include "uathread.h"
 #if SUPPORT_XML_PARSER
   #include "xmldocument.h"
 #endif
-#include "pasnodemanager.h"
+
+#include "pasnodemanager.hpp"
 #include "configuration.h"
-#include "pascommunicationinterface.h"
+#include "pascommunicationinterface.hpp"
 #include "paslogic.h"
-#include "shutdown.h"
+#include "shutdown.hpp"
 
 #include <vector>
 #include <string>

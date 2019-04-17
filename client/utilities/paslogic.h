@@ -7,8 +7,8 @@
 
 #include "uathread.h"
 #include "stewartplatform.h"
-#include "components.h"
-#include "pascommunicationinterface.h"
+#include "components.hpp"
+#include "pascommunicationinterface.hpp"
 #include <string>
 #include <chrono>
 #include <iostream>

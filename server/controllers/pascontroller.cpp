@@ -8,7 +8,7 @@
 #include "uabase/statuscode.h"
 #include "uabase/uamutex.h"
 
-#include "common/opcua/passervertypeids.h"
+#include "common/opcua/passervertypeids.hpp"
 #include "common/alignment/platform.hpp"
 
 #ifndef _AMD64

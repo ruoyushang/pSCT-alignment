@@ -1,8 +1,8 @@
-#include "common/opcua/pasobject.h"
-#include "common/opcua/pasnodemanagercommon.h"
-#include "common/opcua/passervertypeids.h"
-#include "common/opcua/pascominterfacecommon.h"
-#include "mpeseventdata.h"
+#include "common/opcua/pasobject.hpp"
+#include "common/opcua/pasnodemanagercommon.hpp"
+#include "common/opcua/passervertypeids.hpp"
+#include "common/opcua/pascominterfacecommon.hpp"
+#include "mpeseventdata.hpp"
 #include "uaserver/methodhandleuanode.h"
 
 #include <iostream>

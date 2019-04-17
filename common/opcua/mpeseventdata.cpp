@@ -1,5 +1,5 @@
-#include "mpeseventdata.h"
-#include "passervertypeids.h"
+#include "mpeseventdata.hpp"
+#include "passervertypeids.hpp"
 #include "uaserver/eventmanageruanode.h"
 
 /* ----------------------------------------------------------------------------

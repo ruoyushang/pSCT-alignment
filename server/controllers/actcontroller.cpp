@@ -8,8 +8,8 @@
 #include "uabase/uamutex.h"
 #include "uabase/uastring.h"
 
-#include "common/opcua/pasobject.h"
-#include "common/opcua/passervertypeids.h"
+#include "common/opcua/pasobject.hpp"
+#include "common/opcua/passervertypeids.hpp"
 
 /// @details Sets state to On, inLength to current length, and DeltaL to 0.
 ActController::ActController(int ID, std::shared_ptr<Platform> pPlatform) : PasController(ID, pPlatform) {

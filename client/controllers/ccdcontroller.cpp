@@ -10,11 +10,11 @@
 #include "uabase/uavariant.h"
 
 #include "common/globalalignment/ccdclass.h"
-#include "common/opcua/pascominterfacecommon.h"
-#include "common/opcua/pasobject.h"
-#include "common/opcua/passervertypeids.h"
+#include "common/opcua/pascominterfacecommon.hpp"
+#include "common/opcua/pasobject.hpp"
+#include "common/opcua/passervertypeids.hpp"
 
-#include "client/clienthelper.h"
+#include "client/clienthelper.hpp"
 #include "client/controllers/pascontroller.hpp"
 
 

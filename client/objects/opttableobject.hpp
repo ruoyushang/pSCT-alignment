@@ -2,11 +2,11 @@
 #define CLIENT_OPTTABLEOBJECT_HPP
 
 #include "uaserver/methodmanager.h"
-#include "common/opcua/components.h"
-#include "common/opcua/pasobject.h"
+#include "common/opcua/components.hpp"
+#include "common/opcua/pasobject.hpp"
 
-#include "client/pasnodemanager.h"
-#include "client/pascommunicationinterface.h"
+#include "client/pasnodemanager.hpp"
+#include "client/pascommunicationinterface.hpp"
 
 class UaMethodGeneric;
 struct Identity;

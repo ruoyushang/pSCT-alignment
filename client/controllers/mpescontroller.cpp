@@ -1,7 +1,7 @@
 #include "client/controllers/mpescontroller.hpp"
 
 #include "common/utilities/DBConfig.hpp"
-#include "client/clienthelper.h"
+#include "client/clienthelper.hpp"
 
 #include "mysql_driver.h"
 #include "cppconn/statement.h"

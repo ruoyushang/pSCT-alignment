@@ -4,9 +4,9 @@
 #include "uabase.h"
 #include "statuscode.h"
 #include "client/controllers/pascontroller.hpp"
-#include "pascommunicationinterface.h"
+#include "pascommunicationinterface.hpp"
 #include "uamutex.h"
-#include "components.h"
+#include "components.hpp"
 
 class Client;
 

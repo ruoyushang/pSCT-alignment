@@ -2,8 +2,8 @@
 #define __PASMIRROR_H__
 
 #include "uaserver/methodmanager.h"
-#include "components.h"
-#include "pasobject.h"
+#include "components.hpp"
+#include "pasobject.hpp"
 
 class PasNodeManager;
 class PasCommunicationInterface;

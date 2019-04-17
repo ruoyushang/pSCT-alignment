@@ -6,7 +6,7 @@
 #ifndef __PASNODEMANAGER_H__
 #define __PASNODEMANAGER_H__
 
-#include "pasnodemanagercommon.h"
+#include "pasnodemanagercommon.hpp"
 #include <vector>
 
 class PasCommunicationInterface;

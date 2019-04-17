@@ -1,12 +1,12 @@
-#include "clienthelper.h"
+#include "clienthelper.hpp"
 #include "subscription.h"
 #include "database.h"
 #include "configuration.h"
-#include "pasobject.h"
-#include "passervertypeids.h"
-#include "pasnodemanager.h"
-#include "pascommunicationinterface.h"
-#include "components.h"
+#include "pasobject.hpp"
+#include "passervertypeids.hpp"
+#include "pasnodemanager.hpp"
+#include "pascommunicationinterface.hpp"
+#include "components.hpp"
 #include "uaclient/uasession.h"
 
 #include <map>

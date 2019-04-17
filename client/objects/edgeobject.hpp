@@ -1,26 +1,26 @@
-#ifndef CLIENT_PANELOBJECT_HPP
-#define CLIENT_PANELOBJECT_HPP
+#ifndef __PASEDGE_H__
+#define __PASEDGE_H__
 
 #include "uaserver/methodmanager.h"
-#include "components.h"
-#include "pasobject.h"
+#include "components.hpp"
+#include "pasobject.hpp"
 
-#include "common/opcua/pascominterfacecommon.h"
-#include "common/opcua/pasnodemanagercommon.h"
+#include "common/opcua/pascominterfacecommon.hpp"
+#include "common/opcua/pasnodemanagercommon.hpp"
 
-#include "client/pasnodemanager.h"
-#include "client/pascommunicationinterface.h"
+#include "client/pascommunicationinterface.hpp"
+#include "client/pasnodemanager.hpp"
 
 
 class UaMethodGeneric;
 
 struct Identity;
 
-class PanelObject : public PasObject {
-    UA_DISABLE_COPY(PanelObject);
+class EdgeObject : public PasObject {
+    UA_DISABLE_COPY(EdgeObject);
 
 public:
-    PanelObject(
+    EdgeObject(
             const UaString &name,
             const UaNodeId &newNodeId,
             const UaString &defaultLocaleId,
@@ -28,19 +28,19 @@ public:
             Identity identity,
             PasCommunicationInterface *pCommIf) : PasObject(name, newNodeId, defaultLocaleId,
                                                             dynamic_cast<PasNodeManagerCommon *>(pNodeManager),
-                                                            identity,
-                                                            dynamic_cast<PasComInterfaceCommon *>(pCommIf)) { initialize(); }
+                                                            std::move(identity),
+                                                            dynamic_cast<PasComInterfaceCommon *>(pCommIf)) { initialize(); };
 
-    UaNodeId typeDefinitionId() const;
+    UaNodeId typeDefinitionId() const override;
 
     const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, OpcUa_Byte>>
-    getVariableDefs() { return PanelObject::VARIABLES; }
+    getVariableDefs() override { return EdgeObject::VARIABLES; }
 
     const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean>>
-    getErrorDefs() { return PanelObject::ERRORS; }
+    getErrorDefs() override { return EdgeObject::ERRORS; }
 
     const std::map<OpcUa_UInt32, std::pair<std::string, std::vector<std::tuple<std::string, UaNodeId, std::string>>>>
-    getMethodDefs() { return PanelObject::METHODS; }
+    getMethodDefs() override { return EdgeObject::METHODS; }
 
     /// @brief Map of OPC UA type ids for all child variables to their name, default value, is_state value, and access level.
     static const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, OpcUa_Byte>> VARIABLES;
@@ -52,4 +52,5 @@ public:
     static const std::map<OpcUa_UInt32, std::pair<std::string, std::vector<std::tuple<std::string, UaNodeId, std::string>>>> METHODS;
 };
 
-#endif //CLIENT_PANELOBJECT_HPP
+#endif
+

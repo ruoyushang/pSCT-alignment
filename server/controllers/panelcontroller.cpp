@@ -9,7 +9,7 @@
 #include "uabase/uamutex.h"
 #include "uabase/uastring.h"
 
-#include "common/opcua/passervertypeids.h"
+#include "common/opcua/passervertypeids.hpp"
 
 // @details Sets the state to On.
 PanelController::PanelController(int ID, std::shared_ptr<Platform> pPlatform) : PasController(ID, pPlatform) {

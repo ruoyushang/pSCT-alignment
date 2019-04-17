@@ -9,8 +9,8 @@
 #include "uaserver/methodhandleuanode.h"
 #include "uaserver/opcua_analogitemtype.h"
 
-#include "common/opcua/passervertypeids.h"
-#include "common/opcua/components.h"
+#include "common/opcua/passervertypeids.hpp"
+#include "common/opcua/components.hpp"
 
 #include "server/pasnodemanager.hpp"
 #include "server/pascommunicationinterface.hpp"
