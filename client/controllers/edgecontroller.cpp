@@ -1,5 +1,6 @@
 #include "client/controllers/edgecontroller.hpp"
 
+#include <fstream>
 #include <ios>
 #include <iostream>
 #include <string>
