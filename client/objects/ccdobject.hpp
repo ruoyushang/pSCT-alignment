@@ -1,6 +1,21 @@
 #ifndef CLIENT_CCDOBJECT_HPP
 #define CLIENT_CCDOBJECT_HPP
 
+#include "uaserver/methodmanager.h"
+#include "components.hpp"
+#include "pasobject.hpp"
+
+#include "common/opcua/pascominterfacecommon.hpp"
+#include "common/opcua/pasnodemanagercommon.hpp"
+
+#include "client/pascommunicationinterface.hpp"
+#include "client/pasnodemanager.hpp"
+
+#include <map>
+#include <string>
+#include <tuple>
+#include <vector>
+
 class CCDObject : public PasObject {
     UA_DISABLE_COPY(CCDObject);
 public:
