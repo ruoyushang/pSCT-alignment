@@ -28,7 +28,8 @@ public:
             Identity identity,
             PasCommunicationInterface *pCommIf) : PasObject(name, newNodeId, defaultLocaleId,
                                                             dynamic_cast<PasNodeManagerCommon *>(pNodeManager),
-                                                            identity, dynamic_cast<PasComInterfaceCommon *>(pCommIf)) {}
+                                                            identity,
+                                                            dynamic_cast<PasComInterfaceCommon *>(pCommIf)) { initialize(); }
 
     UaNodeId typeDefinitionId() const;
 

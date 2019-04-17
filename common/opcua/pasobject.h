@@ -128,7 +128,7 @@ public:
             PasNodeManagerCommon* pNodeManager,
             Identity identity,
             PasComInterfaceCommon *pCommIf) : PasObject(name, newNodeId, defaultLocaleId, pNodeManager, identity,
-                                                        pCommIf) {}
+                                                        pCommIf) { initialize(); }
 
     UaNodeId typeDefinitionId() const override;
 
@@ -163,7 +163,7 @@ public:
             PasNodeManagerCommon* pNodeManager,
             Identity identity,
             PasComInterfaceCommon *pCommIf) : PasObject(name, newNodeId, defaultLocaleId, pNodeManager, identity,
-                                                        pCommIf) {}
+                                                        pCommIf) { initialize(); }
 
     UaNodeId typeDefinitionId() const;
 
@@ -198,7 +198,7 @@ public:
             PasNodeManagerCommon* pNodeManager,
             Identity identity,
             PasComInterfaceCommon *pCommIf) : PasObject(name, newNodeId, defaultLocaleId, pNodeManager, identity,
-                                                        pCommIf) {}
+                                                        pCommIf) { initialize(); }
 
     UaNodeId typeDefinitionId() const;
 

@@ -32,7 +32,6 @@ PasObject::PasObject(const UaString& name,
         m_pCommIf(pCommIf),
         m_pNodeManager(pNodeManager),
         m_newNodeId(newNodeId) {
-    initialize();
 }
 
 void PasObject::initialize() {

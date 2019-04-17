@@ -29,7 +29,7 @@ public:
             PasCommunicationInterface *pCommIf) : PasObject(name, newNodeId, defaultLocaleId,
                                                             dynamic_cast<PasNodeManagerCommon *>(pNodeManager),
                                                             std::move(identity),
-                                                            dynamic_cast<PasComInterfaceCommon *>(pCommIf)) {};
+                                                            dynamic_cast<PasComInterfaceCommon *>(pCommIf)) { initialize(); };
 
     UaNodeId typeDefinitionId() const override;
 
