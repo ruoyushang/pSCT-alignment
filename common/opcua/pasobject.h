@@ -27,7 +27,8 @@ public:
             PasNodeManagerCommon *pNodeManager,
             Identity identity,
             PasComInterfaceCommon *pCommIf);
-    virtual ~PasObject(void);
+
+    virtual ~PasObject();
     virtual UaNodeId typeDefinitionId() const = 0;
 
     // Implement UaObject interface

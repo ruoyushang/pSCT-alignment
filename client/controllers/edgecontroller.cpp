@@ -337,7 +337,7 @@ UaStatus EdgeController::align(unsigned panel_pos, bool moveit, double alignFrac
     return status;
 }
 
-UaStatus EdgeController::__alignSinglePanel(unsigned panelpos, bool moveit, double alignFrac) {
+UaStatus EdgeController::alignSinglePanel(unsigned panelpos, bool moveit, double alignFrac) {
     UaMutexLocker lock(&m_mutex);
     UaStatus status;
 
@@ -393,7 +393,7 @@ UaStatus EdgeController::__alignSinglePanel(unsigned panelpos, bool moveit, doub
             if (panelPair.first != panelpos)
                 twopanels[i++] = panelPair.first;
 
-        vector < PasMPES * > overlapMPES;
+        vector < MPESController * > overlapMPES;
         for (const auto &panelPair : m_ChildrenPositionMap.at(PAS_PanelType)) {
             if (panelPair.first == panelpos)
                 continue;
@@ -402,9 +402,9 @@ UaStatus EdgeController::__alignSinglePanel(unsigned panelpos, bool moveit, doub
                     panelPair.second))->getChildren(
                     PAS_MPESType);
             for (const auto &mpes : pMPES)
-                if (static_cast<PasMPES *>(mpes)->getPanelSide(twopanels[0])
-                    && static_cast<PasMPES *>(mpes)->getPanelSide(twopanels[1]))
-                    overlapMPES.push_back(static_cast<PasMPES *>(mpes));
+                if (static_cast<MPESController *>(mpes)->getPanelSide(twopanels[0])
+                    && static_cast<MPESController *>(mpes)->getPanelSide(twopanels[1]))
+                    overlapMPES.push_back(static_cast<MPESController *>(mpes));
         }
         auto blockRows = overlapMPES.front()->getResponseMatrix().rows();
         auto blockCols = overlapMPES.front()->getResponseMatrix().cols();
@@ -546,7 +546,7 @@ UaStatus EdgeController::__alignSinglePanel(unsigned panelpos, bool moveit, doub
 const Eigen::MatrixXd &EdgeController::getResponseMatrix(unsigned panelpos) {
     auto &pMPES = m_pChildren.at(PAS_MPESType);
     unsigned maxMPES = pMPES.size();
-    unsigned nACT = static_cast<PasMPES *>(pMPES.front())->getResponseMatrix().cols();
+    unsigned nACT = static_cast<MPESController *>(pMPES.front())->getResponseMatrix().cols();
 
     for (const auto &panelPair : m_ChildrenPositionMap.at(PAS_PanelType)) {
         unsigned panel = panelPair.first;
@@ -557,12 +557,12 @@ const Eigen::MatrixXd &EdgeController::getResponseMatrix(unsigned panelpos) {
         for (unsigned nMPES = 0; nMPES < maxMPES; nMPES++) {
 //        for (const auto& mpes : m_ChildrenPositionMap.at(PAS_MPESType)) {
             // do not check if the sensor is visible here -- return the full response matrix
-//            if ( !static_cast<PasMPES *>(pMPES.at(nMPES))->isVisible() ) continue;
+//            if ( !static_cast<MPESController *>(pMPES.at(nMPES))->isVisible() ) continue;
 
-            auto panelside = static_cast<PasMPES *>(pMPES.at(nMPES))->getPanelSide(panel);
+            auto panelside = static_cast<MPESController *>(pMPES.at(nMPES))->getPanelSide(panel);
             // if this is nonzero (so either 'l' or 'w'), add it to the edge response matrix
             if (panelside) {
-                const auto &curresponse = static_cast<PasMPES *>(pMPES.at(nMPES))->getResponseMatrix(panelside);
+                const auto &curresponse = static_cast<MPESController *>(pMPES.at(nMPES))->getResponseMatrix(panelside);
                 m_ResponseMatMap.at(panel).block(2 * visibleMPES, 0, curresponse.rows(),
                                                  curresponse.cols()) = curresponse;
             }
@@ -583,11 +583,11 @@ const Eigen::VectorXd &EdgeController::getAlignedReadings() {
 
     m_AlignedReadings = Eigen::VectorXd(2 * pMPES.size());
     for (unsigned nMPES = 0; nMPES < maxMPES; nMPES++) {
-        if (!static_cast<PasMPES *>(pMPES.at(nMPES))->isVisible()) continue;
+        if (!static_cast<MPESController *>(pMPES.at(nMPES))->isVisible()) continue;
 //    for (const auto& mpes : m_ChildrenPositionMap.at(PAS_MPESType)) {
-//        if ( !static_cast<PasMPES *>(pMPES.at(mpes.second))->isVisible() ) continue;
+//        if ( !static_cast<MPESController *>(pMPES.at(mpes.second))->isVisible() ) continue;
 
-        auto mpes_response = static_cast<PasMPES *>(pMPES.at(nMPES))->getAlignedReadings();
+        auto mpes_response = static_cast<MPESController *>(pMPES.at(nMPES))->getAlignedReadings();
         m_AlignedReadings.segment(2 * visibleMPES, 2) = mpes_response;
         ++visibleMPES;
     }
@@ -603,12 +603,12 @@ const Eigen::VectorXd &EdgeController::getSystematicOffsets() {
 
     m_systematicOffsets = Eigen::VectorXd(2 * pMPES.size());
     for (unsigned nMPES = 0; nMPES < maxMPES; nMPES++) {
-        if (!static_cast<PasMPES *>(pMPES.at(nMPES))->isVisible()) continue;
+        if (!static_cast<MPESController *>(pMPES.at(nMPES))->isVisible()) continue;
 //    for (const auto& mpes : m_ChildrenPositionMap.at(PAS_MPESType)) {
-//        if ( !static_cast<PasMPES *>(pMPES.at(mpes.second))->isVisible() ) continue;
+//        if ( !static_cast<MPESController *>(pMPES.at(mpes.second))->isVisible() ) continue;
 
         m_systematicOffsets.segment(2 * visibleMPES, 2) =
-                (static_cast<PasMPES *>(pMPES.at(nMPES)))->getSystematicOffsets();
+                (static_cast<MPESController *>(pMPES.at(nMPES)))->getSystematicOffsets();
         ++visibleMPES;
     }
     m_systematicOffsets.conservativeResize(2 * visibleMPES);
@@ -629,11 +629,11 @@ const Eigen::Eigen::VectorXd &EdgeController::getCurrentReadings() {
     UaVariant vtmp;
     for (unsigned nMPES = 0; nMPES < maxMPES; nMPES++) {
         pMPES.at(nMPES)->operate();
-        if (!static_cast<PasMPES *>(pMPES.at(nMPES))->isVisible()) {
+        if (!static_cast<MPESController *>(pMPES.at(nMPES))->isVisible()) {
             std::cout << "+++ WARNING +++ " << pMPES.at(nMPES)->getId().name
                  //for (const auto& mpes : m_ChildrenPositionMap.at(PAS_MPESType)) {
                  //    pMPES.at(mpes.second)->Operate();
-                 //    if ( !static_cast<PasMPES *>(pMPES.at(mpes.second))->isVisible() ) {
+                      //    if ( !static_cast<MPESController *>(pMPES.at(mpes.second))->isVisible() ) {
                       //        std::cout << "+++ WARNING +++ " << pMPES.at(mpes.second)->getId().name
                       << " is not in the field of view! Will ignore it." << std::endl;
             continue;

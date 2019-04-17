@@ -46,11 +46,12 @@ public:
             const UaString &defaultLocaleId,
             PasNodeManager *pNodeManager,
             Identity identity,
-            PasCommunicationInterface *pCommIf) : PasObject(name, newNodeId, defaultLocaleId, pNodeManager, identity,
-                                                            pCommIf) {}
+            PasCommunicationInterface *pCommIf) : PasObject(name, newNodeId, defaultLocaleId,
+                                                            dynamic_cast<PasNodeManagerCommon *>pNodeManager, identity,
+                                                                    dynamic_cast<PasComInterfaceCommon *>pCommIf) {}
 
     /// @brief Destroy an OPC UA panel object.
-    ~PanelObject() : ~PasObject();
+    virtual ~PanelObject();
 
     /// @brief Return the UaNodeId for the Panel object type definition node.
     /// @return The UaNodeId uniquely identifying the Panel object type node.
