@@ -132,7 +132,7 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
     updateState(); // Update the current state
 
     if (m_state == PASState::FatalError) {
-        std::cout << "PasPanel::Operate(): Panel in fatal error state! "
+        std::cout << "PanelController::Operate(): Panel in fatal error state! "
                   << "Check what's wrong, fix it, and try again.\n";
         return OpcUa_BadInvalidState;
     }

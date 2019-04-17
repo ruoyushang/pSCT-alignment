@@ -18,7 +18,7 @@
 #include <unistd.h>
 
 /* ----------------------------------------------------------------------------
-    Begin Class    ControlPositioner
+    Begin Class    PositionerController
     constructors / destructors
 -----------------------------------------------------------------------------*/
 PositionerController::PositionerController(Identity identity, Client *pClient) : PasController(identity, pClient)
@@ -31,8 +31,9 @@ PositionerController::~PositionerController()
     m_pClient = nullptr;
     m_state = PASState::GLOB_Positioner_notMoving;
 }
+
 /* ----------------------------------------------------------------------------
-    Class        ControlPositioner
+    Class        PositionerController
     Method       getState
     Description  Get Controller status.
 -----------------------------------------------------------------------------*/
@@ -55,8 +56,9 @@ UaStatus PositionerController::getState(PASState &state)
 
     return status;
 }
+
 /* ----------------------------------------------------------------------------
-    Class        ControlPositioner
+    Class        PositionerController
     Method       setState
     Description  Set Controller status.
 -----------------------------------------------------------------------------*/
@@ -64,8 +66,9 @@ UaStatus PositionerController::setState(PASState state)
 {
     return OpcUa_BadInvalidArgument;
 }
+
 /* ----------------------------------------------------------------------------
-    Class        ControlPositioner
+    Class        PositionerController
     Method       getData
     Description  Get Controller data.
 -----------------------------------------------------------------------------*/
@@ -93,8 +96,9 @@ UaStatus PositionerController::getData(OpcUa_UInt32 offset, UaVariant &value)
 
     return status;
 }
+
 /* ----------------------------------------------------------------------------
-    Class        ControlPositioner
+    Class        PositionerController
     Method       setData
     Description  Set Controller data.
 -----------------------------------------------------------------------------*/
@@ -118,8 +122,9 @@ UaStatus PositionerController::setData(
 
     return status;
 }
+
 /* ----------------------------------------------------------------------------
-    Class        ControlPositioner
+    Class        PositionerController
     Method       Operate
     Description  run a method on the sensor
 -----------------------------------------------------------------------------*/
@@ -185,5 +190,5 @@ UaStatus PositionerController::operate(OpcUa_UInt32 offset, const UaVariantArray
     return status;
 }
 /* ----------------------------------------------------------------------------
-    End Class    ControlPositioner
+    End Class    PositionerController
 ==============================================================================*/

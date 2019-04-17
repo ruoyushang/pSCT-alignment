@@ -395,7 +395,7 @@ void MirrorController::__readPositionAll() {
 
         auto pos = m_pChildren.at(PAS_PanelType).at(idx)->getId().position;
 
-        auto padCoordsActs = static_cast<PasPanel *>(m_pChildren.at(PAS_PanelType).at(idx))->getPadCoords();
+        auto padCoordsActs = static_cast<PanelController *>(m_pChildren.at(PAS_PanelType).at(idx))->getPadCoords();
         cout << "Panel frame pad coordinates:\n" << padCoordsActs << endl;
         // and transform this to the telescope reference frame:
         // these are pad coordinates in TRF as computed from actuator lengths
@@ -424,11 +424,11 @@ void MirrorController::__move(UaVariantArray args) {
         pCurObject = m_pChildren.at(PAS_PanelType).at(idx);
         curpos = pCurObject->getId().position;
         cout << "Panel " << curpos << ":" << endl;
-        static_cast<PasPanel *>(pCurObject)->operate(PAS_PanelType_ReadAll);
+        static_cast<PanelController *>(pCurObject)->operate(PAS_PanelType_ReadAll);
         // for this panel, we get PRF pad coords, transform them to TRF,
         // move them in TRF, transform back to PRF, and then compute new ACT lengths
         // based on the new pad coords. so simple!
-        auto padCoords_PanelRF = static_cast<PasPanel *>(pCurObject)->getPadCoords();
+        auto padCoords_PanelRF = static_cast<PanelController *>(pCurObject)->getPadCoords();
         auto padCoords_TelRF = padCoords_PanelRF;
         double newPadCoords[3][3];
         for (unsigned pad = 0; pad < 3; pad++) {
@@ -505,7 +505,7 @@ void MirrorController::__alignAll(unsigned start_idx, const set<unsigned> &need_
             // do this until the edge is aligned
             int aligniter = 1;
             m_pChildren.at(PAS_EdgeType).at(edge)->operate(PAS_EdgeType_Align, alignPanels);
-            while (!static_cast<PasEdge *>(m_pChildren.at(PAS_EdgeType).at(edge))->isAligned()) {
+            while (!static_cast<EdgeController *>(m_pChildren.at(PAS_EdgeType).at(edge))->isAligned()) {
                 cout << "\nAlignment Iteration " << aligniter << endl << endl;
                 usleep(400*1000); // microseconds
 
@@ -718,12 +718,12 @@ void MirrorController::simulateAlignSector()
     VectorXd Y; // sensor misalignment vector, we want to fit this
 
     // grab all user specified panels to move and sensors to fit
-    vector<PasPanel*> panelsToMove;
-    vector<PasMPES*> alignMPES;
+    vector<PanelController *> panelsToMove;
+    vector<MPESController *> alignMPES;
     for (unsigned idx : m_SelectedChildren.at(PAS_PanelType))
-        panelsToMove.push_back(static_cast<PasPanel *>(m_pChildren.at(PAS_PanelType).at(idx)));
+        panelsToMove.push_back(static_cast<PanelController *>(m_pChildren.at(PAS_PanelType).at(idx)));
     for (unsigned idx : m_SelectedChildren.at(PAS_MPESType)) {
-        PasMPES  *mpes = static_cast<PasMPES *>(m_pChildren.at(PAS_MPESType).at(idx));
+        MPESController *mpes = static_cast<MPESController *>(m_pChildren.at(PAS_MPESType).at(idx));
         mpes->operate();
         if (mpes->isVisible())
             alignMPES.push_back(mpes);
@@ -737,7 +737,7 @@ void MirrorController::simulateAlignSector()
         for (const auto& mpes : panel->getChildren(PAS_MPESType)) {
             unsigned overlap = 0;
             for (const auto& overlapPanel : panelsToMove)
-                overlap += (static_cast<PasMPES *>(mpes)->getPanelSide(overlapPanel->getId().position) != 0);
+                overlap += (static_cast<MPESController *>(mpes)->getPanelSide(overlapPanel->getId().position) != 0);
 
             if (overlap == 2) {
                 idx = m_ChildrenIdentityMap.at(PAS_MPESType).at(mpes->getId());
@@ -758,7 +758,7 @@ void MirrorController::simulateAlignSector()
         cout << "Reading the automatically identfied internal MPES:" << endl;
         // only read the internal MPES if no user-specified ones have been found
         for (const auto& idx: overlapIndices) {
-            PasMPES *mpes = static_cast<PasMPES *>(m_pChildren.at(PAS_MPESType).at(idx));
+            MPESController *mpes = static_cast<MPESController *>(m_pChildren.at(PAS_MPESType).at(idx));
             mpes->operate();
             if ( mpes->isVisible() )
                 alignMPES.push_back(mpes);
@@ -864,12 +864,12 @@ void MirrorController::__alignSector() {
     VectorXd Y; // sensor misalignment vector, we want to fit this
 
     // grab all user specified panels to move and sensors to fit
-    vector<PasPanel *> panelsToMove;
-    vector<PasMPES *> alignMPES;
+    vector<PanelController *> panelsToMove;
+    vector<MPESController *> alignMPES;
     for (unsigned idx : m_SelectedChildren.at(PAS_PanelType))
-        panelsToMove.push_back(static_cast<PasPanel *>(m_pChildren.at(PAS_PanelType).at(idx)));
+        panelsToMove.push_back(static_cast<PanelController *>(m_pChildren.at(PAS_PanelType).at(idx)));
     for (unsigned idx : m_SelectedChildren.at(PAS_MPESType)) {
-        PasMPES *mpes = static_cast<PasMPES *>(m_pChildren.at(PAS_MPESType).at(idx));
+        MPESController *mpes = static_cast<MPESController *>(m_pChildren.at(PAS_MPESType).at(idx));
         mpes->operate();
         if (mpes->isVisible())
             alignMPES.push_back(mpes);
@@ -883,7 +883,7 @@ void MirrorController::__alignSector() {
         for (const auto &mpes : panel->getChildren(PAS_MPESType)) {
             unsigned overlap = 0;
             for (const auto &overlapPanel : panelsToMove)
-                overlap += (static_cast<PasMPES *>(mpes)->getPanelSide(overlapPanel->getId().position) != 0);
+                overlap += (static_cast<MPESController *>(mpes)->getPanelSide(overlapPanel->getId().position) != 0);
 
             if (overlap == 2) {
                 idx = m_ChildrenIdentityMap.at(PAS_MPESType).at(mpes->getId());
@@ -904,7 +904,7 @@ void MirrorController::__alignSector() {
         cout << "Reading the automatically identfied internal MPES:" << endl;
         // only read the internal MPES if no user-specified ones have been found
         for (const auto &idx: overlapIndices) {
-            PasMPES *mpes = static_cast<PasMPES *>(m_pChildren.at(PAS_MPESType).at(idx));
+            MPESController *mpes = static_cast<MPESController *>(m_pChildren.at(PAS_MPESType).at(idx));
             mpes->operate();
             if (mpes->isVisible())
                 alignMPES.push_back(mpes);
@@ -1034,9 +1034,9 @@ void MirrorController::__alignGlobal(unsigned fixPanel)
     VectorXd globDisplaceVec = VectorXd(numPanels*6);
 
     // get all the edges we need to fit:
-    vector<PasEdge *> edgesToFit; // we actually don't need to keep these in a vector,
+    vector<EdgeController *> edgesToFit; // we actually don't need to keep these in a vector,
                                   // but doing this for possible future needs
-    vector<PasPanel *> panelsToMove;
+    vector<PanelController *> panelsToMove;
     unsigned curPanel = fixPanel, nextPanel, cursize = 0;
     Identity id;
     // keep track of the position in the global response matrix
@@ -1055,11 +1055,11 @@ void MirrorController::__alignGlobal(unsigned fixPanel)
         cout << "+++ DEBUG +++ Currently on panels (" << curPanel << ", " << nextPanel << ")"
             << endl;
 
-        panelsToMove.push_back( static_cast<PasPanel *> (
+        panelsToMove.push_back(static_cast<PanelController *> (
                     m_pChildren.at(PAS_PanelType).at(m_ChildrenPositionMap.at(PAS_PanelType).at(curPanel)) ) );
 
         id.eAddress = SCTMath::GetEdgeFromPanels({curPanel, nextPanel});
-        edgesToFit.push_back( static_cast<PasEdge *>(
+        edgesToFit.push_back(static_cast<EdgeController *>(
                     m_pChildren.at(PAS_EdgeType).at(m_ChildrenIdentityMap.at(PAS_EdgeType).at(id)) ) );
         cout << "\t\tThese correspond to the edge " << edgesToFit.back()->getId() << endl;
 
@@ -1168,7 +1168,7 @@ void MirrorController::__alignGlobal(unsigned fixPanel)
     for (const auto& edge : edgesToFit) {
         // and set them for each sensor along each edge
         for (const auto& mpes : edge->m_ChildrenPositionMap.at(PAS_MPESType) ) {
-            (static_cast<PasMPES *>(edge->m_pChildren.at(PAS_MPESType).at(mpes.second)))->SystematicOffsets =
+            (static_cast<MPESController *>(edge->m_pChildren.at(PAS_MPESType).at(mpes.second)))->SystematicOffsets =
                 SystematicOffsetsMPESMap.at(ring).at(mpes.first);
         }
     }
@@ -1324,7 +1324,7 @@ double MirrorController::chiSq(VectorXd telDelta)
         // as computed from actuator lengths and pad coordinates as computed from telescope
         // coordinates
         for (int pad = 0; pad < 3; pad++) {
-            padCoordsActs = static_cast<PasPanel *>(panels.at(idx))->getPadCoords().col(pad);
+            padCoordsActs = static_cast<PanelController *>(panels.at(idx))->getPadCoords().col(pad);
             // and transform this to the telescope reference frame:
             // these are pad coordinates in TRF as computed from actuator lengths
             padCoordsActs = __toTelRF(pos, padCoordsActs);

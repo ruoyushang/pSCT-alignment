@@ -126,21 +126,21 @@ const Identity PasCommunicationInterface::addDevice(Client *pClient, OpcUa_UInt3
     PasController *pController = nullptr;
     // up-casting is implicit
     if (deviceType == PAS_MPESType)
-        pController = new PasMPES(identity, pClient);
+        pController = new MPESController(identity, pClient);
     else if (deviceType == PAS_ACTType)
-        pController = new PasACT(identity, pClient);
+        pController = new ActuatorController(identity, pClient);
     else if (deviceType == PAS_PanelType)
-        pController = new PasPanel(identity, pClient);
+        pController = new PanelController(identity, pClient);
     else if (deviceType == PAS_EdgeType)
-        pController = new PasEdge(identity);
+        pController = new EdgeController(identity);
     else if (deviceType == PAS_MirrorType)
-        pController = new PasMirror(identity);
+        pController = new MirrorController(identity);
     else if (deviceType == PAS_CCDType)
-        pController = new PasCCD(identity);
+        pController = new CCDController(identity);
     else if (deviceType == PAS_PSDType)
-        pController = new PasPSD(identity, pClient);
+        pController = new PSDController(identity, pClient);
     else if (deviceType == GLOB_PositionerType)
-        pController = new ControlPositioner(identity, pClient);
+        pController = new PositionerController(identity, pClient);
     else {
         return addedId;
     }

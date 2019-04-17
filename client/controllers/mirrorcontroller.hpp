@@ -16,7 +16,7 @@ class MirrorController; // need this forward declaration for the friend class
 
 // This is an interface to be able to use ROOT's MINUIT, which requires a static ChiSq function.
 // ROOT Requires that objects inherit from its TObject. I don't want such multiple inheritance
-// for PasMirror, therefore creating this wrapper.
+// for MirrorController, therefore creating this wrapper.
 //
 // Making this a singleton to make sure this doesn't live longer than the actual compute --
 // otherwise the static m_pMirror may cause trouble
@@ -68,7 +68,7 @@ public:
     // own implementation
     void addChild(OpcUa_UInt32 deviceType, PasController *const pController);
 
-    // let PasMirrorCompute access the internal chiSq function
+    // let MirrorControllerCompute access the internal chiSq function
     friend void MirrorControllerCompute::chiSqFCN(int &npar, double *gin, double &f, double *par, int iflag);
 
 protected:
