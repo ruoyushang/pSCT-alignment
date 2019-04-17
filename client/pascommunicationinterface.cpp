@@ -14,6 +14,7 @@
 #include "client/controllers/mpescontroller.hpp"
 #include "client/controllers/ccdcontroller.hpp"
 #include "client/controllers/psdcontroller.hpp"
+#include "client/controllers/actcontroller.hpp"
 #include "uadatetime.h"
 #include <dirent.h>
 #include <string>
@@ -133,7 +134,7 @@ const Identity PasCommunicationInterface::addDevice(Client *pClient, OpcUa_UInt3
     if (deviceType == PAS_MPESType)
         pController = new MPESController(identity, pClient);
     else if (deviceType == PAS_ACTType)
-        pController = new ActuatorController(identity, pClient);
+        pController = new ActController(identity, pClient);
     else if (deviceType == PAS_PanelType)
         pController = new PanelController(identity, pClient);
     else if (deviceType == PAS_EdgeType)
