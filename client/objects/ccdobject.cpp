@@ -1,3 +1,10 @@
+#include "ccdobject.hpp"
+#include "pasnodemanager.hpp"
+#include "passervertypeids.hpp"
+#include "pascommunicationinterface.hpp"
+#include "uaserver/methodhandleuanode.h"
+#include "uaserver/opcua_analogitemtype.h"
+
 const std::map <OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, OpcUa_Byte>> CCDObject::VARIABLES = {
         {PAS_CCDType_State,        std::make_tuple("State", UaVariant(0), OpcUa_True, Ua_AccessLevel_CurrentRead)},
         {PAS_CCDType_xFromLED,     std::make_tuple("x", UaVariant(0.0), OpcUa_False,
