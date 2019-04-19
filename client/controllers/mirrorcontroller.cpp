@@ -230,7 +230,7 @@ UaStatus MirrorController::getData(OpcUa_UInt32 offset, UaVariant &value)
         UaStringArray arr;
         arr.resize(v.size());
         for (int i = 0; i < v.size(); i++) {
-            arr[i] = v[i].c_str();
+            arr[i] = UaString(v[i].c_str());
         }
         value.setStringArray(arr);
     } else if (offset == PAS_MirrorType_SelectedPanels) {
@@ -242,7 +242,7 @@ UaStatus MirrorController::getData(OpcUa_UInt32 offset, UaVariant &value)
         }
         value.setUInt32Array(arr);
     } else if (offset == PAS_MirrorType_SelectedMPES) {
-        std::vector<int> v(m_selectedEdges.begin(), m_selectedEdges.end());
+        std::vector<int> v(m_selectedMPES.begin(), m_selectedEdges.end());
         UaInt32Array arr;
         arr.resize(v.size());
         for (int i = 0; i < v.size(); i++) {
@@ -1088,10 +1088,8 @@ void MirrorController::alignGlobal(unsigned fixPanel, double alignFrac)
     // loop through panels and set the displacements
     /* MOVE ACTUATORS */
     // remember to update selected panels too
-    m_SelectedChildrenString.at(PAS_PanelType) = "";
     unsigned j = 6;
     for (auto& pCurPanel : panelsToMove) {
-        m_SelectedChildrenString.at(PAS_PanelType) += std::to_string(pCurPanel->getId().position) + " ";
         auto nACT = pCurPanel->getActuatorCount();
         // print out to make sure
         std::cout << "Will move actuators of "
@@ -1105,10 +1103,6 @@ void MirrorController::alignGlobal(unsigned fixPanel, double alignFrac)
 
         pCurPanel->operate(PAS_PanelType_MoveDeltaLengths, deltas);
     }
-    // remember to update selected panels
-    updateSelectedChildren(PAS_PanelType);
-
-    return;
 }
 
 /* =========== Coordinate Transformations =========== */
