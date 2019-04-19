@@ -242,7 +242,7 @@ UaStatus MirrorController::getData(OpcUa_UInt32 offset, UaVariant &value)
         }
         value.setUInt32Array(arr);
     } else if (offset == PAS_MirrorType_SelectedMPES) {
-        std::vector<int> v(m_selectedMPES.begin(), m_selectedEdges.end());
+        std::vector<int> v(m_selectedMPES.begin(), m_selectedMPES.end());
         UaInt32Array arr;
         arr.resize(v.size());
         for (int i = 0; i < v.size(); i++) {
@@ -1219,7 +1219,7 @@ double MirrorController::chiSq(Eigen::VectorXd telDelta)
 
     UaVariant val;
     // go over all panels
-    for (auto idx : m_SelectedChildren.at(PAS_PanelType)) {
+    for (auto idx : getSelectedDeviceIndices(PAS_PanelType)) {
         int pos = panels.at(idx)->getId().position;
         int ring = SCTMath::Ring(pos);
 
