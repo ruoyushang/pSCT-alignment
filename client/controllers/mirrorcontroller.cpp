@@ -230,7 +230,7 @@ UaStatus MirrorController::getData(OpcUa_UInt32 offset, UaVariant &value)
         UaStringArray arr;
         arr.resize(v.size());
         for (int i = 0; i < v.size(); i++) {
-            arr[i] = UaString(v[i].c_str());
+            arr[i] = *UaString(v[i].c_str()).toOpcUaString();
         }
         value.setStringArray(arr);
     } else if (offset == PAS_MirrorType_SelectedPanels) {

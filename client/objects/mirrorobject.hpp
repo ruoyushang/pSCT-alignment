@@ -5,8 +5,13 @@
 #include "components.hpp"
 #include "pasobject.hpp"
 
-class PasNodeManager;
-class PasCommunicationInterface;
+#include "common/opcua/pascominterfacecommon.hpp"
+#include "common/opcua/pasnodemanagercommon.hpp"
+
+#include "client/pasnodemanager.hpp"
+#include "client/pascommunicationinterface.hpp"
+
+
 class UaMethodGeneric;
 struct Identity;
 
@@ -20,15 +25,10 @@ public:
         const UaString& defaultLocaleId,
         PasNodeManager* pNodeManager,
         Identity identity,
-        PasCommunicationInterface *pCommIf);
-
-    UaStatus call(
-        const ServiceContext&  serviceContext,
-        MethodHandle*          pMethodHandle,
-        const UaVariantArray&  inputArguments,
-        UaVariantArray&        outputArguments,
-        UaStatusCodeArray&     inputArgumentResults,
-        UaDiagnosticInfos&     inputArgumentDiag);
+        PasCommunicationInterface *pCommIf) : PasObject(name, newNodeId, defaultLocaleId,
+                                                            dynamic_cast<PasNodeManagerCommon *>(pNodeManager),
+                                                            identity,
+                                                            dynamic_cast<PasComInterfaceCommon *>(pCommIf)) { initialize(); }
 
     UaNodeId typeDefinitionId() const;
 
