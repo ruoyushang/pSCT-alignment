@@ -32,15 +32,24 @@ public:
 
     UaNodeId typeDefinitionId() const;
 
-private:
-    UaMethodGeneric* m_pMethodMove;
-    UaMethodGeneric* m_pMethodMoveSector;
-    UaMethodGeneric* m_pMethodReadPos;
-    UaMethodGeneric* m_pMethodAlignSector;
-    UaMethodGeneric* m_pMethodReadAlign;
-    UaMethodGeneric* m_pMethodAlign;
-    UaMethodGeneric* m_pMethodGlobalAlign;
-    UaMethodGeneric* m_pMethodStop;
+    const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, OpcUa_Byte>>
+    getVariableDefs() { return MirrorObject::VARIABLES; }
+
+    const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean>>
+    getErrorDefs() { return MirrorObject::ERRORS; }
+
+    const std::map<OpcUa_UInt32, std::pair<std::string, std::vector<std::tuple<std::string, UaNodeId, std::string>>>>
+    getMethodDefs() { return MirrorObject::METHODS; }
+
+    /// @brief Map of OPC UA type ids for all child variables to their name, default value, is_state value, and access level.
+    static const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, OpcUa_Byte>> VARIABLES;
+
+    /// @brief Map of OPC UA type ids for all child error variables to their name, default value, and is_state value.
+    static const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean>> ERRORS;
+
+    /// @brief Map of OPC UA type ids for all child methods to their name and number of arguments.
+    static const std::map<OpcUa_UInt32, std::pair<std::string, std::vector<std::tuple<std::string, UaNodeId, std::string>>>> METHODS;
+
 };
 
 #endif

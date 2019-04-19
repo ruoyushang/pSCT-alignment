@@ -31,10 +31,10 @@ const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean>> 
 };
 
 const std::map<OpcUa_UInt32, std::pair<std::string, std::vector<std::tuple<std::string, UaNodeId, std::string>>>> PositionerObject::METHODS = {
-        {GLOB_PositionerType_Init,      {"Initialize", {}}},
-        {GLOB_PositionerType_Move,      {"Move",       {}}},
-        {GLOB_PositionerType_SetEnergy, {"SetEnergy",  {}}},
-        {GLOB_PositionerType_Stop,      {"Stop",       {}}},
+    {GLOB_PositionerType_Initialize, {"Initialize", {}}},
+    {GLOB_PositionerType_Move,       {"Move",       {}}},
+    {GLOB_PositionerType_SetEnergy,  {"SetEnergy",  {}}},
+    {GLOB_PositionerType_Stop,       {"Stop",       {}}},
 
 };
 

@@ -74,37 +74,32 @@ public:
 
 protected:
     // compute chiSq for all panels given a perturbation to the mirror
-    virtual double chiSq(Eigen::VectorXd telDleta);
+    virtual double chiSq(Eigen::VectorXd telDelta);
 
 private:
-    OpcUa_Float m_AlignFrac;
-    // private methods for the actions we can take
-    UaStatus __align();
-    UaStatus __moveTo();
+    double m_safetyRadius = 40;
+
+    std::set<unsigned> m_selectedPanels;
+    std::set<int> m_selectedMPES;
+    std::set<std::string> m_selectedEdges;
 
     // helper method to process the selected children string and convert it into a set
     // of vector indices
-    void __updateSelectedChildren(unsigned deviceType);
+    void parseAndSetSelection(std::string selectionString, unsigned deviceType);
+
+    std::set<unsigned> getSelectedDeviceIndices(unsigned deviceType);
     // update current mirror coordinates
-    void __updateCoords();
+    void updateCoords();
     // a bunch of internal implementations
-    void __stopAll();
-    void __readPositionAll();
-    void __readAlignmentAll();
+    void readPositionAll();
     // Align all edges fron need_alignment starting at start_idx and  moving in the direction dir
-    void __alignAll(unsigned start_idx, const std::set<unsigned>& need_alignment, bool dir);
-    void __alignSector();
+    void alignSequential(unsigned startEdge, const std::set<unsigned> &selectedEdges, bool dir);
 
-    void simulateAlignSector();
-    void __alignGlobal(unsigned fixPanel);
+    void alignSector(std::set<unsigned> selectedPanels, std::set<unsigned> selectedMPES, double alignFrac = 0.25);
 
-    void __move(UaVariantArray args);
-    // the children that we have selected to perform common actions on
-    // if this is empty, no action is performed
-    // maps deviceType->{indices of selected children in the m_pChildren.at(deviceType) vector}
-    std::map<unsigned, std::set<unsigned>> m_SelectedChildren;
-    // same as above, only the list of children is a comma-/space-/semicolon-separated string
-    std::map<unsigned, std::string> m_SelectedChildrenString;
+    void alignGlobal(unsigned fixPanel, double alignFrac = 0.25);
+
+    void moveToCoords(UaVariantArray args);
 
     // mirror coords -- x/y/z, xRot, yRot, zRot
     Eigen::VectorXd m_curCoords, m_curCoordsErr, m_sysOffsetsMPES;

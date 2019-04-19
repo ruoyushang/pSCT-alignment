@@ -11,8 +11,7 @@
 int PanelController::kUpdateInterval = 1000;
 
 PanelController::PanelController(Identity identity, Client *pClient) :
-        PasCompositeController(identity, pClient, kUpdateInterval),
-        m_inCoordsUpdated(false) {
+    PasCompositeController(identity, pClient, kUpdateInterval) {
     m_ID.name = std::string("Panel_") + std::to_string(m_ID.position);
     m_state = PASState::On;
     m_SP.SetPanelType(StewartPlatform::PanelType::OPT);
@@ -112,8 +111,9 @@ UaStatus PanelController::getData(OpcUa_UInt32 offset, UaVariant &value) {
         status = m_pClient->read({"ns=2;s=Panel_0.InternalTemperature"}, &value);
     else if (offset == PAS_PanelType_ExtTemperature)
         status = m_pClient->read({"ns=2;s=Panel_0.ExternalTemperature"}, &value);
-
-    else
+    else if (offset == PAS_PanelType_SafetyRadius) {
+        value.setDouble(m_safetyRadius);
+    } else
         status = OpcUa_BadInvalidArgument;
 
     return status;
@@ -121,6 +121,11 @@ UaStatus PanelController::getData(OpcUa_UInt32 offset, UaVariant &value) {
 
 UaStatus PanelController::setData(OpcUa_UInt32 offset, UaVariant value) {
     UaMutexLocker lock(&m_mutex);
+
+    if (offset == PAS_PanelType_SafetyRadius) {
+        value.toDouble(m_safetyRadius);
+        return OpcUa_Good;
+    }
     return OpcUa_BadInvalidArgument;
 }
 
@@ -160,8 +165,11 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
             status = m_pClient->callMethodAsync(std::string("ns=2;s=Panel_0"), UaString("MoveDeltaLengths"), args);
         }
 #else
-        for (int i = 0; i < 6; i++)
-            m_curCoords[i] = m_inCoords[i];
+        double deltaLength;
+        for (int i = 0; i < 6; i++) {
+            UaVariant(args[i]).toDouble(deltaLength);
+            m_curCoords[i] += deltaLength;
+        }
 #endif
     } else if (offset == PAS_PanelType_MoveToLengths) {
         bool collision_flag = checkForCollision();
@@ -174,7 +182,7 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
 #else
         for (int i = 0; i < 6; i++) {
             if (!collision_flag) {
-                m_curCoords[i] = m_inCoords[i];
+                UaVariant(args[i]).toDouble(m_curCoords[i]);
             }
         }
 #endif
@@ -257,7 +265,8 @@ bool PanelController::checkForCollision() {
     Eigen::VectorXd Sen_current; // sensor current position
     Eigen::VectorXd Sen_delta; // sensor delta
     Eigen::VectorXd Sen_new; // sensor new position = Sen_delta + current sensor reading
-    Eigen::VectorXd Sen_aligned; // aligned sensor reading
+    Eigen::VectorXd Sen_center; // aligned sensor reading
+    Sen_center << 160, 80, 160, 80, 160, 80;
     Eigen::VectorXd Sen_deviation; // deviated sensor reading
 
     Eigen::VectorXd newLengths(6);
@@ -275,19 +284,17 @@ bool PanelController::checkForCollision() {
             Sen_current = edge->getCurrentReadings();
             std::cout << "Looking at edge " << edge->getId() << std::endl;
             std::cout << "\nCurrent MPES readings:\n" << Sen_current << std::endl << std::endl;
-            Sen_aligned = edge->getAlignedReadings();
-            std::cout << "\nTarget MPES readings:\n" << Sen_aligned << std::endl << std::endl;
             std::cout << "\nActuator response matrix for this edge:\n" << M_response << std::endl;
             Sen_delta = M_response * Act_delta;
             Sen_new = Sen_delta + Sen_current;
             std::cout << "The new sensor coordinates (x, y) will be:\n" << Sen_new << std::endl;
-            Sen_deviation = Sen_new - Sen_aligned;
-            std::cout << "\n will deviate from the aligned position by\n" << Sen_new - Sen_aligned << std::endl;
+            Sen_deviation = Sen_new - Sen_center;
+            std::cout << "\n will deviate from the center position by\n" << Sen_deviation << std::endl;
             double deviation = 0;
             for (unsigned i = 0; i < 6; i++)
                 deviation += pow(Sen_deviation(i), 2);
             deviation = pow(deviation, 0.5);
-            if (deviation > 40) return true;
+            if (deviation > m_safetyRadius) return true;
         }
     }
 

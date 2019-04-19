@@ -142,7 +142,7 @@ UaStatus PositionerController::operate(OpcUa_UInt32 offset, const UaVariantArray
                                                 &set_energy_level);
                 usleep(100000);
             }
-        case GLOB_PositionerType_Init:
+        case GLOB_PositionerType_Initialize:
             {
                 /* INITIALIZE */
                 UaVariant init_drive_system = UaVariant(OpcUa_Int16(8));

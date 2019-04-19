@@ -42,7 +42,10 @@ private:
     void updateCoords(bool printout = false);
 
     // x, y, z, xRot, yRot, zRot
-    double m_curCoords[6], m_inCoords[6];
+    double m_curCoords[6];
+
+    double m_safetyRadius;
+
     StewartPlatform m_SP;
 
     // helper to be able to run ChiSq minimization
@@ -52,9 +55,6 @@ private:
     Eigen::VectorXd m_ActuatorLengths;
     // pad coords -- column per pad
     Eigen::Matrix3d m_PadCoords;
-
-    // track if inCoords have been updated on initial boot
-    bool m_inCoordsUpdated;
 
     bool checkForCollision();
 };
