@@ -4,7 +4,7 @@ printf "Reading from database...\n"
 declare -a panel_numbers
 while read -r position;
 do
-  if [[ $position = "0" ]] || [[ ${position:1:1} = "0" ]] || [[ ${position:0:1} = "1" ]]; then
+  if [[ $position = "1001" ]] || [[ $position = "2001" ]] || [[ ${position:0:1} = "3" ]]; then
       continue
   fi
   panel_numbers+=("$position")
@@ -14,6 +14,6 @@ count=$((${#panel_numbers[@]}))
 printf "%s total panel servers found in database\n" "$count"
 printf "Starting client...\n"
 
-opcua-client &>> /dev/null &
+#opcua-client &>> /dev/null &
 
 ../sdk/bin/p2pasclient "${panel_numbers[@]}"
