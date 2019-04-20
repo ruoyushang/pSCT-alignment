@@ -59,13 +59,13 @@ public:
 
 
     virtual const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, OpcUa_Byte>>
-    getVariableDefs() { return PasObject::VARIABLES; }
+    getVariableDefs() = 0;
 
     virtual const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean>>
-    getErrorDefs() { return PasObject::ERRORS; }
+    getErrorDefs() = 0;
 
     virtual const std::map<OpcUa_UInt32, std::pair<std::string, std::vector<std::tuple<std::string, UaNodeId, std::string>>>>
-    getMethodDefs() { return PasObject::METHODS; }
+    getMethodDefs() = 0;
 
 protected: 
     // a function that's used very often
@@ -82,11 +82,6 @@ protected:
     UaNodeId m_newNodeId;
 
 private:
-    static const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, OpcUa_Byte>> VARIABLES;
-
-    static const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean>> ERRORS;
-
-    static const std::map<OpcUa_UInt32, std::pair<std::string, std::vector<std::tuple<std::string, UaNodeId, std::string>>>> METHODS;
 };
 
 class PasUserData : public UserDataBase

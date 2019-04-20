@@ -11,13 +11,6 @@
 
 // ----------------------------------------------------------------
 // PasObject implementation
-const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, OpcUa_Byte>> PasObject::VARIABLES;
-
-const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean>> PasObject::ERRORS;
-
-const std::map<OpcUa_UInt32, std::pair<std::string, std::vector<std::tuple<std::string, UaNodeId, std::string>>>> PasObject::METHODS;
-
-
 PasObject::PasObject(const UaString& name,
         const UaNodeId& newNodeId,
         const UaString& defaultLocaleId,
@@ -43,11 +36,16 @@ void PasObject::initialize() {
     OpcUa_Int16 nsIdx = m_pNodeManager->getNameSpaceIndex();
     OpcUa::DataItemType *pDataItem;
 
+    std::cout << "PasObject::Initialize(): initializing object w/ identity " << m_Identity << "...\n";
+
+    std::cout << "Creating variables...\n";
     // Add all child variable nodes
     for (auto &kv : getVariableDefs()) {
         addVariable(m_pNodeManager, typeDefinitionId().identifierNumeric(), kv.first, std::get<2>(kv.second));
     }
 
+
+    std::cout << "Creating error variables...\n";
     //Create the folder for the Errors
     UaFolder *pErrorFolder = new UaFolder("Errors", UaNodeId(
             (std::to_string(typeDefinitionId().identifierNumeric()) + "_" + m_Identity.eAddress + "_errors").c_str(),
@@ -156,7 +154,7 @@ UaStatus PasObject::call(
 
         if (m_MethodMap.find(pMethod->nodeId()) != m_MethodMap.end()) {
             methodTypeID = m_MethodMap[pMethod->nodeId()].second;
-            numArgs = METHODS.at(methodTypeID).second.size();
+            numArgs = getMethodDefs().at(methodTypeID).second.size();
 
             if (inputArguments.length() != numArgs)
                 ret = OpcUa_BadInvalidArgument;
