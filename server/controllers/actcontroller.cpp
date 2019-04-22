@@ -24,14 +24,14 @@ ActController::~ActController() {
 
 /// @details Calls update state before returning the current state.
 UaStatus ActController::getState(PASState &state) {
-    UaMutexLocker lock(&m_mutex);
+    //UaMutexLocker lock(&m_mutex);
     updateState();
     state = m_state;
     return OpcUa_Good;
 }
 
 UaStatus ActController::updateState() {
-    UaMutexLocker lock(&m_mutex);
+    //UaMutexLocker lock(&m_mutex);
     // update internal state to match teh underlying platform object
     switch (m_pPlatform->getActuatorAt(m_ID)->GetStatus()) {
         case Actuator::StatusModes::Healthy :
@@ -52,7 +52,7 @@ UaStatus ActController::updateState() {
 
 /// @details If the offset given points to an error variable, internally calls getError. Locks the shared mutex while reading data.
 UaStatus ActController::getData(OpcUa_UInt32 offset, UaVariant &value) {
-    UaMutexLocker lock(&m_mutex);
+    //UaMutexLocker lock(&m_mutex);
     UaStatus status;
 
     if (ACTObject::VARIABLES.find(offset) != ACTObject::VARIABLES.end()) {
@@ -78,7 +78,7 @@ UaStatus ActController::getData(OpcUa_UInt32 offset, UaVariant &value) {
 }
 
 UaStatus ActController::getError(OpcUa_UInt32 offset, UaVariant &value) {
-    UaMutexLocker lock(&m_mutex);
+    //UaMutexLocker lock(&m_mutex);
     UaStatus status;
     bool errorStatus;
 
@@ -94,7 +94,7 @@ UaStatus ActController::getError(OpcUa_UInt32 offset, UaVariant &value) {
 
 /// @details Locks the shared mutex while writing data.
 UaStatus ActController::setData(OpcUa_UInt32 offset, UaVariant value) {
-    UaMutexLocker lock(&m_mutex);
+    //UaMutexLocker lock(&m_mutex);
     UaStatus status;
 
     switch (offset) {
@@ -117,7 +117,7 @@ UaStatus ActController::setError(OpcUa_UInt32 offset, UaVariant value) {
 
 /// @details Locks shared mutex while operating device.
 UaStatus ActController::operate(OpcUa_UInt32 offset, const UaVariantArray &args) {
-    UaMutexLocker lock(&m_mutex); // Lock the object to prevent other actions while operating.
+    //UaMutexLocker lock(&m_mutex); // Lock the object to prevent other actions while operating.
 
     UaStatus status;
     UaVariantArray tempArgs;

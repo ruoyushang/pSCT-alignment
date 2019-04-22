@@ -39,7 +39,7 @@ int MPESController::Initialize() {
 
 /// @details If the MPES has not been read yet, calls read before retrieving data. Locks the shared mutex while reading data.
 UaStatus MPESController::getData(OpcUa_UInt32 offset, UaVariant &value) {
-    UaMutexLocker lock(&m_mutex);
+    //UaMutexLocker lock(&m_mutex);
     UaStatus status;
 
     if (!m_updated)
@@ -77,7 +77,7 @@ UaStatus MPESController::getData(OpcUa_UInt32 offset, UaVariant &value) {
 
 /// @details Locks the mutex while writing data.
 UaStatus MPESController::setData(OpcUa_UInt32 offset, UaVariant value) {
-    UaMutexLocker lock(&m_mutex);
+    //UaMutexLocker lock(&m_mutex);
     UaStatus status;
 
     float v;
@@ -98,7 +98,7 @@ UaStatus MPESController::setData(OpcUa_UInt32 offset, UaVariant value) {
 
 /// @details Locks the shared mutex while calling methods.
 UaStatus MPESController::operate(OpcUa_UInt32 offset, const UaVariantArray &args) {
-    UaMutexLocker lock(&m_mutex);
+    //UaMutexLocker lock(&m_mutex);
     UaStatus status;
 
     switch (offset) {
@@ -124,7 +124,7 @@ UaStatus MPESController::operate(OpcUa_UInt32 offset, const UaVariantArray &args
 /// @details If state is On, calls the ReadMPES method through the Platform object and sets the m_updated flag to true.
 /// Locks the shared mutex while reading.
 OpcUa_Int32 MPESController::read() {
-    UaMutexLocker lock(&m_mutex);
+    //UaMutexLocker lock(&m_mutex);
 
     if (m_state == PASState::On) {
         std::cout << "\nReading MPES " << m_ID << std::endl;

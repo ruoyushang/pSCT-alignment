@@ -23,7 +23,7 @@ PanelController::~PanelController() {
 
 // @details Locks the shared mutex while reading the state.
 UaStatus PanelController::getState(PASState &state) {
-    UaMutexLocker lock(&m_mutex);
+    //UaMutexLocker lock(&m_mutex);
     updateState();
     state = m_state;
     return OpcUa_Good;
@@ -31,7 +31,7 @@ UaStatus PanelController::getState(PASState &state) {
 
 // @details Locks the shared mutex while updating the state.
 UaStatus PanelController::updateState() {
-    UaMutexLocker lock(&m_mutex);
+    //UaMutexLocker lock(&m_mutex);
     // update internal state to match the underlying platform object
     switch (m_pPlatform->getState()) {
         case PlatformState::On :
@@ -58,7 +58,7 @@ UaStatus PanelController::updateState() {
 
 // @details Locks the shared mutex wihle setting the state. Only the On and Off states are allowed to be set manually.
 UaStatus PanelController::setState(PASState state) {
-    UaMutexLocker lock(&m_mutex);
+    //UaMutexLocker lock(&m_mutex);
 
     switch (state) {
         case PASState::On:
@@ -85,7 +85,7 @@ UaStatus PanelController::setState(PASState state) {
 /// @details Locks the shared mutex while setting the state. In SIMMODE,
 /// when reading temperature values, dummy values are generated from a normal distribution.
 UaStatus PanelController::getData(OpcUa_UInt32 offset, UaVariant &value) {
-    UaMutexLocker lock(&m_mutex);
+    //UaMutexLocker lock(&m_mutex);
 
 #ifdef SIMMODE
     std::random_device rd{};
@@ -151,21 +151,21 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
 
         m_state = PASState::Busy; // set the state immediately
 
-        std::array<double, 6> deltaLengths{};
+        std::array<float, 6> deltaLengths{};
 
         std::cout << "Received MoveDeltaLengths command with args: " << std::endl;
         UaVariant dL;
         for (int i = 0; i < 6; i++) {
             dL = UaVariant(args[i]);
-            dL.toDouble(deltaLengths[i]);
+            dL.toFloat(deltaLengths[i]);
             std::cout << deltaLengths[i] << std::endl;
         }
-        std::endl;
+        std::cout << std::endl;
         deltaLengths = m_pPlatform->MoveDeltaLengths(deltaLengths);
         // update missed lengths
         std::cout << "Updating remaining distance to target..." << std::endl;
         for (int i = 0; i < 6; i++) {
-            dL.setDouble(deltaLengths[i]);
+            dL.setFloat(deltaLengths[i]);
             m_pActuators.at(i)->setData(PAS_ACTType_DeltaLength, dL);
         }
 
