@@ -123,7 +123,7 @@ UaStatus MPESController::operate(OpcUa_UInt32 offset, const UaVariantArray &args
 
 /// @details If state is On, calls the ReadMPES method through the Platform object and sets the m_updated flag to true.
 /// Locks the shared mutex while reading.
-OpcUa_Int32 MPESController::read() {
+UaStatus MPESController::read() {
     //UaMutexLocker lock(&m_mutex);
     if (m_state == PASState::On) {
         std::cout << "\nReading MPES " << m_ID << std::endl;
