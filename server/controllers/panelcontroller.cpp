@@ -151,22 +151,27 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
 
         m_state = PASState::Busy; // set the state immediately
 
-        std::array<float, 6> deltaLengths{};
+        std::array<double, 6> deltaLengths{};
 
+        std::cout << "Received MoveDeltaLengths command with args: " << std::endl;
         UaVariant dL;
         for (int i = 0; i < 6; i++) {
             dL = UaVariant(args[i]);
-            dL.toFloat(deltaLengths[i]);
+            dL.toDouble(deltaLengths[i]);
+            std::cout << deltaLengths[i] << std::endl;
         }
+        std::endl;
         deltaLengths = m_pPlatform->MoveDeltaLengths(deltaLengths);
         // update missed lengths
+        std::cout << "Updating remaining distance to target..." << std::endl;
         for (int i = 0; i < 6; i++) {
-            dL.setFloat(deltaLengths[i]);
+            dL.setDouble(deltaLengths[i]);
             m_pActuators.at(i)->setData(PAS_ACTType_DeltaLength, dL);
         }
 
         status = OpcUa_Good;
-    } else if (offset == PAS_PanelType_MoveToLengths) {
+    } 
+    else if (offset == PAS_PanelType_MoveToLengths) {
         if (args.length() != 6) {
             return OpcUa_BadInvalidArgument;
         }
