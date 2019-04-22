@@ -557,7 +557,7 @@ UaStatus EdgeController::alignSinglePanel(unsigned panelpos, double alignFrac, b
 const Eigen::MatrixXd &EdgeController::getResponseMatrix(unsigned panelpos) {
     auto &pMPES = m_pChildren.at(PAS_MPESType);
     unsigned maxMPES = pMPES.size();
-    unsigned nACT = static_cast<MPESController *>(pMPES.front())->getResponseMatrix().cols();
+    unsigned nACT = dynamic_cast<MPESController *>(pMPES.front())->getResponseMatrix().cols();
 
     for (const auto &panelPair : m_ChildrenPositionMap.at(PAS_PanelType)) {
         unsigned panel = panelPair.first;
@@ -569,7 +569,6 @@ const Eigen::MatrixXd &EdgeController::getResponseMatrix(unsigned panelpos) {
 //        for (const auto& mpes : m_ChildrenPositionMap.at(PAS_MPESType)) {
             // do not check if the sensor is visible here -- return the full response matrix
 //            if ( !static_cast<MPESController *>(pMPES.at(nMPES))->isVisible() ) continue;
-
             auto panelside = static_cast<MPESController *>(pMPES.at(nMPES))->getPanelSide(panel);
             // if this is nonzero (so either 'l' or 'w'), add it to the edge response matrix
             if (panelside) {

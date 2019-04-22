@@ -13,17 +13,17 @@
 #include "uaserver/opcua_analogitemtype.h"
 
 const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, OpcUa_Byte>> PositionerObject::VARIABLES = {
-        {GLOB_PositionerType_isMoving,    std::make_tuple("isMoving", UaVariant(0), OpcUa_True,
+        {GLOB_PositionerType_isMoving,    std::make_tuple("isMoving", UaVariant(false), OpcUa_True,
                                                           Ua_AccessLevel_CurrentRead)},
         {GLOB_PositionerType_curAz,       std::make_tuple("Azimuth", UaVariant(0.0), OpcUa_False,
                                                           Ua_AccessLevel_CurrentRead)},
         {GLOB_PositionerType_curEl,       std::make_tuple("Elevation", UaVariant(0.0), OpcUa_False,
                                                           Ua_AccessLevel_CurrentRead)},
         {GLOB_PositionerType_inAz,        std::make_tuple("targetAzimuth", UaVariant(0.0), OpcUa_False,
-                                                          Ua_AccessLevel_CurrentRead)},
+                                                          Ua_AccessLevel_CurrentWrite)},
         {GLOB_PositionerType_inEl,        std::make_tuple("targetElevation", UaVariant(0.0), OpcUa_False,
-                                                          Ua_AccessLevel_CurrentRead)},
-        {GLOB_PositionerType_EnergyLevel, std::make_tuple("EnergyLevel", UaVariant(0.0), OpcUa_False,
+                                                          Ua_AccessLevel_CurrentWrite)},
+        {GLOB_PositionerType_EnergyLevel, std::make_tuple("EnergyLevel", UaVariant(0), OpcUa_False,
                                                           Ua_AccessLevel_CurrentRead)},
 };
 

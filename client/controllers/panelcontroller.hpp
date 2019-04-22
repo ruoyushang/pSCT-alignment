@@ -51,12 +51,12 @@ private:
     // helper to be able to run ChiSq minimization
     Eigen::Matrix3d getPadCoords() { return m_PadCoords; };
 
-    // helpers to be able to run ChiSq minimization
-    Eigen::VectorXd m_ActuatorLengths;
     // pad coords -- column per pad
     Eigen::Matrix3d m_PadCoords;
 
-    bool checkForCollision();
+    bool checkForCollision(const Eigen::VectorXd &deltaLengths);
+
+    Eigen::VectorXd getActuatorLengths();
 };
 
 #endif //CLIENT_PANELCONTROLLER_HPP

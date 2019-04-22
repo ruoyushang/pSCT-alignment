@@ -148,6 +148,8 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
             std::cout << m_ID << "::Operate() : Current state is 'FatalError'! This won't do anything." << std::endl;
         if (m_state == PASState::Busy)
             std::cout << m_ID << "::Operate() : Current state is 'Busy'! This won't do anything." << std::endl;
+        // Update coordinates before doing any calculations
+        updateCoords();
     }
 
     auto &actuatorPositionMap = m_ChildrenPositionMap.at(PAS_ACTType);
@@ -156,42 +158,50 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
     /************************************************
      * move actuators to the preset lengths         *
      * **********************************************/
-    bool collisionFlag = false;
+    bool collision_flag;
+    double deltaLength;
+    double targetLength;
+    Eigen::VectorXd deltaLengths(6);
+    Eigen::VectorXd targetLengths(6);
+    Eigen::VectorXd currentLengths = getActuatorLengths();
     if (offset == PAS_PanelType_MoveDeltaLengths) {
-        bool collision_flag = checkForCollision();
-        if (collision_flag) std::cout << "Error: Sensors will go out of range! Motion cancelled." << std::endl;
-#ifndef SIMMODE
-        if (!collision_flag) {
-            status = m_pClient->callMethodAsync(std::string("ns=2;s=Panel_0"), UaString("MoveDeltaLengths"), args);
+        std::cout << "Num args received: " << args.length() << std::endl;
+        for (int i = 0; i < args.length(); i++) {
+            std::cout << UaVariant(args[i]).toString().toUtf8() << std::endl;
         }
-#else
-        double deltaLength;
+
         for (int i = 0; i < 6; i++) {
             UaVariant(args[i]).toDouble(deltaLength);
-            m_curCoords[i] += deltaLength;
+            deltaLengths(i) = deltaLength;
         }
-#endif
+        std::cout << "Calling Panel::MoveDeltaLengths() with delta lengths: \n";
+        std::cout << deltaLengths << std::endl << std::endl;
+        //collision_flag = checkForCollision(deltaLengths);
+        collision_flag = false;
+        if (collision_flag) {
+            std::cout << "Error: Sensors may go out of range! Motion cancelled." << std::endl;
+        }
+        else {
+            status = m_pClient->callMethodAsync(std::string("ns=2;s=Panel_0"), UaString("MoveDeltaLengths"), args);
+        }
     } else if (offset == PAS_PanelType_MoveToLengths) {
-        bool collision_flag = checkForCollision();
-        if (collision_flag) std::cout << "Error: Sensors will go out of range! Motion cancelled." << std::endl;
-
-#ifndef SIMMODE
-        if (!collision_flag) {
+        for (int i = 0; i < 6; i++) {
+            UaVariant(args[i]).toDouble(targetLength);
+            targetLengths(i) = targetLength;
+        }
+        deltaLengths = targetLengths - currentLengths;
+        //collision_flag = checkForCollision(deltaLengths);
+        collision_flag = false;
+        if (collision_flag) {
+            std::cout << "Error: Sensors may go out of range! Motion cancelled." << std::endl;
+        }
+        else {
             status = m_pClient->callMethodAsync(std::string("ns=2;s=Panel_0"), UaString("MoveToLengths"), args);
         }
-#else
-        for (int i = 0; i < 6; i++) {
-            if (!collision_flag) {
-                UaVariant(args[i]).toDouble(m_curCoords[i]);
-            }
-        }
-#endif
     } else if (offset == PAS_PanelType_MoveToCoords) {
         std::cout << std::endl << m_ID << ":" << std::endl;
         if (args.length() != pACT.size())
             return OpcUa_BadInvalidArgument;
-
-        updateCoords(); // update coordinates
 
         std::cout << "\tCurrent panel coordinates (x, y ,z xRot, yRot, zRot):\n\t\t";
         for (int i = 0; i < 6; i++) {
@@ -206,28 +216,31 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
             UaVariant(args[i]).toDouble(inputCoordinates[i]);
             std::cout << inputCoordinates[i] << " ";
         }
+        std::cout << std::endl;
 
         // find actuator lengths needed
         m_SP.ComputeActsFromPanel(inputCoordinates);
 
         UaVariantArray lengthArgs;
-        double actLengths[6];
+        lengthArgs.create(6);
         UaVariant val;
 
-        bool collision_flag = checkForCollision();
-        if (collision_flag) std::cout << "Error: Sensors will go out of range! Motion cancelled." << std::endl;
-
-        if (!collision_flag) {
-            // Get actuator lengths for motion
-            for (int i = 0; i < 6; i++) {
-                lengthArgs[i] = UaVariant(m_SP.GetActLengths()[i])[0];
-            }
-
+        // Get actuator lengths for motion
+        for (int i = 0; i < 6; i++) {
+            targetLengths(i) = m_SP.GetActLengths()[i];
+            lengthArgs[i] = UaVariant(m_SP.GetActLengths()[i])[0];
+        }
+        deltaLengths = targetLengths - currentLengths;
+        //collision_flag = checkForCollision(deltaLengths);
+        collision_flag = false;
+        if (collision_flag) {
+            std::cout << "Error: Sensors may go out of range! Motion cancelled." << std::endl;
+        }
+        else {
             status = m_pClient->callMethodAsync(std::string("ns=2;s=Panel_0"), UaString("MoveToLengths"), lengthArgs);
         }
     } else if (offset == PAS_PanelType_ReadAll) {
         UaVariant val;
-        updateCoords();
         std::cout << std::endl << m_ID << " :" << std::endl;
         std::cout << "\tCurrent coordinates (x, y ,z xRot, yRot, zRot):\n\t\t";
         for (int i = 0; i < 6; i++)
@@ -235,12 +248,8 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
         std::cout << std::endl << std::endl;
 
         std::cout << "\tCurrent actuator lengths:\n";
-        // map is ordered by the first index, in our case, the position
-        for (const auto &i : actuatorPositionMap) {
-            std::cout << "\t\t(" << pACT.at(i.second)->getId().serialNumber << ", " << i.first << ") : "
-                      << m_ActuatorLengths(i.first - 1) << " mm" << std::endl;
-        }
-
+        std::cout << getActuatorLengths() << std::endl;
+        
         status = OpcUa_Good;
     }
         /************************************************
@@ -255,51 +264,55 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
     return status;
 }
 
-bool PanelController::checkForCollision() {
+bool PanelController::checkForCollision(const Eigen::VectorXd &deltaLengths) {
+    std::cout << "Checking for collision...\n";
     ///
     /// This part predicts the new laser spot positions before we move the actuators.
     /// Will make a new function of this and allow all actuator operations to call this function before moving.
     ///
     Eigen::MatrixXd M_response; // response matrix
-    Eigen::VectorXd Act_delta; // actuator delta length
     Eigen::VectorXd Sen_current; // sensor current position
     Eigen::VectorXd Sen_delta; // sensor delta
     Eigen::VectorXd Sen_new; // sensor new position = Sen_delta + current sensor reading
-    Eigen::VectorXd Sen_center; // aligned sensor reading
-    Sen_center << 160, 80, 160, 80, 160, 80;
+    Eigen::VectorXd Sen_center(6); // center of sensor camera
+    Sen_center << 160.0, 80.0, 160.0, 80.0, 160.0, 80.0;
     Eigen::VectorXd Sen_deviation; // deviated sensor reading
+   
+    Eigen::VectorXd currentLengths = getActuatorLengths();
 
-    Eigen::VectorXd newLengths(6);
-    for (unsigned i = 0; i < 6; i++)
-        newLengths(i) = m_SP.GetActLengths()[i];
-    std::cout << "New Act length is \n" << newLengths << std::endl;
-    std::cout << "Current Act length is \n" << m_ActuatorLengths << std::endl;
-    Act_delta = newLengths - m_ActuatorLengths;
-    std::cout << "Delta Act length will be \n" << Act_delta << std::endl;
+    std::cout << "Current Act lengths are: \n" << currentLengths << std::endl;
+    std::cout << "Delta Act lengths are: \n" << deltaLengths << std::endl;
+    std::cout << "New Act lengths are: \n" << currentLengths + deltaLengths << std::endl; 
 
+    bool collision = false;
     if (m_pChildren.count(PAS_EdgeType) > 0) {
-        for (auto &e : m_pChildren.at(PAS_EdgeType)) {
+        std::cout << m_pChildren.count(PAS_EdgeType) << " edges found." << std::endl;
+        for (auto e : m_pChildren.at(PAS_EdgeType)) {
             EdgeController *edge = static_cast<EdgeController *>(e);
             M_response = edge->getResponseMatrix(m_ID.position);
             Sen_current = edge->getCurrentReadings();
             std::cout << "Looking at edge " << edge->getId() << std::endl;
             std::cout << "\nCurrent MPES readings:\n" << Sen_current << std::endl << std::endl;
             std::cout << "\nActuator response matrix for this edge:\n" << M_response << std::endl;
-            Sen_delta = M_response * Act_delta;
+            Sen_delta = M_response * deltaLengths;
             Sen_new = Sen_delta + Sen_current;
             std::cout << "The new sensor coordinates (x, y) will be:\n" << Sen_new << std::endl;
             Sen_deviation = Sen_new - Sen_center;
             std::cout << "\n will deviate from the center position by\n" << Sen_deviation << std::endl;
-            double deviation = 0;
-            for (unsigned i = 0; i < 6; i++)
-                deviation += pow(Sen_deviation(i), 2);
-            deviation = pow(deviation, 0.5);
-            if (deviation > m_safetyRadius) return true;
+            std::cout << "The absolute distance from the center for each sensor is: \n";
+            double deviation;
+            for (unsigned i = 0; i < 3; i++) {
+                deviation = pow(pow(Sen_deviation(2*i), 2) + pow(Sen_deviation(2*i+1), 2), 0.5);
+                std::cout << deviation;
+                if (deviation > m_safetyRadius) {
+                    std::cout << " [WARNING: Deviation is greater than safety radius (" << m_safetyRadius << " px)";
+                    collision = true;
+                }
+                std::cout << std::endl;
+            }
         }
     }
-
-    return false;
-
+    return collision;
 }
 
 void PanelController::updateCoords(bool printout) {
@@ -307,23 +320,14 @@ void PanelController::updateCoords(bool printout) {
     if (!__expired())
         return;
 
-    UaVariant val;
-    m_ActuatorLengths.resize(getActuatorCount());
+    Eigen::VectorXd currentLengths = getActuatorLengths();
 
-    auto &actuatorPositionMap = m_ChildrenPositionMap.at(PAS_ACTType);
-    auto &pACT = m_pChildren.at(PAS_ACTType);
-
-    for (const auto &i : actuatorPositionMap) {
-        pACT.at(i.second)->getData(PAS_ACTType_CurrentLength, val);
-        val.toDouble(m_ActuatorLengths(i.first - 1));
-
-        if (printout) {
-            std::cout << "Actual length of actuator " << pACT.at(i.second)->getId().serialNumber
-                      << " at position " << i.first << " is " << m_ActuatorLengths(i.first - 1) << " mm" << std::endl;
-        }
+    if (printout) {
+        std::cout << "Current actuator lengths are:\n";
+        std::cout << currentLengths << std::endl;
     }
     // update current coordinates
-    m_SP.ComputeStewart(m_ActuatorLengths.data());
+    m_SP.ComputeStewart(currentLengths.data());
     // panel coords
     for (int i = 0; i < 6; i++)
         m_curCoords[i] = m_SP.GetPanelCoords()[i];
@@ -335,4 +339,21 @@ void PanelController::updateCoords(bool printout) {
             m_PadCoords.col(pad)(coord) = m_SP.GetPadCoords(pad)[coord];
 
     m_lastUpdateTime = TIME::now();
+}
+
+Eigen::VectorXd PanelController::getActuatorLengths() {
+    UaVariant val;
+    auto &actuatorPositionMap = m_ChildrenPositionMap.at(PAS_ACTType);
+    auto &pACT = m_pChildren.at(PAS_ACTType);
+
+    double l;
+
+    Eigen::VectorXd actuatorLengths(6);
+    for (const auto &i : actuatorPositionMap) {
+        pACT.at(i.second)->getData(PAS_ACTType_CurrentLength, val);
+        val.toDouble(l);
+        actuatorLengths(i.first - 1) = l;
+    }
+
+    return actuatorLengths;
 }

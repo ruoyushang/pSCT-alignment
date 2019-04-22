@@ -16,8 +16,6 @@
 #include "client/pascommunicationinterface.hpp"
 #include "client/pasnodemanager.hpp"
 
-class PasNodeManager;
-class PasCommunicationInterface;
 class UaMethodGeneric;
 struct Identity;
 

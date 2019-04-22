@@ -41,8 +41,7 @@ map<OpcUa_UInt32, string> PasCommunicationInterface::deviceTypeNames {
     {PAS_MPESType, "MPES"},
     {PAS_ACTType, "ACT"},
     {PAS_CCDType, "CCD"},
-    {PAS_PSDType, "PSD"},
-    {GLOB_PositionerType, "Positioner"}
+    {PAS_PSDType, "PSD"}
 };
 
 PasCommunicationInterface::PasCommunicationInterface() :
