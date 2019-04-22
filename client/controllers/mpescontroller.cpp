@@ -292,6 +292,8 @@ UaStatus MPESController::__readRequest() {
 
     for (unsigned i = 0; i < varstoread.size(); i++)
         valstoread[i].toDouble(*(reinterpret_cast<OpcUa_Double *>(&data) + i));
+
+    return status;
 }
 
 char MPESController::getPanelSide(unsigned panelpos) {
