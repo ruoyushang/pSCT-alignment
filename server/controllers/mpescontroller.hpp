@@ -54,7 +54,7 @@ private:
     bool m_updated = false;
 
     /// @brief Update the MPES position data.
-    OpcUa_Int32 read();
+    UaStatus read();
 };
 
 #endif //SERVER_MPESCONTROLLER_HPP

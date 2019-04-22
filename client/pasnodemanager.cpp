@@ -408,7 +408,7 @@ UaStatus PasNodeManager::amendTypeNodes()
     UA_ASSERT(addStatus.isGood());
 
     // Add Method "Read"
-    pMethod = new OpcUa::BaseMethod(UaNodeId(PAS_PanelType_ReadAll, getNameSpaceIndex()), "ReadAll", getNameSpaceIndex());
+    pMethod = new OpcUa::BaseMethod(UaNodeId(PAS_PanelType_ReadAll, getNameSpaceIndex()), "ReadPosition", getNameSpaceIndex());
     pMethod->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
     addStatus = addNodeAndReference(pPanelType, pMethod, OpcUaId_HasComponent);
     UA_ASSERT(addStatus.isGood());

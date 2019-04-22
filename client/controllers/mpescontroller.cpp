@@ -189,11 +189,14 @@ UaStatus MPESController::setData(OpcUa_UInt32 offset, UaVariant value) {
     Description  run a method on the sensor
 -----------------------------------------------------------------------------*/
 UaStatus MPESController::operate(OpcUa_UInt32 offset, const UaVariantArray &args) {
-    UaMutexLocker lock(&m_mutex);
+    //UaMutexLocker lock(&m_mutex);
     UaStatusCode status;
 
     if (offset == 0 || offset == PAS_MPESType_Read)
-        return read();
+    {
+        status = read();
+        return status;
+    }
     else if (offset == PAS_MPESType_SetExposure) {
         std::cout << "+++ Adjusting exposure for " << m_ID << std::endl;
         status = m_pClient->callMethod(m_ID.eAddress, UaString("SetExposure"));
@@ -209,7 +212,7 @@ UaStatus MPESController::operate(OpcUa_UInt32 offset, const UaVariantArray &args
     Description  Read Controller data.
 -----------------------------------------------------------------------------*/
 UaStatus MPESController::read() {
-    UaMutexLocker lock(&m_mutex);
+    //UaMutexLocker lock(&m_mutex);
     UaStatus status;
 
     m_updated = false;
@@ -263,7 +266,7 @@ UaStatus MPESController::read() {
 
 // a helper for the above that simply requests data from the server without performing any checks
 UaStatus MPESController::__readRequest() {
-    UaMutexLocker lock(&m_mutex);
+    //UaMutexLocker lock(&m_mutex);
     UaStatus status;
 
     // read the values on the server first
@@ -289,6 +292,8 @@ UaStatus MPESController::__readRequest() {
 
     for (unsigned i = 0; i < varstoread.size(); i++)
         valstoread[i].toDouble(*(reinterpret_cast<OpcUa_Double *>(&data) + i));
+
+    return status;
 }
 
 char MPESController::getPanelSide(unsigned panelpos) {

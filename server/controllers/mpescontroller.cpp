@@ -72,7 +72,7 @@ UaStatus MPESController::getData(OpcUa_UInt32 offset, UaVariant &value) {
             status = OpcUa_BadInvalidArgument;
     }
 
-    return OpcUa_Good;
+    return status;
 }
 
 /// @details Locks the mutex while writing data.
@@ -125,14 +125,13 @@ UaStatus MPESController::operate(OpcUa_UInt32 offset, const UaVariantArray &args
 /// Locks the shared mutex while reading.
 OpcUa_Int32 MPESController::read() {
     //UaMutexLocker lock(&m_mutex);
-
     if (m_state == PASState::On) {
         std::cout << "\nReading MPES " << m_ID << std::endl;
         m_pPlatform->ReadMPES(m_ID);
         m_updated = true;
-        return 0;
+        return OpcUa_Good;
     } else
         m_updated = false;
 
-    return -1;
+    return OpcUa_Bad;
 }

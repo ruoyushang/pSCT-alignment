@@ -131,7 +131,7 @@ UaStatus PanelController::setData(OpcUa_UInt32 offset, UaVariant value) {
 
 // move actuators to the preset length or panel to the preset coords
 UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &args) {
-    UaMutexLocker lock(&m_mutex);
+    //UaMutexLocker lock(&m_mutex);
     UaStatus status;
 
     if (getActuatorCount() == 0) {
@@ -159,8 +159,8 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
      * move actuators to the preset lengths         *
      * **********************************************/
     bool collision_flag;
-    double deltaLength;
-    double targetLength;
+    float deltaLength;
+    float targetLength;
     Eigen::VectorXd deltaLengths(6);
     Eigen::VectorXd targetLengths(6);
     Eigen::VectorXd currentLengths = getActuatorLengths();
@@ -171,7 +171,7 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
         }
 
         for (int i = 0; i < 6; i++) {
-            UaVariant(args[i]).toDouble(deltaLength);
+            UaVariant(args[i]).toFloat(deltaLength);
             deltaLengths(i) = deltaLength;
         }
         std::cout << "Calling Panel::MoveDeltaLengths() with delta lengths: \n";
@@ -186,7 +186,7 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
         }
     } else if (offset == PAS_PanelType_MoveToLengths) {
         for (int i = 0; i < 6; i++) {
-            UaVariant(args[i]).toDouble(targetLength);
+            UaVariant(args[i]).toFloat(targetLength);
             targetLengths(i) = targetLength;
         }
         deltaLengths = targetLengths - currentLengths;
@@ -216,7 +216,7 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
             UaVariant(args[i]).toDouble(inputCoordinates[i]);
             std::cout << inputCoordinates[i] << " ";
         }
-        std::cout << std::endl;
+        std::cout << std::endl << std::endl;
 
         // find actuator lengths needed
         m_SP.ComputeActsFromPanel(inputCoordinates);
@@ -240,17 +240,15 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
             status = m_pClient->callMethodAsync(std::string("ns=2;s=Panel_0"), UaString("MoveToLengths"), lengthArgs);
         }
     } else if (offset == PAS_PanelType_ReadAll) {
-        UaVariant val;
         std::cout << std::endl << m_ID << " :" << std::endl;
         std::cout << "\tCurrent coordinates (x, y ,z xRot, yRot, zRot):\n\t\t";
-        for (int i = 0; i < 6; i++)
+        for (int i = 0; i < 6; i++) {
             std::cout << m_curCoords[i] << " ";
+        }
         std::cout << std::endl << std::endl;
 
         std::cout << "\tCurrent actuator lengths:\n";
-        std::cout << getActuatorLengths() << std::endl;
-        
-        status = OpcUa_Good;
+        std::cout << getActuatorLengths() << std::endl;        
     }
         /************************************************
          * stop the motion in progress                  *
@@ -258,8 +256,10 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
     else if (offset == PAS_PanelType_Stop) {
         std::cout << m_ID << "::Operate() : Attempting to gracefully stop the motion." << std::endl;
         status = m_pClient->callMethod(std::string("ns=2;s=Panel_0"), UaString("Stop"));
-    } else
+    } 
+    else {
         status = OpcUa_BadInvalidArgument;
+    }
 
     return status;
 }
