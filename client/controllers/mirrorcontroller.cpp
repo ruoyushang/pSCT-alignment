@@ -120,6 +120,34 @@ bool MirrorController::Initialize()
                 m_PanelOriginTelFrame.at(ring + 1) += m_PadCoordsTelFrame.at(ring + 1).col(pad) / 3.;
         }
     }
+    else if (m_ID.position == 3) { // this is used for the test setup in the lab (2 P2 panels) - duplicates the primary mirror geometry
+        // bottom (w.r.t. z) surface first, then top surface --
+        // back surface first, then optical surface
+        m_pSurface = new AGeoAsphericDisk(m_ID.name.c_str(),
+           Primary::kZ + Primary::kz[0] - Primary::kMirrorThickness, 0,
+           Primary::kZ + Primary::kz[0], 0,
+           Primary::kD/2., 0);
+        m_pSurface->SetPolynomials(kNPar - 1, &Primary::kz[1],
+                kNPar - 1, &Primary::kz[1]);
+        m_SurfaceNorm = 1.; // along z
+
+        // update ideal panel properties
+        for (int ring : {0, 1}) {
+            // ideal panel width and offset of x1x1 from it
+            m_PanelWidth[ring + 1] = 2.*M_PI / Primary::kPanels[ring];
+
+            for (int coord = 0; coord < 3; coord++)
+                for (int pad = 0; pad < 3; pad++)
+                    m_PadCoordsTelFrame[ring + 1].col(pad)(coord) = Primary::PadsCoords[ring][pad][coord];
+
+            m_PanelOriginTelFrame[ring + 1].setZero();
+            // this is the center of the mirror panel in the TRF
+            for (int pad = 0; pad < 3; pad++)
+                m_PanelOriginTelFrame.at(ring + 1) += m_PadCoordsTelFrame.at(ring + 1).col(pad) / 3.;
+        }
+
+    }
+
     else {
         std::cout << "\tNo mirror at position " << m_ID.position << " -- nothing to do!" << std::endl;
         return false;
