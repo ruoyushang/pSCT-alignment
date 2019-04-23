@@ -600,7 +600,12 @@ StepsToTake[i]=std::floor((LengthsToMove[i]/actuator[i]->mmPerStep)+0.5);
 }
 std::array<int, 6> StepsRemaining=Step(StepsToTake);
 CurrentLengths=MeasureLengths();
-return CurrentLengths;
+std::array<float, 6> LengthsRemaining;
+for(int i=0; i<6; i++)
+{
+LengthsRemaining[i]=TargetLengths[i]-CurrentLengths[i];
+}
+return LengthsRemaining;
 }
 
 std::array<float, 6> Platform::MoveDeltaLengths(std::array<float, 6> LengthsToMove)//public
@@ -611,12 +616,8 @@ for (int i=0; i<6; i++)
 {
 TargetLengths[i]=CurrentLengths[i]+LengthsToMove[i];
 }
-CurrentLengths=MoveToLengths(TargetLengths);
-std::array<float, 6> LengthsRemaining;
-for(int i=0; i<6; i++)
-{
-LengthsRemaining[i]=TargetLengths[i]-CurrentLengths[i];
-}
+std::array<float, 6> LengthsRemaining = MoveToLengths(TargetLengths);
+
 return LengthsRemaining;
 }
 

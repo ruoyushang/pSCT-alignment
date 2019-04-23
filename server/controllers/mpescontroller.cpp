@@ -117,7 +117,6 @@ UaStatus MPESController::operate(OpcUa_UInt32 offset, const UaVariantArray &args
         default:
             status = OpcUa_BadInvalidArgument;
     }
-
     return status;
 }
 

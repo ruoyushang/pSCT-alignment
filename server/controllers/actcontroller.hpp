@@ -69,6 +69,9 @@ public:
     /// @return OPC UA status code indicating success or failure.
     UaStatus operate(OpcUa_UInt32 offset, const UaVariantArray &args);
 
+    void setDeltaLength(float deltaLength) { m_DeltaLength = deltaLength; }
+    void setTargetLength(float targetLength) { m_TargetLength = targetLength; }
+
 private:
     /// @brief The internal device state.
     PASState m_state = PASState::Off;
