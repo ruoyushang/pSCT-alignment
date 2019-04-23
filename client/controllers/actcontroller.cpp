@@ -65,7 +65,7 @@ UaStatus ActController::setState(PASState state) {
 -----------------------------------------------------------------------------*/
 // Temporary - move ActController to common
 UaStatus ActController::getData(OpcUa_UInt32 offset, UaVariant &value) {
-    UaMutexLocker lock(&m_mutex);
+    //UaMutexLocker lock(&m_mutex);
     UaStatus status;
 
     std::string varName;
@@ -95,7 +95,7 @@ UaStatus ActController::getData(OpcUa_UInt32 offset, UaVariant &value) {
 
 // Temporary - move ActController to common.
 UaStatus ActController::getError(OpcUa_UInt32 offset, UaVariant &value) {
-    UaMutexLocker lock(&m_mutex);
+    //UaMutexLocker lock(&m_mutex);
     UaStatus status;
 
     OpcUa_UInt32 errorNum = offset - PAS_ACTType_Error0;

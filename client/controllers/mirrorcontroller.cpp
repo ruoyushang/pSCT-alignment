@@ -226,21 +226,21 @@ MirrorController::~MirrorController()
 
 UaStatus MirrorController::getState(PASState &state)
 {
-    UaMutexLocker lock(&m_mutex);
+    //UaMutexLocker lock(&m_mutex);
     state = m_state;
     return OpcUa_Good;
 }
 
 UaStatus MirrorController::setState(PASState state)
 {
-    UaMutexLocker lock(&m_mutex);
+    //UaMutexLocker lock(&m_mutex);
     m_state = state;
     return OpcUa_Good;
 }
 
 UaStatus MirrorController::getData(OpcUa_UInt32 offset, UaVariant &value)
 {
-    UaMutexLocker lock(&m_mutex);
+    //UaMutexLocker lock(&m_mutex);
 
     if (offset >= PAS_MirrorType_x && offset <= PAS_MirrorType_zRot) {
         // update current coordinates
@@ -286,7 +286,7 @@ UaStatus MirrorController::getData(OpcUa_UInt32 offset, UaVariant &value)
 
 UaStatus MirrorController::setData(OpcUa_UInt32 offset, UaVariant value)
 {
-    UaMutexLocker lock(&m_mutex);
+    //UaMutexLocker lock(&m_mutex);
 
 
     if (offset >= PAS_MirrorType_sysOffsetsMPES_x1 && offset <= PAS_MirrorType_sysOffsetsMPES_y3) {
@@ -336,7 +336,7 @@ UaStatus MirrorController::setData(OpcUa_UInt32 offset, UaVariant value)
 
 UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &args)
 {
-    UaMutexLocker lock(&m_mutex);
+    //UaMutexLocker lock(&m_mutex);
 
     /**********************************************************
      * Move the whole mirror in the telescope reference frame *

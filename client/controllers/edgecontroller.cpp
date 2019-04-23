@@ -37,7 +37,7 @@ EdgeController::~EdgeController() {
     Description  Get Controller status.
 -----------------------------------------------------------------------------*/
 UaStatus EdgeController::getState(PASState &state) {
-    UaMutexLocker lock(&m_mutex);
+    //UaMutexLocker lock(&m_mutex);
     state = m_state;
     return OpcUa_Good;
 }
@@ -65,7 +65,7 @@ UaStatus EdgeController::setState(PASState state) {
     Description  Get Controller data.
 -----------------------------------------------------------------------------*/
 UaStatus EdgeController::getData(OpcUa_UInt32 offset, UaVariant &value) {
-    UaMutexLocker lock(&m_mutex);
+    //UaMutexLocker lock(&m_mutex);
 
     return OpcUa_Good;
 }
@@ -76,7 +76,7 @@ UaStatus EdgeController::getData(OpcUa_UInt32 offset, UaVariant &value) {
     Description  Set Controller data.
 -----------------------------------------------------------------------------*/
 UaStatus EdgeController::setData(OpcUa_UInt32 offset, UaVariant value) {
-    UaMutexLocker lock(&m_mutex);
+    //UaMutexLocker lock(&m_mutex);
 
     return OpcUa_BadNotWritable;
 }
@@ -87,7 +87,7 @@ UaStatus EdgeController::setData(OpcUa_UInt32 offset, UaVariant value) {
     Description  run a method on the actuator
 -----------------------------------------------------------------------------*/
 UaStatus EdgeController::operate(OpcUa_UInt32 offset, const UaVariantArray &args) {
-    UaMutexLocker lock(&m_mutex);
+    //UaMutexLocker lock(&m_mutex);
     UaStatus status;
 
     unsigned numPanels;
@@ -189,7 +189,7 @@ UaStatus EdgeController::operate(OpcUa_UInt32 offset, const UaVariantArray &args
     Description  Find the alignment matrix for this edge
 -----------------------------------------------------------------------------*/
 UaStatus EdgeController::findMatrix(UaVariantArray args) {
-    UaMutexLocker lock(&m_mutex);
+    //UaMutexLocker lock(&m_mutex);
     UaStatus status;
 
     double stepSize;
@@ -209,7 +209,7 @@ UaStatus EdgeController::findMatrix(UaVariantArray args) {
 
 // helper method for the above -- actually moving the panel and measuring the matrix
 UaStatus EdgeController::findSingleMatrix(unsigned panelIdx, double stepSize) {
-    UaMutexLocker lock(&m_mutex);
+    //UaMutexLocker lock(&m_mutex);
     UaStatus status;
 
     Eigen::MatrixXd responseMatrix(6, 6);
@@ -310,7 +310,7 @@ UaStatus EdgeController::findSingleMatrix(unsigned panelIdx, double stepSize) {
     Description  Align this edge to the nominal position using the found matrix
 -----------------------------------------------------------------------------*/
 UaStatus EdgeController::align(unsigned panel_pos, double alignFrac, bool moveit) {
-    UaMutexLocker lock(&m_mutex);
+    //UaMutexLocker lock(&m_mutex);
     UaStatus status;
 
     std::cout << "\nAligning " << m_ID.name << ": ";
@@ -349,7 +349,7 @@ UaStatus EdgeController::align(unsigned panel_pos, double alignFrac, bool moveit
 }
 
 UaStatus EdgeController::alignSinglePanel(unsigned panelpos, double alignFrac, bool moveit) {
-    UaMutexLocker lock(&m_mutex);
+    //UaMutexLocker lock(&m_mutex);
     UaStatus status;
 
     Eigen::MatrixXd A; // response matrix

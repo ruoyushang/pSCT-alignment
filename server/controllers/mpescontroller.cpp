@@ -130,8 +130,9 @@ UaStatus MPESController::read() {
         m_pPlatform->ReadMPES(m_ID);
         m_updated = true;
         return OpcUa_Good;
-    } else
+    } 
+    else {
         m_updated = false;
-
-    return OpcUa_Bad;
+        return OpcUa_Bad;
+    }
 }

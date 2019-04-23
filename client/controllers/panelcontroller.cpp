@@ -45,7 +45,7 @@ unsigned PanelController::getActuatorCount() {
 }
 
 UaStatus PanelController::getState(PASState &state) {
-    UaMutexLocker lock(&m_mutex);
+    //UaMutexLocker lock(&m_mutex);
     UaStatus status;
 
     UaVariant val;
@@ -88,13 +88,13 @@ UaStatus PanelController::setState(PASState state) {
         return OpcUa_BadInvalidArgument;
     }
 
-    UaMutexLocker lock(&m_mutex);
+    //UaMutexLocker lock(&m_mutex);
     m_state = state;
     return OpcUa_Good;
 }
 
 UaStatus PanelController::getData(OpcUa_UInt32 offset, UaVariant &value) {
-    UaMutexLocker lock(&m_mutex);
+    //UaMutexLocker lock(&m_mutex);
     UaStatusCode status = OpcUa_Good;
 
     if (getActuatorCount() == 0) {
@@ -120,7 +120,7 @@ UaStatus PanelController::getData(OpcUa_UInt32 offset, UaVariant &value) {
 }
 
 UaStatus PanelController::setData(OpcUa_UInt32 offset, UaVariant value) {
-    UaMutexLocker lock(&m_mutex);
+    //UaMutexLocker lock(&m_mutex);
 
     if (offset == PAS_PanelType_SafetyRadius) {
         value.toDouble(m_safetyRadius);

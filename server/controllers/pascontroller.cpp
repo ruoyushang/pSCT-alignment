@@ -17,7 +17,7 @@
 
 /// @details Locks the shared mutex while retrieving the state.
 UaStatus PasController::getState(PASState &state) {
-    UaMutexLocker lock(&m_mutex);
+    //UaMutexLocker lock(&m_mutex);
     state = m_state;
     return OpcUa_Good;
 }
@@ -25,7 +25,7 @@ UaStatus PasController::getState(PASState &state) {
 /// @details Does not allow setting the state to error or setting the state to
 /// its current value. Locks the shared mutex while setting the state.
 UaStatus PasController::setState(PASState state) {
-    UaMutexLocker lock(&m_mutex);
+    //UaMutexLocker lock(&m_mutex);
     if (state == PASState::FatalError || state == PASState::OperableError) {
         return OpcUa_BadInvalidArgument;
     }

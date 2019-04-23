@@ -109,7 +109,7 @@ MPESController::~MPESController() {
     Description  Get Controller status.
 -----------------------------------------------------------------------------*/
 UaStatus MPESController::getState(PASState &state) {
-    UaMutexLocker lock(&m_mutex);
+    //UaMutexLocker lock(&m_mutex);
     state = m_state;
     return OpcUa_Good;
 }
@@ -125,7 +125,7 @@ UaStatus MPESController::setState(PASState state) {
     if (state == m_state) {
         return OpcUa_BadInvalidState;
     }
-    UaMutexLocker lock(&m_mutex);
+    //UaMutexLocker lock(&m_mutex);
 
     m_state = state;
     if (state == PASState::Off)
@@ -145,7 +145,7 @@ UaStatus MPESController::setState(PASState state) {
 -----------------------------------------------------------------------------*/
 UaStatus MPESController::getData(OpcUa_UInt32 offset, UaVariant &value) {
     UaStatus status;
-    UaMutexLocker lock(&m_mutex);
+    //UaMutexLocker lock(&m_mutex);
 
     int dataoffset = offset - PAS_MPESType_xCentroidAvg;
     if ((dataoffset >= 7) || (dataoffset < 0))
