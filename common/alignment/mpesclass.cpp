@@ -173,7 +173,7 @@ int MPES::MeasurePosition()
     if (m_position.xCenter == -1. || m_position.yCenter == -1. )
         cout << "mpes reading -1! potentially lost beam" << endl;
 
-    return static_cast<int>(m_position.CleanedIntensity);
+    return (int)m_position.CleanedIntensity;
 }
 
 set<int> MPES::__getVideoDevices()
