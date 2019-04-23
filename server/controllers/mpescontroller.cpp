@@ -117,7 +117,6 @@ UaStatus MPESController::operate(OpcUa_UInt32 offset, const UaVariantArray &args
         default:
             status = OpcUa_BadInvalidArgument;
     }
-
     return status;
 }
 
@@ -129,9 +128,9 @@ UaStatus MPESController::read() {
         std::cout << "\nReading MPES " << m_ID << std::endl;
         m_pPlatform->ReadMPES(m_ID);
         m_updated = true;
-        return OpcUa_Good;
-    } else
+	return OpcUa_Good;
+    } else {
         m_updated = false;
-
-    return OpcUa_Bad;
+        return OpcUa_Bad;
+    }
 }

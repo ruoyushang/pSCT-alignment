@@ -153,22 +153,31 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
 
         std::array<float, 6> deltaLengths{};
 
-        std::cout << "Received MoveDeltaLengths command with args: " << std::endl;
+        std::cout << "Received MoveDeltaLengths command with delta lengths: " << std::endl;
         UaVariant dL;
+	float targetLength;
         for (int i = 0; i < 6; i++) {
             dL = UaVariant(args[i]);
             dL.toFloat(deltaLengths[i]);
+            status = m_pActuators.at(i)->getData(PAS_ACTType_CurrentLength, dL);
+            dL.toFloat(targetLength);
+	    targetLength += deltaLengths[i];
+	    m_pActuators.at(i)->setTargetLength(targetLength);
             std::cout << deltaLengths[i] << std::endl;
         }
         std::cout << std::endl;
-        deltaLengths = m_pPlatform->MoveDeltaLengths(deltaLengths);
-        // update missed lengths
-        std::cout << "Updating remaining distance to target..." << std::endl;
-        for (int i = 0; i < 6; i++) {
-            dL.setFloat(deltaLengths[i]);
-            m_pActuators.at(i)->setData(PAS_ACTType_DeltaLength, dL);
-        }
 
+       	deltaLengths = m_pPlatform->MoveDeltaLengths(deltaLengths);
+        
+	std::cout << "Missed targets by: " << std::endl;
+	float remainingLength;
+	for (int i=0; i < 6; i++) {
+            m_pActuators.at(i)->setDeltaLength(deltaLengths[i]);
+            status = m_pActuators.at(i)->getData(PAS_ACTType_DeltaLength, dL);
+	    dL.toFloat(remainingLength);
+            std::cout << remainingLength << std::endl;
+        }
+	std::cout << std::endl;
         status = OpcUa_Good;
     } 
     else if (offset == PAS_PanelType_MoveToLengths) {
@@ -185,20 +194,37 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
 
         m_state = PASState::Busy; // set the state immediately
 
+        std::cout << "Called Panel::MoveToLengths with target lengths: " << std::endl;
+	
         std::array<float, 6> lengths{};
         UaVariant len;
+	float l;
         for (int i = 0; i < 6; i++) {
             len = UaVariant(args[i]);
             len.toFloat(lengths[i]);
+	    m_pActuators.at(i)->setTargetLength(lengths[i]);
+	    std::cout << lengths[i] << std::endl;
         }
+	std::cout << std::endl;
+
         lengths = m_pPlatform->MoveToLengths(lengths);
+
+        std::cout << "Missed targets by: " << std::endl;
+	for (int i=0; i < 6; i++) {
+            m_pActuators.at(i)->setDeltaLength(lengths[i]);
+            status = m_pActuators.at(i)->getData(PAS_ACTType_DeltaLength, len);
+	    len.toFloat(l);
+            std::cout << l << std::endl;
+        }
+	std::cout << std::endl;
 
         status = OpcUa_Good;
     } else if (offset == PAS_PanelType_Stop) {
         std::cout << "PanelController::Operate(): Attempting to gracefully stop the motion.\n";
         status = setState(PASState::Off);
-    } else
+    } else {
         status = OpcUa_BadInvalidArgument;
+    }
 
     updateState(); // update the state again
 
