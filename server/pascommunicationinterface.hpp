@@ -44,16 +44,6 @@ public:
     /// @param panelNumber Position number of the panel for this server.
     void setPanelNumber(const std::string &panelNumber) { m_panelNum = panelNumber; }
 
-    /// @brief Get the total number of devices of a given type.
-    /// @param deviceType OPC UA type ID for the desired device object type.
-    /// @return The number of found device controllers.
-    std::size_t getDeviceCount(OpcUa_UInt32 deviceType);
-
-    /// @brief Get the identities of all devices of a given type.
-    /// @param deviceType OPC UA type ID for the desired device object type.
-    /// @return A vector of device Identities.
-    std::vector<Identity> getValidDeviceIdentities(OpcUa_UInt32 deviceType);
-
     /// @brief Get the a pointer to the device controller for a specific device.
     /// @param deviceType OPC UA type ID for the desired device object type.
     /// @param identity The unique identity of the device.

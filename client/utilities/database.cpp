@@ -14,7 +14,7 @@
 
 /// @details Sets internal Configuration pointer to NULL.
 Database::Database()
-: m_pConfiguration(NULL)
+    : m_pConfiguration(nullptr)
 {
 }
 

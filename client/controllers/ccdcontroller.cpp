@@ -79,6 +79,21 @@ UaStatus CCDController::getData(OpcUa_UInt32 offset, UaVariant &value) {
         case PAS_CCDType_xFromLED:
             status = read();
             break;
+        case PAS_CCDType_yFromLED:
+            status = read();
+            break;
+        case PAS_CCDType_zFromLED:
+            status = read();
+            break;
+        case PAS_CCDType_thetaFromLED:
+            status = read();
+            break;
+        case PAS_CCDType_phiFromLED:
+            status = read();
+            break;
+        case PAS_CCDType_psiFromLED:
+            status = read();
+            break;
         default:
             status = OpcUa_BadInvalidArgument;
     }

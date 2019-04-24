@@ -14,11 +14,13 @@ class Client : public UaClientSdk::UaSessionCallback
 {
     UA_DISABLE_COPY(Client);
 public:
-    Client(PasNodeManager *pNodeManager);
-    virtual ~Client();
+    explicit Client(PasNodeManager *pNodeManager);
+
+    ~Client() override;
 
     // UaSessionCallback implementation ----------------------------------------------------
-    virtual void connectionStatusChanged(OpcUa_UInt32 clientConnectionId, UaClientSdk::UaClient::ServerStatus serverStatus);
+    void
+    connectionStatusChanged(OpcUa_UInt32 clientConnectionId, UaClientSdk::UaClient::ServerStatus serverStatus) override;
     // UaSessionCallback implementation ------------------------------------------------------
 
     // set a configuration object we use to get connection parameters and NodeIds
@@ -34,11 +36,14 @@ public:
     UaStatus write(std::vector<std::string> sNodeName, const UaVariant *values);
 
     // synchronous call
-    UaStatus callMethod(std::string sNodeName, UaString sMethod, const UaVariantArray &args = UaVariantArray());
+    UaStatus
+    callMethod(const std::string &sNodeName, const UaString &sMethod, const UaVariantArray &args = UaVariantArray());
     // asynchronous call -- needs a callComplete for the callback as welcl
-    UaStatus callMethodAsync(std::string sNodeName, UaString sMethod, const UaVariantArray &args = UaVariantArray());
+    UaStatus callMethodAsync(const std::string &sNodeName, const UaString &sMethod,
+                             const UaVariantArray &args = UaVariantArray());
     // UaSessionCallback implementation
-    void callComplete(OpcUa_UInt32 transactionId, const UaStatus &result, const UaClientSdk::CallOut &callResponse);
+    void
+    callComplete(OpcUa_UInt32 transactionId, const UaStatus &result, const UaClientSdk::CallOut &callResponse) override;
 
     UaStatus subscribe();
     UaStatus unsubscribe();
@@ -49,7 +54,8 @@ private:
     // helper methods
     UaStatus _connect(const UaString& serverUrl, UaClientSdk::SessionSecurityInfo& sessionSecurityInfo);
     UaStatus recurseAddressSpace(const UaNodeId& nodeToBrowse, OpcUa_UInt32 maxReferencesToReturn);
-    void printBrowseResults(const OpcUa_ReferenceDescription& referenceDescription);
+
+    static void printBrowseResults(const OpcUa_ReferenceDescription &referenceDescription);
     void addDevices(const OpcUa_ReferenceDescription& eferenceDescription);
 
     // variables

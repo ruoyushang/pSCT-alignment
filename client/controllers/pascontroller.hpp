@@ -25,8 +25,6 @@ class PasController
 {
     UA_DISABLE_COPY(PasController);
 public:
-    // update interval in ms
-    static int kUpdateInterval;
 
     /* construction / destruction */
     PasController(Identity identity, Client *pClient, int updateInterval = 0) :
@@ -35,7 +33,7 @@ public:
             m_pClient(pClient),
             m_UpdateInterval_ms(updateInterval) {};
 
-    ~PasController() = default;
+    virtual ~PasController() = default;
 
     const Identity& getId() const {return m_ID;}
 
@@ -49,11 +47,12 @@ public:
 
     virtual UaStatus setData(OpcUa_UInt32 offset, UaVariant value) = 0;
 
-    virtual UaStatus operate(OpcUa_UInt32 offset = 0, const UaVariantArray &args = UaVariantArray()) = 0;
+    virtual UaStatus operate(OpcUa_UInt32 offset, const UaVariantArray &args = UaVariantArray()) = 0;
 
-    virtual bool Initialize() { return true; }
+    virtual bool initialize() { return true; }
 
 protected:
+
     UaMutex m_mutex;
     PASState m_state;
 
@@ -76,7 +75,7 @@ class PasCompositeController : public PasController
         PasCompositeController(Identity identity, Client *pClient, int updateInterval = 0) :
                 PasController(std::move(identity), pClient, updateInterval) {};
 
-    ~PasCompositeController() = default;
+    ~PasCompositeController() override = default;
 
         // yes, this indeed needs to be the specified type -- a const pointer to a
         // (non-const) PasController. The constness guarantees that the panel doesn't change the

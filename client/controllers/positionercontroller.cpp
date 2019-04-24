@@ -16,6 +16,7 @@
 PositionerController::PositionerController(Identity identity, Client *pClient) : PasController(identity, pClient)
 {
     m_state = PASState::GLOB_Positioner_notMoving;
+    m_Data = {0.0, 0.0, 0.0, 0.0, OpcUa_False};
 }
 
 PositionerController::~PositionerController()
@@ -35,8 +36,8 @@ UaStatus PositionerController::getState(PASState &state)
     status = m_pClient->read(vec_curread, &res);
 
     if (status.isGood()) {
-        res.toBool(data.isMoving);
-        if (data.isMoving)
+        res.toBool(m_Data.isMoving);
+        if (m_Data.isMoving)
             state = PASState::GLOB_Positioner_Moving;
         else 
             state = PASState::GLOB_Positioner_notMoving;
@@ -69,7 +70,7 @@ UaStatus PositionerController::getData(OpcUa_UInt32 offset, UaVariant &value)
                              "in_position.az", "in_position.el", "current_energy_level"};
 
     int dataoffset = offset - GLOB_PositionerType_isMoving;
-    if ( dataoffset > varstoread.size() )
+    if (dataoffset > (int) varstoread.size())
         return OpcUa_BadInvalidArgument;
 
     std::vector<std::string> vec_curread {"ns=2;s=Application.USERVARGLOBAL_OPCUA." + varstoread[dataoffset]};
@@ -77,9 +78,9 @@ UaStatus PositionerController::getData(OpcUa_UInt32 offset, UaVariant &value)
     status = m_pClient->read(vec_curread, &value);
     if (status.isGood()) {
         if (offset == GLOB_PositionerType_isMoving)
-            value.toBool(data.isMoving);
+            value.toBool(m_Data.isMoving);
         else
-            value.toFloat(*(reinterpret_cast<OpcUa_Float *>(&data) + dataoffset));
+            value.toFloat(*(reinterpret_cast<OpcUa_Float *>(&m_Data) + dataoffset));
     }
 
     return status;
@@ -104,7 +105,7 @@ UaStatus PositionerController::setData(
         return OpcUa_BadNotWritable;
     else 
     {
-        value.toFloat(*(reinterpret_cast<OpcUa_Float *>(&data) + dataoffset));
+        value.toFloat(*(reinterpret_cast<OpcUa_Float *>(&m_Data) + dataoffset));
         status = m_pClient->write(varstowrite, &value);
     }
 
@@ -119,7 +120,7 @@ UaStatus PositionerController::setData(
 UaStatus PositionerController::operate(OpcUa_UInt32 offset, const UaVariantArray &args)
 {
     //UaMutexLocker lock(&m_mutex);
-    UaStatusCode  status;
+    UaStatus status;
     
                
     switch ( offset )

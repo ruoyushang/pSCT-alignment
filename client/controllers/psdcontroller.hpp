@@ -25,7 +25,7 @@ public:
 
     UaStatus setData(OpcUa_UInt32 offset, UaVariant value);
 
-    UaStatus operate(OpcUa_UInt32 offset = 0, const UaVariantArray &args = UaVariantArray());
+    UaStatus operate(OpcUa_UInt32 offset, const UaVariantArray &args);
 
     // update interval in ms
     static int kUpdateInterval;
@@ -40,8 +40,8 @@ private:
         OpcUa_Double dy1;
         OpcUa_Double dx2;
         OpcUa_Double dy2;
-        OpcUa_Double Tempereature;
-    } data;
+        OpcUa_Double Temperature;
+    } m_Data;
 
     UaStatus read();
 };

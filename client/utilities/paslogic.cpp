@@ -8,14 +8,16 @@
 #define TIME __timeStamp()
 
 PasLogic::PasLogic(PasCommunicationInterface *pCommIf) : m_pCommIf {pCommIf}, m_terminate {false},
-    m_aligned(false),
-    m_kPSDDistance {514.61},
-    m_kMisalignmentCriterion {0.3},
-    m_kAngularScale {StewartPlatform::kMirrorDistance, m_kPSDDistance},
-    m_nominalPSDReadings {0., 0., 0., 0.},
-    m_kInitTime {std::chrono::system_clock::now()},
-    m_logstream {"paslogic.log", std::ofstream::app},
-    tee {m_logstream}
+                                                         m_aligned(false),
+                                                         m_kPSDDistance{514.61},
+                                                         m_kMisalignmentCriterion{0.3},
+                                                         m_kAngularScale{StewartPlatform::kMirrorDistance,
+                                                                         m_kPSDDistance},
+                                                         m_nominalPSDReadings{0., 0., 0., 0.},
+                                                         m_secondaryAligned{false},
+                                                         m_kInitTime{std::chrono::system_clock::now()},
+                                                         m_logstream{"paslogic.log", std::ofstream::app},
+                                                         tee{m_logstream}
 {
     // doing just OPT
     m_SP.SetPanelType(StewartPlatform::PanelType::OPT);
@@ -25,10 +27,6 @@ PasLogic::PasLogic(PasCommunicationInterface *pCommIf) : m_pCommIf {pCommIf}, m_
     m_pCommIf->getDeviceConfig(PAS_PSDType, 0, sName, m_psdId);
     m_optId[0].position = 1001; // primary OPT
     m_optId[1].position = 2001; // secondary OPT
-}
-
-PasLogic::~PasLogic()
-{
 }
 
 void PasLogic::run()
@@ -218,8 +216,8 @@ void PasLogic::__align_PSD(unsigned psdNo)
     panelCoords[PAS_PanelType_yRot - PAS_PanelType_x] += y_rot * m_SP.kRp;
 
     tee << TIME << "New OPT" << psdNo + 1 << " coords: ";
-    for (int i = 0; i < 6; i++)
-        tee << TIME << panelCoords[i] << " ";
+    for (auto coord : panelCoords)
+        tee << TIME << coord << " ";
     tee << std::endl;
 
     UaStatus status = __move_OT(psdNo, panelCoords);
@@ -234,7 +232,7 @@ UaStatus PasLogic::__move_OT(unsigned otNo, const double coords[6])
     }
 
     tee << TIME << "set new panel coords for OPT" << otNo+1 << "; moving..." << std::endl;
-    UaStatus status = m_pCommIf->OperateDevice(PAS_PanelType, m_optId[otNo], PAS_PanelType_MoveToCoords, args);
+    UaStatus status = m_pCommIf->operateDevice(PAS_PanelType, m_optId[otNo], PAS_PanelType_MoveToCoords, args);
     tee << TIME << "done moving" << std::endl;
     if (!status.isGood())
         tee << TIME << "!!! THERE WAS A PROBLEM MOVING THE PANEL !!!" << std::endl;

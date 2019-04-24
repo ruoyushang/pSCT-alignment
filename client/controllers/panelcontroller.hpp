@@ -29,12 +29,9 @@ public:
 
     UaStatus setData(OpcUa_UInt32 offset, UaVariant value);
 
-    UaStatus operate(OpcUa_UInt32 offset = 0, const UaVariantArray &args = UaVariantArray());
+    UaStatus operate(OpcUa_UInt32 offset, const UaVariantArray &args = UaVariantArray());
 
     unsigned getActuatorCount();
-
-    // update interval in ms
-    static int kUpdateInterval;
 
 private:
 
@@ -42,9 +39,9 @@ private:
     void updateCoords(bool printout = false);
 
     // x, y, z, xRot, yRot, zRot
-    double m_curCoords[6];
+    double m_curCoords[6] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
 
-    double m_safetyRadius;
+    double m_safetyRadius = 40.0;
 
     StewartPlatform m_SP;
 

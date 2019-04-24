@@ -28,19 +28,19 @@ public:
             Identity identity,
             PasCommunicationInterface *pCommIf) : PasObject(name, newNodeId, defaultLocaleId,
                                                             dynamic_cast<PasNodeManagerCommon *>(pNodeManager),
-                                                            identity,
+                                                            std::move(identity),
                                                             dynamic_cast<PasComInterfaceCommon *>(pCommIf)) { initialize(); }
 
-    UaNodeId typeDefinitionId() const;
+    UaNodeId typeDefinitionId() const override;
 
     const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, OpcUa_Byte>>
-    getVariableDefs() { return PanelObject::VARIABLES; }
+    getVariableDefs() override { return PanelObject::VARIABLES; }
 
     const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean>>
-    getErrorDefs() { return PanelObject::ERRORS; }
+    getErrorDefs() override { return PanelObject::ERRORS; }
 
     const std::map<OpcUa_UInt32, std::pair<std::string, std::vector<std::tuple<std::string, UaNodeId, std::string>>>>
-    getMethodDefs() { return PanelObject::METHODS; }
+    getMethodDefs() override { return PanelObject::METHODS; }
 
     /// @brief Map of OPC UA type ids for all child variables to their name, default value, is_state value, and access level.
     static const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, OpcUa_Byte>> VARIABLES;

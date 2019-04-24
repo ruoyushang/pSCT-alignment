@@ -18,7 +18,7 @@
 class tee_device
 {
     public:
-        tee_device(std::ostream& os2) : m_os2(os2) {}
+    explicit tee_device(std::ostream &os2) : m_os2(os2) {}
 
         // handle std::endl
         tee_device& operator<<(std::ostream& (*manip)(std::ostream &)) {
@@ -41,9 +41,11 @@ class tee_device
 class PasLogic : public UaThread
 {
     public :
-        PasLogic(PasCommunicationInterface *pCommIf);
-        ~PasLogic();
-        void run();
+    explicit PasLogic(PasCommunicationInterface *pCommIf);
+
+    ~PasLogic() override = default;
+
+    void run() override;
         void stop() {m_terminate = true; wait();}
     private:
         // this is to get all the data from our devices 

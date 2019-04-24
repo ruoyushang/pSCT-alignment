@@ -22,59 +22,58 @@ class MirrorController; // need this forward declaration for the friend class
 // otherwise the static m_pMirror may cause trouble
 class MirrorControllerCompute : public TObject
 {
-    public:
+public:
     static MirrorControllerCompute &getInstance(MirrorController *mirror) {
         static MirrorControllerCompute instance(mirror); // guarantees destruction
             return instance;
         }
 
-    ~MirrorControllerCompute() { Mirror = nullptr; };
-        // make sure we don't create accidental copies -- can't use assignment or copy constructor
-        MirrorControllerCompute(MirrorControllerCompute const &) = delete;
+    ~MirrorControllerCompute() override { m_Mirror = nullptr; };
 
+    // make sure we don't create accidental copies -- can't use assignment or copy constructor
+    MirrorControllerCompute(MirrorControllerCompute const &) = delete;
     void operator=(MirrorControllerCompute const &) = delete;
 
-        // MINUIT interface
-        static void chiSqFCN(int &npar, double *gin, double &f, double *par, int iflag);
-
-        // and the mirror object accessed by the above
-        static MirrorController *Mirror;
+    // MINUIT interface
+    static void chiSqFCN(int &npar, double *gin, double &f, double *par, int iflag);
 
     private :
-    MirrorControllerCompute(MirrorController *mirror) { Mirror = mirror; };
+    explicit MirrorControllerCompute(MirrorController *mirror) { m_Mirror = mirror; };
+    // and the mirror object accessed by the above
+    static MirrorController *m_Mirror;
 };
 
 
 class MirrorController : public PasCompositeController {
     UA_DISABLE_COPY(MirrorController);
 public:
-    MirrorController(Identity identity);
+    explicit MirrorController(Identity identity);
 
-    virtual ~MirrorController();
+    ~MirrorController() override;
 
     // initialize and precompute everything
-    bool Initialize();
+    bool initialize() override;
 
     // same as before -- get/set status/data and Operate:
-    UaStatus getState(PASState &state);
+    UaStatus getState(PASState &state) override;
 
-    UaStatus getData(OpcUa_UInt32 offset, UaVariant &value);
+    UaStatus getData(OpcUa_UInt32 offset, UaVariant &value) override;
 
-    UaStatus setState(PASState state);
+    UaStatus setState(PASState state) override;
 
-    UaStatus setData(OpcUa_UInt32 offset, UaVariant value);
+    UaStatus setData(OpcUa_UInt32 offset, UaVariant value) override;
 
-    UaStatus operate(OpcUa_UInt32 offset = 0, const UaVariantArray &args = UaVariantArray());
+    UaStatus operate(OpcUa_UInt32 offset, const UaVariantArray &args) override;
 
     // own implementation
-    void addChild(OpcUa_UInt32 deviceType, PasController *const pController);
+    void addChild(OpcUa_UInt32 deviceType, PasController *pController) override;
 
     // let MirrorControllerCompute access the internal chiSq function
     friend void MirrorControllerCompute::chiSqFCN(int &npar, double *gin, double &f, double *par, int iflag);
 
 protected:
     // compute chiSq for all panels given a perturbation to the mirror
-    virtual double chiSq(Eigen::VectorXd telDelta);
+    virtual double chiSq(const Eigen::VectorXd &telDelta);
 
 private:
     double m_safetyRadius = 40;
@@ -85,7 +84,7 @@ private:
 
     // helper method to process the selected children string and convert it into a set
     // of vector indices
-    void parseAndSetSelection(std::string selectionString, unsigned deviceType);
+    void parseAndSetSelection(const std::string &selectionString, unsigned deviceType);
 
     std::set<unsigned> getSelectedDeviceIndices(unsigned deviceType);
     // update current mirror coordinates
@@ -95,7 +94,8 @@ private:
     // Align all edges fron need_alignment starting at start_idx and  moving in the direction dir
     void alignSequential(unsigned startEdge, const std::set<unsigned> &selectedEdges, bool dir);
 
-    void alignSector(std::set<unsigned> selectedPanels, std::set<unsigned> selectedMPES, double alignFrac = 0.25);
+    void alignSector(const std::set<unsigned> &selectedPanels, const std::set<unsigned> &selectedMPES,
+                     double alignFrac = 0.25);
 
     void alignGlobal(unsigned fixPanel, double alignFrac = 0.25);
 
@@ -138,16 +138,16 @@ private:
     double __getAzOffset(unsigned pos);
     Eigen::Matrix3d __rotMat(int axis, double a);
     // to panel reference frame (from telescope). Order of rotations -- z -> x-> y
-    Eigen::Vector3d __toPanelRF(unsigned pos, Eigen::Vector3d in_coords);
+    Eigen::Vector3d __toPanelRF(unsigned pos, const Eigen::Vector3d &in_coords);
     // to telescope reference frame (from panel)
-    Eigen::Vector3d __toTelRF(unsigned pos, Eigen::Vector3d in_coords);
+    Eigen::Vector3d __toTelRF(unsigned pos, const Eigen::Vector3d &in_coords);
     // move a vector by in_coords in the current reference frame.
     // The current reference frame is the frame in which in_vec coords and tr_coords
     // transformations are given.
     // the input is a 3D vector and the 6 coords by which to transform,
     // tr_coords -- x, y, z, xRot, yRot, zRot
     // the output is the transformed 3D vector
-    Eigen::Vector3d __moveInCurrentRF(Eigen::Vector3d in_vec, Eigen::VectorXd tr_coords);
+    Eigen::Vector3d __moveInCurrentRF(const Eigen::Vector3d &in_vec, const Eigen::VectorXd &tr_coords);
 
     Eigen::MatrixXd __computeSystematicsMatrix(unsigned pos1, unsigned pos2);
 

@@ -7,10 +7,11 @@
 class PasObjectFactory
 {
     public:
-        PasObjectFactory(){};
-        ~PasObjectFactory(){};
+    PasObjectFactory() = default;
 
-        PasObject* Create(
+    ~PasObjectFactory() = default;
+
+    static PasObject *Create(
                 unsigned deviceType,
                 const UaString& name,
                 const UaNodeId& newNodeId,

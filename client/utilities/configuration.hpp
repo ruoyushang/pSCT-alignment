@@ -18,29 +18,41 @@ class Configuration
     UA_DISABLE_COPY(Configuration);
 public:
     Configuration();
-    virtual ~Configuration();
+
+    virtual ~Configuration() = default;
 
     // get connection and session parameters
     OpcUa_UInt32 getServers() const;
-    UaString getDiscoveryUrl() const;
-    UaString getPositionerUrl() const;
-    UaString getApplicationName() const;
-    UaString getProductUri() const;
-    OpcUa_Boolean getAutomaticReconnect() const;
-    OpcUa_Boolean getRetryInitialConnect() const;
+
+    UaString getDiscoveryUrl() const { return m_discoveryUrl; }
+
+    UaString getPositionerUrl() const { return m_positionerUrl; }
+
+    UaString getApplicationName() const { return m_applicationName; }
+
+    OpcUa_Boolean getAutomaticReconnect() const { return m_bAutomaticReconnect; }
+
+    OpcUa_Boolean getRetryInitialConnect() const { return m_bRetryInitialConnect; }
 
     // get lists of NodeIds and values
-    UaNodeIdArray getNodesToRead() const;
-    UaNodeIdArray getNodesToWrite() const;
-    UaNodeIdArray getNodesToMonitor() const;
-    UaVariantArray getWriteValues() const;
+    UaNodeIdArray getNodesToRead() const { return m_nodesToRead; }
+
+    UaNodeIdArray getNodesToWrite() const { return m_nodesToWrite; }
+
+    UaNodeIdArray getNodesToMonitor() const { return m_nodesToMonitor; }
+
+    UaVariantArray getWriteValues() const { return m_writeValues; }
 
     // get database params
-    UaStringArray getDatabaseHost() const;
-    UaStringArray getDatabaseUser() const;
-    UaStringArray getDatabasePassword() const;
-    UaStringArray getDatabaseName() const;
-    std::vector<UaStringArray> getDatabaseEntries() const;
+    UaStringArray getDatabaseHost() const { return m_databaseHost; }
+
+    UaStringArray getDatabaseUser() const { return m_databaseUser; }
+
+    UaStringArray getDatabasePassword() const { return m_databasePassword; }
+
+    UaStringArray getDatabaseName() const { return m_databaseName; }
+
+    std::vector<UaStringArray> getDatabaseEntries() const { return m_databaseEntries; }
 
     // get device mappings
     OpcUa_Int32 getDeviceSerial(const UaString& address, OpcUa_UInt32 deviceType, const UaString& sPort);
@@ -56,7 +68,7 @@ public:
     // load configuration from file to fill connection parameters, NamespaceArray and NodeIds
     UaStatus loadConnectionConfiguration(const UaString& sConfigurationFile);
     // load configuration from DB to fill in device mappings
-    UaStatus loadDeviceConfiguration(const std::vector<std::string>& positionlist);
+    UaStatus loadDeviceConfiguration(const std::vector<std::string> &positionList);
 
     // create the folder structure to handle certificates and load or create a client certificate.
     UaStatus setupSecurity(UaClientSdk::SessionSecurityInfo& sessionSecurityInfo);

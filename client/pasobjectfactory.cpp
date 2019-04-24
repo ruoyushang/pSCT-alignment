@@ -37,5 +37,7 @@ PasObject* PasObjectFactory::Create(
             return new PSDObject(name, newNodeId, defaultLocaleId, dynamic_cast<PasNodeManagerCommon *>(pNodeManager), identity, dynamic_cast<PasComInterfaceCommon *>(pCommIf));
         case PAS_CCDType:
             return new CCDObject(name, newNodeId, defaultLocaleId, dynamic_cast<PasNodeManagerCommon *>(pNodeManager), identity, dynamic_cast<PasComInterfaceCommon *>(pCommIf));
+        default:
+            return nullptr;
     }
 }

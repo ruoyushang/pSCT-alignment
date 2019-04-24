@@ -29,10 +29,21 @@ struct Identity;
 class PasComInterfaceCommon
 {
 public:
-    PasComInterfaceCommon() {};
-    virtual ~PasComInterfaceCommon() {};
+    PasComInterfaceCommon() = default;
+
+    virtual ~PasComInterfaceCommon() = default;
 
     virtual UaStatus initialize() = 0;
+
+    /// @brief Get the total number of devices of a given type.
+    /// @param deviceType OPC UA type ID for the desired device object type.
+    /// @return The number of found device controllers.
+    std::size_t getDeviceCount(OpcUa_UInt32 deviceType);
+
+    /// @brief Get the identities of all devices of a given type.
+    /// @param deviceType OPC UA type ID for the desired device object type.
+    /// @return A vector of device Identities.
+    std::vector<Identity> getValidDeviceIdentities(OpcUa_UInt32 deviceType);
 
     /* Get device status and data */
     virtual UaStatus getDeviceState(OpcUa_UInt32 type, const Identity &identity, PASState &state) = 0;
@@ -49,8 +60,8 @@ public:
                                    UaVariant value) = 0;
 
     virtual UaStatus operateDevice(OpcUa_UInt32 type, const Identity &identity,
-                                   OpcUa_UInt32 offset = 0,
-                                   const UaVariantArray &args = UaVariantArray()) = 0;
+                                   OpcUa_UInt32 offset,
+                                   const UaVariantArray &args) = 0;
 };
 
 #endif //COMMON_PASCOMUNICATIONINTERFACECOMMON_HPP

@@ -21,16 +21,16 @@ public:
     /// @brief Constructor for a PasNodeManager object.
     PasNodeManager();
     /// @brief Destructor for a PasNodeManager object.
-    virtual ~PasNodeManager();
+    ~PasNodeManager() override;
 
     /// @brief Initialization method called after startup to add objects and
     /// folders to the OPC UA node graph.
     /// @return An OPC UA status code.
-    UaStatus afterStartUp();
+    UaStatus afterStartUp() override;
     /// @brief Cleanup method to disconnect from positioner server and all
     /// panel servers at client shutdown.
     /// @return An OPC UA status code.
-    UaStatus beforeShutDown();
+    UaStatus beforeShutDown() override;
 
     /// @brief Setter method to set the Configuration object.
     /// @param pConfiguration Pointer to a new Configuration object.
@@ -53,7 +53,7 @@ private:
     /// @return An OPC UA status code.
     UaStatus amendTypeNodes();
     /// @brief Configuration object used to
-    Configuration *m_pConfiguration;
+    Configuration *m_pConfiguration = nullptr;
     /// @brief Pointers to all OPC UA clients (controller boards) connected to
   	/// the master alignment client.
     std::vector<Client *> m_pClient;

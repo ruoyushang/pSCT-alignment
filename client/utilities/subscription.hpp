@@ -22,7 +22,7 @@ public:
     /// @brief Constructor for a Subscription object.
     /// @param pConfiguration Pointer to a Configuration
     /// object, used to get a list of OPC UA nodes to monitor.
-    Subscription(Configuration* pConfiguration);
+    explicit Subscription(Configuration *pConfiguration);
     /// @brief Destructor for a Subscription object.
     ~Subscription() override;
 

@@ -20,21 +20,21 @@ public:
     friend MirrorController;
 
     /* construction / destruction */
-    CCDController(Identity identity);
+    explicit CCDController(Identity identity);
 
-    ~CCDController();
+    ~CCDController() override;
 
     /* Get Controller status and data */
-    UaStatus getState(PASState &state);
+    UaStatus getState(PASState &state) override;
 
-    UaStatus getData(OpcUa_UInt32 offset, UaVariant &value);
+    UaStatus getData(OpcUa_UInt32 offset, UaVariant &value) override;
 
     /* set Controller status and data */
-    UaStatus setState(PASState state);
+    UaStatus setState(PASState state) override;
 
-    UaStatus setData(OpcUa_UInt32 offset, UaVariant value);
+    UaStatus setData(OpcUa_UInt32 offset, UaVariant value) override;
 
-    UaStatus operate(OpcUa_UInt32 offset = 0, const UaVariantArray &args = UaVariantArray());
+    UaStatus operate(OpcUa_UInt32 offset, const UaVariantArray &args) override;
 
 private:
     PASState m_state = PASState::Off;

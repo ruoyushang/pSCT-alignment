@@ -6,22 +6,25 @@
 #include "mysql_driver.h"
 #include "cppconn/statement.h"
 
+#include <fstream>
+
 float MPESController::kNominalIntensity = 150000.;
 float MPESController::kNominalCentroidSD = 20.;
 
-MPESController::MPESController(Identity identity, Client *pClient) : PasController(identity, pClient),
+MPESController::MPESController(Identity identity, Client *pClient) : PasController(std::move(identity), pClient),
                                                                      m_updated(false), m_isVisible(false) {
     m_state = PASState::On;
+    m_Data = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
 
     // get the nominal aligned readings and response matrices from DB
     /* BEGIN DATABASE HACK */
     //std::string db_ip="172.17.10.10"; // internal ip
-    DBConfig myconfig = DBConfig::getDefaultConfig();
-    std::string db_ip = myconfig.getHost();
-    std::string db_port = myconfig.getPort();
-    std::string db_user = myconfig.getUser();
-    std::string db_password = myconfig.getPassword();
-    std::string db_name = myconfig.getDatabase();
+    DBConfig myConfig = DBConfig::getDefaultConfig();
+    std::string db_ip = myConfig.getHost();
+    std::string db_port = myConfig.getPort();
+    std::string db_user = myConfig.getUser();
+    std::string db_password = myConfig.getPassword();
+    std::string db_name = myConfig.getDatabase();
     std::string db_address = "tcp://" + db_ip + ":" + db_port;
 
     std::cout << "Initializing MPES " << m_ID.serialNumber << std::endl;
@@ -32,7 +35,7 @@ MPESController::MPESController(Identity identity, Client *pClient) : PasControll
         sql::Statement *sql_stmt = sql_conn->createStatement();
         sql::ResultSet *sql_results;
 
-        std::string query("");
+        std::string query;
         // obtain topological data
         query = "SELECT w_panel, l_panel FROM Opt_MPESMapping WHERE end_date is NULL and serial_number=" +
                 to_string(m_ID.serialNumber);
@@ -155,7 +158,7 @@ UaStatus MPESController::getData(OpcUa_UInt32 offset, UaVariant &value) {
         status = read();
 
     // cast struct to double through reinterpret_cast!
-    value.setDouble(*(reinterpret_cast<OpcUa_Double *>(&data) + dataoffset));
+    value.setDouble(*(reinterpret_cast<OpcUa_Double *>(&m_Data) + dataoffset));
 
     return OpcUa_Good;
 }
@@ -176,7 +179,7 @@ UaStatus MPESController::setData(OpcUa_UInt32 offset, UaVariant value) {
     vector<std::string> vec_curwrite{m_ID.eAddress + varstowrite[dataoffset - 5]};
 
     // set local variable
-    value.toDouble(*(reinterpret_cast<OpcUa_Double *>(&data) + dataoffset));
+    value.toDouble(*(reinterpret_cast<OpcUa_Double *>(&m_Data) + dataoffset));
     // and write it to the server
     status = m_pClient->write(vec_curwrite, &value);
 
@@ -190,9 +193,9 @@ UaStatus MPESController::setData(OpcUa_UInt32 offset, UaVariant value) {
 -----------------------------------------------------------------------------*/
 UaStatus MPESController::operate(OpcUa_UInt32 offset, const UaVariantArray &args) {
     //UaMutexLocker lock(&m_mutex);
-    UaStatusCode status;
+    UaStatus status;
 
-    if (offset == 0 || offset == PAS_MPESType_Read)
+    if (offset == PAS_MPESType_Read)
     {
         status = read();
         return status;
@@ -223,18 +226,18 @@ UaStatus MPESController::read() {
         status = __readRequest();
 
         m_isVisible = true;
-        if (data.m_xCentroidAvg < 0.1) m_isVisible = false;
+        if (m_Data.xCentroidAvg < 0.1) m_isVisible = false;
         if (m_isVisible) {
-            if (data.m_xCentroidSD > kNominalCentroidSD) {
+            if (m_Data.xCentroidSD > kNominalCentroidSD) {
                 std::cout << "+++ WARNING +++ The width of the image along the X axis for " << m_ID.name
                           << " is greater than 20px. Consider fixing things." << std::endl;
             }
-            if (data.m_yCentroidSD > kNominalCentroidSD) {
+            if (m_Data.yCentroidSD > kNominalCentroidSD) {
                 std::cout << "+++ WARNING +++ The width of the image along the Y axis for " << m_ID.name
                           << " is greater than 20px. Consider fixing things." << std::endl;
             }
 
-            if (fabs(data.m_CleanedIntensity - kNominalIntensity) / kNominalIntensity > 0.2) {
+            if (fabs(m_Data.CleanedIntensity - kNominalIntensity) / kNominalIntensity > 0.2) {
                 std::cout << "+++ WARNING +++ The intensity of " << m_ID.name
                           << " differs from the magic value by more than 20%\n"
                           << "+++ WARNING +++ Will readjust the exposure now!" << std::endl;
@@ -244,21 +247,18 @@ UaStatus MPESController::read() {
             }
         }
 
-        time_t now = time(0);
-        struct tm tstruct;
+        time_t now = time(nullptr);
+        struct tm tstruct{};
         char buf[80];
         tstruct = *localtime(&now);
         strftime(buf, sizeof(buf), "%Y-%m-%d %X", &tstruct);
 
-        UaString sql_stmt;
-        sql_stmt = UaString(
+        UaString sql_stmt = UaString(
                 "INSERT INTO Opt_MPESReadings (date, serial_number, xcoord, ycoord, x_RMS, y_RMS, intensity) VALUES  ('%1', '%2', '%3', '%4', '%5', '%6', '%7' );\n").arg(
-                buf).arg(m_ID.serialNumber).arg(data.m_xCentroidAvg).arg(data.m_yCentroidAvg).arg(
-                data.m_xCentroidSD).arg(data.m_yCentroidSD).arg(data.m_CleanedIntensity);
-        //std::cout << sql_stmt.toUtf8() << std::endl
-        FILE *sql_file = fopen("MPES_readings.sql", "a+");
-        std::fprintf(sql_file, sql_stmt.toUtf8());
-        std::fclose(sql_file);
+            buf).arg(m_ID.serialNumber).arg(m_Data.xCentroidAvg).arg(m_Data.yCentroidAvg).arg(
+            m_Data.xCentroidSD).arg(m_Data.yCentroidSD).arg(m_Data.CleanedIntensity);
+        std::ofstream sql_file("MPES_readings.sql", std::ios_base::app);
+        sql_file << sql_stmt.toUtf8();
     }
 
     return status;
@@ -291,7 +291,7 @@ UaStatus MPESController::__readRequest() {
     if (status.isGood()) m_updated = true;
 
     for (unsigned i = 0; i < varstoread.size(); i++)
-        valstoread[i].toDouble(*(reinterpret_cast<OpcUa_Double *>(&data) + i));
+        valstoread[i].toDouble(*(reinterpret_cast<OpcUa_Double *>(&m_Data) + i));
 
     return status;
 }

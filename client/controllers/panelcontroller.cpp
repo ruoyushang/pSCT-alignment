@@ -7,11 +7,9 @@
 
 #include "client/clienthelper.hpp"
 
-// 1 s update interval for panels
-int PanelController::kUpdateInterval = 1000;
 
 PanelController::PanelController(Identity identity, Client *pClient) :
-    PasCompositeController(identity, pClient, kUpdateInterval) {
+    PasCompositeController(std::move(identity), pClient, 1000) {
     m_ID.name = std::string("Panel_") + std::to_string(m_ID.position);
     m_state = PASState::On;
     m_SP.SetPanelType(StewartPlatform::PanelType::OPT);
@@ -39,7 +37,7 @@ unsigned PanelController::getActuatorCount() {
     try {
         return m_pChildren.at(PAS_ACTType).size();
     }
-    catch (std::out_of_range) {
+    catch (std::out_of_range &e) {
         return 0;
     }
 }
@@ -95,7 +93,7 @@ UaStatus PanelController::setState(PASState state) {
 
 UaStatus PanelController::getData(OpcUa_UInt32 offset, UaVariant &value) {
     //UaMutexLocker lock(&m_mutex);
-    UaStatusCode status = OpcUa_Good;
+    UaStatus status;
 
     if (getActuatorCount() == 0) {
         std::cout << m_ID << "::getData() : no actuators, data undefined." << std::endl;
@@ -152,7 +150,6 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
         updateCoords();
     }
 
-    auto &actuatorPositionMap = m_ChildrenPositionMap.at(PAS_ACTType);
     auto &pACT = m_pChildren.at(PAS_ACTType);
 
     /************************************************
@@ -166,7 +163,7 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
     Eigen::VectorXd currentLengths = getActuatorLengths();
     if (offset == PAS_PanelType_MoveDeltaLengths) {
         std::cout << "Num args received: " << args.length() << std::endl;
-        for (int i = 0; i < args.length(); i++) {
+        for (int i = 0; i < (int) args.length(); i++) {
             std::cout << UaVariant(args[i]).toString().toUtf8() << std::endl;
         }
 
@@ -204,8 +201,8 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
             return OpcUa_BadInvalidArgument;
 
         std::cout << "\tCurrent panel coordinates (x, y ,z xRot, yRot, zRot):\n\t\t";
-        for (int i = 0; i < 6; i++) {
-            std::cout << m_curCoords[i] << " ";
+        for (auto coord : m_curCoords) {
+            std::cout << coord << " ";
         }
         std::cout << std::endl << std::endl;
 
@@ -242,8 +239,8 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
     } else if (offset == PAS_PanelType_ReadAll) {
         std::cout << std::endl << m_ID << " :" << std::endl;
         std::cout << "\tCurrent coordinates (x, y ,z xRot, yRot, zRot):\n\t\t";
-        for (int i = 0; i < 6; i++) {
-            std::cout << m_curCoords[i] << " ";
+        for (auto coord : m_curCoords) {
+            std::cout << coord << " ";
         }
         std::cout << std::endl << std::endl;
 
@@ -288,7 +285,7 @@ bool PanelController::checkForCollision(const Eigen::VectorXd &deltaLengths) {
     if (m_pChildren.count(PAS_EdgeType) > 0) {
         std::cout << m_pChildren.count(PAS_EdgeType) << " edges found." << std::endl;
         for (auto e : m_pChildren.at(PAS_EdgeType)) {
-            EdgeController *edge = static_cast<EdgeController *>(e);
+            auto *edge = dynamic_cast<EdgeController *>(e);
             M_response = edge->getResponseMatrix(m_ID.position);
             Sen_current = edge->getCurrentReadings();
             std::cout << "Looking at edge " << edge->getId() << std::endl;

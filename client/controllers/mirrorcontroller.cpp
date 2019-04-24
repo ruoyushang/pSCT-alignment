@@ -17,11 +17,9 @@
 #include "client/controllers/edgecontroller.hpp"
 #include "client/controllers/pascontroller.hpp"
 
-using namespace SCT; // mirrordefinitions.h
+MirrorController *MirrorControllerCompute::m_Mirror = nullptr;
 
-MirrorController *MirrorControllerCompute::Mirror = nullptr;
-
-MirrorController::MirrorController(Identity identity) : PasCompositeController(identity, nullptr),
+MirrorController::MirrorController(Identity identity) : PasCompositeController(std::move(identity), nullptr),
                                                         m_pSurface(nullptr) {
     std::string mirrorprefix;
     if (m_ID.position == 1)
@@ -61,7 +59,7 @@ void MirrorController::addChild(OpcUa_UInt32 deviceType, PasController *const pC
 }
 
 
-bool MirrorController::Initialize()
+bool MirrorController::initialize()
 {
     std::cout << "\n\tInitializing " << m_ID.name << "..." << std::endl;
 
@@ -70,21 +68,21 @@ bool MirrorController::Initialize()
         // bottom (w.r.t. z) surface first, then top surface --
         // back surface first, then optical surface
         m_pSurface = new AGeoAsphericDisk(m_ID.name.c_str(),
-           Primary::kZ + Primary::kz[0] - Primary::kMirrorThickness, 0,
-           Primary::kZ + Primary::kz[0], 0,
-           Primary::kD/2., 0);
-        m_pSurface->SetPolynomials(kNPar - 1, &Primary::kz[1],
-                kNPar - 1, &Primary::kz[1]);
+                                          SCT::Primary::kZ + SCT::Primary::kz[0] - SCT::Primary::kMirrorThickness, 0,
+                                          SCT::Primary::kZ + SCT::Primary::kz[0], 0,
+                                          SCT::Primary::kD / 2., 0);
+        m_pSurface->SetPolynomials(SCT::kNPar - 1, &SCT::Primary::kz[1],
+                                   SCT::kNPar - 1, &SCT::Primary::kz[1]);
         m_SurfaceNorm = 1.; // along z
 
         // update ideal panel properties
         for (int ring : {0, 1}) {
             // ideal panel width and offset of x1x1 from it
-            m_PanelWidth[ring + 1] = 2.*M_PI / Primary::kPanels[ring];
+            m_PanelWidth[ring + 1] = 2. * M_PI / SCT::Primary::kPanels[ring];
 
             for (int coord = 0; coord < 3; coord++)
                 for (int pad = 0; pad < 3; pad++)
-                    m_PadCoordsTelFrame[ring + 1].col(pad)(coord) = Primary::PadsCoords[ring][pad][coord];
+                    m_PadCoordsTelFrame[ring + 1].col(pad)(coord) = SCT::Primary::PadsCoords[ring][pad][coord];
 
             m_PanelOriginTelFrame[ring + 1].setZero();
             // this is the center of the mirror panel in the TRF
@@ -97,22 +95,23 @@ bool MirrorController::Initialize()
         // bottom (w.r.t. z) surface first, then top surface --
         // optical surface first, then back surface
         m_pSurface = new AGeoAsphericDisk(m_ID.name.c_str(),
-           Secondary::kZ + Secondary::kz[0] - Secondary::kMirrorThickness, 0,
-           Secondary::kZ + Secondary::kz[0], 0,
-           Secondary::kD/2., 0);
-        m_pSurface->SetPolynomials(kNPar - 1, &Secondary::kz[1],
-                kNPar - 1, &Secondary::kz[1]);
+                                          SCT::Secondary::kZ + SCT::Secondary::kz[0] - SCT::Secondary::kMirrorThickness,
+                                          0,
+                                          SCT::Secondary::kZ + SCT::Secondary::kz[0], 0,
+                                          SCT::Secondary::kD / 2., 0);
+        m_pSurface->SetPolynomials(SCT::kNPar - 1, &SCT::Secondary::kz[1],
+                                   SCT::kNPar - 1, &SCT::Secondary::kz[1]);
         m_SurfaceNorm = 1.; // parallel to z in its frame
 
         // update ideal panel properties
         for (int ring : {0, 1}) {
             // ideal panel width and offset of x1x1 from it
-            m_PanelWidth[ring + 1] = 2.*M_PI / Secondary::kPanels[ring];
+            m_PanelWidth[ring + 1] = 2. * M_PI / SCT::Secondary::kPanels[ring];
 
             // update pad coords and panel origin
             for (int coord = 0; coord < 3; coord++)
                 for (int pad = 0; pad < 3; pad++)
-                    m_PadCoordsTelFrame[ring + 1].col(pad)(coord) = Secondary::PadsCoords[ring][pad][coord];
+                    m_PadCoordsTelFrame[ring + 1].col(pad)(coord) = SCT::Secondary::PadsCoords[ring][pad][coord];
 
             m_PanelOriginTelFrame[ring + 1].setZero();
             // this is the center of the mirror panel in the TRF
@@ -124,21 +123,21 @@ bool MirrorController::Initialize()
         // bottom (w.r.t. z) surface first, then top surface --
         // back surface first, then optical surface
         m_pSurface = new AGeoAsphericDisk(m_ID.name.c_str(),
-           Primary::kZ + Primary::kz[0] - Primary::kMirrorThickness, 0,
-           Primary::kZ + Primary::kz[0], 0,
-           Primary::kD/2., 0);
-        m_pSurface->SetPolynomials(kNPar - 1, &Primary::kz[1],
-                kNPar - 1, &Primary::kz[1]);
+                                          SCT::Primary::kZ + SCT::Primary::kz[0] - SCT::Primary::kMirrorThickness, 0,
+                                          SCT::Primary::kZ + SCT::Primary::kz[0], 0,
+                                          SCT::Primary::kD / 2., 0);
+        m_pSurface->SetPolynomials(SCT::kNPar - 1, &SCT::Primary::kz[1],
+                                   SCT::kNPar - 1, &SCT::Primary::kz[1]);
         m_SurfaceNorm = 1.; // along z
 
         // update ideal panel properties
         for (int ring : {0, 1}) {
             // ideal panel width and offset of x1x1 from it
-            m_PanelWidth[ring + 1] = 2.*M_PI / Primary::kPanels[ring];
+            m_PanelWidth[ring + 1] = 2. * M_PI / SCT::Primary::kPanels[ring];
 
             for (int coord = 0; coord < 3; coord++)
                 for (int pad = 0; pad < 3; pad++)
-                    m_PadCoordsTelFrame[ring + 1].col(pad)(coord) = Primary::PadsCoords[ring][pad][coord];
+                    m_PadCoordsTelFrame[ring + 1].col(pad)(coord) = SCT::Primary::PadsCoords[ring][pad][coord];
 
             m_PanelOriginTelFrame[ring + 1].setZero();
             // this is the center of the mirror panel in the TRF
@@ -184,8 +183,8 @@ bool MirrorController::Initialize()
             // compute the center of the mirror panel in the panel frame:
             m_SP.SetPanelType(StewartPlatform::PanelType::OPT);
             double actL[6];
-            for (int i = 0; i < 6; i++)
-                actL[i] = kActuatorLength;
+            for (auto &len : actL)
+                len = SCT::kActuatorLength;
             m_SP.ComputeStewart(actL);
             Eigen::Vector3d PanelCenterPanelFrame(m_SP.GetPanelCoords());
             // this is the center of the mirror panel in the panel frame;
@@ -257,7 +256,7 @@ UaStatus MirrorController::getData(OpcUa_UInt32 offset, UaVariant &value)
         std::vector<std::string> v(m_selectedEdges.begin(), m_selectedEdges.end());
         UaStringArray arr;
         arr.resize(v.size());
-        for (int i = 0; i < v.size(); i++) {
+        for (int i = 0; i < (int) v.size(); i++) {
             arr[i] = *UaString(v[i].c_str()).toOpcUaString();
         }
         value.setStringArray(arr);
@@ -265,7 +264,7 @@ UaStatus MirrorController::getData(OpcUa_UInt32 offset, UaVariant &value)
         std::vector<unsigned> v(m_selectedPanels.begin(), m_selectedPanels.end());
         UaUInt32Array arr;
         arr.resize(v.size());
-        for (int i = 0; i < v.size(); i++) {
+        for (int i = 0; i < (int) v.size(); i++) {
             arr[i] = v[i];
         }
         value.setUInt32Array(arr);
@@ -273,7 +272,7 @@ UaStatus MirrorController::getData(OpcUa_UInt32 offset, UaVariant &value)
         std::vector<int> v(m_selectedMPES.begin(), m_selectedMPES.end());
         UaInt32Array arr;
         arr.resize(v.size());
-        for (int i = 0; i < v.size(); i++) {
+        for (int i = 0; i < (int) v.size(); i++) {
             arr[i] = v[i];
         }
         value.setInt32Array(arr);
@@ -304,7 +303,7 @@ UaStatus MirrorController::setData(OpcUa_UInt32 offset, UaVariant value)
         std::set<std::string> selectedEdges;
         UaStringArray arr;
         value.toStringArray(arr);
-        for (int i = 0; i < arr.length(); i++) {
+        for (int i = 0; i < (int) arr.length(); i++) {
             selectedEdges.insert(UaString(arr[i]).toUtf8());
         }
         m_selectedEdges.clear();
@@ -313,7 +312,7 @@ UaStatus MirrorController::setData(OpcUa_UInt32 offset, UaVariant value)
         std::set<unsigned> selectedPanels;
         UaUInt32Array arr;
         value.toUInt32Array(arr);
-        for (int i = 0; i < arr.length(); i++) {
+        for (int i = 0; i < (int) arr.length(); i++) {
             selectedPanels.insert(arr[i]);
         }
         m_selectedPanels.clear();
@@ -322,7 +321,7 @@ UaStatus MirrorController::setData(OpcUa_UInt32 offset, UaVariant value)
         std::set<int> selectedMPES;
         UaInt32Array arr;
         value.toInt32Array(arr);
-        for (int i = 0; i < arr.length(); i++) {
+        for (int i = 0; i < (int) arr.length(); i++) {
             selectedMPES.insert(arr[i]);
         }
         m_selectedMPES.clear();
@@ -363,7 +362,7 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
         std::set<unsigned> selectedMPES = getSelectedDeviceIndices(PAS_MPESType);
 
         // make sure there are some selected sensors
-        if (selectedMPES.size() < 1) {
+        if (selectedMPES.empty()) {
             std::cout << "+++ ERROR +++ No sensors selected! Nothing to do." << std::endl;
             return OpcUa_BadInvalidArgument;
         }
@@ -381,7 +380,7 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
         try {
             m_ChildrenPositionMap.at(PAS_PanelType).at(fixPanel);
         }
-        catch (std::out_of_range) {
+        catch (std::out_of_range &e) {
             std::cout << "+++ ERROR +++ The selected panel is not connected! Nothing to do." << std::endl;
             return OpcUa_BadInvalidArgument;
         }
@@ -413,7 +412,7 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
         try {
             idx = m_ChildrenIdentityMap.at(PAS_EdgeType).at(startId);
         }
-        catch (std::out_of_range) {
+        catch (std::out_of_range &e) {
             return OpcUa_BadInvalidArgument;
         }
 
@@ -425,7 +424,7 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
      * ********************************************************/
     else if (offset == PAS_MirrorType_ReadSensors) {
         for (const auto &idx : getSelectedDeviceIndices(PAS_EdgeType))
-            m_pChildren.at(PAS_EdgeType).at(idx)->operate(PAS_EdgeType_Read);
+            dynamic_cast<EdgeController *>(m_pChildren.at(PAS_EdgeType).at(idx))->operate(PAS_EdgeType_Read);
     }
 
     /************************************************
@@ -434,7 +433,7 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
     else if (offset == PAS_MirrorType_Stop) {
         std::cout << m_ID.name << "::Operate() : Attempting to gracefully stop all motions." << std::endl;
         for (const auto &p: m_pChildren.at(PAS_PanelType)) {
-            p->operate(PAS_PanelType_Stop);
+            dynamic_cast<PanelController *>(p)->operate(PAS_PanelType_Stop);
         }
     } else {
         return OpcUa_BadNotImplemented;
@@ -448,11 +447,11 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
 
 void MirrorController::readPositionAll() {
     for (const auto &idx : getSelectedDeviceIndices(PAS_PanelType)) {
-        m_pChildren.at(PAS_PanelType).at(idx)->operate(PAS_PanelType_ReadAll);
+        dynamic_cast<PanelController *>(m_pChildren.at(PAS_PanelType).at(idx))->operate(PAS_PanelType_ReadAll);
 
         auto pos = m_pChildren.at(PAS_PanelType).at(idx)->getId().position;
 
-        auto padCoordsActs = static_cast<PanelController *>(m_pChildren.at(PAS_PanelType).at(idx))->getPadCoords();
+        auto padCoordsActs = dynamic_cast<PanelController *>(m_pChildren.at(PAS_PanelType).at(idx))->getPadCoords();
         std::cout << "Panel frame pad coordinates:\n" << padCoordsActs << std::endl;
         // and transform this to the telescope reference frame:
         // these are pad coordinates in TRF as computed from actuator lengths
@@ -477,19 +476,17 @@ void MirrorController::moveToCoords(UaVariantArray args) {
     std::cout << "\t\t*** MOTION OF :\n"
               << deltaMirrorCoords << std::endl;
 
-    PasController *pCurObject;
-
     UaVariantArray targetPanelCoords;
     unsigned curpos;
     Eigen::VectorXd prf_coords;
     for (const auto &pCurObject : m_pChildren.at(PAS_PanelType)) {
         curpos = pCurObject->getId().position;
         std::cout << "Panel " << curpos << ":" << std::endl;
-        static_cast<PanelController *>(pCurObject)->operate(PAS_PanelType_ReadAll);
+        dynamic_cast<PanelController *>(pCurObject)->operate(PAS_PanelType_ReadAll);
         // for this panel, we get PRF pad coords, transform them to TRF,
         // move them in TRF, transform back to PRF, and then compute new ACT lengths
         // based on the new pad coords. so simple!
-        auto padCoords_PanelRF = static_cast<PanelController *>(pCurObject)->getPadCoords();
+        auto padCoords_PanelRF = dynamic_cast<PanelController *>(pCurObject)->getPadCoords();
         auto padCoords_TelRF = padCoords_PanelRF;
         double newPadCoords[3][3];
         for (unsigned pad = 0; pad < 3; pad++) {
@@ -566,7 +563,7 @@ void MirrorController::alignSequential(unsigned startEdge, const std::set<unsign
             // do this until the edge is aligned
             int aligniter = 1;
             m_pChildren.at(PAS_EdgeType).at(edge)->operate(PAS_EdgeType_Align, alignPanels);
-            while (!static_cast<EdgeController *>(m_pChildren.at(PAS_EdgeType).at(edge))->isAligned()) {
+            while (!dynamic_cast<EdgeController *>(m_pChildren.at(PAS_EdgeType).at(edge))->isAligned()) {
                 std::cout << "\nAlignment Iteration " << aligniter << std::endl << std::endl;
                 usleep(400*1000); // microseconds
 
@@ -590,16 +587,17 @@ void MirrorController::alignSequential(unsigned startEdge, const std::set<unsign
         try {
             cur_idx = m_ChildrenIdentityMap.at(PAS_EdgeType).at(id);
         }
-        catch (std::out_of_range) {
+        catch (std::out_of_range &e) {
             cur_idx = -1; // max element of unsigned
         }
     }
 }
 
-void MirrorController::parseAndSetSelection(std::string selectionString, unsigned deviceType) {
+void MirrorController::parseAndSetSelection(const std::string &selectionString, unsigned deviceType) {
     // process a separated string and find the panels or edges described by it
     // pad by a space from the right so we don't hit the end of the line without a delimiter
-    std::string inStr = selectionString.at(deviceType) + " ";
+    std::string inStr = selectionString.at(deviceType);
+    inStr += " ";
     std::vector<std::string> strList;
     // working with comma, space and semicolon
     std::string delim = " ,;:\"\'{}";
@@ -679,7 +677,7 @@ std::set<unsigned> MirrorController::getSelectedDeviceIndices(unsigned deviceTyp
 void MirrorController::updateCoords()
 {
     // minimize chisq and get telescope coordinates
-    TMinuit *minuit = new TMinuit(6); // 6 parameters for 6 telescope coords
+    auto minuit = new TMinuit(6); // 6 parameters for 6 telescope coords
     minuit->SetPrintLevel(-1); // suppress all output
     minuit->SetFCN(MirrorControllerCompute::getInstance(this).chiSqFCN);
     // mnparm implements parameter definition:
@@ -708,8 +706,6 @@ void MirrorController::updateCoords()
     // display angle in common coordinates -- angle*baseRad
 //    for (int i = 3; i < 6; i++)
 //       std::cout << m_curCoords(i)*kBaseRadius << " +/- " << m_curCoordsErr(i)*kBaseRadius << std::endl;
-
-    return;
 }
 
 Eigen::MatrixXd MirrorController::__computeSystematicsMatrix(unsigned pos1, unsigned pos2)
@@ -754,7 +750,7 @@ Eigen::MatrixXd MirrorController::__computeSystematicsMatrix(unsigned pos1, unsi
     Eigen::VectorXd TRANSFORM(6);
     for (auto TR = 0; TR < 6; TR++) {
         TRANSFORM.setZero();
-        TRANSFORM(TR) = 1. * (TR > 2) ? 1./320. : 1.;
+        TRANSFORM(TR) = (TR > 2) ? 1. / 320. : 1.;
         for (auto pad = 0; pad < 3; pad++) {
             // To PRF::
             padCoords2.col(pad) = __toPanelRF(pos1, orig_padCoords2.col(pad));
@@ -786,7 +782,8 @@ Eigen::MatrixXd MirrorController::__computeSystematicsMatrix(unsigned pos1, unsi
 }
 
 void
-MirrorController::alignSector(std::set<unsigned> selectedPanels, std::set<unsigned> selectedMPES, double alignFrac) {
+MirrorController::alignSector(const std::set<unsigned> &selectedPanels, const std::set<unsigned> &selectedMPES,
+                              double alignFrac) {
     // following the align method for an edge:
     Eigen::MatrixXd C; // constraint
     Eigen::MatrixXd B; // complete matrix
@@ -798,10 +795,10 @@ MirrorController::alignSector(std::set<unsigned> selectedPanels, std::set<unsign
     std::vector<PanelController *> panelsToMove;
     std::vector<MPESController *> alignMPES;
     for (unsigned idx : selectedPanels)
-        panelsToMove.push_back(static_cast<PanelController *>(m_pChildren.at(PAS_PanelType).at(idx)));
+        panelsToMove.push_back(dynamic_cast<PanelController *>(m_pChildren.at(PAS_PanelType).at(idx)));
     for (unsigned idx : selectedMPES) {
-        MPESController *mpes = static_cast<MPESController *>(m_pChildren.at(PAS_MPESType).at(idx));
-        mpes->operate();
+        MPESController *mpes = dynamic_cast<MPESController *>(m_pChildren.at(PAS_MPESType).at(idx));
+        mpes->operate(PAS_MPESType_Read);
         if (mpes->isVisible())
             alignMPES.push_back(mpes);
     }
@@ -814,7 +811,7 @@ MirrorController::alignSector(std::set<unsigned> selectedPanels, std::set<unsign
         for (const auto &mpes : panel->getChildren(PAS_MPESType)) {
             unsigned overlap = 0;
             for (const auto &overlapPanel : panelsToMove)
-                overlap += (static_cast<MPESController *>(mpes)->getPanelSide(overlapPanel->getId().position) != 0);
+                overlap += (dynamic_cast<MPESController *>(mpes)->getPanelSide(overlapPanel->getId().position) != 0);
 
             if (overlap == 2) {
                 idx = m_ChildrenIdentityMap.at(PAS_MPESType).at(mpes->getId());
@@ -831,17 +828,17 @@ MirrorController::alignSector(std::set<unsigned> selectedPanels, std::set<unsign
     }
 
     // if no user specified overlapping sensors, get their readings
-    if (!userOverlap && overlapIndices.size() > 0) {
+    if (!userOverlap && !overlapIndices.empty()) {
         std::cout << "\nNo user-speficied internal MPES." << std::endl;
         std::cout << "Reading the automatically identfied internal MPES:" << std::endl;
         // only read the internal MPES if no user-specified ones have been found
         for (const auto &idx: overlapIndices) {
-            MPESController *mpes = static_cast<MPESController *>(m_pChildren.at(PAS_MPESType).at(idx));
-            mpes->operate();
+            MPESController *mpes = dynamic_cast<MPESController *>(m_pChildren.at(PAS_MPESType).at(idx));
+            mpes->operate(PAS_MPESType_Read);
             if (mpes->isVisible())
                 alignMPES.push_back(mpes);
         }
-    } else if (overlapIndices.size() == 0)
+    } else if (overlapIndices.empty())
         std::cout << "\nIdentified NO internal MPES. Are you alignining a single panel?";
     else
         std::cout << "\nWill be using user-specified internal MPES.";
@@ -869,7 +866,7 @@ MirrorController::alignSector(std::set<unsigned> selectedPanels, std::set<unsign
     unsigned nRows = 2 * alignMPES.size();
     B = Eigen::MatrixXd(nRows, nCols);
     Y = Eigen::VectorXd(nRows);
-    for (int m = 0; m < alignMPES.size(); m++) {
+    for (int m = 0; m < (int) alignMPES.size(); m++) {
         alignMPES.at(m)->getData(PAS_MPESType_xCentroidAvg, vtmp);
         vtmp.toDouble(curRead(m * 2));
         alignMPES.at(m)->getData(PAS_MPESType_yCentroidAvg, vtmp);
@@ -877,7 +874,7 @@ MirrorController::alignSector(std::set<unsigned> selectedPanels, std::set<unsign
         targetRead.segment(2 * m, 2) = alignMPES.at(m)->getAlignedReadings()
                                        - alignMPES.at(m)->getSystematicOffsets();
 
-        for (int p = 0; p < panelsToMove.size(); p++) {
+        for (int p = 0; p < (int) panelsToMove.size(); p++) {
             auto panelSide = alignMPES.at(m)->getPanelSide(panelsToMove.at(p)->getId().position);
             if (panelSide)
                 responseMat = alignMPES.at(m)->getResponseMatrix(panelSide);
@@ -942,16 +939,16 @@ void MirrorController::alignGlobal(unsigned fixPanel, double alignFrac)
     unsigned mirror = SCTMath::Mirror(fixPanel);
     
     unsigned numPanels = 0;
-    if (mirror != m_ID.position) {
+    if (mirror != (unsigned) m_ID.position) {
         std::cout << "+++ ERROR +++ The entered fixPanel position is wrong! Check it and try again."
                   << std::endl;
         return;
     }
 
     if (mirror == 1)
-        numPanels = Primary::kPanels[ring - 1];
+        numPanels = SCT::Primary::kPanels[ring - 1];
     else if (mirror == 2)
-        numPanels = Secondary::kPanels[ring - 1];
+        numPanels = SCT::Secondary::kPanels[ring - 1];
 
     // initialize the response matrices
     Eigen::MatrixXd localResponse;
@@ -987,11 +984,11 @@ void MirrorController::alignGlobal(unsigned fixPanel, double alignFrac)
         std::cout << "+++ DEBUG +++ Currently on panels (" << curPanel << ", " << nextPanel << ")"
                   << std::endl;
 
-        panelsToMove.push_back(static_cast<PanelController *> (
+        panelsToMove.push_back(dynamic_cast<PanelController *> (
                     m_pChildren.at(PAS_PanelType).at(m_ChildrenPositionMap.at(PAS_PanelType).at(curPanel)) ) );
 
         id.eAddress = SCTMath::GetEdgeFromPanels({curPanel, nextPanel});
-        edgesToFit.push_back(static_cast<EdgeController *>(
+        edgesToFit.push_back(dynamic_cast<EdgeController *>(
                     m_pChildren.at(PAS_EdgeType).at(m_ChildrenIdentityMap.at(PAS_EdgeType).at(id)) ) );
         std::cout << "\t\tThese correspond to the edge " << edgesToFit.back()->getId() << std::endl;
 
@@ -1104,7 +1101,7 @@ void MirrorController::alignGlobal(unsigned fixPanel, double alignFrac)
     for (const auto& edge : edgesToFit) {
         // and set them for each sensor along each edge
         for (const auto& mpes : edge->m_ChildrenPositionMap.at(PAS_MPESType) ) {
-            (static_cast<MPESController *>(edge->m_pChildren.at(PAS_MPESType).at(mpes.second)))->SystematicOffsets =
+            (dynamic_cast<MPESController *>(edge->m_pChildren.at(PAS_MPESType).at(mpes.second)))->SystematicOffsets =
                 SystematicOffsetsMPESMap.at(ring).at(mpes.first);
         }
     }
@@ -1159,7 +1156,7 @@ double MirrorController::__getAzOffset(unsigned pos)
 }
 
 
-Eigen::Vector3d MirrorController::__toPanelRF(unsigned pos, Eigen::Vector3d in_coords)
+Eigen::Vector3d MirrorController::__toPanelRF(unsigned pos, const Eigen::Vector3d &in_coords)
 {
     // all angles in radians
 
@@ -1174,7 +1171,7 @@ Eigen::Vector3d MirrorController::__toPanelRF(unsigned pos, Eigen::Vector3d in_c
     return panelFrame.transpose() * (in_coords - panelOrigin);
 }
 
-Eigen::Vector3d MirrorController::__toTelRF(unsigned pos, Eigen::Vector3d in_coords)
+Eigen::Vector3d MirrorController::__toTelRF(unsigned pos, const Eigen::Vector3d &in_coords)
 {
     // all angles in radians
     // The inverse of the above
@@ -1213,7 +1210,7 @@ Eigen::Matrix3d MirrorController::__rotMat(int axis, double a)
     return rot;
 }
 
-Eigen::Vector3d MirrorController::__moveInCurrentRF(Eigen::Vector3d in_vec, Eigen::VectorXd tr_coords)
+Eigen::Vector3d MirrorController::__moveInCurrentRF(const Eigen::Vector3d &in_vec, const Eigen::VectorXd &tr_coords)
 {
     // check that we have 6 coords. if not, resize if necessary
     Eigen::VectorXd tr(6);
@@ -1221,7 +1218,7 @@ Eigen::Vector3d MirrorController::__moveInCurrentRF(Eigen::Vector3d in_vec, Eige
     if (tr_coords.size() != 6)
         tr.tail(6 - tr_coords.size()).setZero();
 
-    Eigen::Vector3d out_vec = in_vec;
+    Eigen::Vector3d out_vec = std::move(in_vec);
     // compute the transform due to the change in TRF: Rot(z -> x -> y)*v + T
     out_vec = __rotMat(2, tr(5)) * out_vec;
     out_vec = __rotMat(0, tr(3)) * out_vec;
@@ -1234,7 +1231,7 @@ Eigen::Vector3d MirrorController::__moveInCurrentRF(Eigen::Vector3d in_vec, Eige
 
 
 /* ============== MINUIT INTERFACE ============== */
-double MirrorController::chiSq(Eigen::VectorXd telDelta)
+double MirrorController::chiSq(const Eigen::VectorXd &telDelta)
 {
     // tel delta is a perturbation to the coordinates of the mirror
     double chiSq = 0.;
@@ -1255,7 +1252,7 @@ double MirrorController::chiSq(Eigen::VectorXd telDelta)
         // as computed from actuator lengths and pad coordinates as computed from telescope
         // coordinates
         for (int pad = 0; pad < 3; pad++) {
-            padCoordsActs = static_cast<PanelController *>(panels.at(idx))->getPadCoords().col(pad);
+            padCoordsActs = dynamic_cast<PanelController *>(panels.at(idx))->getPadCoords().col(pad);
             // and transform this to the telescope reference frame:
             // these are pad coordinates in TRF as computed from actuator lengths
             padCoordsActs = __toTelRF(pos, padCoordsActs);
@@ -1277,5 +1274,5 @@ double MirrorController::chiSq(Eigen::VectorXd telDelta)
 void MirrorControllerCompute::chiSqFCN(int &npar, double *gin, double &f, double *par, int iflag) // MINUIT interface
 {
     Eigen::Matrix<double, 6, 1> vecPars(par);
-    f = Mirror->chiSq(vecPars);
+    f = m_Mirror->chiSq(vecPars);
 }

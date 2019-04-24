@@ -29,9 +29,10 @@ public:
 
     /* construction / destruction */
     PasCommunicationInterface();
-    virtual ~PasCommunicationInterface();
 
-    virtual UaStatus Initialize();
+    ~PasCommunicationInterface() override;
+
+    UaStatus initialize() override;
 
     void setConfiguration(Configuration *pConfiguration) {m_pConfiguration = pConfiguration;}
 
@@ -46,39 +47,39 @@ public:
             Identity &identity);
 
     /* overloaded getDeviceConfig() for when you only want the identity */
-    UaStatusCode getDeviceConfig(
+    UaStatus getDeviceConfig(
         OpcUa_UInt32 type,
         OpcUa_UInt32 deviceIndex,
         Identity& identity);
 
     /* Get device status and data */
     UaStatus getDeviceState(
-            OpcUa_UInt32 type,
-            const Identity &identity,
-            PASState &state);
+        OpcUa_UInt32 type,
+        const Identity &identity,
+        PASState &state) override;
 
     UaStatus getDeviceData(
-            OpcUa_UInt32 type,
-            const Identity &identity,
-            OpcUa_UInt32 offset,
-            UaVariant &value);
+        OpcUa_UInt32 type,
+        const Identity &identity,
+        OpcUa_UInt32 offset,
+        UaVariant &value) override;
 
     /* Set device status and data*/
     UaStatus setDeviceState(
-            OpcUa_UInt32 type,
-            const Identity &identity,
-            PASState state);
+        OpcUa_UInt32 type,
+        const Identity &identity,
+        PASState state) override;
 
     UaStatus setDeviceData(
-            OpcUa_UInt32 type,
-            const Identity &identity,
-            OpcUa_UInt32 offset,
-            UaVariant value);
+        OpcUa_UInt32 type,
+        const Identity &identity,
+        OpcUa_UInt32 offset,
+        UaVariant value) override;
 
     /* Operate a device -- run a method */
-    UaStatus OperateDevice(OpcUa_UInt32 type, const Identity &identity,
-                           OpcUa_UInt32 offset = 0,
-                           const UaVariantArray& args = UaVariantArray());
+    UaStatus operateDevice(OpcUa_UInt32 type, const Identity &identity,
+                           OpcUa_UInt32 offsetS,
+                           const UaVariantArray &args) override;
 
     PasController* getDeviceFromId(OpcUa_UInt32 type, const Identity& identity);
 

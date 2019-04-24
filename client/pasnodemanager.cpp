@@ -113,12 +113,12 @@ UaStatus PasNodeManager::afterStartUp()
 
     std::cout << "Now creating all OPC UA objects and folders...\n";
 
-    UaFolder * pFolder = NULL;
-    PasObject *pObject = NULL;
-    PasController *pController = NULL;
+    UaFolder *pFolder = nullptr;
+    PasObject *pObject = nullptr;
+    PasController *pController = nullptr;
     std::vector<PasController *>pChildren;
 
-    PasObjectFactory *pPasFactory = new PasObjectFactory();
+    auto pPasFactory = new PasObjectFactory();
 
     std::map<unsigned, UaFolder *> pDeviceFolders;
     std::map<PasController *, PasObject *> pDeviceObjects;
@@ -288,15 +288,15 @@ UaStatus PasNodeManager::amendTypeNodes()
     UaStatus addStatus;
 
     UaVariant                    defaultValue;
-    UaObjectTypeSimple*          pMirrorType = NULL;
-    UaObjectTypeSimple*          pEdgeType = NULL;
-    UaObjectTypeSimple*          pPanelType = NULL;
-    UaObjectTypeSimple*          pOptTableType = NULL;
-    UaObjectTypeSimple*          pCCDType = NULL;
+    UaObjectTypeSimple *pMirrorType = nullptr;
+    UaObjectTypeSimple *pEdgeType = nullptr;
+    UaObjectTypeSimple *pPanelType = nullptr;
+    UaObjectTypeSimple *pOptTableType = nullptr;
+    UaObjectTypeSimple *pCCDType = nullptr;
     OpcUa::DataItemType*         pDataItem;
     // Method helpers
-    OpcUa::BaseMethod*           pMethod = NULL;
-    UaPropertyMethodArgument*    pPropertyArg = NULL;
+    OpcUa::BaseMethod *pMethod = nullptr;
+    UaPropertyMethodArgument *pPropertyArg = nullptr;
     UaUInt32Array                nullarray;
 
     /**************************************************************
@@ -588,7 +588,7 @@ UaStatus PasNodeManager::amendTypeNodes()
     addStatus = addNodeAndReference(pMirrorType, pDataItem, OpcUaId_HasComponent);
     UA_ASSERT(addStatus.isGood());
 
-    UaStringArray *tempStringArray = new UaStringArray();
+    auto tempStringArray = new UaStringArray();
     defaultValue.setStringArray(*tempStringArray);
 
     pDataItem = new OpcUa::DataItemType(UaNodeId(PAS_MirrorType_SelectedEdges, getNameSpaceIndex()),
@@ -600,7 +600,7 @@ UaStatus PasNodeManager::amendTypeNodes()
 
     //delete tempStringArray;
 
-    UaInt32Array *tempIntArray = new UaInt32Array();
+    auto tempIntArray = new UaInt32Array();
     defaultValue.setInt32Array(*tempIntArray);
 
     pDataItem = new OpcUa::DataItemType(UaNodeId(PAS_MirrorType_SelectedMPES, getNameSpaceIndex()),
@@ -612,7 +612,7 @@ UaStatus PasNodeManager::amendTypeNodes()
 
     //delete tempIntArray;
 
-    UaUInt32Array *tempUIntArray = new UaUInt32Array();
+    auto tempUIntArray = new UaUInt32Array();
     defaultValue.setUInt32Array(*tempUIntArray);
 
     pDataItem = new OpcUa::DataItemType(UaNodeId(PAS_MirrorType_SelectedPanels, getNameSpaceIndex()),
@@ -942,7 +942,7 @@ OpcUa_Int32 PasNodeManager::Panic()
 {
     UaStatus status;
 
-    OpcUa_Int32 actcount = m_pCommIf->getDevices(PAS_ACTType);
+    OpcUa_Int32 actcount = m_pCommIf->asf(PAS_ACTType);
 
     Identity id;
     for (OpcUa_Int32 i = 0; i < actcount; i++)

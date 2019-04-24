@@ -43,22 +43,22 @@ public:
             Identity identity,
             PasCommunicationInterface *pCommIf) : PasObject(name, newNodeId, defaultLocaleId,
                                                             dynamic_cast<PasNodeManagerCommon *>(pNodeManager),
-                                                            identity,
+                                                            std::move(identity),
                                                             dynamic_cast<PasComInterfaceCommon *>(pCommIf)) { initialize(); }
 
     /// @brief Method returning the UaNodeId for the Positioner object type
     /// definition node.
     /// @return A UaNodeId uniquely identifying the Positioner object type node.
-    UaNodeId typeDefinitionId() const;
+    UaNodeId typeDefinitionId() const override;
 
     const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, OpcUa_Byte>>
-    getVariableDefs() { return PositionerObject::VARIABLES; }
+    getVariableDefs() override { return PositionerObject::VARIABLES; }
 
     const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean>>
-    getErrorDefs() { return PositionerObject::ERRORS; }
+    getErrorDefs() override { return PositionerObject::ERRORS; }
 
     const std::map<OpcUa_UInt32, std::pair<std::string, std::vector<std::tuple<std::string, UaNodeId, std::string>>>>
-    getMethodDefs() { return PositionerObject::METHODS; }
+    getMethodDefs() override { return PositionerObject::METHODS; }
 
     /// @brief Map of OPC UA type ids for all child variables to their name, default value, is_state value, and access level.
     static const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, OpcUa_Byte>> VARIABLES;

@@ -14,11 +14,7 @@
 
 using namespace UaClientSdk;
 
-Configuration::Configuration()
-{
-}
-
-Configuration::~Configuration()
+Configuration::Configuration() : m_bAutomaticReconnect(OpcUa_True), m_bRetryInitialConnect(OpcUa_True)
 {
 }
 
@@ -27,76 +23,10 @@ OpcUa_UInt32 Configuration::getServers() const
     try {
         return m_DeviceList.at(PAS_PanelType).size();
     }
-    catch (std::out_of_range)
+    catch (std::out_of_range &e)
     {
         return 0;
     }
-}
-
-UaString Configuration::getDiscoveryUrl() const
-{
-    return m_discoveryUrl;
-}
-
-UaString Configuration::getPositionerUrl() const
-{
-    return m_positionerUrl;
-}
-
-UaString Configuration::getApplicationName() const
-{
-    return m_applicationName;
-}
-
-OpcUa_Boolean Configuration::getAutomaticReconnect() const
-{
-    return m_bAutomaticReconnect;
-}
-
-OpcUa_Boolean Configuration::getRetryInitialConnect() const
-{
-    return m_bRetryInitialConnect;
-}
-
-UaNodeIdArray Configuration::getNodesToRead() const
-{
-    return m_nodesToRead;
-}
-
-UaNodeIdArray Configuration::getNodesToWrite() const
-{
-    return m_nodesToWrite;
-}
-
-UaNodeIdArray Configuration::getNodesToMonitor() const
-{
-    return m_nodesToMonitor;
-}
-
-UaVariantArray Configuration::getWriteValues() const
-{
-    return m_writeValues;
-}
-
-UaStringArray Configuration::getDatabaseHost() const
-{
-    return m_databaseHost;
-}
-UaStringArray Configuration::getDatabaseUser() const
-{
-    return m_databaseUser;
-}
-UaStringArray Configuration::getDatabasePassword() const
-{
-    return m_databasePassword;
-}
-UaStringArray Configuration::getDatabaseName() const
-{
-    return m_databaseName;
-}
-std::vector<UaStringArray> Configuration::getDatabaseEntries() const
-{
-    return m_databaseEntries;
 }
 
 UaStatus Configuration::loadConnectionConfiguration(const UaString& sConfigurationFile)
@@ -163,20 +93,19 @@ UaStatus Configuration::loadConnectionConfiguration(const UaString& sConfigurati
     pSettings->endGroup(); // UaClientConfig
 
     delete pSettings;
-    pSettings = NULL;
 
     return result;
 }
 
-UaStatus Configuration::loadDeviceConfiguration(const std::vector<std::string>& positionlist)
+UaStatus Configuration::loadDeviceConfiguration(const std::vector<std::string> &positionList)
 {
     // read device configuration from the database and load it into the internal maps
-    DBConfig myconfig = DBConfig::getDefaultConfig();
-    std::string db_ip=myconfig.getHost();
-    std::string db_port=myconfig.getPort();
-    std::string db_user=myconfig.getUser();
-    std::string db_password=myconfig.getPassword();
-    std::string db_name=myconfig.getDatabase();
+    DBConfig myConfig = DBConfig::getDefaultConfig();
+    std::string db_ip = myConfig.getHost();
+    std::string db_port = myConfig.getPort();
+    std::string db_user = myConfig.getUser();
+    std::string db_password = myConfig.getPassword();
+    std::string db_name = myConfig.getDatabase();
     std::string db_address = "tcp://" + db_ip + ":" + db_port;
 
     m_DeviceList[PAS_PanelType] = {}; // initialize the list of panels to an empty one -- other devices don't need this
@@ -190,7 +119,7 @@ UaStatus Configuration::loadDeviceConfiguration(const std::vector<std::string>& 
         std::string query;
 
         // get panel IP and serial from position
-        for (const auto& position : positionlist) {
+        for (const auto &position : positionList) {
             Identity panelId;
             panelId.position = std::stoi(position);
 
@@ -341,7 +270,7 @@ UaStatus Configuration::setupSecurity(SessionSecurityInfo& sessionSecurityInfo)
         cert.toDERFile ( m_clientCertificateFile.toUtf8() );
 
         // save private key to file
-        keyPair.toPEMFile ( m_clientPrivateKeyFile.toUtf8(), 0 );
+        keyPair.toPEMFile(m_clientPrivateKeyFile.toUtf8(), nullptr);
     }
 
     // initialize the PKI provider for using OpenSSL
@@ -435,7 +364,7 @@ OpcUa_Int32 Configuration::getDeviceSerial(const UaString& address, OpcUa_UInt32
     {
         serial = m_DeviceSerialMap.at(deviceType).at(address).at(sPort);
     }
-    catch (std::out_of_range)
+    catch (std::out_of_range &e)
     {
         serial = -1;
     }
@@ -450,7 +379,7 @@ OpcUa_Int32 Configuration::getDevicePosition(OpcUa_UInt32 deviceType, OpcUa_UInt
     {
         pos = m_DevicePositionMap.at(deviceType).at(serial);
     }
-    catch (std::out_of_range)
+    catch (std::out_of_range &e)
     {
         pos = -1;
     }
@@ -484,8 +413,8 @@ std::vector< std::pair<OpcUa_UInt32, Identity> > Configuration::getParents(OpcUa
         // and changes that convention;
         // assume that both of the id's are present though -- the program will throw an exception
         // if that's not the case
-        auto w_idx = parentAddress.find("w");
-        auto l_idx = parentAddress.find("l");
+        auto w_idx = parentAddress.find('w');
+        auto l_idx = parentAddress.find('l');
         if (w_idx < l_idx) { // w first
             w_pos = stoi(parentAddress.substr(w_idx + 1, l_idx - w_idx));
             l_pos = stoi(parentAddress.substr(l_idx + 1));
@@ -502,7 +431,7 @@ std::vector< std::pair<OpcUa_UInt32, Identity> > Configuration::getParents(OpcUa
         try {
             std::string l_panel_address = m_PanelAddressMap.at(l_pos);
         }
-        catch (std::out_of_range) {
+        catch (std::out_of_range &e) {
             return {{PAS_PanelType, w_panelId}};
         }
 
@@ -524,7 +453,7 @@ std::vector< std::pair<OpcUa_UInt32, Identity> > Configuration::getParents(OpcUa
             try {
                 std::string third_panel_address = m_PanelAddressMap.at(third_pos);
             }
-            catch (std::out_of_range) {
+            catch (std::out_of_range &e) {
                 third_pos = 0;
             }
         }

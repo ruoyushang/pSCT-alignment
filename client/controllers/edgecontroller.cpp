@@ -145,7 +145,7 @@ UaStatus EdgeController::operate(OpcUa_UInt32 offset, const UaVariantArray &args
 
             UaVariant(args[2]).toDouble(alignFrac);
 
-            status = align(panel, moveit, alignFrac);
+            status = align(panel, alignFrac, moveit);
             break;
         }
         case PAS_EdgeType_Read:
@@ -217,7 +217,7 @@ UaStatus EdgeController::findSingleMatrix(unsigned panelIdx, double stepSize) {
     // convenience variable;
     // no need to check with a try/catch block anymore as this has already been done
     // by the caller
-    PanelController *pCurPanel = static_cast<PanelController *>(m_pChildren.at(PAS_PanelType).at(panelIdx));
+    PanelController *pCurPanel = dynamic_cast<PanelController *>(m_pChildren.at(PAS_PanelType).at(panelIdx));
     unsigned nACTs = pCurPanel->getActuatorCount();
 
     Eigen::VectorXd vector0(6); // maximum possible size
@@ -388,10 +388,9 @@ UaStatus EdgeController::alignSinglePanel(unsigned panelpos, double alignFrac, b
         A.setZero();
 
         int curcol = 0;
-        for (unsigned i = 0; i < responseMats.size(); i++) {
-            auto curMat = responseMats.at(i);
-            A.block(0, curcol, curMat.rows(), curMat.cols()) = curMat;
-            curcol += curMat.cols();
+        for (const auto &responseMat : responseMats) {
+            A.block(0, curcol, responseMat.rows(), responseMat.cols()) = responseMat;
+            curcol += responseMat.cols();
         }
 
         // get the constraint matrix, which is [U1 | U2]: we need U1*L1 + U2*L2 = <OVERLAP MISALIGNMENT>;
@@ -409,13 +408,13 @@ UaStatus EdgeController::alignSinglePanel(unsigned panelpos, double alignFrac, b
             if (panelPair.first == panelpos)
                 continue;
 
-            auto pMPES = static_cast<PanelController *>(m_pChildren.at(PAS_PanelType).at(
+            auto pMPES = dynamic_cast<PanelController *>(m_pChildren.at(PAS_PanelType).at(
                     panelPair.second))->getChildren(
                     PAS_MPESType);
             for (const auto &mpes : pMPES)
-                if (static_cast<MPESController *>(mpes)->getPanelSide(twopanels[0])
-                    && static_cast<MPESController *>(mpes)->getPanelSide(twopanels[1]))
-                    overlapMPES.push_back(static_cast<MPESController *>(mpes));
+                if (dynamic_cast<MPESController *>(mpes)->getPanelSide(twopanels[0])
+                    && dynamic_cast<MPESController *>(mpes)->getPanelSide(twopanels[1]))
+                    overlapMPES.push_back(dynamic_cast<MPESController *>(mpes));
         }
         auto blockRows = overlapMPES.front()->getResponseMatrix().rows();
         auto blockCols = overlapMPES.front()->getResponseMatrix().cols();
@@ -446,12 +445,12 @@ UaStatus EdgeController::alignSinglePanel(unsigned panelpos, double alignFrac, b
         C.setZero();
 
         for (int j = 0; j < 2; j++) {
-            int i = 0;
+            int k = 0;
             for (const auto &mpes : overlapMPES) {
                 if (!mpes->isVisible()) continue;
                 auto panelside = mpes->getPanelSide(twopanels[j]);
-                C.block(blockRows * i, blockCols * j, blockRows, blockCols) = mpes->getResponseMatrix(panelside);
-                i++;
+                C.block(blockRows * k, blockCols * j, blockRows, blockCols) = mpes->getResponseMatrix(panelside);
+                k++;
             }
         }
 
@@ -524,7 +523,7 @@ UaStatus EdgeController::alignSinglePanel(unsigned panelpos, double alignFrac, b
     int j = 0;
     for (const auto &panelPair : m_ChildrenPositionMap.at(PAS_PanelType)) {
         if ((panelPair.first == panelpos) == moveit) { // clever but not clear...
-            pCurPanel = static_cast<PanelController *>(m_pChildren.at(PAS_PanelType).at(panelPair.second));
+            pCurPanel = dynamic_cast<PanelController *>(m_pChildren.at(PAS_PanelType).at(panelPair.second));
             auto nACT = pCurPanel->getActuatorCount();
             // print out to make sure
             std::cout << "Will move actuators of "
@@ -569,10 +568,10 @@ const Eigen::MatrixXd &EdgeController::getResponseMatrix(unsigned panelpos) {
 //        for (const auto& mpes : m_ChildrenPositionMap.at(PAS_MPESType)) {
             // do not check if the sensor is visible here -- return the full response matrix
 //            if ( !static_cast<MPESController *>(pMPES.at(nMPES))->isVisible() ) continue;
-            auto panelside = static_cast<MPESController *>(pMPES.at(nMPES))->getPanelSide(panel);
+            auto panelside = dynamic_cast<MPESController *>(pMPES.at(nMPES))->getPanelSide(panel);
             // if this is nonzero (so either 'l' or 'w'), add it to the edge response matrix
             if (panelside) {
-                const auto &curresponse = static_cast<MPESController *>(pMPES.at(nMPES))->getResponseMatrix(panelside);
+                const auto &curresponse = dynamic_cast<MPESController *>(pMPES.at(nMPES))->getResponseMatrix(panelside);
                 m_ResponseMatMap.at(panel).block(2 * visibleMPES, 0, curresponse.rows(),
                                                  curresponse.cols()) = curresponse;
             }
@@ -593,11 +592,11 @@ const Eigen::VectorXd &EdgeController::getAlignedReadings() {
 
     m_AlignedReadings = Eigen::VectorXd(2 * pMPES.size());
     for (unsigned nMPES = 0; nMPES < maxMPES; nMPES++) {
-        if (!static_cast<MPESController *>(pMPES.at(nMPES))->isVisible()) continue;
+        if (!dynamic_cast<MPESController *>(pMPES.at(nMPES))->isVisible()) continue;
 //    for (const auto& mpes : m_ChildrenPositionMap.at(PAS_MPESType)) {
 //        if ( !static_cast<MPESController *>(pMPES.at(mpes.second))->isVisible() ) continue;
 
-        auto mpes_response = static_cast<MPESController *>(pMPES.at(nMPES))->getAlignedReadings();
+        auto mpes_response = dynamic_cast<MPESController *>(pMPES.at(nMPES))->getAlignedReadings();
         m_AlignedReadings.segment(2 * visibleMPES, 2) = mpes_response;
         ++visibleMPES;
     }
@@ -613,12 +612,12 @@ const Eigen::VectorXd &EdgeController::getSystematicOffsets() {
 
     m_systematicOffsets = Eigen::VectorXd(2 * pMPES.size());
     for (unsigned nMPES = 0; nMPES < maxMPES; nMPES++) {
-        if (!static_cast<MPESController *>(pMPES.at(nMPES))->isVisible()) continue;
+        if (!dynamic_cast<MPESController *>(pMPES.at(nMPES))->isVisible()) continue;
 //    for (const auto& mpes : m_ChildrenPositionMap.at(PAS_MPESType)) {
 //        if ( !static_cast<MPESController *>(pMPES.at(mpes.second))->isVisible() ) continue;
 
         m_systematicOffsets.segment(2 * visibleMPES, 2) =
-                (static_cast<MPESController *>(pMPES.at(nMPES)))->getSystematicOffsets();
+            (dynamic_cast<MPESController *>(pMPES.at(nMPES)))->getSystematicOffsets();
         ++visibleMPES;
     }
     m_systematicOffsets.conservativeResize(2 * visibleMPES);
@@ -638,8 +637,8 @@ const Eigen::VectorXd &EdgeController::getCurrentReadings() {
 
     UaVariant vtmp;
     for (unsigned nMPES = 0; nMPES < maxMPES; nMPES++) {
-        pMPES.at(nMPES)->operate();
-        if (!static_cast<MPESController *>(pMPES.at(nMPES))->isVisible()) {
+        pMPES.at(nMPES)->operate(PAS_MPESType_Read);
+        if (!dynamic_cast<MPESController *>(pMPES.at(nMPES))->isVisible()) {
             std::cout << "+++ WARNING +++ " << pMPES.at(nMPES)->getId().name
                       //for (const auto& mpes : m_ChildrenPositionMap.at(PAS_MPESType)) {
                       //    pMPES.at(mpes.second)->Operate();

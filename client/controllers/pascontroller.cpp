@@ -19,8 +19,6 @@
 
 #include <Eigen/Dense>
 
-int PasController::kUpdateInterval = 0;
-
 // implement PasCompositeController::addChild()
 void PasCompositeController::addChild(OpcUa_UInt32 deviceType, PasController *const pController)
 {

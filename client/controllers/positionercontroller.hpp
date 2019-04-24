@@ -29,7 +29,7 @@ public:
 
     UaStatus setData(OpcUa_UInt32 offset, UaVariant value);
 
-    UaStatus operate(OpcUa_UInt32 offset = 0, const UaVariantArray &args = UaVariantArray());
+    UaStatus operate(OpcUa_UInt32 offset, const UaVariantArray &args);
 
 private:
     struct Position {
@@ -38,9 +38,7 @@ private:
         OpcUa_Float inAz;
         OpcUa_Float inEl;
         OpcUa_Boolean isMoving;
-    } data;
-    
-    UaStatus move();
+    } m_Data;
 };
 
 #endif//CLIENT_POSITIONERCONTROLLER_HPP

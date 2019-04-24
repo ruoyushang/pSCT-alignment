@@ -34,7 +34,7 @@ public:
 
     UaStatus setData(OpcUa_UInt32 offset, UaVariant value);
 
-    UaStatus operate(OpcUa_UInt32 offset = 0, const UaVariantArray &args = UaVariantArray());
+    UaStatus operate(OpcUa_UInt32 offset, const UaVariantArray &args = UaVariantArray());
 
     // test if current panel is this sensor's webcam-side panel
     char getPanelSide(unsigned panelpos);
@@ -53,14 +53,14 @@ private:
     bool m_updated;
     bool m_isVisible;
     struct MPESData {
-        OpcUa_Double m_xCentroidAvg;
-        OpcUa_Double m_yCentroidAvg;
-        OpcUa_Double m_xCentroidSD;
-        OpcUa_Double m_yCentroidSD;
-        OpcUa_Double m_CleanedIntensity;
-        OpcUa_Double m_xNominal;
-        OpcUa_Double m_yNominal;
-    } data;
+        OpcUa_Double xCentroidAvg;
+        OpcUa_Double yCentroidAvg;
+        OpcUa_Double xCentroidSD;
+        OpcUa_Double yCentroidSD;
+        OpcUa_Double CleanedIntensity;
+        OpcUa_Double xNominal;
+        OpcUa_Double yNominal;
+    } m_Data;
     static float kNominalIntensity;
     static float kNominalCentroidSD;
 

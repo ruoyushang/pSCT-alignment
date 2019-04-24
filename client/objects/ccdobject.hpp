@@ -20,15 +20,15 @@ class CCDObject : public PasObject {
     UA_DISABLE_COPY(CCDObject);
 public:
     CCDObject(
-            const UaString &name,
-            const UaNodeId &newNodeId,
-            const UaString &defaultLocaleId,
-            PasNodeManagerCommon *pNodeManager,
-            Identity identity,
-            PasComInterfaceCommon *pCommIf) : PasObject(name, newNodeId, defaultLocaleId, pNodeManager, identity,
-                                                        pCommIf) { initialize(); }
+        const UaString &name,
+        const UaNodeId &newNodeId,
+        const UaString &defaultLocaleId,
+        PasNodeManagerCommon *pNodeManager,
+        Identity identity,
+        PasComInterfaceCommon *pCommIf) : PasObject(name, newNodeId, defaultLocaleId, pNodeManager, std::move(identity),
+                                                    pCommIf) { initialize(); }
 
-    UaNodeId typeDefinitionId() const;
+    UaNodeId typeDefinitionId() const override;
 
     const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, OpcUa_Byte>>
     getVariableDefs() override { return CCDObject::VARIABLES; }

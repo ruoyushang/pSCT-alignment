@@ -21,24 +21,21 @@ public:
     // construction / destruction
     ActController(Identity identity, Client *pClient);
 
-    virtual ~ActController();
+    ~ActController() override;
 
     // Get Controller status and data
-    UaStatus getState(PASState &state);
+    UaStatus getState(PASState &state) override;
 
-    UaStatus getData(OpcUa_UInt32 offset, UaVariant &value);
+    UaStatus getData(OpcUa_UInt32 offset, UaVariant &value) override;
 
     UaStatus getError(OpcUa_UInt32 offset, UaVariant &value);
 
     // set Controller status and data
-    UaStatus setState(PASState state);
+    UaStatus setState(PASState state) override;
 
-    UaStatus setData(OpcUa_UInt32 offset, UaVariant value);
+    UaStatus setData(OpcUa_UInt32 offset, UaVariant value) override;
 
-    UaStatus operate(OpcUa_UInt32 offset = 0, const UaVariantArray &args = UaVariantArray());
-
-private:
-    UaStatus moveDelta(const UaVariantArray &args);
+    UaStatus operate(OpcUa_UInt32 offset, const UaVariantArray &args) override;
 };
 
 #endif //CLIENT_ACTCONTROLLER_HPP

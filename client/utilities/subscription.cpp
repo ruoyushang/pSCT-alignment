@@ -16,9 +16,9 @@ using namespace UaClientSdk;
 /// @details The constructor nitializes the internal Configuration pointer,
 /// but leaves the internal Session and Subscription pointers as NULL.
 Subscription::Subscription(Configuration* pConfiguration)
-: m_pSession(NULL),
-  m_pSubscription(NULL),
-  m_pConfiguration(pConfiguration)
+    : m_pSession(nullptr),
+      m_pSubscription(nullptr),
+      m_pConfiguration(pConfiguration)
 {
 }
 
@@ -122,7 +122,7 @@ UaStatus Subscription::createSubscription(UaSession* pSession)
     }
     else
     {
-        m_pSubscription = NULL;
+        m_pSubscription = nullptr;
         printf("CreateSubscription failed with status %s\n", result.toString().toUtf8());
     }
 
@@ -134,7 +134,7 @@ UaStatus Subscription::createSubscription(UaSession* pSession)
 /// message on exit.
 UaStatus Subscription::deleteSubscription()
 {
-    if ( m_pSubscription == NULL )
+    if (m_pSubscription == nullptr)
     {
         printf("\nError: No Subscription created\n");
         return OpcUa_BadInvalidState;
@@ -157,7 +157,7 @@ UaStatus Subscription::deleteSubscription()
     {
         printf("DeleteSubscription failed with status %s\n", result.toString().toUtf8());
     }
-    m_pSubscription = NULL;
+    m_pSubscription = nullptr;
 
     return result;
 }
@@ -169,7 +169,7 @@ UaStatus Subscription::deleteSubscription()
 /// message on exit.
 UaStatus Subscription::createMonitoredItems()
 {
-    if ( m_pSubscription == NULL )
+    if (m_pSubscription == nullptr)
     {
         printf("\nError: No Subscription created\n");
         return OpcUa_BadInvalidState;
