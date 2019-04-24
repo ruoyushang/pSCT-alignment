@@ -208,22 +208,8 @@ int OpcMain(const char* szAppPath, std::vector<std::string> serverlist)
             std::cout << "*******************************************\n";
         }
 
-        if (pClientConfiguration) {
-            delete pClientConfiguration;
-            pClientConfiguration = nullptr;
-        }
-
-        if (pServer) {
-            delete pServer;
-            pServer = nullptr;
-        }
-
-        /**
-        if (pLogic) {
-            delete pLogic;
-            pLogic = nullptr;
-        }
-        */
+        delete pClientConfiguration;
+        delete pServer;
     }
 
     UaPlatformLayer::cleanup();

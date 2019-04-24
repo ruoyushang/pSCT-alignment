@@ -194,7 +194,6 @@ ENDIF (vxWorks)
 
 ####################################### Create executable ###################################
 
-
 ADD_EXECUTABLE(${PROJECT_NAME} ${P2PAS_SRC})
 
 IF ( UASTACK_WITH_OPENSSL )
