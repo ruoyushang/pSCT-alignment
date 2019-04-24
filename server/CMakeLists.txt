@@ -159,6 +159,11 @@ endif ( AMD64 )
 ####################################### Include Paths ########################################
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/..)
+include_directories(${COMMON_CODE_DIR}/alignment)
+include_directories(${COMMON_CODE_DIR}/cbccode)
+include_directories(${COMMON_CODE_DIR}/opcua)
+include_directories(${COMMON_CODE_DIR}/simulatestewart)
+include_directories(${COMMON_CODE_DIR}/utilities)
 include_directories(${UASDK_BASE_DIR}/include)
 include_directories(${UASTACK_INCLUDE})
 include_directories(${UABASE_INCLUDE})
@@ -224,7 +229,7 @@ endif (vxWorks)
 
 ####################################### Create executable ###################################
 
-add_executable(${PROJECT_NAME} ${PASSERVER_SRC} ../common/alignment/device.hpp ../common/alignment/device.cpp)
+add_executable(${PROJECT_NAME} ${PASSERVER_SRC})
 
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 11) # Set C++ standard to build against
 

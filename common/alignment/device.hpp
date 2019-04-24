@@ -2,9 +2,13 @@
 #define ALIGNMENT_DEVICE_HPP
 
 #include <iostream>
+#include <memory>
 #include <string>
 
-namespace Device {
+class CBC;
+
+class Device {
+public:
     /// @brief Platform states used to disallow/stop motion based on errors.
     enum class DeviceState {
         On = 0,
@@ -43,7 +47,6 @@ namespace Device {
         int second;
     };
 
-
     struct Identity {
         int serialNumber = -1; // engraved serial number
         std::string eAddress = "";     // electronic address: IP, USB port, serial port etc.
@@ -56,7 +59,37 @@ namespace Device {
 
         bool operator!=(const Identity &r) const;
     };
-}
+
+    Device(std::shared_ptr<CBC> pCBC, Identity identity);
+    ~Device();
+
+    virtual std::vector <Device::ErrorDefinition> getErrorCodeDefinitions() = 0;
+    int getNumErrors() { return (int)getErrorCodeDefinitions().size(); }
+
+    bool getError(int errorCode) { return m_Errors[errorCode]; }
+    void clearErrors();
+
+    virtual bool initialize() = 0;
+
+    Device::DeviceState getState() { return m_state; }
+
+    void turnOn() { setState(Device::DeviceState::On); }
+    void turnOff() { setState(Device::DeviceState::Off); }
+    void setBusy() { setState(Device::DeviceState::Busy); }
+
+protected:
+    std::shared_ptr<CBC> m_pCBC;
+    int m_Identity;
+
+    Device::DeviceState m_state;
+    std::vector<bool> m_Errors = { false };
+
+    void setState(Device::DeviceState state);
+    void updateState();
+
+    void setError(int errorCode);
+    void unsetError(int errorCode);
+};
 
 inline std::ostream &operator<<(std::ostream &out, const Device::Identity &id) {
     out << "("

@@ -42,3 +42,48 @@ bool Device::Identity::operator==(const Identity &r) const {
 }
 
 bool Device::Identity::operator!=(const Identity &r) const { return !(*this == r); }
+
+void Device::Device(std::shared_ptr<CBC> pCBC, Device::Identity identity) : m_pCBC(pCBC), m_Identity(identity) {}
+
+void Device::setError(int errorCode) {
+    DEBUG_MSG("Setting Error " << errorCode << " (" << ERROR_DEFINITIONS[errorCode].description << ") for Device "
+                               << m_Identity);
+    m_Errors[errorCode] = true;
+    setState(ERROR_DEFINITIONS[errorCode].severity);
+}
+
+void Device::unsetError(int errorCode) {
+    DEBUG_MSG(
+        "Unsetting Error " << errorCode << "(" << ERROR_DEFINITIONS[errorCode].description << ") for Device "
+                           << m_Identity);
+    m_Errors[errorCode] = false;
+    updateState();
+}
+
+void Device::setState(Device::DeviceState state) {
+    if (m_State == Device::DeviceState::FatalError) {
+        return;
+    } else {
+        DEBUG_MSG("Setting Device " << m_Identity << " Status to " << state);
+        m_State = state;
+    }
+}
+
+void Device::updateState()//cycle through all errors and set status based on ones triggered.
+{
+    m_State = Device::DeviceState::On;
+    for (int i = 0; i < getNumErrors(); i++) {
+        if (m_Errors[i]) {
+            setState(getErrorCodeDefinitions()[i].severity);
+        }
+    }
+    return;
+}
+
+void Device::clearErrors() {
+    DEBUG_MSG("Clearing All Errors for Device " << m_Identity);
+    for (int i = 0; i < getNumErrors(); i++) {
+        m_Errors[i] = false;
+    }
+    updateState();
+}

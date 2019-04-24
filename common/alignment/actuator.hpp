@@ -11,7 +11,7 @@
 #include "common/cbccode/cbc.hpp"
 
 
-class Actuator
+class Actuator : public Device
 {
 public:
 
@@ -38,8 +38,8 @@ public:
         std::vector<int> errorCodes;
     };
 
-    static constexpr const int NUM_ERROR_TYPES = 14;
-    static const std::array<Device::ErrorDefinition, NUM_ERROR_TYPES> ERROR_DEFINITIONS;
+    static const std::vector<Device::ErrorDefinition> ERROR_DEFINITIONS;
+    std::vector<Device::ErrorDefinition> getErrorCodeDefinitions() { return Actuator::ERROR_DEFINITIONS; }
 
     Actuator(std::shared_ptr<CBC> pCBC, int USBPortNumber, int serialNumber = -1,
              Device::DBInfo DBInfo = Device::DBInfo(), ASFInfo ASFFileInfo = Actuator::ASFInfo());
@@ -154,7 +154,6 @@ protected:
     void recoverStatusFromDB();
 
     void setState(Device::DeviceState state);
-
     void updateState();
 
     void setError(int errorCode);

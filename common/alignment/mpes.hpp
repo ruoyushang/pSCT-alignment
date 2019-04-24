@@ -22,7 +22,7 @@ class MPESImageSet;
 class MPESDevice;
 
 
-class MPES
+class MPES : public Device
 {
 public:
     struct Position {
@@ -35,13 +35,15 @@ public:
         float yNominal;
     };
 
+    static const std::vector<Device::ErrorDefinition> ERROR_DEFINITIONS;
+
     MPES(std::shared_ptr<CBC> pCBC, int USBPortNumber, int serialNumber);
     ~MPES();
 
     int getPortNumber() const { return m_USBPortNumber; };
     void setPortNumber(int USBPortNumber);
 
-    virtual bool initialize();
+    virtual bool initialize() override;
     virtual int setExposure();
 
     void setxNominalPosition(float x) { m_Position.xNominal = x; }
@@ -50,25 +52,20 @@ public:
     virtual int updatePosition();
     MPES::Position getPosition() const { return m_Position; };
 
+    bool getError(int errorCode) { return m_Errors[errorCode]; }
+    void clearErrors();
+    bool forceRecover();
+
     Device::DeviceState getState() { return m_state; }
 
     void turnOn() { setState(Device::DeviceState::On); }
-
     void turnOff() { setState(Device::DeviceState::Off); }
 
 protected:
-    std::shared_ptr<CBC> m_pCBC;
-
     std::shared_ptr<Platform> m_pPlatform;
 
     int m_USBPortNumber;
-    int m_SerialNumber;
-
     bool m_Calibrate;
-
-    Device::DeviceState m_state;
-
-    void setState(Device::DeviceState state) { m_state = state; }
 
     Position m_Position; // MPES Reading
 

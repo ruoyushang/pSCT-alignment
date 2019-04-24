@@ -23,7 +23,7 @@
 #include "common/alignment/platform.hpp"
 #include "common/alignment/device.hpp"
 
-const std::array<Device::ErrorDefinition, Actuator::NUM_ERROR_TYPES> Actuator::ERROR_DEFINITIONS = {
+const std::vector<Device::ErrorDefinition> Actuator::ERROR_DEFINITIONS = {
         {"Home position is not calibrated",                                                                                                                           Device::DeviceState::FatalError},//error 0
         {"DBInfo not set",                                                                                                                                            Device::DeviceState::OperableError},//error 1
         {"MySQL Communication Error",                                                                                                                                 Device::DeviceState::OperableError},//error 2
@@ -708,44 +708,6 @@ int Actuator::convertPositionToSteps(Position position) {
     return position.revolution * m_StepsPerRevolution + position.angle;
 }
 
-void Actuator::setError(int errorCode) {
-    DEBUG_MSG("Setting Error " << errorCode << " (" << ActuatorErrors[errorCode].ErrorDescription << ") for Actuator "
-                               << SerialNumber);
-    m_Errors[errorCode] = true;
-    setState(ERROR_DEFINITIONS[errorCode].severity);
-    return;
-}
-
-void Actuator::unsetError(int errorCode) {
-    DEBUG_MSG(
-            "Unsetting Error " << errorCode << "(" << ActuatorErrors[errorCode].ErrorDescription << ") for Actuator "
-                               << SerialNumber);
-    m_Errors[errorCode] = false;
-    updateState();
-    return;
-}
-
-void Actuator::setState(Device::DeviceState state) {
-    if (m_State == Device::DeviceState::FatalError) {
-        return;
-    } else {
-        DEBUG_MSG("Setting Actuator " << SerialNumber << " Status to " << state);
-        m_State = state;
-
-    }
-}
-
-void Actuator::updateState()//cycle through all errors and set status based on ones triggered.
-{
-    m_State = Device::DeviceState::On;
-    for (int i = 0; i < NUM_ERROR_TYPES; i++) {
-        if (m_Errors[i]) {
-            setState(ERROR_DEFINITIONS[i].severity);
-        }
-    }
-    return;
-}
-
 void Actuator::probeHome()//method used to define home.
 {
     DEBUG_MSG("Probing Home for Actuator " << SerialNumber);
@@ -914,11 +876,7 @@ void Actuator::createDefaultASF()//hardcoded structure of the ASF file (year,mo,
 }
 
 void Actuator::clearErrors() {
-    DEBUG_MSG("Clearing All Errors for Actuator " << m_SerialNumber);
-    for (int i = 0; i < NUM_ERROR_TYPES; i++) {
-        m_Errors[i] = false;
-    }
-    updateState();
+    Device::clearErrors();
     saveStatusToASF();
 }
 

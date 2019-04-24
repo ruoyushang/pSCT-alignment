@@ -17,15 +17,14 @@
 
 class CBC;
 
-class Platform
+class Platform : public Device
 {
 public:
     // Public constants
 
     static constexpr const int NUM_ACTS_PER_PLATFORM = 6;
 
-    static constexpr const int NUM_ERROR_TYPES = 15;
-    static const std::array<Device::ErrorDefinition, NUM_ERROR_TYPES> ERROR_DEFINITIONS;
+    static const std::vector<Device::ErrorDefinition> ERROR_DEFINITIONS;
 
     // Initialization methods
     Platform();
@@ -40,11 +39,6 @@ public:
     ~Platform();
 
     void initialize();
-
-    void turnOn() { setState(Device::DeviceState::On); }
-    void turnOff() { setState(Device::DeviceState::Off); }
-
-    void setBusy() { setState(Device::DeviceState::Busy); }
 
     void setCBCserial(int serial) { m_CBCserial = serial; }
     int getCBCserial() { return m_CBCserial; }
@@ -96,13 +90,9 @@ public:
     std::array<float, NUM_ACTS_PER_PLATFORM> moveDeltaLengths(std::array<float, NUM_ACTS_PER_PLATFORM> lengthsToMove);
 
     // Error functionality
-    const Device::DeviceState &getState();
 
     void clearActuatorErrors();
-
     void clearPlatformErrors();
-
-    void updateState();
 
     // MPES functionality
 

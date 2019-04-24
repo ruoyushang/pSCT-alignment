@@ -27,15 +27,28 @@ const float SAFETY_REGION_Y_MAX = 200.0;
 const float NOMINAL_INTENSITY = 150000.;
 const float NOMINAL_CENTROID_SD = 20.;
 
-MPES::MPES(std::shared_ptr<CBC> pCBC, int USBPortNumber, int serialNumber) :
-    m_pCBC {pCBC},
-    m_SerialNumber(serialNumber),
+const std::vector<Device::ErrorDefinition> MPES::ERROR_DEFINITIONS = {
+    {"Bad connection. No device found",                                                                            Device::DeviceState::FatalError},//error 0
+    {"Intermittent connection, select timeout.",                                                                   Device::DeviceState::FatalError},//error 1
+    {"Cannot find laser spot (totally dark). Laser dead or not in FoV.",                                           Device::DeviceState::FatalError},//error 2
+    {"Too bright. Cleaned Intensity > 1e6. Likely cause: no tube.",                                                Device::DeviceState::OperableError},//error 3
+    {"Too bright. 1e6 >Cleaned Intensity > 5e5 and very wide spot width >20",                                      Device::DeviceState::FatalError},//error 4
+    {"Very uneven spot. Likely due to being in the reflection region (too close to webcam edges) or a bad laser.", Device::DeviceState::OperableError},//error 5
+    {"Uneven spot. Spot is uneven, but not severe. Likely recoverable.",                                           Device::DeviceState::OperableError},//error 6
+    {"Intensity deviation from nominal value (more than 20%).",                                                    Device::DeviceState::OperableError},//error 7
+};
+
+MPES::MPES(std::shared_ptr<CBC> pCBC, identity) : Device::Device(pCBC, identity)
+
+m_SerialNumber(identity
+.serialNumber),
     m_Calibrate(false)
 {
-    setPortNumber(USBPortNumber);
+setPortNumber(m_Identity
+.eAddress);
 }
 
-MPES::~MPES()
+MPES::~MPES() : Device::~Device()
 {
     m_pCBC->usb.disable(m_USBPortNumber);
 }
