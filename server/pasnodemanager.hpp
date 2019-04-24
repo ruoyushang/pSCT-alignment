@@ -21,16 +21,13 @@ public:
     /// @brief Instantiate a PasNodeManager object.
     PasNodeManager();
 
-    /// @brief Destroy a PasNodeManager object.
-    ~PasNodeManager() {};
-
     /// @brief Create OPC UA nodes and folders for all devices in the server.
     /// @return OPC UA status code indicating success or failure.
-    UaStatus afterStartUp();
+    UaStatus afterStartUp() override;
 
     /// @brief Clean up before shutting down server.
     /// @return OPC UA status code indicating success or failure.
-    UaStatus beforeShutDown();
+    UaStatus beforeShutDown() override;
 
     /// @brief Set the communication interface to use for operating/reading devices.
     /// @param pCommIf Pointer to the communication interface for the node manager.

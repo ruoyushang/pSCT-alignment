@@ -29,23 +29,23 @@ public:
     MPESController(int ID, std::shared_ptr<Platform> pPlatform);
 
     /// @brief Destroy an MPES device controller object.
-    ~MPESController();
+    ~MPESController() override;
 
     /// @brief Initialize the MPES by setting its exposure.
     /// #return 0 on success, -1 on failure.
-    int Initialize();
+    int initialize() override;
 
     /// @brief Get the value of an MPES data variable.
     /// @return OPC UA status code indicating success or failure.
-    UaStatus getData(OpcUa_UInt32 offset, UaVariant &value);
+    UaStatus getData(OpcUa_UInt32 offset, UaVariant &value) override;
 
     /// @brief Set the value of an MPES data variable.
     /// @return OPC UA status code indicating success or failure.
-    UaStatus setData(OpcUa_UInt32 offset, UaVariant value);
+    UaStatus setData(OpcUa_UInt32 offset, UaVariant value) override;
 
     /// @brief Call a method on the MPES device.
     /// @return OPC UA status code indicating success or failure.
-    UaStatus operate(OpcUa_UInt32 offset, const UaVariantArray &args);
+    UaStatus operate(OpcUa_UInt32 offset, const UaVariantArray &args) override;
 
 private:
     /// @brief The internal device state.

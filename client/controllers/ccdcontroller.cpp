@@ -40,7 +40,7 @@ CCDController::~CCDController() {
     Description  Get Controller status.
 -----------------------------------------------------------------------------*/
 UaStatus CCDController::getState(PASState &state) {
-    UaMutexLocker lock(&m_mutex);
+    //UaMutexLocker lock(&m_mutex);
     state = m_state;
     return OpcUa_Good;
 }
@@ -57,7 +57,7 @@ UaStatus CCDController::setState(PASState state) {
     if (state == m_state) {
         return OpcUa_BadInvalidState;
     }
-    UaMutexLocker lock(&m_mutex);
+    //UaMutexLocker lock(&m_mutex);
 
     m_state = state;
     return OpcUa_Good;
@@ -70,7 +70,7 @@ UaStatus CCDController::setState(PASState state) {
 -----------------------------------------------------------------------------*/
 UaStatus CCDController::getData(OpcUa_UInt32 offset, UaVariant &value) {
     UaStatus status;
-    UaMutexLocker lock(&m_mutex);
+    //UaMutexLocker lock(&m_mutex);
     int dataoffset = offset - PAS_CCDType_xFromLED;
     if (dataoffset >= 6)
         return OpcUa_BadInvalidArgument;
@@ -114,7 +114,7 @@ UaStatus CCDController::setData(OpcUa_UInt32 offset, UaVariant value) {
     Description  run a method on the sensor
 -----------------------------------------------------------------------------*/
 UaStatus CCDController::operate(OpcUa_UInt32 offset, const UaVariantArray &args) {
-    UaMutexLocker lock(&m_mutex);
+    //UaMutexLocker lock(&m_mutex);
     UaStatus status;
 
     switch (offset) {
@@ -140,7 +140,7 @@ UaStatus CCDController::operate(OpcUa_UInt32 offset, const UaVariantArray &args)
     Description  Read Controller data.
 -----------------------------------------------------------------------------*/
 UaStatus CCDController::read() {
-    UaMutexLocker lock(&m_mutex);
+    //UaMutexLocker lock(&m_mutex);
 
     if (m_state == PASState::On) {
         std::cout << "Reading CCD " << m_ID.name.c_str() << std::endl;

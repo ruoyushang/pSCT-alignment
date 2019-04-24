@@ -28,7 +28,7 @@ PositionerController::~PositionerController()
 UaStatus PositionerController::getState(PASState &state)
 {
     UaStatus status;
-    UaMutexLocker lock(&m_mutex);
+    //UaMutexLocker lock(&m_mutex);
     
     UaVariant res;
     std::vector< std::string > vec_curread {"ns=2;s=Application.USERVARGLOBAL_OPCUA.is_moving"};
@@ -63,7 +63,7 @@ UaStatus PositionerController::setState(PASState state)
 UaStatus PositionerController::getData(OpcUa_UInt32 offset, UaVariant &value)
 {
     UaStatus status;
-    UaMutexLocker lock(&m_mutex);
+    //UaMutexLocker lock(&m_mutex);
 
     std::vector<std::string> varstoread {"is_moving", "current_position.az", "current_position.el",
                              "in_position.az", "in_position.el", "current_energy_level"};
@@ -118,7 +118,7 @@ UaStatus PositionerController::setData(
 -----------------------------------------------------------------------------*/
 UaStatus PositionerController::operate(OpcUa_UInt32 offset, const UaVariantArray &args)
 {
-    UaMutexLocker lock(&m_mutex);
+    //UaMutexLocker lock(&m_mutex);
     UaStatusCode  status;
     
                

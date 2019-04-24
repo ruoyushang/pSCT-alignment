@@ -28,7 +28,7 @@ UaStatus PSDController::getState(PASState &state) {
 }
 
 UaStatus PSDController::setState(PASState state) {
-    UaMutexLocker lock(&m_mutex);
+    //UaMutexLocker lock(&m_mutex);
 
     return OpcUa_BadNotWritable;
 }
@@ -39,7 +39,7 @@ UaStatus PSDController::getData(OpcUa_UInt32 offset, UaVariant &value) {
         return OpcUa_BadInvalidArgument;
     }
 
-    UaMutexLocker lock(&m_mutex);
+    //UaMutexLocker lock(&m_mutex);
     UaStatus status;
 
     if (__expired()) // if cached values expired, update them

@@ -23,10 +23,10 @@ class PSDController : public PasController
 public:
     /// @brief Instantiate a position sensitive device controller.
     /// @param ID The device ID (index) used to identify it within its parent panel/platform.
-    PSDController(int ID);
+    explicit PSDController(int ID);
 
     /// @brief Destroy a position sensitive device controller.
-    ~PSDController();
+    ~PSDController() override;
 
     /// @brief Get the value of a PSD data variable.
     /// @param offset A number used to uniquely identify the data variable to access.

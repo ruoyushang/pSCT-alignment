@@ -28,7 +28,7 @@ public:
     ActController(int ID, std::shared_ptr<Platform> pPlatform);
 
     /// @brief Destroy an actuator device controller object.
-    ~ActController();
+    ~ActController() override;
 
     /// @brief Update the controller's internal state to match the underlying Actuator object's state.
     /// @return OPC UA status code indicating success or failure.
@@ -37,13 +37,13 @@ public:
     /// @brief Get the internal state of the actuator device.
     /// @param state Variable to store the retrieved state value.
     /// @return OPC UA status code indicating success or failure.
-    UaStatus getState(PASState &state);
+    UaStatus getState(PASState &state) override;
 
     /// @brief Get the value of an actuator data variable.
     /// @param offset A number used to uniquely identify the data variable to access.
     /// @param value Variable to store the retrieved data value.
     /// @return OPC UA status code indicating success or failure.
-    UaStatus getData(OpcUa_UInt32 offset, UaVariant &value);
+    UaStatus getData(OpcUa_UInt32 offset, UaVariant &value) override;
 
     /// @brief Get the value of an actuator error variable.
     /// @param offset A number used to uniquely identify the error variable to access.
@@ -55,7 +55,7 @@ public:
     /// @param offset A number used to uniquely identify the data variable to access.
     /// @param value Value to write to the selected data variable.
     /// @return OPC UA status code indicating success or failure.
-    UaStatus setData(OpcUa_UInt32 offset, UaVariant value);
+    UaStatus setData(OpcUa_UInt32 offset, UaVariant value) override;
 
     /// @brief Set the value of an actuator error variable.
     /// @param offset A number used to uniquely identify the error variable to access.
@@ -67,7 +67,7 @@ public:
     /// @param offset A number used to uniquely identify the method to call.
     /// @param args Array of method arguments as UaVariants.
     /// @return OPC UA status code indicating success or failure.
-    UaStatus operate(OpcUa_UInt32 offset, const UaVariantArray &args);
+    UaStatus operate(OpcUa_UInt32 offset, const UaVariantArray &args) override;
 
     void setDeltaLength(float deltaLength) { m_DeltaLength = deltaLength; }
     void setTargetLength(float targetLength) { m_TargetLength = targetLength; }

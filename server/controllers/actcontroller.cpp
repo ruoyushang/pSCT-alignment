@@ -12,10 +12,8 @@
 #include "common/opcua/passervertypeids.hpp"
 
 /// @details Sets state to On, inLength to current length, and DeltaL to 0.
-ActController::ActController(int ID, std::shared_ptr<Platform> pPlatform) : PasController(ID, pPlatform) {
-    m_state = PASState::On;
-    m_DeltaLength = 0.;
-}
+ActController::ActController(int ID, std::shared_ptr<Platform> pPlatform) : PasController(ID, std::move(pPlatform)),
+                                                                            m_state(PASState::On), m_DeltaLength(0.0) {}
 
 /// @details Sets state to off.
 ActController::~ActController() {
@@ -97,17 +95,7 @@ UaStatus ActController::setData(OpcUa_UInt32 offset, UaVariant value) {
     //UaMutexLocker lock(&m_mutex);
     UaStatus status;
 
-    switch (offset) {
-        case PAS_ACTType_DeltaLength:
-            //value.toFloat(m_DeltaL);
-            //status = OpcUa_Good;
-            status = OpcUa_BadNotWritable;
-            break;
-        default:
-            status = OpcUa_BadNotWritable;
-    }
-
-    return status;
+    return OpcUa_BadNotWritable;
 }
 
 /// @details Does nothing, as errors are not currently user-writeable.

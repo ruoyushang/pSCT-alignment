@@ -54,7 +54,7 @@ UaStatus EdgeController::setState(PASState state) {
     if (state == m_state) {
         return OpcUa_BadInvalidState;
     }
-    UaMutexLocker lock(&m_mutex);
+    //UaMutexLocker lock(&m_mutex);
     m_state = state;
     return OpcUa_Good;
 }

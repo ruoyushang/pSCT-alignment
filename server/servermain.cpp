@@ -79,7 +79,7 @@ int OpcServerMain(const std::string &szAppPath, const std::string &configFilePat
         std::unique_ptr<PasCommunicationInterface> pCommIf = std::unique_ptr<PasCommunicationInterface>(
                 new PasCommunicationInterface()); // Initialize communication interface
         pCommIf->setPanelNumber(panelNumber);
-        UaStatus retStatus = pCommIf->Initialize();
+        UaStatus retStatus = pCommIf->initialize();
         UA_ASSERT(retStatus.isGood());
 
         std::unique_ptr<PasNodeManager> pNodeManager = std::unique_ptr<PasNodeManager>(

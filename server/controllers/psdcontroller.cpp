@@ -73,13 +73,11 @@ UaStatus PSDController::operate(OpcUa_UInt32 offset, const UaVariantArray &args)
     //UaMutexLocker lock(&m_mutex);
 
     UaStatus status;
-    switch ( offset )
-    {
-        case PAS_PSDType_Read:
-            status = read();
-            break;
-        default:
-            status = OpcUa_BadInvalidArgument;
+    if ( offset == PAS_PSDType_Read) {
+        status = read();
+    }
+    else {
+        status = OpcUa_BadInvalidArgument;
     }
 
     return status;
@@ -97,10 +95,9 @@ UaStatus PSDController::read()
         m_lastUpdateTime = std::chrono::system_clock::now();
         return OpcUa_Good;
     }
-    else
+    else {
         return OpcUa_BadOutOfService;
-
-    return OpcUa_BadUnexpectedError;
+    }
 }
 
 #endif

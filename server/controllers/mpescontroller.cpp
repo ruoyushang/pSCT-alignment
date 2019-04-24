@@ -28,7 +28,7 @@ MPESController::~MPESController() {
 }
 
 /// @details Sets exposure for this MPES.
-int MPESController::Initialize() {
+int MPESController::initialize() {
     int ret = m_pPlatform->getMPESAt(m_ID)->setExposure();
     if (ret > 0) {
         return 0;

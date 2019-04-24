@@ -80,9 +80,9 @@ if [[ ("$count" > 0) ]]; then
          printf "(%d/%d) Starting server for panel %d at address %s.\n" "$i" "$count" "$panel_num" "$endpoint_addr"
          abspath=$(realpath ${config_filename})
          if ${background} ; then
-           nohup ../sdk/bin/passerver ${panel_num} -c $abspath &>${panel_num}.log &
+           nohup ../sdk/bin/passerver ${panel_num} -c ${abspath} &>${panel_num}.log &
          else
-           ../sdk/bin/passerver ${panel_num} -c $abspath>${panel_num}.log &
+           ../sdk/bin/passerver ${panel_num} -c ${abspath} >${panel_num}.log &
          fi
          ((i++))
     done
@@ -100,11 +100,11 @@ if [[ ("$count" > 0) ]]; then
 
     printf "Done.\n"
 
-    if ! $background ; then
+    if ! ${background} ; then
       trap interrupt INT
       read -n1 -r -p "Press x to shut down..." key
 
-      if [ "$key" = 'x' ]; then
+      if [[ "$key" = 'x' ]]; then
           interrupt
       fi
     fi

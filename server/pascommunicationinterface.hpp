@@ -31,14 +31,14 @@ class PasCommunicationInterface : public PasComInterfaceCommon {
 public:
 
     /// @brief Instantiate a communication interface object.
-    PasCommunicationInterface() {};
+    PasCommunicationInterface() = default;
 
     /// @brief Destroy a communication interface object.
-    ~PasCommunicationInterface() { std::cout << "Closed and cleaned up Communication Interface\n"; }
+    ~PasCommunicationInterface() override { std::cout << "Closed and cleaned up Communication Interface\n"; }
 
     /// @brief Initialize all device controllers using information from the database.
     /// @return OPC UA status code indicating success/failure.
-    UaStatus Initialize();
+    UaStatus initialize() override;
 
     /// @brief Set the panel number used when retreiving information from the database.
     /// @param panelNumber Position number of the panel for this server.
@@ -67,9 +67,9 @@ public:
     /// @param state Variable to store the retrieved state value.
     /// @return OPC UA status code indicating success/failure.
     UaStatus getDeviceState(
-            OpcUa_UInt32 deviceType,
-            const Identity &identity,
-            PASState &state);
+        OpcUa_UInt32 deviceType,
+        const Identity &identity,
+        PASState &state) override;
 
     /// @brief Get a device's data through its controller.
     /// @param deviceType OPC UA type ID for the desired device object type.
@@ -78,10 +78,10 @@ public:
     /// @param value Variable to store the retrieved data value.
     /// @return OPC UA status code indicating success/failure.
     UaStatus getDeviceData(
-            OpcUa_UInt32 deviceType,
-            const Identity &identity,
-            OpcUa_UInt32 offset,
-            UaVariant &value);
+        OpcUa_UInt32 deviceType,
+        const Identity &identity,
+        OpcUa_UInt32 offset,
+        UaVariant &value) override;
 
     /// @brief Set a device's state through its controller.
     /// @param deviceType OPC UA type ID for the desired device object type.
@@ -89,9 +89,9 @@ public:
     /// @param state State value to set the device state to.
     /// @return OPC UA status code indicating success/failure.
     UaStatus setDeviceState(
-            OpcUa_UInt32 deviceType,
-            const Identity &identity,
-            PASState state);
+        OpcUa_UInt32 deviceType,
+        const Identity &identity,
+        PASState state) override;
 
     /// @brief Set a device's data through its controller.
     /// @param deviceType OPC UA type ID for the desired device object type.
@@ -100,10 +100,10 @@ public:
     /// @param value Value to write to the data variable.
     /// @return OPC UA status code indicating success/failure.
     UaStatus setDeviceData(
-            OpcUa_UInt32 deviceType,
-            const Identity &identity,
-            OpcUa_UInt32 offset,
-            UaVariant value);
+        OpcUa_UInt32 deviceType,
+        const Identity &identity,
+        OpcUa_UInt32 offset,
+        UaVariant value) override;
 
     /// @brief Operate a device through its controller.
     /// @param deviceType OPC UA type ID for the desired device object type.
@@ -111,22 +111,14 @@ public:
     /// @param offset A number used to uniquely identify the method to call.
     /// @param args Array of method arguments as UaVariants.
     /// @return OPC UA status code indicating success/failure.
-    UaStatus OperateDevice(
-            OpcUa_UInt32 deviceType,
-            const Identity &identity,
-            OpcUa_UInt32 offset,
-            const UaVariantArray &args);
+    UaStatus operateDevice(
+        OpcUa_UInt32 deviceType,
+        const Identity &identity,
+        OpcUa_UInt32 offset,
+        const UaVariantArray &args) override;
 
     /// @brief Map of OPC UA type ID to device type name for all device types supported by the server.
     static const std::map<OpcUa_UInt32, std::string> deviceTypes;
-
-    // Placeholders to implement pure virtual methods in PasCommInterfaceCommon
-    OpcUa_Int32 getDevices(OpcUa_UInt32 deviceType) { return 0; }
-
-    UaStatus getDeviceConfig(OpcUa_UInt32 type,
-                             OpcUa_UInt32 deviceIndex,
-                             UaString &sName,
-                             Identity &identity) { return OpcUa_BadNotImplemented; }
 
 private:
     /// @brief Shared mutex used to control multi thread access to controller.

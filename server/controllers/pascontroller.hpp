@@ -27,8 +27,9 @@ public:
     /// @param ID The device index within its type.
     /// @param pPlatform Pointer to the platform object used to interface with the hardware.
     /// @param updateInterval Update interval in milliseconds.
-    PasController(int ID, std::shared_ptr<Platform> pPlatform = std::shared_ptr<Platform>(nullptr),
-                  int updateInterval = 0) : m_ID(ID), m_pPlatform(pPlatform), m_kUpdateInterval_ms(updateInterval) {}
+    explicit PasController(int ID, std::shared_ptr<Platform> pPlatform = std::shared_ptr<Platform>(nullptr),
+                           int updateInterval = 0) : m_ID(ID), m_state(PASState::On), m_pPlatform(std::move(pPlatform)),
+                                                     m_kUpdateInterval_ms(updateInterval) {}
 
     /// @brief Instantiate a PasController object without a Platform object.
     /// @param ID The device index within its type.
@@ -37,18 +38,18 @@ public:
 
     /// @brief Initialize the controller object.
     /// @return 0 on success, -1 on failure.
-    virtual int Initialize() { return 0; } // only MPES overload this for now
+    virtual int initialize() { return 0; } // only MPES overload this for now
     /// @brief Get the device ID/index.
     /// @return The device ID.
     int getId() { return m_ID; }
 
     /// @brief Destroy a controller object.
-    virtual ~PasController() {}
+    virtual ~PasController() = default;
 
     /// @brief Get the device's state.
     /// @param state Variable to store the retrieved state value.
     /// @return OPC UA status code indicating success or failure.
-    virtual UaStatus getState(PASState &state);
+    virtual UaStatus getState(PASState &state) = 0;
 
     /// @brief Get data from a device variable.
     /// @param offset A number used to uniquely identify the data variable to access.
@@ -59,7 +60,7 @@ public:
     /// @brief Set the device's state.
     /// @param state Value to set the device state to.
     /// @return OPC UA status code indicating success or failure.
-    virtual UaStatus setState(PASState state);
+    virtual UaStatus setState(PASState state) = 0;
 
     /// @brief Set a device data variable.
     /// @param offset A number used to uniquely identify the data variable to access.
@@ -70,8 +71,7 @@ public:
     /// @param offset A number used to uniquely identify the method to call.
     /// @param args Array of method arguments as UaVariants.
     /// @return OPC UA status code indicating success or failure.
-    virtual UaStatus
-    operate(OpcUa_UInt32 offset, const UaVariantArray &args = UaVariantArray()) = 0; // Pure virtual function
+    virtual UaStatus operate(OpcUa_UInt32 offset, const UaVariantArray &args) = 0; // Pure virtual function
 
 protected:
     /// @brief Shared mutex used to lock parallel access to controller variables.

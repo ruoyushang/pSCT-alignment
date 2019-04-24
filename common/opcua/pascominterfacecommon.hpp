@@ -32,14 +32,7 @@ public:
     PasComInterfaceCommon() {};
     virtual ~PasComInterfaceCommon() {};
 
-    virtual UaStatus Initialize() = 0;
-
-    virtual OpcUa_Int32 getDevices(OpcUa_UInt32 deviceType) = 0;
-
-    virtual UaStatus getDeviceConfig(OpcUa_UInt32 type,
-                                     OpcUa_UInt32 deviceIndex,
-                                     UaString &sName,
-                                     Identity &identity) = 0;
+    virtual UaStatus initialize() = 0;
 
     /* Get device status and data */
     virtual UaStatus getDeviceState(OpcUa_UInt32 type, const Identity &identity, PASState &state) = 0;
@@ -55,7 +48,7 @@ public:
                                    OpcUa_UInt32 offset,
                                    UaVariant value) = 0;
 
-    virtual UaStatus OperateDevice(OpcUa_UInt32 type, const Identity &identity,
+    virtual UaStatus operateDevice(OpcUa_UInt32 type, const Identity &identity,
                                    OpcUa_UInt32 offset = 0,
                                    const UaVariantArray &args = UaVariantArray()) = 0;
 };

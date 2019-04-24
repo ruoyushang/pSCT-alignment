@@ -54,7 +54,7 @@ UaStatus PasNodeManager::afterStartUp()
     // addNode or addNodeandReference)
 
     PasObject *pObject;
-    PanelObject *pPanel;
+    PanelObject *pPanel = nullptr;
     std::set<PasObject *> pChildObjects;
 
     std::map<OpcUa_UInt32, UaFolder *> pDeviceTypeFolders;
@@ -86,13 +86,13 @@ UaStatus PasNodeManager::afterStartUp()
     // Note that only the Communication Interface knows what types and numbers of devices we have
     OpcUa_UInt32 deviceType;
     UaString deviceName;
-    for (auto pair : PasCommunicationInterface::deviceTypes) {
+    for (const auto &pair : PasCommunicationInterface::deviceTypes) {
         deviceType = pair.first;
         deviceTypeName = pair.second;
         validDeviceIdentities = dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->getValidDeviceIdentities(
                 deviceType);
 
-        for (auto identity : validDeviceIdentities) {
+        for (const auto &identity : validDeviceIdentities) {
             deviceName = UaString(deviceTypeName.c_str()) + "_" + identity.eAddress.c_str();
             //If folder doesn't already exist, create a folder for each object type and add the folder to the DevicesByType folder
             if (pDeviceTypeFolders.find(deviceType) == pDeviceTypeFolders.end()) {
@@ -117,6 +117,8 @@ UaStatus PasNodeManager::afterStartUp()
             } else if (deviceType == PAS_PSDType) {
                 pObject = new PSDObject(deviceName, UaNodeId(deviceName, getNameSpaceIndex()), m_defaultLocaleId,
                                         static_cast<PasNodeManagerCommon *>(this), identity, m_pCommIf.get());
+            } else {
+                return OpcUa_Bad;
             }
 
             ret = addUaNode(pObject); // Create node
@@ -131,7 +133,11 @@ UaStatus PasNodeManager::afterStartUp()
             UA_ASSERT(ret.isGood());
 
             if (deviceType == PAS_PanelType) {
-                pPanel = dynamic_cast<PanelObject *>(pObject); // Keep track of the single panel object separately (as it is the parent of all others).
+                if (!pPanel) {
+                    pPanel = dynamic_cast<PanelObject *>(pObject); // Keep track of the single panel object separately (as it is the parent of all others).
+                } else {
+                    std::cout << "Warning: More than one panel found! There should only be one.\n";
+                }
             } else {
                 pChildObjects.insert(pObject); // Add pointer to new object to pChildObjects set.
             }
@@ -143,6 +149,12 @@ UaStatus PasNodeManager::afterStartUp()
                 registerEventNotifier(pAreaMPESFolder->nodeId(), pObject->nodeId());
             }
         }
+    }
+
+    // Check at least one panel has been found
+    if (!pPanel) {
+        std::cout << "Error: No panel found. There should always be one in the server device list.\n";
+        return OpcUa_Bad;
     }
 
     // Loop through all created objects and add as children of the panel
