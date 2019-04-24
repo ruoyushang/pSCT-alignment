@@ -11,7 +11,8 @@ class PasNodeManagerCommon : public NodeManagerBase
 {
 public:
     PasNodeManagerCommon();
-    virtual ~PasNodeManagerCommon();
+
+    virtual ~PasNodeManagerCommon() = default;
 
     // NodeManagerUaNode implementation
     virtual UaStatus afterStartUp() = 0;

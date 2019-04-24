@@ -20,8 +20,8 @@ enum class PASState {
     Busy = 2,
     FatalError = 3,
     OperableError = 4,
-        GLOB_Positioner_Moving = 10,
-        GLOB_Positioner_notMoving = 11
+    GLOB_Positioner_Moving = 10,
+    GLOB_Positioner_notMoving = 11
     };
 
 struct Identity;

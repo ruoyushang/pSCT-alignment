@@ -17,14 +17,14 @@ PasObject::PasObject(const UaString& name,
         PasNodeManagerCommon *pNodeManager,
         Identity identity,
         PasComInterfaceCommon *pCommIf) :
-        BaseObjectType(newNodeId, name, pNodeManager->getNameSpaceIndex(),
+    BaseObjectType(newNodeId, name, pNodeManager->getNameSpaceIndex(),
                          pNodeManager->getNodeManagerConfig()),
-        m_defaultLocaleId(defaultLocaleId),
-        m_pSharedMutex(NULL),
-        m_Identity(identity),
-        m_pCommIf(pCommIf),
-        m_pNodeManager(pNodeManager),
-        m_newNodeId(newNodeId) {
+    m_defaultLocaleId(defaultLocaleId),
+    m_pSharedMutex(nullptr),
+    m_Identity(std::move(identity)),
+    m_pCommIf(pCommIf),
+    m_pNodeManager(pNodeManager),
+    m_newNodeId(newNodeId) {
 }
 
 void PasObject::initialize() {
@@ -55,7 +55,7 @@ void PasObject::initialize() {
     UA_ASSERT(addStatus.isGood());
 
     // Add all error variable nodes
-    for (auto v : getErrorDefs()) {
+    for (const auto &v : getErrorDefs()) {
         pDataItem = addVariable(m_pNodeManager, typeDefinitionId().identifierNumeric(), v.first, OpcUa_False, false);
         addStatus = m_pNodeManager->addUaReference(pErrorFolder->nodeId(), pDataItem->nodeId(), OpcUaId_Organizes);
     }
@@ -95,7 +95,7 @@ void PasObject::initialize() {
 PasObject::~PasObject() {
     if (m_pSharedMutex) {
         m_pSharedMutex->releaseReference(); // Release our local reference
-        m_pSharedMutex = NULL;
+        m_pSharedMutex = nullptr;
     }
 }
 
@@ -124,7 +124,7 @@ UaStatus PasObject::beginCall(
 {
     UaStatus ret;
 
-    OpcUa::MethodCallJob* pCallJob = new OpcUa::MethodCallJob;
+    auto pCallJob = new OpcUa::MethodCallJob;
     pCallJob->initialize(this, pCallback, serviceContext, callbackHandle, pMethodHandle, inputArguments);
     ret = NodeManagerRoot::CreateRootNodeManager()->pServerManager()->getThreadPool()->addJob(pCallJob);
     if ( ret.isBad() )
@@ -143,8 +143,8 @@ UaStatus PasObject::call(
         UaStatusCodeArray &inputArgumentResults,
         UaDiagnosticInfos &inputArgumentDiag) {
     UaStatus ret;
-    MethodHandleUaNode *pMethodHandleUaNode = static_cast<MethodHandleUaNode *>(pMethodHandle);
-    UaMethod *pMethod = NULL;
+    auto pMethodHandleUaNode = dynamic_cast<MethodHandleUaNode *>(pMethodHandle);
+    UaMethod *pMethod = nullptr;
 
     int numArgs;
     OpcUa_UInt32 methodTypeID;
@@ -156,7 +156,7 @@ UaStatus PasObject::call(
             methodTypeID = m_MethodMap[pMethod->nodeId()].second;
             numArgs = getMethodDefs().at(methodTypeID).second.size();
 
-            if (inputArguments.length() != numArgs)
+            if (inputArguments.length() != (unsigned) numArgs)
                 ret = OpcUa_BadInvalidArgument;
 
             /**
@@ -178,6 +178,8 @@ UaStatus PasObject::call(
     } else {
         ret = OpcUa_BadInvalidArgument;
     }
+
+    return ret;
 }
 
 OpcUa::DataItemType* PasObject::addVariable(PasNodeManagerCommon *pNodeManager, OpcUa_UInt32 ParentType, OpcUa_UInt32 VarType, OpcUa_Boolean isState, OpcUa_Boolean addReference)
@@ -186,7 +188,7 @@ OpcUa::DataItemType* PasObject::addVariable(PasNodeManagerCommon *pNodeManager, 
     UaVariable* pInstanceDeclaration = pNodeManager->getInstanceDeclarationVariable(VarType);
     UA_ASSERT(pInstanceDeclaration!=NULL);
     // Create new variable and add it as component to this object
-    OpcUa::DataItemType* pDataItem = new OpcUa::DataItemType(this, pInstanceDeclaration, pNodeManager, m_pSharedMutex);
+    auto pDataItem = new OpcUa::DataItemType(this, pInstanceDeclaration, pNodeManager, m_pSharedMutex);
 
     UaStatus addStatus;
     if (addReference)
