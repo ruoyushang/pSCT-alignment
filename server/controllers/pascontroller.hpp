@@ -16,40 +16,32 @@
 #include "uabase/uavariant.h"
 
 #include "common/opcua/pascominterfacecommon.hpp"
+#include "common/opcua/pascontrollercommon.hpp"
 
 class Platform;
 
 /// @brief Class representing a generic device controller.
-class PasController : PasControllerCommon {
+class PasController : public PasControllerCommon {
     UA_DISABLE_COPY(PasController); // Disables copy construction and copy assignment.
 public:
     /// @brief Instantiate a PasController object with a Platform object.
     /// @param ID The device index within its type.
     /// @param pPlatform Pointer to the platform object used to interface with the hardware.
     /// @param updateInterval Update interval in milliseconds.
-    explicit PasController(int ID, std::shared_ptr<Platform> pPlatform = std::shared_ptr<Platform>(nullptr),
+    explicit PasController(Identity identity, std::shared_ptr<Platform> pPlatform = std::shared_ptr<Platform>(nullptr),
                            int updateInterval = 0) : PasControllerCommon(ID, updateInterval), m_pPlatform(std::move(pPlatform)) {}
 
     /// @brief Instantiate a PasController object without a Platform object.
     /// @param ID The device index within its type.
     /// @param updateInterval Update interval in milliseconds.
-    PasController(int ID, int updateInterval) : PasController(ID, std::shared_ptr<Platform>(nullptr), updateInterval) {}
-
-    /// @brief Get the device's state.
-    /// @param state Variable to store the retrieved state value.
-    /// @return OPC UA status code indicating success or failure.
-    virtual UaStatus getState(PASState &state) = 0;
+    PasController(Identity identity, int updateInterval) : PasController(identity, std::shared_ptr<Platform>(nullptr),
+                                                                         updateInterval) {}
 
     /// @brief Get data from a device variable.
     /// @param offset A number used to uniquely identify the data variable to access.
     /// @param value Variable to store the retrieved data value.
     /// @return OPC UA status code indicating success or failure.
     virtual UaStatus getData(OpcUa_UInt32 offset, UaVariant &value) = 0; // Pure virtual function
-
-    /// @brief Set the device's state.
-    /// @param state Value to set the device state to.
-    /// @return OPC UA status code indicating success or failure.
-    virtual UaStatus setState(PASState state) = 0;
 
     /// @brief Set a device data variable.
     /// @param offset A number used to uniquely identify the data variable to access.

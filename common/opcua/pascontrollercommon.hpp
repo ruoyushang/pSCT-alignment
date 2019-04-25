@@ -1,4 +1,4 @@
-#include "client/pascommunicationinterface.hpp"
+
 #include "passervertypeids.hpp"
 #include "stewartplatform.h"
 #include "components.hpp"
@@ -14,6 +14,9 @@
 #include <map>
 #include <chrono>
 #include <iostream>
+
+#include "common/opcua/pascominterfacecommon.hpp"
+#include "pascominterfacecommon.hpp"
 
 class PasControllerCommon
 {
@@ -31,12 +34,12 @@ public:
     const Identity& getId() const {return m_ID;}
 
     /* Get Controller status and data */
-    virtual UaStatus getState(PASState &state) = 0;
+    virtual UaStatus getState(PASState &state) { return m_state; }
 
     virtual UaStatus getData(OpcUa_UInt32 offset, UaVariant &value) = 0;
 
     /* set Controller status and data */
-    virtual UaStatus setState(PASState state) = 0;
+    virtual UaStatus setState(PASState state) { m_state = state; }
 
     virtual UaStatus setData(OpcUa_UInt32 offset, UaVariant value) = 0;
 
@@ -45,10 +48,8 @@ public:
     virtual bool initialize() { return true; }
 
 protected:
-
     UaMutex m_mutex;
     PASState m_state;
-
     Identity m_ID;
     
     // update interval in milliseconds

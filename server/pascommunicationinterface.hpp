@@ -22,7 +22,6 @@
 #include <vector>
 
 class Platform;
-
 class PasController;
 
 /// @brief Server communication interface to organize and interact with device controllers.
@@ -111,14 +110,8 @@ public:
     static const std::map<OpcUa_UInt32, std::string> deviceTypes;
 
 private:
-    /// @brief Shared mutex used to control multi thread access to controller.
-    UaMutex m_mutex;
-
     /// @brief Position number of the panel. Used for device database lookup.
     std::string m_panelNum;
-
-    /// @brief Map from OPC UA device type to Identity to a unique pointer to the controller object.
-    std::map<OpcUa_UInt32, std::map<Identity, std::shared_ptr<PasController>>> m_pControllers;
 
     /// @brief Pointer to the platform object used by all devices to interface with the hardware.
     std::shared_ptr<Platform> m_platform;

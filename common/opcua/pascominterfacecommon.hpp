@@ -14,6 +14,8 @@
 
 #include <map>
 
+#include "common/opcua/pascontrollercommon.hpp"
+
 enum class PASState {
     On = 0,
     Off = 1,
@@ -62,6 +64,10 @@ public:
     virtual UaStatus operateDevice(OpcUa_UInt32 type, const Identity &identity,
                                    OpcUa_UInt32 offset,
                                    const UaVariantArray &args) = 0;
+
+protected:
+    /// @brief Map from OPC UA device type to Identity to a unique pointer to the controller object.
+    std::map<OpcUa_UInt32, std::map<Identity, std::shared_ptr<PasControllerCommon>>> m_pControllers;
 };
 
 #endif //COMMON_PASCOMUNICATIONINTERFACECOMMON_HPP

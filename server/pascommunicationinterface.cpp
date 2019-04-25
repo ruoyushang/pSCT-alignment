@@ -176,7 +176,7 @@ UaStatus PasCommunicationInterface::initialize() {
                 return OpcUa_Bad;
             }
             identity.eAddress = std::to_string(eAddress);
-            if (pController->initialize() == 0) {
+            if (pController->initialize()) {
                 m_pControllers.at(devCount.first).emplace(identity, pController);
             } else {
                 std::cout << "Could not Initialize " << deviceTypes.at(devCount.first)
@@ -209,27 +209,6 @@ UaStatus PasCommunicationInterface::initialize() {
 
     // start(); // start the thread managed by this object
     return status;
-}
-
-/// @details Returns -1 on invalid device type ID.
-std::size_t PasCommunicationInterface::getDeviceCount(OpcUa_UInt32 deviceType) {
-    try {
-        return m_pControllers.at(deviceType).size();
-    }
-    catch (std::out_of_range &e) {
-        return -1;
-    }
-}
-
-std::vector<Identity> PasCommunicationInterface::getValidDeviceIdentities(OpcUa_UInt32 deviceType) {
-    std::vector<Identity> validIdentities;
-    std::map<Identity, std::shared_ptr<PasController>> devices = m_pControllers.at(deviceType);
-
-    for (auto &it : devices) {
-        validIdentities.push_back(it.first);
-    }
-
-    return validIdentities;
 }
 
 UaStatus PasCommunicationInterface::getDeviceState(

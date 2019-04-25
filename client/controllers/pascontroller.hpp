@@ -18,28 +18,18 @@
 #include <chrono>
 #include <iostream>
 
+#include "common/opcua/pascontrollercommon.hpp"
+
 class Client;
 
-class PasController : PasControllerCommon
+class PasController : public PasControllerCommon
 {
     UA_DISABLE_COPY(PasController);
 public:
-
     /* construction / destruction */
-    PasController(Identity identity, Client *pClient, int updateInterval = 0) : PasControllerCommon(identity, updateInterval)            
-            m_pClient(pClient) {};
-
-    /* Get Controller status and data */
-    virtual UaStatus getState(PASState &state) = 0;
-
-    virtual UaStatus getData(OpcUa_UInt32 offset, UaVariant &value) = 0;
-
-    /* set Controller status and data */
-    virtual UaStatus setState(PASState state) = 0;
-
-    virtual UaStatus setData(OpcUa_UInt32 offset, UaVariant value) = 0;
-
-    virtual UaStatus operate(OpcUa_UInt32 offset, const UaVariantArray &args = UaVariantArray()) = 0;
+    PasController(Identity identity, Client *pClient, int updateInterval = 0) : PasControllerCommon(identity,
+                                                                                                    updateInterval),
+                                                                                m_pClient(pClient) {};
 
 protected:
     Client *m_pClient;
