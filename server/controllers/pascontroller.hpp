@@ -20,7 +20,7 @@
 class Platform;
 
 /// @brief Class representing a generic device controller.
-class PasController {
+class PasController : PasControllerCommon {
     UA_DISABLE_COPY(PasController); // Disables copy construction and copy assignment.
 public:
     /// @brief Instantiate a PasController object with a Platform object.
@@ -28,23 +28,12 @@ public:
     /// @param pPlatform Pointer to the platform object used to interface with the hardware.
     /// @param updateInterval Update interval in milliseconds.
     explicit PasController(int ID, std::shared_ptr<Platform> pPlatform = std::shared_ptr<Platform>(nullptr),
-                           int updateInterval = 0) : m_ID(ID), m_state(PASState::On), m_pPlatform(std::move(pPlatform)),
-                                                     m_kUpdateInterval_ms(updateInterval) {}
+                           int updateInterval = 0) : PasControllerCommon(ID, updateInterval), m_pPlatform(std::move(pPlatform)) {}
 
     /// @brief Instantiate a PasController object without a Platform object.
     /// @param ID The device index within its type.
     /// @param updateInterval Update interval in milliseconds.
     PasController(int ID, int updateInterval) : PasController(ID, std::shared_ptr<Platform>(nullptr), updateInterval) {}
-
-    /// @brief Initialize the controller object.
-    /// @return 0 on success, -1 on failure.
-    virtual int initialize() { return 0; } // only MPES overload this for now
-    /// @brief Get the device ID/index.
-    /// @return The device ID.
-    int getId() { return m_ID; }
-
-    /// @brief Destroy a controller object.
-    virtual ~PasController() = default;
 
     /// @brief Get the device's state.
     /// @param state Variable to store the retrieved state value.
@@ -74,27 +63,8 @@ public:
     virtual UaStatus operate(OpcUa_UInt32 offset, const UaVariantArray &args) = 0; // Pure virtual function
 
 protected:
-    /// @brief Shared mutex used to lock parallel access to controller variables.
-    UaMutex m_mutex;
-    /// @brief Integer index of the device within its type.
-    int m_ID;
-    /// @brief The device's internal state.
-    PASState m_state;
     /// @brief Pointer to the Platform object used to interface with hardware.
     std::shared_ptr<Platform> m_pPlatform;
-
-    /// @brief Time interval between updates.
-    const int m_kUpdateInterval_ms;
-
-    /// @brief Whether a time interval longer than m_kUpdateInterval_ms has elapsed since the last update.
-    /// @return A bool indicating whether the update interval has elapsed since the last update.
-    bool _expired() const {
-        return (std::chrono::duration_cast<std::chrono::milliseconds>(
-                std::chrono::system_clock::now() - m_lastUpdateTime).count() > m_kUpdateInterval_ms);
-    }
-
-    /// @brief Time of last variable update.
-    std::chrono::time_point<std::chrono::system_clock> m_lastUpdateTime;
 };
 
 #endif //SERVER_PASCONTROLLER_HPP

@@ -20,22 +20,14 @@
 
 class Client;
 
-
-class PasController
+class PasController : PasControllerCommon
 {
     UA_DISABLE_COPY(PasController);
 public:
 
     /* construction / destruction */
-    PasController(Identity identity, Client *pClient, int updateInterval = 0) :
-            m_state(PASState::On),
-            m_ID(std::move(identity)),
-            m_pClient(pClient),
-            m_UpdateInterval_ms(updateInterval) {};
-
-    virtual ~PasController() = default;
-
-    const Identity& getId() const {return m_ID;}
+    PasController(Identity identity, Client *pClient, int updateInterval = 0) : PasControllerCommon(identity, updateInterval)            
+            m_pClient(pClient) {};
 
     /* Get Controller status and data */
     virtual UaStatus getState(PASState &state) = 0;
@@ -49,24 +41,11 @@ public:
 
     virtual UaStatus operate(OpcUa_UInt32 offset, const UaVariantArray &args = UaVariantArray()) = 0;
 
-    virtual bool initialize() { return true; }
-
 protected:
-
-    UaMutex m_mutex;
-    PASState m_state;
-
-    Identity m_ID;
     Client *m_pClient;
-
-    // update interval in milliseconds
-    const int m_UpdateInterval_ms;
-
-    // be able to check if data has expired
-    typedef std::chrono::system_clock TIME;
-    bool __expired() const {return (std::chrono::duration_cast<std::chrono::milliseconds>(TIME::now() - m_lastUpdateTime).count() > m_UpdateInterval_ms); }
-    std::chrono::time_point<TIME> m_lastUpdateTime;
 };
+
+
 
 // helper class for composite devices like panel and edge
 class PasCompositeController : public PasController
