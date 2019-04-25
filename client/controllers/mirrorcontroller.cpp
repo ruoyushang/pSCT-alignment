@@ -596,8 +596,7 @@ void MirrorController::alignSequential(unsigned startEdge, const std::set<unsign
 void MirrorController::parseAndSetSelection(const std::string &selectionString, unsigned deviceType) {
     // process a separated string and find the panels or edges described by it
     // pad by a space from the right so we don't hit the end of the line without a delimiter
-    std::string inStr = selectionString.at(deviceType);
-    inStr += " ";
+    std::string inStr = selectionString.at(deviceType) + std::string(" ");
     std::vector<std::string> strList;
     // working with comma, space and semicolon
     std::string delim = " ,;:\"\'{}";
