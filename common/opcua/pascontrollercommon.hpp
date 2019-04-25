@@ -1,6 +1,8 @@
+#ifndef COMMON_PASCONTROLLERCOMMON_HPP
+#define COMMON_PASCONTROLLERCOMMON_HPP
 
 #include "passervertypeids.hpp"
-#include "stewartplatform.h"
+#include "common/simulatestewart/stewartplatform.h"
 #include "components.hpp"
 
 #include "uabase/statuscode.h"
@@ -34,7 +36,7 @@ public:
     const Identity& getId() const {return m_ID;}
 
     /* Get Controller status and data */
-    virtual UaStatus getState(PASState &state) { return m_state; }
+    virtual UaStatus getState(PASState &state) { state = m_state; }
 
     virtual UaStatus getData(OpcUa_UInt32 offset, UaVariant &value) = 0;
 
@@ -57,7 +59,8 @@ protected:
 
     // be able to check if data has expired
     typedef std::chrono::system_clock TIME;
-    bool __expired() const {return (std::chrono::duration_cast<std::chrono::milliseconds>(TIME::now() - m_lastUpdateTime).count() > m_UpdateInterval_ms); }
+    bool __expired() const {return (std::chrono::duration_cast<std::chrono::milliseconds>(TIME::now() - m_lastUpdateTime).count() > m_kUpdateInterval_ms); }
     std::chrono::time_point<TIME> m_lastUpdateTime;
 };
 
+#endif

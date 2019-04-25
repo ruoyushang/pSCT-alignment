@@ -14,8 +14,6 @@
 
 #include <map>
 
-#include "common/opcua/pascontrollercommon.hpp"
-
 enum class PASState {
     On = 0,
     Off = 1,
@@ -25,6 +23,8 @@ enum class PASState {
     GLOB_Positioner_Moving = 10,
     GLOB_Positioner_notMoving = 11
     };
+
+#include "common/opcua/pascontrollercommon.hpp"
 
 struct Identity;
 
