@@ -27,7 +27,7 @@
 
 /// @details By default, sets the update interval to 500 ms. Creates a new GASPSD object,
 /// sets its port, and initializes. Sets its state to On.
-PSDController::PSDController(int ID) : PasController(ID, 500)
+PSDController::PSDController(Identity identity) : PasController(identity, 500)
 {
     m_pPSD = std::unique_ptr<GASPSD>(new GASPSD());
     m_pPSD->setPort();
@@ -52,7 +52,7 @@ UaStatus PSDController::getData(OpcUa_UInt32 offset, UaVariant &value)
         return OpcUa_BadInvalidArgument;
       }
 
-    if (_expired()) { // if cached value expired, update it
+    if (__expired()) { // if cached value expired, update it
         status = read();
       }
 

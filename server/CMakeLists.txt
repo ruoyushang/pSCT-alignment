@@ -126,6 +126,13 @@ file(GLOB PASSERVER_SRC
     "${COMMON_CODE_DIR}/utilities/*.cpp"
     "${COMMON_CODE_DIR}/alignment/*.cpp"
     "${COMMON_CODE_DIR}/mpescode/*.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/*.hpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/controllers/*.hpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/objects/*.hpp"
+        "${COMMON_CODE_DIR}/opcua/*.hpp"
+        "${COMMON_CODE_DIR}/utilities/*.hpp"
+        "${COMMON_CODE_DIR}/alignment/*.hpp"
+        "${COMMON_CODE_DIR}/mpescode/*.h"
 )
 
 if ( SIMMODE )
@@ -134,6 +141,7 @@ if ( SIMMODE )
     file(GLOB PASSERVER_SRC
         ${PASSERVER_SRC}
         "${COMMON_CODE_DIR}/cbccode/dummycbc.cpp"
+            "${COMMON_CODE_DIR}/cbccode/dummycbc.hpp"
         )
 else ( SIMMODE )
     file(GLOB PASSERVER_SRC
@@ -142,6 +150,10 @@ else ( SIMMODE )
         "${COMMON_CODE_DIR}/globalalignment/psdclass.cpp"
         "${COMMON_CODE_DIR}/globalalignment/laserclass.cpp"
         "${COMMON_CODE_DIR}/globalalignment/libpiusb.cpp"
+            "${COMMON_CODE_DIR}/cbccode/*.hpp"
+            "${COMMON_CODE_DIR}/globalalignment/psdclass.h"
+            "${COMMON_CODE_DIR}/globalalignment/laserclass.h"
+            "${COMMON_CODE_DIR}/globalalignment/libpiusb.h"
     )
 endif ( SIMMODE )
 
@@ -158,6 +170,10 @@ else ( AMD64 )
         "${COMMON_CODE_DIR}/globalalignment/psdclass.cpp"
         "${COMMON_CODE_DIR}/globalalignment/laserclass.cpp"
         "${COMMON_CODE_DIR}/globalalignment/libpiusb.cpp"
+            "${COMMON_CODE_DIR}/cbccode/*.hpp"
+            "${COMMON_CODE_DIR}/globalalignment/psdclass.h"
+            "${COMMON_CODE_DIR}/globalalignment/laserclass.h"
+            "${COMMON_CODE_DIR}/globalalignment/libpiusb.h"
     )
 endif ( AMD64 )
 

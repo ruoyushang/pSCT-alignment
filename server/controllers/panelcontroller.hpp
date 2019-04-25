@@ -17,6 +17,8 @@
 
 #include "common/opcua/pascominterfacecommon.hpp"
 
+#include "common/opcua/components.hpp"
+
 #include "server/controllers/actcontroller.hpp"
 #include "server/controllers/pascontroller.hpp"
 
@@ -27,7 +29,7 @@ public:
     /// @brief Instantiate a panel device controller object.
     /// @param ID The integer index of the device within its type.
     /// @param pPlatform Pointer to platform object used to interface directly with hardware.
-    PanelController(int ID, std::shared_ptr<Platform> pPlatform);
+    PanelController(Identity identity, std::shared_ptr<Platform> pPlatform);
 
     /// @brief Destroy a panel device controller object.
     ~PanelController() override;

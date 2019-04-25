@@ -17,6 +17,8 @@
 
 #include "common/opcua/pascominterfacecommon.hpp"
 
+#include "common/opcua/components.hpp"
+
 class Platform;
 
 /// @brief Class representing a mirror panel edge sensor device controller.
@@ -26,14 +28,14 @@ public:
     /// @brief Instantiate an MPES device controller object.
     /// @param ID The integer index of the device within its type.
     /// @param pPlatform Platform object used to interface with hardware.
-    MPESController(int ID, std::shared_ptr<Platform> pPlatform);
+    MPESController(Identity identity, std::shared_ptr<Platform> pPlatform);
 
     /// @brief Destroy an MPES device controller object.
     ~MPESController() override;
 
     /// @brief Initialize the MPES by setting its exposure.
     /// #return 0 on success, -1 on failure.
-    int initialize() override;
+    bool initialize() override;
 
     /// @brief Get the value of an MPES data variable.
     /// @return OPC UA status code indicating success or failure.

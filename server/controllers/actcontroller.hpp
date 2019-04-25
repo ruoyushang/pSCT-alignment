@@ -18,6 +18,8 @@
 #include "common/alignment/platform.hpp"
 #include "common/opcua/pascominterfacecommon.hpp"
 
+#include "common/opcua/components.hpp"
+
 /// @brief Class representing an actuator device controller.
 class ActController : public PasController {
     UA_DISABLE_COPY(ActController); // Disables copy construction and copy assignment.
@@ -25,7 +27,7 @@ public:
     /// @brief Instantiate an actuator device controller object.
     /// @param ID The integer index of the device within its type.
     /// @param pPlatform Pointer to platform object used to interface directly with hardware.
-    ActController(int ID, std::shared_ptr<Platform> pPlatform);
+    ActController(Identity identity, std::shared_ptr<Platform> pPlatform);
 
     /// @brief Destroy an actuator device controller object.
     ~ActController() override;

@@ -156,19 +156,19 @@ UaStatus PasCommunicationInterface::initialize() {
         for (int i = 0; i < devCount.second; i++) {
 
             if (devCount.first == PAS_PanelType) {
-                pController.reset(new PanelController(i, m_platform));
-                eAddress = i;
+                identity.eAddress = i;
+                pController.reset(new PanelController(identity, m_platform));
             } else if (devCount.first == PAS_MPESType) {
-                pController.reset(new MPESController(i, m_platform));
-                eAddress = m_platform->getMPESAt(i)->GetPortNumber();
+                identity.eAddress = m_platform->getMPESAt(i)->GetPortNumber();
+                pController.reset(new MPESController(identity, m_platform));
             } else if (devCount.first == PAS_ACTType) {
-                pController.reset(new ActController(i, m_platform));
-                eAddress = m_platform->getActuatorAt(i)->GetPortNumber();
+                identity.eAddress = m_platform->getActuatorAt(i)->GetPortNumber();
+                pController.reset(new ActController(identity, m_platform));
             }
 #ifndef _AMD64
             else if (devCount.first == PAS_PSDType) {
-                pController.reset(new PSDController(i));
-                eAddress = i;
+                identity.eAddress = i;
+                pController.reset(new PSDController(identity));
             }
 #endif
             else {

@@ -23,7 +23,7 @@ class PSDController : public PasController
 public:
     /// @brief Instantiate a position sensitive device controller.
     /// @param ID The device ID (index) used to identify it within its parent panel/platform.
-    explicit PSDController(int ID);
+    explicit PSDController(Identity identity);
 
     /// @brief Destroy a position sensitive device controller.
     ~PSDController() override;

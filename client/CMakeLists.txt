@@ -109,6 +109,17 @@ FILE(GLOB P2PAS_SRC
     "${COMMON_CODE_DIR}/globalalignment/ccdclass.cpp"
     "${COMMON_CODE_DIR}/globalalignment/ccd/*.cpp"
     "${COMMON_CODE_DIR}/utilities/*.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/*.hpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/controllers/*.hpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/objects/*.hpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/utilities/*.hpp"
+        "${COMMON_CODE_DIR}/opcua/*.hpp"
+        "${COMMON_CODE_DIR}/simulatestewart/stewartplatform.h"
+        "${COMMON_CODE_DIR}/simulatestewart/mathtools.h"
+        "${COMMON_CODE_DIR}/globalalignment/ccdclass.h"
+        "${COMMON_CODE_DIR}/globalalignment/ccd/*.h"
+        "${COMMON_CODE_DIR}/utilities/*.cpp"
+
   )
 
 if ( SIMMODE )

@@ -12,8 +12,8 @@
 #include "common/opcua/passervertypeids.hpp"
 
 // @details Sets the state to On.
-PanelController::PanelController(int ID, std::shared_ptr<Platform> pPlatform) : PasController(ID,
-                                                                                              std::move(pPlatform)) {
+PanelController::PanelController(Identity identity, std::shared_ptr<Platform> pPlatform) : PasController(identity,
+                                                                                                         std::move(pPlatform)) {
     m_state = PASState::On;
 }
 

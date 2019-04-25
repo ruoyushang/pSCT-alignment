@@ -12,8 +12,10 @@
 #include "common/opcua/passervertypeids.hpp"
 
 /// @details Sets state to On, inLength to current length, and DeltaL to 0.
-ActController::ActController(int ID, std::shared_ptr<Platform> pPlatform) : PasController(ID, std::move(pPlatform)),
-                                                                            m_state(PASState::On), m_DeltaLength(0.0) {}
+ActController::ActController(Identity identity, std::shared_ptr<Platform> pPlatform) : PasController(identity,
+                                                                                                     std::move(
+                                                                                                         pPlatform)),
+                                                                                       m_state(PASState::On), m_DeltaLength(0.0) {}
 
 /// @details Sets state to off.
 ActController::~ActController() {
@@ -31,7 +33,7 @@ UaStatus ActController::getState(PASState &state) {
 UaStatus ActController::updateState() {
     //UaMutexLocker lock(&m_mutex);
     // update internal state to match teh underlying platform object
-    switch (m_pPlatform->getActuatorAt(m_ID)->GetStatus()) {
+    switch (m_pPlatform->getActuatorAt(std::stoi(m_ID.eAddress))->GetStatus()) {
         case Actuator::StatusModes::Healthy :
             m_state = PASState::On;
             break;
@@ -59,7 +61,7 @@ UaStatus ActController::getData(OpcUa_UInt32 offset, UaVariant &value) {
                 value.setFloat(m_DeltaLength);
                 break;
             case PAS_ACTType_CurrentLength:
-                value.setFloat(m_pPlatform->getActuatorAt(m_ID)->MeasureLength());
+                value.setFloat(m_pPlatform->getActuatorAt(std::stoi(m_ID.eAddress))->MeasureLength());
 		break;
             case PAS_ACTType_TargetLength:
                 value.setFloat(m_TargetLength);
@@ -82,7 +84,7 @@ UaStatus ActController::getError(OpcUa_UInt32 offset, UaVariant &value) {
 
     OpcUa_UInt32 errorNum = offset - PAS_ACTType_Error0;
     if (errorNum >= 0 && errorNum < ACTObject::ERRORS.size()) {
-        errorStatus = m_pPlatform->getActuatorAt(m_ID)->ActuatorErrors[int(errorNum)].Triggered;
+        errorStatus = m_pPlatform->getActuatorAt(std::stoi(m_ID.eAddress))->ActuatorErrors[int(errorNum)].Triggered;
         value.setBool(errorStatus);
     } else {
         status = OpcUa_BadInvalidArgument;
@@ -137,11 +139,11 @@ UaStatus ActController::moveDelta(const UaVariantArray &args) {
 
     std::array<OpcUa_Float, 6> deltaL = {0., 0., 0., 0., 0., 0.}; // Set delta lengths to move to
     UaVariant length = UaVariant(args[0]);
-    length.toFloat(deltaL[m_ID]);
+    length.toFloat(deltaL[std::stoi(m_ID.eAddress)]);
 
     std::cout << "ActController :: Moving actuator " << m_ID << " by " << m_DeltaLength << " mm." << std::endl;
     deltaL = m_pPlatform->MoveDeltaLengths(deltaL);
-    m_DeltaLength = deltaL[m_ID];
+    m_DeltaLength = deltaL[std::stoi(m_ID.eAddress)];
 
     return OpcUa_Good;
 }
@@ -155,7 +157,7 @@ UaStatus ActController::moveToLength(const UaVariantArray &args) {
     UaVariantArray tempArgs;
     tempArgs.create(1);
     UaVariant(args[0]).toFloat(m_TargetLength);
-    tempArgs[0] = UaVariant(m_TargetLength - m_pPlatform->getActuatorAt(m_ID)->MeasureLength())[0];
+    tempArgs[0] = UaVariant(m_TargetLength - m_pPlatform->getActuatorAt(std::stoi(m_ID.eAddress))->MeasureLength())[0];
     status = moveDelta(tempArgs);
 
     return status;

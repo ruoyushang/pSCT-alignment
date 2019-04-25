@@ -20,13 +20,15 @@
 #include "common/opcua/pascominterfacecommon.hpp"
 #include "pascominterfacecommon.hpp"
 
+#include "common/opcua/components.hpp"
+
 class PasControllerCommon
 {
     UA_DISABLE_COPY(PasControllerCommon);
 public:
 
     /* construction / destruction */
-    PasControllerCommon(Identity identity, int updateInterval = 0) :
+    explicit PasControllerCommon(Identity identity, int updateInterval = 0) :
             m_state(PASState::On),
             m_ID(std::move(identity)),
             m_kUpdateInterval_ms(updateInterval) {};
@@ -36,12 +38,12 @@ public:
     const Identity& getId() const {return m_ID;}
 
     /* Get Controller status and data */
-    virtual UaStatus getState(PASState &state) { state = m_state; }
+    virtual UaStatus getState(PASState &state);
 
     virtual UaStatus getData(OpcUa_UInt32 offset, UaVariant &value) = 0;
 
     /* set Controller status and data */
-    virtual UaStatus setState(PASState state) { m_state = state; }
+    virtual UaStatus setState(PASState state);
 
     virtual UaStatus setData(OpcUa_UInt32 offset, UaVariant value) = 0;
 

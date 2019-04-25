@@ -18,7 +18,8 @@
 #include "common/opcua/passervertypeids.hpp"
 
 /// @details Turns state to On.
-MPESController::MPESController(int ID, std::shared_ptr<Platform> pPlatform) : PasController(ID, pPlatform) {
+MPESController::MPESController(Identity identity, std::shared_ptr<Platform> pPlatform) : PasController(identity,
+                                                                                                       pPlatform) {
     m_state = PASState::On;
 }
 
@@ -28,12 +29,12 @@ MPESController::~MPESController() {
 }
 
 /// @details Sets exposure for this MPES.
-int MPESController::initialize() {
-    int ret = m_pPlatform->getMPESAt(m_ID)->setExposure();
+bool MPESController::initialize() {
+    int ret = m_pPlatform->getMPESAt(std::stoi(m_ID.eAddress))->setExposure();
     if (ret > 0) {
-        return 0;
+        return true;
     } else {
-        return -1;
+        return false;
     }
 }
 
@@ -45,7 +46,7 @@ UaStatus MPESController::getData(OpcUa_UInt32 offset, UaVariant &value) {
     if (!m_updated)
         status = read();
 
-    const MPES::Position &position = m_pPlatform->getMPESAt(m_ID)->getPosition();
+    const MPES::Position &position = m_pPlatform->getMPESAt(std::stoi(m_ID.eAddress))->getPosition();
     switch (offset) {
         case PAS_MPESType_xCentroidAvg:
             value.setFloat(position.xCenter);
@@ -84,10 +85,10 @@ UaStatus MPESController::setData(OpcUa_UInt32 offset, UaVariant value) {
     value.toFloat(v);
     switch (offset) {
         case PAS_MPESType_xCentroidNominal:
-            m_pPlatform->getMPESAt(m_ID)->setxNominalPosition(v);
+            m_pPlatform->getMPESAt(std::stoi(m_ID.eAddress))->setxNominalPosition(v);
             break;
         case PAS_MPESType_yCentroidNominal:
-            m_pPlatform->getMPESAt(m_ID)->setyNominalPosition(v);
+            m_pPlatform->getMPESAt(std::stoi(m_ID.eAddress))->setyNominalPosition(v);
             break;
         default:
             status = OpcUa_BadNotWritable;
@@ -112,7 +113,7 @@ UaStatus MPESController::operate(OpcUa_UInt32 offset, const UaVariantArray &args
             status = read();
             break;
         case PAS_MPESType_SetExposure:
-            m_pPlatform->getMPESAt(m_ID)->setExposure();
+            m_pPlatform->getMPESAt(std::stoi(m_ID.eAddress))->setExposure();
             break;
         default:
             status = OpcUa_BadInvalidArgument;
@@ -126,7 +127,7 @@ UaStatus MPESController::read() {
     //UaMutexLocker lock(&m_mutex);
     if (m_state == PASState::On) {
         std::cout << "\nReading MPES " << m_ID << std::endl;
-        m_pPlatform->ReadMPES(m_ID);
+        m_pPlatform->ReadMPES(std::stoi(m_ID.eAddress));
         m_updated = true;
         return OpcUa_Good;
     } 
