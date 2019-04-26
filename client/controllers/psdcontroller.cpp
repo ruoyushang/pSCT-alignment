@@ -21,9 +21,9 @@ PSDController::PSDController(Identity identity, Client *pClient) :
               0.0,
               0.0,
               0.0};
-    std::cout << "PSDController: update interval set to " << m_UpdateInterval_ms << " ms" << std::endl;
+    std::cout << "PSDController: update interval set to " << m_kUpdateInterval_ms << " ms" << std::endl;
 
-    m_lastUpdateTime = TIME::now() - std::chrono::duration<int, std::ratio<1, 1000>>(m_UpdateInterval_ms);
+    m_lastUpdateTime = TIME::now() - std::chrono::duration<int, std::ratio<1, 1000>>(m_kUpdateInterval_ms);
 }
 
 PSDController::~PSDController() {

@@ -137,11 +137,11 @@ UaStatus PasNodeManager::afterStartUp()
     UA_ASSERT(ret.isGood());
 
     // Locate Positioner device
-    OpcUa_UInt32 posCount = m_pCommIf->getDevices(GLOB_PositionerType);
+    OpcUa_UInt32 posCount = dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->getDevices(GLOB_PositionerType);
     if (posCount != 1) {
         std::cout << "WARNING: " << posCount << " positioner(s) added. There should be exactly 1.\n" << std::endl;
     }
-    ret = m_pCommIf->getDeviceConfig(GLOB_PositionerType, 0, sDeviceName, identity);
+    ret = dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->getDeviceConfig(GLOB_PositionerType, 0, sDeviceName, identity);
 
     if (ret.isGood()) {
         std::cout << "Creating positioner OPC UA object...\n";
@@ -168,7 +168,7 @@ UaStatus PasNodeManager::afterStartUp()
 
         for (unsigned i = 0; i < count; i++)
         {
-            ret = m_pCommIf->getDeviceConfig(deviceType, i, sDeviceName, identity);
+            ret = dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->getDeviceConfig(deviceType, i, sDeviceName, identity);
             pController = dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->getDeviceFromId(deviceType,
                                                                                                       identity);
             //If folder doesn't already exist, create a folder for each object type and add the folder to the DevicesByType folder
@@ -942,7 +942,7 @@ OpcUa_Int32 PasNodeManager::Panic()
 {
     UaStatus status;
 
-    OpcUa_Int32 actcount = m_pCommIf->asf(PAS_ACTType);
+    OpcUa_Int32 actcount = m_pCommIf->getDeviceCount(PAS_ACTType);
 
     Identity id;
     for (OpcUa_Int32 i = 0; i < actcount; i++)

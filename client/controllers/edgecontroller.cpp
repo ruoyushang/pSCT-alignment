@@ -425,7 +425,7 @@ UaStatus EdgeController::alignSinglePanel(unsigned panelpos, double alignFrac, b
         UaVariant vtmp;
         unsigned visible = 0;
         for (auto &mpes : overlapMPES) {
-            mpes->operate();
+            mpes->operate(PAS_MPESType_Read);
             if (!mpes->isVisible()) continue;
 
             mpes->getData(PAS_MPESType_xCentroidAvg, vtmp);

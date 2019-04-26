@@ -20,7 +20,7 @@ PanelController::PanelController(Identity identity, Client *pClient) :
     // make sure things update on the first boot up
     // duration takes seconds -- hence the conversion with the 1/1000 ratio
     m_lastUpdateTime = TIME::now() - std::chrono::duration<int, std::ratio<1, 1000>>
-    (m_UpdateInterval_ms);
+    (m_kUpdateInterval_ms);
 }
 
 PanelController::~PanelController() {
