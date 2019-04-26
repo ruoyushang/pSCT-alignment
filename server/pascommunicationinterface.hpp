@@ -47,7 +47,7 @@ public:
     /// @param deviceType OPC UA type ID for the desired device object type.
     /// @param identity The unique identity of the device.
     /// @return Pointer to the device controller.
-    std::shared_ptr<PasController>
+    std::shared_ptr<PasControllerCommon>
     getDevice(OpcUa_UInt32 deviceType, const Identity &identity) { return m_pControllers.at(deviceType).at(identity); }
 
     /// @brief Get a device's state through its controller.

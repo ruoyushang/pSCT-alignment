@@ -124,7 +124,7 @@ UaStatus PasCommunicationInterface::initialize() {
     for (auto act : actPositionToSerial)
         actuatorSerials[act.first - 1] = act.second;
 
-    m_platform = std::make_shared<Platform>(new Platform(cbcID, actuatorPorts, actuatorSerials, DbInfo));
+    m_platform = std::make_shared<Platform>(cbcID, actuatorPorts, actuatorSerials, DbInfo);
 
     // initialize the MPES in the positional order. Not strictly necessary, but keeps things tidy
     // addMPES(port, serial)
@@ -147,12 +147,12 @@ UaStatus PasCommunicationInterface::initialize() {
             std::cout << "Attempting to create their virtual counterparts...\n";
 
         if (m_pControllers.find(devCount.first) == m_pControllers.end()) {
-            m_pControllers[devCount.first] = std::map<Identity, std::shared_ptr<PasController>>();
+            m_pControllers[devCount.first] = std::map<Identity, std::shared_ptr<PasControllerCommon>>();
         }
 
         int eAddress;
         int failed;
-        std::shared_ptr<PasController> pController;
+        std::shared_ptr<PasControllerCommon> pController;
         for (int i = 0; i < devCount.second; i++) {
 
             if (devCount.first == PAS_PanelType) {
@@ -192,7 +192,7 @@ UaStatus PasCommunicationInterface::initialize() {
     }
 
     try {
-        std::vector<std::shared_ptr<PasController>> panels;
+        std::vector<std::shared_ptr<PasControllerCommon>> panels;
         for (const auto &it : m_pControllers[PAS_PanelType]) {
             panels.push_back(it.second);
         }

@@ -17,10 +17,17 @@
 #include <chrono>
 #include <iostream>
 
-#include "common/opcua/pascominterfacecommon.hpp"
-#include "pascominterfacecommon.hpp"
-
 #include "common/opcua/components.hpp"
+
+enum class PASState {
+    On = 0,
+    Off = 1,
+    Busy = 2,
+    FatalError = 3,
+    OperableError = 4,
+    GLOB_Positioner_Moving = 10,
+    GLOB_Positioner_notMoving = 11
+    };
 
 class PasControllerCommon
 {

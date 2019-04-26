@@ -13,16 +13,7 @@
 #include "uaarraytemplates.h"
 
 #include <map>
-
-enum class PASState {
-    On = 0,
-    Off = 1,
-    Busy = 2,
-    FatalError = 3,
-    OperableError = 4,
-    GLOB_Positioner_Moving = 10,
-    GLOB_Positioner_notMoving = 11
-    };
+#include <memory>
 
 #include "common/opcua/pascontrollercommon.hpp"
 
