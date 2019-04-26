@@ -70,7 +70,7 @@ bool MPES::Initialize()
     cout << "MPES::Initialize(): Detected new video device " << new_video_device_id << endl;
     m_pDevice = new MPESDevice(new_video_device_id);
     m_pImageSet = new MPESImageSet(m_pDevice, sDefaultImagesToCapture, sDefaultDirToSave.c_str());
-    cout << "MPES::Initialize(): Will be saving captured images to " << sDefaultImagesToCapture << endl;
+    cout << "MPES::Initialize(): Will be saving captured images to " << sDefaultDirToSave << endl;
 
     ostringstream temposs;
     temposs << setfill('0') << setw(6) << m_serialNumber;

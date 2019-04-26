@@ -118,11 +118,12 @@ void ProbeHome(int ActuatorIndex);
 PlatformState getState() const { return m_State; };
 void setState(PlatformState state) { m_State = state; };
 int getActuatorCount() const {return actuator.size(); }
-Actuator* getActuatorAt(int internal_idx);
+Actuator* getActuatorAt(int port);
 
 // MPES functionality
 int getMPESCount() {return m_vMPES.size(); }
-MPES* getMPESAt(int internal_idx);
+std::vector<int> getMPESPorts();
+MPES* getMPESAt(int port);
 
 
 /**
@@ -131,9 +132,9 @@ MPES* getMPESAt(int internal_idx);
 */
 bool addMPES(int USB, int serial);
 
-const MPES::Position& ReadMPES(int internal_idx);
+const MPES::Position& ReadMPES(int port);
 private:
-    std::vector<MPES *> m_vMPES;
+    std::map<int, MPES *> m_vMPES;
 
     // internal state
     PlatformState m_State;

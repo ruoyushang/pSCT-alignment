@@ -156,13 +156,13 @@ UaStatus PasCommunicationInterface::initialize() {
         for (int i = 0; i < devCount.second; i++) {
 
             if (devCount.first == PAS_PanelType) {
-                identity.eAddress = i;
+                identity.eAddress = std::to_string(i);
                 pController.reset(new PanelController(identity, m_platform));
             } else if (devCount.first == PAS_MPESType) {
-                identity.eAddress = m_platform->getMPESAt(i)->GetPortNumber();
+		identity.eAddress = std::to_string(m_platform->getMPESPorts().at(i));
                 pController.reset(new MPESController(identity, m_platform));
             } else if (devCount.first == PAS_ACTType) {
-                identity.eAddress = m_platform->getActuatorAt(i)->GetPortNumber();
+                identity.eAddress = std::to_string(i+1);
                 pController.reset(new ActController(identity, m_platform));
             }
 #ifndef _AMD64
@@ -175,7 +175,7 @@ UaStatus PasCommunicationInterface::initialize() {
                 std::cout << "Error: Found device with invalid type " << devCount.first << std::endl;
                 return OpcUa_Bad;
             }
-            identity.eAddress = std::to_string(eAddress);
+            std::cout << "Initializing device controllers...\n";
             if (pController->initialize()) {
                 m_pControllers.at(devCount.first).emplace(identity, pController);
             } else {
@@ -191,6 +191,7 @@ UaStatus PasCommunicationInterface::initialize() {
         }
     }
 
+    std::cout << "Adding actuators to panel...\n";
     try {
         std::vector<std::shared_ptr<PasControllerCommon>> panels;
         for (const auto &it : m_pControllers[PAS_PanelType]) {
@@ -205,6 +206,7 @@ UaStatus PasCommunicationInterface::initialize() {
         }
     }
     catch (std::out_of_range &e) {
+    	std::cout << "Failed to add actuators to panel.\n";	
     }
 
     // start(); // start the thread managed by this object

@@ -29,7 +29,7 @@ delete actuator[i];
 }
 */
 for (auto& dev : m_vMPES)
-    delete dev;
+    delete dev.second;
 m_vMPES.clear();
 
 cbc.driver.disableAll();
@@ -754,10 +754,10 @@ Actuator* Platform::getActuatorAt(int internal_idx)
     }
 }
 
-MPES* Platform::getMPESAt(int internal_idx)
+MPES* Platform::getMPESAt(int port)
 {
     try {
-        return m_vMPES.at(internal_idx);
+        return m_vMPES.at(port);
     }
     catch (out_of_range) {
         return nullptr;
@@ -783,14 +783,24 @@ bool Platform::addMPES(int USB, int serial)
         return false;
     }
     else
-        m_vMPES.push_back(newMPES);
+        m_vMPES[USB] = newMPES;
 
     return true;
 }
 
 // MPES functionality
-const MPES::Position& Platform::ReadMPES(int internal_idx)
+const MPES::Position& Platform::ReadMPES(int port)
 {
-    m_vMPES.at(internal_idx)->MeasurePosition();
-    return m_vMPES.at(internal_idx)->getPosition();
+    m_vMPES.at(port)->MeasurePosition();
+    return m_vMPES.at(port)->getPosition();
+}
+
+std::vector<int> Platform::getMPESPorts() 
+{
+    std::vector<int> ports;
+    for (auto &pair : m_vMPES) {
+        ports.push_back(pair.first);
+    }
+
+    return ports;
 }
