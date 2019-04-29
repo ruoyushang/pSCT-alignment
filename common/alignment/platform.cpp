@@ -744,10 +744,10 @@ void Platform::ProbeHome(int ActuatorIndex)
 actuator[ActuatorIndex]->ProbeHome();
 }
 
-Actuator* Platform::getActuatorAt(int internal_idx)
+Actuator* Platform::getActuatorAt(int port)
 {
     try {
-        return actuator.at(internal_idx);
+        return actuator.at(port-1);
     }
     catch (out_of_range) {
         return nullptr;
