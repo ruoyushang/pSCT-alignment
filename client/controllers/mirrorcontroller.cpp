@@ -243,7 +243,7 @@ UaStatus MirrorController::getData(OpcUa_UInt32 offset, UaVariant &value)
 
     if (offset >= PAS_MirrorType_x && offset <= PAS_MirrorType_zRot) {
         // update current coordinates
-        updateCoords();
+        //updateCoords();
         int dataoffset = offset - PAS_MirrorType_x;
         value.setDouble(m_curCoords(dataoffset));
     }
@@ -340,9 +340,10 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
     /**********************************************************
      * Move the whole mirror in the telescope reference frame *
      * ********************************************************/
-    if (offset == PAS_MirrorType_MoveToCoords)
+    if (offset == PAS_MirrorType_MoveToCoords) {
         moveToCoords(args);
-
+        updateCoords();
+    }
     /**********************************************************
      * Read out all current panel positions in their frames   *
      * ********************************************************/
@@ -368,6 +369,7 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
         }
 
         alignSector(selectedPanels, selectedMPES);
+        updateCoords();
     }
 
     /**********************************************************************************************
@@ -417,6 +419,7 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
         }
 
         alignSequential(idx, selectedEdges, (bool) dir);
+        updateCoords();
     }
 
     /**********************************************************
@@ -434,6 +437,7 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
         std::cout << m_ID.name << "::Operate() : Attempting to gracefully stop all motions." << std::endl;
         for (const auto &p: m_pChildren.at(PAS_PanelType)) {
             dynamic_cast<PanelController *>(p)->operate(PAS_PanelType_Stop);
+        updateCoords();
         }
     } else {
         return OpcUa_BadNotImplemented;
@@ -507,15 +511,15 @@ void MirrorController::moveToCoords(UaVariantArray args) {
         // compute new panel coordinates based on these actuator lengths
         m_SP.ComputeStewart(newActs);
 
-        double curcoord;
-        UaVariant val;
         targetPanelCoords.create(6);
-        std::cout << "\tNew Coords:";
+        UaVariant val;
+        // Get actuator lengths for motion
+        std::cout << "Moving panel to coordinates:" << std::endl;
         for (int i = 0; i < 6; i++) {
-            curcoord = m_SP.GetPanelCoords()[i];
-            std::cout << " " << curcoord;
-            targetPanelCoords[i] = UaVariant(curcoord)[0];
-        };
+            val.setFloat(m_SP.GetPanelCoords()[i]);
+            val.copyTo(&targetPanelCoords[i]);
+            std::cout << targetPanelCoords[i].Value.Float << std::endl;
+        }
         std::cout << std::endl << std::endl;
         pCurObject->operate(PAS_PanelType_MoveToCoords, targetPanelCoords);
     }
@@ -919,10 +923,15 @@ MirrorController::alignSector(const std::set<unsigned> &selectedPanels, const st
         std::cout << "Will move actuators of "
                   << pCurPanel->getId().name << " by\n" << X.segment(j, 6) << std::endl;
 
+
+
         UaVariantArray deltas;
         deltas.create(nACT);
-        for (unsigned i = 0; i < nACT; i++)
-            deltas[i].Value.Float = X(j++); // X has dimension of 6*nPanelsToMove !
+        UaVariant val;
+        for (unsigned i = 0; i < nACT; i++) {
+            val.setFloat(X(j++));
+            val.copyTo(&deltas[i]);
+        }
 
         pCurPanel->operate(PAS_PanelType_MoveDeltaLengths, deltas);
     }
@@ -1122,8 +1131,11 @@ void MirrorController::alignGlobal(unsigned fixPanel, double alignFrac)
 
         UaVariantArray deltas;
         deltas.create(nACT);
-        for (unsigned i = 0; i < nACT; i++)
-            deltas[i].Value.Float = alignFrac * globDisplaceVec(j++); // X has dimension of 6*nPanelsToMove !
+        UaVariant val;
+        for (unsigned i = 0; i < nACT; i++) {
+            val.setFloat(alignFrac * globDisplaceVec(j++));
+            val.copyTo(&deltas[i]);
+        }
 
         pCurPanel->operate(PAS_PanelType_MoveDeltaLengths, deltas);
     }

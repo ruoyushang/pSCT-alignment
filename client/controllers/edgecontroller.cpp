@@ -531,8 +531,11 @@ UaStatus EdgeController::alignSinglePanel(unsigned panelpos, double alignFrac, b
 
             UaVariantArray deltas;
             deltas.create(nACT);
-            for (unsigned i = 0; i < nACT; i++)
-                deltas[i].Value.Float = X(j++); // X has dimension of 6*nPanelsToMove !
+            UaVariant var;
+            for (unsigned i = 0; i < nACT; i++) {
+                var.setFloat(X(j++));
+                var.copyTo(&deltas[i]);
+            }
 
             status = pCurPanel->operate(PAS_PanelType_MoveDeltaLengths, deltas);
             if (!status.isGood()) return status;

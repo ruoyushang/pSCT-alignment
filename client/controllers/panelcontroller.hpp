@@ -34,6 +34,7 @@ public:
     unsigned getActuatorCount();
 
 private:
+    int m_kUpdateInterval = 1000;
 
     // helper
     void updateCoords(bool printout = false);

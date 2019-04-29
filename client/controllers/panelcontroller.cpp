@@ -103,6 +103,7 @@ UaStatus PanelController::getData(OpcUa_UInt32 offset, UaVariant &value) {
     if (offset >= PAS_PanelType_x && offset <= PAS_PanelType_zRot) {
         // update current coordinates
         updateCoords();
+
         int dataOffset = offset - PAS_PanelType_x;
         value.setDouble(m_curCoords[dataOffset]);
     } else if (offset == PAS_PanelType_IntTemperature)
@@ -173,8 +174,7 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
         }
         std::cout << "Calling Panel::MoveDeltaLengths() with delta lengths: \n";
         std::cout << deltaLengths << std::endl << std::endl;
-        //collision_flag = checkForCollision(deltaLengths);
-        collision_flag = false;
+        collision_flag = checkForCollision(deltaLengths);
         if (collision_flag) {
             std::cout << "Error: Sensors may go out of range! Motion cancelled." << std::endl;
         }
@@ -187,8 +187,7 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
             targetLengths(i) = targetLength;
         }
         deltaLengths = targetLengths - currentLengths;
-        //collision_flag = checkForCollision(deltaLengths);
-        collision_flag = false;
+        collision_flag = checkForCollision(deltaLengths);
         if (collision_flag) {
             std::cout << "Error: Sensors may go out of range! Motion cancelled." << std::endl;
         }
@@ -196,7 +195,6 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
             status = m_pClient->callMethodAsync(std::string("ns=2;s=Panel_0"), UaString("MoveToLengths"), args);
         }
     } else if (offset == PAS_PanelType_MoveToCoords) {
-        std::cout << std::endl << m_ID << ":" << std::endl;
         if (args.length() != pACT.size())
             return OpcUa_BadInvalidArgument;
 
@@ -223,13 +221,16 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
         UaVariant val;
 
         // Get actuator lengths for motion
+        std::cout << "Moving actuators to lengths:" << std::endl;
         for (int i = 0; i < 6; i++) {
-            targetLengths(i) = m_SP.GetActLengths()[i];
-            lengthArgs[i] = UaVariant(m_SP.GetActLengths()[i])[0];
+            targetLengths(i) = (float)m_SP.GetActLengths()[i];
+            val.setFloat(targetLengths(i));
+            val.copyTo(&lengthArgs[i]);
+            std::cout << lengthArgs[i].Value.Float << std::endl;
         }
+
         deltaLengths = targetLengths - currentLengths;
-        //collision_flag = checkForCollision(deltaLengths);
-        collision_flag = false;
+        collision_flag = checkForCollision(deltaLengths);
         if (collision_flag) {
             std::cout << "Error: Sensors may go out of range! Motion cancelled." << std::endl;
         }
