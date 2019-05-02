@@ -56,6 +56,13 @@ void MirrorController::addChild(OpcUa_UInt32 deviceType, PasController *const pC
 {
     // call the base type's method
     PasCompositeController::addChild(deviceType, pController);
+
+    if (deviceType == PAS_PanelType) {
+        m_selectedPanels.insert((unsigned)pController->getId().position);
+    }
+    else if (deviceType == PAS_EdgeType) {
+        m_selectedEdges.insert(pController->getId().eAddress);
+    }
 }
 
 
@@ -253,29 +260,38 @@ UaStatus MirrorController::getData(OpcUa_UInt32 offset, UaVariant &value)
     } else if (offset == PAS_MirrorType_SafetyRadius)
         value.setDouble(m_safetyRadius);
     else if (offset == PAS_MirrorType_SelectedEdges) {
-        std::vector<std::string> v(m_selectedEdges.begin(), m_selectedEdges.end());
-        UaStringArray arr;
-        arr.resize(v.size());
-        for (int i = 0; i < (int) v.size(); i++) {
-            arr[i] = *UaString(v[i].c_str()).toOpcUaString();
+        std::vector<std::string> v(m_selectedEdges.begin(), m_selectedEdges.end());        
+        std::string s = "[";
+        for (int i = 0; i < (int)(v.size()); i++) {
+            s += v[i];
+            if (i != (int)(v.size() - 1)) {
+                s += ", ";
+            }
         }
-        value.setStringArray(arr);
+        s += "]";
+        value.setString(s.c_str());
     } else if (offset == PAS_MirrorType_SelectedPanels) {
-        std::vector<unsigned> v(m_selectedPanels.begin(), m_selectedPanels.end());
-        UaUInt32Array arr;
-        arr.resize(v.size());
-        for (int i = 0; i < (int) v.size(); i++) {
-            arr[i] = v[i];
+        std::vector<unsigned> v(m_selectedPanels.begin(), m_selectedPanels.end());  
+        std::string s = "[";
+        for (int i = 0; i < (int)(v.size()); i++) {
+            s += std::to_string(v[i]);
+            if (i != (int)(v.size() - 1)) {
+                s += ", ";
+            }
         }
-        value.setUInt32Array(arr);
+        s += "]";
+        value.setString(s.c_str());
     } else if (offset == PAS_MirrorType_SelectedMPES) {
         std::vector<int> v(m_selectedMPES.begin(), m_selectedMPES.end());
-        UaInt32Array arr;
-        arr.resize(v.size());
-        for (int i = 0; i < (int) v.size(); i++) {
-            arr[i] = v[i];
+        std::string s = "[";
+        for (int i = 0; i < (int)(v.size()); i++) {
+            s += std::to_string(v[i]);
+            if (i != (int)(v.size() - 1)) {
+                s += ", ";
+            }
         }
-        value.setInt32Array(arr);
+        s += "]";
+        value.setString(s.c_str());
     }
     else
        return OpcUa_BadInvalidArgument;
@@ -286,8 +302,6 @@ UaStatus MirrorController::getData(OpcUa_UInt32 offset, UaVariant &value)
 UaStatus MirrorController::setData(OpcUa_UInt32 offset, UaVariant value)
 {
     //UaMutexLocker lock(&m_mutex);
-
-
     if (offset >= PAS_MirrorType_sysOffsetsMPES_x1 && offset <= PAS_MirrorType_sysOffsetsMPES_y3) {
         int dataoffset = offset - PAS_MirrorType_sysOffsetsMPES_x1;
         value.toDouble(m_sysOffsetsMPES(dataoffset));
@@ -300,32 +314,20 @@ UaStatus MirrorController::setData(OpcUa_UInt32 offset, UaVariant value)
             panel->setData(PAS_PanelType_SafetyRadius, value);
         }
     } else if (offset == PAS_MirrorType_SelectedEdges) {
-        std::set<std::string> selectedEdges;
-        UaStringArray arr;
-        value.toStringArray(arr);
-        for (int i = 0; i < (int) arr.length(); i++) {
-            selectedEdges.insert(UaString(arr[i]).toUtf8());
-        }
-        m_selectedEdges.clear();
-        m_selectedEdges.insert(selectedEdges.begin(), selectedEdges.end());
+        UaString s;
+        value.setString(s);
+        std::string selectionString = s.toUtf8();
+        parseAndSetSelection(selectionString, PAS_EdgeType);
     } else if (offset == PAS_MirrorType_SelectedPanels) {
-        std::set<unsigned> selectedPanels;
-        UaUInt32Array arr;
-        value.toUInt32Array(arr);
-        for (int i = 0; i < (int) arr.length(); i++) {
-            selectedPanels.insert(arr[i]);
-        }
-        m_selectedPanels.clear();
-        m_selectedPanels.insert(selectedPanels.begin(), selectedPanels.end());
+        UaString s;
+        value.setString(s);
+        std::string selectionString = s.toUtf8();
+        parseAndSetSelection(selectionString, PAS_PanelType);
     } else if (offset == PAS_MirrorType_SelectedMPES) {
-        std::set<int> selectedMPES;
-        UaInt32Array arr;
-        value.toInt32Array(arr);
-        for (int i = 0; i < (int) arr.length(); i++) {
-            selectedMPES.insert(arr[i]);
-        }
-        m_selectedMPES.clear();
-        m_selectedMPES.insert(selectedMPES.begin(), selectedMPES.end());
+        UaString s;
+        value.setString(s);
+        std::string selectionString = s.toUtf8();
+        parseAndSetSelection(selectionString, PAS_PanelType);
     } else
         return OpcUa_BadInvalidArgument;
 
@@ -335,13 +337,14 @@ UaStatus MirrorController::setData(OpcUa_UInt32 offset, UaVariant value)
 
 UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &args)
 {
+    UaStatus status;
     //UaMutexLocker lock(&m_mutex);
 
     /**********************************************************
      * Move the whole mirror in the telescope reference frame *
      * ********************************************************/
     if (offset == PAS_MirrorType_MoveToCoords) {
-        moveToCoords(args);
+        status = moveToCoords(args);
         updateCoords();
     }
     /**********************************************************
@@ -349,7 +352,7 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
      * ********************************************************/
     else if (offset == PAS_MirrorType_ReadPosition) {
         // read out all individual positions
-        readPositionAll();
+        status = readPositionAll();
         // and get global mirror coordinates
         updateCoords();
     }
@@ -363,12 +366,17 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
         std::set<unsigned> selectedMPES = getSelectedDeviceIndices(PAS_MPESType);
 
         // make sure there are some selected sensors
+        if (selectedPanels.empty()) {
+            std::cout << "+++ ERROR +++ No panels selected! Nothing to do." << std::endl;
+            return OpcUa_BadInvalidArgument;
+        }
+        // make sure there are some selected sensors
         if (selectedMPES.empty()) {
             std::cout << "+++ ERROR +++ No sensors selected! Nothing to do." << std::endl;
             return OpcUa_BadInvalidArgument;
         }
 
-        alignSector(selectedPanels, selectedMPES);
+        status = alignSector(selectedPanels, selectedMPES);
         updateCoords();
     }
 
@@ -387,7 +395,8 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
             return OpcUa_BadInvalidArgument;
         }
 
-        alignGlobal(fixPanel);
+        status = alignGlobal(fixPanel);
+        updateCoords();
     }
 
 
@@ -405,6 +414,11 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
 
         std::set<unsigned> selectedEdges = getSelectedDeviceIndices(PAS_EdgeType);
 
+        if (selectedEdges.empty()) {
+            std::cout << "No edges selected. Nothing to do..." << std::endl;
+            return OpcUa_Good;
+        }
+
         // second argument is the direction
         unsigned dir = args[1].Value.UInt32;
         // check that these are valid;
@@ -418,7 +432,7 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
             return OpcUa_BadInvalidArgument;
         }
 
-        alignSequential(idx, selectedEdges, (bool) dir);
+        status = alignSequential(idx, selectedEdges, (bool) dir);
         updateCoords();
     }
 
@@ -426,8 +440,16 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
      * Read out all current edge sensors                      *
      * ********************************************************/
     else if (offset == PAS_MirrorType_ReadSensors) {
-        for (const auto &idx : getSelectedDeviceIndices(PAS_EdgeType))
-            dynamic_cast<EdgeController *>(m_pChildren.at(PAS_EdgeType).at(idx))->operate(PAS_EdgeType_Read);
+        auto edgeIndices = getSelectedDeviceIndices(PAS_EdgeType);
+        if (edgeIndices.empty()) {
+            std::cout << "No edges selected in SelectedEdges! Nothing to do..." << std::endl;
+        }
+        else {
+            for (const auto &idx : edgeIndices) {
+                status = dynamic_cast<EdgeController *>(m_pChildren.at(PAS_EdgeType).at(idx))->operate(PAS_EdgeType_Read);
+                if (!status.isGood()) { return status; }
+            }
+        }
     }
 
     /************************************************
@@ -436,22 +458,28 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
     else if (offset == PAS_MirrorType_Stop) {
         std::cout << m_ID.name << "::Operate() : Attempting to gracefully stop all motions." << std::endl;
         for (const auto &p: m_pChildren.at(PAS_PanelType)) {
-            dynamic_cast<PanelController *>(p)->operate(PAS_PanelType_Stop);
-        updateCoords();
+            status = dynamic_cast<PanelController *>(p)->operate(PAS_PanelType_Stop);
+            if (!status.isGood()) { 
+                updateCoords();
+                return status; 
+            }
         }
     } else {
         return OpcUa_BadNotImplemented;
     }
 
-    return OpcUa_Good;
+    return status;
 }
 
 
 /* ================= INTERNAL IMPLEMENTATIONS OF ALL METHODS ================== */
 
-void MirrorController::readPositionAll() {
+UaStatus MirrorController::readPositionAll() {
+    UaStatus status;
+    
     for (const auto &idx : getSelectedDeviceIndices(PAS_PanelType)) {
-        dynamic_cast<PanelController *>(m_pChildren.at(PAS_PanelType).at(idx))->operate(PAS_PanelType_ReadAll);
+        status = dynamic_cast<PanelController *>(m_pChildren.at(PAS_PanelType).at(idx))->operate(PAS_PanelType_ReadAll);
+        if (!status.isGood()) { return status; }
 
         auto pos = m_pChildren.at(PAS_PanelType).at(idx)->getId().position;
 
@@ -463,74 +491,93 @@ void MirrorController::readPositionAll() {
             padCoordsActs.col(i) = __toTelRF(pos, padCoordsActs.col(i));
         std::cout << "Telescope frame pad coordinates:\n" << padCoordsActs << std::endl;
     }
+
+    return status;
 }
 
-void MirrorController::moveToCoords(UaVariantArray args) {
-    Eigen::VectorXd targetMirrorCoords;
-    Eigen::VectorXd deltaMirrorCoords;
+UaStatus MirrorController::moveToCoords(UaVariantArray args) {
+    UaStatus status;
+    
+    Eigen::VectorXd targetMirrorCoords(6);
+    Eigen::VectorXd deltaMirrorCoords(6);
     for (int i = 0; i < 6; i++) {
         UaVariant(args[i]).toDouble(targetMirrorCoords[i]);
     }
 
     deltaMirrorCoords = targetMirrorCoords - m_curCoords;
 
-    std::cout << "\t\t*** MOVING MIRROR " << m_ID.position << " TO COORDINATES :\n"
+    std::cout << "Moving Mirror " << m_ID.position << " To Target Coordinates:\n"
               << targetMirrorCoords << std::endl;
 
-    std::cout << "\t\t*** MOTION OF :\n"
+    std::cout << "Delta Coordinates: "
               << deltaMirrorCoords << std::endl;
+    std::cout << std::endl << std::endl;
 
-    UaVariantArray targetPanelCoords;
-    unsigned curpos;
+    std::map<PasController *, UaVariantArray> deltaLengths;
+
+    unsigned positionNum;
     Eigen::VectorXd prf_coords;
-    for (const auto &pCurObject : m_pChildren.at(PAS_PanelType)) {
-        curpos = pCurObject->getId().position;
-        std::cout << "Panel " << curpos << ":" << std::endl;
-        dynamic_cast<PanelController *>(pCurObject)->operate(PAS_PanelType_ReadAll);
+    Eigen::VectorXd deltaActLengths(6);
+    Eigen::VectorXd targetActLengths(6);
+    Eigen::VectorXd currentActLengths(6);
+    for (const auto &pPanel : m_pChildren.at(PAS_PanelType)) {
+        positionNum = pPanel->getId().position;
+        std::cout << "Panel " << positionNum << ":" << std::endl;
+        dynamic_cast<PanelController *>(pPanel)->operate(PAS_PanelType_ReadAll);
         // for this panel, we get PRF pad coords, transform them to TRF,
         // move them in TRF, transform back to PRF, and then compute new ACT lengths
         // based on the new pad coords. so simple!
-        auto padCoords_PanelRF = dynamic_cast<PanelController *>(pCurObject)->getPadCoords();
+        auto padCoords_PanelRF = dynamic_cast<PanelController *>(pPanel)->getPadCoords();
         auto padCoords_TelRF = padCoords_PanelRF;
         double newPadCoords[3][3];
         for (unsigned pad = 0; pad < 3; pad++) {
             // transform to TRF
-            padCoords_TelRF.col(pad) = __toTelRF(curpos, padCoords_PanelRF.col(pad));
+            padCoords_TelRF.col(pad) = __toTelRF(positionNum, padCoords_PanelRF.col(pad));
             // move by the desired telescope coordinates
             padCoords_TelRF.col(pad) = __moveInCurrentRF(padCoords_TelRF.col(pad), deltaMirrorCoords);
             // transform back to PRF
-            padCoords_PanelRF.col(pad) = __toPanelRF(curpos, padCoords_TelRF.col(pad));
+            padCoords_PanelRF.col(pad) = __toPanelRF(positionNum, padCoords_TelRF.col(pad));
             for (unsigned coord = 0; coord < 3; coord++)
                 newPadCoords[pad][coord] = padCoords_PanelRF.col(pad)(coord);
         }
         m_SP.ComputeActsFromPads(newPadCoords);
-        double newActs[6];
-        for (unsigned act = 0; act < 6; act++)
-            newActs[act] = m_SP.GetActLengths()[act];
-        // phew done!
-        // compute new panel coordinates based on these actuator lengths
-        m_SP.ComputeStewart(newActs);
-
-        targetPanelCoords.create(6);
-        UaVariant val;
-        // Get actuator lengths for motion
-        std::cout << "Moving panel to coordinates:" << std::endl;
         for (int i = 0; i < 6; i++) {
-            val.setFloat(m_SP.GetPanelCoords()[i]);
-            val.copyTo(&targetPanelCoords[i]);
-            std::cout << targetPanelCoords[i].Value.Float << std::endl;
+            targetActLengths(i) = (float)m_SP.GetActLengths()[i];
+        }
+        currentActLengths = dynamic_cast<PanelController *>(pPanel)->getActuatorLengths();
+
+        deltaActLengths = targetActLengths - currentActLengths;
+
+        if(dynamic_cast<PanelController *>(pPanel)->checkForCollision(deltaActLengths)) {
+            std::cout << "Error: Sensors may go out of range! Motion cancelled." << std::endl;
+            return OpcUa_Bad;
+        }
+
+        UaVariantArray args;
+        args.create(6);
+        UaVariant val;
+        for (int i = 0; i < 6; i++) {
+            val.setFloat(deltaActLengths(i));
+            val.copyTo(&args[i]);
+            deltaLengths.insert(std::pair<PasController *, UaVariantArray>(pPanel, args));
+        }
+    }
+    
+    for (auto pair : deltaLengths) {
+        std::cout << "Panel " << pair.first->getId().position << " moving actuators by: " << std::endl;
+        for (int i = 0; i < 6; i++) {
+            std::cout << pair.second[i].Value.Float << std::endl;
         }
         std::cout << std::endl << std::endl;
-        pCurObject->operate(PAS_PanelType_MoveToCoords, targetPanelCoords);
+        status = dynamic_cast<PanelController*>(pair.first)->moveDeltaLengths(pair.second);
+        if (!status.isGood()) { return status; }
     }
-    // we have populated all the values, now start moving.
-    // this is done as its own loop so that all the = panels move simulataneously.
-    // i'm looping with iterators instead of the range-based for-loop to hopefully
-    // not let the compiler optimize this away and merge the two loops
+
+    return status;
 }
 
 // Align all edges between start_idx and end_idx moving in the direction dir
-void MirrorController::alignSequential(unsigned startEdge, const std::set<unsigned> &selectedEdges, bool dir)
+UaStatus MirrorController::alignSequential(unsigned startEdge, const std::set<unsigned> &selectedEdges, bool dir)
 {
     // we need to traverse the mirror in the correct order of edges.
     // dir = 0 decreases panel position (+z rotation);
@@ -545,6 +592,8 @@ void MirrorController::alignSequential(unsigned startEdge, const std::set<unsign
     // For the current edge, take the panel that's greater dir-wise and align all all the
     // preceding panels to it (so going in the direction opposite to dir);
     // increment the current edge in the direction dir.
+
+    UaStatus status;
 
     std::deque<unsigned> already_aligned{}; // yes, deque, not vector!
 
@@ -566,7 +615,8 @@ void MirrorController::alignSequential(unsigned startEdge, const std::set<unsign
             auto movingPanel_idx = m_ChildrenPositionMap.at(PAS_PanelType).at(curPanels.at(0));
             // do this until the edge is aligned
             int aligniter = 1;
-            m_pChildren.at(PAS_EdgeType).at(edge)->operate(PAS_EdgeType_Align, alignPanels);
+            status = m_pChildren.at(PAS_EdgeType).at(edge)->operate(PAS_EdgeType_Align, alignPanels);
+            if (!status.isGood()) { return status; }
             while (!dynamic_cast<EdgeController *>(m_pChildren.at(PAS_EdgeType).at(edge))->isAligned()) {
                 std::cout << "\nAlignment Iteration " << aligniter << std::endl << std::endl;
                 usleep(400*1000); // microseconds
@@ -579,7 +629,8 @@ void MirrorController::alignSequential(unsigned startEdge, const std::set<unsign
                     m_pChildren.at(PAS_PanelType).at(movingPanel_idx)->getState(curstate);
                 }
                 aligniter++;
-                m_pChildren.at(PAS_EdgeType).at(edge)->operate(PAS_EdgeType_Align, alignPanels);
+                status = m_pChildren.at(PAS_EdgeType).at(edge)->operate(PAS_EdgeType_Align, alignPanels);
+                if (!status.isGood()) { return status; }
             }
             std::cout << "\n" << m_pChildren.at(PAS_EdgeType).at(edge)->getId().name
                       << " is aligned!" << std::endl;
@@ -595,12 +646,24 @@ void MirrorController::alignSequential(unsigned startEdge, const std::set<unsign
             cur_idx = -1; // max element of unsigned
         }
     }
+
+    return status;
 }
 
 void MirrorController::parseAndSetSelection(const std::string &selectionString, unsigned deviceType) {
     // process a separated string and find the panels or edges described by it
     // pad by a space from the right so we don't hit the end of the line without a delimiter
-    std::string inStr = selectionString.at(deviceType) + std::string(" ");
+    std::string s = selectionString;
+    
+    // Strip leading and trailing brackets if present
+    if (s.front() == '[') {
+        s.erase(0,1);
+    }
+    if (s.back() == ']') {
+        s.pop_back();
+    }
+    
+    std::string inStr = s.at(deviceType) + std::string(" ");
     std::vector<std::string> strList;
     // working with comma, space and semicolon
     std::string delim = " ,;:\"\'{}";
@@ -619,7 +682,10 @@ void MirrorController::parseAndSetSelection(const std::string &selectionString, 
             curpos = stoi(item);
             if (m_ChildrenPositionMap.at(deviceType).count(curpos) > 0) {
                 m_selectedPanels.insert(curpos);
-                std::cout << curpos << " ";
+                std::cout << "Added Panel with serial: " << curpos << std::endl;
+            }
+            else {
+                std::cout << "Unable to find Panel with serial: " << curpos << std::endl;
             }
         }
         std::cout << std::endl;
@@ -631,7 +697,10 @@ void MirrorController::parseAndSetSelection(const std::string &selectionString, 
             curid.serialNumber = stoi(item);
             if (m_ChildrenIdentityMap.at(deviceType).count(curid) > 0) {
                 m_selectedMPES.insert(curid.serialNumber);
-                std::cout << curid.serialNumber << " ";
+                std::cout << "Added MPES with serial: " << curid.serialNumber << std::endl;
+            }
+            else {
+                std::cout << "Unable to find MPES with serial: " << curid.serialNumber << std::endl;
             }
         }
         std::cout << std::endl;
@@ -644,7 +713,10 @@ void MirrorController::parseAndSetSelection(const std::string &selectionString, 
             curid.eAddress = item;
             if (m_ChildrenIdentityMap.at(deviceType).count(curid) > 0) {
                 m_selectedEdges.insert(curid.eAddress);
-                std::cout << curid.eAddress << " ";
+                std::cout << "Added Edge with eAddress: " << curid.eAddress << std::endl;
+            }
+            else {
+                std::cout << "Unable to find Edge with eAddress: " << curid.eAddress << std::endl;
             }
             std::cout << std::endl;
         }
@@ -677,8 +749,10 @@ std::set<unsigned> MirrorController::getSelectedDeviceIndices(unsigned deviceTyp
     return devices;
 }
 
-void MirrorController::updateCoords()
+UaStatus MirrorController::updateCoords()
 {
+    UaStatus status;
+
     // minimize chisq and get telescope coordinates
     auto minuit = new TMinuit(6); // 6 parameters for 6 telescope coords
     minuit->SetPrintLevel(-1); // suppress all output
@@ -709,6 +783,8 @@ void MirrorController::updateCoords()
     // display angle in common coordinates -- angle*baseRad
 //    for (int i = 3; i < 6; i++)
 //       std::cout << m_curCoords(i)*kBaseRadius << " +/- " << m_curCoordsErr(i)*kBaseRadius << std::endl;
+
+    return OpcUa_Good;
 }
 
 Eigen::MatrixXd MirrorController::__computeSystematicsMatrix(unsigned pos1, unsigned pos2)
@@ -784,9 +860,11 @@ Eigen::MatrixXd MirrorController::__computeSystematicsMatrix(unsigned pos1, unsi
     return res;
 }
 
-void
-MirrorController::alignSector(const std::set<unsigned> &selectedPanels, const std::set<unsigned> &selectedMPES,
+UaStatus MirrorController::alignSector(const std::set<unsigned> &selectedPanels, const std::set<unsigned> &selectedMPES,
                               double alignFrac) {
+    
+    UaStatus status;
+    
     // following the align method for an edge:
     Eigen::MatrixXd C; // constraint
     Eigen::MatrixXd B; // complete matrix
@@ -801,7 +879,7 @@ MirrorController::alignSector(const std::set<unsigned> &selectedPanels, const st
         panelsToMove.push_back(dynamic_cast<PanelController *>(m_pChildren.at(PAS_PanelType).at(idx)));
     for (unsigned idx : selectedMPES) {
         MPESController *mpes = dynamic_cast<MPESController *>(m_pChildren.at(PAS_MPESType).at(idx));
-        mpes->operate(PAS_MPESType_Read);
+        mpes->read(false);
         if (mpes->isVisible())
             alignMPES.push_back(mpes);
     }
@@ -837,7 +915,7 @@ MirrorController::alignSector(const std::set<unsigned> &selectedPanels, const st
         // only read the internal MPES if no user-specified ones have been found
         for (const auto &idx: overlapIndices) {
             MPESController *mpes = dynamic_cast<MPESController *>(m_pChildren.at(PAS_MPESType).at(idx));
-            mpes->operate(PAS_MPESType_Read);
+            mpes->read(false);
             if (mpes->isVisible())
                 alignMPES.push_back(mpes);
         }
@@ -892,7 +970,7 @@ MirrorController::alignSector(const std::set<unsigned> &selectedPanels, const st
     if (Y.size() < B.cols()) {
         std::cout << "+++ ERROR! +++ There are " << B.rows() / 2 << " sensors and " << B.cols()
                   << " actuators -- not enough sensors to constrain the motion. Won't do anything!" << std::endl;
-        return;
+        return OpcUa_Bad;
     }
 
     try {
@@ -901,7 +979,7 @@ MirrorController::alignSector(const std::set<unsigned> &selectedPanels, const st
     catch (...) {
         std::cout << "+++ WARNING! +++ Failed to perform Singular Value Decomposition. "
                   << "Check your sensor readings! Discarding this result!" << std::endl;
-        return;
+        return OpcUa_Bad;
     }
 
     std::cout << "\nThe vector to solve for is\n" << Y << std::endl;
@@ -917,14 +995,25 @@ MirrorController::alignSector(const std::set<unsigned> &selectedPanels, const st
 
     /* MOVE ACTUATORS */
     unsigned j = 0;
+    Eigen::VectorXd deltaLengths(6);
+    for (auto &pCurPanel : panelsToMove) {
+        // print out to make sure
+        std::cout << "Will move actuators of Panel "
+                  << pCurPanel->getId().position << " by\n" << X.segment(j, 6) << std::endl;
+
+        for (unsigned i = 0; i < 6; i++) {
+            deltaLengths(i) = X(j++);
+        }
+
+        if(pCurPanel->checkForCollision(deltaLengths)) {
+            std::cout << "Error: Sensors may go out of range! Motion cancelled." << std::endl;
+            return OpcUa_Bad;
+        }
+    }
+    
+    j = 0;
     for (auto &pCurPanel : panelsToMove) {
         auto nACT = pCurPanel->getActuatorCount();
-        // print out to make sure
-        std::cout << "Will move actuators of "
-                  << pCurPanel->getId().name << " by\n" << X.segment(j, 6) << std::endl;
-
-
-
         UaVariantArray deltas;
         deltas.create(nACT);
         UaVariant val;
@@ -932,14 +1021,17 @@ MirrorController::alignSector(const std::set<unsigned> &selectedPanels, const st
             val.setFloat(X(j++));
             val.copyTo(&deltas[i]);
         }
-
-        pCurPanel->operate(PAS_PanelType_MoveDeltaLengths, deltas);
+        status = pCurPanel->moveDeltaLengths(deltas);
+        if (!status.isGood()) { return status; }
     }
+
+    return status;
 }
 
 
-void MirrorController::alignGlobal(unsigned fixPanel, double alignFrac)
+UaStatus MirrorController::alignGlobal(unsigned fixPanel, double alignFrac)
 {
+    UaStatus status;
     // we want to fit all sensors simultaneously while constraining the motion of 'fixPanel'
 
     // first, find which ring we are on:
@@ -950,7 +1042,7 @@ void MirrorController::alignGlobal(unsigned fixPanel, double alignFrac)
     if (mirror != (unsigned) m_ID.position) {
         std::cout << "+++ ERROR +++ The entered fixPanel position is wrong! Check it and try again."
                   << std::endl;
-        return;
+        return OpcUa_Bad;
     }
 
     if (mirror == 1)
@@ -1065,7 +1157,7 @@ void MirrorController::alignGlobal(unsigned fixPanel, double alignFrac)
         std::cout
                 << "+++ ERROR +++ Not enough sensor readings to perform the fit! Go through the output above and find which sensor is not in the field of view, fix it, and come back."
                 << std::endl;
-        return;
+        return OpcUa_Bad;
     }
 
     std::cout << "+++ DEBUG +++ misalignment vector size is " << globMisalignVec.size() << std::endl;
@@ -1118,27 +1210,40 @@ void MirrorController::alignGlobal(unsigned fixPanel, double alignFrac)
         std::cout << "\n+++ WARNING +++ You requested fractional motion: will move fractionally by "
                   << alignFrac << " of the computed displacement" << std::endl;
 
-    // loop through panels and set the displacements
     /* MOVE ACTUATORS */
-    // remember to update selected panels too
     unsigned j = 6;
-    for (auto& pCurPanel : panelsToMove) {
-        auto nACT = pCurPanel->getActuatorCount();
+    Eigen::VectorXd deltaLengths(6);
+    for (auto &pCurPanel : panelsToMove) {
         // print out to make sure
         std::cout << "Will move actuators of "
                   << pCurPanel->getId().name << " by (accounting for fractional motion)\n"
                   << alignFrac * globDisplaceVec.segment(j, 6) << std::endl;
 
+        for (unsigned i = 0; i < 6; i++) {
+            deltaLengths(i) = alignFrac * globDisplaceVec(j++);
+        }
+
+        if(pCurPanel->checkForCollision(deltaLengths)) {
+            std::cout << "Error: Sensors may go out of range! Motion cancelled." << std::endl;
+            return OpcUa_Bad;
+        }
+    }
+    
+    j = 6;
+    for (auto &pCurPanel : panelsToMove) {
+        auto nACT = pCurPanel->getActuatorCount();
         UaVariantArray deltas;
         deltas.create(nACT);
         UaVariant val;
         for (unsigned i = 0; i < nACT; i++) {
-            val.setFloat(alignFrac * globDisplaceVec(j++));
+            val.setFloat(globDisplaceVec(j++));
             val.copyTo(&deltas[i]);
         }
-
-        pCurPanel->operate(PAS_PanelType_MoveDeltaLengths, deltas);
+        status = pCurPanel->moveDeltaLengths(deltas);
+        if (!status.isGood()) { return status; }
     }
+
+    return status;
 }
 
 /* =========== Coordinate Transformations =========== */

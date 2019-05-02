@@ -24,7 +24,7 @@ const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, O
         {PAS_PanelType_zRot,           std::make_tuple("zRot", UaVariant(0.0), OpcUa_False,
                                                        Ua_AccessLevel_CurrentRead)},
         {PAS_PanelType_SafetyRadius,   std::make_tuple("SafetyRadius", UaVariant(40.0), OpcUa_False,
-                                                       Ua_AccessLevel_CurrentWrite)}
+                                                       Ua_AccessLevel_CurrentRead | Ua_AccessLevel_CurrentWrite)}
 };
 
 const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean>> PanelObject::ERRORS = {
@@ -94,7 +94,7 @@ const std::map<OpcUa_UInt32, std::pair<std::string, std::vector<std::tuple<std::
                                                                                       "Target z-rotation for the panel (in mm)."),
                                                               }}
         },
-        {PAS_PanelType_ReadAll,          {"ReadAll",          {}}},
+        {PAS_PanelType_ReadAll,          {"ReadPosition",          {}}},
         {PAS_PanelType_Stop,             {"Stop",             {}}}
 };
 

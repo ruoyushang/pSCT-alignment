@@ -156,48 +156,45 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
     /************************************************
      * move actuators to the preset lengths         *
      * **********************************************/
-    bool collision_flag;
     float deltaLength;
     float targetLength;
     Eigen::VectorXd deltaLengths(6);
     Eigen::VectorXd targetLengths(6);
     Eigen::VectorXd currentLengths = getActuatorLengths();
     if (offset == PAS_PanelType_MoveDeltaLengths) {
-        std::cout << "Num args received: " << args.length() << std::endl;
-        for (int i = 0; i < (int) args.length(); i++) {
-            std::cout << UaVariant(args[i]).toString().toUtf8() << std::endl;
-        }
-
+        std::cout << "args.length() :" << args.length() << std::endl;
+        
         for (int i = 0; i < 6; i++) {
-            UaVariant(args[i]).toFloat(deltaLength);
-            deltaLengths(i) = deltaLength;
+            std::cout << UaVariant(args[i]).type() << std::endl;
+            std::cout << UaVariant(args[i]).dataType() << std::endl;
+            //UaVariant(args[i]).toFloat(deltaLength);
+            //deltaLengths(i) = deltaLength;
         }
-        std::cout << "Calling Panel::MoveDeltaLengths() with delta lengths: \n";
-        std::cout << deltaLengths << std::endl << std::endl;
-        collision_flag = checkForCollision(deltaLengths);
-        if (collision_flag) {
-            std::cout << "Error: Sensors may go out of range! Motion cancelled." << std::endl;
-        }
-        else {
-            status = m_pClient->callMethodAsync(std::string("ns=2;s=Panel_0"), UaString("MoveDeltaLengths"), args);
-        }
+        //std::cout << "Calling Panel::MoveDeltaLengths() with delta lengths: \n";
+        //std::cout << deltaLengths << std::endl << std::endl;
+        //if (checkForCollision(deltaLengths)) {
+            //std::cout << "Error: Sensors may go out of range! Motion cancelled." << std::endl;
+            //return OpcUa_Bad;
+        //}
+        //else {
+            //status = moveDeltaLengths(args);
+        //}
     } else if (offset == PAS_PanelType_MoveToLengths) {
         for (int i = 0; i < 6; i++) {
             UaVariant(args[i]).toFloat(targetLength);
             targetLengths(i) = targetLength;
         }
+        std::cout << "Calling Panel::MoveToLengths() with target lengths: \n";
+        std::cout << targetLengths << std::endl << std::endl;
         deltaLengths = targetLengths - currentLengths;
-        collision_flag = checkForCollision(deltaLengths);
-        if (collision_flag) {
+        if (checkForCollision(deltaLengths)) {
             std::cout << "Error: Sensors may go out of range! Motion cancelled." << std::endl;
+            return OpcUa_Bad;
         }
         else {
-            status = m_pClient->callMethodAsync(std::string("ns=2;s=Panel_0"), UaString("MoveToLengths"), args);
+            status = moveToLengths(args);
         }
     } else if (offset == PAS_PanelType_MoveToCoords) {
-        if (args.length() != pACT.size())
-            return OpcUa_BadInvalidArgument;
-
         std::cout << "\tCurrent panel coordinates (x, y ,z xRot, yRot, zRot):\n\t\t";
         for (auto coord : m_curCoords) {
             std::cout << coord << " ";
@@ -205,7 +202,6 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
         std::cout << std::endl << std::endl;
 
         double inputCoordinates[6];
-
         std::cout << "\tTarget panel coordinates (x, y ,z xRot, yRot, zRot):\n\t\t";
         for (int i = 0; i < 6; i++) {
             UaVariant(args[i]).toDouble(inputCoordinates[i]);
@@ -230,12 +226,12 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
         }
 
         deltaLengths = targetLengths - currentLengths;
-        collision_flag = checkForCollision(deltaLengths);
-        if (collision_flag) {
+        if (checkForCollision(deltaLengths)) {
             std::cout << "Error: Sensors may go out of range! Motion cancelled." << std::endl;
+            return OpcUa_Bad;
         }
         else {
-            status = m_pClient->callMethodAsync(std::string("ns=2;s=Panel_0"), UaString("MoveToLengths"), lengthArgs);
+            status = moveToLengths(lengthArgs);
         }
     } else if (offset == PAS_PanelType_ReadAll) {
         std::cout << std::endl << m_ID << " :" << std::endl;
@@ -260,6 +256,14 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
     }
 
     return status;
+}
+
+UaStatus PanelController::moveToLengths(const UaVariantArray &args) {
+    return m_pClient->callMethodAsync(std::string("ns=2;s=Panel_0"), UaString("MoveToLengths"), args);
+}
+
+UaStatus PanelController::moveDeltaLengths(const UaVariantArray &args) {
+    return m_pClient->callMethodAsync(std::string("ns=2;s=Panel_0"), UaString("MoveDeltaLengths"), args);
 }
 
 bool PanelController::checkForCollision(const Eigen::VectorXd &deltaLengths) {

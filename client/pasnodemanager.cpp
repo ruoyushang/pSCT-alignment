@@ -588,36 +588,26 @@ UaStatus PasNodeManager::amendTypeNodes()
     addStatus = addNodeAndReference(pMirrorType, pDataItem, OpcUaId_HasComponent);
     UA_ASSERT(addStatus.isGood());
 
-    auto tempStringArray = new UaStringArray();
-    defaultValue.setStringArray(*tempStringArray);
-
+    defaultValue.setString("");
     pDataItem = new OpcUa::DataItemType(UaNodeId(PAS_MirrorType_SelectedEdges, getNameSpaceIndex()),
-                                        "SelectedEdges", getNameSpaceIndex(), defaultValue, Ua_AccessLevel_CurrentWrite,
+                                        "SelectedEdges", getNameSpaceIndex(), defaultValue, Ua_AccessLevel_CurrentRead | Ua_AccessLevel_CurrentWrite,
                                         this);
     pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
     addStatus = addNodeAndReference(pMirrorType, pDataItem, OpcUaId_HasComponent);
     UA_ASSERT(addStatus.isGood());
 
-    //delete tempStringArray;
-
-    auto tempIntArray = new UaInt32Array();
-    defaultValue.setInt32Array(*tempIntArray);
-
+    defaultValue.setString("");
     pDataItem = new OpcUa::DataItemType(UaNodeId(PAS_MirrorType_SelectedMPES, getNameSpaceIndex()),
-                                        "SelectedMPES", getNameSpaceIndex(), defaultValue, Ua_AccessLevel_CurrentWrite,
+                                        "SelectedMPES", getNameSpaceIndex(), defaultValue,  Ua_AccessLevel_CurrentRead | Ua_AccessLevel_CurrentWrite,
                                         this);
     pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
     addStatus = addNodeAndReference(pMirrorType, pDataItem, OpcUaId_HasComponent);
     UA_ASSERT(addStatus.isGood());
 
-    //delete tempIntArray;
-
-    auto tempUIntArray = new UaUInt32Array();
-    defaultValue.setUInt32Array(*tempUIntArray);
-
+    defaultValue.setString("");
     pDataItem = new OpcUa::DataItemType(UaNodeId(PAS_MirrorType_SelectedPanels, getNameSpaceIndex()),
                                         "SelectedPanels", getNameSpaceIndex(), defaultValue,
-                                        Ua_AccessLevel_CurrentWrite, this);
+                                         Ua_AccessLevel_CurrentRead | Ua_AccessLevel_CurrentWrite, this);
     pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
     addStatus = addNodeAndReference(pMirrorType, pDataItem, OpcUaId_HasComponent);
     UA_ASSERT(addStatus.isGood());

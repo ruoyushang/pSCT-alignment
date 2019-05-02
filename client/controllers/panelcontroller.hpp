@@ -33,6 +33,11 @@ public:
 
     unsigned getActuatorCount();
 
+    UaStatus moveToLengths(const UaVariantArray &args);
+    UaStatus moveDeltaLengths(const UaVariantArray &args);
+
+    Eigen::VectorXd getActuatorLengths();
+    bool checkForCollision(const Eigen::VectorXd &deltaLengths);
 private:
     int m_kUpdateInterval = 1000;
 
@@ -42,7 +47,7 @@ private:
     // x, y, z, xRot, yRot, zRot
     double m_curCoords[6] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
 
-    double m_safetyRadius = 40.0;
+    double m_safetyRadius = 80.0;
 
     StewartPlatform m_SP;
 
@@ -51,10 +56,6 @@ private:
 
     // pad coords -- column per pad
     Eigen::Matrix3d m_PadCoords;
-
-    bool checkForCollision(const Eigen::VectorXd &deltaLengths);
-
-    Eigen::VectorXd getActuatorLengths();
 };
 
 #endif //CLIENT_PANELCONTROLLER_HPP

@@ -76,7 +76,7 @@ protected:
     virtual double chiSq(const Eigen::VectorXd &telDelta);
 
 private:
-    double m_safetyRadius = 40;
+    double m_safetyRadius = 80.0;
 
     std::set<unsigned> m_selectedPanels;
     std::set<int> m_selectedMPES;
@@ -88,18 +88,18 @@ private:
 
     std::set<unsigned> getSelectedDeviceIndices(unsigned deviceType);
     // update current mirror coordinates
-    void updateCoords();
+    UaStatus updateCoords();
     // a bunch of internal implementations
-    void readPositionAll();
+    UaStatus readPositionAll();
     // Align all edges fron need_alignment starting at start_idx and  moving in the direction dir
-    void alignSequential(unsigned startEdge, const std::set<unsigned> &selectedEdges, bool dir);
+    UaStatus alignSequential(unsigned startEdge, const std::set<unsigned> &selectedEdges, bool dir);
 
-    void alignSector(const std::set<unsigned> &selectedPanels, const std::set<unsigned> &selectedMPES,
+    UaStatus alignSector(const std::set<unsigned> &selectedPanels, const std::set<unsigned> &selectedMPES,
                      double alignFrac = 0.25);
 
-    void alignGlobal(unsigned fixPanel, double alignFrac = 0.25);
+    UaStatus alignGlobal(unsigned fixPanel, double alignFrac = 0.25);
 
-    void moveToCoords(UaVariantArray args);
+    UaStatus moveToCoords(UaVariantArray args);
 
     // mirror coords -- x/y/z, xRot, yRot, zRot
     Eigen::VectorXd m_curCoords, m_curCoordsErr, m_sysOffsetsMPES;

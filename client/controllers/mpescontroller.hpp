@@ -74,7 +74,7 @@ private:
     std::map<unsigned, char> m_PanelSideMap;
 
     // a read that performs such checks and exposure correction
-    UaStatus read();
+    UaStatus read(bool print=true);
 
     // a helper for the above
     UaStatus __readRequest();

@@ -304,7 +304,7 @@ UaStatus EdgeController::findSingleMatrix(unsigned panelIdx, double stepSize) {
     return status;
 }
 
-/* ----------------------------------------------------------------------------
+/*-------------------------------------------------------------------------
     Class        EdgeController
     Method       align
     Description  Align this edge to the nominal position using the found matrix
@@ -425,7 +425,7 @@ UaStatus EdgeController::alignSinglePanel(unsigned panelpos, double alignFrac, b
         UaVariant vtmp;
         unsigned visible = 0;
         for (auto &mpes : overlapMPES) {
-            mpes->operate(PAS_MPESType_Read);
+            mpes->read(false);
             if (!mpes->isVisible()) continue;
 
             mpes->getData(PAS_MPESType_xCentroidAvg, vtmp);
@@ -640,7 +640,7 @@ const Eigen::VectorXd &EdgeController::getCurrentReadings() {
 
     UaVariant vtmp;
     for (unsigned nMPES = 0; nMPES < maxMPES; nMPES++) {
-        pMPES.at(nMPES)->operate(PAS_MPESType_Read);
+        dynamic_cast<MPESController*>(pMPES.at(nMPES))->read(false);
         if (!dynamic_cast<MPESController *>(pMPES.at(nMPES))->isVisible()) {
             std::cout << "+++ WARNING +++ " << pMPES.at(nMPES)->getId().name
                       //for (const auto& mpes : m_ChildrenPositionMap.at(PAS_MPESType)) {

@@ -214,7 +214,7 @@ UaStatus MPESController::operate(OpcUa_UInt32 offset, const UaVariantArray &args
     Method       read
     Description  Read Controller data.
 -----------------------------------------------------------------------------*/
-UaStatus MPESController::read() {
+UaStatus MPESController::read(bool print) {
     //UaMutexLocker lock(&m_mutex);
     UaStatus status;
 
@@ -245,6 +245,17 @@ UaStatus MPESController::read() {
                 // read the sensor again
                 status = __readRequest();
             }
+        }
+
+        if (print) {
+            std::cout << "MPES reading:" << std::endl;
+            std::cout << "x: " << m_Data.xCentroidAvg << std::endl;
+            std::cout << "xNominal: " << m_Data.xNominal << std::endl;
+            std::cout << "y: " << m_Data.yCentroidAvg << std::endl;
+            std::cout << "yNominal: " << m_Data.yNominal << std::endl;
+            std::cout << "xRMS: " << m_Data.xCentroidSD << std::endl;
+            std::cout << "yRMS: " << m_Data.yCentroidSD << std::endl;
+            std::cout << "Cleaned Intensity: " << m_Data.CleanedIntensity << std::endl;
         }
 
         time_t now = time(nullptr);
