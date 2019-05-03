@@ -46,7 +46,6 @@ sdk/bin
 1*.log
 2*.log
 3*.log
-*.txt
 
 # DB files
 *.sql
