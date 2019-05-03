@@ -168,7 +168,7 @@ UaStatus EdgeController::operate(OpcUa_UInt32 offset, const UaVariantArray &args
 
             std::cout << "\nCurrent MPES readings:\n";
             for (unsigned i = 0; i < m_CurrentReadings.size(); i++)
-                std::cout << m_CurrentReadings(i) << " +/- " << m_CurrentReadingsSD(i) << std::endl;
+                std::cout << m_CurrentReadings(i) << " +/- " << m_CurrentReadingsSpotWidth(i) << std::endl;
 
             std::cout << "\nTarget MPES readings:\n" << m_AlignedReadings << std::endl << std::endl;
             std::cout << "\nMisalignment:\n" << m_AlignedReadings - m_CurrentReadings << std::endl << std::endl;
@@ -654,7 +654,7 @@ const Eigen::VectorXd &EdgeController::getCurrentReadings() {
     unsigned visibleMPES = 0;
 
     m_CurrentReadings = Eigen::VectorXd(2 * maxMPES);
-    m_CurrentReadingsSD = Eigen::VectorXd(2 * maxMPES);
+    m_CurrentReadingsSpotWidth = Eigen::VectorXd(2 * maxMPES);
 
     UaVariant vtmp;
     for (unsigned nMPES = 0; nMPES < maxMPES; nMPES++) {
@@ -674,15 +674,15 @@ const Eigen::VectorXd &EdgeController::getCurrentReadings() {
         pMPES.at(nMPES)->getData(PAS_MPESType_yCentroidAvg, vtmp);
         vtmp.toDouble(m_CurrentReadings(visibleMPES * 2 + 1));
 
-        pMPES.at(nMPES)->getData(PAS_MPESType_xCentroidSD, vtmp);
-        vtmp.toDouble(m_CurrentReadingsSD(visibleMPES * 2));
-        pMPES.at(nMPES)->getData(PAS_MPESType_yCentroidSD, vtmp);
-        vtmp.toDouble(m_CurrentReadingsSD(visibleMPES * 2 + 1));
+        pMPES.at(nMPES)->getData(PAS_MPESType_xCentroidSpotWidth, vtmp);
+        vtmp.toDouble(m_CurrentReadingsSpotWidth(visibleMPES * 2));
+        pMPES.at(nMPES)->getData(PAS_MPESType_yCentroidSpotWidth, vtmp);
+        vtmp.toDouble(m_CurrentReadingsSpotWidth(visibleMPES * 2 + 1));
 
         ++visibleMPES;
     }
     m_CurrentReadings.conservativeResize(2 * visibleMPES);
-    m_CurrentReadingsSD.conservativeResize(2 * visibleMPES);
+    m_CurrentReadingsSpotWidth.conservativeResize(2 * visibleMPES);
 
     return m_CurrentReadings;
 }

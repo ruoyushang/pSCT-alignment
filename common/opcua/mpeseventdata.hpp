@@ -26,9 +26,9 @@ public:
     /** Field 3 - yCentroidAvg **/
     UaVariant m_yCentroidAvg;
     /** Field 4 - xSpotSize **/
-    UaVariant m_xCentroidSD;
+    UaVariant m_xCentroidSpotWidth;
     /** Field 5 - ySpotSize **/
-    UaVariant m_yCentroidSD;
+    UaVariant m_yCentroidSpotWidth;
     /** Field 6 - Cleaned Intensity **/
     UaVariant m_CleanedIntensity;
    

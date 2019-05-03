@@ -272,11 +272,11 @@ UaStatus PasNodeManagerCommon::createTypeNodes()
     addStatus = addNodeAndReference(pMPESType, pDataItem, OpcUaId_HasComponent);
     UA_ASSERT(addStatus.isGood());
 
-    // Add Variable "xCentroidSD" as DataItem
+    // Add Variable "xCentroidSpotWidth" as DataItem
     defaultValue.setDouble(0);
     pDataItem = new OpcUa::DataItemType(
-        UaNodeId(PAS_MPESType_xCentroidSD, getNameSpaceIndex()),
-        "xCentroidSD",
+        UaNodeId(PAS_MPESType_xCentroidSpotWidth, getNameSpaceIndex()),
+        "xCentroidSpotWidth",
         getNameSpaceIndex(),
         defaultValue,
         Ua_AccessLevel_CurrentRead,
@@ -285,11 +285,11 @@ UaStatus PasNodeManagerCommon::createTypeNodes()
     addStatus = addNodeAndReference(pMPESType, pDataItem, OpcUaId_HasComponent);
     UA_ASSERT(addStatus.isGood());
 
-    // Add Variable "yCentroidSD" as DataItem
+    // Add Variable "yCentroidSpotWidth" as DataItem
     defaultValue.setDouble(0);
     pDataItem = new OpcUa::DataItemType(
-        UaNodeId(PAS_MPESType_yCentroidSD, getNameSpaceIndex()),
-        "yCentroidSD",
+        UaNodeId(PAS_MPESType_yCentroidSpotWidth, getNameSpaceIndex()),
+        "yCentroidSpotWidth",
         getNameSpaceIndex(),
         defaultValue,
         Ua_AccessLevel_CurrentRead,
@@ -410,10 +410,10 @@ UaStatus PasNodeManagerCommon::createTypeNodes()
     addStatus = addNodeAndReference(pMPESEventType, pProperty, OpcUaId_HasProperty);
     UA_ASSERT(addStatus.isGood());
 
-    // xCentroidSD Event field property
+    // xCentroidSpotWidth Event field property
     defaultValue.setDouble(0);
     pProperty = new UaPropertyCache(
-        "xCentroidSD",
+        "xCentroidSpotWidth",
         UaNodeId(PAS_MPESEventType_xCentroidSD, getNameSpaceIndex()),
         defaultValue,
         Ua_AccessLevel_CurrentRead,
@@ -421,10 +421,10 @@ UaStatus PasNodeManagerCommon::createTypeNodes()
     addStatus = addNodeAndReference(pMPESEventType, pProperty, OpcUaId_HasProperty);
     UA_ASSERT(addStatus.isGood());
 
-    // yCentroidSD Event field property
+    // yCentroidSpotWidth Event field property
     defaultValue.setDouble(0);
     pProperty = new UaPropertyCache(
-        "yCentroidSD",
+        "yCentroidSpotWidth",
         UaNodeId(PAS_MPESEventType_yCentroidSD, getNameSpaceIndex()),
         defaultValue,
         Ua_AccessLevel_CurrentRead,

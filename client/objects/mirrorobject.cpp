@@ -31,7 +31,7 @@ const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, O
                                                        Ua_AccessLevel_CurrentRead)},
     {PAS_MirrorType_sysOffsetsMPES_y3, std::make_tuple("sysOffsetMPESy3", UaVariant(0.0), OpcUa_False,
                                                        Ua_AccessLevel_CurrentRead)},
-    {PAS_MirrorType_SafetyRadius,      std::make_tuple("SafetyRadius", UaVariant(40.0), OpcUa_False,
+    {PAS_MirrorType_SafetyRadius,      std::make_tuple("SafetyRadius", UaVariant(60.0), OpcUa_False,
                                                        Ua_AccessLevel_CurrentRead | Ua_AccessLevel_CurrentWrite)},
     {PAS_MirrorType_SelectedMPES,      std::make_tuple("SelectedPanels", UaVariant(), OpcUa_False,
                                                        Ua_AccessLevel_CurrentRead | Ua_AccessLevel_CurrentWrite)},

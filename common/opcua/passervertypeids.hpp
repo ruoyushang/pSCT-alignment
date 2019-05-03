@@ -67,8 +67,8 @@
 #define PAS_MPESType_State                          1101
 #define PAS_MPESType_xCentroidAvg                   1102
 #define PAS_MPESType_yCentroidAvg                   1103
-#define PAS_MPESType_xCentroidSD                    1104
-#define PAS_MPESType_yCentroidSD                    1105
+#define PAS_MPESType_xCentroidSpotWidth             1104
+#define PAS_MPESType_yCentroidSpotWidth             1105
 #define PAS_MPESType_CleanedIntensity               1106
 #define PAS_MPESType_xCentroidNominal               1107
 #define PAS_MPESType_yCentroidNominal               1108

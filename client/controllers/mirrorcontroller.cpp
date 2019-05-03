@@ -215,9 +215,6 @@ bool MirrorController::initialize()
         }
     }
 
-//    std::cout << "SYSTEMATICS MATRIX FOR 2112 from 2111:\n" << __computeSystematicsMatrix(2111, 2112) << std::endl;
-//    std::cout << "SYSTEMATICS MATRIX FOR 2111 from 2112:\n" << __computeSystematicsMatrix(2112, 2111) << std::endl;
-
     std::cout << "Done Initializing " << m_ID.name << std::endl << std::endl;
 
     return true;

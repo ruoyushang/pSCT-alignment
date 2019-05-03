@@ -48,7 +48,7 @@ private:
     // x, y, z, xRot, yRot, zRot
     double m_curCoords[6] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
 
-    double m_safetyRadius = 80.0;
+    double m_safetyRadius = 60.0;
 
     StewartPlatform m_SP;
 

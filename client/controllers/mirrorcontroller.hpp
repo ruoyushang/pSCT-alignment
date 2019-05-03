@@ -78,8 +78,7 @@ protected:
 
 private:
     int m_kUpdateInterval = 10000;
-
-    double m_safetyRadius = 80.0;
+    double m_safetyRadius = 60.0;
 
     std::set<unsigned> m_selectedPanels;
     std::set<int> m_selectedMPES;

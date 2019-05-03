@@ -55,8 +55,8 @@ private:
     struct MPESData {
         OpcUa_Double xCentroidAvg;
         OpcUa_Double yCentroidAvg;
-        OpcUa_Double xCentroidSD;
-        OpcUa_Double yCentroidSD;
+        OpcUa_Double xCentroidSpotWidth;
+        OpcUa_Double yCentroidSpotWidth;
         OpcUa_Double CleanedIntensity;
         OpcUa_Double xNominal;
         OpcUa_Double yNominal;
