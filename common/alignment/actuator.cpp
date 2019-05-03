@@ -862,8 +862,8 @@ void Actuator::ProbeHome()//method used to define home.
 	{
 		return;
 	}
-	float ExtendStopVoltageMax=VMax-(StepsPerRevolution/4)*dV;
-	float ExtendStopVoltageMin=VMin+(StepsPerRevolution/4)*dV;
+	float ExtendStopVoltageMax=VMax-(StepsPerRevolution/6)*dV;
+	float ExtendStopVoltageMin=VMin+(StepsPerRevolution/6)*dV;
 	if(MeasuredVoltage > ExtendStopVoltageMax || MeasuredVoltage < ExtendStopVoltageMin)
 	{
 		ERROR_MSG("Operable Error: Actuator " << SerialNumber << " voltage at Extend Stop reads: " << MeasuredVoltage << ". Encoder should have been set during assembly to have a voltage in the mid-range, between " << ExtendStopVoltageMin << "-" << ExtendStopVoltageMax << " volts. Can possibly cause " << StepsPerRevolution << " step uncertainty in position.");

@@ -97,7 +97,7 @@ int EndstopSearchStepsize{15};
 int CyclesDefiningHome{3};
 int MinimumMissedStepsToFlagError{3};
 float TolerablePercentOfMissedSteps{0.1};
-int ExtendStopToHomeStepsDeviation{StepsPerRevolution/4};
+int ExtendStopToHomeStepsDeviation{StepsPerRevolution/3};
 int FlaggedRecoverySteps{RecordingInterval/10};
 int MaxRecoverySteps{RecordingInterval/2};
 int EndStopRecoverySteps{StepsPerRevolution/4};
