@@ -70,7 +70,7 @@ bool MPES::Initialize()
     cout << "MPES::Initialize(): Detected new video device " << new_video_device_id << endl;
     m_pDevice = new MPESDevice(new_video_device_id);
     m_pImageSet = new MPESImageSet(m_pDevice, sDefaultImagesToCapture, sDefaultDirToSave.c_str());
-    cout << "MPES::Initialize(): Will be saving captured images to " << sDefaultImagesToCapture << endl;
+    cout << "MPES::Initialize(): Will be saving captured images to " << sDefaultDirToSave << endl;
 
     ostringstream temposs;
     temposs << setfill('0') << setw(6) << m_serialNumber;
@@ -148,10 +148,10 @@ void MPES::setUSBPortNumber(int input_USBPortNumber)
 int MPES::MeasurePosition()
 {
     // initialize to something obvious in case of failure
-    m_position.xCenter = -1.;
-    m_position.yCenter = -1.;
-    m_position.xStdDev = -1.;
-    m_position.yStdDev = -1.;
+    m_position.xCentroid = -1.;
+    m_position.yCentroid = -1.;
+    m_position.xSpotWidth = -1.;
+    m_position.ySpotWidth = -1.;
     m_position.CleanedIntensity = 0.;
 
     // read sensor
@@ -163,17 +163,17 @@ int MPES::MeasurePosition()
         else
 	    m_pImageSet->simpleAverage();
 
-        m_position.xCenter = m_pImageSet->SetData.xCentroid;
-        m_position.yCenter = m_pImageSet->SetData.yCentroid;
-        m_position.xStdDev = m_pImageSet->SetData.xSpotSD;
-        m_position.yStdDev = m_pImageSet->SetData.ySpotSD;
+        m_position.xCentroid = m_pImageSet->SetData.xCentroid;
+        m_position.yCentroid = m_pImageSet->SetData.yCentroid;
+        m_position.xSpotWidth = m_pImageSet->SetData.xSpotSD;
+        m_position.ySpotWidth = m_pImageSet->SetData.ySpotSD;
         m_position.CleanedIntensity = m_pImageSet->SetData.CleanedIntensity;
     }
 
-    if (m_position.xCenter == -1. || m_position.yCenter == -1. )
+    if (m_position.xCentroid == -1. || m_position.yCentroid == -1. )
         cout << "mpes reading -1! potentially lost beam" << endl;
 
-    return static_cast<int>(m_position.CleanedIntensity);
+    return (int)m_position.CleanedIntensity;
 }
 
 set<int> MPES::__getVideoDevices()
@@ -205,10 +205,10 @@ bool DummyMPES::Initialize()
 {
 
     cout << "DummyMPES::Initialize(): Creating new video device " << endl;
-    Safety_Region_x_min = 60.0;
-    Safety_Region_x_max = 260.0;
-    Safety_Region_y_min = 40.0;
-    Safety_Region_y_max = 200.0;
+    Safety_Region_x_min = 100.0;
+    Safety_Region_x_max = 220.0;
+    Safety_Region_y_min = 60.0;
+    Safety_Region_y_max = 180.0;
 
     return true;
 }
@@ -225,13 +225,13 @@ int DummyMPES::setExposure()
 int DummyMPES::MeasurePosition()
 {
     // initialize to something obvious in case of failure
-    m_position.xCenter = 160.;
-    m_position.yCenter = 80.;
-    m_position.xStdDev = 10.;
-    m_position.yStdDev = 10.;
+    m_position.xCentroid = 160.;
+    m_position.yCentroid = 120.;
+    m_position.xSpotWidth = 10.;
+    m_position.ySpotWidth = 10.;
     m_position.CleanedIntensity = 150000.;
 
-    if (m_position.xCenter == -1. || m_position.yCenter == -1. )
+    if (m_position.xCentroid == -1. || m_position.yCentroid == -1. )
         cout << "mpes reading -1! potentially lost beam" << endl;
 
     return (int)(m_position.CleanedIntensity);

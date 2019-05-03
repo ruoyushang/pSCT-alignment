@@ -3,8 +3,8 @@
  * @brief Header file for actuator device controller.
  */
 
-#ifndef __ACTCONTROLLER_H__
-#define __ACTCONTROLLER_H__
+#ifndef SERVER_ACTCONTROLLER_HPP
+#define SERVER_ACTCONTROLLER_HPP
 
 #include "server/controllers/pascontroller.hpp"
 
@@ -16,7 +16,9 @@
 #include "uabase/uastring.h"
 
 #include "common/alignment/platform.hpp"
-#include "common/opcua/pascominterfacecommon.h"
+#include "common/opcua/pascominterfacecommon.hpp"
+
+#include "common/opcua/components.hpp"
 
 /// @brief Class representing an actuator device controller.
 class ActController : public PasController {
@@ -25,10 +27,10 @@ public:
     /// @brief Instantiate an actuator device controller object.
     /// @param ID The integer index of the device within its type.
     /// @param pPlatform Pointer to platform object used to interface directly with hardware.
-    ActController(int ID, std::shared_ptr<Platform> pPlatform);
+    ActController(Identity identity, std::shared_ptr<Platform> pPlatform);
 
     /// @brief Destroy an actuator device controller object.
-    ~ActController();
+    ~ActController() override;
 
     /// @brief Update the controller's internal state to match the underlying Actuator object's state.
     /// @return OPC UA status code indicating success or failure.
@@ -37,13 +39,13 @@ public:
     /// @brief Get the internal state of the actuator device.
     /// @param state Variable to store the retrieved state value.
     /// @return OPC UA status code indicating success or failure.
-    UaStatus getState(PASState &state);
+    UaStatus getState(PASState &state) override;
 
     /// @brief Get the value of an actuator data variable.
     /// @param offset A number used to uniquely identify the data variable to access.
     /// @param value Variable to store the retrieved data value.
     /// @return OPC UA status code indicating success or failure.
-    UaStatus getData(OpcUa_UInt32 offset, UaVariant &value);
+    UaStatus getData(OpcUa_UInt32 offset, UaVariant &value) override;
 
     /// @brief Get the value of an actuator error variable.
     /// @param offset A number used to uniquely identify the error variable to access.
@@ -55,7 +57,7 @@ public:
     /// @param offset A number used to uniquely identify the data variable to access.
     /// @param value Value to write to the selected data variable.
     /// @return OPC UA status code indicating success or failure.
-    UaStatus setData(OpcUa_UInt32 offset, UaVariant value);
+    UaStatus setData(OpcUa_UInt32 offset, UaVariant value) override;
 
     /// @brief Set the value of an actuator error variable.
     /// @param offset A number used to uniquely identify the error variable to access.
@@ -67,17 +69,26 @@ public:
     /// @param offset A number used to uniquely identify the method to call.
     /// @param args Array of method arguments as UaVariants.
     /// @return OPC UA status code indicating success or failure.
-    UaStatus Operate(OpcUa_UInt32 offset, const UaVariantArray &args);
+    UaStatus operate(OpcUa_UInt32 offset, const UaVariantArray &args) override;
+
+    void setDeltaLength(float deltaLength) { m_DeltaLength = deltaLength; }
+    void setTargetLength(float targetLength) { m_TargetLength = targetLength; }
 
 private:
     /// @brief The internal device state.
     PASState m_state = PASState::Off;
-    /// @brief The distance between the current actuator length and the target length.
-    OpcUa_Float m_DeltaL;
+    /// @brief The remaining distance between the current actuator length and the target length.
+    OpcUa_Float m_DeltaLength;
+    /// @brief The last requested target length.
+    OpcUa_Float m_TargetLength;
 
-    /// @brief Move the panel a desired number of steps
+    /// @brief Change the actuator length by a desired amount
     /// @param args Array of method arguments as UaVariants.
     UaStatus moveDelta(const UaVariantArray &args);
+
+    /// @brief Move the actuator to a desired length
+    /// @param args Array of method arguments as UaVariants.
+    UaStatus moveToLength(const UaVariantArray &args);
 };
 
-#endif
+#endif //SERVER_ACTCONTROLLER_HPP

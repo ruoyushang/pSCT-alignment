@@ -4,24 +4,24 @@
 ** Description: Main entry for the application
 **
 ******************************************************************************/
-#include "opcserver.h"
-#include "shutdown.h"
+#include "common/utilities/opcserver.hpp"
+#include "common/utilities/shutdown.hpp"
 #include "uaplatformlayer.h"
 #include "uathread.h"
 #if SUPPORT_XML_PARSER
   #include "xmldocument.h"
 #endif
-#include "pasnodemanager.h"
-#include "configuration.h"
-#include "pascommunicationinterface.h"
-#include "paslogic.h"
-#include "shutdown.h"
+
+#include "pasnodemanager.hpp"
+#include "configuration.hpp"
+#include "pascommunicationinterface.hpp"
+#include "paslogic.hpp"
+#include "shutdown.hpp"
 
 #include <vector>
 #include <string>
 #include <iostream>
 
-#define CLIENT_CPP_SDK_ACTIVATE_TRACE    0
 #define CLIENT_CPP_SDK_ACTIVATE_MEMCHECK 0
 
 #ifdef WIN32
@@ -105,7 +105,7 @@ bool WaitForKeypress(int& action)
 }
 
 //===================================================================
-int OpcMain(const char* szAppPath, std::vector<std::string> serverlist)
+int OpcMain(const char *szAppPath, const std::vector<std::string> &serverlist)
 {
     int ret = 0;
 
@@ -130,12 +130,12 @@ int OpcMain(const char* szAppPath, std::vector<std::string> serverlist)
         sClientConfigFile += "/PasClientConfig.ini";
 
         //PasLogic *pLogic = nullptr;
-               
-        OpcServer* pServer = new OpcServer();
+
+        auto pServer = new OpcServer();
         pServer->setServerConfig(sServConfigFile, szAppPath);
 
         // Load configuration.
-        Configuration *pClientConfiguration = new Configuration();
+        auto pClientConfiguration = new Configuration();
         std::cout << "  ---- Loading Configuration ----\n";
         status = pClientConfiguration->loadConnectionConfiguration(sClientConfigFile);
         status = pClientConfiguration->loadDeviceConfiguration(serverlist);
@@ -146,11 +146,11 @@ int OpcMain(const char* szAppPath, std::vector<std::string> serverlist)
         pCommIf->setConfiguration(pClientConfiguration);
         // this initializes the communication interface, including all devices that talk
         // directly to it, like Aravis cameras
-        UaStatus ret = pCommIf->Initialize();
-        UA_ASSERT(ret.isGood());
+        status = pCommIf->initialize();
+        UA_ASSERT(status.isGood());
 
         // Create instance of the node manager that invokes client calls
-        PasNodeManager *pNodeManagerClient = new PasNodeManager();
+        auto pNodeManagerClient = new PasNodeManager();
         // set its configuration and communication interface
         pNodeManagerClient->setConfiguration(pClientConfiguration);
         pNodeManagerClient->setCommunicationInterface(pCommIf);
@@ -179,14 +179,11 @@ int OpcMain(const char* szAppPath, std::vector<std::string> serverlist)
                     UaThread::msleep(100);
                     continue;
                 }
-                switch ( action )
-                {
-                    case 0:
-                        printf("!! Panicking !!\n");
-                        ret = pNodeManagerClient->Panic();
-                        break;
-                    default:
-                        continue;
+                if (action == 0) {
+                    printf("!! Panicking !!\n");
+                    ret = pNodeManagerClient->Panic();
+                } else {
+                    continue;
                 }
             }
 
@@ -194,7 +191,7 @@ int OpcMain(const char* szAppPath, std::vector<std::string> serverlist)
             std::cout << " Shutting down server/client\n";
             std::cout << "*************************************\n";
 
-            // Stop the logic thread;
+            // Stop the utilities thread;
             //pLogic->stop();
 
             // Stop the server and wait three seconds if clients are connected
@@ -207,22 +204,8 @@ int OpcMain(const char* szAppPath, std::vector<std::string> serverlist)
             std::cout << "*******************************************\n";
         }
 
-        if (pClientConfiguration) {
-            delete pClientConfiguration;
-            pClientConfiguration = nullptr;
-        }
-
-        if (pServer) {
-            delete pServer;
-            pServer = nullptr;
-        }
-
-        /**
-        if (pLogic) {
-            delete pLogic;
-            pLogic = nullptr;
-        }
-        */
+        delete pClientConfiguration;
+        delete pServer;
     }
 
     UaPlatformLayer::cleanup();
@@ -256,12 +239,12 @@ int main(int argc, char* argv[])
     // Collect all passed panel position numbers into a vector
     std::vector<std::string> positionList;
     for (int i = 1; i < argc; i++)
-        positionList.push_back(argv[i]);
+        positionList.emplace_back(argv[i]);
 
     // Run main method
     ret = OpcMain(pszAppPath, positionList);
-    
-    if ( pszAppPath ) delete [] pszAppPath;
+
+    delete[] pszAppPath;
 
 #ifndef WIN32
     close_keyboard();

@@ -9,4 +9,4 @@ set(EXECUTABLE_OUTPUT_PATH  ${CMAKE_CURRENT_SOURCE_DIR}/sdk/bin)
 add_subdirectory(server)
 add_subdirectory(client)
 
-#add_executable(passerver server)
+#add_executable(p2pasclient client)

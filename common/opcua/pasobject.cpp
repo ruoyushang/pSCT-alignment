@@ -1,8 +1,8 @@
-#include "common/opcua/pasobject.h"
-#include "common/opcua/pasnodemanagercommon.h"
-#include "common/opcua/passervertypeids.h"
-#include "common/opcua/pascominterfacecommon.h"
-#include "mpeseventdata.h"
+#include "common/opcua/pasobject.hpp"
+#include "common/opcua/pasnodemanagercommon.hpp"
+#include "common/opcua/passervertypeids.hpp"
+#include "common/opcua/pascominterfacecommon.hpp"
+#include "mpeseventdata.hpp"
 #include "uaserver/methodhandleuanode.h"
 
 #include <iostream>
@@ -11,58 +11,93 @@
 
 // ----------------------------------------------------------------
 // PasObject implementation
-const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, OpcUa_Byte>> PasObject::VARIABLES;
-
-const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean>> PasObject::ERRORS;
-
-const std::map<OpcUa_UInt32, std::pair<std::string, std::vector<std::tuple<std::string, UaNodeId, std::string>>>> PasObject::METHODS;
-
-
 PasObject::PasObject(const UaString& name,
         const UaNodeId& newNodeId,
         const UaString& defaultLocaleId,
         PasNodeManagerCommon *pNodeManager,
         Identity identity,
         PasComInterfaceCommon *pCommIf) :
-                  BaseObjectType(newNodeId, name, pNodeManager->getNameSpaceIndex(),
+    BaseObjectType(newNodeId, name, pNodeManager->getNameSpaceIndex(),
                          pNodeManager->getNodeManagerConfig()),
-                  m_defaultLocaleId(defaultLocaleId),
-                  m_pSharedMutex(NULL),
-                  m_Identity(identity),
-                  m_pCommIf(pCommIf),
-                  m_pNodeManager(pNodeManager)
-{
-    OpcUa::DataItemType *pDataItem = NULL;
+    m_defaultLocaleId(defaultLocaleId),
+    m_pSharedMutex(nullptr),
+    m_Identity(std::move(identity)),
+    m_pCommIf(pCommIf),
+    m_pNodeManager(pNodeManager),
+    m_newNodeId(newNodeId) {
+}
+
+void PasObject::initialize() {
     UaStatus addStatus;
-    // Method helper
-    OpcUa_Int16 nsIdx = pNodeManager->getNameSpaceIndex();
+    UaString sName;
+    UaString sNodeId;
+    UaPropertyMethodArgument *pPropertyArg;
+    UaUInt32Array nullarray;
+    OpcUa_Int16 nsIdx = m_pNodeManager->getNameSpaceIndex();
+    OpcUa::DataItemType *pDataItem;
 
-    //Store information needed to access device
-    //PasUserData* pUserData = new PasUserData(isState, ParentType, m_Identity, VarType);
-    //pDataItem->setUserData(pUserData);
-    //Change value handling to get read and write calls to the node manager
-    //pDataItem->setValueHandling(UaVariable_Value_Cache);
+    std::cout << "PasObject::Initialize(): initializing object w/ identity " << m_Identity << "...\n";
 
+    std::cout << "Creating variables...\n";
     // Add all child variable nodes
-    /**
-    for (auto it = getVariableDefs().begin(); it != getVariableDefs().end(); it++) {
-        addVariable(pNodeManager, PAS_PanelType, it->first, std::get<2>(it->second));
+    for (auto &kv : getVariableDefs()) {
+        addVariable(m_pNodeManager, typeDefinitionId().identifierNumeric(), kv.first, std::get<2>(kv.second));
     }
 
+
+    std::cout << "Creating error variables...\n";
     //Create the folder for the Errors
-    UaFolder *pErrorFolder = new UaFolder("Errors", UaNodeId((std::string(name.toUtf8()) + "_Errors").c_str(), nsIdx), m_defaultLocaleId);
-    addStatus = pNodeManager->addNodeAndReference(this, pErrorFolder, OpcUaId_Organizes);
+    UaFolder *pErrorFolder = new UaFolder("Errors", UaNodeId(
+            (std::to_string(typeDefinitionId().identifierNumeric()) + "_" + m_Identity.eAddress + "_errors").c_str(),
+            nsIdx),
+                                          m_defaultLocaleId);
+    addStatus = m_pNodeManager->addNodeAndReference(this, pErrorFolder, OpcUaId_Organizes);
     UA_ASSERT(addStatus.isGood());
 
     // Add all error variable nodes
-    for (auto v : getErrorDefs()) {
-        pDataItem = addVariable(pNodeManager, PAS_ACTType, v.first);
-        addStatus = pNodeManager->addUaReference(pErrorFolder->nodeId(), pDataItem->nodeId(), OpcUaId_Organizes);
+    for (const auto &v : getErrorDefs()) {
+        pDataItem = addVariable(m_pNodeManager, typeDefinitionId().identifierNumeric(), v.first, OpcUa_False, false);
+        addStatus = m_pNodeManager->addUaReference(pErrorFolder->nodeId(), pDataItem->nodeId(), OpcUaId_Organizes);
     }
-    */
+
+    // Add all child method nodes
+    for (auto &m : getMethodDefs()) {
+        sName = UaString(m.second.first.c_str());
+        sNodeId = UaString("%1.%2").arg(m_newNodeId.toString()).arg(sName);
+        m_MethodMap[UaNodeId(sNodeId, nsIdx)] = std::make_pair(
+                new UaMethodGeneric(sName, UaNodeId(sNodeId, nsIdx), m_defaultLocaleId), m.first);
+        addStatus = m_pNodeManager->addNodeAndReference(this, m_MethodMap[UaNodeId(sNodeId, nsIdx)].first,
+                                                        OpcUaId_HasComponent);
+        UA_ASSERT(addStatus.isGood());
+
+        // Add arguments
+        pPropertyArg = new UaPropertyMethodArgument(
+                UaNodeId((std::string(sNodeId.toUtf8()) + "_" + m.second.first + "_args").c_str(),
+                         nsIdx), // NodeId of the property
+                Ua_AccessLevel_CurrentRead,             // Access level of the property
+                m.second.second.size(),                                      // Number of arguments
+                UaPropertyMethodArgument::INARGUMENTS); // IN arguments
+        for (size_t i = 0; i < m.second.second.size(); i++) {
+            pPropertyArg->setArgument(
+                    (OpcUa_UInt32) i,                       // Index of the argument
+                    std::get<0>(m.second.second[i]).c_str(),   // Name of the argument
+                    std::get<1>(m.second.second[i]),// Data type of the argument
+                    -1,                      // Array rank of the argument
+                    nullarray,               // Array dimensions of the argument
+                    UaLocalizedText("en", (std::get<2>(m.second.second[i])).c_str())); // Description
+        }
+        addStatus = m_pNodeManager->addNodeAndReference(m_MethodMap[UaNodeId(sNodeId, nsIdx)].first, pPropertyArg,
+                                                        OpcUaId_HasProperty);
+        UA_ASSERT(addStatus.isGood());
+    }
 }
 
-PasObject::~PasObject() {}
+PasObject::~PasObject() {
+    if (m_pSharedMutex) {
+        m_pSharedMutex->releaseReference(); // Release our local reference
+        m_pSharedMutex = nullptr;
+    }
+}
 
 OpcUa_Byte PasObject::eventNotifier() const
 {
@@ -89,12 +124,59 @@ UaStatus PasObject::beginCall(
 {
     UaStatus ret;
 
-    OpcUa::MethodCallJob* pCallJob = new OpcUa::MethodCallJob;
+    auto pCallJob = new OpcUa::MethodCallJob;
     pCallJob->initialize(this, pCallback, serviceContext, callbackHandle, pMethodHandle, inputArguments);
     ret = NodeManagerRoot::CreateRootNodeManager()->pServerManager()->getThreadPool()->addJob(pCallJob);
     if ( ret.isBad() )
     {
         delete pCallJob;
+    }
+
+    return ret;
+}
+
+UaStatus PasObject::call(
+        const ServiceContext &serviceContext,
+        MethodHandle *pMethodHandle,
+        const UaVariantArray &inputArguments,
+        UaVariantArray &outputArguments,
+        UaStatusCodeArray &inputArgumentResults,
+        UaDiagnosticInfos &inputArgumentDiag) {
+    UaStatus ret;
+    auto pMethodHandleUaNode = dynamic_cast<MethodHandleUaNode *>(pMethodHandle);
+    UaMethod *pMethod = nullptr;
+
+    int numArgs;
+    OpcUa_UInt32 methodTypeID;
+
+    if (pMethodHandleUaNode) {
+        pMethod = pMethodHandleUaNode->pUaMethod();
+
+        if (m_MethodMap.find(pMethod->nodeId()) != m_MethodMap.end()) {
+            methodTypeID = m_MethodMap[pMethod->nodeId()].second;
+            numArgs = getMethodDefs().at(methodTypeID).second.size();
+
+            if (inputArguments.length() != (unsigned) numArgs)
+                ret = OpcUa_BadInvalidArgument;
+
+            /**
+             * Type checking
+            for (int i = 0; i < METHODS.at(methodTypeID).second.size(); i++) {
+                if ( inputArguments[i].Datatype != std::get<3>(METHODS.at(methodTypeID).second[i])) {
+                    ret = OpcUa_BadInvalidArgument;
+                    inputArgumentResults[i] = OpcUa_BadTypeMismatch;
+                }
+            }
+            */
+            if (ret.isGood()) {
+                ret = m_pCommIf->operateDevice(typeDefinitionId().identifierNumeric(), m_Identity, methodTypeID,
+                                               inputArguments);
+            }
+        } else {
+            ret = OpcUa_BadInvalidArgument;
+        }
+    } else {
+        ret = OpcUa_BadInvalidArgument;
     }
 
     return ret;
@@ -106,7 +188,7 @@ OpcUa::DataItemType* PasObject::addVariable(PasNodeManagerCommon *pNodeManager, 
     UaVariable* pInstanceDeclaration = pNodeManager->getInstanceDeclarationVariable(VarType);
     UA_ASSERT(pInstanceDeclaration!=NULL);
     // Create new variable and add it as component to this object
-    OpcUa::DataItemType* pDataItem = new OpcUa::DataItemType(this, pInstanceDeclaration, pNodeManager, m_pSharedMutex);
+    auto pDataItem = new OpcUa::DataItemType(this, pInstanceDeclaration, pNodeManager, m_pSharedMutex);
 
     UaStatus addStatus;
     if (addReference)
@@ -124,105 +206,34 @@ OpcUa::DataItemType* PasObject::addVariable(PasNodeManagerCommon *pNodeManager, 
     return pDataItem;
 }
 
-// -------------------------------------------------------------------
-// Specialization: MPESObject Implementation
 
-MPESObject::MPESObject(
-    const UaString& name,
-    const UaNodeId& newNodeId,
-    const UaString& defaultLocaleId,
-    PasNodeManagerCommon *pNodeManager,
-    Identity identity,
-    PasComInterfaceCommon *pCommIf)
-: PasObject(name, newNodeId, defaultLocaleId, pNodeManager, identity, pCommIf)
-  {
-    // Use a mutex shared across all variables of this object
-    m_pSharedMutex = new UaMutexRefCounted;
+const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, OpcUa_Byte>> MPESObject::VARIABLES = {
+        {PAS_MPESType_State,            std::make_tuple("State", UaVariant(0), OpcUa_True, Ua_AccessLevel_CurrentRead)},
+        {PAS_MPESType_xCentroidAvg,     std::make_tuple("xCentroidAvg", UaVariant(0.0), OpcUa_False,
+                                                        Ua_AccessLevel_CurrentRead)},
+        {PAS_MPESType_yCentroidAvg,     std::make_tuple("yCentroidAvg", UaVariant(0.0), OpcUa_False,
+                                                       Ua_AccessLevel_CurrentRead)},
+        {PAS_MPESType_xCentroidSpotWidth,      std::make_tuple("xCentroidSpotWidth", UaVariant(0.0), OpcUa_False,
+                                                        Ua_AccessLevel_CurrentRead)},
+        {PAS_MPESType_yCentroidSpotWidth,      std::make_tuple("yCentroidSpotWidth", UaVariant(0.0), OpcUa_False,
+                                                        Ua_AccessLevel_CurrentRead)},
+        {PAS_MPESType_CleanedIntensity, std::make_tuple("CleanedIntensity", UaVariant(0.0), OpcUa_False,
+                                                        Ua_AccessLevel_CurrentRead)},
+        {PAS_MPESType_xCentroidNominal, std::make_tuple("xCentroidNominal", UaVariant(0.0), OpcUa_False,
+                                                        Ua_AccessLevel_CurrentRead)},
+        {PAS_MPESType_yCentroidNominal, std::make_tuple("yCentroidNominal", UaVariant(0.0), OpcUa_False,
+                                                        Ua_AccessLevel_CurrentRead)},
+};
 
-    OpcUa::DataItemType*         pDataItem            = NULL;
-    UaStatus                     addStatus;
-    // Method helper
-    OpcUa_Int16                  nsIdx = pNodeManager->getNameSpaceIndex();
+const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean>> MPESObject::ERRORS = {
+};
 
-    /**************************************************************
-     * Create the sensor components
-     **************************************************************/
-    // Add Variable "State"
-    pDataItem = addVariable(pNodeManager, PAS_MPESType, PAS_MPESType_State, OpcUa_True);
-
-    // Add state alarm condition "StateCondition" as component to the object
-    m_pStateOffNormalAlarm = new OpcUa::OffNormalAlarmType(
-        UaNodeId(UaString("%1.StateCondition").arg(this->nodeId().toString()), nsIdx),  // NodeId
-        "StateCondition",           // Name of the node used for browse name and display name
-        nsIdx,                      // Namespace index of the browse name
-        pNodeManager,               // Node manager responsible for this node
-        this->nodeId(),             // NodeId of the source node
-        this->browseName().name()); // Name of the source node
-    addStatus = pNodeManager->addNodeAndReference(this, m_pStateOffNormalAlarm, OpcUaId_HasComponent);
-    UA_ASSERT(addStatus.isGood());
-    // Create HasEventSource reference from object to state variable
-    addStatus = pNodeManager->addUaReference(this, pDataItem, OpcUaId_HasEventSource);
-    UA_ASSERT(addStatus.isGood());
-    // Create HasCondition reference from state variable to condition
-    addStatus = pNodeManager->addUaReference(pDataItem, m_pStateOffNormalAlarm, OpcUaId_HasCondition);
-    UA_ASSERT(addStatus.isGood());
-    m_pStateOffNormalAlarm->setConditionName("StateCondition");
-    // Set the initial states of the condition
-    m_pStateOffNormalAlarm->setAckedState(OpcUa_True);
-    m_pStateOffNormalAlarm->setEnabledState(OpcUa_True);
-    /* =====================================================================*/
-
-    pDataItem = addVariable(pNodeManager, PAS_MPESType, PAS_MPESType_xCentroidAvg);
-    pDataItem = addVariable(pNodeManager, PAS_MPESType, PAS_MPESType_yCentroidAvg);
-    pDataItem = addVariable(pNodeManager, PAS_MPESType, PAS_MPESType_xCentroidSD);
-    pDataItem = addVariable(pNodeManager, PAS_MPESType, PAS_MPESType_yCentroidSD);
-    pDataItem = addVariable(pNodeManager, PAS_MPESType, PAS_MPESType_CleanedIntensity);
-    pDataItem = addVariable(pNodeManager, PAS_MPESType, PAS_MPESType_xCentroidNominal);
-    pDataItem = addVariable(pNodeManager, PAS_MPESType, PAS_MPESType_yCentroidNominal);
-
-    // Add Method "Start"
-    UaString sName = "Start";
-    UaString sNodeId = UaString("%1.%2").arg(newNodeId.toString()).arg(sName);
-    m_pMethodStart = new UaMethodGeneric(sName, UaNodeId(sNodeId, nsIdx), m_defaultLocaleId);
-    addStatus = pNodeManager->addNodeAndReference(this, m_pMethodStart, OpcUaId_HasComponent);
-    UA_ASSERT(addStatus.isGood());
-
-    // Add Method "Stop"
-    sName = "Stop";
-    sNodeId = UaString("%1.%2").arg(newNodeId.toString()).arg(sName);
-    m_pMethodStop = new UaMethodGeneric(sName, UaNodeId(sNodeId, nsIdx), m_defaultLocaleId);
-    addStatus = pNodeManager->addNodeAndReference(this, m_pMethodStop, OpcUaId_HasComponent);
-    UA_ASSERT(addStatus.isGood());
-
-    // Add Method "Read"
-    sName = "Read";
-    sNodeId = UaString("%1.%2").arg(newNodeId.toString()).arg(sName);
-    m_pMethodRead = new UaMethodGeneric(sName, UaNodeId(sNodeId, nsIdx), m_defaultLocaleId);
-    addStatus = pNodeManager->addNodeAndReference(this, m_pMethodRead, OpcUaId_HasComponent);
-    UA_ASSERT(addStatus.isGood());
-
-    // Add Method "SetExposure"
-    sName = "SetExposure";
-    sNodeId = UaString("%1.%2").arg(newNodeId.toString()).arg(sName);
-    m_pMethodSetExposure = new UaMethodGeneric(sName, UaNodeId(sNodeId, nsIdx), m_defaultLocaleId);
-    addStatus = pNodeManager->addNodeAndReference(this, m_pMethodSetExposure, OpcUaId_HasComponent);
-    UA_ASSERT(addStatus.isGood());
-
-}
-
-
-
-MPESObject::~MPESObject(void)
-{
-    if ( m_pSharedMutex )
-    {
-        // Release our local reference
-        m_pSharedMutex->releaseReference();
-        m_pSharedMutex = NULL;
-    }
-}
-
-
+const std::map<OpcUa_UInt32, std::pair<std::string, std::vector<std::tuple<std::string, UaNodeId, std::string>>>> MPESObject::METHODS = {
+        {PAS_MPESType_Start,       {"Start",       {}}},
+        {PAS_MPESType_Stop,        {"Stop",        {}}},
+        {PAS_MPESType_Read,        {"Read",        {}}},
+        {PAS_MPESType_SetExposure, {"SetExposure", {}}}
+};
 
 UaNodeId MPESObject::typeDefinitionId() const
 {
@@ -230,138 +241,13 @@ UaNodeId MPESObject::typeDefinitionId() const
     return ret;
 }
 
-
-/*==========================================================================*/
-UaStatus MPESObject::call(
-    const ServiceContext&  serviceContext,
-    MethodHandle*          pMethodHandle,
-    const UaVariantArray&  inputArguments,
-    UaVariantArray&        outputArguments,
-    UaStatusCodeArray&     inputArgumentResults,
-    UaDiagnosticInfos&     inputArgumentDiag)
-{
-    UaStatus            ret;
-    MethodHandleUaNode* pMethodHandleUaNode = static_cast<MethodHandleUaNode*>(pMethodHandle);
-    UaMethod*           pMethod             = NULL;
-
-    if(pMethodHandleUaNode)
-    {
-        pMethod = pMethodHandleUaNode->pUaMethod();
-
-        if(pMethod)
-        {
-            // Check if we have the start method
-            if ( pMethod->nodeId() == m_pMethodStart->nodeId())
-            {
-                // Number of input arguments must be 0
-                if ( inputArguments.length() > 0 )
-                    ret = OpcUa_BadInvalidArgument;
-                else
-                    ret = m_pCommIf->setDeviceState(PAS_MPESType, m_Identity,
-                                                    PASState::On);
-            }
-            // Check if we have the stop method
-            else if ( pMethod->nodeId() == m_pMethodStop->nodeId())
-            {
-                // Number of input arguments must be 0
-                if ( inputArguments.length() > 0 )
-                    ret = OpcUa_BadInvalidArgument;
-                else
-                    ret = m_pCommIf->setDeviceState(PAS_MPESType, m_Identity,
-                                                    PASState::Off);
-            }
-            // Check if we have the read method
-            else if ( pMethod->nodeId() == m_pMethodRead->nodeId())
-            {
-                // Number of input arguments must be 0
-                if ( inputArguments.length() > 0 )
-                    ret = OpcUa_BadInvalidArgument;
-                else
-                    ret = m_pCommIf->OperateDevice(PAS_MPESType, m_Identity, PAS_MPESType_Read);
-            }
-            // Check if we have the SetExposure method
-            else if ( pMethod->nodeId() == m_pMethodSetExposure->nodeId())
-            {
-                // Number of input arguments must be 0
-                if ( inputArguments.length() > 0 )
-                    ret = OpcUa_BadInvalidArgument;
-                else
-                    ret = m_pCommIf->OperateDevice(PAS_MPESType, m_Identity, PAS_MPESType_SetExposure);
-            }
-            // Create Sensor Events if state change succeeded
-            if ( ret.isGood() )
-            {
-                //--------------------------------------------------------
-                // Create event
-                MPESEventTypeData eventData(browseName().namespaceIndex());
-
-                // Handle MPESEventType specific fields
-                m_pCommIf->getDeviceData(PAS_MPESType, m_Identity, PAS_MPESType_xCentroidAvg, eventData.m_xCentroidAvg);
-                m_pCommIf->getDeviceData(PAS_MPESType, m_Identity, PAS_MPESType_yCentroidAvg, eventData.m_yCentroidAvg);
-                m_pCommIf->getDeviceData(PAS_MPESType, m_Identity, PAS_MPESType_xCentroidSD, eventData.m_xCentroidSD);
-                m_pCommIf->getDeviceData(PAS_MPESType, m_Identity, PAS_MPESType_yCentroidSD, eventData.m_yCentroidSD);
-                m_pCommIf->getDeviceData(PAS_MPESType, m_Identity, PAS_MPESType_CleanedIntensity, eventData.m_CleanedIntensity);
-                PASState state;
-                m_pCommIf->getDeviceState(PAS_MPESType, m_Identity, state);
-                eventData.m_State.setUInt32(static_cast<unsigned>(state));
-
-                // Fill all default event fields
-                eventData.m_SourceNode.setNodeId(nodeId());
-                eventData.m_SourceName.setString(browseName().toString());
-                UaString messageText;
-                if (state == PASState::Off)
-                {
-                    messageText = UaString("State of %1 changed to OFF").arg(browseName().toString());
-                }
-                else
-                {
-                    messageText = UaString("State of %1 changed to ON").arg(browseName().toString());
-                }
-                eventData.m_Message.setLocalizedText(UaLocalizedText("en", messageText));
-                eventData.m_Severity.setUInt16(500);
-                // Set timestamps and unique EventId
-                eventData.prepareNewEvent(UaDateTime::now(), UaDateTime::now(), UaByteString());
-
-                // Fire the event
-                m_pNodeManager->fireEvent(&eventData);
-
-                //--------------------------------------------------------
-                // Change state of alarm condition
-                if (state == PASState::Off)
-                {
-                    m_pStateOffNormalAlarm->setAckedState(OpcUa_False);
-                    m_pStateOffNormalAlarm->setActiveState(OpcUa_True);
-                    m_pStateOffNormalAlarm->setRetain(OpcUa_True);
-                }
-                else
-                {
-                    m_pStateOffNormalAlarm->setAckedState(OpcUa_True);
-                    m_pStateOffNormalAlarm->setActiveState(OpcUa_False);
-                    m_pStateOffNormalAlarm->setRetain(OpcUa_False);
-                }
-                m_pStateOffNormalAlarm->setMessage(UaLocalizedText("en", messageText));
-                m_pStateOffNormalAlarm->triggerEvent(UaDateTime::now(), UaDateTime::now(), UaByteString());
-            }
-        }
-        else
-        {
-            assert(false);
-            ret = OpcUa_BadInvalidArgument;
-        }
-    }
-    else
-    {
-        assert(false);
-        ret = OpcUa_BadInvalidArgument;
-    }
-
-    return ret;
-}
-
 const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, OpcUa_Byte>> ACTObject::VARIABLES = {
-        {PAS_ACTType_State,        std::make_tuple("State", UaVariant(0), OpcUa_True, Ua_AccessLevel_CurrentRead)},
-        {PAS_ACTType_Steps,        std::make_tuple("Steps", UaVariant(0), OpcUa_False, Ua_AccessLevel_CurrentRead)},
-        {PAS_ACTType_curLength_mm, std::make_tuple("CurrentLength", UaVariant(0.0), OpcUa_False,
+        {PAS_ACTType_State,         std::make_tuple("State", UaVariant(0), OpcUa_True, Ua_AccessLevel_CurrentRead)},
+        {PAS_ACTType_DeltaLength,   std::make_tuple("DeltaLength", UaVariant(0.0), OpcUa_False,
+                                                    Ua_AccessLevel_CurrentRead)},
+        {PAS_ACTType_TargetLength,  std::make_tuple("TargetLength", UaVariant(0.0), OpcUa_False,
+                                                    Ua_AccessLevel_CurrentRead)},
+        {PAS_ACTType_CurrentLength, std::make_tuple("CurrentLength", UaVariant(0.0), OpcUa_False,
                                                    Ua_AccessLevel_CurrentRead)}
 };
 
@@ -383,92 +269,13 @@ const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean>> 
 };
 
 const std::map<OpcUa_UInt32, std::pair<std::string, std::vector<std::tuple<std::string, UaNodeId, std::string>>>> ACTObject::METHODS = {
-        {PAS_ACTType_Start, {"Start", {}}},
-        {PAS_ACTType_Stop,  {"Stop",  {}}},
-        {PAS_ACTType_Step,  {"Step",  {std::make_tuple("DeltaLength", UaNodeId(OpcUaId_Double),
-                                                       "Target change in length for the actuator (in mm).")}}}
+        {PAS_ACTType_Start,           {"Start", {}}},
+        {PAS_ACTType_Stop,            {"Stop",  {}}},
+        {PAS_ACTType_MoveDeltaLength, {"MoveDeltaLength", {std::make_tuple("DeltaLength", UaNodeId(OpcUaId_Double),
+                                                                           "Desired change in length for the actuator (in mm).")}}},
+        {PAS_ACTType_MoveToLength, {"MoveToLength", {std::make_tuple("TargetLength", UaNodeId(OpcUaId_Double),
+                                                                     "Target length for the actuator to move to (in mm).")}}}
 };
-
-ACTObject::ACTObject(
-    const UaString& name,
-    const UaNodeId& newNodeId,
-    const UaString& defaultLocaleId,
-    PasNodeManagerCommon *pNodeManager,
-    Identity identity,
-    PasComInterfaceCommon *pCommIf)
-: PasObject(name, newNodeId, defaultLocaleId, pNodeManager, identity, pCommIf)
-{
-    // Use a mutex shared across all variables of this object
-    m_pSharedMutex = new UaMutexRefCounted();
-
-    OpcUa::DataItemType *pDataItem;
-    UaStatus                     addStatus;
-    // Method helper
-    OpcUa_Int16                  nsIdx = pNodeManager->getNameSpaceIndex();
-
-    // Add all child variable nodes
-    for (auto v : getVariableDefs()) {
-        addVariable(pNodeManager, PAS_ACTType, v.first, std::get<2>(v.second));
-    }
-
-    //Create the folder for the Errors
-    UaFolder *pErrorFolder = new UaFolder("Errors", UaNodeId(("ACT_" + identity.eAddress + "_errors").c_str(), nsIdx),
-                                          m_defaultLocaleId);
-    addStatus = pNodeManager->addNodeAndReference(this, pErrorFolder, OpcUaId_Organizes);
-    UA_ASSERT(addStatus.isGood());
-
-    // Add all error variable nodes
-    for (auto v : getErrorDefs()) {
-        pDataItem = addVariable(pNodeManager, PAS_ACTType, v.first, OpcUa_False, false);
-        addStatus = pNodeManager->addUaReference(pErrorFolder->nodeId(), pDataItem->nodeId(), OpcUaId_Organizes);
-    }
-
-    // Add all child method nodes
-    UaString sName;
-    UaString sNodeId;
-
-    UaPropertyMethodArgument *pPropertyArg = NULL;
-    UaUInt32Array nullarray;
-    for (auto m: getMethodDefs()) {
-        sName = UaString(m.second.first.c_str());
-        sNodeId = UaString("%1.%2").arg(newNodeId.toString()).arg(sName);
-        m_MethodMap[UaNodeId(sNodeId, nsIdx)] = std::make_pair(
-                new UaMethodGeneric(sName, UaNodeId(sNodeId, nsIdx), m_defaultLocaleId), m.first);
-        addStatus = pNodeManager->addNodeAndReference(this, m_MethodMap[UaNodeId(sNodeId, nsIdx)].first,
-                                                      OpcUaId_HasComponent);
-        UA_ASSERT(addStatus.isGood());
-
-        // Add arguments
-        pPropertyArg = new UaPropertyMethodArgument(
-                UaNodeId((std::string(sNodeId.toUtf8()) + "_" + m.second.first + "_args").c_str(),
-                         nsIdx), // NodeId of the property
-                Ua_AccessLevel_CurrentRead,             // Access level of the property
-                m.second.second.size(),                                      // Number of arguments
-                UaPropertyMethodArgument::INARGUMENTS); // IN arguments
-        for (size_t i = 0; i < m.second.second.size(); i++) {
-            pPropertyArg->setArgument(
-                    (OpcUa_UInt32) i,                       // Index of the argument
-                    std::get<0>(m.second.second[i]).c_str(),   // Name of the argument
-                    std::get<1>(m.second.second[i]),// Data type of the argument
-                    -1,                      // Array rank of the argument
-                    nullarray,               // Array dimensions of the argument
-                    UaLocalizedText("en", (std::get<2>(m.second.second[i])).c_str())); // Description
-        }
-        addStatus = pNodeManager->addNodeAndReference(m_MethodMap[UaNodeId(sNodeId, nsIdx)].first, pPropertyArg,
-                                                      OpcUaId_HasProperty);
-        UA_ASSERT(addStatus.isGood());
-    }
-}
-
-ACTObject::~ACTObject(void)
-{
-    if ( m_pSharedMutex )
-    {
-        // Release our local reference
-        m_pSharedMutex->releaseReference();
-        m_pSharedMutex = NULL;
-    }
-}
 
 UaNodeId ACTObject::typeDefinitionId() const
 {
@@ -476,154 +283,37 @@ UaNodeId ACTObject::typeDefinitionId() const
     return ret;
 }
 
-/*==========================================================================*/
-UaStatus ACTObject::call(
-    const ServiceContext&  serviceContext,
-    MethodHandle*          pMethodHandle,
-    const UaVariantArray&  inputArguments,
-    UaVariantArray&        outputArguments,
-    UaStatusCodeArray&     inputArgumentResults,
-    UaDiagnosticInfos&     inputArgumentDiag)
-{
-    UaStatus            ret;
-    MethodHandleUaNode* pMethodHandleUaNode = static_cast<MethodHandleUaNode*>(pMethodHandle);
-    UaMethod*           pMethod             = NULL;
+const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, OpcUa_Byte>> PSDObject::VARIABLES = {
+        {PAS_PSDType_State, std::make_tuple("State", UaVariant(0), OpcUa_True, Ua_AccessLevel_CurrentRead)},
+        {PAS_PSDType_x1,    std::make_tuple("x1", UaVariant(0.0), OpcUa_False,
+                                            Ua_AccessLevel_CurrentRead)},
+        {PAS_PSDType_y1,    std::make_tuple("y1", UaVariant(0.0), OpcUa_False,
+                                            Ua_AccessLevel_CurrentRead)},
+        {PAS_PSDType_x2,    std::make_tuple("x2", UaVariant(0.0), OpcUa_False,
+                                            Ua_AccessLevel_CurrentRead)},
+        {PAS_PSDType_y2,    std::make_tuple("y2", UaVariant(0.0), OpcUa_False,
+                                            Ua_AccessLevel_CurrentRead)},
+        {PAS_PSDType_dx1,   std::make_tuple("x1", UaVariant(0.0), OpcUa_False,
+                                            Ua_AccessLevel_CurrentRead)},
+        {PAS_PSDType_dy1,   std::make_tuple("y1", UaVariant(0.0), OpcUa_False,
+                                            Ua_AccessLevel_CurrentRead)},
+        {PAS_PSDType_dx2,   std::make_tuple("x2", UaVariant(0.0), OpcUa_False,
+                                            Ua_AccessLevel_CurrentRead)},
+        {PAS_PSDType_dy2,   std::make_tuple("y2", UaVariant(0.0), OpcUa_False,
+                                            Ua_AccessLevel_CurrentRead)},
+        {PAS_PSDType_Temp,  std::make_tuple("Temperature", UaVariant(0.0), OpcUa_False,
+                                            Ua_AccessLevel_CurrentRead)}
+};
 
-    int numArgs;
-    OpcUa_UInt32 methodTypeID;
+const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean>> PSDObject::ERRORS = {
+};
 
-    if(pMethodHandleUaNode)
-    {
-        pMethod = pMethodHandleUaNode->pUaMethod();
-
-        if (m_MethodMap.find(pMethod->nodeId()) != m_MethodMap.end()) {
-            methodTypeID = m_MethodMap[pMethod->nodeId()].second;
-            numArgs = METHODS.at(methodTypeID).second.size();
-
-            if (inputArguments.length() != numArgs) {
-                ret = OpcUa_BadInvalidArgument;
-                return ret;
-            } else {
-                for (size_t i = 0; i < numArgs; i++) {
-                    // Type checking (currently not implemented)
-                    //if ( inputArguments[i].Datatype !=  )
-                    //{
-                    //ret = OpcUa_BadInvalidArgument;
-                    //inputArgumentResults[i] = OpcUa_BadTypeMismatch;
-                    //}
-                }
-            }
-            ret = m_pCommIf->OperateDevice(PAS_ACTType, m_Identity, methodTypeID, inputArguments);
-        } else {
-            ret = OpcUa_BadInvalidArgument;
-        }
-    } else {
-        ret = OpcUa_BadInvalidArgument;
-    }
-
-    return ret;
-}
-
-// -------------------------------------------------------------------
-// Specialization: PSDObject Implementation
-PSDObject::PSDObject(
-    const UaString& name,
-    const UaNodeId& newNodeId,
-    const UaString& defaultLocaleId,
-    PasNodeManagerCommon *pNodeManager,
-    Identity identity,
-    PasComInterfaceCommon *pCommIf)
-: PasObject(name, newNodeId, defaultLocaleId, pNodeManager, identity, pCommIf)
-{
-    // Use a mutex shared across all variables of this object
-    m_pSharedMutex = new UaMutexRefCounted;
-
-    UaStatus                     addStatus;
-    // Method helper
-    OpcUa_Int16                  nsIdx = pNodeManager->getNameSpaceIndex();
-    OpcUa::DataItemType*         pDataItem            = NULL;
-
-    /**************************************************************
-     * Create the PSD components
-     **************************************************************/
-    // Add Variable "State"
-    // Get the instance declaration node used as base for this variable instance
-    pDataItem = addVariable(pNodeManager, PAS_PSDType, PAS_PSDType_State, OpcUa_True);
-
-    pDataItem = addVariable(pNodeManager, PAS_PSDType, PAS_PSDType_x1);
-    pDataItem = addVariable(pNodeManager, PAS_PSDType, PAS_PSDType_y1);
-    pDataItem = addVariable(pNodeManager, PAS_PSDType, PAS_PSDType_x2);
-    pDataItem = addVariable(pNodeManager, PAS_PSDType, PAS_PSDType_y2);
-    pDataItem = addVariable(pNodeManager, PAS_PSDType, PAS_PSDType_dx1);
-    pDataItem = addVariable(pNodeManager, PAS_PSDType, PAS_PSDType_dy1);
-    pDataItem = addVariable(pNodeManager, PAS_PSDType, PAS_PSDType_dx2);
-    pDataItem = addVariable(pNodeManager, PAS_PSDType, PAS_PSDType_dy2);
-    pDataItem = addVariable(pNodeManager, PAS_PSDType, PAS_PSDType_Temp);
-
-    // Add Method "Update"
-    UaString sName = "Update";
-    UaString sNodeId = UaString("%1.%2").arg(newNodeId.toString()).arg(sName);
-    m_pMethodUpdate = new UaMethodGeneric(sName, UaNodeId(sNodeId, nsIdx), m_defaultLocaleId);
-    addStatus = pNodeManager->addNodeAndReference(this, m_pMethodUpdate, OpcUaId_HasComponent);
-    UA_ASSERT(addStatus.isGood());
-}
-
-PSDObject::~PSDObject(void)
-{
-    if ( m_pSharedMutex )
-    {
-        // Release our local reference
-        m_pSharedMutex->releaseReference();
-        m_pSharedMutex = NULL;
-    }
-}
+const std::map<OpcUa_UInt32, std::pair<std::string, std::vector<std::tuple<std::string, UaNodeId, std::string>>>> PSDObject::METHODS = {
+        {PAS_PSDType_Read, {"Read", {}}}
+};
 
 UaNodeId PSDObject::typeDefinitionId() const
 {
     UaNodeId ret(PAS_PSDType, browseName().namespaceIndex());
-    return ret;
-}
-
-/*==========================================================================*/
-UaStatus PSDObject::call(
-    const ServiceContext&  serviceContext,
-    MethodHandle*          pMethodHandle,
-    const UaVariantArray&  inputArguments,
-    UaVariantArray&        outputArguments,
-    UaStatusCodeArray&     inputArgumentResults,
-    UaDiagnosticInfos&     inputArgumentDiag)
-{
-    UaStatus            ret;
-    MethodHandleUaNode* pMethodHandleUaNode = static_cast<MethodHandleUaNode*>(pMethodHandle);
-    UaMethod*           pMethod             = NULL;
-
-    if(pMethodHandleUaNode)
-    {
-        pMethod = pMethodHandleUaNode->pUaMethod();
-
-        if(pMethod)
-        {
-            // Check if we have the step() method
-            if ( pMethod->nodeId() == m_pMethodUpdate->nodeId())
-            {
-                // Number of input arguments must be 0
-                if ( inputArguments.length() > 0 )
-                    ret = OpcUa_BadInvalidArgument;
-                else
-                    ret = m_pCommIf->OperateDevice(PAS_PSDType, m_Identity);
-            }
-        }
-        else
-        {
-            assert(false);
-            ret = OpcUa_BadInvalidArgument;
-        }
-    }
-    else
-    {
-        assert(false);
-        ret = OpcUa_BadInvalidArgument;
-    }
-
     return ret;
 }

@@ -31,7 +31,7 @@
 **        the "CTRL-C" exception in the "Win32 Exceptions" category.
 **
 ******************************************************************************/
-#include "shutdown.h"
+#include "shutdown.hpp"
 #include "uaplatformlayer.h"
 
 #include <stdio.h>

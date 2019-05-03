@@ -19,12 +19,11 @@
 #include "uaserver/uaserverapplication.h"
 
 #if SUPPORT_XML_PARSER
-
 #include "xmlparser/xmldocument.h"
 #endif
 
-#include "common/utilities/opcserver.h"
-#include "common/utilities/shutdown.h"
+#include "common/utilities/opcserver.hpp"
+#include "common/utilities/shutdown.hpp"
 
 #include "server/pascommunicationinterface.hpp"
 #include "server/pasnodemanager.hpp"
@@ -35,12 +34,13 @@
 /// @return 0 on success and -1 on failure.
 int CheckSystem(double &size)
 {
-    struct statvfs sysBuf;
-    if (statvfs("/", &sysBuf) == 0)
+    struct statvfs sysBuf{};
+    if (statvfs("/", &sysBuf) == 0) {
         size = ((double) sysBuf.f_bsize * sysBuf.f_bfree) / (1024 * 1024 * 1024);
-    else return -1;
-
-    return 0;
+        return 0;
+    } else {
+        return -1;
+    }
 }
 
 /// @brief Initialize, configure, and start the OPC UA server.
@@ -48,7 +48,7 @@ int CheckSystem(double &size)
 /// @param configFilePath The file path to the server configuration file.
 /// @param serverIP The IP address for the server endpoint.
 /// @return 0 on success and -1 on failure.
-int OpcServerMain(std::string szAppPath, std::string configFilePath, std::string panelNumber) {
+int OpcServerMain(const std::string &szAppPath, const std::string &configFilePath, const std::string &panelNumber) {
     int ret;
 
 #if SUPPORT_XML_PARSER
@@ -78,9 +78,9 @@ int OpcServerMain(std::string szAppPath, std::string configFilePath, std::string
 
         std::unique_ptr<PasCommunicationInterface> pCommIf = std::unique_ptr<PasCommunicationInterface>(
                 new PasCommunicationInterface()); // Initialize communication interface
-        pCommIf->setPanelNumber(panelNumber.c_str());
-        UaStatus ret = pCommIf->Initialize();
-        UA_ASSERT(ret.isGood());
+        pCommIf->setPanelNumber(panelNumber);
+        UaStatus retStatus = pCommIf->initialize();
+        UA_ASSERT(retStatus.isGood());
 
         std::unique_ptr<PasNodeManager> pNodeManager = std::unique_ptr<PasNodeManager>(
                 new PasNodeManager()); // Create Node Manager for the server
@@ -132,7 +132,7 @@ int main(int argc, char* argv[])
     }
 
     int c;
-    std::string cbcIPAddress = "", configFilePath = "";
+    std::string cbcIPAddress, configFilePath;
 
     while ((c = getopt (argc, argv, "c:")) != -1) {
         switch(c)
@@ -143,6 +143,8 @@ int main(int argc, char* argv[])
             case '?':
                 if (optopt == 'c')
                     std::cout << "Must provide a config file path with option c\n";
+            default:
+                abort();
         }
     }
 
@@ -182,7 +184,7 @@ int main(int argc, char* argv[])
 
     int ret = OpcServerMain(pszAppPath, configFilePath, cbcIPAddress);
 
-    if (pszAppPath) delete[] pszAppPath; // release pszAppPath memory manually
+    delete[] pszAppPath; // release pszAppPath memory manually
 
     return ret;
 }

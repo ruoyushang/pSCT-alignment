@@ -20,14 +20,14 @@
 #include "server/controllers/pascontroller.hpp"
 
 #include "common/globalalignment/psdclass.h"
-#include "common/opcua/pascominterfacecommon.h"
-#include "common/opcua/pasobject.h"
-#include "common/opcua/passervertypeids.h"
+#include "common/opcua/pascominterfacecommon.hpp"
+#include "common/opcua/pasobject.hpp"
+#include "common/opcua/passervertypeids.hpp"
 
 
 /// @details By default, sets the update interval to 500 ms. Creates a new GASPSD object,
 /// sets its port, and initializes. Sets its state to On.
-PSDController::PSDController(int ID) : PasController(ID, 500)
+PSDController::PSDController(Identity identity) : PasController(identity, 500)
 {
     m_pPSD = std::unique_ptr<GASPSD>(new GASPSD());
     m_pPSD->setPort();
@@ -42,9 +42,9 @@ PSDController::~PSDController()
 }
 
 /// @details Calls GASPSD.getOutput() to read data. Locks the shared mutex to prevent concurrent actions while reading data.
-UaStatus PSDController::getData(OpcUa_UInt32 offset, UaVariant& value)
+UaStatus PSDController::getData(OpcUa_UInt32 offset, UaVariant &value)
 {
-    UaMutexLocker lock(&m_mutex);
+    //UaMutexLocker lock(&m_mutex);
     UaStatus status;
 
     int dataoffset = offset - PAS_PSDType_x1;
@@ -52,7 +52,7 @@ UaStatus PSDController::getData(OpcUa_UInt32 offset, UaVariant& value)
         return OpcUa_BadInvalidArgument;
       }
 
-    if (_expired()) { // if cached value expired, update it
+    if (__expired()) { // if cached value expired, update it
         status = read();
       }
 
@@ -68,18 +68,16 @@ UaStatus PSDController::setData(OpcUa_UInt32 offset, UaVariant value)
 }
 
 /// @details Locks the shared mutex to prevent concurrent actions while calling methods.
-UaStatus PSDController::Operate(OpcUa_UInt32 offset, const UaVariantArray& args)
+UaStatus PSDController::operate(OpcUa_UInt32 offset, const UaVariantArray &args)
 {
-    UaMutexLocker lock(&m_mutex);
+    //UaMutexLocker lock(&m_mutex);
 
     UaStatus status;
-    switch ( offset )
-    {
-        case 0:
-            status = read();
-            break;
-        default:
-            status = OpcUa_BadInvalidArgument;
+    if ( offset == PAS_PSDType_Read) {
+        status = read();
+    }
+    else {
+        status = OpcUa_BadInvalidArgument;
     }
 
     return status;
@@ -88,7 +86,7 @@ UaStatus PSDController::Operate(OpcUa_UInt32 offset, const UaVariantArray& args)
 /// @details Calls update on the GASPSD object and revises the last update time. Locks the shared mutex while reading.
 UaStatus PSDController::read()
 {
-    UaMutexLocker lock(&m_mutex);
+    //UaMutexLocker lock(&m_mutex);
 
     if ( m_state == PASState::On )
     {
@@ -97,10 +95,9 @@ UaStatus PSDController::read()
         m_lastUpdateTime = std::chrono::system_clock::now();
         return OpcUa_Good;
     }
-    else
+    else {
         return OpcUa_BadOutOfService;
-
-    return OpcUa_BadUnexpectedError;
+    }
 }
 
 #endif

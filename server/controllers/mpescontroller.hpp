@@ -3,8 +3,8 @@
  * @brief Header file for mirror panel edge sensor device controller.
  */
 
-#ifndef __MPESCONTROLLER_H__
-#define __MPESCONTROLLER_H__
+#ifndef SERVER_MPESCONTROLLER_HPP
+#define SERVER_MPESCONTROLLER_HPP
 
 #include "server/controllers/pascontroller.hpp"
 
@@ -15,7 +15,9 @@
 #include "uabase/uamutex.h"
 #include "uabase/uastring.h"
 
-#include "common/opcua/pascominterfacecommon.h"
+#include "common/opcua/pascominterfacecommon.hpp"
+
+#include "common/opcua/components.hpp"
 
 class Platform;
 
@@ -26,26 +28,26 @@ public:
     /// @brief Instantiate an MPES device controller object.
     /// @param ID The integer index of the device within its type.
     /// @param pPlatform Platform object used to interface with hardware.
-    MPESController(int ID, std::shared_ptr<Platform> pPlatform);
+    MPESController(Identity identity, std::shared_ptr<Platform> pPlatform);
 
     /// @brief Destroy an MPES device controller object.
-    ~MPESController();
+    ~MPESController() override;
 
     /// @brief Initialize the MPES by setting its exposure.
     /// #return 0 on success, -1 on failure.
-    int Initialize();
+    bool initialize() override;
 
     /// @brief Get the value of an MPES data variable.
     /// @return OPC UA status code indicating success or failure.
-    UaStatus getData(OpcUa_UInt32 offset, UaVariant &value);
+    UaStatus getData(OpcUa_UInt32 offset, UaVariant &value) override;
 
     /// @brief Set the value of an MPES data variable.
     /// @return OPC UA status code indicating success or failure.
-    UaStatus setData(OpcUa_UInt32 offset, UaVariant value);
+    UaStatus setData(OpcUa_UInt32 offset, UaVariant value) override;
 
     /// @brief Call a method on the MPES device.
     /// @return OPC UA status code indicating success or failure.
-    UaStatus Operate(OpcUa_UInt32 offset, const UaVariantArray &args);
+    UaStatus operate(OpcUa_UInt32 offset, const UaVariantArray &args) override;
 
 private:
     /// @brief The internal device state.
@@ -54,7 +56,7 @@ private:
     bool m_updated = false;
 
     /// @brief Update the MPES position data.
-    OpcUa_Int32 read();
+    UaStatus read();
 };
 
-#endif
+#endif //SERVER_MPESCONTROLLER_HPP
