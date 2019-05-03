@@ -228,11 +228,11 @@ UaStatus MPESController::read(bool print) {
         m_isVisible = true;
         if (m_Data.xCentroidAvg < 0.1) m_isVisible = false;
         if (m_isVisible) {
-            if (m_Data.xCentroidSD > kNominalCentroidSD) {
+            if (m_Data.xCentroidSpotWidth > kNominalCentroidSD) {
                 std::cout << "+++ WARNING +++ The width of the image along the X axis for " << m_ID.name
                           << " is greater than 20px. Consider fixing things." << std::endl;
             }
-            if (m_Data.yCentroidSD > kNominalCentroidSD) {
+            if (m_Data.yCentroidSpotWidth > kNominalCentroidSD) {
                 std::cout << "+++ WARNING +++ The width of the image along the Y axis for " << m_ID.name
                           << " is greater than 20px. Consider fixing things." << std::endl;
             }
@@ -253,8 +253,8 @@ UaStatus MPESController::read(bool print) {
             std::cout << "xNominal: " << m_Data.xNominal << std::endl;
             std::cout << "y: " << m_Data.yCentroidAvg << std::endl;
             std::cout << "yNominal: " << m_Data.yNominal << std::endl;
-            std::cout << "xRMS: " << m_Data.xCentroidSD << std::endl;
-            std::cout << "yRMS: " << m_Data.yCentroidSD << std::endl;
+            std::cout << "xSpotWidth: " << m_Data.xCentroidSpotWidth << std::endl;
+            std::cout << "ySpotWidth: " << m_Data.yCentroidSpotWidth << std::endl;
             std::cout << "Cleaned Intensity: " << m_Data.CleanedIntensity << std::endl;
         }
 
@@ -265,9 +265,9 @@ UaStatus MPESController::read(bool print) {
         strftime(buf, sizeof(buf), "%Y-%m-%d %X", &tstruct);
 
         UaString sql_stmt = UaString(
-                "INSERT INTO Opt_MPESReadings (date, serial_number, xcoord, ycoord, x_RMS, y_RMS, intensity) VALUES  ('%1', '%2', '%3', '%4', '%5', '%6', '%7' );\n").arg(
+                "INSERT INTO Opt_MPESReadings (date, serial_number, xcoord, ycoord, x_SpotWidth, y_SpotWidth, intensity) VALUES  ('%1', '%2', '%3', '%4', '%5', '%6', '%7' );\n").arg(
             buf).arg(m_ID.serialNumber).arg(m_Data.xCentroidAvg).arg(m_Data.yCentroidAvg).arg(
-            m_Data.xCentroidSD).arg(m_Data.yCentroidSD).arg(m_Data.CleanedIntensity);
+            m_Data.xCentroidSpotWidth).arg(m_Data.yCentroidSpotWidth).arg(m_Data.CleanedIntensity);
         std::ofstream sql_file("MPES_readings.sql", std::ios_base::app);
         sql_file << sql_stmt.toUtf8();
     }
@@ -289,8 +289,8 @@ UaStatus MPESController::__readRequest() {
     std::vector<std::string> varstoread{
             "xCentroidAvg",
             "yCentroidAvg",
-            "xCentroidSD",
-            "yCentroidSD",
+            "xCentroidSpotWidth",
+            "yCentroidSpotWidth",
             "CleanedIntensity",
             "xCentroidNominal",
             "yCentroidNominal"};

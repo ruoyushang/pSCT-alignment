@@ -23,7 +23,7 @@ const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, O
                                                        Ua_AccessLevel_CurrentRead)},
         {PAS_PanelType_zRot,           std::make_tuple("zRot", UaVariant(0.0), OpcUa_False,
                                                        Ua_AccessLevel_CurrentRead)},
-        {PAS_PanelType_SafetyRadius,   std::make_tuple("SafetyRadius", UaVariant(40.0), OpcUa_False,
+        {PAS_PanelType_SafetyRadius,   std::make_tuple("SafetyRadius", UaVariant(60.0), OpcUa_False,
                                                        Ua_AccessLevel_CurrentRead | Ua_AccessLevel_CurrentWrite)}
 };
 

@@ -9,7 +9,7 @@
 
 
 PanelController::PanelController(Identity identity, Client *pClient) :
-    PasCompositeController(std::move(identity), pClient, 1000) {
+        PasCompositeController(std::move(identity), pClient, 1000) {
     m_ID.name = std::string("Panel_") + std::to_string(m_ID.position);
     m_state = PASState::On;
     m_SP.SetPanelType(StewartPlatform::PanelType::OPT);
@@ -20,7 +20,7 @@ PanelController::PanelController(Identity identity, Client *pClient) :
     // make sure things update on the first boot up
     // duration takes seconds -- hence the conversion with the 1/1000 ratio
     m_lastUpdateTime = TIME::now() - std::chrono::duration<int, std::ratio<1, 1000>>
-    (m_kUpdateInterval_ms);
+            (m_kUpdateInterval_ms);
 }
 
 PanelController::~PanelController() {
@@ -162,7 +162,7 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
     Eigen::VectorXd deltaLengths(6);
     Eigen::VectorXd targetLengths(6);
     Eigen::VectorXd currentLengths = getActuatorLengths();
-    if (offset == PAS_PanelType_MoveDeltaLengths) {       
+    if (offset == PAS_PanelType_MoveDeltaLengths) {
         for (int i = 0; i < 6; i++) {
             UaVariant(args[i]).toFloat(deltaLength);
             deltaLengths(i) = deltaLength;
@@ -216,7 +216,7 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
         // Get actuator lengths for motion
         std::cout << "Moving actuators to lengths:" << std::endl;
         for (int i = 0; i < 6; i++) {
-            targetLengths(i) = (float)m_SP.GetActLengths()[i];
+            targetLengths(i) = (float) m_SP.GetActLengths()[i];
             val.setFloat(targetLengths(i));
             val.copyTo(&lengthArgs[i]);
             std::cout << lengthArgs[i].Value.Float << std::endl;
@@ -239,7 +239,7 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
         std::cout << std::endl << std::endl;
 
         std::cout << "\tCurrent actuator lengths:\n";
-        std::cout << getActuatorLengths() << std::endl;        
+        std::cout << getActuatorLengths() << std::endl;
     }
         /************************************************
          * stop the motion in progress                  *
@@ -274,14 +274,14 @@ bool PanelController::checkForCollision(const Eigen::VectorXd &deltaLengths) {
     Eigen::VectorXd Sen_delta; // sensor delta
     Eigen::VectorXd Sen_new; // sensor new position = Sen_delta + current sensor reading
     Eigen::VectorXd Sen_center(6); // center of sensor camera
-    Sen_center << 160.0, 80.0, 160.0, 80.0, 160.0, 80.0;
+    Sen_center << 160.0, 120.0, 160.0, 120.0, 160.0, 120.0;
     Eigen::VectorXd Sen_deviation; // deviated sensor reading
-   
+
     Eigen::VectorXd currentLengths = getActuatorLengths();
 
     std::cout << "Current Act lengths are: \n" << currentLengths << std::endl;
     std::cout << "Delta Act lengths are: \n" << deltaLengths << std::endl;
-    std::cout << "New Act lengths are: \n" << currentLengths + deltaLengths << std::endl; 
+    std::cout << "New Act lengths are: \n" << currentLengths + deltaLengths << std::endl;
 
     bool collision = false;
     if (m_pChildren.count(PAS_EdgeType) > 0) {
@@ -301,7 +301,7 @@ bool PanelController::checkForCollision(const Eigen::VectorXd &deltaLengths) {
             std::cout << "The absolute distance from the center for each sensor is: \n";
             double deviation;
             for (unsigned i = 0; i < 3; i++) {
-                deviation = pow(pow(Sen_deviation(2*i), 2) + pow(Sen_deviation(2*i+1), 2), 0.5);
+                deviation = pow(pow(Sen_deviation(2 * i), 2) + pow(Sen_deviation(2 * i + 1), 2), 0.5);
                 std::cout << deviation;
                 if (deviation > m_safetyRadius) {
                     std::cout << " [WARNING: Deviation is greater than safety radius (" << m_safetyRadius << " px)";

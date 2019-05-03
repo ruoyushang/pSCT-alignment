@@ -59,7 +59,7 @@ private:
     Eigen::VectorXd m_AlignedReadings;
     Eigen::VectorXd m_systematicOffsets;
     Eigen::VectorXd m_CurrentReadings;
-    Eigen::VectorXd m_CurrentReadingsSD;
+    Eigen::VectorXd m_CurrentReadingsSpotWidth;
 
     bool m_isAligned;
 };

@@ -12,7 +12,7 @@ struct MPESImageData
     float xCentroid; ///X coordinate of centroid
     float yCentroid; ///Y coordinate of centroid
     float xSpotSD; ///< This is width of laser point
-    float ySpotSD; /// Y witdh of centroid
+    float ySpotSD; /// Y width of centroid
     int nSat; /// Number of saturated pixels in image
     int SatPoint; /// Value of Saturation point, default 255
     double MJD; ///Time of populating this struct.

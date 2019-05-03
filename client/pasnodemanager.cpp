@@ -203,7 +203,7 @@ UaStatus PasNodeManager::afterStartUp()
 
     std::map<PasController *, PasObject *> pRootDevices;
     pRootDevices.insert(pDeviceObjects.begin(), pDeviceObjects.end());
-    
+
     UaString objectName;
 
     std::cout << "Adding all parent-child references between objects...\n";
@@ -379,7 +379,7 @@ UaStatus PasNodeManager::amendTypeNodes()
     addStatus = addNodeAndReference(pPanelType, pDataItem, OpcUaId_HasComponent);
     UA_ASSERT(addStatus.isGood());
 
-    defaultValue.setDouble(40.0);
+    defaultValue.setDouble(60.0);
     pDataItem = new OpcUa::DataItemType(UaNodeId(PAS_PanelType_SafetyRadius, getNameSpaceIndex()),
             "SafetyRadius", getNameSpaceIndex(), defaultValue, Ua_AccessLevel_CurrentRead | Ua_AccessLevel_CurrentWrite, this);
     pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
@@ -614,7 +614,7 @@ UaStatus PasNodeManager::amendTypeNodes()
 
     //delete tempUIntArray;
 
-    defaultValue.setDouble(40.0);
+    defaultValue.setDouble(60.0);
     pDataItem = new OpcUa::DataItemType(UaNodeId(PAS_MirrorType_SafetyRadius, getNameSpaceIndex()),
             "SafetyRadius", getNameSpaceIndex(), defaultValue, Ua_AccessLevel_CurrentRead | Ua_AccessLevel_CurrentWrite, this);
     pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);

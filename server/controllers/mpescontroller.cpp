@@ -49,16 +49,16 @@ UaStatus MPESController::getData(OpcUa_UInt32 offset, UaVariant &value) {
     const MPES::Position &position = m_pPlatform->getMPESAt(std::stoi(m_ID.eAddress))->getPosition();
     switch (offset) {
         case PAS_MPESType_xCentroidAvg:
-            value.setFloat(position.xCenter);
+            value.setFloat(position.xCentroid);
             break;
         case PAS_MPESType_yCentroidAvg:
-            value.setFloat(position.yCenter);
+            value.setFloat(position.yCentroid);
             break;
-        case PAS_MPESType_xCentroidSD:
-            value.setFloat(position.xStdDev);
+        case PAS_MPESType_xCentroidSpotWidth:
+            value.setFloat(position.xSpotWidth);
             break;
-        case PAS_MPESType_yCentroidSD:
-            value.setFloat(position.yStdDev);
+        case PAS_MPESType_yCentroidSpotWidth:
+            value.setFloat(position.ySpotWidth);
             break;
         case PAS_MPESType_CleanedIntensity:
             value.setFloat(position.CleanedIntensity);

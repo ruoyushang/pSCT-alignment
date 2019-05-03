@@ -30,10 +30,10 @@ class MPES
 
         virtual int MeasurePosition();
         struct Position {
-            float xCenter;
-            float yCenter;
-            float xStdDev;
-            float yStdDev;
+            float xCentroid;
+            float yCentroid;
+            float xSpotWidth;
+            float ySpotWidth;
             float CleanedIntensity;
             float xNominal;
             float yNominal;

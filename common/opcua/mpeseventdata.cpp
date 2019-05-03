@@ -28,8 +28,8 @@ void MPESEventTypeData::registerEventFields()
     s_MPESEventTypeDataFields[EventManagerUaNode::registerEventField(UaQualifiedName("State", m_nsIdx).toFullString())] = 1;
     s_MPESEventTypeDataFields[EventManagerUaNode::registerEventField(UaQualifiedName("xCentroid", m_nsIdx).toFullString())] = 2;
     s_MPESEventTypeDataFields[EventManagerUaNode::registerEventField(UaQualifiedName("yCentroid", m_nsIdx).toFullString())] = 3;
-    s_MPESEventTypeDataFields[EventManagerUaNode::registerEventField(UaQualifiedName("xCentroidSD", m_nsIdx).toFullString())] = 4;
-    s_MPESEventTypeDataFields[EventManagerUaNode::registerEventField(UaQualifiedName("yCentroidSD", m_nsIdx).toFullString())] = 5;
+    s_MPESEventTypeDataFields[EventManagerUaNode::registerEventField(UaQualifiedName("xCentroidSpotWidth", m_nsIdx).toFullString())] = 4;
+    s_MPESEventTypeDataFields[EventManagerUaNode::registerEventField(UaQualifiedName("yCentroidSpotWidth", m_nsIdx).toFullString())] = 5;
     s_MPESEventTypeDataFields[EventManagerUaNode::registerEventField(UaQualifiedName("CleanedIntensity", m_nsIdx).toFullString())] = 6;
 }
 
@@ -67,12 +67,12 @@ void MPESEventTypeData::getFieldData(OpcUa_UInt32 index, Session* pSession, OpcU
         }
         case 4:
         {
-            m_xCentroidSD.copyTo(&data);
+            m_xCentroidSpotWidth.copyTo(&data);
             break;
         }
         case 5:
         {
-            m_yCentroidSD.copyTo(&data);
+            m_yCentroidSpotWidth.copyTo(&data);
             break;
         }
         case 6:
