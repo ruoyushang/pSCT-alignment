@@ -642,6 +642,13 @@ UaStatus PasNodeManager::amendTypeNodes()
     addStatus = addNodeAndReference(pMirrorType, pMethod, OpcUaId_HasComponent);
     UA_ASSERT(addStatus.isGood());
 
+    // Add Method "Align"
+    pMethod = new OpcUa::BaseMethod(UaNodeId(PAS_MirrorType_AlignSector, getNameSpaceIndex()), "AlignSector",
+                                    getNameSpaceIndex());
+    pMethod->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
+    addStatus = addNodeAndReference(pMirrorType, pMethod, OpcUaId_HasComponent);
+    UA_ASSERT(addStatus.isGood());
+
     // Add Method "GlobalAlign"
     pMethod = new OpcUa::BaseMethod(UaNodeId(PAS_MirrorType_GlobalAlign, getNameSpaceIndex()), "GlobalAlign", getNameSpaceIndex());
     pMethod->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
