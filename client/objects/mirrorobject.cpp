@@ -66,6 +66,9 @@ const std::map<OpcUa_UInt32, std::pair<std::string, std::vector<std::tuple<std::
                                                              std::make_tuple("zRot",
                                                                              UaNodeId(OpcUaId_Double),
                                                                              "Target z-rotation for the mirror (in rad)."),
+                                                             std::make_tuple("Execute",
+                                                                         UaNodeId(OpcUaId_Boolean),
+                                                                         "Whether to actually execute the calculated motion."),
                                                          }}},
     {PAS_MirrorType_AlignSequential, {"AlignSequential", {
                                                              std::make_tuple("Start edge",
@@ -75,11 +78,21 @@ const std::map<OpcUa_UInt32, std::pair<std::string, std::vector<std::tuple<std::
                                                                              UaNodeId(OpcUaId_UInt32),
                                                                              "Direction to align edges in (0 for +z, 1 for -z)"),
                                                          }}},
-    {PAS_MirrorType_AlignSector,     {"AlignSector",     {}}},
+    {PAS_MirrorType_AlignSector,     {"AlignSector",     {
+                                                            std::make_tuple("Align Fraction",
+                                                                         UaNodeId(OpcUaId_Double),
+                                                                         "Fraction of motion to carry out (between 0.0 and 1.0)"),
+                                                            std::make_tuple("Execute",
+                                                                         UaNodeId(OpcUaId_Boolean),
+                                                                         "Whether to actually execute the calculated motion."),
+                                                         }}},
     {PAS_MirrorType_GlobalAlign,     {"GlobalAlign",     {
                                                              std::make_tuple("Fixed Panel",
                                                                              UaNodeId(OpcUaId_UInt32),
                                                                              "Panel to fix when aligning (by position number)"),
+                                                            std::make_tuple("Execute",
+                                                                         UaNodeId(OpcUaId_Boolean),
+                                                                         "Whether to actually execute the calculated motion."),
                                                          }}},
     {PAS_MirrorType_Stop,            {"Stop",            {}}}
 };

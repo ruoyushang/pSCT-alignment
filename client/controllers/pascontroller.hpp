@@ -41,7 +41,7 @@ protected:
 class PasCompositeController : public PasController
 {
     public:
-        PasCompositeController(Identity identity, Client *pClient, int updateInterval = 0) :
+        PasCompositeController(Identity identity, Client *pClient, int updateInterval=0) :
                 PasController(std::move(identity), pClient, updateInterval) {};
 
     ~PasCompositeController() override = default;

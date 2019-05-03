@@ -13,12 +13,13 @@
 #include "client/controllers/actcontroller.hpp"
 
 
-EdgeController::EdgeController(Identity identity) : PasCompositeController(std::move(identity), nullptr),
+EdgeController::EdgeController(Identity identity) : PasCompositeController(std::move(identity), nullptr, 0),
                                                     m_isAligned(false) {
     m_ID.name = std::string("Edge_") + m_ID.eAddress;
     m_state = PASState::On;
     // defin possible children types
     m_ChildrenTypes = {PAS_MPESType, PAS_PanelType};
+    m_Xcalculated = Eigen::VectorXd(0);
 }
 
 EdgeController::~EdgeController() {
@@ -124,6 +125,7 @@ UaStatus EdgeController::operate(OpcUa_UInt32 offset, const UaVariantArray &args
             OpcUa_UInt32 panel;
             bool moveit;
             double alignFrac;
+            bool execute;
 
             if (numPanels == 2) {
                 panel = args[0].Value.UInt32;
@@ -143,9 +145,11 @@ UaStatus EdgeController::operate(OpcUa_UInt32 offset, const UaVariantArray &args
                 }
             }
 
+            execute = args[3].Value.Boolean;
+
             UaVariant(args[2]).toDouble(alignFrac);
 
-            status = align(panel, alignFrac, moveit);
+            status = align(panel, alignFrac, moveit, execute);
             break;
         }
         case PAS_EdgeType_Read:
@@ -309,7 +313,7 @@ UaStatus EdgeController::findSingleMatrix(unsigned panelIdx, double stepSize) {
     Method       align
     Description  Align this edge to the nominal position using the found matrix
 -----------------------------------------------------------------------------*/
-UaStatus EdgeController::align(unsigned panel_pos, double alignFrac, bool moveit) {
+UaStatus EdgeController::align(unsigned panel_pos, double alignFrac, bool moveit, bool execute) {
     //UaMutexLocker lock(&m_mutex);
     UaStatus status;
 
@@ -319,7 +323,7 @@ UaStatus EdgeController::align(unsigned panel_pos, double alignFrac, bool moveit
     else
         std::cout << "Will keep fixed panel " << panel_pos << std::endl;
 
-    status = alignSinglePanel(panel_pos, alignFrac, moveit);
+    status = alignSinglePanel(panel_pos, alignFrac, moveit, execute);
 
 
 /*
@@ -348,208 +352,222 @@ UaStatus EdgeController::align(unsigned panel_pos, double alignFrac, bool moveit
     return status;
 }
 
-UaStatus EdgeController::alignSinglePanel(unsigned panelpos, double alignFrac, bool moveit) {
+UaStatus EdgeController::alignSinglePanel(unsigned panelpos, double alignFrac, bool moveit, bool execute) {
+
     //UaMutexLocker lock(&m_mutex);
     UaStatus status;
-
-    Eigen::MatrixXd A; // response matrix
-    Eigen::MatrixXd C; // constraint matrix
-    Eigen::MatrixXd B; // complete matrix we want to solve for
-    Eigen::VectorXd current_read = getCurrentReadings();
-    Eigen::VectorXd aligned_read = getAlignedReadings() - getSystematicOffsets();
-    if (!current_read.size() || !aligned_read.size()) {
-        std::cout
-                << "+++ ERROR +++ No physical sensor readings! Make sure the sensors are in the field of view. Nothing to do for now."
-                << std::endl;
-        return OpcUa_Bad;
-    }
-
-    Eigen::VectorXd X; // solutions vector
-    Eigen::VectorXd Y; // sensor misalignment vector, we want to fit to this
-
-    if (moveit) {
-        A = getResponseMatrix(panelpos);
-        C.setZero();
-
-        B = A;
-        Y = aligned_read - current_read;
-    } else { // this panel kept fixed -- we have three panels
-        // get the response matrix, which is [A1 | A2]
-        std::vector<Eigen::MatrixXd> responseMats;
-        for (const auto &panelPair : m_ChildrenPositionMap.at(PAS_PanelType))
-            if (panelPair.first != panelpos)
-                responseMats.push_back(getResponseMatrix(panelPair.first)); // get response from the two other panels
-        auto totalRows = max_element(responseMats.begin(), responseMats.end(),
-                                     [](Eigen::MatrixXd a, Eigen::MatrixXd b) { return a.rows() < b.rows(); })->rows();
-        auto totalCols = accumulate(responseMats.begin(), responseMats.end(), 0,
-                                    [](int curval, Eigen::MatrixXd a) { return curval + a.cols(); });
-
-        A = Eigen::MatrixXd(totalRows, totalCols);
-        A.setZero();
-
-        int curcol = 0;
-        for (const auto &responseMat : responseMats) {
-            A.block(0, curcol, responseMat.rows(), responseMat.cols()) = responseMat;
-            curcol += responseMat.cols();
+    if (!execute) {
+        Eigen::MatrixXd A; // response matrix
+        Eigen::MatrixXd C; // constraint matrix
+        Eigen::MatrixXd B; // complete matrix we want to solve for
+        Eigen::VectorXd current_read = getCurrentReadings();
+        Eigen::VectorXd aligned_read = getAlignedReadings() - getSystematicOffsets();
+        if (!current_read.size() || !aligned_read.size()) {
+            std::cout
+                    << "+++ ERROR +++ No physical sensor readings! Make sure the sensors are in the field of view. Nothing to do for now."
+                    << std::endl;
+            return OpcUa_Bad;
         }
 
-        // get the constraint matrix, which is [U1 | U2]: we need U1*L1 + U2*L2 = <OVERLAP MISALIGNMENT>;
-        // so we construct the constraint matrix as [U1 | U2] and the vector to solve for as [L1; L2]
-        //
-        // get the overlapping sensors between the other two panels
-        int twopanels[2]; // hold positions of the other two panels
-        int i = 0;
-        for (const auto &panelPair : m_ChildrenPositionMap.at(PAS_PanelType))
-            if (panelPair.first != panelpos)
-                twopanels[i++] = panelPair.first;
+        Eigen::VectorXd X; // solutions vector
+        Eigen::VectorXd Y; // sensor misalignment vector, we want to fit to this
 
-        std::vector<MPESController *> overlapMPES;
-        for (const auto &panelPair : m_ChildrenPositionMap.at(PAS_PanelType)) {
-            if (panelPair.first == panelpos)
-                continue;
+        if (moveit) {
+            A = getResponseMatrix(panelpos);
+            C.setZero();
 
-            auto pMPES = dynamic_cast<PanelController *>(m_pChildren.at(PAS_PanelType).at(
-                    panelPair.second))->getChildren(
-                    PAS_MPESType);
-            for (const auto &mpes : pMPES)
-                if (dynamic_cast<MPESController *>(mpes)->getPanelSide(twopanels[0])
-                    && dynamic_cast<MPESController *>(mpes)->getPanelSide(twopanels[1]))
-                    overlapMPES.push_back(dynamic_cast<MPESController *>(mpes));
-        }
-        auto blockRows = overlapMPES.front()->getResponseMatrix().rows();
-        auto blockCols = overlapMPES.front()->getResponseMatrix().cols();
+            B = A;
+            Y = aligned_read - current_read;
+        } else { // this panel kept fixed -- we have three panels
+            // get the response matrix, which is [A1 | A2]
+            std::vector<Eigen::MatrixXd> responseMats;
+            for (const auto &panelPair : m_ChildrenPositionMap.at(PAS_PanelType))
+                if (panelPair.first != panelpos)
+                    responseMats.push_back(getResponseMatrix(panelPair.first)); // get response from the two other panels
+            auto totalRows = max_element(responseMats.begin(), responseMats.end(),
+                                         [](Eigen::MatrixXd a, Eigen::MatrixXd b) { return a.rows() < b.rows(); })->rows();
+            auto totalCols = accumulate(responseMats.begin(), responseMats.end(), 0,
+                                        [](int curval, Eigen::MatrixXd a) { return curval + a.cols(); });
 
-        // get misalignment of overlap sensors
-        Eigen::VectorXd overlap_current(overlapMPES.size() * 2);
-        Eigen::VectorXd overlap_aligned(overlapMPES.size() * 2);
-        UaVariant vtmp;
-        unsigned visible = 0;
-        for (auto &mpes : overlapMPES) {
-            mpes->read(false);
-            if (!mpes->isVisible()) continue;
+            A = Eigen::MatrixXd(totalRows, totalCols);
+            A.setZero();
 
-            mpes->getData(PAS_MPESType_xCentroidAvg, vtmp);
-            vtmp.toDouble(overlap_current(visible * 2));
-            mpes->getData(PAS_MPESType_yCentroidAvg, vtmp);
-            vtmp.toDouble(overlap_current(visible * 2 + 1));
+            int curcol = 0;
+            for (const auto &responseMat : responseMats) {
+                A.block(0, curcol, responseMat.rows(), responseMat.cols()) = responseMat;
+                curcol += responseMat.cols();
+            }
 
-            overlap_aligned.segment(visible * 2, 2) = mpes->getAlignedReadings()
-                                                      - mpes->getSystematicOffsets();
+            // get the constraint matrix, which is [U1 | U2]: we need U1*L1 + U2*L2 = <OVERLAP MISALIGNMENT>;
+            // so we construct the constraint matrix as [U1 | U2] and the vector to solve for as [L1; L2]
+            //
+            // get the overlapping sensors between the other two panels
+            int twopanels[2]; // hold positions of the other two panels
+            int i = 0;
+            for (const auto &panelPair : m_ChildrenPositionMap.at(PAS_PanelType))
+                if (panelPair.first != panelpos)
+                    twopanels[i++] = panelPair.first;
 
-            ++visible;
-        }
-        overlap_current.conservativeResize(2 * visible);
-        overlap_aligned.conservativeResize(2 * visible);
+            std::vector<MPESController *> overlapMPES;
+            for (const auto &panelPair : m_ChildrenPositionMap.at(PAS_PanelType)) {
+                if (panelPair.first == panelpos)
+                    continue;
 
-        C = Eigen::MatrixXd(visible * blockRows, 2 * blockCols);
-        C.setZero();
+                auto pMPES = dynamic_cast<PanelController *>(m_pChildren.at(PAS_PanelType).at(
+                        panelPair.second))->getChildren(
+                        PAS_MPESType);
+                for (const auto &mpes : pMPES)
+                    if (dynamic_cast<MPESController *>(mpes)->getPanelSide(twopanels[0])
+                        && dynamic_cast<MPESController *>(mpes)->getPanelSide(twopanels[1]))
+                        overlapMPES.push_back(dynamic_cast<MPESController *>(mpes));
+            }
+            auto blockRows = overlapMPES.front()->getResponseMatrix().rows();
+            auto blockCols = overlapMPES.front()->getResponseMatrix().cols();
 
-        for (int j = 0; j < 2; j++) {
-            int k = 0;
-            for (const auto &mpes : overlapMPES) {
+            // get misalignment of overlap sensors
+            Eigen::VectorXd overlap_current(overlapMPES.size() * 2);
+            Eigen::VectorXd overlap_aligned(overlapMPES.size() * 2);
+            UaVariant vtmp;
+            unsigned visible = 0;
+            for (auto &mpes : overlapMPES) {
+                mpes->read(false);
                 if (!mpes->isVisible()) continue;
-                auto panelside = mpes->getPanelSide(twopanels[j]);
-                C.block(blockRows * k, blockCols * j, blockRows, blockCols) = mpes->getResponseMatrix(panelside);
-                k++;
+
+                mpes->getData(PAS_MPESType_xCentroidAvg, vtmp);
+                vtmp.toDouble(overlap_current(visible * 2));
+                mpes->getData(PAS_MPESType_yCentroidAvg, vtmp);
+                vtmp.toDouble(overlap_current(visible * 2 + 1));
+
+                overlap_aligned.segment(visible * 2, 2) = mpes->getAlignedReadings()
+                                                          - mpes->getSystematicOffsets();
+
+                ++visible;
             }
-        }
+            overlap_current.conservativeResize(2 * visible);
+            overlap_aligned.conservativeResize(2 * visible);
 
-        // B = |A|
-        //     |C|
-        // Y = |y1|, where y1,2 = aligned - current
-        //     |y2|
-        B = Eigen::MatrixXd(A.rows() + C.rows(), A.cols());
-        B.block(0, 0, A.rows(), A.cols()) = A;
-        B.block(A.rows(), 0, C.rows(), A.cols()) =
-                sqrt(2.) * C; // increase the weight of the constraint due to the degenaracy along the P1-P2 edge
-        Y = Eigen::VectorXd(aligned_read.size() + overlap_current.size());
-        Y.head(aligned_read.size()) = aligned_read - current_read;
-        Y.tail(overlap_current.size()) = sqrt(2.) * (overlap_aligned - overlap_current);
+            C = Eigen::MatrixXd(visible * blockRows, 2 * blockCols);
+            C.setZero();
 
-        aligned_read.conservativeResize(aligned_read.size() + overlap_aligned.size());
-        aligned_read.tail(overlap_aligned.size()) = overlap_aligned;
-        current_read.conservativeResize(current_read.size() + overlap_current.size());
-        current_read.tail(overlap_current.size()) = overlap_current;
-    }
-
-    // make sure we have enough constraints to solve this
-    if (Y.size() < B.cols()) {
-        std::cout << "+++ ERROR! +++ Not enough sensors to constrain the motion. Won't do anything!" << std::endl;
-        return OpcUa_Bad;
-    }
-
-    try {
-        X = B.jacobiSvd(Eigen::ComputeThinU | Eigen::ComputeThinV).solve(Y);
-    }
-    catch (...) {
-        std::cout << "+++ WARNING! +++ Failed to perform Singular Value Decomposition. "
-                  << "Check your sensor readings! Discarding this result!" << std::endl;
-        return OpcUa_Bad;
-    }
-
-    std::cout << "\nCurrent MPES readings:\n" << current_read << std::endl;
-    std::cout << "\nTarget MPES readings (accounting for systematics):\n" << aligned_read << std::endl;
-    std::cout << "\nActuator response matrix for this edge:\n" << A << std::endl;
-    if (!C.isZero(0))
-        std::cout << "\nConstraint matrix for this edge:\n" << C << std::endl;
-
-    // in the case of moving this panel (3 sensors and 6 actuators),
-    // we want to solve delS = A * delL for delL.
-    // we get a least squares solution: A^T * delS = (A^T * A) delL
-    // delL = (A^T * A) \ A^T * delS
-    // This is done through singular value decomposition for numerical stability.
-    //
-    // When this panel is fixed and we move the other two (4 sensors and 12 actuators),
-    // we want to solve the constrained least squares problem
-    // min(|A * delL - delS|) given that C*delL = 0 for delL.
-    // we get the following least squares solution:
-    // delL = (A^T * A) \ A^T * delS - (A^T * A) \ C^T * [C(A^T * A) \ C^T]\C * (A^T * A) \ A^T * delS
-    // We do this partly through brute force and partly through SVD.
-
-    std::cout << "\nLEAST SQUARES SOLUTION:\n" << X << std::endl;
-    // while (X.norm() >= 14*(X.size()/6)) { // heuristic -- don't want to move by more than the panel gap
-    if (alignFrac < 1.) {
-        std::cout << "+++ WARNING +++ You requested fractional motion: will move fractionally by " << alignFrac
-                  << " of the above:" << std::endl;
-        X *= alignFrac;
-        std::cout << X << std::endl;
-    }
-
-    // make sure we don't move what we're not supposed to
-    m_PanelsToMove.clear();
-
-    /* MOVE ACTUATORS */
-    PanelController *pCurPanel;
-    int j = 0;
-    for (const auto &panelPair : m_ChildrenPositionMap.at(PAS_PanelType)) {
-        if ((panelPair.first == panelpos) == moveit) { // clever but not clear...
-            pCurPanel = dynamic_cast<PanelController *>(m_pChildren.at(PAS_PanelType).at(panelPair.second));
-            auto nACT = pCurPanel->getActuatorCount();
-            // print out to make sure
-            std::cout << "Will move actuators of "
-                      << pCurPanel->getId().name << " by\n" << X.segment(j, 6) << std::endl;
-
-            UaVariantArray deltas;
-            deltas.create(nACT);
-            UaVariant var;
-            for (unsigned i = 0; i < nACT; i++) {
-                var.setFloat(X(j++));
-                var.copyTo(&deltas[i]);
+            for (int j = 0; j < 2; j++) {
+                int k = 0;
+                for (const auto &mpes : overlapMPES) {
+                    if (!mpes->isVisible()) continue;
+                    auto panelside = mpes->getPanelSide(twopanels[j]);
+                    C.block(blockRows * k, blockCols * j, blockRows, blockCols) = mpes->getResponseMatrix(panelside);
+                    k++;
+                }
             }
 
-            status = pCurPanel->operate(PAS_PanelType_MoveDeltaLengths, deltas);
-            if (!status.isGood()) return status;
-            m_PanelsToMove.push_back(panelPair.second);
+            // B = |A|
+            //     |C|
+            // Y = |y1|, where y1,2 = aligned - current
+            //     |y2|
+            B = Eigen::MatrixXd(A.rows() + C.rows(), A.cols());
+            B.block(0, 0, A.rows(), A.cols()) = A;
+            B.block(A.rows(), 0, C.rows(), A.cols()) =
+                    sqrt(2.) * C; // increase the weight of the constraint due to the degenaracy along the P1-P2 edge
+            Y = Eigen::VectorXd(aligned_read.size() + overlap_current.size());
+            Y.head(aligned_read.size()) = aligned_read - current_read;
+            Y.tail(overlap_current.size()) = sqrt(2.) * (overlap_aligned - overlap_current);
+
+            aligned_read.conservativeResize(aligned_read.size() + overlap_aligned.size());
+            aligned_read.tail(overlap_aligned.size()) = overlap_aligned;
+            current_read.conservativeResize(current_read.size() + overlap_current.size());
+            current_read.tail(overlap_current.size()) = overlap_current;
         }
+
+        // make sure we have enough constraints to solve this
+        if (Y.size() < B.cols()) {
+            std::cout << "+++ ERROR! +++ Not enough sensors to constrain the motion. Won't do anything!" << std::endl;
+            return OpcUa_Bad;
+        }
+
+        try {
+            X = B.jacobiSvd(Eigen::ComputeThinU | Eigen::ComputeThinV).solve(Y);
+        }
+        catch (...) {
+            std::cout << "+++ WARNING! +++ Failed to perform Singular Value Decomposition. "
+                      << "Check your sensor readings! Discarding this result!" << std::endl;
+            return OpcUa_Bad;
+        }
+
+        std::cout << "\nCurrent MPES readings:\n" << current_read << std::endl;
+        std::cout << "\nTarget MPES readings (accounting for systematics):\n" << aligned_read << std::endl;
+        std::cout << "\nActuator response matrix for this edge:\n" << A << std::endl;
+        if (!C.isZero(0))
+            std::cout << "\nConstraint matrix for this edge:\n" << C << std::endl;
+
+        // in the case of moving this panel (3 sensors and 6 actuators),
+        // we want to solve delS = A * delL for delL.
+        // we get a least squares solution: A^T * delS = (A^T * A) delL
+        // delL = (A^T * A) \ A^T * delS
+        // This is done through singular value decomposition for numerical stability.
+        //
+        // When this panel is fixed and we move the other two (4 sensors and 12 actuators),
+        // we want to solve the constrained least squares problem
+        // min(|A * delL - delS|) given that C*delL = 0 for delL.
+        // we get the following least squares solution:
+        // delL = (A^T * A) \ A^T * delS - (A^T * A) \ C^T * [C(A^T * A) \ C^T]\C * (A^T * A) \ A^T * delS
+        // We do this partly through brute force and partly through SVD.
+
+        for (const auto &panelPair : m_ChildrenPositionMap.at(PAS_PanelType)) {
+            if ((panelPair.first == panelpos) == moveit) { // clever but not clear...
+                PanelController *pCurPanel = dynamic_cast<PanelController *>(m_pChildren.at(PAS_PanelType).at(panelPair.second)); 
+                if(pCurPanel->checkForCollision((X * alignFrac).segment(0,6))) {
+                    std::cout << "Error: Sensors may go out of range! Disallowed motion, please recalculate or relax safety radius." << std::endl;
+                    return OpcUa_Bad;
+                }
+            }
+        }
+        std::cout << "\nLEAST SQUARES SOLUTION:\n" << X << std::endl;
+        // while (X.norm() >= 14*(X.size()/6)) { // heuristic -- don't want to move by more than the panel gap
+        if (alignFrac < 1.) {
+            std::cout << "+++ WARNING +++ You requested fractional motion: will move fractionally by " << alignFrac
+                      << " of the above:" << std::endl;
+            X *= alignFrac;
+            std::cout << X << std::endl;
+        }
+        m_Xcalculated = X;
+        std::cout << "Calculation done! You should call the method again with execute=True to actually execute the motion." << std::endl;
+    }
+    else {
+        if (m_Xcalculated.isZero(0)) {
+            std::cout << "No calculated motion found.  Call Edge.align with execute=false once first to calculate the motion to execute." << std::endl;
+            return OpcUa_Bad;
+        }
+        else {
+            /* MOVE ACTUATORS */
+            PanelController *pCurPanel;
+            int j = 0;
+            for (const auto &panelPair : m_ChildrenPositionMap.at(PAS_PanelType)) {
+                if ((panelPair.first == panelpos) == moveit) { // clever but not clear...
+                    pCurPanel = dynamic_cast<PanelController *>(m_pChildren.at(PAS_PanelType).at(panelPair.second));
+                    auto nACT = pCurPanel->getActuatorCount();
+                    // print out to make sure
+                    std::cout << "Will move actuators of "
+                              << pCurPanel->getId().name << " by\n" << m_Xcalculated.segment(j, nACT) << std::endl;
+                    
+                    UaVariantArray deltas;
+                    deltas.create(nACT);
+                    UaVariant var;
+                    for (int i = 0; i < (int)nACT; i++) {
+                        var.setFloat(m_Xcalculated(j++));
+                        var.copyTo(&deltas[i]);
+                    }
+                    status = pCurPanel->moveDeltaLengths(deltas);
+                    if (!status.isGood()) return status;
+                }
+            }
+        }
+        m_Xcalculated.setZero();
     }
 
     // arbitrary
-    if (X.array().abs().maxCoeff() >= 0.05)
+    if (m_Xcalculated.array().abs().maxCoeff() >= 0.05)
         m_isAligned = false;
     else
         m_isAligned = true;
-
-    std::cout << "\nYou can also call " << m_ID.name << ".Move to move the panel(s).\n" << std::endl;
 
     return status;
 }

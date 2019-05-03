@@ -42,17 +42,18 @@ public:
 private:
 
     // methods
-    UaStatus align(unsigned panel_pos, double alignFrac = 0.25, bool moveit = true);
+    UaStatus align(unsigned panel_pos, double alignFrac = 0.25, bool moveit = true, bool execute = false);
 
     UaStatus findMatrix(UaVariantArray args);
 
     // helpers for the above
     UaStatus findSingleMatrix(unsigned panelIdx, double stepSize = 0.5);
 
-    UaStatus alignSinglePanel(unsigned panelpos, double alignFrac, bool moveit = true);
+    UaStatus alignSinglePanel(unsigned panelpos, double alignFrac, bool moveit = true, bool execute = false);
 
-    // keep track of the panels we want to move
-    std::vector<unsigned> m_PanelsToMove;
+    // temporarily hold calculated alignment motion
+    Eigen::VectorXd m_Xcalculated;
+
     // maps panel position to its response matrix
     std::map<unsigned, Eigen::MatrixXd> m_ResponseMatMap;
     Eigen::VectorXd m_AlignedReadings;

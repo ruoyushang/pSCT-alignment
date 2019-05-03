@@ -13,6 +13,7 @@
 class AGeoAsphericDisk;
 
 class MirrorController; // need this forward declaration for the friend class
+class PanelController;
 
 // This is an interface to be able to use ROOT's MINUIT, which requires a static ChiSq function.
 // ROOT Requires that objects inherit from its TObject. I don't want such multiple inheritance
@@ -76,6 +77,8 @@ protected:
     virtual double chiSq(const Eigen::VectorXd &telDelta);
 
 private:
+    int m_kUpdateInterval = 10000;
+
     double m_safetyRadius = 80.0;
 
     std::set<unsigned> m_selectedPanels;
@@ -88,18 +91,18 @@ private:
 
     std::set<unsigned> getSelectedDeviceIndices(unsigned deviceType);
     // update current mirror coordinates
-    UaStatus updateCoords();
+    UaStatus updateCoords(bool print=true);
     // a bunch of internal implementations
-    UaStatus readPositionAll();
+    UaStatus readPositionAll(bool print=true);
     // Align all edges fron need_alignment starting at start_idx and  moving in the direction dir
     UaStatus alignSequential(unsigned startEdge, const std::set<unsigned> &selectedEdges, bool dir);
 
     UaStatus alignSector(const std::set<unsigned> &selectedPanels, const std::set<unsigned> &selectedMPES,
-                     double alignFrac = 0.25);
+                     double alignFrac = 0.25, bool execute=false);
 
-    UaStatus alignGlobal(unsigned fixPanel, double alignFrac = 0.25);
+    UaStatus alignGlobal(unsigned fixPanel, double alignFrac = 0.25, bool execute=false);
 
-    UaStatus moveToCoords(UaVariantArray args);
+    UaStatus moveToCoords(Eigen::VectorXd targetCoords, bool execute=false);
 
     // mirror coords -- x/y/z, xRot, yRot, zRot
     Eigen::VectorXd m_curCoords, m_curCoordsErr, m_sysOffsetsMPES;
@@ -156,6 +159,10 @@ private:
     AGeoAsphericDisk *m_pSurface;
     // A simulated stewart platform
     StewartPlatform m_SP;
+
+    Eigen::VectorXd m_Xcalculated;
+    std::vector<PanelController*> m_panelsToMove;
+    unsigned m_previousCalculatedMethod;
 };
 
 #endif // #ifndef __PASMIRROR_H__

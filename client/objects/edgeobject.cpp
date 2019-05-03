@@ -24,7 +24,10 @@ const std::map<OpcUa_UInt32, std::pair<std::string, std::vector<std::tuple<std::
                                                          std::make_tuple("Align Fraction",
                                                                          UaNodeId(OpcUaId_Double),
                                                                          "Fraction of motion to carry out (between 0.0 and 1.0, default = 0.25)"),
-                                                 }}
+                                                         std::make_tuple("Execute",
+                                                                         UaNodeId(OpcUaId_Boolean),
+                                                                         "Whether to actually execute the calculated motion."),
+                                                }}
         },
         {PAS_EdgeType_FindMatrix, {"FindMatrix", {       std::make_tuple("Step Size",
                                                                          UaNodeId(OpcUaId_Double),

@@ -102,7 +102,8 @@ UaStatus PanelController::getData(OpcUa_UInt32 offset, UaVariant &value) {
 
     if (offset >= PAS_PanelType_x && offset <= PAS_PanelType_zRot) {
         // update current coordinates
-        updateCoords();
+        if (__expired())
+            updateCoords();
 
         int dataOffset = offset - PAS_PanelType_x;
         value.setDouble(m_curCoords[dataOffset]);
@@ -161,24 +162,20 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
     Eigen::VectorXd deltaLengths(6);
     Eigen::VectorXd targetLengths(6);
     Eigen::VectorXd currentLengths = getActuatorLengths();
-    if (offset == PAS_PanelType_MoveDeltaLengths) {
-        std::cout << "args.length() :" << args.length() << std::endl;
-        
+    if (offset == PAS_PanelType_MoveDeltaLengths) {       
         for (int i = 0; i < 6; i++) {
-            std::cout << UaVariant(args[i]).type() << std::endl;
-            std::cout << UaVariant(args[i]).dataType() << std::endl;
-            //UaVariant(args[i]).toFloat(deltaLength);
-            //deltaLengths(i) = deltaLength;
+            UaVariant(args[i]).toFloat(deltaLength);
+            deltaLengths(i) = deltaLength;
         }
-        //std::cout << "Calling Panel::MoveDeltaLengths() with delta lengths: \n";
-        //std::cout << deltaLengths << std::endl << std::endl;
-        //if (checkForCollision(deltaLengths)) {
-            //std::cout << "Error: Sensors may go out of range! Motion cancelled." << std::endl;
-            //return OpcUa_Bad;
-        //}
-        //else {
-            //status = moveDeltaLengths(args);
-        //}
+        std::cout << "Calling Panel::MoveDeltaLengths() with delta lengths: \n";
+        std::cout << deltaLengths << std::endl << std::endl;
+        if (checkForCollision(deltaLengths)) {
+            std::cout << "Error: Sensors may go out of range! Motion cancelled." << std::endl;
+            return OpcUa_Bad;
+        }
+        else {
+            status = moveDeltaLengths(args);
+        }
     } else if (offset == PAS_PanelType_MoveToLengths) {
         for (int i = 0; i < 6; i++) {
             UaVariant(args[i]).toFloat(targetLength);
@@ -319,9 +316,6 @@ bool PanelController::checkForCollision(const Eigen::VectorXd &deltaLengths) {
 
 void PanelController::updateCoords(bool printout) {
     // do nothing if values haven't expired
-    if (!__expired())
-        return;
-
     Eigen::VectorXd currentLengths = getActuatorLengths();
 
     if (printout) {

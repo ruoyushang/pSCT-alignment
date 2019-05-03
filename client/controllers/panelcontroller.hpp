@@ -38,11 +38,12 @@ public:
 
     Eigen::VectorXd getActuatorLengths();
     bool checkForCollision(const Eigen::VectorXd &deltaLengths);
-private:
-    int m_kUpdateInterval = 1000;
 
     // helper
     void updateCoords(bool printout = false);
+
+private:
+    int m_kUpdateInterval = 1000;
 
     // x, y, z, xRot, yRot, zRot
     double m_curCoords[6] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
