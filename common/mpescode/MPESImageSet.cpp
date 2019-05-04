@@ -103,8 +103,8 @@ int MPESImageSet::Capture()
         if (verbosity)
             fprintf(stderr,"adjusting resolution...\n");
 
-//        capture.set(CV_CAP_PROP_FRAME_WIDTH, device->GetResolution());
-//        capture.set(CV_CAP_PROP_FRAME_HEIGHT, device->GetResolution() *(3./4.));
+        capture.set(CV_CAP_PROP_FRAME_WIDTH, device->GetResolution());
+        capture.set(CV_CAP_PROP_FRAME_HEIGHT, device->GetResolution() *(3./4.));
         char buffer[500];
         sprintf(buffer,"v4l2-ctl -d%i --set-ctrl=white_balance_temperature_auto=0 \n", device->GetID());
         if (verbosity)
