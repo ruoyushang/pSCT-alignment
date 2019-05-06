@@ -105,7 +105,6 @@ UaStatus ActController::getError(OpcUa_UInt32 offset, UaVariant &value) {
         varName += std::to_string(errorNum);
         std::vector<std::string> varsToRead = {m_ID.eAddress + "." + varName};
         status = m_pClient->read(varsToRead, &value);
-        std::cout << "ActController::getError -> value = " << value.toString().toUtf8() << std::endl;
     } else {
         status = OpcUa_BadInvalidArgument;
     }
