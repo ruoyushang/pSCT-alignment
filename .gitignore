@@ -49,3 +49,4 @@ sdk/bin
 
 # DB files
 *.sql
+!init.sql
