@@ -317,7 +317,7 @@ UaStatus MirrorController::setData(OpcUa_UInt32 offset, UaVariant value)
     } else if (offset == PAS_MirrorType_SafetyRadius) {
         value.toDouble(m_safetyRadius);
         // Set for all child panels
-        PanelController *panel;
+        std::shared_ptr<PanelController> panel;
         for (auto &p : getChildren(PAS_PanelType)) {
             panel = std::dynamic_pointer_cast<PanelController>(p).get();
             panel->setData(PAS_PanelType_SafetyRadius, value);
@@ -940,8 +940,8 @@ UaStatus MirrorController::alignSector(const std::set<unsigned> &selectedPanels,
         for (unsigned idx : getSelectedDeviceIndices(PAS_PanelType))
             panelsToMove.push_back(std::dynamic_pointer_cast<PanelController>(m_pChildren.at(PAS_PanelType).at(idx)));
         for (unsigned idx : getSelectedDeviceIndices(PAS_MPESType)) {
-            MPESController *mpes = std::dynamic_pointer_cast<MPESController>(
-                m_pChildren.at(PAS_MPESType).at(idx)).get();
+            std::shared_ptr<MPESController> mpes = std::dynamic_pointer_cast<MPESController>(
+                m_pChildren.at(PAS_MPESType).at(idx));
             mpes->read(false);
             if (mpes->isVisible())
                 alignMPES.push_back(mpes);
@@ -979,8 +979,8 @@ UaStatus MirrorController::alignSector(const std::set<unsigned> &selectedPanels,
             std::cout << "Reading the automatically identfied internal MPES:" << std::endl;
             // only read the internal MPES if no user-specified ones have been found
             for (const auto &idx: overlapIndices) {
-                MPESController *mpes = std::dynamic_pointer_cast<MPESController>(
-                    m_pChildren.at(PAS_MPESType).at(idx)).get();
+                std::shared_ptr<MPESController> mpes = std::dynamic_pointer_cast<MPESController>(
+                    m_pChildren.at(PAS_MPESType).at(idx));
                 mpes->read(false);
                 if (mpes->isVisible())
                     alignMPES.push_back(mpes);
@@ -1283,7 +1283,7 @@ UaStatus MirrorController::alignGlobal(unsigned fixPanel, double alignFrac, bool
         for (const auto& edge : edgesToFit) {
             // and set them for each sensor along each edge
             for (const auto& mpes : edge->m_ChildrenPositionMap.at(PAS_MPESType) ) {
-                (std::std::dynamic_pointer_cast_cast<MPESController>(
+                (std::dynamic_pointer_cast_cast<MPESController>(
                     edge->m_pChildren.at(PAS_MPESType).at(mpes.second)))->SystematicOffsets =
                     SystematicOffsetsMPESMap.at(ring).at(mpes.first);
             }
@@ -1466,7 +1466,7 @@ double MirrorController::chiSq(const Eigen::VectorXd &telDelta)
         // as computed from actuator lengths and pad coordinates as computed from telescope
         // coordinates
         for (int pad = 0; pad < 3; pad++) {
-            padCoordsActs = std::std::dynamic_pointer_cast_cast<PanelController>(panels.at(idx))->getPadCoords().col(
+            padCoordsActs = std::dynamic_pointer_cast_cast<PanelController>(panels.at(idx))->getPadCoords().col(
                 pad);
             // and transform this to the telescope reference frame:
             // these are pad coordinates in TRF as computed from actuator lengths
