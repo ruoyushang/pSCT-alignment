@@ -11,6 +11,7 @@
 #include "uabase/uastring.h"
 
 #include "common/opcua/passervertypeids.hpp"
+#include "common/opcua/pasobject.hpp"
 
 #include "common/alignment/platform.hpp"
 
@@ -74,17 +75,35 @@ UaStatus PanelController::getData(OpcUa_UInt32 offset, UaVariant &value) {
     }
 
 #else
-    if (offset == PAS_PanelType_ExtTemperature) {
-        value.setFloat(m_pPlatform->getExternalTemperature());
-    }
-    else if (offset == PAS_PanelType_IntTemperature) {
-        value.setFloat(m_pPlatform->getInternalTemperature());
+    if (PanelObject::VARIABLES.find(offset) != PanelObject::VARIABLES.end()) {
+        if (offset == PAS_PanelType_ExtTemperature) {
+            value.setFloat(m_pPlatform->getExternalTemperature());
+        } else if (offset == PAS_PanelType_IntTemperature) {
+            value.setFloat(m_pPlatform->getInternalTemperature());
+        }
+    } else if (PanelObject::ERRORS.find(offset) != PanelObject::ERRORS.end()) {
+        return getError(offset, value);
     }
     else {
         return OpcUa_BadInvalidArgument;
     }
 #endif
     return OpcUa_Good;
+}
+
+UaStatus PanelController::getError(OpcUa_UInt32 offset, UaVariant &value) {
+    //UaMutexLocker lock(&m_mutex);
+    UaStatus status;
+    bool errorStatus;
+
+    OpcUa_UInt32 errorNum = offset - PAS_PanelType_Error0;
+    if (errorNum >= 0 && errorNum < PanelObject::ERRORS.size()) {
+        errorStatus = m_pPlatform->getError(int(errorNum));
+        value.setBool(errorStatus);
+    } else {
+        status = OpcUa_BadInvalidArgument;
+    }
+    return status;
 }
 
 /// @details This method does nothing as panels have no writeable variables.

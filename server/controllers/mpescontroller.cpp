@@ -16,6 +16,7 @@
 #include "common/alignment/platform.hpp"
 #include "common/opcua/pascominterfacecommon.hpp"
 #include "common/opcua/passervertypeids.hpp"
+#include "common/opcua/pasobject.hpp"
 
 MPESController::MPESController(Device::Identity identity, std::shared_ptr<Platform> pPlatform)
     : PasController::PasController(std::move(identity), std::move(pPlatform)) {}
@@ -54,11 +55,7 @@ UaStatus MPESController::setState(Device::DeviceState state) {
 /// @details Sets exposure for this MPES.
 bool MPESController::initialize() {
     int ret = m_pPlatform->getMPESbyIdentity(m_ID)->setExposure();
-    if (ret > 0) {
-        return true;
-    } else {
-        return false;
-    }
+    return true;
 }
 
 /// @details If the MPES has not been read yet, calls read before retrieving data. Locks the shared mutex while reading data.
@@ -69,33 +66,54 @@ UaStatus MPESController::getData(OpcUa_UInt32 offset, UaVariant &value) {
     if (!m_updated)
         status = read();
 
-    const MPES::Position &position = m_pPlatform->getMPESbyIdentity(m_ID)->getPosition();
-    switch (offset) {
-        case PAS_MPESType_xCentroidAvg:
-            value.setFloat(position.xCentroid);
-            break;
-        case PAS_MPESType_yCentroidAvg:
-            value.setFloat(position.yCentroid);
-            break;
-        case PAS_MPESType_xCentroidSpotWidth:
-            value.setFloat(position.xSpotWidth);
-            break;
-        case PAS_MPESType_yCentroidSpotWidth:
-            value.setFloat(position.ySpotWidth);
-            break;
-        case PAS_MPESType_CleanedIntensity:
-            value.setFloat(position.cleanedIntensity);
-            break;
-        case PAS_MPESType_xCentroidNominal:
-            value.setFloat(position.xNominal);
-            break;
-        case PAS_MPESType_yCentroidNominal:
-            value.setFloat(position.yNominal);
-            break;
-        default:
-            status = OpcUa_BadInvalidArgument;
+    if (MPESObject::VARIABLES.find(offset) != MPESObject::VARIABLES.end()) {
+        const MPES::Position &position = m_pPlatform->getMPESbyIdentity(m_ID)->getPosition();
+        switch (offset) {
+            case PAS_MPESType_xCentroidAvg:
+                value.setFloat(position.xCentroid);
+                break;
+            case PAS_MPESType_yCentroidAvg:
+                value.setFloat(position.yCentroid);
+                break;
+            case PAS_MPESType_xCentroidSpotWidth:
+                value.setFloat(position.xSpotWidth);
+                break;
+            case PAS_MPESType_yCentroidSpotWidth:
+                value.setFloat(position.ySpotWidth);
+                break;
+            case PAS_MPESType_CleanedIntensity:
+                value.setFloat(position.cleanedIntensity);
+                break;
+            case PAS_MPESType_xCentroidNominal:
+                value.setFloat(position.xNominal);
+                break;
+            case PAS_MPESType_yCentroidNominal:
+                value.setFloat(position.yNominal);
+                break;
+            default:
+                break;
+        }
+    } else if (MPESObject::ERRORS.find(offset) != MPESObject::ERRORS.end()) {
+        return getError(offset, value);
+    } else {
+        return OpcUa_BadInvalidArgument;
     }
 
+    return status;
+}
+
+UaStatus MPESController::getError(OpcUa_UInt32 offset, UaVariant &value) {
+    //UaMutexLocker lock(&m_mutex);
+    UaStatus status;
+    bool errorStatus;
+
+    OpcUa_UInt32 errorNum = offset - PAS_MPESType_Error0;
+    if (errorNum >= 0 && errorNum < MPESObject::ERRORS.size()) {
+        errorStatus = m_pPlatform->getMPESbyIdentity(m_ID)->getError(int(errorNum));
+        value.setBool(errorStatus);
+    } else {
+        status = OpcUa_BadInvalidArgument;
+    }
     return status;
 }
 

@@ -150,17 +150,38 @@ UaStatus MPESController::getData(OpcUa_UInt32 offset, UaVariant &value) {
     UaStatus status;
     //UaMutexLocker lock(&m_mutex);
 
-    int dataoffset = offset - PAS_MPESType_xCentroidAvg;
-    if ((dataoffset >= 7) || (dataoffset < 0))
-        return OpcUa_BadInvalidArgument;
+    if (MPESObject::ERRORS.count(offset) > 0) {
+        return getError(offset, value);
+    } else {
+        int dataoffset = offset - PAS_MPESType_xCentroidAvg;
+        if ((dataoffset >= 7) || (dataoffset < 0))
+            return OpcUa_BadInvalidArgument;
 
-    if (!m_updated)
-        status = read();
+        if (!m_updated)
+            status = read();
 
-    // cast struct to double through reinterpret_cast!
-    value.setDouble(*(reinterpret_cast<OpcUa_Double *>(&m_Data) + dataoffset));
+        // cast struct to double through reinterpret_cast!
+        value.setDouble(*(reinterpret_cast<OpcUa_Double *>(&m_Data) + dataoffset));
+    }
 
     return OpcUa_Good;
+}
+
+UaStatus MPESController::getError(OpcUa_UInt32 offset, UaVariant &value) {
+    //UaMutexLocker lock(&m_mutex);
+    UaStatus status;
+
+    OpcUa_UInt32 errorNum = offset - PAS_MPESType_Error0;
+    // Temporary
+    if (errorNum >= 0 && errorNum < 14) {
+        std::string varName = "Error";
+        varName += std::to_string(errorNum);
+        std::vector<std::string> varsToRead = {m_ID.eAddress + "." + varName};
+        status = m_pClient->read(varsToRead, &value);
+    } else {
+        status = OpcUa_BadInvalidArgument;
+    }
+    return status;
 }
 
 /* ----------------------------------------------------------------------------

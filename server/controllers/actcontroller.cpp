@@ -89,7 +89,6 @@ UaStatus ActController::getError(OpcUa_UInt32 offset, UaVariant &value) {
 /// @details Locks the shared mutex while writing data.
 UaStatus ActController::setData(OpcUa_UInt32 offset, UaVariant value) {
     //UaMutexLocker lock(&m_mutex);
-    UaStatus status;
 
     return OpcUa_BadNotWritable;
 }

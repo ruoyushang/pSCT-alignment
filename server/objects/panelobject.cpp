@@ -24,6 +24,21 @@ const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, O
 };
 
 const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean>> PanelObject::ERRORS = {
+    {PAS_PanelType_Error0,  std::make_tuple("Actuator 0 Operable Error", UaVariant(false), OpcUa_False)},
+    {PAS_PanelType_Error1,  std::make_tuple("Actuator 0 Fatal Error", UaVariant(false), OpcUa_False)},
+    {PAS_PanelType_Error2,  std::make_tuple("Actuator 1 Operable Error", UaVariant(false), OpcUa_False)},
+    {PAS_PanelType_Error3,  std::make_tuple("Actuator 1 Fatal Error", UaVariant(false), OpcUa_False)},
+    {PAS_PanelType_Error4,  std::make_tuple("Actuator 2 Operable Error", UaVariant(false), OpcUa_False)},
+    {PAS_PanelType_Error5,  std::make_tuple("Actuator 2 Fatal Error", UaVariant(false), OpcUa_False)},
+    {PAS_PanelType_Error6,  std::make_tuple("Actuator 3 Operable Error", UaVariant(false), OpcUa_False)},
+    {PAS_PanelType_Error7,  std::make_tuple("Actuator 3 Fatal Error", UaVariant(false), OpcUa_False)},
+    {PAS_PanelType_Error8,  std::make_tuple("Actuator 4 Operable Error", UaVariant(false), OpcUa_False)},
+    {PAS_PanelType_Error9,  std::make_tuple("Actuator 4 Fatal Error", UaVariant(false), OpcUa_False)},
+    {PAS_PanelType_Error10, std::make_tuple("Actuator 5 Operable Error", UaVariant(false), OpcUa_False)},
+    {PAS_PanelType_Error11, std::make_tuple("Actuator 5 Fatal Error", UaVariant(false), OpcUa_False)},
+    {PAS_PanelType_Error12, std::make_tuple("Moved out of software range.", UaVariant(false), OpcUa_False)},
+    {PAS_PanelType_Error13, std::make_tuple("DBInfo not set", UaVariant(false), OpcUa_False)},
+    {PAS_PanelType_Error14, std::make_tuple("MySQL communication error", UaVariant(false), OpcUa_False)}
 };
 
 const std::map<OpcUa_UInt32, std::pair<std::string, std::vector<std::tuple<std::string, UaNodeId, std::string>>>> PanelObject::METHODS = {

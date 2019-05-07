@@ -77,6 +77,15 @@
 #define PAS_MPESType_Read                           1113
 #define PAS_MPESType_SetExposure                    1114
 #define PAS_MPESType_StateCondition                 1121
+// Error variable declarations
+#define PAS_MPESType_Error0                          1191
+#define PAS_MPESType_Error1                          1192
+#define PAS_MPESType_Error2                          1193
+#define PAS_MPESType_Error3                          1194
+#define PAS_MPESType_Error4                          1195
+#define PAS_MPESType_Error5                          1196
+#define PAS_MPESType_Error6                          1197
+#define PAS_MPESType_Error7                          1198
 //----------------------------------------------------------//
 //
 // Panel Type
@@ -97,6 +106,22 @@
 #define PAS_PanelType_MoveToCoords                  2022
 #define PAS_PanelType_ReadAll                       2023
 #define PAS_PanelType_Stop                          2024
+// Error variable declarations
+#define PAS_PanelType_Error0                          2800
+#define PAS_PanelType_Error1                          2801
+#define PAS_PanelType_Error2                          2802
+#define PAS_PanelType_Error3                          2803
+#define PAS_PanelType_Error4                          2804
+#define PAS_PanelType_Error5                          2805
+#define PAS_PanelType_Error6                          2806
+#define PAS_PanelType_Error7                          2807
+#define PAS_PanelType_Error8                          2808
+#define PAS_PanelType_Error9                          2809
+#define PAS_PanelType_Error10                         2810
+#define PAS_PanelType_Error11                         2811
+#define PAS_PanelType_Error12                         2812
+#define PAS_PanelType_Error13                         2813
+#define PAS_PanelType_Error14                         2814
 //----------------------------------------------------------//
 // Actuator Type
 #define PAS_ACTType                                 2100

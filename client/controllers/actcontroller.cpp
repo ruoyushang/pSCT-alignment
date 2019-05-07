@@ -100,12 +100,11 @@ UaStatus ActController::getError(OpcUa_UInt32 offset, UaVariant &value) {
 
     OpcUa_UInt32 errorNum = offset - PAS_ACTType_Error0;
     // Temporary
-    if (errorNum >= 0 && errorNum < 14) {
+    if (errorNum >= 0 && errorNum < ACTObject::ERRORS.size()) {
         std::string varName = "Error";
         varName += std::to_string(errorNum);
         std::vector<std::string> varsToRead = {m_ID.eAddress + "." + varName};
         status = m_pClient->read(varsToRead, &value);
-        std::cout << "ActController::getError -> value = " << value.toString().toUtf8() << std::endl;
     } else {
         status = OpcUa_BadInvalidArgument;
     }

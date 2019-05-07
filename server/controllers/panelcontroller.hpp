@@ -56,6 +56,8 @@ public:
     /// @return OPC UA status code indicating success or failure.
     UaStatus getData(OpcUa_UInt32 offset, UaVariant &value) override;
 
+    UaStatus getError(OpcUa_UInt32 offset, UaVariant &value);
+
     /// @brief Set the value of an panel data variable.
     /// @param offset A number used to uniquely identify the data variable to access.
     /// @param value Value to write to the selected data variable.

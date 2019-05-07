@@ -52,7 +52,7 @@ void Device::setError(int errorCode) {
               << ") for Device "
               << m_Identity << std::endl;
     m_Errors[errorCode] = true;
-    setState(getErrorCodeDefinitions()[errorCode].severity);
+    updateState();
 }
 
 void Device::unsetError(int errorCode) {
@@ -64,9 +64,7 @@ void Device::unsetError(int errorCode) {
 }
 
 void Device::setState(Device::DeviceState state) {
-    if (m_state == Device::DeviceState::FatalError) {
-        return;
-    } else {
+    if (state > m_state) {
         std::cout << "Setting Device " << m_Identity << " status to " << (int) state << std::endl;
         m_state = state;
     }

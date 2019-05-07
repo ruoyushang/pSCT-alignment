@@ -31,7 +31,7 @@ const float NOMINAL_CENTROID_SD = 20.;
 const std::vector<Device::ErrorDefinition> MPES::ERROR_DEFINITIONS = {
     {"Bad connection. No device found",                                                                            Device::DeviceState::FatalError},//error 0
     {"Intermittent connection, select timeout.",                                                                   Device::DeviceState::FatalError},//error 1
-    {"Cannot find laser spot (totally dark). Laser dead or not in FoV.",                                           Device::DeviceState::FatalError},//error 2
+    {"Cannot find laser spot (totally dark). Laser dead or not in FoV.",                                           Device::DeviceState::OperableError},//error 2
     {"Too bright. Cleaned Intensity > 1e6. Likely cause: no tube.",                                                Device::DeviceState::OperableError},//error 3
     {"Too bright. 1e6 >Cleaned Intensity > 5e5 and very wide spot width >20",                                      Device::DeviceState::FatalError},//error 4
     {"Very uneven spot. Likely due to being in the reflection region (too close to webcam edges) or a bad laser.", Device::DeviceState::OperableError},//error 5
@@ -76,6 +76,7 @@ bool MPES::initialize()
         }
     }
     else {
+        setError(0);
         return false; // the list should be just one device at this point
     }
 
@@ -126,7 +127,11 @@ int MPES::setExposure()
         m_pDevice->SetExposure(
             (int) (m_pDevice->GetTargetIntensity() / intensity * ((float) m_pDevice->GetExposure())));
 
-        ++counter;
+        if (++counter > 5) {
+            setError(1);
+            intensity = -1;
+            break;
+        }
     }
 
     std::cout << "MPES:: setExposure() DONE" << std::endl;
@@ -161,9 +166,25 @@ int MPES::updatePosition()
         m_Position.cleanedIntensity = m_pImageSet->SetData.CleanedIntensity;
     }
 
+    if (std::abs(m_Position.cleanedIntensity - NOMINAL_INTENSITY) >= NOMINAL_INTENSITY * 0.2) {
+        setError(7);
+    } else if (m_Position.cleanedIntensity > 5e5 && m_Position.cleanedIntensity < 1e6) {
+        setError(4);
+    } else if (m_Position.cleanedIntensity >= 1e6) {
+        setError(3);
+    }
+
+    if (std::abs(m_Position.xSpotWidth / m_Position.xSpotWidth - 1) > 0.1) {
+        setError(6);
+    } else if (std::abs(m_Position.xSpotWidth / m_Position.xSpotWidth - 1) > 0.25) {
+        setError(5);
+    }
+
     if (m_Position.xCentroid == -1. || m_Position.yCentroid == -1.) {
         std::cout << "MPES reading of xCenter or yCenter = -1! Potentially lost beam..." << std::endl;
+        setError(2);
     }
+
 
     return static_cast<int>(m_Position.cleanedIntensity);
 }

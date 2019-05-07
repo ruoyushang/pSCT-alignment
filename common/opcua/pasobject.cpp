@@ -228,6 +228,14 @@ const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, O
 };
 
 const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean>> MPESObject::ERRORS = {
+    {PAS_MPESType_Error0, std::make_tuple("Bad connection. No device found", UaVariant(false), OpcUa_False)},
+    {PAS_MPESType_Error1, std::make_tuple("Intermittent connection, select timeout.", UaVariant(false), OpcUa_False)},
+    {PAS_MPESType_Error2, std::make_tuple("Cannot find laser spot", UaVariant(false), OpcUa_False)},
+    {PAS_MPESType_Error3, std::make_tuple("Too bright (missing tube)", UaVariant(false), OpcUa_False)},
+    {PAS_MPESType_Error4, std::make_tuple("Too bright", UaVariant(false), OpcUa_False)},
+    {PAS_MPESType_Error5, std::make_tuple("Very uneven spot, likely near edge", UaVariant(false), OpcUa_False)},
+    {PAS_MPESType_Error6, std::make_tuple("Uneven spot", UaVariant(false), OpcUa_False)},
+    {PAS_MPESType_Error7, std::make_tuple("Large intensity deviation", UaVariant(false), OpcUa_False)},
 };
 
 const std::map<OpcUa_UInt32, std::pair<std::string, std::vector<std::tuple<std::string, UaNodeId, std::string>>>> MPESObject::METHODS = {
@@ -254,20 +262,23 @@ const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, O
 };
 
 const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean>> ACTObject::ERRORS = {
-        {PAS_ACTType_Error0,  std::make_tuple("Error0", UaVariant(false), OpcUa_False)},
-        {PAS_ACTType_Error1,  std::make_tuple("Error1", UaVariant(false), OpcUa_False)},
-        {PAS_ACTType_Error2,  std::make_tuple("Error2", UaVariant(false), OpcUa_False)},
-        {PAS_ACTType_Error3,  std::make_tuple("Error3", UaVariant(false), OpcUa_False)},
-        {PAS_ACTType_Error4,  std::make_tuple("Error4", UaVariant(false), OpcUa_False)},
-        {PAS_ACTType_Error5,  std::make_tuple("Error5", UaVariant(false), OpcUa_False)},
-        {PAS_ACTType_Error6,  std::make_tuple("Error6", UaVariant(false), OpcUa_False)},
-        {PAS_ACTType_Error7,  std::make_tuple("Error7", UaVariant(false), OpcUa_False)},
-        {PAS_ACTType_Error8,  std::make_tuple("Error8", UaVariant(false), OpcUa_False)},
-        {PAS_ACTType_Error9,  std::make_tuple("Error9", UaVariant(false), OpcUa_False)},
-        {PAS_ACTType_Error10, std::make_tuple("Error10", UaVariant(false), OpcUa_False)},
-        {PAS_ACTType_Error11, std::make_tuple("Error11", UaVariant(false), OpcUa_False)},
-        {PAS_ACTType_Error12, std::make_tuple("Error12", UaVariant(false), OpcUa_False)},
-        {PAS_ACTType_Error13, std::make_tuple("Error13", UaVariant(false), OpcUa_False)}
+    {PAS_ACTType_Error0,  std::make_tuple("Home position not calibrated", UaVariant(false), OpcUa_False)},
+    {PAS_ACTType_Error1,  std::make_tuple("DBInfo not set", UaVariant(false), OpcUa_False)},
+    {PAS_ACTType_Error2,  std::make_tuple("MySQL Communication Error", UaVariant(false), OpcUa_False)},
+    {PAS_ACTType_Error3,  std::make_tuple("DB Columns does not match what is expected", UaVariant(false), OpcUa_False)},
+    {PAS_ACTType_Error4,  std::make_tuple("Bad ASF file", UaVariant(false), OpcUa_False)},
+    {PAS_ACTType_Error5,  std::make_tuple("ASF File entry mismatch", UaVariant(false), OpcUa_False)},
+    {PAS_ACTType_Error6,  std::make_tuple("DB recording more recent than ASF and has mismatch with measured angle",
+                                          UaVariant(false), OpcUa_False)},
+    {PAS_ACTType_Error7,  std::make_tuple("High voltage StdDev", UaVariant(false), OpcUa_False)},
+    {PAS_ACTType_Error8,  std::make_tuple("Actuator missed steps", UaVariant(false), OpcUa_False)},
+    {PAS_ACTType_Error9,  std::make_tuple("Actuator position missed, far away to recover safely", UaVariant(false),
+                                          OpcUa_False)},
+    {PAS_ACTType_Error10, std::make_tuple("Missed steps but recovered automatically", UaVariant(false), OpcUa_False)},
+    {PAS_ACTType_Error11, std::make_tuple("Extend Stop Voltage too close to discontinuity", UaVariant(false),
+                                          OpcUa_False)},
+    {PAS_ACTType_Error12, std::make_tuple("End stop differs from expected location", UaVariant(false), OpcUa_False)},
+    {PAS_ACTType_Error13, std::make_tuple("Probe home distance differs from expected", UaVariant(false), OpcUa_False)}
 };
 
 const std::map<OpcUa_UInt32, std::pair<std::string, std::vector<std::tuple<std::string, UaNodeId, std::string>>>> ACTObject::METHODS = {

@@ -613,7 +613,10 @@ const Eigen::VectorXd &EdgeController::getAlignedReadings() {
 
     m_AlignedReadings = Eigen::VectorXd(2 * pMPES.size());
     for (unsigned nMPES = 0; nMPES < maxMPES; nMPES++) {
-        if (!dynamic_cast<MPESController *>(pMPES.at(nMPES))->isVisible()) continue;
+        dynamic_cast<MPESController *>(pMPES.at(nMPES))->getState(state);
+        if (!dynamic_cast<MPESController *>(pMPES.at(nMPES))->isVisible() || state == Device::DeviceState::FatalError ||
+            state == Device::DeviceState::Off)
+            continue;
 //    for (const auto& mpes : m_ChildrenPositionMap.at(PAS_MPESType)) {
 //        if ( !static_cast<MPESController *>(pMPES.at(mpes.second))->isVisible() ) continue;
 
@@ -656,10 +659,14 @@ const Eigen::VectorXd &EdgeController::getCurrentReadings() {
     m_CurrentReadings = Eigen::VectorXd(2 * maxMPES);
     m_CurrentReadingsSpotWidth = Eigen::VectorXd(2 * maxMPES);
 
+    Device::DeviceState state;
+
     UaVariant vtmp;
     for (unsigned nMPES = 0; nMPES < maxMPES; nMPES++) {
         dynamic_cast<MPESController*>(pMPES.at(nMPES))->read(false);
-        if (!dynamic_cast<MPESController *>(pMPES.at(nMPES))->isVisible()) {
+        dynamic_cast<MPESController *>(pMPES.at(nMPES))->getState(state);
+        if (!dynamic_cast<MPESController *>(pMPES.at(nMPES))->isVisible() || state == Device::DeviceState::FatalError ||
+            state == Device::DeviceState::Off) {
             std::cout << "+++ WARNING +++ " << pMPES.at(nMPES)->getId().name
                       //for (const auto& mpes : m_ChildrenPositionMap.at(PAS_MPESType)) {
                       //    pMPES.at(mpes.second)->Operate();

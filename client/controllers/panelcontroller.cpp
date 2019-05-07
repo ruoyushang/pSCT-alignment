@@ -6,6 +6,7 @@
 #include <Eigen/Dense>
 
 #include "client/clienthelper.hpp"
+#include "client/objects/panelobject.hpp"
 
 
 PanelController::PanelController(Identity identity, Client *pClient) :
@@ -100,7 +101,9 @@ UaStatus PanelController::getData(OpcUa_UInt32 offset, UaVariant &value) {
         return OpcUa_Good;
     }
 
-    if (offset >= PAS_PanelType_x && offset <= PAS_PanelType_zRot) {
+    if (PanelObject::ERRORS.count(offset) > 0) {
+        return getError(offset, value);
+    } else if (offset >= PAS_PanelType_x && offset <= PAS_PanelType_zRot) {
         // update current coordinates
         if (__expired())
             updateCoords();
@@ -116,6 +119,23 @@ UaStatus PanelController::getData(OpcUa_UInt32 offset, UaVariant &value) {
     } else
         status = OpcUa_BadInvalidArgument;
 
+    return status;
+}
+
+UaStatus PanelController::getError(OpcUa_UInt32 offset, UaVariant &value) {
+    //UaMutexLocker lock(&m_mutex);
+    UaStatus status;
+
+    OpcUa_UInt32 errorNum = offset - PAS_ACTType_Error0;
+    // Temporary
+    if (errorNum >= 0 && errorNum < PanelObject::ERRORS.size()) {
+        std::string varName = "Error";
+        varName += std::to_string(errorNum);
+        std::vector<std::string> varsToRead = {m_ID.eAddress + "." + varName};
+        status = m_pClient->read(varsToRead, &value);
+    } else {
+        status = OpcUa_BadInvalidArgument;
+    }
     return status;
 }
 

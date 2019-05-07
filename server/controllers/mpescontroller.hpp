@@ -51,6 +51,8 @@ public:
     /// @return OPC UA status code indicating success or failure.
     UaStatus getData(OpcUa_UInt32 offset, UaVariant &value) override;
 
+    UaStatus getError(OpcUa_UInt32 offset, UaVariant &value);
+
     /// @brief Set the value of an MPES data variable.
     /// @return OPC UA status code indicating success or failure.
     UaStatus setData(OpcUa_UInt32 offset, UaVariant value) override;
