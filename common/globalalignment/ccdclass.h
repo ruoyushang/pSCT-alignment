@@ -1,12 +1,12 @@
 #ifndef _CCDCLASS_H_
 #define _CCDCLASS_H_
 // prebuilt Camera interface
-#include "ccd/AravisCamera.h"
+#include "common/globalalignment/ccd/AravisCamera.h"
 // the work horse class designed to be a single thread
-#include "ccd/CamOutThread.h"
+#include "common/globalalignment/ccd/CamOutThread.h"
 // the i/o structure (should mirror the database and inputs only written from the start)
-#include "ccd/LEDinputs.h"
-#include "ccd/LEDoutputs.h"
+#include "common/globalalignment/ccd/LEDinputs.h"
+#include "common/globalalignment/ccd/LEDoutputs.h"
 
 #include <string>
 

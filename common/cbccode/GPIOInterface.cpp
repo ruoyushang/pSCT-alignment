@@ -9,7 +9,7 @@
 #include <sys/mman.h>
 #include <cstdio>
 #include <stdio.h>
-#include <GPIOInterface.hpp>
+#include "common/cbccode/GPIOInterface.hpp"
 
 #define MMAPFAIL ((void*)-1)
 

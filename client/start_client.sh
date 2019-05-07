@@ -23,7 +23,7 @@ printf "Reading from database...\n"
     fi
     while read -r position;
     do
-         if [[ $position = "0" ]] || [[ $position = "1" ]] || [[ ${position:1:1} = "0" ]];
+         if [[ ${position} = "0" ]] || [[ ${position} = "1" ]] || [[ ${position:1:1} = "0" ]];
          then
              continue
          fi

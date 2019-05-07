@@ -9,7 +9,7 @@
 #include <linux/types.h>
 
 #include <linux/spi/spidev.h>
-#include "SpiInterface.hpp"
+#include "common/cbccode/SpiInterface.hpp"
 
 const char*     SpiInterface::device = "/dev/spidev1.0";
 

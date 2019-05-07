@@ -13,8 +13,8 @@
 #include "uabase/uaarraytemplates.h"
 
 #include "common/alignment/device.hpp"
-#include "common/opcua/pascominterfacecommon.h"
-#include "common/opcua/passervertypeids.h"
+#include "common/opcua/pascominterfacecommon.hpp"
+#include "common/opcua/passervertypeids.hpp"
 
 #include <map>
 #include <memory>
@@ -22,7 +22,6 @@
 #include <vector>
 
 class Platform;
-
 class PasController;
 
 /// @brief Server communication interface to organize and interact with device controllers.
@@ -31,34 +30,24 @@ class PasCommunicationInterface : public PasComInterfaceCommon {
 public:
 
     /// @brief Instantiate a communication interface object.
-    PasCommunicationInterface();
+    PasCommunicationInterface() = default;
 
     /// @brief Destroy a communication interface object.
-    ~PasCommunicationInterface();
+    ~PasCommunicationInterface() override { std::cout << "Closed and cleaned up Communication Interface\n"; }
 
     /// @brief Initialize all device controllers using information from the database.
     /// @return OPC UA status code indicating success/failure.
-    UaStatus initialize();
+    UaStatus initialize() override;
 
     /// @brief Set the panel number used when retreiving information from the database.
     /// @param panelNumber Position number of the panel for this server.
     void setPanelNumber(const std::string &panelNumber) { m_panelNum = panelNumber; }
 
-    /// @brief Get the total number of devices of a given type.
-    /// @param deviceType OPC UA type ID for the desired device object type.
-    /// @return The number of found device controllers.
-    std::size_t getDeviceCount(OpcUa_UInt32 deviceType);
-
-    /// @brief Get the identities of all devices of a given type.
-    /// @param deviceType OPC UA type ID for the desired device object type.
-    /// @return A vector of device Identities.
-    std::vector<Identity> getValidDeviceIdentities(OpcUa_UInt32 deviceType);
-
     /// @brief Get the a pointer to the device controller for a specific device.
     /// @param deviceType OPC UA type ID for the desired device object type.
     /// @param identity The unique identity of the device.
     /// @return Pointer to the device controller.
-    std::shared_ptr<PasController>
+    std::shared_ptr<PasControllerCommon>
     getDevice(OpcUa_UInt32 deviceType, const Identity &identity) { return m_pControllers.at(deviceType).at(identity); }
 
     /// @brief Get a device's state through its controller.
@@ -69,11 +58,7 @@ public:
     UaStatus getDeviceState(
             OpcUa_UInt32 deviceType,
             const Identity &identity,
-            Device
-
-    :
-    DeviceStatus &state
-    );
+            Device::DeviceStatus &state) override;
 
     /// @brief Get a device's data through its controller.
     /// @param deviceType OPC UA type ID for the desired device object type.
@@ -82,10 +67,10 @@ public:
     /// @param value Variable to store the retrieved data value.
     /// @return OPC UA status code indicating success/failure.
     UaStatus getDeviceData(
-            OpcUa_UInt32 deviceType,
-            const Identity &identity,
-            OpcUa_UInt32 offset,
-            UaVariant &value);
+        OpcUa_UInt32 deviceType,
+        const Identity &identity,
+        OpcUa_UInt32 offset,
+        UaVariant &value) override;
 
     /// @brief Set a device's state through its controller.
     /// @param deviceType OPC UA type ID for the desired device object type.
@@ -95,11 +80,7 @@ public:
     UaStatus setDeviceState(
             OpcUa_UInt32 deviceType,
             const Identity &identity,
-            Device
-
-    :
-    DeviceStatus state
-    );
+            Device::DeviceStatus state) override;
 
     /// @brief Set a device's data through its controller.
     /// @param deviceType OPC UA type ID for the desired device object type.
@@ -108,10 +89,10 @@ public:
     /// @param value Value to write to the data variable.
     /// @return OPC UA status code indicating success/failure.
     UaStatus setDeviceData(
-            OpcUa_UInt32 deviceType,
-            const Identity &identity,
-            OpcUa_UInt32 offset,
-            UaVariant value);
+        OpcUa_UInt32 deviceType,
+        const Identity &identity,
+        OpcUa_UInt32 offset,
+        UaVariant value) override;
 
     /// @brief Operate a device through its controller.
     /// @param deviceType OPC UA type ID for the desired device object type.
@@ -120,35 +101,17 @@ public:
     /// @param args Array of method arguments as UaVariants.
     /// @return OPC UA status code indicating success/failure.
     UaStatus operateDevice(
-            OpcUa_UInt32 deviceType,
-            const Identity &identity,
-            OpcUa_UInt32 offset,
-            const UaVariantArray &args);
+        OpcUa_UInt32 deviceType,
+        const Identity &identity,
+        OpcUa_UInt32 offset,
+        const UaVariantArray &args) override;
 
     /// @brief Map of OPC UA type ID to device type name for all device types supported by the server.
     static const std::map<OpcUa_UInt32, std::string> deviceTypes;
 
-    // Placeholders to implement pure virtual methods in PasCommInterfaceCommon
-    OpcUa_Int32 getDevices(OpcUa_UInt32 deviceType) { return 0; }
-
-    UaStatusCode getDeviceConfig(OpcUa_UInt32 type,
-                                 OpcUa_UInt32 deviceIndex,
-                                 UaString &sName,
-                                 Identity &identity) { return OpcUa_BadNotImplemented; }
-
 private:
-    /// @brief Shared mutex used to control multi thread access to controller.
-    UaMutex m_mutex;
-
     /// @brief Position number of the panel. Used for device database lookup.
     std::string m_panelNum;
-
-    /// @brief Map from OPC UA device type to Identity to a unique pointer to the controller object.
-    std::map<OpcUa_UInt32, std::map<Identity, std::shared_ptr<PasController>>> m_pControllers;
-
-    /// @brief Flag indicating that the internal thread should be stopped.
-    /// @warning Unused.
-    OpcUa_Boolean m_stop;
 
     /// @brief Pointer to the platform object used by all devices to interface with the hardware.
     std::shared_ptr<Platform> m_platform;

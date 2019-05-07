@@ -3,8 +3,8 @@
  * @brief Header file for OPC UA panel object class.
  */
 
-#ifndef SERVER_OBJECTS_PANELOBJECT_HPP
-#define SERVER_OBJECTS_PANELOBJECT_HPP
+#ifndef SERVER_PANELOBJECT_HPP
+#define SERVER_PANELOBJECT_HPP
 
 #include <vector>
 #include <map>
@@ -16,11 +16,13 @@
 #include "uaserver/methodmanager.h"
 
 #include "common/alignment/device.hpp"
-#include "common/opcua/pasobject.h"
+#include "common/opcua/pasobject.hpp"
 
-class PasNodeManager;
+#include "server/pasnodemanager.hpp"
+#include "server/pascommunicationinterface.hpp"
 
-class PasCommunicationInterface;
+#include "common/opcua/pasnodemanagercommon.hpp"
+#include "common/opcua/pascominterfacecommon.hpp"
 
 class UaMethodGeneric;
 
@@ -46,47 +48,20 @@ public:
             const UaString &defaultLocaleId,
             PasNodeManager *pNodeManager,
             Identity identity,
-            PasCommunicationInterface *pCommIf);
-
-    /// @brief Destroy an OPC UA panel object.
-    virtual ~PanelObject(void);
-
-    /// @brief Call an OPC UA method on a Panel object.
-    /// @warning The /p outputArguments and /p inputArgumentDiag parameters are
-    /// unused.
-    /// @param serviceContext Object containing various client
-    /// settings as well as the current Session object.
-    /// @param pMethodHandle Pointer to a MethodHandle instance containing
-    /// information about the object and method being called.
-    /// @param inputArguments Array of method arguments of different types,
-    /// represented as OPC UA Variants.
-    /// @param outputArguments Array of OPC UA variants to hold the method
-    /// outputs [UNUSED].
-    /// @param inputArgumentResults Array of OPC UA status codes indicating
-    /// which inputs caused an error. Any invalid inputs will cause a
-    /// OpcUa_BadInvalidArgument code to be placed in that position in the array.
-    /// @param inputArgumentDiag Array of diagnostic info objects describing
-    /// the inputs [UNUSED].
-    UaStatus call(
-            const ServiceContext &serviceContext,
-            MethodHandle *pMethodHandle,
-            const UaVariantArray &inputArguments,
-            UaVariantArray &outputArguments,
-            UaStatusCodeArray &inputArgumentResults,
-            UaDiagnosticInfos &inputArgumentDiag);
+            PasCommunicationInterface *pCommIf) : PasObject(name, newNodeId, defaultLocaleId,
+                                                            dynamic_cast<PasNodeManagerCommon *>(pNodeManager),
+                                                            identity,
+                                                            dynamic_cast<PasComInterfaceCommon *>(pCommIf)) { initialize(); }
 
     /// @brief Return the UaNodeId for the Panel object type definition node.
     /// @return The UaNodeId uniquely identifying the Panel object type node.
     UaNodeId typeDefinitionId() const;
 
-    const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, OpcUa_Byte>>
-    getVariableDefs() { return PanelObject::VARIABLES; }
+    const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, OpcUa_Byte>> getVariableDefs() { return PanelObject::VARIABLES; }
 
-    const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean>>
-    getErrorDefs() { return PanelObject::ERRORS; }
+    const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean>> getErrorDefs() { return PanelObject::ERRORS; }
 
-    const std::map<OpcUa_UInt32, std::pair<std::string, std::vector<std::tuple<std::string, UaNodeId, std::string>>>>
-    getMethodDefs() { return PanelObject::METHODS; }
+    const std::map<OpcUa_UInt32, std::pair<std::string, std::vector<std::tuple<std::string, UaNodeId, std::string>>>> getMethodDefs() { return PanelObject::METHODS; }
 
     /// @brief Map of OPC UA type ids for all child variables to their name, default value, is_state value, and access level.
     static const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, OpcUa_Byte>> VARIABLES;
@@ -100,4 +75,4 @@ public:
     std::map<UaNodeId, std::pair<UaMethodGeneric *, OpcUa_UInt32>> m_MethodMap;
 };
 
-#endif //SERVER_OBJECTS_PANELOBJECT_HPP
+#endif //SERVER_PANELOBJECT_HPP

@@ -106,7 +106,7 @@ IF (ROOT_FOUND)
   EXEC_PROGRAM( ${ROOT_CONFIG_EXECUTABLE}
           ARGS "--incdir"
     OUTPUT_VARIABLE root_headers )
-  SET(ROOT_INCLUDE_DIR ${root_headers} CACHE INTERNAL "")
+SET(ROOT_INCLUDE_DIRS ${root_headers} CACHE INTERNAL "")
 
   # ask root-config for the library varaibles
   EXEC_PROGRAM( ${ROOT_CONFIG_EXECUTABLE}

@@ -1,15 +1,16 @@
-#include "pasobjectfactory.h"
-#include "pasnodemanager.h"
-#include "passervertypeids.h"
-#include "pascommunicationinterface.h"
-#include "pascominterfacecommon.h"
-#include "pasnodemanagercommon.h"
+#include "pasobjectfactory.hpp"
+#include "pasnodemanager.hpp"
+#include "passervertypeids.hpp"
+#include "pascommunicationinterface.hpp"
+#include "pascominterfacecommon.hpp"
+#include "pasnodemanagercommon.hpp"
 #include "common/alignment/device.hpp"
-#include "pasobject.h"
-#include "gasobject.h"
-#include "mirrorobject.h"
-#include "panelobject.h"
-#include "edgeobject.h"
+#include "pasobject.hpp"
+#include "client/objects/opttableobject.hpp"
+#include "client/objects/mirrorobject.hpp"
+#include "client/objects/panelobject.hpp"
+#include "client/objects/edgeobject.hpp"
+#include "client/objects/ccdobject.hpp"
 
 PasObject* PasObjectFactory::Create(
         unsigned deviceType,
@@ -36,5 +37,7 @@ PasObject* PasObjectFactory::Create(
             return new PSDObject(name, newNodeId, defaultLocaleId, dynamic_cast<PasNodeManagerCommon *>(pNodeManager), identity, dynamic_cast<PasComInterfaceCommon *>(pCommIf));
         case PAS_CCDType:
             return new CCDObject(name, newNodeId, defaultLocaleId, dynamic_cast<PasNodeManagerCommon *>(pNodeManager), identity, dynamic_cast<PasComInterfaceCommon *>(pCommIf));
+        default:
+            return nullptr;
     }
 }

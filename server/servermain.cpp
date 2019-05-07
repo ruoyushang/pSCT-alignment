@@ -19,12 +19,11 @@
 #include "uaserver/uaserverapplication.h"
 
 #if SUPPORT_XML_PARSER
-
 #include "xmlparser/xmldocument.h"
 #endif
 
-#include "common/utilities/opcserver.h"
-#include "common/utilities/shutdown.h"
+#include "common/utilities/opcserver.hpp"
+#include "common/utilities/shutdown.hpp"
 
 #include "server/pascommunicationinterface.hpp"
 #include "server/pasnodemanager.hpp"
@@ -36,11 +35,12 @@
 int CheckSystem(double &size)
 {
     struct statvfs sysBuf{};
-    if (statvfs("/", &sysBuf) == 0)
+    if (statvfs("/", &sysBuf) == 0) {
         size = ((double) sysBuf.f_bsize * sysBuf.f_bfree) / (1024 * 1024 * 1024);
-    else return -1;
-
-    return 0;
+        return 0;
+    } else {
+        return -1;
+    }
 }
 
 /// @brief Initialize, configure, and start the OPC UA server.
@@ -77,9 +77,9 @@ int OpcServerMain(const std::string &szAppPath, const std::string &configFilePat
         */
 
         std::unique_ptr<PasCommunicationInterface> pCommIf = std::unique_ptr<PasCommunicationInterface>(
-                new PasCommunicationInterface()); // initialize communication interface
+                new PasCommunicationInterface()); // Initialize communication interface
         pCommIf->setPanelNumber(panelNumber);
-        UaStatus retStatus = pCommIf->Initialize();
+        UaStatus retStatus = pCommIf->initialize();
         UA_ASSERT(retStatus.isGood());
 
         std::unique_ptr<PasNodeManager> pNodeManager = std::unique_ptr<PasNodeManager>(
@@ -132,7 +132,7 @@ int main(int argc, char* argv[])
     }
 
     int c;
-    std::string cbcIPAddress = "", configFilePath = "";
+    std::string cbcIPAddress, configFilePath;
 
     while ((c = getopt (argc, argv, "c:")) != -1) {
         switch(c)

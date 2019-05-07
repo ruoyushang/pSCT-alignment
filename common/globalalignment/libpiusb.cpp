@@ -1,7 +1,7 @@
 // Compiles with :
 //      g++ -o motor motor.cpp -lusb-1.0
 //
-#include "piusb.hpp"
+#include "common/globalalignment/piusb.hpp"
 
 #include <stdio.h>
 #include <stdlib.h>

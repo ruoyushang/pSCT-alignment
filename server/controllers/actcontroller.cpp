@@ -10,8 +10,8 @@
 
 #include "common/alignment/device.hpp"
 #include "common/alignment/platform.hpp"
-#include "common/opcua/pasobject.h"
-#include "common/opcua/passervertypeids.h"
+#include "common/opcua/pasobject.hpp"
+#include "common/opcua/passervertypeids.hpp"
 
 
 /// @details Calls update state before returning the current state.
@@ -46,16 +46,19 @@ UaStatus ActController::setState(Device::DeviceState state) {
 
 /// @details If the offset given points to an error variable, internally calls getError. Locks the shared mutex while reading data.
 UaStatus ActController::getData(OpcUa_UInt32 offset, UaVariant &value) {
-    UaMutexLocker lock(&m_mutex);
+    //UaMutexLocker lock(&m_mutex);
     UaStatus status;
 
     if (ACTObject::VARIABLES.find(offset) != ACTObject::VARIABLES.end()) {
         switch (offset) {
-            case PAS_ACTType_Steps:
-                value.setFloat(m_DeltaL);
+            case PAS_ACTType_DeltaLength:
+                value.setFloat(m_DeltaLength);
                 break;
-            case PAS_ACTType_curLength_mm:
+            case PAS_ACTType_CurrentLength:
                 value.setFloat(m_pPlatform->getActuator(m_ID)->measureLength());
+		        break;
+            case PAS_ACTType_TargetLength:
+                value.setFloat(m_TargetLength);
                 break;
             default:
                 status = OpcUa_BadInvalidArgument;
@@ -69,7 +72,7 @@ UaStatus ActController::getData(OpcUa_UInt32 offset, UaVariant &value) {
 }
 
 UaStatus ActController::getError(OpcUa_UInt32 offset, UaVariant &value) {
-    UaMutexLocker lock(&m_mutex);
+    //UaMutexLocker lock(&m_mutex);
     UaStatus status;
     bool errorStatus;
 
@@ -85,19 +88,10 @@ UaStatus ActController::getError(OpcUa_UInt32 offset, UaVariant &value) {
 
 /// @details Locks the shared mutex while writing data.
 UaStatus ActController::setData(OpcUa_UInt32 offset, UaVariant value) {
-    UaMutexLocker lock(&m_mutex);
+    //UaMutexLocker lock(&m_mutex);
     UaStatus status;
 
-    switch (offset) {
-        case PAS_ACTType_Steps:
-            value.toFloat(m_DeltaL);
-            status = OpcUa_Good;
-            break;
-        default:
-            status = OpcUa_BadNotWritable;
-    }
-
-    return status;
+    return OpcUa_BadNotWritable;
 }
 
 /// @details Does nothing, as errors are not currently user-writeable.
@@ -107,14 +101,21 @@ UaStatus ActController::setError(OpcUa_UInt32 offset, UaVariant value) {
 
 /// @details Locks shared mutex while operating device.
 UaStatus ActController::operate(OpcUa_UInt32 offset, const UaVariantArray &args) {
-    UaMutexLocker lock(&m_mutex); // Lock the object to prevent other actions while operating.
+    //UaMutexLocker lock(&m_mutex); // Lock the object to prevent other actions while operating.
 
     UaStatus status;
+    UaVariantArray tempArgs;
     switch (offset) {
-        case PAS_ACTType_Step:
+        case PAS_ACTType_MoveDeltaLength:
             if (!(_getState() == Device::DeviceState::On))
                 return OpcUa_BadNothingToDo;
             status = moveDelta(args);
+            break;
+        case PAS_ACTType_MoveToLength:
+            if (args.length() != 1) {
+                return OpcUa_BadInvalidArgument;
+            }
+            status = moveToLength(args);
             break;
         default:
             status = OpcUa_BadInvalidArgument;
@@ -129,11 +130,26 @@ UaStatus ActController::moveDelta(const UaVariantArray &args) {
 
     std::array<OpcUa_Float, 6> deltaL = {0., 0., 0., 0., 0., 0.}; // Set delta lengths to move to
     UaVariant length = UaVariant(args[0]);
-    length.toFloat(deltaL[m_ID]);
+    length.toFloat(deltaL[std::stoi(m_ID.eAddress)]);
 
     std::cout << "ActController :: Moving actuator " << m_ID << " by " << m_DeltaL << " mm." << std::endl;
     deltaL = m_pPlatform->moveDeltaLengths(deltaL);
     m_DeltaL = deltaL[m_ID];
 
     return OpcUa_Good;
+}
+
+UaStatus ActController::moveToLength(const UaVariantArray &args) {
+    if (!(m_state == PASState::On))
+        return OpcUa_BadNothingToDo;
+
+    UaStatus status;
+
+    UaVariantArray tempArgs;
+    tempArgs.create(1);
+    UaVariant(args[0]).toFloat(m_TargetLength);
+    tempArgs[0] = UaVariant(m_TargetLength - m_pPlatform->getActuatorAt(std::stoi(m_ID.eAddress))->MeasureLength())[0];
+    status = moveDelta(tempArgs);
+
+    return status;
 }

@@ -16,7 +16,7 @@
 #include "common/alignment/actuator.hpp"
 #include "common/alignment/platform.hpp"
 #include "common/alignment/device.hpp"
-#include "common/opcua/passervertypeids.h"
+#include "common/opcua/passervertypeids.hpp"
 
 #include "server/controllers/pascontroller.hpp"
 #include "server/controllers/actcontroller.hpp"
@@ -37,17 +37,6 @@ const std::map<OpcUa_UInt32, std::string> PasCommunicationInterface::deviceTypes
         {PAS_ACTType,   "ACT"},
         {PAS_PSDType,   "PSD"}
 };
-
-PasCommunicationInterface::PasCommunicationInterface() :
-        m_stop(OpcUa_False) {
-}
-
-PasCommunicationInterface::~PasCommunicationInterface() {
-    m_stop = OpcUa_True; // Signal thread to stop
-    // wait(); // Wait until thread stopped
-
-    std::cout << "Closed and cleaned up Communication Interface\n";
-}
 
 /// @details Uses hardcoded DB login info to access the device database and retrieve
 /// all device mappings and positions. Then, initializes all corresponding controllers, adds all MPES to the platform object,
@@ -88,9 +77,8 @@ UaStatus PasCommunicationInterface::initialize() {
             cbcID = pSqlResults->getInt(1);
             panelPosition = pSqlResults->getInt(2);
         }
-
-        if (panelPosition == -1 || cbcID == -1) {
-            std::cout << "PasCommunicationInterface:: Failed to load panel position/CBC ID from database.\n";
+        if (cbcID == -1 || panelPosition == -1) {
+            std::cout << "Error: Failed to get valid cbcID or panelPosition. Cannot initialize panel.\n";
             return OpcUa_Bad;
         }
         std::cout << "Will initialize Panel " << panelPosition << " with CBC " << cbcID << std::endl;
@@ -134,7 +122,7 @@ UaStatus PasCommunicationInterface::initialize() {
     for (auto act : actPositionToSerial)
         actuatorSerials[act.first - 1] = act.second;
 
-    m_platform = std::make_shared<Platform>(new Platform(cbcID, actuatorPorts, actuatorSerials, DbInfo));
+    m_platform = std::make_shared<Platform>(cbcID, actuatorPorts, actuatorSerials, DbInfo);
 
     // initialize the MPES in the positional order. Not strictly necessary, but keeps things tidy
     // addMPES(port, serial)
@@ -157,17 +145,17 @@ UaStatus PasCommunicationInterface::initialize() {
             std::cout << "Attempting to create their virtual counterparts...\n";
 
         if (m_pControllers.find(devCount.first) == m_pControllers.end()) {
-            m_pControllers[devCount.first] = std::map<Identity, std::shared_ptr<PasController>>();
+            m_pControllers[devCount.first] = std::map<Identity, std::shared_ptr<PasControllerCommon>>();
         }
 
         int eAddress;
         int failed;
-        std::shared_ptr<PasController> pController;
+        std::shared_ptr<PasControllerCommon> pController;
         for (int i = 0; i < devCount.second; i++) {
 
             if (devCount.first == PAS_PanelType) {
-                pController.reset(new PanelController(i, m_platform));
-                eAddress = i;
+                identity.eAddress = std::to_string(i);
+                pController.reset(new PanelController(identity, m_platform));
             } else if (devCount.first == PAS_MPESType) {
                 pController.reset(new MPESController(i, m_platform));
                 eAddress = m_platform->getMPES(i)->getPortNumber();
@@ -177,8 +165,8 @@ UaStatus PasCommunicationInterface::initialize() {
             }
 #ifndef _AMD64
             else if (devCount.first == PAS_PSDType) {
-                pController.reset(new PSDController(i));
-                eAddress = i;
+                identity.eAddress = i;
+                pController.reset(new PSDController(identity));
             }
 #endif
             else {
@@ -201,6 +189,7 @@ UaStatus PasCommunicationInterface::initialize() {
         }
     }
 
+    std::cout << "Adding actuators to panel...\n";
     try {
         std::vector<std::shared_ptr<PasController>> panels;
         for (const auto &panel : m_pControllers[PAS_PanelType]) {
@@ -220,31 +209,11 @@ UaStatus PasCommunicationInterface::initialize() {
         }
     }
     catch (std::out_of_range &e) {
+    	std::cout << "Failed to add actuators to panel.\n";
     }
 
     // start(); // start the thread managed by this object
-    return OpcUa_Good;
-}
-
-/// @details Returns -1 on invalid device type ID.
-std::size_t PasCommunicationInterface::getDeviceCount(OpcUa_UInt32 deviceType) {
-    try {
-        return m_pControllers.at(deviceType).size();
-    }
-    catch (std::out_of_range &e) {
-        return -1;
-    }
-}
-
-std::vector<Identity> PasCommunicationInterface::getValidDeviceIdentities(OpcUa_UInt32 deviceType) {
-    std::vector<Identity> validIdentities;
-    std::map<Identity, std::shared_ptr<PasController>> devices = m_pControllers.at(deviceType);
-
-    for (const auto &dev : devices) {
-        validIdentities.push_back(dev.first);
-    }
-
-    return validIdentities;
+    return status;
 }
 
 UaStatus PasCommunicationInterface::getDeviceState(
@@ -299,12 +268,12 @@ UaStatus PasCommunicationInterface::setDeviceData(
 }
 
 UaStatus PasCommunicationInterface::operateDevice(
-        OpcUa_UInt32 type,
-        const Identity &identity,
-        OpcUa_UInt32 offset,
-        const UaVariantArray &args) {
+    OpcUa_UInt32 deviceType,
+    const Identity &identity,
+    OpcUa_UInt32 offset,
+    const UaVariantArray &args) {
     try {
-        return m_pControllers.at(type).at(identity)->operate(offset, args);
+        return m_pControllers.at(deviceType).at(identity)->operate(offset, args);
     }
     catch (std::out_of_range &e) {
         return OpcUa_BadInvalidArgument;

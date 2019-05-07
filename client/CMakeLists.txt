@@ -23,7 +23,8 @@ FIND_PACKAGE( ROOT REQUIRED COMPONENTS Minuit)
 
 SET(CMAKE_SKIP_BUILD_RPATH FALSE)
 SET(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
-SET(CMAKE_INSTALL_RPATH ${CMAKE_CURRENT_SOURCE_DIR}/../sdk/lib ${CMAKE_CURRENT_SOURCE_DIR}/../../lib ${CMAKE_CURRENT_SOURCE_DIR}/../../lib64)
+#SET(CMAKE_INSTALL_RPATH ${CMAKE_CURRENT_SOURCE_DIR}/../sdk/lib64 ${CMAKE_CURRENT_SOURCE_DIR}/../../lib ${CMAKE_CURRENT_SOURCE_DIR}/../../lib64)
+SET(UA_LIB_DIR ${UASDK_BASE_DIR}/lib64)
 SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 
 SET(COMMON_CODE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../common)
@@ -70,22 +71,6 @@ MESSAGE( STATUS "====================================" )
 MESSAGE( STATUS "" )
 
 ####################################### Different Configurations ########################################
-IF (NOT DEFINED ENV{MYSQL_HOST})
-    MESSAGE(FATAL_ERROR "Database variables not found")
-ELSEIF (NOT DEFINED ENV{MYSQL_USER})
-    MESSAGE(FATAL_ERROR "Database variables not found")
-ELSEIF (NOT DEFINED ENV{MYSQL_DATABASE})
-    MESSAGE(FATAL_ERROR "Database variables not found")
-ELSEIF (NOT DEFINED ENV{MYSQL_PASSWORD})
-    MESSAGE(FATAL_ERROR "Database variables not found")
-ELSEIF (NOT DEFINED ENV{MYSQL_PORT})
-    MESSAGE(FATAL_ERROR "Database variables not found")
-ELSEIF (NOT DEFINED ENV{MYSQL_SOCKET})
-    MESSAGE(FATAL_ERROR "Database variables not found")
-else()
-    MESSAGE(STATUS "Database variables found")
-endif()
-
 
 OPTION( USE_XMLCONFIG           "Set to ON to build the XML-Parser and to use the ServerConfig.xml file for the server application." ON )
 OPTION( BUILD_SHARED_STACK      "Set to ON to build the stack as shared object/dll" ON )
@@ -115,18 +100,30 @@ endif (BUILD_SHARED_LIBS)
 
 FILE(GLOB P2PAS_SRC
     "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/interface/*.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/logic/*.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/controllers/*.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/objects/*.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/utilities/*.cpp"
     "${COMMON_CODE_DIR}/opcua/*.cpp"
     "${COMMON_CODE_DIR}/simulatestewart/stewartplatform.cpp"
     "${COMMON_CODE_DIR}/simulatestewart/mathtools.cpp"
     "${COMMON_CODE_DIR}/globalalignment/ccdclass.cpp"
     "${COMMON_CODE_DIR}/globalalignment/ccd/*.cpp"
     "${COMMON_CODE_DIR}/utilities/*.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/*.hpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/controllers/*.hpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/objects/*.hpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/utilities/*.hpp"
+        "${COMMON_CODE_DIR}/opcua/*.hpp"
+        "${COMMON_CODE_DIR}/simulatestewart/stewartplatform.h"
+        "${COMMON_CODE_DIR}/simulatestewart/mathtools.h"
+        "${COMMON_CODE_DIR}/globalalignment/ccdclass.h"
+        "${COMMON_CODE_DIR}/globalalignment/ccd/*.h"
+        "${COMMON_CODE_DIR}/utilities/*.cpp"
+
   )
 
 if ( SIMMODE )
-    message("BUILDING IN SIMMODE...")
+    message("SIMMODE!")
     add_definitions(-DSIMMODE)
 endif ( SIMMODE )
 
@@ -138,10 +135,11 @@ IF ( USE_XMLCONFIG )
     include_directories(${LIBXML2_INCLUDE_DIR})
 ENDIF ( USE_XMLCONFIG )
 
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/..)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/interface)
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/logic)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/..)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/controllers)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/objects)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/utilities)
 include_directories(${UASDK_BASE_DIR}/include)
 include_directories(${COMMON_CODE_DIR}/opcua)
 include_directories(${COMMON_CODE_DIR}/simulatestewart)
@@ -154,7 +152,7 @@ include_directories(${ROBAST_INCLUDE_DIRS})
 include_directories(${CCFITS_INCLUDE_DIRS})
 include_directories(${UASTACK_INCLUDE})
 include_directories(${UABASE_INCLUDE})
-include_directories(${ROOT_INCLUDE_DIR})
+include_directories(${ROOT_INCLUDE_DIRS})
 include_directories(${EIGEN3_INCLUDE_DIRS})
 include_directories(${MYSQLCONNECTORCPP_INCLUDE_DIRS})
 IF ( UASTACK_WITH_OPENSSL )
@@ -207,8 +205,7 @@ ENDIF (vxWorks)
 
 ####################################### Create executable ###################################
 
-
-ADD_EXECUTABLE(${PROJECT_NAME} ${P2PAS_SRC} ../common/alignment/device.hpp ../common/alignment/device.cpp)
+ADD_EXECUTABLE(${PROJECT_NAME} ${P2PAS_SRC})
 
 IF ( UASTACK_WITH_OPENSSL )
     IF ( NOT TARGET uastack )

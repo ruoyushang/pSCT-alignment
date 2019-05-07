@@ -9,7 +9,7 @@
 #include "uaserver/methodhandleuanode.h"
 #include "uaserver/opcua_analogitemtype.h"
 
-#include "common/opcua/passervertypeids.h"
+#include "common/opcua/passervertypeids.hpp"
 #include "common/alignment/device.hpp"
 
 #include "server/pasnodemanager.hpp"
@@ -27,91 +27,52 @@ const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean>> 
 };
 
 const std::map<OpcUa_UInt32, std::pair<std::string, std::vector<std::tuple<std::string, UaNodeId, std::string>>>> PanelObject::METHODS = {
-        {PAS_PanelType_StepAll,     {"StepAll",    {}}},
-        {PAS_PanelType_MoveTo_Acts, {"MoveToActs", {}}},
-        {PAS_PanelType_Stop,        {"Stop",       {}}}
+        {PAS_PanelType_MoveDeltaLengths, {"MoveDeltaLengths", {
+                                                                      std::make_tuple("Delta Length 1",
+                                                                                      UaNodeId(OpcUaId_Float),
+                                                                                      "Desired change in length for Actuator 1 (in mm)."),
+                                                                      std::make_tuple("Delta Length 2",
+                                                                                      UaNodeId(OpcUaId_Float),
+                                                                                      "Desired change in length for Actuator 2 (in mm)."),
+                                                                      std::make_tuple("Delta Length 3",
+                                                                                      UaNodeId(OpcUaId_Float),
+                                                                                      "Desired change in length for Actuator 3 (in mm)."),
+                                                                      std::make_tuple("Delta Length 4",
+                                                                                      UaNodeId(OpcUaId_Float),
+                                                                                      "Desired change in length for Actuator 4 (in mm)."),
+                                                                      std::make_tuple("Delta Length 5",
+                                                                                      UaNodeId(OpcUaId_Float),
+                                                                                      "Desired change in length for Actuator 5 (in mm)."),
+                                                                      std::make_tuple("Delta Length 6",
+                                                                                      UaNodeId(OpcUaId_Float),
+                                                                                      "Desired change in length for Actuator 6 (in mm)."),
+                                                              }}
+        },
+        {PAS_PanelType_MoveToLengths, {"MoveToLengths", {
+                                                                      std::make_tuple("Length Actuator 1",
+                                                                                      UaNodeId(OpcUaId_Float),
+                                                                                      "Target length for Actuator 1 (in mm)."),
+                                                                      std::make_tuple("Length Actuator 2",
+                                                                                      UaNodeId(OpcUaId_Float),
+                                                                                      "Target length for Actuator 2 (in mm)."),
+                                                                      std::make_tuple("Length Actuator 3",
+                                                                                      UaNodeId(OpcUaId_Float),
+                                                                                      "Target length for Actuator 3 (in mm)."),
+                                                                      std::make_tuple("Length Actuator 4",
+                                                                                      UaNodeId(OpcUaId_Float),
+                                                                                      "Target length for Actuator 4 (in mm)."),
+                                                                      std::make_tuple("Length Actuator 5",
+                                                                                      UaNodeId(OpcUaId_Float),
+                                                                                      "Target length for Actuator 5 (in mm)."),
+                                                                      std::make_tuple("Length Actuator 6",
+                                                                                      UaNodeId(OpcUaId_Float),
+                                                                                      "Target length for Actuator 6 (in mm)."),
+                                                              }}
+        },
+        {PAS_PanelType_Stop,          {"Stop",          {}}}
 };
-
-/// @details Adds all child variable nodes and child method nodes. initializes a reference-counting shared mutex for thread locking.
-PanelObject::PanelObject(
-        const UaString &name,
-        const UaNodeId &newNodeId,
-        const UaString &defaultLocaleId,
-        PasNodeManager *pNodeManager,
-        Identity identity,
-        PasCommunicationInterface *pCommIf)
-        : PasObject(name, newNodeId, defaultLocaleId, pNodeManager, std::move(identity), pCommIf) {
-    // Use a mutex shared across all variables of this object
-    // This will ensure thread-locking is applied across all variables sharing the same mutex
-    m_pSharedMutex = new UaMutexRefCounted;
-
-    UaStatus addStatus;
-
-    // Add all child variable nodes
-    for (auto &v : getVariableDefs()) {
-        addVariable(pNodeManager, PAS_PanelType, v.first, std::get<2>(v.second));
-    }
-
-    // Add all child method nodes
-    UaString sName;
-    UaString sNodeId;
-    OpcUa_Int16 nsIdx = pNodeManager->getNameSpaceIndex();
-    for (auto &m : getMethodDefs()) {
-        sName = UaString(m.second.first.c_str());
-        sNodeId = UaString("%1.%2").arg(newNodeId.toString()).arg(sName);
-        m_MethodMap[UaNodeId(sNodeId, nsIdx)] = std::make_pair(
-                new UaMethodGeneric(sName, UaNodeId(sNodeId, nsIdx), m_defaultLocaleId), m.first);
-        addStatus = pNodeManager->addNodeAndReference(this, m_MethodMap[UaNodeId(sNodeId, nsIdx)].first,
-                                                      OpcUaId_HasComponent);
-        UA_ASSERT(addStatus.isGood());
-    }
-}
-
-/// @details Releases reference in shared mutex.
-PanelObject::~PanelObject() {
-    if (m_pSharedMutex) {
-        m_pSharedMutex->releaseReference(); // Release our local reference
-        m_pSharedMutex = nullptr;
-    }
-}
 
 UaNodeId PanelObject::typeDefinitionId() const {
     UaNodeId ret(PAS_PanelType, browseName().namespaceIndex());
-    return ret;
-}
-
-/// @details Executes the requested method by calling the communication interface to retrieve the desired device controller.
-UaStatus PanelObject::call(
-        const ServiceContext &serviceContext,
-        MethodHandle *pMethodHandle,
-        const UaVariantArray &inputArguments,
-        UaVariantArray &outputArguments,
-        UaStatusCodeArray &inputArgumentResults,
-        UaDiagnosticInfos &inputArgumentDiag) {
-    UaStatus ret;
-    auto pMethodHandleUaNode = dynamic_cast<MethodHandleUaNode *>(pMethodHandle);
-    UaMethod *pMethod = nullptr;
-
-    unsigned numArgs;
-    OpcUa_UInt32 methodTypeID;
-
-    if (pMethodHandleUaNode) {
-        pMethod = pMethodHandleUaNode->pUaMethod();
-
-        if (m_MethodMap.find(pMethod->nodeId()) != m_MethodMap.end()) {
-            methodTypeID = m_MethodMap[pMethod->nodeId()].second;
-            numArgs = METHODS.at(methodTypeID).second.size();
-
-            if (inputArguments.length() != numArgs)
-                ret = OpcUa_BadInvalidArgument;
-            else
-                ret = m_pCommIf->operateDevice(PAS_PanelType, m_Identity, methodTypeID);
-        } else {
-            ret = OpcUa_BadInvalidArgument;
-        }
-    } else {
-        ret = OpcUa_BadInvalidArgument;
-    }
-
     return ret;
 }

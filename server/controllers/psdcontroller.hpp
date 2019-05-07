@@ -3,8 +3,8 @@
  * @brief Header file for position sensitive device controller class
  */
 
-#ifndef SERVER_CONTROLLERS_PSDCONTROLLER_HPP
-#define SERVER_CONTROLLERS_PSDCONTROLLER_HPP
+#ifndef SERVER_PSDCONTROLLER_HPP
+#define SERVER_PSDCONTROLLER_HPP
 
 #include <memory>
 
@@ -19,16 +19,17 @@
 class GASPSD;
 
 /// @brief Class representing a device controller for a Position Sensitive Device.
-class PSDController : public PasController {
+class PSDController : public PasController
+{
     UA_DISABLE_COPY(PSDController);
 
 public:
     /// @brief Instantiate a position sensitive device controller.
     /// @param ID The device ID (index) used to identify it within its parent panel/platform.
-    PSDController(int ID);
+    explicit PSDController(Identity identity);
 
     /// @brief Destroy a position sensitive device controller.
-    ~PSDController() {}
+    ~PSDController() override;
 
     /// @brief Get the device's state.
     /// @param state Variable to store the retrieved state value.
@@ -44,13 +45,13 @@ public:
     /// @param offset A number used to uniquely identify the data variable to access.
     /// @param value Variable to store the retrieved data value.
     /// @return OPC UA status code indicating success or failure.
-    UaStatus getData(OpcUa_UInt32 offset, UaVariant &value);
+    UaStatus getData(OpcUa_UInt32 offset, UaVariant &value) override;
 
     /// @brief Set the value of a PSD data variable.
     /// @param offset A number used to uniquely identify the data variable to access.
     /// @param value Value to write to the selected data variable.
     /// @return OPC UA status code indicating success or failure.
-    UaStatus setData(OpcUa_UInt32 offset, UaVariant value);
+    UaStatus setData(OpcUa_UInt32 offset, UaVariant value) override;
 
     /// @brief Call a method on the PSD device.
     /// @param offset A number used to uniquely identify the method to call.
@@ -68,4 +69,4 @@ private:
     UaStatus read();
 };
 
-#endif //SERVER_CONTROLLERS_PSDCONTROLLER_HPP
+#endif //SERVER_PSDCONTROLLER_HPP

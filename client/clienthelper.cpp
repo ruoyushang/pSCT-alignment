@@ -1,11 +1,11 @@
-#include "clienthelper.h"
-#include "subscription.h"
-#include "database.h"
-#include "configuration.h"
-#include "pasobject.h"
-#include "passervertypeids.h"
-#include "pasnodemanager.h"
-#include "pascommunicationinterface.h"
+#include "clienthelper.hpp"
+#include "subscription.hpp"
+#include "database.hpp"
+#include "configuration.hpp"
+#include "pasobject.hpp"
+#include "passervertypeids.hpp"
+#include "pasnodemanager.hpp"
+#include "pascommunicationinterface.hpp"
 #include "common/alignment/device.hpp"
 #include "uaclient/uasession.h"
 
@@ -15,7 +15,9 @@
 
 using namespace UaClientSdk;
 
-Client::Client(PasNodeManager *pNodeManager) : m_pNodeManager(pNodeManager), m_TransactionId(0)
+Client::Client(PasNodeManager *pNodeManager) : m_pNodeManager(pNodeManager), m_TransactionId(0),
+                                               m_pConfiguration(nullptr),
+                                               m_serverStatus(UaClient::ServerStatus::Disconnected)
 {
     m_pSession = new UaSession();
     m_pSubscription = new Subscription(m_pConfiguration);
@@ -24,21 +26,21 @@ Client::Client(PasNodeManager *pNodeManager) : m_pNodeManager(pNodeManager), m_T
 
 Client::~Client()
 {
-    m_pNodeManager = NULL;
-    m_pConfiguration = NULL;
+    m_pNodeManager = nullptr;
+    m_pConfiguration = nullptr;
 
     if (m_pSubscription)
     {
         // delete local subscription object
         delete m_pSubscription;
-        m_pSubscription = NULL;
+        m_pSubscription = nullptr;
     }
 
     if (m_pDatabase)
     {
         // delete local database object
         delete m_pDatabase;
-        m_pDatabase = NULL;
+        m_pDatabase = nullptr;
     }
 
     if (m_pSession)
@@ -50,7 +52,7 @@ Client::~Client()
             m_pSession->disconnect(serviceSettings, OpcUa_True);
         }
         delete m_pSession;
-        m_pSession = NULL;
+        m_pSession = nullptr;
     }
 }
 
@@ -285,7 +287,7 @@ UaStatus Client::write(std::vector<std::string> sNodeNames, const UaVariant *val
 }
 
 
-UaStatus Client::callMethod(std::string sNodeName, UaString sMethod, const UaVariantArray &args)
+UaStatus Client::callMethod(const std::string &sNodeName, const UaString &sMethod, const UaVariantArray &args)
 {
     UaStatus          status;
     CallIn            callRequest;
@@ -327,7 +329,7 @@ UaStatus Client::callMethod(std::string sNodeName, UaString sMethod, const UaVar
     return status;
 }
 
-UaStatus Client::callMethodAsync(std::string sNodeName, UaString sMethod, const UaVariantArray &args)
+UaStatus Client::callMethodAsync(const std::string &sNodeName, const UaString &sMethod, const UaVariantArray &args)
 {
     UaStatus          status;
     CallIn            callRequest;

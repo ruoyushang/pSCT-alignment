@@ -3,8 +3,8 @@
  * @brief Header file for panel device controller class.
  */
 
-#ifndef SERVER_CONTROLLERS_PANELCONTROLLER_HPP
-#define SERVER_CONTROLLERS_PANELCONTROLLER_HPP
+#ifndef SERVER_PANELCONTROLLER_HPP
+#define SERVER_PANELCONTROLLER_HPP
 
 #include <memory>
 #include <vector>
@@ -16,6 +16,9 @@
 #include "uabase/uavariant.h"
 
 #include "common/alignment/device.hpp"
+#include "common/opcua/pascominterfacecommon.hpp"
+
+#include "server/controllers/actcontroller.hpp"
 #include "server/controllers/pascontroller.hpp"
 
 class ActController;
@@ -31,10 +34,10 @@ public:
     /// @brief Instantiate a panel device controller object.
     /// @param ID The integer index of the device within its type.
     /// @param pPlatform Pointer to platform object used to interface directly with hardware.
-    PanelController(int ID, std::shared_ptr<Platform> pPlatform) : PasController(ID, std::move(pPlatform)) {}
+    PanelController(Identity identity, std::shared_ptr<Platform> pPlatform);
 
     /// @brief Destroy a panel device controller object.
-    ~PanelController() {}
+    ~PanelController() override;
 
     /// @brief Get the device's state.
     /// @param state Variable to store the retrieved state value.
@@ -44,7 +47,7 @@ public:
     /// @brief Set the device's state.
     /// @param state Value to set the device state to.
     /// @return OPC UA status code indicating success or failure.
-    UaStatus setState(Device::DeviceState state);
+    UaStatus setState(Device::DeviceState state) ;
 
     /// @brief Get the value of a panel data variable.
     /// @param offset A number used to uniquely identify the data variable to access.
@@ -82,4 +85,4 @@ private:
     std::vector<std::shared_ptr<MPESController>> m_pMPES;
 };
 
-#endif //SERVER_CONTROLLERS_PANELCONTROLLER_HPP
+#endif //SERVER_PANELCONTROLLER_HPP

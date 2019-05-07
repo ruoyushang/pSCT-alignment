@@ -133,13 +133,13 @@
             <!-- URL of the Endpoint
                  This URL is used for Discovery and to open the Endpoints in the UA stack if no StackUrl is configured.
                  [NodeName] can be used as placeholder for the computer name. -->
-            <Url>opc.tcp://localhost:4840</Url>
+            <Url>opc.tcp://10.0.1.5:4840</Url>
             <!-- Optional URL that allows to define a specific address the stack should use to bind to.
                 Can be used to bind the endpoint to a specific network card or to localhost only.
-            <StackUrl>opc.tcp://192.168.0.15:48010</StackUrl>
+            <StackUrl></StackUrl>
             -->
             <!-- It is up to an administrator to configure the actual exposed SecurityPolicies.
-                 This SecurityPolicy should be disabled for most use cases.
+                 This SecurityPolicy should be disabled for most use cases. 
             -->
             <SecuritySetting>
                 <SecurityPolicy>http://opcfoundation.org/UA/SecurityPolicy#None</SecurityPolicy>
@@ -152,7 +152,7 @@
                 <SecurityPolicy>http://opcfoundation.org/UA/SecurityPolicy#Basic128Rsa15</SecurityPolicy>
                 <MessageSecurityMode>Sign</MessageSecurityMode>
                 <MessageSecurityMode>SignAndEncrypt</MessageSecurityMode>
-            </SecuritySetting>
+            </SecuritySetting> 
             -->
             <SecuritySetting>
                 <SecurityPolicy>http://opcfoundation.org/UA/SecurityPolicy#Basic256</SecurityPolicy>
@@ -204,10 +204,9 @@
             This is the HTTP based protocol that will be supported by embedded devices.
             The HTTPS profile is not completely tested, so you can use it on your own risk.
         -->
-        <!--
-        <UaEndpoint>
+        <!--<UaEndpoint>
             <SerializerType>Binary</SerializerType>
-            <Url>https://localhost:48011</Url>
+            <Url>https://[NodeName]:4840</Url>
             <SecuritySetting>
                 <SecurityPolicy>http://opcfoundation.org/UA/SecurityPolicy#None</SecurityPolicy>
                 <MessageSecurityMode>None</MessageSecurityMode>
@@ -224,8 +223,7 @@
                 </OpenSSLStore>
                 <GenerateCertificate>false</GenerateCertificate>
             </CertificateStore>
-        </UaEndpoint>
-        -->
+        </UaEndpoint>-->
         <!--Endpoint configuration end-->
 
         <!--Maximum age of a request the server allows. Default value 0 is unlimited-->
@@ -354,21 +352,21 @@
             <!--The security policy to use when encrypting or signing the UserIdentityToken when it is passed to the server.
                 This security policy is only applied for None Endpoints. For other Endpoints we use the security policy of the Endpoint.-->
             <SecurityPolicy>http://opcfoundation.org/UA/SecurityPolicy#Basic256</SecurityPolicy>
-            <!--Configuration for file based certificate store to handle user certificates.-->
+            <!--Configuration for file based certificate store to handle user certificates.-->                
             <DefaultUserCertificateStore>
                 <CertificateTrustListLocation>[ConfigPath]/pkiuser/trusted/certs/</CertificateTrustListLocation>
                 <CertificateRevocationListLocation>[ConfigPath]/pkiuser/trusted/crl/</CertificateRevocationListLocation>
                 <IssuersCertificatesLocation>[ConfigPath]/pkiuser/issuers/certs/</IssuersCertificatesLocation>
-                <IssuersRevocationListLocation>[ConfigPath]/pkiuser/issuers/crl/</IssuersRevocationListLocation>
+                <IssuersRevocationListLocation>[ConfigPath]/pkiuser/issuers/crl/</IssuersRevocationListLocation>            
             </DefaultUserCertificateStore>
             <!--Folder used to store rejected user certificates.-->
             <RejectedUserCertificatesDirectory>[ConfigPath]/pkiuser/rejected/</RejectedUserCertificatesDirectory>
             <!--Maximum number of certificates stored in the rejected directory.-->
-            <RejectedUserCertificatesCount>100</RejectedUserCertificatesCount>
+            <RejectedUserCertificatesCount>100</RejectedUserCertificatesCount>        
         </UserIdentityTokens>
         <!--User identity token configuration end-->
 
-        <!--IDs for default roles defined in the SDK.
+        <!--IDs for default roles defined in the SDK. 
             These IDs are used to control access to audit events, allow trace configuration or certificate configuration. -->
         <UserAndGroupIdsForDefaultRoles>
             <!--The root user has access to everything.-->

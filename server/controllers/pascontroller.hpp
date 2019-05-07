@@ -2,8 +2,8 @@
  * @file pascontroller.hpp
  * @brief Header file for generic device controller class.
  */
-#ifndef SERVER_CONTROLLERS_PASCONTROLLER_HPP
-#define SERVER_CONTROLLERS_PASCONTROLLER_HPP
+#ifndef SERVER_PASCONTROLLER_HPP
+#define SERVER_PASCONTROLLER_HPP
 
 #include <chrono>
 #include <map>
@@ -15,25 +15,28 @@
 #include "uabase/uastring.h"
 #include "uabase/uavariant.h"
 
-#include "common/opcua/pascominterfacecommon.h"
+#include "common/opcua/pascominterfacecommon.hpp"
+#include "common/opcua/pascontrollercommon.hpp"
 #include "common/alignment/device.hpp"
 
 class Platform;
 
 /// @brief Class representing a generic device controller.
-class PasController {
+class PasController : public PasControllerCommon {
     UA_DISABLE_COPY(PasController); // Disables copy construction and copy assignment.
 public:
     /// @brief Instantiate a PasController object with a Platform object.
     /// @param ID The device index within its type.
     /// @param pPlatform Pointer to the platform object used to interface with the hardware.
     /// @param updateInterval Update interval in milliseconds.
-    PasController(int ID, std::shared_ptr<Platform> pPlatform = std::shared_ptr<Platform>(nullptr),
-                  int updateInterval = 0) : m_ID(ID), m_pPlatform(pPlatform), m_kUpdateInterval_ms(updateInterval) {}
+    explicit PasController(Identity identity, std::shared_ptr<Platform> pPlatform = std::shared_ptr<Platform>(nullptr),
+                           int updateInterval = 0) : PasControllerCommon(identity, updateInterval), m_pPlatform(std::move(pPlatform)) {}
 
     /// @brief Instantiate a PasController object without a Platform object.
     /// @param ID The device index within its type.
     /// @param updateInterval Update interval in milliseconds.
+    PasController(Identity identity, int updateInterval) : PasController(identity, std::shared_ptr<Platform>(nullptr),
+                                                                         updateInterval) {}
     PasController(int ID, int updateInterval) : PasController(ID, std::shared_ptr<Platform>(nullptr), updateInterval) {}
 
     /// @brief Initialize the controller object.
@@ -71,29 +74,11 @@ public:
     /// @param offset A number used to uniquely identify the method to call.
     /// @param args Array of method arguments as UaVariants.
     /// @return OPC UA status code indicating success or failure.
-    virtual UaStatus
-    operate(OpcUa_UInt32 offset, const UaVariantArray &args = UaVariantArray()) = 0; // Pure virtual function
+    virtual UaStatus operate(OpcUa_UInt32 offset, const UaVariantArray &args) = 0; // Pure virtual function
 
 protected:
-    /// @brief Shared mutex used to lock parallel access to controller variables.
-    UaMutex m_mutex;
-    /// @brief Integer index of the device within its type.
-    int m_ID;
     /// @brief Pointer to the Platform object used to interface with hardware.
     std::shared_ptr<Platform> m_pPlatform;
-
-    /// @brief Time interval between updates.
-    const int m_kUpdateInterval_ms;
-
-    /// @brief Whether a time interval longer than m_kUpdateInterval_ms has elapsed since the last update.
-    /// @return A bool indicating whether the update interval has elapsed since the last update.
-    bool _expired() const {
-        return (std::chrono::duration_cast<std::chrono::milliseconds>(
-                std::chrono::system_clock::now() - m_lastUpdateTime).count() > m_kUpdateInterval_ms);
-    }
-
-    /// @brief Time of last variable update.
-    std::chrono::time_point<std::chrono::system_clock> m_lastUpdateTime;
 };
 
-#endif //SERVER_CONTROLLERS_PASCONTROLLER_HPP
+#endif //SERVER_PASCONTROLLER_HPP

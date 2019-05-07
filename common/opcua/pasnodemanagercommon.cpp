@@ -1,8 +1,8 @@
-#include "pasnodemanagercommon.h"
-#include "passervertypeids.h"
-#include "pasobject.h"
-#include "pascominterfacecommon.h"
-#include "mpeseventdata.h"
+#include "pasnodemanagercommon.hpp"
+#include "passervertypeids.hpp"
+#include "pasobject.hpp"
+#include "pascominterfacecommon.hpp"
+#include "mpeseventdata.hpp"
 #include "uaserver/opcua_offnormalalarmtype.h"
 #include "uaserver/opcua_analogitemtype.h"
 #include "uavariant.h"
@@ -10,11 +10,6 @@
 
 PasNodeManagerCommon::PasNodeManagerCommon()
 : NodeManagerBase("urn:UnifiedAutomation:CppServer:P2PAS", OpcUa_True)
-{
-}
-
-
-PasNodeManagerCommon::~PasNodeManagerCommon()
 {
 }
 
@@ -38,20 +33,19 @@ UaStatus PasNodeManagerCommon::readValues(const UaVariableArray &arrUaVariables,
         UaVariable* pVariable = arrUaVariables[i];
         if (pVariable)
         {
-            PasUserData* pUserData = (PasUserData*)pVariable->getUserData();
+            auto pUserData = (PasUserData *) pVariable->getUserData();
 
             if ( pUserData )
             {
                 UaVariant    vTemp;
-                UaStatusCode status;
 
                 if ( pUserData->isState() == OpcUa_False )
                 {
                     // Read of a data variable
                     // Get the data for the sensor from the communication interface
-                    status = m_pCommIf->getDeviceData(pUserData->DeviceType(), pUserData->DeviceId(),
-                            pUserData->variableOffset(), vTemp);
-                    if ( status.isGood() )
+                    ret = m_pCommIf->getDeviceData(pUserData->DeviceType(), pUserData->DeviceId(),
+                                                   pUserData->variableOffset(), vTemp);
+                    if (ret.isGood())
                     {
                         // Set value
                         arrDataValues[i].setValue(vTemp, OpcUa_True, OpcUa_False);
@@ -59,7 +53,7 @@ UaStatus PasNodeManagerCommon::readValues(const UaVariableArray &arrUaVariables,
                     else
                     {
                         // Set Error
-                        arrDataValues[i].setStatusCode(status.statusCode());
+                        arrDataValues[i].setStatusCode(ret.statusCode());
                     }
                 }
                 else
@@ -69,9 +63,9 @@ UaStatus PasNodeManagerCommon::readValues(const UaVariableArray &arrUaVariables,
                     Device::DeviceState state;
 
                     // Get the data for the sensor from the communication interface
-                    status = m_pCommIf->getDeviceState(pUserData->DeviceType(), pUserData->DeviceId(),
-                            state);
-                    if ( status.isGood() )
+                    ret = m_pCommIf->getDeviceState(pUserData->DeviceType(), pUserData->DeviceId(),
+                                                    state);
+                    if (ret.isGood())
                     {
                         // Set value
                         vTemp.setUInt32(static_cast<unsigned>(state));
@@ -80,7 +74,7 @@ UaStatus PasNodeManagerCommon::readValues(const UaVariableArray &arrUaVariables,
                     else
                     {
                         // Set Error
-                        arrDataValues[i].setStatusCode(status.statusCode());
+                        arrDataValues[i].setStatusCode(ret.statusCode());
                     }
                 }
             }
@@ -113,22 +107,21 @@ UaStatus PasNodeManagerCommon::writeValues(const UaVariableArray &arrUaVariables
         UaVariable* pVariable = arrUaVariables[i];
         if ( pVariable )
         {
-            PasUserData* pUserData = (PasUserData*)pVariable->getUserData();
+            auto pUserData = (PasUserData *) pVariable->getUserData();
 
             if ( pUserData )
             {
                 if ( pUserData->isState() == OpcUa_False )
                 {
                     UaVariant vTemp(arrpDataValues[i]->Value);
-                    UaStatusCode status;
 
-                    if ( status.isGood() )
+                    if (ret.isGood())
                     {
                         // Get the data for the controller from the communication interface
-                        status = m_pCommIf->setDeviceData(pUserData->DeviceType(), pUserData->DeviceId(),
-                                pUserData->variableOffset(), vTemp);
+                        ret = m_pCommIf->setDeviceData(pUserData->DeviceType(), pUserData->DeviceId(),
+                                                       pUserData->variableOffset(), vTemp);
                     }
-                    arrStatusCodes[i] = status.statusCode();
+                    arrStatusCodes[i] = ret.statusCode();
                 }
                 else
                 {
@@ -180,7 +173,7 @@ UaStatus PasNodeManagerCommon::OnAcknowledge(
     pCondition->setClientUserId(serviceContext.pSession()->getClientUserId());
     pCondition->setMessage(UaLocalizedText("en", "Condition state acknowledged by UA client"));
 
-    OpcUa::AlarmConditionType* pAlarmCondition = (OpcUa::AlarmConditionType*)pCondition;
+    auto pAlarmCondition = (OpcUa::AlarmConditionType *) pCondition;
     if ( pAlarmCondition->getActiveStateBool() == OpcUa_False )
     {
         pCondition->setRetain(OpcUa_False);
@@ -198,17 +191,16 @@ UaStatus PasNodeManagerCommon::createTypeNodes()
     UaStatus addStatus;
 
     UaVariant                    defaultValue;
-    UaObjectTypeSimple*          pMPESType = NULL;
-    UaObjectTypeSimple*          pACTType = NULL;
-    UaObjectTypeSimple*          pPSDType = NULL;
-    OpcUa::FolderType*           pFolderType;
+    UaObjectTypeSimple *pMPESType = nullptr;
+    UaObjectTypeSimple *pACTType = nullptr;
+    UaObjectTypeSimple *pPSDType = nullptr;
     OpcUa::DataItemType*         pDataItem;
     // Method helpers
-    OpcUa::BaseMethod*           pMethod = NULL;
-    UaPropertyMethodArgument *pPropertyArg = NULL;
+    OpcUa::BaseMethod *pMethod = nullptr;
+    UaPropertyMethodArgument *pPropertyArg = nullptr;
     // Event helpers
-    UaObjectTypeSimple*          pMPESEventType = NULL;
-    UaPropertyCache*             pProperty = NULL;
+    UaObjectTypeSimple *pMPESEventType = nullptr;
+    UaPropertyCache *pProperty = nullptr;
 
     UaUInt32Array nullarray;
 
@@ -280,11 +272,11 @@ UaStatus PasNodeManagerCommon::createTypeNodes()
     addStatus = addNodeAndReference(pMPESType, pDataItem, OpcUaId_HasComponent);
     UA_ASSERT(addStatus.isGood());
 
-    // Add Variable "xCentroidSD" as DataItem
+    // Add Variable "xCentroidSpotWidth" as DataItem
     defaultValue.setDouble(0);
     pDataItem = new OpcUa::DataItemType(
-        UaNodeId(PAS_MPESType_xCentroidSD, getNameSpaceIndex()),
-        "xCentroidSD",
+        UaNodeId(PAS_MPESType_xCentroidSpotWidth, getNameSpaceIndex()),
+        "xCentroidSpotWidth",
         getNameSpaceIndex(),
         defaultValue,
         Ua_AccessLevel_CurrentRead,
@@ -293,11 +285,11 @@ UaStatus PasNodeManagerCommon::createTypeNodes()
     addStatus = addNodeAndReference(pMPESType, pDataItem, OpcUaId_HasComponent);
     UA_ASSERT(addStatus.isGood());
 
-    // Add Variable "yCentroidSD" as DataItem
+    // Add Variable "yCentroidSpotWidth" as DataItem
     defaultValue.setDouble(0);
     pDataItem = new OpcUa::DataItemType(
-        UaNodeId(PAS_MPESType_yCentroidSD, getNameSpaceIndex()),
-        "yCentroidSD",
+        UaNodeId(PAS_MPESType_yCentroidSpotWidth, getNameSpaceIndex()),
+        "yCentroidSpotWidth",
         getNameSpaceIndex(),
         defaultValue,
         Ua_AccessLevel_CurrentRead,
@@ -418,10 +410,10 @@ UaStatus PasNodeManagerCommon::createTypeNodes()
     addStatus = addNodeAndReference(pMPESEventType, pProperty, OpcUaId_HasProperty);
     UA_ASSERT(addStatus.isGood());
 
-    // xCentroidSD Event field property
+    // xCentroidSpotWidth Event field property
     defaultValue.setDouble(0);
     pProperty = new UaPropertyCache(
-        "xCentroidSD",
+        "xCentroidSpotWidth",
         UaNodeId(PAS_MPESEventType_xCentroidSD, getNameSpaceIndex()),
         defaultValue,
         Ua_AccessLevel_CurrentRead,
@@ -429,10 +421,10 @@ UaStatus PasNodeManagerCommon::createTypeNodes()
     addStatus = addNodeAndReference(pMPESEventType, pProperty, OpcUaId_HasProperty);
     UA_ASSERT(addStatus.isGood());
 
-    // yCentroidSD Event field property
+    // yCentroidSpotWidth Event field property
     defaultValue.setDouble(0);
     pProperty = new UaPropertyCache(
-        "yCentroidSD",
+        "yCentroidSpotWidth",
         UaNodeId(PAS_MPESEventType_yCentroidSD, getNameSpaceIndex()),
         defaultValue,
         Ua_AccessLevel_CurrentRead,
@@ -627,13 +619,13 @@ UaVariable* PasNodeManagerCommon::getInstanceDeclarationVariable(OpcUa_UInt32 nu
     // Try to find the instance declaration node with the numeric identifier
     // and the namespace index of this node manager
     UaNode* pNode = findNode(UaNodeId(numericIdentifier, getNameSpaceIndex()));
-    if ( (pNode != NULL) && (pNode->nodeClass() == OpcUa_NodeClass_Variable) )
+    if ((pNode != nullptr) && (pNode->nodeClass() == OpcUa_NodeClass_Variable))
     {
         // Return the node if valid and a variable
         return (UaVariable*)pNode;
     }
     else
     {
-        return NULL;
+        return nullptr;
     }
 }

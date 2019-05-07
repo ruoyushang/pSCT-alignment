@@ -17,4 +17,4 @@ if (BUILD_CLIENT)
     add_subdirectory(client)
 endif ()
 
-
+#add_executable(passerver server)

@@ -1,6 +1,6 @@
 
-#include "ImageStar.h"
-//#include "CameraParams.h"
+#include "common/globalalignment/ccd/ImageStar.h"
+//#include "common/globalalignment/ccd/CameraParams.h"
 
 using namespace std;
 

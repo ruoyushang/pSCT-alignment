@@ -20,11 +20,11 @@
 #include "uaserver/uaobjecttypes.h"
 
 #include "common/alignment/device.hpp"
-#include "common/opcua/mpeseventdata.h"
-#include "common/opcua/pascominterfacecommon.h"
-#include "common/opcua/pasnodemanagercommon.h"
-#include "common/opcua/pasobject.h"
-#include "common/opcua/passervertypeids.h"
+#include "common/opcua/mpeseventdata.hpp"
+#include "common/opcua/pascominterfacecommon.hpp"
+#include "common/opcua/pasnodemanagercommon.hpp"
+#include "common/opcua/pasobject.hpp"
+#include "common/opcua/passervertypeids.hpp"
 
 #include "server/objects/panelobject.hpp"
 #include "server/pascommunicationinterface.hpp"
@@ -133,11 +133,10 @@ UaStatus PasNodeManager::afterStartUp()
             UA_ASSERT(ret.isGood());
 
             if (deviceType == PAS_PanelType) {
-                if (pPanel == nullptr) {
+                if (!pPanel) {
                     pPanel = dynamic_cast<PanelObject *>(pObject); // Keep track of the single panel object separately (as it is the parent of all others).
                 } else {
-                    std::cout << "PasNodeManager:: Error: more than one Panel object found in server.\n";
-                    return OpcUa_Bad;
+                    std::cout << "Warning: More than one panel found! There should only be one.\n";
                 }
             } else {
                 pChildObjects.insert(pObject); // Add pointer to new object to pChildObjects set.
@@ -152,8 +151,9 @@ UaStatus PasNodeManager::afterStartUp()
         }
     }
 
-    if (pPanel == nullptr) {
-        std::cout << "PasNodeManager:: Error: No Panel object found in server.\n";
+    // Check at least one panel has been found
+    if (!pPanel) {
+        std::cout << "Error: No panel found. There should always be one in the server device list.\n";
         return OpcUa_Bad;
     }
 
@@ -225,7 +225,7 @@ UaStatus PasNodeManager::amendTypeNodes()
 
     // Register all methods
     OpcUa::BaseMethod *pMethod;
-    for (auto &m : PanelObject::METHODS) {
+    for (const auto &m : PanelObject::METHODS) {
         pMethod = new OpcUa::BaseMethod(UaNodeId(m.first, getNameSpaceIndex()), m.second.first.c_str(),
                                         getNameSpaceIndex());
         pMethod->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);

@@ -5,8 +5,8 @@
 #include <algorithm>
 #define _USE_MATH_DEFINES
 #include <math.h>            // needed for fitting bounding ellipse
-#include "Image.h"
-#include "LEDinputs.h"
+#include "common/globalalignment/ccd/Image.h"
+#include "common/globalalignment/ccd/LEDinputs.h"
 
 using std::vector;
 

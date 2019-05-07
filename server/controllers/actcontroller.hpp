@@ -3,8 +3,8 @@
  * @brief Header file for actuator device controller.
  */
 
-#ifndef SERVER_CONTROLLERS_ACTCONTROLLER_HPP
-#define SERVER_CONTROLLERS_ACTCONTROLLER_HPP
+#ifndef SERVER_ACTCONTROLLER_HPP
+#define SERVER_ACTCONTROLLER_HPP
 
 
 #include <memory>
@@ -27,11 +27,14 @@ public:
     /// @brief Instantiate an actuator device controller object.
     /// @param ID The integer index of the device within its type.
     /// @param pPlatform Pointer to platform object used to interface directly with hardware.
-    ActController(int ID, std::shared_ptr<Platform> pPlatform) : PasController(ID,
-                                                                               std::move(pPlatform)) { m_DeltaL = 0.; }
+    ActController(Identity identity, std::shared_ptr<Platform> pPlatform);
 
     /// @brief Destroy an actuator device controller object.
-    ~ActController() {};
+    ~ActController() override;
+
+    /// @brief Update the controller's internal state to match the underlying Actuator object's state.
+    /// @return OPC UA status code indicating success or failure.
+    UaStatus updateState();
 
     /// @brief Get the internal state of the actuator device.
     /// @param state Variable to store the retrieved state value.
@@ -73,14 +76,25 @@ public:
     /// @return OPC UA status code indicating success or failure.
     UaStatus operate(OpcUa_UInt32 offset, const UaVariantArray &args) override;
 
+    void setDeltaLength(float deltaLength) { m_DeltaLength = deltaLength; }
+    void setTargetLength(float targetLength) { m_TargetLength = targetLength; }
+
 private:
     Device::DeviceState _getState() { return m_pPlatform->getActuator(m_ID)->getState(); }
     /// @brief The distance between the current actuator length and the target length.
     OpcUa_Float m_DeltaL;
+    /// @brief The remaining distance between the current actuator length and the target length.
+    OpcUa_Float m_DeltaLength;
+    /// @brief The last requested target length.
+    OpcUa_Float m_TargetLength;
 
-    /// @brief Move the panel a desired number of steps
+    /// @brief Change the actuator length by a desired amount
     /// @param args Array of method arguments as UaVariants.
     UaStatus moveDelta(const UaVariantArray &args);
+
+    /// @brief Move the actuator to a desired length
+    /// @param args Array of method arguments as UaVariants.
+    UaStatus moveToLength(const UaVariantArray &args);
 };
 
-#endif //SERVER_CONTROLLERS_ACTCONTROLLER_HPP
+#endif //SERVER_ACTCONTROLLER_HPP

@@ -1,16 +1,16 @@
-#include "pascontroller.h"
-#include "pasnodemanager.h"
-#include "pasobject.h"
-#include "mirrorobject.h"
-#include "panelobject.h"
-#include "edgeobject.h"
-#include "gasobject.h"
-#include "positioner.h"
-#include "clienthelper.h"
-#include "configuration.h"
-#include "pascommunicationinterface.h"
-#include "pasobjectfactory.h"
-#include "passervertypeids.h"
+#include "client/controllers/pascontroller.hpp"
+#include "pasnodemanager.hpp"
+#include "pasobject.hpp"
+#include "client/objects/mirrorobject.hpp"
+#include "client/objects/panelobject.hpp"
+#include "client/objects/edgeobject.hpp"
+#include "client/objects/opttableobject.hpp"
+#include "client/objects/positionerobject.hpp"
+#include "clienthelper.hpp"
+#include "configuration.hpp"
+#include "pascommunicationinterface.hpp"
+#include "pasobjectfactory.hpp"
+#include "passervertypeids.hpp"
 #include "common/alignment/device.hpp"
 #include <iostream>
 #include <memory>
@@ -113,12 +113,12 @@ UaStatus PasNodeManager::afterStartUp()
 
     std::cout << "Now creating all OPC UA objects and folders...\n";
 
-    UaFolder * pFolder = NULL;
-    PasObject *pObject = NULL;
-    PasController *pController = NULL;
+    UaFolder *pFolder = nullptr;
+    PasObject *pObject = nullptr;
+    PasController *pController = nullptr;
     std::vector<PasController *>pChildren;
 
-    PasObjectFactory *pPasFactory = new PasObjectFactory();
+    auto pPasFactory = new PasObjectFactory();
 
     std::map<unsigned, UaFolder *> pDeviceFolders;
     std::map<PasController *, PasObject *> pDeviceObjects;
@@ -137,14 +137,14 @@ UaStatus PasNodeManager::afterStartUp()
     UA_ASSERT(ret.isGood());
 
     // Locate Positioner device
-    std::cout << "Creating positioner OPC UA object...\n";
-    OpcUa_UInt32 posCount = m_pCommIf->getDevices(GLOB_PositionerType);
+    OpcUa_UInt32 posCount = dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->getDevices(GLOB_PositionerType);
     if (posCount != 1) {
         std::cout << "WARNING: " << posCount << " positioner(s) added. There should be exactly 1.\n" << std::endl;
     }
-    ret = m_pCommIf->getDeviceConfig(GLOB_PositionerType, 0, sDeviceName, identity);
+    ret = dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->getDeviceConfig(GLOB_PositionerType, 0, sDeviceName, identity);
 
     if (ret.isGood()) {
+        std::cout << "Creating positioner OPC UA object...\n";
         //Create a folder for the positioner and add the folder to the ObjectsFolder
         PositionerObject *pPositioner = new PositionerObject(sDeviceName,
                                                              UaNodeId(sDeviceName, getNameSpaceIndex()),
@@ -164,9 +164,11 @@ UaStatus PasNodeManager::afterStartUp()
         deviceType = it->first;
         count = dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->getDevices(deviceType);
 
+        std::cout << "Creating " << it->second << " objects...\n";
+
         for (unsigned i = 0; i < count; i++)
         {
-            ret = m_pCommIf->getDeviceConfig(deviceType, i, sDeviceName, identity);
+            ret = dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->getDeviceConfig(deviceType, i, sDeviceName, identity);
             pController = dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->getDeviceFromId(deviceType,
                                                                                                       identity);
             //If folder doesn't already exist, create a folder for each object type and add the folder to the DevicesByType folder
@@ -286,15 +288,15 @@ UaStatus PasNodeManager::amendTypeNodes()
     UaStatus addStatus;
 
     UaVariant                    defaultValue;
-    UaObjectTypeSimple*          pMirrorType = NULL;
-    UaObjectTypeSimple*          pEdgeType = NULL;
-    UaObjectTypeSimple*          pPanelType = NULL;
-    UaObjectTypeSimple*          pOptTableType = NULL;
-    UaObjectTypeSimple*          pCCDType = NULL;
+    UaObjectTypeSimple *pMirrorType = nullptr;
+    UaObjectTypeSimple *pEdgeType = nullptr;
+    UaObjectTypeSimple *pPanelType = nullptr;
+    UaObjectTypeSimple *pOptTableType = nullptr;
+    UaObjectTypeSimple *pCCDType = nullptr;
     OpcUa::DataItemType*         pDataItem;
     // Method helpers
-    OpcUa::BaseMethod*           pMethod = NULL;
-    UaPropertyMethodArgument*    pPropertyArg = NULL;
+    OpcUa::BaseMethod *pMethod = nullptr;
+    UaPropertyMethodArgument *pPropertyArg = nullptr;
     UaUInt32Array                nullarray;
 
     /**************************************************************
@@ -328,81 +330,38 @@ UaStatus PasNodeManager::amendTypeNodes()
     UA_ASSERT(addStatus.isGood());
 
     defaultValue.setDouble(0);
-    pDataItem = new OpcUa::DataItemType(UaNodeId(PAS_PanelType_curCoords_x, getNameSpaceIndex()),
-            "curCoords_x", getNameSpaceIndex(), defaultValue, Ua_AccessLevel_CurrentRead, this);
+    pDataItem = new OpcUa::DataItemType(UaNodeId(PAS_PanelType_x, getNameSpaceIndex()),
+                                        "x", getNameSpaceIndex(), defaultValue, Ua_AccessLevel_CurrentRead, this);
     pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
     addStatus = addNodeAndReference(pPanelType, pDataItem, OpcUaId_HasComponent);
     UA_ASSERT(addStatus.isGood());
 
-    pDataItem = new OpcUa::DataItemType(UaNodeId(PAS_PanelType_curCoords_y, getNameSpaceIndex()),
-            "curCoords_y", getNameSpaceIndex(), defaultValue, Ua_AccessLevel_CurrentRead, this);
+    pDataItem = new OpcUa::DataItemType(UaNodeId(PAS_PanelType_y, getNameSpaceIndex()),
+                                        "y", getNameSpaceIndex(), defaultValue, Ua_AccessLevel_CurrentRead, this);
     pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
     addStatus = addNodeAndReference(pPanelType, pDataItem, OpcUaId_HasComponent);
     UA_ASSERT(addStatus.isGood());
 
-    pDataItem = new OpcUa::DataItemType(UaNodeId(PAS_PanelType_curCoords_z, getNameSpaceIndex()),
-            "curCoords_z", getNameSpaceIndex(), defaultValue, Ua_AccessLevel_CurrentRead, this);
+    pDataItem = new OpcUa::DataItemType(UaNodeId(PAS_PanelType_z, getNameSpaceIndex()),
+                                        "z", getNameSpaceIndex(), defaultValue, Ua_AccessLevel_CurrentRead, this);
     pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
     addStatus = addNodeAndReference(pPanelType, pDataItem, OpcUaId_HasComponent);
     UA_ASSERT(addStatus.isGood());
 
-    pDataItem = new OpcUa::DataItemType(UaNodeId(PAS_PanelType_curCoords_xRot, getNameSpaceIndex()),
-            "curCoords_xRot", getNameSpaceIndex(), defaultValue, Ua_AccessLevel_CurrentRead, this);
+    pDataItem = new OpcUa::DataItemType(UaNodeId(PAS_PanelType_xRot, getNameSpaceIndex()),
+                                        "xRot", getNameSpaceIndex(), defaultValue, Ua_AccessLevel_CurrentRead, this);
     pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
     addStatus = addNodeAndReference(pPanelType, pDataItem, OpcUaId_HasComponent);
     UA_ASSERT(addStatus.isGood());
 
-    pDataItem = new OpcUa::DataItemType(UaNodeId(PAS_PanelType_curCoords_yRot, getNameSpaceIndex()),
-            "curCoords_yRot", getNameSpaceIndex(), defaultValue, Ua_AccessLevel_CurrentRead, this);
+    pDataItem = new OpcUa::DataItemType(UaNodeId(PAS_PanelType_yRot, getNameSpaceIndex()),
+                                        "yRot", getNameSpaceIndex(), defaultValue, Ua_AccessLevel_CurrentRead, this);
     pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
     addStatus = addNodeAndReference(pPanelType, pDataItem, OpcUaId_HasComponent);
     UA_ASSERT(addStatus.isGood());
 
-    pDataItem = new OpcUa::DataItemType(UaNodeId(PAS_PanelType_curCoords_zRot, getNameSpaceIndex()),
-            "curCoords_zRot", getNameSpaceIndex(), defaultValue, Ua_AccessLevel_CurrentRead, this);
-    pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
-    addStatus = addNodeAndReference(pPanelType, pDataItem, OpcUaId_HasComponent);
-    UA_ASSERT(addStatus.isGood());
-
-
-    pDataItem = new OpcUa::DataItemType(UaNodeId(PAS_PanelType_inCoords_x, getNameSpaceIndex()),
-            "inCoords_x", getNameSpaceIndex(), defaultValue,
-            Ua_AccessLevel_CurrentRead | Ua_AccessLevel_CurrentWrite, this);
-    pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
-    addStatus = addNodeAndReference(pPanelType, pDataItem, OpcUaId_HasComponent);
-    UA_ASSERT(addStatus.isGood());
-
-    pDataItem = new OpcUa::DataItemType(UaNodeId(PAS_PanelType_inCoords_y, getNameSpaceIndex()),
-            "inCoords_y", getNameSpaceIndex(), defaultValue,
-            Ua_AccessLevel_CurrentRead | Ua_AccessLevel_CurrentWrite, this);
-    pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
-    addStatus = addNodeAndReference(pPanelType, pDataItem, OpcUaId_HasComponent);
-    UA_ASSERT(addStatus.isGood());
-
-    pDataItem = new OpcUa::DataItemType(UaNodeId(PAS_PanelType_inCoords_z, getNameSpaceIndex()),
-            "inCoords_z", getNameSpaceIndex(), defaultValue,
-            Ua_AccessLevel_CurrentRead | Ua_AccessLevel_CurrentWrite, this);
-    pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
-    addStatus = addNodeAndReference(pPanelType, pDataItem, OpcUaId_HasComponent);
-    UA_ASSERT(addStatus.isGood());
-
-    pDataItem = new OpcUa::DataItemType(UaNodeId(PAS_PanelType_inCoords_xRot, getNameSpaceIndex()),
-            "inCoords_xRot", getNameSpaceIndex(), defaultValue,
-            Ua_AccessLevel_CurrentRead | Ua_AccessLevel_CurrentWrite, this);
-    pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
-    addStatus = addNodeAndReference(pPanelType, pDataItem, OpcUaId_HasComponent);
-    UA_ASSERT(addStatus.isGood());
-
-    pDataItem = new OpcUa::DataItemType(UaNodeId(PAS_PanelType_inCoords_yRot, getNameSpaceIndex()),
-            "inCoords_yRot", getNameSpaceIndex(), defaultValue,
-            Ua_AccessLevel_CurrentRead | Ua_AccessLevel_CurrentWrite, this);
-    pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
-    addStatus = addNodeAndReference(pPanelType, pDataItem, OpcUaId_HasComponent);
-    UA_ASSERT(addStatus.isGood());
-
-    pDataItem = new OpcUa::DataItemType(UaNodeId(PAS_PanelType_inCoords_zRot, getNameSpaceIndex()),
-            "inCoords_zRot", getNameSpaceIndex(), defaultValue,
-            Ua_AccessLevel_CurrentRead | Ua_AccessLevel_CurrentWrite, this);
+    pDataItem = new OpcUa::DataItemType(UaNodeId(PAS_PanelType_zRot, getNameSpaceIndex()),
+                                        "zRot", getNameSpaceIndex(), defaultValue, Ua_AccessLevel_CurrentRead, this);
     pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
     addStatus = addNodeAndReference(pPanelType, pDataItem, OpcUaId_HasComponent);
     UA_ASSERT(addStatus.isGood());
@@ -420,21 +379,36 @@ UaStatus PasNodeManager::amendTypeNodes()
     addStatus = addNodeAndReference(pPanelType, pDataItem, OpcUaId_HasComponent);
     UA_ASSERT(addStatus.isGood());
 
+    defaultValue.setDouble(60.0);
+    pDataItem = new OpcUa::DataItemType(UaNodeId(PAS_PanelType_SafetyRadius, getNameSpaceIndex()),
+            "SafetyRadius", getNameSpaceIndex(), defaultValue, Ua_AccessLevel_CurrentRead | Ua_AccessLevel_CurrentWrite, this);
+    pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
+    addStatus = addNodeAndReference(pPanelType, pDataItem, OpcUaId_HasComponent);
+    UA_ASSERT(addStatus.isGood());
 
     // Add Method "MoveToActs"
-    pMethod = new OpcUa::BaseMethod(UaNodeId(PAS_PanelType_MoveTo_Acts, getNameSpaceIndex()), "MoveToActs", getNameSpaceIndex());
+    pMethod = new OpcUa::BaseMethod(UaNodeId(PAS_PanelType_MoveToLengths, getNameSpaceIndex()), "MoveToLengths",
+                                    getNameSpaceIndex());
+    pMethod->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
+    addStatus = addNodeAndReference(pPanelType, pMethod, OpcUaId_HasComponent);
+    UA_ASSERT(addStatus.isGood());
+
+    // Add Method "MoveToActs"
+    pMethod = new OpcUa::BaseMethod(UaNodeId(PAS_PanelType_MoveDeltaLengths, getNameSpaceIndex()), "MoveDeltaLengths",
+                                    getNameSpaceIndex());
     pMethod->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
     addStatus = addNodeAndReference(pPanelType, pMethod, OpcUaId_HasComponent);
     UA_ASSERT(addStatus.isGood());
 
     // Add Method "MoveToCoords"
-    pMethod = new OpcUa::BaseMethod(UaNodeId(PAS_PanelType_MoveTo_Coords, getNameSpaceIndex()), "MoveToCoords", getNameSpaceIndex());
+    pMethod = new OpcUa::BaseMethod(UaNodeId(PAS_PanelType_MoveToCoords, getNameSpaceIndex()), "MoveToCoords",
+                                    getNameSpaceIndex());
     pMethod->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
     addStatus = addNodeAndReference(pPanelType, pMethod, OpcUaId_HasComponent);
     UA_ASSERT(addStatus.isGood());
 
     // Add Method "Read"
-    pMethod = new OpcUa::BaseMethod(UaNodeId(PAS_PanelType_Read, getNameSpaceIndex()), "Read", getNameSpaceIndex());
+    pMethod = new OpcUa::BaseMethod(UaNodeId(PAS_PanelType_ReadAll, getNameSpaceIndex()), "ReadPosition", getNameSpaceIndex());
     pMethod->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
     addStatus = addNodeAndReference(pPanelType, pMethod, OpcUaId_HasComponent);
     UA_ASSERT(addStatus.isGood());
@@ -475,30 +449,8 @@ UaStatus PasNodeManager::amendTypeNodes()
     addStatus = addNodeAndReference(pEdgeType, pDataItem, OpcUaId_HasComponent);
     UA_ASSERT(addStatus.isGood());
 
-    // Add Variable "StepSize" as DataItem
-    defaultValue.setDouble(0);
-    pDataItem = new OpcUa::DataItemType(UaNodeId(PAS_EdgeType_StepSize, getNameSpaceIndex()), "StepSize",
-        getNameSpaceIndex(), defaultValue, Ua_AccessLevel_CurrentRead | Ua_AccessLevel_CurrentWrite, this);
-    pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
-    addStatus = addNodeAndReference(pEdgeType, pDataItem, OpcUaId_HasComponent);
-    UA_ASSERT(addStatus.isGood());
-
-    // Add Variable "AlignFrac" as DataItem
-    defaultValue.setDouble(0);
-    pDataItem = new OpcUa::DataItemType(UaNodeId(PAS_EdgeType_AlignFrac, getNameSpaceIndex()), "AlignFrac",
-                                        getNameSpaceIndex(), defaultValue, Ua_AccessLevel_CurrentRead | Ua_AccessLevel_CurrentWrite, this);
-    pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
-    addStatus = addNodeAndReference(pEdgeType, pDataItem, OpcUaId_HasComponent);
-    UA_ASSERT(addStatus.isGood());
-
     // Add Method "Stop"
     pMethod = new OpcUa::BaseMethod(UaNodeId(PAS_EdgeType_Stop, getNameSpaceIndex()), "Stop", getNameSpaceIndex());
-    pMethod->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
-    addStatus = addNodeAndReference(pEdgeType, pMethod, OpcUaId_HasComponent);
-    UA_ASSERT(addStatus.isGood());
-
-    // Add Method "Move"
-    pMethod = new OpcUa::BaseMethod(UaNodeId(PAS_EdgeType_Move, getNameSpaceIndex()), "Move", getNameSpaceIndex());
     pMethod->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
     addStatus = addNodeAndReference(pEdgeType, pMethod, OpcUaId_HasComponent);
     UA_ASSERT(addStatus.isGood());
@@ -521,29 +473,6 @@ UaStatus PasNodeManager::amendTypeNodes()
     addStatus = addNodeAndReference(pEdgeType, pMethod, OpcUaId_HasComponent);
     UA_ASSERT(addStatus.isGood());
 
-    // Add Property "InputArguments" -- takes two arguments, the panel to move and the panel
-    // keep fixed during alignment
-    pPropertyArg = new UaPropertyMethodArgument(
-            UaNodeId(PAS_EdgeType_Align_InPanel, getNameSpaceIndex()), // NodeId of the property
-            Ua_AccessLevel_CurrentRead,             // Access level of the property
-            2,                                      // Number of arguments
-            UaPropertyMethodArgument::INARGUMENTS); // IN arguments
-    // Argument PanelPosition
-    pPropertyArg->setArgument(
-            0,                       // Index of the argument
-            "movePanel",               // Name of the argument
-            UaNodeId(OpcUaId_UInt32),// Data type of the argument
-            -1,                      // Array rank of the argument
-            nullarray,               // Array dimensions of the argument
-            UaLocalizedText("en", "position of the panel to move during alignment")); // Description
-    pPropertyArg->setArgument(
-            1,                       // Index of the argument
-            "fixPanel",               // Name of the argument
-            UaNodeId(OpcUaId_UInt32),// Data type of the argument
-            -1,                      // Array rank of the argument
-            nullarray,               // Array dimensions of the argument
-            UaLocalizedText("en", "position of the panel to keep fixed during alignment")); // Description
-
     // Add property to method
     addStatus = addNodeAndReference(pMethod, pPropertyArg, OpcUaId_HasProperty);
     UA_ASSERT(addStatus.isGood());
@@ -563,7 +492,7 @@ UaStatus PasNodeManager::amendTypeNodes()
 
 
     /***************************************************************
-     * Create the Panel Type Instance declaration
+     * Create the Mirror Type Instance declaration
      ***************************************************************/
     // Add Variable "State" as BaseDataVariable
     defaultValue.setUInt32(0);
@@ -580,111 +509,38 @@ UaStatus PasNodeManager::amendTypeNodes()
     UA_ASSERT(addStatus.isGood());
 
     defaultValue.setDouble(0);
-    pDataItem = new OpcUa::DataItemType(UaNodeId(PAS_MirrorType_curCoords_x, getNameSpaceIndex()),
-            "curCoords_x", getNameSpaceIndex(), defaultValue, Ua_AccessLevel_CurrentRead, this);
+    pDataItem = new OpcUa::DataItemType(UaNodeId(PAS_MirrorType_x, getNameSpaceIndex()),
+                                      "x", getNameSpaceIndex(), defaultValue, Ua_AccessLevel_CurrentRead, this);
     pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
     addStatus = addNodeAndReference(pMirrorType, pDataItem, OpcUaId_HasComponent);
     UA_ASSERT(addStatus.isGood());
 
-    pDataItem = new OpcUa::DataItemType(UaNodeId(PAS_MirrorType_curCoords_y, getNameSpaceIndex()),
-            "curCoords_y", getNameSpaceIndex(), defaultValue, Ua_AccessLevel_CurrentRead, this);
+    pDataItem = new OpcUa::DataItemType(UaNodeId(PAS_MirrorType_y, getNameSpaceIndex()),
+                                        "y", getNameSpaceIndex(), defaultValue, Ua_AccessLevel_CurrentRead, this);
     pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
     addStatus = addNodeAndReference(pMirrorType, pDataItem, OpcUaId_HasComponent);
     UA_ASSERT(addStatus.isGood());
 
-    pDataItem = new OpcUa::DataItemType(UaNodeId(PAS_MirrorType_curCoords_z, getNameSpaceIndex()),
-            "curCoords_z", getNameSpaceIndex(), defaultValue, Ua_AccessLevel_CurrentRead, this);
+    pDataItem = new OpcUa::DataItemType(UaNodeId(PAS_MirrorType_z, getNameSpaceIndex()),
+                                        "z", getNameSpaceIndex(), defaultValue, Ua_AccessLevel_CurrentRead, this);
     pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
     addStatus = addNodeAndReference(pMirrorType, pDataItem, OpcUaId_HasComponent);
     UA_ASSERT(addStatus.isGood());
 
-    pDataItem = new OpcUa::DataItemType(UaNodeId(PAS_MirrorType_curCoords_xRot, getNameSpaceIndex()),
-            "curCoords_xRot", getNameSpaceIndex(), defaultValue, Ua_AccessLevel_CurrentRead, this);
+    pDataItem = new OpcUa::DataItemType(UaNodeId(PAS_MirrorType_xRot, getNameSpaceIndex()),
+                                        "xRot", getNameSpaceIndex(), defaultValue, Ua_AccessLevel_CurrentRead, this);
     pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
     addStatus = addNodeAndReference(pMirrorType, pDataItem, OpcUaId_HasComponent);
     UA_ASSERT(addStatus.isGood());
 
-    pDataItem = new OpcUa::DataItemType(UaNodeId(PAS_MirrorType_curCoords_yRot, getNameSpaceIndex()),
-            "curCoords_yRot", getNameSpaceIndex(), defaultValue, Ua_AccessLevel_CurrentRead, this);
+    pDataItem = new OpcUa::DataItemType(UaNodeId(PAS_MirrorType_yRot, getNameSpaceIndex()),
+                                        "yRot", getNameSpaceIndex(), defaultValue, Ua_AccessLevel_CurrentRead, this);
     pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
     addStatus = addNodeAndReference(pMirrorType, pDataItem, OpcUaId_HasComponent);
     UA_ASSERT(addStatus.isGood());
 
-    pDataItem = new OpcUa::DataItemType(UaNodeId(PAS_MirrorType_curCoords_zRot, getNameSpaceIndex()),
-            "curCoords_zRot", getNameSpaceIndex(), defaultValue, Ua_AccessLevel_CurrentRead, this);
-    pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
-    addStatus = addNodeAndReference(pMirrorType, pDataItem, OpcUaId_HasComponent);
-    UA_ASSERT(addStatus.isGood());
-
-    pDataItem = new OpcUa::DataItemType(UaNodeId(PAS_MirrorType_inCoords_x, getNameSpaceIndex()),
-            "inCoords_x", getNameSpaceIndex(), defaultValue,
-            Ua_AccessLevel_CurrentRead | Ua_AccessLevel_CurrentWrite, this);
-    pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
-    addStatus = addNodeAndReference(pMirrorType, pDataItem, OpcUaId_HasComponent);
-    UA_ASSERT(addStatus.isGood());
-
-    pDataItem = new OpcUa::DataItemType(UaNodeId(PAS_MirrorType_inCoords_y, getNameSpaceIndex()),
-            "inCoords_y", getNameSpaceIndex(), defaultValue,
-            Ua_AccessLevel_CurrentRead | Ua_AccessLevel_CurrentWrite, this);
-    pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
-    addStatus = addNodeAndReference(pMirrorType, pDataItem, OpcUaId_HasComponent);
-    UA_ASSERT(addStatus.isGood());
-
-    pDataItem = new OpcUa::DataItemType(UaNodeId(PAS_MirrorType_inCoords_z, getNameSpaceIndex()),
-            "inCoords_z", getNameSpaceIndex(), defaultValue,
-            Ua_AccessLevel_CurrentRead | Ua_AccessLevel_CurrentWrite, this);
-    pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
-    addStatus = addNodeAndReference(pMirrorType, pDataItem, OpcUaId_HasComponent);
-    UA_ASSERT(addStatus.isGood());
-
-    pDataItem = new OpcUa::DataItemType(UaNodeId(PAS_MirrorType_inCoords_xRot, getNameSpaceIndex()),
-            "inCoords_xRot", getNameSpaceIndex(), defaultValue,
-            Ua_AccessLevel_CurrentRead | Ua_AccessLevel_CurrentWrite, this);
-    pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
-    addStatus = addNodeAndReference(pMirrorType, pDataItem, OpcUaId_HasComponent);
-    UA_ASSERT(addStatus.isGood());
-
-    pDataItem = new OpcUa::DataItemType(UaNodeId(PAS_MirrorType_inCoords_yRot, getNameSpaceIndex()),
-            "inCoords_yRot", getNameSpaceIndex(), defaultValue,
-            Ua_AccessLevel_CurrentRead | Ua_AccessLevel_CurrentWrite, this);
-    pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
-    addStatus = addNodeAndReference(pMirrorType, pDataItem, OpcUaId_HasComponent);
-    UA_ASSERT(addStatus.isGood());
-
-    pDataItem = new OpcUa::DataItemType(UaNodeId(PAS_MirrorType_inCoords_zRot, getNameSpaceIndex()),
-            "inCoords_zRot", getNameSpaceIndex(), defaultValue,
-            Ua_AccessLevel_CurrentRead | Ua_AccessLevel_CurrentWrite, this);
-    pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
-    addStatus = addNodeAndReference(pMirrorType, pDataItem, OpcUaId_HasComponent);
-    UA_ASSERT(addStatus.isGood());
-
-    // add the vars to store selected panels and edges. These are writeable STRINGS!
-    defaultValue.setString("");
-    pDataItem = new OpcUa::DataItemType(UaNodeId(PAS_MirrorType_selectedPanels, getNameSpaceIndex()),
-            "selectedPanels", getNameSpaceIndex(), defaultValue,
-            Ua_AccessLevel_CurrentRead | Ua_AccessLevel_CurrentWrite, this);
-    pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
-    addStatus = addNodeAndReference(pMirrorType, pDataItem, OpcUaId_HasComponent);
-    UA_ASSERT(addStatus.isGood());
-
-    pDataItem = new OpcUa::DataItemType(UaNodeId(PAS_MirrorType_selectedEdges, getNameSpaceIndex()),
-            "selectedEdges", getNameSpaceIndex(), defaultValue,
-            Ua_AccessLevel_CurrentRead | Ua_AccessLevel_CurrentWrite, this);
-    pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
-    addStatus = addNodeAndReference(pMirrorType, pDataItem, OpcUaId_HasComponent);
-    UA_ASSERT(addStatus.isGood());
-
-    pDataItem = new OpcUa::DataItemType(UaNodeId(PAS_MirrorType_selectedMPES, getNameSpaceIndex()),
-            "selectedMPES", getNameSpaceIndex(), defaultValue,
-            Ua_AccessLevel_CurrentRead | Ua_AccessLevel_CurrentWrite, this);
-    pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
-    addStatus = addNodeAndReference(pMirrorType, pDataItem, OpcUaId_HasComponent);
-    UA_ASSERT(addStatus.isGood());
-
-    // Add align fraction
-    pDataItem = new OpcUa::DataItemType(UaNodeId(PAS_MirrorType_AlignFrac, getNameSpaceIndex()),
-            "alignFrac", getNameSpaceIndex(), defaultValue,
-            Ua_AccessLevel_CurrentRead | Ua_AccessLevel_CurrentWrite, this);
+    pDataItem = new OpcUa::DataItemType(UaNodeId(PAS_MirrorType_zRot, getNameSpaceIndex()),
+                                        "zRot", getNameSpaceIndex(), defaultValue, Ua_AccessLevel_CurrentRead, this);
     pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
     addStatus = addNodeAndReference(pMirrorType, pDataItem, OpcUaId_HasComponent);
     UA_ASSERT(addStatus.isGood());
@@ -732,52 +588,65 @@ UaStatus PasNodeManager::amendTypeNodes()
     addStatus = addNodeAndReference(pMirrorType, pDataItem, OpcUaId_HasComponent);
     UA_ASSERT(addStatus.isGood());
 
+    defaultValue.setString("");
+    pDataItem = new OpcUa::DataItemType(UaNodeId(PAS_MirrorType_SelectedEdges, getNameSpaceIndex()),
+                                        "SelectedEdges", getNameSpaceIndex(), defaultValue, Ua_AccessLevel_CurrentRead | Ua_AccessLevel_CurrentWrite,
+                                        this);
+    pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
+    addStatus = addNodeAndReference(pMirrorType, pDataItem, OpcUaId_HasComponent);
+    UA_ASSERT(addStatus.isGood());
 
-     
+    defaultValue.setString("");
+    pDataItem = new OpcUa::DataItemType(UaNodeId(PAS_MirrorType_SelectedMPES, getNameSpaceIndex()),
+                                        "SelectedMPES", getNameSpaceIndex(), defaultValue,  Ua_AccessLevel_CurrentRead | Ua_AccessLevel_CurrentWrite,
+                                        this);
+    pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
+    addStatus = addNodeAndReference(pMirrorType, pDataItem, OpcUaId_HasComponent);
+    UA_ASSERT(addStatus.isGood());
+
+    defaultValue.setString("");
+    pDataItem = new OpcUa::DataItemType(UaNodeId(PAS_MirrorType_SelectedPanels, getNameSpaceIndex()),
+                                        "SelectedPanels", getNameSpaceIndex(), defaultValue,
+                                         Ua_AccessLevel_CurrentRead | Ua_AccessLevel_CurrentWrite, this);
+    pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
+    addStatus = addNodeAndReference(pMirrorType, pDataItem, OpcUaId_HasComponent);
+    UA_ASSERT(addStatus.isGood());
+
+    //delete tempUIntArray;
+
+    defaultValue.setDouble(60.0);
+    pDataItem = new OpcUa::DataItemType(UaNodeId(PAS_MirrorType_SafetyRadius, getNameSpaceIndex()),
+            "SafetyRadius", getNameSpaceIndex(), defaultValue, Ua_AccessLevel_CurrentRead | Ua_AccessLevel_CurrentWrite, this);
+    pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
+    addStatus = addNodeAndReference(pPanelType, pDataItem, OpcUaId_HasComponent);
+    UA_ASSERT(addStatus.isGood());
 
     // Add Method "Move"
-    pMethod = new OpcUa::BaseMethod(UaNodeId(PAS_MirrorType_MoveTo_Coords, getNameSpaceIndex()), "Move", getNameSpaceIndex());
+    pMethod = new OpcUa::BaseMethod(UaNodeId(PAS_MirrorType_MoveToCoords, getNameSpaceIndex()), "MoveToCoords",
+                                    getNameSpaceIndex());
     pMethod->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
     addStatus = addNodeAndReference(pMirrorType, pMethod, OpcUaId_HasComponent);
     UA_ASSERT(addStatus.isGood());
 
     // Add Method "ReadPosition"
-    pMethod = new OpcUa::BaseMethod(UaNodeId(PAS_MirrorType_ReadPos, getNameSpaceIndex()), "ReadPosition", getNameSpaceIndex());
+    pMethod = new OpcUa::BaseMethod(UaNodeId(PAS_MirrorType_ReadPosition, getNameSpaceIndex()), "ReadPosition",
+                                    getNameSpaceIndex());
     pMethod->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
     addStatus = addNodeAndReference(pMirrorType, pMethod, OpcUaId_HasComponent);
     UA_ASSERT(addStatus.isGood());
 
     // Add Method "Align"
-    pMethod = new OpcUa::BaseMethod(UaNodeId(PAS_MirrorType_Align, getNameSpaceIndex()), "Align", getNameSpaceIndex());
+    pMethod = new OpcUa::BaseMethod(UaNodeId(PAS_MirrorType_AlignSequential, getNameSpaceIndex()), "AlignSequential",
+                                    getNameSpaceIndex());
     pMethod->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
     addStatus = addNodeAndReference(pMirrorType, pMethod, OpcUaId_HasComponent);
     UA_ASSERT(addStatus.isGood());
 
-    // Add Property "InputArguments" -- takes two arguments, the edge to start at and the
-    // direction to move in
-    pPropertyArg = new UaPropertyMethodArgument(
-            UaNodeId(PAS_MirrorType_Align_InEdge, getNameSpaceIndex()), // NodeId of the property
-            Ua_AccessLevel_CurrentRead,             // Access level of the property
-            2,                                      // Number of arguments
-            UaPropertyMethodArgument::INARGUMENTS); // IN arguments
-    // Argument PanelPosition
-    pPropertyArg->setArgument(
-            0,                       // Index of the argument
-            "startEdge",             // Name of the argument
-            UaNodeId(OpcUaId_String),      // Data type of the argument
-            -1,                      // Array rank of the argument
-            nullarray,               // Array dimensions of the argument
-            UaLocalizedText("en", "The edge from which to start sequential alignment")); // Description
-    pPropertyArg->setArgument(
-            1,                       // Index of the argument
-            "startEdge",               // Name of the argument
-            UaNodeId(OpcUaId_UInt32),// Data type of the argument
-            -1,                      // Array rank of the argument
-            nullarray,               // Array dimensions of the argument
-            UaLocalizedText("en", "Direction in which to move: 0 for +ZRot, 1 for -ZRot")); // Description
-
-    // Add property to method
-    addStatus = addNodeAndReference(pMethod, pPropertyArg, OpcUaId_HasProperty);
+    // Add Method "Align"
+    pMethod = new OpcUa::BaseMethod(UaNodeId(PAS_MirrorType_AlignSector, getNameSpaceIndex()), "AlignSector",
+                                    getNameSpaceIndex());
+    pMethod->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
+    addStatus = addNodeAndReference(pMirrorType, pMethod, OpcUaId_HasComponent);
     UA_ASSERT(addStatus.isGood());
 
     // Add Method "GlobalAlign"
@@ -786,28 +655,9 @@ UaStatus PasNodeManager::amendTypeNodes()
     addStatus = addNodeAndReference(pMirrorType, pMethod, OpcUaId_HasComponent);
     UA_ASSERT(addStatus.isGood());
 
-    // Add Property "InputArguments" -- takes two arguments, the edge to start at and the
-    // direction to move in
-    pPropertyArg = new UaPropertyMethodArgument(
-            UaNodeId(PAS_MirrorType_Align_InPanel, getNameSpaceIndex()), // NodeId of the property
-            Ua_AccessLevel_CurrentRead,             // Access level of the property
-            1,                                      // Number of arguments
-            UaPropertyMethodArgument::INARGUMENTS); // IN arguments
-    // Argument PanelPosition
-    pPropertyArg->setArgument(
-            0,                       // Index of the argument
-            "fixPanel",             // Name of the argument
-            UaNodeId(OpcUaId_UInt32),      // Data type of the argument
-            -1,                      // Array rank of the argument
-            nullarray,               // Array dimensions of the argument
-            UaLocalizedText("en", "This panel will stay fixed. It's the constraining panel for the global fit")); // Description
-    // Add property to method
-    addStatus = addNodeAndReference(pMethod, pPropertyArg, OpcUaId_HasProperty);
-    UA_ASSERT(addStatus.isGood());
-
-
     // Add Method "ReadAlignment"
-    pMethod = new OpcUa::BaseMethod(UaNodeId(PAS_MirrorType_ReadAlign, getNameSpaceIndex()), "ReadAlignment", getNameSpaceIndex());
+    pMethod = new OpcUa::BaseMethod(UaNodeId(PAS_MirrorType_ReadSensors, getNameSpaceIndex()), "ReadSensors",
+                                    getNameSpaceIndex());
     pMethod->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
     addStatus = addNodeAndReference(pMirrorType, pMethod, OpcUaId_HasComponent);
     UA_ASSERT(addStatus.isGood());
@@ -835,14 +685,6 @@ UaStatus PasNodeManager::amendTypeNodes()
     pDataItem = new OpcUa::DataItemType(UaNodeId(PAS_OptTableType_State, getNameSpaceIndex()), "State",
         getNameSpaceIndex(), defaultValue, Ua_AccessLevel_CurrentRead, this);
     // Set Modelling Rule to Mandatory
-    pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
-    addStatus = addNodeAndReference(pOptTableType, pDataItem, OpcUaId_HasComponent);
-    UA_ASSERT(addStatus.isGood());
-
-    // Add Variable "StepSize" as DataItem
-    defaultValue.setDouble(0);
-    pDataItem = new OpcUa::DataItemType(UaNodeId(PAS_OptTableType_StepSize, getNameSpaceIndex()), "StepSize",
-        getNameSpaceIndex(), defaultValue, Ua_AccessLevel_CurrentRead | Ua_AccessLevel_CurrentWrite, this);
     pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
     addStatus = addNodeAndReference(pOptTableType, pDataItem, OpcUaId_HasComponent);
     UA_ASSERT(addStatus.isGood());
@@ -1032,13 +874,6 @@ UaStatus PasNodeManager::amendTypeNodes()
     addStatus = addNodeAndReference(pPositionerType, pDataItem, OpcUaId_HasComponent);
     UA_ASSERT(addStatus.isGood());
 
-    // Add Variable "inAz" as DataItem
-    pDataItem = new OpcUa::DataItemType(UaNodeId(GLOB_PositionerType_inAz, getNameSpaceIndex()), "inAz",
-        getNameSpaceIndex(), defaultValue, Ua_AccessLevel_CurrentRead | Ua_AccessLevel_CurrentWrite, this);
-    pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
-    addStatus = addNodeAndReference(pPositionerType, pDataItem, OpcUaId_HasComponent);
-    UA_ASSERT(addStatus.isGood());
-
     // Add Variable "curEl" as BaseDataVariable
     pDataItem = new OpcUa::DataItemType(UaNodeId(GLOB_PositionerType_curEl, getNameSpaceIndex()), "curEl",
     getNameSpaceIndex(), defaultValue, Ua_AccessLevel_CurrentRead, this);
@@ -1047,9 +882,19 @@ UaStatus PasNodeManager::amendTypeNodes()
     addStatus = addNodeAndReference(pPositionerType, pDataItem, OpcUaId_HasComponent);
     UA_ASSERT(addStatus.isGood());
 
-    // Add Variable "inAz" as DataItem
+    // Add Variable "curAz" as BaseDataVariable
+    defaultValue.setFloat(0);
+    pDataItem = new OpcUa::DataItemType(UaNodeId(GLOB_PositionerType_inAz, getNameSpaceIndex()), "inAz",
+    getNameSpaceIndex(), defaultValue, Ua_AccessLevel_CurrentRead | Ua_AccessLevel_CurrentWrite, this);
+    // Set Modelling Rule to Mandatory
+    pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
+    addStatus = addNodeAndReference(pPositionerType, pDataItem, OpcUaId_HasComponent);
+    UA_ASSERT(addStatus.isGood());
+
+    // Add Variable "curEl" as BaseDataVariable
     pDataItem = new OpcUa::DataItemType(UaNodeId(GLOB_PositionerType_inEl, getNameSpaceIndex()), "inEl",
-        getNameSpaceIndex(), defaultValue, Ua_AccessLevel_CurrentRead | Ua_AccessLevel_CurrentWrite, this);
+    getNameSpaceIndex(), defaultValue, Ua_AccessLevel_CurrentRead | Ua_AccessLevel_CurrentWrite, this);
+    // Set Modelling Rule to Mandatory
     pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
     addStatus = addNodeAndReference(pPositionerType, pDataItem, OpcUaId_HasComponent);
     UA_ASSERT(addStatus.isGood());
@@ -1069,7 +914,8 @@ UaStatus PasNodeManager::amendTypeNodes()
     UA_ASSERT(addStatus.isGood());
 
     // Add Method "Init"
-    pMethod = new OpcUa::BaseMethod(UaNodeId(GLOB_PositionerType_Init, getNameSpaceIndex()), "InitializeDrives", getNameSpaceIndex());
+    pMethod = new OpcUa::BaseMethod(UaNodeId(GLOB_PositionerType_Initialize, getNameSpaceIndex()), "InitializeDrives",
+                                    getNameSpaceIndex());
     pMethod->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
     addStatus = addNodeAndReference(pPositionerType, pMethod, OpcUaId_HasComponent);
     UA_ASSERT(addStatus.isGood());
@@ -1093,7 +939,7 @@ OpcUa_Int32 PasNodeManager::Panic()
 {
     UaStatus status;
 
-    OpcUa_Int32 actcount = m_pCommIf->getDevices(PAS_ACTType);
+    OpcUa_Int32 actcount = m_pCommIf->getDeviceCount(PAS_ACTType);
 
     Device::Identity id;
     for (OpcUa_Int32 i = 0; i < actcount; i++)

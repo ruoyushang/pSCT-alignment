@@ -27,7 +27,7 @@
 ** Description: Main OPC Server object class.
 **
 ******************************************************************************/
-#include "opcserver.h"
+#include "opcserver.hpp"
 #include "uaserver/uamodule.h"
 #include "uaserver/uasession.h"
 
