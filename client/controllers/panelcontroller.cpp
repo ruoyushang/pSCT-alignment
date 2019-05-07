@@ -247,7 +247,7 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
     else if (offset == PAS_PanelType_Stop) {
         std::cout << m_ID << "::Operate() : Attempting to gracefully stop the motion." << std::endl;
         status = m_pClient->callMethod(std::string("ns=2;s=Panel_0"), UaString("Stop"));
-        std::cout << m_ID << "::Motion stopped."
+        std::cout << m_ID << "::Motion stopped.";
     } 
     else {
         status = OpcUa_BadInvalidArgument;
