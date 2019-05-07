@@ -73,7 +73,7 @@ protected:
     static const std::string CAL2D_CONSTANTS_DIR_PATH;
 
     static const int NOMINAL_INTENSITY;
-    static const float NOMINAL_CENTROID_SD;
+    static const float NOMINAL_SPOT_WIDTH;
 
     static const float SAFETY_REGION_X_MIN;
     static const float SAFETY_REGION_X_MAX;

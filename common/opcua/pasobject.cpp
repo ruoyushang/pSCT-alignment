@@ -229,7 +229,7 @@ const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, O
 
 const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean>> MPESObject::ERRORS = {
     {PAS_MPESType_Error0, std::make_tuple("Bad connection. No device found", UaVariant(false), OpcUa_False)},
-    {PAS_MPESType_Error1, std::make_tuple("Intermittent connection, select timeout.", UaVariant(false), OpcUa_False)},
+    {PAS_MPESType_Error1, std::make_tuple("Intermittent connection, possible select timeout or other error.", UaVariant(false), OpcUa_False)},
     {PAS_MPESType_Error2, std::make_tuple("Cannot find laser spot", UaVariant(false), OpcUa_False)},
     {PAS_MPESType_Error3, std::make_tuple("Too bright (missing tube)", UaVariant(false), OpcUa_False)},
     {PAS_MPESType_Error4, std::make_tuple("Too bright", UaVariant(false), OpcUa_False)},

@@ -5,6 +5,7 @@
 #include "MPESDevice.h"
 #include <vector>
 #include <string>
+#include <unistd.h>
 
 struct MPESSetData: MPESImageData
 {
