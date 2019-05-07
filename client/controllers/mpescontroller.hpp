@@ -29,7 +29,7 @@ public:
 
     UaStatus getData(OpcUa_UInt32 offset, UaVariant &value);
 
-    UaStatus getError(OpcUa_UInt32 offset, UaVariant &value)
+    UaStatus getError(OpcUa_UInt32 offset, UaVariant &value);
 
     /* set Controller status and data */
     UaStatus setState(Device::DeviceState state);

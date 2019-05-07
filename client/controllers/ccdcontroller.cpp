@@ -13,7 +13,7 @@
 #include "common/opcua/pascominterfacecommon.hpp"
 #include "common/opcua/pasobject.hpp"
 #include "common/opcua/passervertypeids.hpp"
-#include "common/alignment
+#include "common/alignment/device.hpp"
 
 #include "client/clienthelper.hpp"
 #include "client/controllers/pascontroller.hpp"
