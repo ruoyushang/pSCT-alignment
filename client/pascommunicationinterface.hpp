@@ -16,11 +16,12 @@
 #include <string>
 #include <utility> // pair
 
-#include "common/alignment/device.hpp"
 
-class Client;
+#include "common/alignment/device.hpp"
+#include "client/utilities/configuration.hpp"
+#include "client/clienthelper.hpp"
+
 class PasController;
-class Configuration;
 
 class PasCommunicationInterface: public PasComInterfaceCommon
 {
