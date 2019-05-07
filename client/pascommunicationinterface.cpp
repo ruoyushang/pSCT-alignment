@@ -125,7 +125,7 @@ PasCommunicationInterface::addDevice(const std::shared_ptr<Client> &pClient, Opc
     else if (deviceType == PAS_ACTType)
         pController = new ActController(identity, pClient);
     else if (deviceType == PAS_PanelType)
-        pController = new PanelController(identity, pClient);
+        pController = dynamic_cast<PasController *>(new PanelController(identity, pClient));
     else if (deviceType == PAS_EdgeType)
         pController = new EdgeController(identity);
     else if (deviceType == PAS_MirrorType)
@@ -218,8 +218,8 @@ PasCommunicationInterface::addDevice(const std::shared_ptr<Client> &pClient, Opc
                        const auto& coparent = parentList.at(j);
                        int coparentIdx;
                        coparentIdx = m_DeviceIdentityMap.at(coparent.first).at(coparent.second);
-                       PasController *parentC = m_pControllers.at(parent.first).at(parentIdx);
-                       PasController *coparentC = m_pControllers.at(coparent.first).at(coparentIdx);
+                       PasController *parentC = m_pControllers.at(parent.first).at(parentIdx).get();
+                       PasController *coparentC = m_pControllers.at(coparent.first).at(coparentIdx).get();
                        dynamic_cast<PasCompositeController *>(parentC)->addChild(coparent.first, coparentC);
                    }
                }
@@ -254,7 +254,7 @@ OpcUa_Int32 PasCommunicationInterface::getDevices(OpcUa_UInt32 deviceType)
     Method       getDeviceConfig
     Description  Get configuration of a sensor.
 -----------------------------------------------------------------------------*/
-UaStatusCode PasCommunicationInterface::getDeviceConfig(
+UaStatus PasCommunicationInterface::getDeviceConfig(
         OpcUa_UInt32 type,
         OpcUa_UInt32 deviceIndex,
         UaString& sName,

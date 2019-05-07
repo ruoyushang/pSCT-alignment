@@ -12,9 +12,10 @@
 float MPESController::kNominalIntensity = 150000.;
 float MPESController::kNominalCentroidSD = 20.;
 
-MPESController::MPESController(Device::Identity identity, Client *pClient) : PasController(std::move(identity),
-                                                                                           pClient),
-                                                                             m_updated(false), m_isVisible(false) {
+MPESController::MPESController(Device::Identity identity, std::shared_ptr<Client> pClient) : PasController(
+    std::move(identity),
+    pClient),
+                                                                                             m_updated(false), m_isVisible(false) {
     m_state = Device::DeviceState::On;
     m_Data = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
 

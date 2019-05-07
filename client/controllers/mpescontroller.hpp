@@ -20,7 +20,7 @@ public:
     friend MirrorController;
 
     /* construction / destruction */
-    MPESController(Device::Identity identity, Client *pClient);
+    MPESController(Device::Identity identity, std::shared_ptr<Client> pClient);
 
     ~MPESController();
 

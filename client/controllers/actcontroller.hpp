@@ -19,7 +19,7 @@ public:
     friend PanelController;
 
     // construction / destruction
-    ActController(Device::Identity identity, Client *pClient);
+    ActController(Device::Identity identity, std::shared_ptr<Client> pClient);
 
     ~ActController() override;
 

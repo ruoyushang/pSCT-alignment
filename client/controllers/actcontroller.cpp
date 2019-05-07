@@ -17,7 +17,8 @@
 #include "common/alignment/device.hpp"
 #include "client/controllers/pascontroller.hpp"
 
-ActController::ActController(Device::Identity identity, Client *pClient) : PasController(std::move(identity), pClient) {
+ActController::ActController(Device::Identity identity, std::shared_ptr<Client> pClient) : PasController(
+    std::move(identity), pClient) {
     m_state = Device::DeviceState::On;
 }
 

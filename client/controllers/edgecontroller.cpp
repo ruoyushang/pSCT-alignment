@@ -267,7 +267,7 @@ UaStatus EdgeController::findSingleMatrix(unsigned panelIdx, double stepSize) {
         sleep(2);
 
         // update missed steps
-        actuator = std::dynamic_pointer_cast<ActController>(pCurPanel->getChildren(PAS_ACTType)[j]);
+        actuator = std::dynamic_pointer_cast<ActController>(pCurPanel->getChildren(PAS_ACTType)[j]).get();
         actuator->getData(PAS_ACTType_DeltaLength, vtmp);
         vtmp.toFloat(missedDelta);
 
@@ -301,7 +301,6 @@ UaStatus EdgeController::findSingleMatrix(unsigned panelIdx, double stepSize) {
 
     std::string outfilename = "/home/ctauser/PanelAlignmentData/ResponseMatrix_" + m_ID.eAddress + ".txt";
     std::ofstream output(outfilename, std::ofstream::in | std::ofstream::out | std::ofstream::app);
-    std::stringstream outputstr;
     output << pCurPanel->getId().position << std::endl << responseMatrix << std::endl;
 
     output.close();
@@ -515,7 +514,7 @@ UaStatus EdgeController::alignSinglePanel(unsigned panelpos, double alignFrac, b
         for (const auto &panelPair : m_ChildrenPositionMap.at(PAS_PanelType)) {
             if ((panelPair.first == panelpos) == moveit) { // clever but not clear...
                 PanelController *pCurPanel = std::dynamic_pointer_cast<PanelController>(
-                    m_pChildren.at(PAS_PanelType).at(panelPair.second));
+                    m_pChildren.at(PAS_PanelType).at(panelPair.second)).get();
                 if(pCurPanel->checkForCollision((X * alignFrac).segment(0,6))) {
                     std::cout << "Error: Sensors may go out of range! Disallowed motion, please recalculate or relax safety radius." << std::endl;
                     return OpcUa_Bad;

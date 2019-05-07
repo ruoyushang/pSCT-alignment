@@ -10,7 +10,7 @@
 #include "common/alignment/device.hpp"
 
 
-PanelController::PanelController(Device::Identity identity, Client *pClient) :
+PanelController::PanelController(Device::Identity identity, std::shared_ptr<Client> pClient) :
         PasCompositeController(std::move(identity), pClient, 1000) {
     m_ID.name = std::string("Panel_") + std::to_string(m_ID.position);
     m_state = Device::DeviceState::On;
