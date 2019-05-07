@@ -13,9 +13,7 @@ public:
     friend MirrorController;
 
     // construction / destruction
-    EdgeController(Device::Identity identity)
-
-    explicit;
+    explicit EdgeController(Device::Identity identity);
 
     ~EdgeController() override;
 
