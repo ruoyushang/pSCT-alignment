@@ -1283,7 +1283,7 @@ UaStatus MirrorController::alignGlobal(unsigned fixPanel, double alignFrac, bool
         for (const auto& edge : edgesToFit) {
             // and set them for each sensor along each edge
             for (const auto& mpes : edge->m_ChildrenPositionMap.at(PAS_MPESType) ) {
-                (std::dynamic_pointer_cast_cast<MPESController>(
+                (std::dynamic_pointer_cast<MPESController>(
                     edge->m_pChildren.at(PAS_MPESType).at(mpes.second)))->SystematicOffsets =
                     SystematicOffsetsMPESMap.at(ring).at(mpes.first);
             }
@@ -1466,7 +1466,7 @@ double MirrorController::chiSq(const Eigen::VectorXd &telDelta)
         // as computed from actuator lengths and pad coordinates as computed from telescope
         // coordinates
         for (int pad = 0; pad < 3; pad++) {
-            padCoordsActs = std::dynamic_pointer_cast_cast<PanelController>(panels.at(idx))->getPadCoords().col(
+            padCoordsActs = std::dynamic_pointer_cast<PanelController>(panels.at(idx))->getPadCoords().col(
                 pad);
             // and transform this to the telescope reference frame:
             // these are pad coordinates in TRF as computed from actuator lengths
