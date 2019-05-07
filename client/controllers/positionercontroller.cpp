@@ -18,7 +18,8 @@
 #include <unistd.h>
 
 
-PositionerController::PositionerController(Identity identity, Client *pClient) : PasController(identity, pClient)
+PositionerController::PositionerController(Device::Identity identity, Client *pClient) : PasController(identity,
+                                                                                                       pClient)
 {
     m_state = Device::DeviceState::On;
     m_Data = {0.0, 0.0, 0.0, 0.0, OpcUa_False};

@@ -20,7 +20,7 @@ public:
     friend MirrorController;
 
     /* construction / destruction */
-    MPESController(Identity identity, Client *pClient);
+    MPESController(Device::Identity identity, Client *pClient);
 
     ~MPESController();
 
@@ -66,7 +66,7 @@ private:
     static float kNominalIntensity;
     static float kNominalCentroidSD;
 
-    Identity m_wPanelId; // id of the webcam-side panel
+    Device::Identity m_wPanelId; // id of the webcam-side panel
     // actuator response matrix map -- {panel position -> matrix}
     std::map<char, Eigen::Matrix<double, 2, 6> > m_ResponseMatMap;
     // aligned readings

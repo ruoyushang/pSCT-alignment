@@ -33,7 +33,7 @@ public:
           m_pClient(pClient) {};
 
 protected:
-    Client *m_pClient;
+    std::shared_ptr<Client> m_pClient;
 };
 
 

@@ -20,7 +20,7 @@ public:
     friend MirrorController;
 
     /* construction / destruction */
-    explicit CCDController(Identity identity);
+    explicit CCDController(Device::Identity identity);
 
     ~CCDController() override;
 

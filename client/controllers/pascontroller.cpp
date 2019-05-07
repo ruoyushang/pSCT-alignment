@@ -1,6 +1,6 @@
 #include "pascontroller.hpp"
 #include "ccdclass.h"
-#include "clienthelper.hpp"
+#include "client/clienthelper.hpp"
 #include "common/alignment/device.hpp"
 #include "common/opcua/pasobject.hpp"
 #include <iostream>

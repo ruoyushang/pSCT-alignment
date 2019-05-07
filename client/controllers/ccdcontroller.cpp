@@ -13,12 +13,13 @@
 #include "common/opcua/pascominterfacecommon.hpp"
 #include "common/opcua/pasobject.hpp"
 #include "common/opcua/passervertypeids.hpp"
+#include "common/alignment
 
 #include "client/clienthelper.hpp"
 #include "client/controllers/pascontroller.hpp"
 
 
-CCDController::CCDController(Identity identity) : PasController(std::move(identity), nullptr) {
+CCDController::CCDController(Device::Identity identity) : PasController(std::move(identity), nullptr) {
     m_pCCD = new GASCCD();
     m_pCCD->setConfig(m_ID.eAddress);
     m_pCCD->Initialize();

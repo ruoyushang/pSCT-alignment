@@ -1,6 +1,6 @@
 #include "mirrorcontroller.hpp"
-#include "mathtools.h"
-#include "mirrordefinitions.h" // definitions of the mirror surfaces
+#include "common/simulatestewart/mathtools.h"
+#include "common/simulatestewart/mirrordefinitions.h" // definitions of the mirror surfaces
 #include "AGeoAsphericDisk.h" // ROBAST dependency
 #include <algorithm> // std::count
 #include <string>
@@ -20,8 +20,9 @@
 
 MirrorController *MirrorControllerCompute::m_Mirror = nullptr;
 
-MirrorController::MirrorController(Identity identity) : PasCompositeController(std::move(identity), nullptr, 10000),
-                                                        m_pSurface(nullptr) {
+MirrorController::MirrorController(Device::Identity identity) : PasCompositeController(std::move(identity), nullptr,
+                                                                                       10000),
+                                                                m_pSurface(nullptr) {
     std::string mirrorprefix;
     if (m_ID.position == 1)
         mirrorprefix = "Primary";
@@ -60,7 +61,7 @@ MirrorController::MirrorController(Identity identity) : PasCompositeController(s
     m_lastUpdateTime = TIME::now() - std::chrono::duration<int, std::ratio<1, 1000>>(m_kUpdateInterval_ms);                                                   
 }
 
-void MirrorController::addChild(OpcUa_UInt32 deviceType, PasController *const pController)
+void MirrorController::addChild(OpcUa_UInt32 deviceType, const std::shared_ptr<PasController> &pController)
 {
     // call the base type's method
     PasCompositeController::addChild(deviceType, pController);
@@ -421,7 +422,7 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
         // to get an edge position and a direction. The type has
         // already been validated by the caller, but we need to
         // check the existence of such edge and direction:
-        Identity startId;
+        Device::Identity startId;
         // first argument is the starting edge address
         startId.eAddress = UaString(args[0].Value.String).toUtf8();
 
@@ -685,7 +686,7 @@ UaStatus MirrorController::alignSequential(unsigned startEdge, const std::set<un
         }
 
         // get the next edge
-        Identity id;
+        Device::Identity id;
         id.eAddress = SCTMath::GetEdgeNeighbor(m_pChildren.at(PAS_EdgeType).at(cur_idx)->getId().eAddress, dir);
         try {
             cur_idx = m_ChildrenIdentityMap.at(PAS_EdgeType).at(id);
@@ -742,7 +743,7 @@ void MirrorController::parseAndSetSelection(const std::string &selectionString, 
     }
     else if (deviceType == PAS_MPESType) { // expect a list of Sensor serials
         m_selectedMPES.clear();
-        Identity curid;
+        Device::Identity curid;
         std::cout << std::endl << m_ID.name << " selected the following MPES (serials):\n\t";
         for (const std::string &item : strList) {
             curid.serialNumber = stoi(item);
@@ -759,7 +760,7 @@ void MirrorController::parseAndSetSelection(const std::string &selectionString, 
 
     else if (deviceType == PAS_EdgeType) { // expect a list of edge addresses
         m_selectedEdges.clear();
-        Identity curid;
+        Device::Identity curid;
         std::cout << std::endl << m_ID.name << " selected the following edges (eAddresses):\n\t";
         for (const std::string &item : strList) {
             curid.eAddress = item;
@@ -785,13 +786,13 @@ std::set<unsigned> MirrorController::getSelectedDeviceIndices(unsigned deviceTyp
             devices.insert(m_ChildrenPositionMap.at(deviceType).at(pos));
         }
     } else if (deviceType == PAS_MPESType) { // expect a list of Sensor serials
-        Identity curid;
+        Device::Identity curid;
         for (auto &serial : m_selectedMPES) {
             curid.serialNumber = serial;
             devices.insert(m_ChildrenIdentityMap.at(deviceType).at(curid));
         }
     } else if (deviceType == PAS_EdgeType) { // expect a list of edge addresses
-        Identity curid;
+        Device::Identity curid;
         for (auto &eAddress : m_selectedEdges) {
             curid.eAddress = eAddress;
             devices.insert(m_ChildrenIdentityMap.at(deviceType).at(curid));
@@ -1137,7 +1138,7 @@ UaStatus MirrorController::alignGlobal(unsigned fixPanel, double alignFrac, bool
                                       // but doing this for possible future needs
         std::vector<PanelController *> panelsToMove;
         unsigned curPanel = fixPanel, nextPanel, cursize = 0;
-        Identity id;
+        Device::Identity id;
         // keep track of the position in the global response matrix
         unsigned blockRow = 0;
         std::cout << "+++ DEBUG +++ Traversing Ring " << ring << " of Mirror " << mirror << " clockwise\n"

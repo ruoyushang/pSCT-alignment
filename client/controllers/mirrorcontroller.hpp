@@ -4,7 +4,7 @@
 #include "client/controllers/pascontroller.hpp"
 #include "TObject.h" // to be able to use ROOT's MINUIT implementation
 // these are included in pascontroller.h, but we add them just in case something changes there
-#include "stewartplatform.h"
+#include "common/simulatestewart/stewartplatform.h"
 
 #include <set>
 // Eigen3 for linear algebra needs
@@ -50,7 +50,7 @@ public:
 class MirrorController : public PasCompositeController {
     UA_DISABLE_COPY(MirrorController);
 public:
-    explicit MirrorController(Identity identity);
+    explicit MirrorController(Device::Identity identity);
 
     ~MirrorController() override;
 
@@ -69,7 +69,7 @@ public:
     UaStatus operate(OpcUa_UInt32 offset, const UaVariantArray &args) override;
 
     // own implementation
-    void addChild(OpcUa_UInt32 deviceType, PasController *pController) override;
+    void addChild(OpcUa_UInt32 deviceType, const std::shared_ptr<PasController> &pController) override;
 
     // let MirrorControllerCompute access the internal chiSq function
     friend void MirrorControllerCompute::chiSqFCN(int &npar, double *gin, double &f, double *par, int iflag);

@@ -8,6 +8,8 @@
 #include "client/controllers/pascontroller.hpp"
 #include "client/controllers/panelcontroller.hpp"
 
+#include "common/alignment/device.hpp"
+
 class Client;
 
 class ActController : public PasController {
@@ -17,7 +19,7 @@ public:
     friend PanelController;
 
     // construction / destruction
-    ActController(Identity identity, Client *pClient);
+    ActController(Device::Identity identity, Client *pClient);
 
     ~ActController() override;
 

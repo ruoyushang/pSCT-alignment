@@ -2,7 +2,6 @@
 #define CLIENT_OPTTABLEOBJECT_HPP
 
 #include "uaserver/methodmanager.h"
-#include "common/opcua/components.hpp"
 #include "common/opcua/pasobject.hpp"
 
 #include "common/alignment/device.hpp"

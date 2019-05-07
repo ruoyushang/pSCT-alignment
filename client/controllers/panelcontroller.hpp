@@ -7,6 +7,8 @@
 #include "client/controllers/mirrorcontroller.hpp"
 #include "client/controllers/edgecontroller.hpp"
 
+#include "common/alignment/device.hpp"
+
 class PanelController : public PasCompositeController {
     UA_DISABLE_COPY(PanelController);
 
@@ -15,7 +17,7 @@ public:
     friend EdgeController; // access internal methods for compute
 
     // construction / destruction
-    PanelController(Identity identity, Client *pClient);
+    PanelController(Device::Identity identity, Client *pClient);
 
     ~PanelController() override;
 

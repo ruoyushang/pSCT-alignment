@@ -2,6 +2,7 @@
 
 #include "common/utilities/DBConfig.hpp"
 #include "client/clienthelper.hpp"
+#include "common/opcua/pasobject.hpp"
 
 #include "mysql_driver.h"
 #include "cppconn/statement.h"
@@ -11,8 +12,9 @@
 float MPESController::kNominalIntensity = 150000.;
 float MPESController::kNominalCentroidSD = 20.;
 
-MPESController::MPESController(Identity identity, Client *pClient) : PasController(std::move(identity), pClient),
-                                                                     m_updated(false), m_isVisible(false) {
+MPESController::MPESController(Device::Identity identity, Client *pClient) : PasController(std::move(identity),
+                                                                                           pClient),
+                                                                             m_updated(false), m_isVisible(false) {
     m_state = Device::DeviceState::On;
     m_Data = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
 

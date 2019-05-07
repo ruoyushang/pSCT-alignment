@@ -14,9 +14,10 @@
 #include "common/opcua/passervertypeids.hpp"
 
 #include "client/clienthelper.hpp"
+#include "common/alignment/device.hpp"
 #include "client/controllers/pascontroller.hpp"
 
-ActController::ActController(Identity identity, Client *pClient) : PasController(std::move(identity), pClient) {
+ActController::ActController(Device::Identity identity, Client *pClient) : PasController(std::move(identity), pClient) {
     m_state = Device::DeviceState::On;
 }
 
