@@ -16,9 +16,7 @@
 
 class CBC;
 class Platform;
-
 class MPESImageSet;
-
 class MPESDevice;
 
 
@@ -26,10 +24,13 @@ class MPES : public Device
 {
 public:
     struct Position {
-        float xCenter;
-        float yCenter;
-        float xStdDev;
-        float yStdDev;
+        Position() : xCentroid(-1), yCentroid(-1), xSpotWidth(-1), ySpotWidth(-1), cleanedIntensity(0), xNominal(-1),
+                     yNominal(-1) {}
+
+        float xCentroid;
+        float yCentroid;
+        float xSpotWidth;
+        float ySpotWidth;
         float cleanedIntensity;
         float xNominal;
         float yNominal;
@@ -37,13 +38,16 @@ public:
 
     static const std::vector<Device::ErrorDefinition> ERROR_DEFINITIONS;
 
-    MPES(std::shared_ptr<CBC> pCBC, int USBPortNumber, int serialNumber);
+    std::vector<Device::ErrorDefinition> getErrorCodeDefinitions() override { return MPES::ERROR_DEFINITIONS; }
+
+    MPES(std::shared_ptr<CBC> pCBC, Device::Identity identity);
     ~MPES();
 
-    int getPortNumber() const { return m_USBPortNumber; };
-    void setPortNumber(int USBPortNumber);
+    int getPortNumber() const { return std::stoi(m_Identity.eAddress); };
 
-    virtual bool initialize() override;
+    int getSerialNumber() const { return m_Identity.serialNumber; };
+
+    bool initialize() override;
     virtual int setExposure();
 
     void setxNominalPosition(float x) { m_Position.xNominal = x; }
@@ -52,35 +56,23 @@ public:
     virtual int updatePosition();
     MPES::Position getPosition() const { return m_Position; };
 
-    bool getError(int errorCode) { return m_Errors[errorCode]; }
-    void clearErrors();
-    bool forceRecover();
-
-    Device::DeviceState getState() { return m_state; }
-
-    void turnOn() { setState(Device::DeviceState::On); }
-    void turnOff() { setState(Device::DeviceState::Off); }
-
 protected:
-    std::shared_ptr<Platform> m_pPlatform;
-
-    int m_USBPortNumber;
     bool m_Calibrate;
 
-    Position m_Position; // MPES Reading
+    Position m_Position = Position(); // MPES Reading
 
     // helpers
     std::shared_ptr<MPESImageSet> m_pImageSet;
     std::unique_ptr<MPESDevice> m_pDevice;
 
-    std::set<int> getVideoDevices();
+    static std::set<int> getVideoDevices();
 
     // Hardcoded constants
     static const int DEFAULT_IMAGES_TO_CAPTURE;
     static const std::string MATRIX_CONSTANTS_DIR_PATH;
     static const std::string CAL2D_CONSTANTS_DIR_PATH;
 
-    static const float NOMINAL_INTENSITY;
+    static const int NOMINAL_INTENSITY;
     static const float NOMINAL_CENTROID_SD;
 
     static const float SAFETY_REGION_X_MIN;
@@ -92,7 +84,7 @@ protected:
 class DummyMPES : public MPES
 {
 public:
-    DummyMPES(std::shared_ptr<CBC> pCBC, int portNumber, int serialNumber) : MPES(pCBC, portNumber, serialNumber) {};
+    DummyMPES(std::shared_ptr<CBC> pCBC, Device::Identity identity) : MPES(std::move(pCBC), std::move(identity)) {};
 
     bool initialize() override;
     int setExposure() override;

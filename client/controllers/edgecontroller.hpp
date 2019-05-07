@@ -13,17 +13,19 @@ public:
     friend MirrorController;
 
     // construction / destruction
-    EdgeController(Identity identity);
+    EdgeController(Device::Identity identity)
+
+    explicit;
 
     ~EdgeController() override;
 
     // Get Controller status and data
-    UaStatus getState(PASState &state) override;
+    UaStatus getState(Device::DeviceState &state) override;
 
     UaStatus getData(OpcUa_UInt32 offset, UaVariant &value) override;
 
     // set Controller status and data
-    UaStatus setState(PASState state) override;
+    UaStatus setState(Device::DeviceState state) override;
 
     UaStatus setData(OpcUa_UInt32 offset, UaVariant value) override;
 

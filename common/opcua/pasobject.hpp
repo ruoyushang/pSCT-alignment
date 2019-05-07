@@ -15,18 +15,17 @@ class PasCommunicationInterface;
 class PasNodeManagerCommon;
 class PasComInterfaceCommon;
 class UaMethodGeneric;
-struct Identity;
 
 class PasObject :  public OpcUa::BaseObjectType
 {
     UA_DISABLE_COPY(PasObject);
 public:
     PasObject(const UaString& name,
-            const UaNodeId& newNodeId,
-            const UaString& defaultLocaleId,
-            PasNodeManagerCommon *pNodeManager,
-            Identity identity,
-            PasComInterfaceCommon *pCommIf);
+              const UaNodeId& newNodeId,
+              const UaString& defaultLocaleId,
+              PasNodeManagerCommon *pNodeManager,
+              Device::Identity identity,
+              PasComInterfaceCommon *pCommIf);
 
     virtual ~PasObject();
     virtual UaNodeId typeDefinitionId() const = 0;
@@ -34,9 +33,9 @@ public:
     void initialize();
 
     // Implement UaObject interface
-    OpcUa_Byte eventNotifier() const;
+    OpcUa_Byte eventNotifier() const override;
     // Override UaObject method implementation
-    MethodManager* getMethodManager(UaMethod* pMethod) const;
+    MethodManager *getMethodManager(UaMethod *pMethod) const override;
 
     // Implement MethodManager interface
     // general beginCall that spawns a worker thread and calls call() on the desired method
@@ -76,7 +75,7 @@ protected:
 
     UaString                   m_defaultLocaleId;
     UaMutexRefCounted*         m_pSharedMutex;
-    Identity                   m_Identity;
+    Device::Identity m_Identity;
     PasComInterfaceCommon*     m_pCommIf;
     PasNodeManagerCommon*      m_pNodeManager;
     UaNodeId m_newNodeId;
@@ -89,16 +88,16 @@ class PasUserData : public UserDataBase
     UA_DISABLE_COPY(PasUserData);
 public:
     PasUserData(OpcUa_Boolean isState, OpcUa_UInt32 type,
-            Identity identity,
-            OpcUa_UInt32 variableOffset) :
-    m_isState(isState), m_Type(type), m_Identity(identity), m_variableOffset(variableOffset) {}
+                Device::Identity identity,
+                OpcUa_UInt32 variableOffset) :
+        m_isState(isState), m_Type(type), m_Identity(std::move(identity)), m_variableOffset(variableOffset) {}
 
-    virtual ~PasUserData(){}
+    virtual ~PasUserData() = default;
 
     /** Indicates if this is a state variable. */
     inline OpcUa_UInt32 isState() const { return m_isState; }
     /** Returns the device Identity. */
-    inline Identity DeviceId() const { return m_Identity; }
+    inline Device::Identity DeviceId() const { return m_Identity; }
     /** Returns the device Type. */
     inline OpcUa_UInt32 DeviceType() const { return m_Type; }
     /** Returns the variable offset in the device. */
@@ -107,7 +106,7 @@ public:
 private:
     OpcUa_Boolean m_isState;
     OpcUa_UInt32  m_Type;
-    Identity      m_Identity;
+    Device::Identity m_Identity;
     OpcUa_UInt32  m_variableOffset;
 };
 
@@ -117,12 +116,12 @@ class MPESObject : public PasObject
     UA_DISABLE_COPY(MPESObject);
 public:
     MPESObject(
-            const UaString& name,
-            const UaNodeId& newNodeId,
-            const UaString& defaultLocaleId,
-            PasNodeManagerCommon* pNodeManager,
-            Identity identity,
-            PasComInterfaceCommon *pCommIf) : PasObject(name, newNodeId, defaultLocaleId, pNodeManager, identity,
+        const UaString& name,
+        const UaNodeId& newNodeId,
+        const UaString& defaultLocaleId,
+        PasNodeManagerCommon* pNodeManager,
+        Device::Identity identity,
+        PasComInterfaceCommon *pCommIf) : PasObject(name, newNodeId, defaultLocaleId, pNodeManager, identity,
                                                         pCommIf) { initialize(); }
 
     UaNodeId typeDefinitionId() const override;
@@ -152,24 +151,24 @@ class ACTObject : public PasObject
     UA_DISABLE_COPY(ACTObject);
 public:
     ACTObject(
-            const UaString& name,
-            const UaNodeId& newNodeId,
-            const UaString& defaultLocaleId,
-            PasNodeManagerCommon* pNodeManager,
-            Identity identity,
-            PasComInterfaceCommon *pCommIf) : PasObject(name, newNodeId, defaultLocaleId, pNodeManager, identity,
+        const UaString& name,
+        const UaNodeId& newNodeId,
+        const UaString& defaultLocaleId,
+        PasNodeManagerCommon* pNodeManager,
+        Device::Identity identity,
+        PasComInterfaceCommon *pCommIf) : PasObject(name, newNodeId, defaultLocaleId, pNodeManager, identity,
                                                         pCommIf) { initialize(); }
 
-    UaNodeId typeDefinitionId() const;
+    UaNodeId typeDefinitionId() const override;
 
     const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, OpcUa_Byte>>
-    getVariableDefs() { return ACTObject::VARIABLES; }
+    getVariableDefs() override { return ACTObject::VARIABLES; }
 
     const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean>>
-    getErrorDefs() { return ACTObject::ERRORS; }
+    getErrorDefs() override { return ACTObject::ERRORS; }
 
     const std::map<OpcUa_UInt32, std::pair<std::string, std::vector<std::tuple<std::string, UaNodeId, std::string>>>>
-    getMethodDefs() { return ACTObject::METHODS; }
+    getMethodDefs() override { return ACTObject::METHODS; }
 
     /// @brief Map of OPC UA type ids for all child variables to their name, default value, is_state value, and access level.
     static const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, OpcUa_Byte>> VARIABLES;
@@ -187,24 +186,24 @@ class PSDObject : public PasObject
     UA_DISABLE_COPY(PSDObject);
 public:
     PSDObject(
-            const UaString& name,
-            const UaNodeId& newNodeId,
-            const UaString& defaultLocaleId,
-            PasNodeManagerCommon* pNodeManager,
-            Identity identity,
-            PasComInterfaceCommon *pCommIf) : PasObject(name, newNodeId, defaultLocaleId, pNodeManager, identity,
+        const UaString& name,
+        const UaNodeId& newNodeId,
+        const UaString& defaultLocaleId,
+        PasNodeManagerCommon* pNodeManager,
+        Device::Identity identity,
+        PasComInterfaceCommon *pCommIf) : PasObject(name, newNodeId, defaultLocaleId, pNodeManager, identity,
                                                         pCommIf) { initialize(); }
 
-    UaNodeId typeDefinitionId() const;
+    UaNodeId typeDefinitionId() const override;
 
     const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, OpcUa_Byte>>
-    getVariableDefs() { return PSDObject::VARIABLES; }
+    getVariableDefs() override { return PSDObject::VARIABLES; }
 
     const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean>>
-    getErrorDefs() { return PSDObject::ERRORS; }
+    getErrorDefs() override { return PSDObject::ERRORS; }
 
     const std::map<OpcUa_UInt32, std::pair<std::string, std::vector<std::tuple<std::string, UaNodeId, std::string>>>>
-    getMethodDefs() { return PSDObject::METHODS; }
+    getMethodDefs() override { return PSDObject::METHODS; }
 
     /// @brief Map of OPC UA type ids for all child variables to their name, default value, is_state value, and access level.
     static const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, OpcUa_Byte>> VARIABLES;

@@ -5,6 +5,8 @@
 #include "mpeseventdata.hpp"
 #include "uaserver/methodhandleuanode.h"
 
+#include "common/alignment/device.hpp"
+
 #include <iostream>
 
 #include "uabase/uamutex.h"
@@ -12,11 +14,11 @@
 // ----------------------------------------------------------------
 // PasObject implementation
 PasObject::PasObject(const UaString& name,
-        const UaNodeId& newNodeId,
-        const UaString& defaultLocaleId,
-        PasNodeManagerCommon *pNodeManager,
-        Identity identity,
-        PasComInterfaceCommon *pCommIf) :
+                     const UaNodeId& newNodeId,
+                     const UaString& defaultLocaleId,
+                     PasNodeManagerCommon *pNodeManager,
+                     Device::Identity identity,
+                     PasComInterfaceCommon *pCommIf) :
     BaseObjectType(newNodeId, name, pNodeManager->getNameSpaceIndex(),
                          pNodeManager->getNodeManagerConfig()),
     m_defaultLocaleId(defaultLocaleId),

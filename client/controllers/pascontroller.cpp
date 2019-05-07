@@ -1,7 +1,7 @@
 #include "pascontroller.hpp"
 #include "ccdclass.h"
 #include "clienthelper.hpp"
-#include "components.hpp"
+#include "common/alignment/device.hpp"
 #include "common/opcua/pasobject.hpp"
 #include <iostream>
 #include <fstream>
@@ -20,7 +20,7 @@
 #include <Eigen/Dense>
 
 // implement PasCompositeController::addChild()
-void PasCompositeController::addChild(OpcUa_UInt32 deviceType, PasController *const pController)
+void PasCompositeController::addChild(OpcUa_UInt32 deviceType, const std::shared_ptr<PasController> &pController)
 {
     std::cout << " --- " << m_ID.name << "::addChild(): "
               << m_ID.name << ": adding " << pController->getId() << std::endl;

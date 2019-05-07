@@ -13,6 +13,7 @@
 #include "common/alignment/platform.hpp"
 #include "common/cbccode/cbc.hpp"
 #include "common/mpescode/MPESImage.h"
+#include "common/mpescode/MPESImageSet.h"
 #include "common/mpescode/MPESDevice.h"
 
 const int MPES::DEFAULT_IMAGES_TO_CAPTURE = 9;
@@ -38,19 +39,13 @@ const std::vector<Device::ErrorDefinition> MPES::ERROR_DEFINITIONS = {
     {"Intensity deviation from nominal value (more than 20%).",                                                    Device::DeviceState::OperableError},//error 7
 };
 
-MPES::MPES(std::shared_ptr<CBC> pCBC, identity) : Device::Device(pCBC, identity)
-
-m_SerialNumber(identity
-.serialNumber),
-    m_Calibrate(false)
+MPES::MPES(std::shared_ptr<CBC> pCBC, Device::Identity identity) : Device::Device(std::move(pCBC), std::move(identity)),
+                                                                   m_Calibrate(false)
 {
-setPortNumber(m_Identity
-.eAddress);
 }
 
-MPES::~MPES() : Device::~Device()
-{
-    m_pCBC->usb.disable(m_USBPortNumber);
+MPES::~MPES() {
+    m_pCBC->usb.disable(getPortNumber());
 }
 
 // returns intensity of the sensor image.
@@ -60,10 +55,12 @@ bool MPES::initialize()
     // we toggle the usb port, checking the video devices when it's off and again when it's on.
     // the new video device is the ID of the newly created MPES.
 
-    m_pCBC->usb.disable(m_USBPortNumber); // make sure our USB is off
+    m_Errors.assign(getNumErrors(), false);
+
+    m_pCBC->usb.disable(getPortNumber()); // make sure our USB is off
     std::set<int> oldVideoDevices = getVideoDevices(); // count video devices
 
-    m_pCBC->usb.enable(m_USBPortNumber); // switch the usb back on and wait for the video device to show up
+    m_pCBC->usb.enable(getPortNumber()); // switch the usb back on and wait for the video device to show up
     sleep(4);
 
     std::set<int> newVideoDevices = getVideoDevices(); // check all video devices again
@@ -71,8 +68,9 @@ bool MPES::initialize()
     std::set<int> toggledDevices;
     std::set_difference(newVideoDevices.begin(), newVideoDevices.end(), oldVideoDevices.begin(), oldVideoDevices.end(), toggledDevices.begin());
 
+    int newVideoDeviceId;
     if (toggledDevices.size() == 1) {
-        int newVideoDeviceId = *toggledDevices.begin(); // get the only element in the set -- this is the new device ID
+        newVideoDeviceId = *toggledDevices.begin(); // get the only element in the set -- this is the new device ID
         if (newVideoDeviceId == -1) {
             return false; // make sure this is a valid video device -- i.e., not -1
         }
@@ -82,11 +80,11 @@ bool MPES::initialize()
     }
 
     std::cout << "MPES::initialize(): Detected new video device " << newVideoDeviceId << std::endl;
-    m_pDevice = std::shared_ptr<MPESDevice>(new MPESDevice(newVideoDeviceId));
-    m_pImageSet = std::unique_ptr<MPESImageSet>(new MPESImageSet(m_pDevice, DEFAULT_IMAGES_TO_CAPTURE));
+    m_pDevice = std::unique_ptr<MPESDevice>(new MPESDevice(newVideoDeviceId));
+    m_pImageSet = std::unique_ptr<MPESImageSet>(new MPESImageSet(m_pDevice.get(), DEFAULT_IMAGES_TO_CAPTURE));
 
     std::ostringstream oss;
-    std::oss << std::setfill('0') << std::setw(6) << m_SerialNumber; // pad serial number to 6 digits with zeros
+    oss << std::setfill('0') << std::setw(6) << getSerialNumber(); // pad serial number to 6 digits with zeros
     std::string MPES_IDstring = oss.str();
 
     std::string matFileFullPath = MATRIX_CONSTANTS_DIR_PATH + MPES_IDstring + "_MatConstants.txt";
@@ -98,11 +96,11 @@ bool MPES::initialize()
     std::ifstream calFile(calFileFullPath);
 
     if ( matFile.good() && calFile.good() ) { // Check if files exist and can be read
-        matFile.close()
-        calFile.close()
+        matFile.close();
+        calFile.close();
 
-        m_pDevice->loadCalibration(calFileFullPath.c_str());
-        m_pDevice->loadMatrixTransform(matFileFullPath.c_str());
+        m_pDevice->LoadCalibration(calFileFullPath.c_str());
+        m_pDevice->LoadMatrixTransform(matFileFullPath.c_str());
         std::cout << "Read calibration data OK -- using calibrated values\n";
         m_Calibrate = true;
     }
@@ -117,15 +115,16 @@ bool MPES::initialize()
 // returns measured intensity -- check this value to see if things work fine
 int MPES::setExposure()
 {
-    std::cout << "MPES:: Setting exposure for device at USB " << m_USBPortNumber << std::endl;
+    std::cout << "MPES:: Setting exposure for device at USB " << getPortNumber() << std::endl;
     int intensity;
 
     int counter = 0;
-    while ( (intensity = measurePosition())
-            && (!m_pDevice->isWithinIntensityTolerance(intensity))
-            && (counter <= 5))
+    while ((intensity = updatePosition())
+           && (!m_pDevice->isWithinIntensityTolerance(intensity))
+           && (counter <= 5))
     {
-        m_pDevice->setExposure((int)(m_pDevice->getTargetIntensity() / intensity * ((float)m_pDevice->getExposure())));
+        m_pDevice->SetExposure(
+            (int) (m_pDevice->GetTargetIntensity() / intensity * ((float) m_pDevice->GetExposure())));
 
         ++counter;
     }
@@ -134,25 +133,15 @@ int MPES::setExposure()
     return intensity;
 }
 
-void MPES::setPortNumber(int USBPortNumber)
-{
-    if ((USBPortNumber >= 1) && (USBPortNumber <= 6)) {
-        m_USBPortNumber = usbPortNumber;
-    }
-    else {
-        std::cout << "MPES:: Invalid USB port " << USBPortNumber << " (USB Port must be between 1-6). USB port not set" << std::endl;
-    }
-}
-
 // returns intensity of the beam -- 0 if no beam/device.
 // so check the return value to know if things work fine
-int MPES::measurePosition()
+int MPES::updatePosition()
 {
     // initialize to something obvious in case of failure
-    m_Position.xCenter = -1.;
-    m_Position.yCenter = -1.;
-    m_Position.xStdDev = -1.;
-    m_Position.yStdDev = -1.;
+    m_Position.xCentroid = -1.;
+    m_Position.yCentroid = -1.;
+    m_Position.xSpotWidth = -1.;
+    m_Position.ySpotWidth = -1.;
     m_Position.cleanedIntensity = 0.;
 
     // read sensor
@@ -165,14 +154,14 @@ int MPES::measurePosition()
 	        m_pImageSet->simpleAverage();
         }
 
-        m_Position.xCenter = m_pImageSet->SetData.xCentroid;
-        m_Position.yCenter = m_pImageSet->SetData.yCentroid;
-        m_Position.xStdDev = m_pImageSet->SetData.xCentroidSD;
-        m_Position.yStdDev = m_pImageSet->SetData.yCentroidSD;
-        m_Position.CleanedIntensity = m_pImageSet->SetData.CleanedIntensity;
+        m_Position.xCentroid = m_pImageSet->SetData.xCentroid;
+        m_Position.yCentroid = m_pImageSet->SetData.yCentroid;
+        m_Position.xSpotWidth = m_pImageSet->SetData.xCentroidSD;
+        m_Position.ySpotWidth = m_pImageSet->SetData.yCentroidSD;
+        m_Position.cleanedIntensity = m_pImageSet->SetData.CleanedIntensity;
     }
 
-    if (m_Position.xCenter == -1. || m_Position.yCenter == -1. ) {
+    if (m_Position.xCentroid == -1. || m_Position.yCentroid == -1.) {
         std::cout << "MPES reading of xCenter or yCenter = -1! Potentially lost beam..." << std::endl;
     }
 
@@ -186,9 +175,9 @@ std::set<int> MPES::getVideoDevices()
     DIR *dir;
     struct dirent *ent;
 
-    if ((dir = opendir("/dev")) != NULL) { // Open /dev device directory in filesystem
+    if ((dir = opendir("/dev")) != nullptr) { // Open /dev device directory in filesystem
         /* print all the files and directories within directory */
-        while ((ent = readdir(dir)) != NULL) {
+        while ((ent = readdir(dir)) != nullptr) {
             std::string currentEntry = ent->d_name;
             size_t pos;
             std::string substringToFind = "video"; // Locate video devices (name including the string "video")
@@ -215,18 +204,18 @@ bool DummyMPES::initialize()
 
 int DummyMPES::setExposure()
 {
-    std::cout << "+++ Dummy MPES: Setting exposure for device at USB " << m_USBPortNumber << std::endl;
+    std::cout << "+++ Dummy MPES: Setting exposure for device at USB " << getPortNumber() << std::endl;
     int intensity = NOMINAL_INTENSITY; // dummy value
     return intensity;
 }
 
-int DummyMPES::measurePosition()
+int DummyMPES::updatePosition()
 {
     // Set internal position variable to dummy values
-    m_Position.xCenter = 160.;
-    m_Position.yCenter = 80.;
-    m_Position.xStdDev = 10.;
-    m_Position.yStdDev = 10.;
+    m_Position.xCentroid = 160.;
+    m_Position.yCentroid = 80.;
+    m_Position.xSpotWidth = 10.;
+    m_Position.ySpotWidth = 10.;
     m_Position.cleanedIntensity = NOMINAL_INTENSITY;
 
     return static_cast<int>(m_Position.cleanedIntensity);

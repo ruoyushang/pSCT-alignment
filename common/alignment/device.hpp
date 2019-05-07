@@ -4,6 +4,7 @@
 #include <iostream>
 #include <memory>
 #include <string>
+#include <vector>
 
 class CBC;
 
@@ -61,17 +62,19 @@ public:
     };
 
     Device(std::shared_ptr<CBC> pCBC, Identity identity);
-    ~Device();
+
+    ~Device() = default;
 
     virtual std::vector <Device::ErrorDefinition> getErrorCodeDefinitions() = 0;
     int getNumErrors() { return (int)getErrorCodeDefinitions().size(); }
 
     bool getError(int errorCode) { return m_Errors[errorCode]; }
-    void clearErrors();
+
+    virtual void clearErrors();
 
     virtual bool initialize() = 0;
 
-    Device::DeviceState getState() { return m_state; }
+    virtual Device::DeviceState getState() { return m_state; }
 
     void turnOn() { setState(Device::DeviceState::On); }
     void turnOff() { setState(Device::DeviceState::Off); }
@@ -79,10 +82,10 @@ public:
 
 protected:
     std::shared_ptr<CBC> m_pCBC;
-    int m_Identity;
+    Device::Identity m_Identity;
 
     Device::DeviceState m_state;
-    std::vector<bool> m_Errors = { false };
+    std::vector<bool> m_Errors;
 
     void setState(Device::DeviceState state);
     void updateState();

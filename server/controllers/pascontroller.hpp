@@ -29,22 +29,27 @@ public:
     /// @param ID The device index within its type.
     /// @param pPlatform Pointer to the platform object used to interface with the hardware.
     /// @param updateInterval Update interval in milliseconds.
-    explicit PasController(Identity identity, std::shared_ptr<Platform> pPlatform = std::shared_ptr<Platform>(nullptr),
+    explicit PasController(Device::Identity identity,
+                           std::shared_ptr<Platform> pPlatform = std::shared_ptr<Platform>(nullptr),
                            int updateInterval = 0) : PasControllerCommon(identity, updateInterval), m_pPlatform(std::move(pPlatform)) {}
 
     /// @brief Instantiate a PasController object without a Platform object.
     /// @param ID The device index within its type.
     /// @param updateInterval Update interval in milliseconds.
-    PasController(Identity identity, int updateInterval) : PasController(identity, std::shared_ptr<Platform>(nullptr),
-                                                                         updateInterval) {}
-    PasController(int ID, int updateInterval) : PasController(ID, std::shared_ptr<Platform>(nullptr), updateInterval) {}
+    PasController(Device::Identity identity, int updateInterval) : PasController(identity,
+                                                                                 std::shared_ptr<Platform>(nullptr),
+                                                                                 updateInterval) {}
+
+    PasController(Device::Identity identity, int updateInterval) : PasController(identity,
+                                                                                 std::shared_ptr<Platform>(nullptr),
+                                                                                 updateInterval) {}
 
     /// @brief Initialize the controller object.
     /// @return 0 on success, -1 on failure.
-    virtual int initialize() { return 0; } // only MPES overload this for now
+    virtual bool initialize() { return true; } // only MPES overload this for now
     /// @brief Get the device ID/index.
     /// @return The device ID.
-    int getID() { return m_ID; }
+    Device::Identity getID() { return m_ID; }
 
     /// @brief Destroy a controller object.
     virtual ~PasController() {}

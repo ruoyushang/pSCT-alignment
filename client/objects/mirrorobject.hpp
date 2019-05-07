@@ -2,7 +2,7 @@
 #define __PASMIRROR_H__
 
 #include "uaserver/methodmanager.h"
-#include "components.hpp"
+#include "common/alignment/device.hpp"
 #include "pasobject.hpp"
 
 #include "common/opcua/pascominterfacecommon.hpp"
@@ -24,7 +24,7 @@ public:
         const UaNodeId& newNodeId,
         const UaString& defaultLocaleId,
         PasNodeManager* pNodeManager,
-        Identity identity,
+        Device::Identity identity,
         PasCommunicationInterface *pCommIf) : PasObject(name, newNodeId, defaultLocaleId,
                                                         dynamic_cast<PasNodeManagerCommon *>(pNodeManager),
                                                         std::move(identity),

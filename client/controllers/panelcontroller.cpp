@@ -11,7 +11,7 @@
 PanelController::PanelController(Identity identity, Client *pClient) :
         PasCompositeController(std::move(identity), pClient, 1000) {
     m_ID.name = std::string("Panel_") + std::to_string(m_ID.position);
-    m_state = PASState::On;
+    m_state = Device::DeviceState::On;
     m_SP.SetPanelType(StewartPlatform::PanelType::OPT);
 
     // define possible children types
@@ -30,7 +30,7 @@ PanelController::~PanelController() {
         for (auto &dev : devVector.second)
             dev = nullptr;
 
-    m_state = PASState::Off;
+    m_state = Device::DeviceState::Off;
 }
 
 unsigned PanelController::getActuatorCount() {
@@ -42,7 +42,7 @@ unsigned PanelController::getActuatorCount() {
     }
 }
 
-UaStatus PanelController::getState(PASState &state) {
+UaStatus PanelController::getState(Device::DeviceState &state) {
     //UaMutexLocker lock(&m_mutex);
     UaStatus status;
 
@@ -56,20 +56,20 @@ UaStatus PanelController::getState(PASState &state) {
 
     val.toUInt32(intState);
     switch (intState) {
-        case static_cast<unsigned>(PASState::On) :
-            m_state = PASState::On;
+        case static_cast<unsigned>(Device::DeviceState::On) :
+            m_state = Device::DeviceState::On;
             break;
-        case static_cast<unsigned>(PASState::Off) :
-            m_state = PASState::Off;
+        case static_cast<unsigned>(Device::DeviceState::Off) :
+            m_state = Device::DeviceState::Off;
             break;
-        case static_cast<unsigned>(PASState::Busy) :
-            m_state = PASState::Busy;
+        case static_cast<unsigned>(Device::DeviceState::Busy) :
+            m_state = Device::DeviceState::Busy;
             break;
-        case static_cast<unsigned>(PASState::OperableError) :
-            m_state = PASState::OperableError;
+        case static_cast<unsigned>(Device::DeviceState::OperableError) :
+            m_state = Device::DeviceState::OperableError;
             break;
-        case static_cast<unsigned>(PASState::FatalError) :
-            m_state = PASState::FatalError;
+        case static_cast<unsigned>(Device::DeviceState::FatalError) :
+            m_state = Device::DeviceState::FatalError;
             break;
         default:
             return OpcUa_BadInvalidState;
@@ -81,8 +81,8 @@ UaStatus PanelController::getState(PASState &state) {
 
 }
 
-UaStatus PanelController::setState(PASState state) {
-    if (state == PASState::OperableError || state == PASState::FatalError) {
+UaStatus PanelController::setState(Device::DeviceState state) {
+    if (state == Device::DeviceState::OperableError || state == Device::DeviceState::FatalError) {
         return OpcUa_BadInvalidArgument;
     }
 
@@ -140,13 +140,13 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
     }
 
     // update the state
-    PASState dummy;
+    Device::DeviceState dummy;
     getState(dummy);
 
     if (offset != PAS_PanelType_Stop) {
-        if (m_state == PASState::FatalError)
+        if (m_state == Device::DeviceState::FatalError)
             std::cout << m_ID << "::Operate() : Current state is 'FatalError'! This won't do anything." << std::endl;
-        if (m_state == PASState::Busy)
+        if (m_state == Device::DeviceState::Busy)
             std::cout << m_ID << "::Operate() : Current state is 'Busy'! This won't do anything." << std::endl;
         // Update coordinates before doing any calculations
         updateCoords();

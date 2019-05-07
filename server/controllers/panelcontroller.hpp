@@ -34,7 +34,8 @@ public:
     /// @brief Instantiate a panel device controller object.
     /// @param ID The integer index of the device within its type.
     /// @param pPlatform Pointer to platform object used to interface directly with hardware.
-    PanelController(Identity identity, std::shared_ptr<Platform> pPlatform);
+    PanelController(Device::Identity identity, std::shared_ptr<Platform> pPlatform) : PasController(identity,
+                                                                                                    pPlatform) {};
 
     /// @brief Destroy a panel device controller object.
     ~PanelController() override;
@@ -42,12 +43,12 @@ public:
     /// @brief Get the device's state.
     /// @param state Variable to store the retrieved state value.
     /// @return OPC UA status code indicating success or failure.
-    UaStatus getState(Device::DeviceState &state);
+    UaStatus getState(Device::DeviceState &state) override;
 
     /// @brief Set the device's state.
     /// @param state Value to set the device state to.
     /// @return OPC UA status code indicating success or failure.
-    UaStatus setState(Device::DeviceState state) ;
+    UaStatus setState(Device::DeviceState state) override;
 
     /// @brief Get the value of a panel data variable.
     /// @param offset A number used to uniquely identify the data variable to access.

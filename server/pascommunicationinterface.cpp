@@ -51,6 +51,8 @@ UaStatus PasCommunicationInterface::initialize() {
     DbInfo.dbname = "CTAonline";
     std::string dbAddress = "tcp://" + DbInfo.host + ":" + DbInfo.port;
 
+    UaStatus status;
+
     int cbcID = -1;
     int panelPosition = -1;
     std::map<int, int> actPositionToSerial;
@@ -130,6 +132,15 @@ UaStatus PasCommunicationInterface::initialize() {
         m_platform->addMPES(mpes.second, mpesPositionToSerial.at(mpes.first));
     }
 
+    std::vector<int> mpesPositions;
+    std::vector<int> actPositions;
+    for (auto mpes : mpesPositionToPort) {
+        mpesPositions.push_back(mpes.first);
+    }
+    for (auto act : actPositionToPort) {
+        actPositions.push_back(act.first);
+    }
+
     // initialize expected devices
     Identity identity;
     std::map<OpcUa_UInt32, int> expectedDeviceCounts;
@@ -145,27 +156,39 @@ UaStatus PasCommunicationInterface::initialize() {
             std::cout << "Attempting to create their virtual counterparts...\n";
 
         if (m_pControllers.find(devCount.first) == m_pControllers.end()) {
-            m_pControllers[devCount.first] = std::map<Identity, std::shared_ptr<PasControllerCommon>>();
+            m_pControllers[devCount.first] = std::map<Device::Identity, std::shared_ptr<PasControllerCommon>>();
         }
 
+        int pos;
         int eAddress;
         int failed;
         std::shared_ptr<PasControllerCommon> pController;
         for (int i = 0; i < devCount.second; i++) {
 
             if (devCount.first == PAS_PanelType) {
+                identity.name = std::string("Panel_") + std::to_string(cbcID);
+                identity.serialNumber = cbcID;
                 identity.eAddress = std::to_string(i);
+                identity.position = i;
                 pController.reset(new PanelController(identity, m_platform));
             } else if (devCount.first == PAS_MPESType) {
-                pController.reset(new MPESController(i, m_platform));
-                eAddress = m_platform->getMPES(i)->getPortNumber();
+                pos = mpesPositions.at(i);
+                identity.name = std::string("MPES_") + std::to_string(mpesPositionToSerial.at(pos));
+                identity.serialNumber = mpesPositionToSerial.at(pos);
+                identity.eAddress = std::to_string(mpesPositionToPort.at(pos));
+                identity.position = pos;
+                pController.reset(new MPESController(identity, m_platform));
             } else if (devCount.first == PAS_ACTType) {
-                pController.reset(new ActController(i, m_platform));
-                eAddress = m_platform->getActuator(i)->getPortNumber();
+                pos = actPositions.at(i);
+                identity.name = std::string("ACT_") + std::to_string(actPositionToSerial.at(pos));
+                identity.serialNumber = actPositionToSerial.at(pos);
+                identity.eAddress = std::to_string(actPositionToPort.at(pos));
+                identity.position = pos;
+                pController.reset(new ActController(identity, m_platform));
             }
 #ifndef _AMD64
             else if (devCount.first == PAS_PSDType) {
-                identity.eAddress = i;
+                identity.eAddress = std::to_string(i);
                 pController.reset(new PSDController(identity));
             }
 #endif
@@ -191,7 +214,7 @@ UaStatus PasCommunicationInterface::initialize() {
 
     std::cout << "Adding actuators to panel...\n";
     try {
-        std::vector<std::shared_ptr<PasController>> panels;
+        std::vector<std::shared_ptr<PasControllerCommon>> panels;
         for (const auto &panel : m_pControllers[PAS_PanelType]) {
             panels.push_back(panel.second);
         }
@@ -217,9 +240,9 @@ UaStatus PasCommunicationInterface::initialize() {
 }
 
 UaStatus PasCommunicationInterface::getDeviceState(
-        OpcUa_UInt32 deviceType,
-        const Identity &identity,
-        Device::DeviceState &state) {
+    OpcUa_UInt32 deviceType,
+    const Device::Identity &identity,
+    Device::DeviceState &state) {
     try {
         return m_pControllers.at(deviceType).at(identity)->getState(state);
     }
@@ -229,9 +252,9 @@ UaStatus PasCommunicationInterface::getDeviceState(
 }
 
 UaStatus PasCommunicationInterface::setDeviceState(
-        OpcUa_UInt32 deviceType,
-        const Identity &identity,
-        Device::DeviceState state) {
+    OpcUa_UInt32 deviceType,
+    const Device::Identity &identity,
+    Device::DeviceState state) {
     try {
         return m_pControllers.at(deviceType).at(identity)->setState(state);
     }
@@ -241,10 +264,10 @@ UaStatus PasCommunicationInterface::setDeviceState(
 }
 
 UaStatus PasCommunicationInterface::getDeviceData(
-        OpcUa_UInt32 deviceType,
-        const Identity &identity,
-        OpcUa_UInt32 offset,
-        UaVariant &value) {
+    OpcUa_UInt32 deviceType,
+    const Device::Identity &identity,
+    OpcUa_UInt32 offset,
+    UaVariant &value) {
     try {
         return m_pControllers.at(deviceType).at(identity)->getData(offset, value);
     }
@@ -255,10 +278,10 @@ UaStatus PasCommunicationInterface::getDeviceData(
 }
 
 UaStatus PasCommunicationInterface::setDeviceData(
-        OpcUa_UInt32 deviceType,
-        const Identity &identity,
-        OpcUa_UInt32 offset,
-        UaVariant value) {
+    OpcUa_UInt32 deviceType,
+    const Device::Identity &identity,
+    OpcUa_UInt32 offset,
+    UaVariant value) {
     try {
         return m_pControllers.at(deviceType).at(identity)->setData(offset, value);
     }
@@ -269,7 +292,7 @@ UaStatus PasCommunicationInterface::setDeviceData(
 
 UaStatus PasCommunicationInterface::operateDevice(
     OpcUa_UInt32 deviceType,
-    const Identity &identity,
+    const Device::Identity &identity,
     OpcUa_UInt32 offset,
     const UaVariantArray &args) {
     try {

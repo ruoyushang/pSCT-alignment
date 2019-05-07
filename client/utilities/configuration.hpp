@@ -58,12 +58,13 @@ public:
     OpcUa_Int32 getDeviceSerial(const UaString& address, OpcUa_UInt32 deviceType, const UaString& sPort);
     OpcUa_Int32 getDevicePosition(OpcUa_UInt32 deviceType, OpcUa_UInt32 serial);
     // {serial->Address} map of all devices of the requested type
-    const std::vector<Identity>& getDeviceList(OpcUa_UInt32 deviceType) {return m_DeviceList.at(deviceType);};
+    const std::vector<Device::Identity> &getDeviceList(OpcUa_UInt32 deviceType) { return m_DeviceList.at(deviceType); };
     // get list of all parents of a given device.
     // this is a vector of pairs {parentType, parentIdentity}
     // need to pass around the whole object!
     // can't return this by reference, since we're creating the objects in place.
-    std::vector< std::pair<OpcUa_UInt32, Identity> > getParents(OpcUa_UInt32 deviceType, const Identity& id);
+    std::vector<std::pair<OpcUa_UInt32, Device::Identity> >
+    getParents(OpcUa_UInt32 deviceType, const Device::Identity &id);
 
     // load configuration from file to fill connection parameters, NamespaceArray and NodeIds
     UaStatus loadConnectionConfiguration(const UaString& sConfigurationFile);
@@ -111,7 +112,7 @@ private:
     std::map< OpcUa_UInt32, std::map<OpcUa_UInt32, std::string> > m_ParentMap;
 
     // maps device type -> { serial -> address } to be able to retrieve list of all devices
-    std::map< OpcUa_UInt32, std::vector<Identity> > m_DeviceList;
+    std::map<OpcUa_UInt32, std::vector<Device::Identity> > m_DeviceList;
 
     // maps to be able to set device serial and position:
     //

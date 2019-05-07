@@ -6,7 +6,7 @@
 #include "client/controllers/pascontroller.hpp"
 #include "pascommunicationinterface.hpp"
 #include "uamutex.h"
-#include "components.hpp"
+#include "common/alignment/device.hpp"
 
 class Client;
 
@@ -17,19 +17,19 @@ public:
     /* construction / destruction */
     PositionerController(Identity identity, Client *pClient);
 
-    ~PositionerController();
+    ~PositionerController() override;
 
     /* Get Controller status and data */
-    UaStatus getState(PASState &state);
+    UaStatus getState(Device::DeviceState &state) override;
 
-    UaStatus getData(OpcUa_UInt32 offset, UaVariant &value);
+    UaStatus getData(OpcUa_UInt32 offset, UaVariant &value) override;
 
     /* set Controller status and data */
-    UaStatus setState(PASState state);
+    UaStatus setState(Device::DeviceState state) override;
 
-    UaStatus setData(OpcUa_UInt32 offset, UaVariant value);
+    UaStatus setData(OpcUa_UInt32 offset, UaVariant value) override;
 
-    UaStatus operate(OpcUa_UInt32 offset, const UaVariantArray &args);
+    UaStatus operate(OpcUa_UInt32 offset, const UaVariantArray &args) override;
 
 private:
     struct Position {

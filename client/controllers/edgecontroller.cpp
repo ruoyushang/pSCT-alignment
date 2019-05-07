@@ -13,10 +13,10 @@
 #include "client/controllers/actcontroller.hpp"
 
 
-EdgeController::EdgeController(Identity identity) : PasCompositeController(std::move(identity), nullptr, 0),
-                                                    m_isAligned(false) {
+EdgeController::EdgeController(Device::Identity identity) : PasCompositeController(std::move(identity), nullptr, 0),
+                                                            m_isAligned(false) {
     m_ID.name = std::string("Edge_") + m_ID.eAddress;
-    m_state = PASState::On;
+    m_state = Device::DeviceState::On;
     // defin possible children types
     m_ChildrenTypes = {PAS_MPESType, PAS_PanelType};
     m_Xcalculated = Eigen::VectorXd(0);
@@ -29,7 +29,7 @@ EdgeController::~EdgeController() {
         for (auto &dev : devVector.second)
             dev = nullptr;
 
-    m_state = PASState::Off;
+    m_state = Device::DeviceState::Off;
 }
 
 /* ----------------------------------------------------------------------------
@@ -37,7 +37,7 @@ EdgeController::~EdgeController() {
     Method       getState
     Description  Get Controller status.
 -----------------------------------------------------------------------------*/
-UaStatus EdgeController::getState(PASState &state) {
+UaStatus EdgeController::getState(Device::DeviceState &state) {
     //UaMutexLocker lock(&m_mutex);
     state = m_state;
     return OpcUa_Good;
@@ -48,8 +48,8 @@ UaStatus EdgeController::getState(PASState &state) {
     Method       setState
     Description  Set Controller status.
 -----------------------------------------------------------------------------*/
-UaStatus EdgeController::setState(PASState state) {
-    if (state == PASState::OperableError || state == PASState::FatalError) {
+UaStatus EdgeController::setState(Device::DeviceState state) {
+    if (state == Device::DeviceState::OperableError || state == Device::DeviceState::FatalError) {
         return OpcUa_BadInvalidArgument;
     }
     if (state == m_state) {
@@ -257,8 +257,8 @@ UaStatus EdgeController::findSingleMatrix(unsigned panelIdx, double stepSize) {
         // Stepping is asynchronous. but here, we want it to actually complete
         // before the next step. So we wait.
         // Need to change stepping to not be asynchronous?
-        PASState curState = PASState::Busy;
-        while (curState == PASState::Busy) {
+        Device::DeviceState curState = Device::DeviceState::Busy;
+        while (curState == Device::DeviceState::Busy) {
             usleep(300 * 1000); // microseconds
             pCurPanel->getState(curState);
         }
@@ -283,8 +283,8 @@ UaStatus EdgeController::findSingleMatrix(unsigned panelIdx, double stepSize) {
         if (!status.isGood()) return status;
         // Stepping is asynchronous. but here, we want it to actually complete
         // before the next step. So we wait.
-        curState = PASState::Busy;
-        while (curState == PASState::Busy) {
+        curState = Device::DeviceState::Busy;
+        while (curState == Device::DeviceState::Busy) {
             usleep(300 * 1000); // microseconds
             pCurPanel->getState(curState);
         }

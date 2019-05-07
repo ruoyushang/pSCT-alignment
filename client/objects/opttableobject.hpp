@@ -5,23 +5,23 @@
 #include "common/opcua/components.hpp"
 #include "common/opcua/pasobject.hpp"
 
+#include "common/alignment/device.hpp"
 #include "client/pasnodemanager.hpp"
 #include "client/pascommunicationinterface.hpp"
 
 class UaMethodGeneric;
-struct Identity;
 
 class OptTableObject : public PasObject {
     UA_DISABLE_COPY(OptTableObject);
 
 public:
     OptTableObject(
-            const UaString &name,
-            const UaNodeId &newNodeId,
-            const UaString &defaultLocaleId,
-            PasNodeManager *pNodeManager,
-            Identity identity,
-            PasCommunicationInterface *pCommIf) : PasObject(name, newNodeId, defaultLocaleId,
+        const UaString &name,
+        const UaNodeId &newNodeId,
+        const UaString &defaultLocaleId,
+        PasNodeManager *pNodeManager,
+        Device::Identity identity,
+        PasCommunicationInterface *pCommIf) : PasObject(name, newNodeId, defaultLocaleId,
                                                             dynamic_cast<PasNodeManagerCommon *>(pNodeManager),
                                                             std::move(identity),
                                                             dynamic_cast<PasComInterfaceCommon *>(pCommIf)) { initialize(); }

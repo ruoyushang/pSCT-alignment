@@ -1,5 +1,5 @@
 #include "configuration.hpp"
-#include "mathtools.h"
+#include "common/simulatestewart/mathtools.h"
 #include "uasettings.h"
 #include "uadir.h"
 #include "uapkicertificate.h"
@@ -119,7 +119,7 @@ UaStatus Configuration::loadDeviceConfiguration(const std::vector<std::string> &
         std::string query;
 
         // get panel IP and serial from position
-        for (const auto& position : positionlist) {
+        for (const auto &position : positionList) {
             Device::Identity panelId;
             panelId.position = std::stoi(position);
 
@@ -130,7 +130,7 @@ UaStatus Configuration::loadDeviceConfiguration(const std::vector<std::string> &
             while (sql_results->next()) {
 #if SIMMODE
                 const char* local_ip = getenv("LOCALIP");
-                panelId.eAddress = "opc.tcp://"+std::string(local_ip)+":"+std::string(position.c_str());
+                panelId.eAddress = "opc.tcp://"+std::string(local_ip)+":" + position;
 #else
                 panelId.eAddress = "opc.tcp://" + sql_results->getString(2) + ":4840";
 #endif
@@ -390,7 +390,7 @@ OpcUa_Int32 Configuration::getDevicePosition(OpcUa_UInt32 deviceType, OpcUa_UInt
 // need to pass around the whole object!
 // can't return this by reference, since we're creating the objects right here
 std::vector<std::pair<OpcUa_UInt32, Device::Identity> >
-Configuration::getParents(OpcUa_UInt32 deviceType, const Identity &id)
+Configuration::getParents(OpcUa_UInt32 deviceType, const Device::Identity &id)
 {
     // for actuators, the parent is the ACT's panel. ACT's parent's address in the map
     // is the panel position. so pretty straighforward.

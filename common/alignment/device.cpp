@@ -16,9 +16,9 @@ bool Device::Identity::operator<(const Identity &r) const {
     // but it won't! it will treat your key as nonexistent, since it will reach
     // (11018, "172", "", 1114) and realize it's searched too far, since it will now
     // be comparing along the eAddress member, not the serialNumber
-    if (name != "" && r.name != "") return (name < r.name);
+    if (!name.empty() && !r.name.empty()) return (name < r.name);
     if (serialNumber != -1 && r.serialNumber != -1) return (serialNumber < r.serialNumber);
-    if (eAddress != "" && r.eAddress != "") return (eAddress < r.eAddress);
+    if (!eAddress.empty() && !r.eAddress.empty()) return (eAddress < r.eAddress);
     if (position != -1 && r.position != -1) return (position < r.position);
 
     // if failed to compare far, they don't have [overlapping] non-default members -- do
@@ -30,9 +30,9 @@ bool Device::Identity::operator<(const Identity &r) const {
 
 // equal when the first non-defualt members are equal (even though others may differ),
 bool Device::Identity::operator==(const Identity &r) const {
-    if (name != "" && r.name != "") return (name == r.name);
+    if (!name.empty() && !r.name.empty()) return (name == r.name);
     if (serialNumber != -1 && r.serialNumber != -1) return (serialNumber == r.serialNumber);
-    if (eAddress != "" && r.eAddress != "") return (eAddress == r.eAddress);
+    if (!eAddress.empty() && !r.eAddress.empty()) return (eAddress == r.eAddress);
     if (position != -1 && r.position != -1) return (position == r.position);
 
     // if failed to compare so far, they don't have [overlapping] non-default members -- do
@@ -43,45 +43,47 @@ bool Device::Identity::operator==(const Identity &r) const {
 
 bool Device::Identity::operator!=(const Identity &r) const { return !(*this == r); }
 
-void Device::Device(std::shared_ptr<CBC> pCBC, Device::Identity identity) : m_pCBC(pCBC), m_Identity(identity) {}
+Device::Device(std::shared_ptr<CBC> pCBC, Device::Identity identity) : m_pCBC(std::move(pCBC)),
+                                                                       m_Identity(std::move(identity)),
+                                                                       m_state(Device::DeviceState::On) {}
 
 void Device::setError(int errorCode) {
-    DEBUG_MSG("Setting Error " << errorCode << " (" << ERROR_DEFINITIONS[errorCode].description << ") for Device "
-                               << m_Identity);
+    std::cout << "Setting Error " << errorCode << " (" << getErrorCodeDefinitions()[errorCode].description
+              << ") for Device "
+              << m_Identity << std::endl;
     m_Errors[errorCode] = true;
-    setState(ERROR_DEFINITIONS[errorCode].severity);
+    setState(getErrorCodeDefinitions()[errorCode].severity);
 }
 
 void Device::unsetError(int errorCode) {
-    DEBUG_MSG(
-        "Unsetting Error " << errorCode << "(" << ERROR_DEFINITIONS[errorCode].description << ") for Device "
-                           << m_Identity);
+    std::cout << "Unsetting Error " << errorCode << "(" << getErrorCodeDefinitions()[errorCode].description
+              << ") for Device "
+              << m_Identity << std::endl;
     m_Errors[errorCode] = false;
     updateState();
 }
 
 void Device::setState(Device::DeviceState state) {
-    if (m_State == Device::DeviceState::FatalError) {
+    if (m_state == Device::DeviceState::FatalError) {
         return;
     } else {
-        DEBUG_MSG("Setting Device " << m_Identity << " Status to " << state);
-        m_State = state;
+        std::cout << "Setting Device " << m_Identity << " status to " << (int) state << std::endl;
+        m_state = state;
     }
 }
 
 void Device::updateState()//cycle through all errors and set status based on ones triggered.
 {
-    m_State = Device::DeviceState::On;
+    m_state = Device::DeviceState::On;
     for (int i = 0; i < getNumErrors(); i++) {
         if (m_Errors[i]) {
             setState(getErrorCodeDefinitions()[i].severity);
         }
     }
-    return;
 }
 
 void Device::clearErrors() {
-    DEBUG_MSG("Clearing All Errors for Device " << m_Identity);
+    std::cout << "Clearing All Errors for Device " << m_Identity << std::endl;
     for (int i = 0; i < getNumErrors(); i++) {
         m_Errors[i] = false;
     }

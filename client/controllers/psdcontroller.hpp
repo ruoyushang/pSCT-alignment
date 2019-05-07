@@ -13,19 +13,19 @@ public:
     // construction / destruction
     PSDController(Identity identity, Client *pClient);
 
-    virtual ~PSDController();
+    ~PSDController() override;
 
     // Get Controller status and data
-    UaStatus getState(PASState &state);
+    UaStatus getState(Device::DeviceState &state) override;
 
-    UaStatus getData(OpcUa_UInt32 offset, UaVariant &value);
+    UaStatus getData(OpcUa_UInt32 offset, UaVariant &value) override;
 
     // set Controller status and data
-    UaStatus setState(PASState state);
+    UaStatus setState(Device::DeviceState state) override;
 
-    UaStatus setData(OpcUa_UInt32 offset, UaVariant value);
+    UaStatus setData(OpcUa_UInt32 offset, UaVariant value) override;
 
-    UaStatus operate(OpcUa_UInt32 offset, const UaVariantArray &args);
+    UaStatus operate(OpcUa_UInt32 offset, const UaVariantArray &args) override;
 
     // update interval in ms
     static int kUpdateInterval;

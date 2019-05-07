@@ -13,7 +13,7 @@ float MPESController::kNominalCentroidSD = 20.;
 
 MPESController::MPESController(Identity identity, Client *pClient) : PasController(std::move(identity), pClient),
                                                                      m_updated(false), m_isVisible(false) {
-    m_state = PASState::On;
+    m_state = Device::DeviceState::On;
     m_Data = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
 
     // get the nominal aligned readings and response matrices from DB
@@ -94,7 +94,7 @@ MPESController::MPESController(Identity identity, Client *pClient) : PasControll
         std::cout << ", SQLState: " << e.getSQLState() << " )" << std::endl;
 
         // set state to error
-        m_state = PASState::FatalError;
+        m_state = Device::DeviceState::FatalError;
     }
     /* END DATABASE HACK */
 
@@ -103,7 +103,7 @@ MPESController::MPESController(Identity identity, Client *pClient) : PasControll
 
 MPESController::~MPESController() {
     m_pClient = nullptr;
-    m_state = PASState::Off;
+    m_state = Device::DeviceState::Off;
 }
 
 /* ----------------------------------------------------------------------------
@@ -111,7 +111,7 @@ MPESController::~MPESController() {
     Method       getState
     Description  Get Controller status.
 -----------------------------------------------------------------------------*/
-UaStatus MPESController::getState(PASState &state) {
+UaStatus MPESController::getState(Device::DeviceState &state) {
     //UaMutexLocker lock(&m_mutex);
     state = m_state;
     return OpcUa_Good;
@@ -122,7 +122,7 @@ UaStatus MPESController::getState(PASState &state) {
     Method       setState
     Description  Set Controller status.
 -----------------------------------------------------------------------------*/
-UaStatus MPESController::setState(PASState state) {
+UaStatus MPESController::setState(Device::DeviceState state) {
     UaStatus status;
 
     if (state == m_state) {
@@ -131,9 +131,9 @@ UaStatus MPESController::setState(PASState state) {
     //UaMutexLocker lock(&m_mutex);
 
     m_state = state;
-    if (state == PASState::Off)
+    if (state == Device::DeviceState::Off)
         status = m_pClient->callMethod(m_ID.eAddress, UaString("Stop"));
-    else if (state == PASState::On)
+    else if (state == Device::DeviceState::On)
         status = m_pClient->callMethod(m_ID.eAddress, UaString("Start"));
     else
         status = OpcUa_BadInvalidArgument;
@@ -221,7 +221,7 @@ UaStatus MPESController::read(bool print) {
     m_updated = false;
 
     std::cout << "calling read() on " << m_ID << std::endl;
-    if (m_state == PASState::On) {
+    if (m_state == Device::DeviceState::On) {
         // read the values on the server first
         status = __readRequest();
 

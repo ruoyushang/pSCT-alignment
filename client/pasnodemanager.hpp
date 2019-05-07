@@ -41,7 +41,7 @@ public:
 
     /// @brief Method to get locale ID indicating the region/language.
     /// @return A locale ID string indicating the region/language.
-    UaString getDefaultLocaleId() {return m_defaultLocaleId;};
+    UaString getDefaultLocaleId() { return m_defaultLocaleId; };
 
     /// @brief Emergency method to test all actuator devices by toggling their
     /// state variable.
@@ -56,9 +56,9 @@ private:
     Configuration *m_pConfiguration = nullptr;
     /// @brief Pointers to all OPC UA clients (controller boards) connected to
   	/// the master alignment client.
-    std::vector<Client *> m_pClient;
+    std::vector<std::shared_ptr<Client>> m_pClients;
     /// @brief Pointer to telescope positioner OPC UA client.
-    Client *m_pPositioner;
+    std::shared_ptr<Client> m_pPositioner;
 
 };
 

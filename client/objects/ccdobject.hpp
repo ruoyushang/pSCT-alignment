@@ -2,7 +2,7 @@
 #define CLIENT_CCDOBJECT_HPP
 
 #include "uaserver/methodmanager.h"
-#include "components.hpp"
+#include "common/alignment/device.hpp"
 #include "pasobject.hpp"
 
 #include "common/opcua/pascominterfacecommon.hpp"
@@ -24,7 +24,7 @@ public:
         const UaNodeId &newNodeId,
         const UaString &defaultLocaleId,
         PasNodeManagerCommon *pNodeManager,
-        Identity identity,
+        Device::Identity identity,
         PasComInterfaceCommon *pCommIf) : PasObject(name, newNodeId, defaultLocaleId, pNodeManager, std::move(identity),
                                                     pCommIf) { initialize(); }
 

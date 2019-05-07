@@ -16,6 +16,7 @@
 #include <memory>
 
 #include "common/opcua/pascontrollercommon.hpp"
+#include "common/alignment/device.hpp"
 
 struct Identity;
 
@@ -36,29 +37,30 @@ public:
     /// @brief Get the identities of all devices of a given type.
     /// @param deviceType OPC UA type ID for the desired device object type.
     /// @return A vector of device Identities.
-    std::vector<Identity> getValidDeviceIdentities(OpcUa_UInt32 deviceType);
+    std::vector<Device::Identity> getValidDeviceIdentities(OpcUa_UInt32 deviceType);
 
     /* Get device status and data */
-    virtual UaStatus getDeviceState(OpcUa_UInt32 type, const Identity &identity, PASState &state) = 0;
+    virtual UaStatus
+    getDeviceState(OpcUa_UInt32 type, const Device::Identity &identity, Device::DeviceState &state) = 0;
 
-    virtual UaStatus getDeviceData(OpcUa_UInt32 type, const Identity &identity,
+    virtual UaStatus getDeviceData(OpcUa_UInt32 type, const Device::Identity &identity,
                                    OpcUa_UInt32 offset,
                                    UaVariant &value) = 0;
 
     /* Set device status and data*/
-    virtual UaStatus setDeviceState(OpcUa_UInt32 type, const Identity &identity, PASState state) = 0;
+    virtual UaStatus setDeviceState(OpcUa_UInt32 type, const Device::Identity &identity, Device::DeviceState state) = 0;
 
-    virtual UaStatus setDeviceData(OpcUa_UInt32 type, const Identity &identity,
+    virtual UaStatus setDeviceData(OpcUa_UInt32 type, const Device::Identity &identity,
                                    OpcUa_UInt32 offset,
                                    UaVariant value) = 0;
 
-    virtual UaStatus operateDevice(OpcUa_UInt32 type, const Identity &identity,
+    virtual UaStatus operateDevice(OpcUa_UInt32 type, const Device::Identity &identity,
                                    OpcUa_UInt32 offset,
                                    const UaVariantArray &args) = 0;
 
 protected:
     /// @brief Map from OPC UA device type to Identity to a unique pointer to the controller object.
-    std::map<OpcUa_UInt32, std::map<Identity, std::shared_ptr<PasControllerCommon>>> m_pControllers;
+    std::map<OpcUa_UInt32, std::map<Device::Identity, std::shared_ptr<PasControllerCommon>>> m_pControllers;
 };
 
 #endif //COMMON_PASCOMUNICATIONINTERFACECOMMON_HPP

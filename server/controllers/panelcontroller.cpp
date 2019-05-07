@@ -3,6 +3,7 @@
 #include <array>
 #include <iostream>
 #include <memory>
+#include <random>
 
 #include "uabase/statuscode.h"
 #include "uabase/uabase.h"
@@ -74,10 +75,10 @@ UaStatus PanelController::getData(OpcUa_UInt32 offset, UaVariant &value) {
 
 #else
     if (offset == PAS_PanelType_ExtTemperature) {
-        value.setFloat(m_pPlatform->ReadExternalTemperature());
+        value.setFloat(m_pPlatform->getExternalTemperature());
     }
     else if (offset == PAS_PanelType_IntTemperature) {
-        value.setFloat(m_pPlatform->ReadInternalTemperature());
+        value.setFloat(m_pPlatform->getInternalTemperature());
     }
     else {
         return OpcUa_BadInvalidArgument;
@@ -173,6 +174,7 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
 
         lengths = m_pPlatform->moveToLengths(lengths);
 
+        float l;
         std::cout << "Missed targets by: " << std::endl;
         for (int i = 0; i < 6; i++) {
             m_pActuators.at(i)->setDeltaLength(lengths[i]);
@@ -186,7 +188,7 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
     } else if (offset == PAS_PanelType_Stop) {
         std::cout << "PanelController::operate(): Attempting to gracefully stop the motion.\n";
         status = setState(Device::DeviceState::Off);
-    } else
+    } else {
         status = OpcUa_BadInvalidArgument;
     }
 

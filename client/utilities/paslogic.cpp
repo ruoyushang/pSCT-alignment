@@ -5,6 +5,8 @@
 #include <statuscode.h>
 #include <cmath>
 
+#include "client/pascommunicationinterface.hpp"
+
 #define TIME __timeStamp()
 
 PasLogic::PasLogic(PasCommunicationInterface *pCommIf) : m_pCommIf {pCommIf}, m_terminate {false},

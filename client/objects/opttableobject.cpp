@@ -3,7 +3,7 @@
 #include "pasnodemanager.hpp"
 #include "passervertypeids.hpp"
 #include "pascommunicationinterface.hpp"
-#include "components.hpp"
+#include "common/alignment/device.hpp"
 #include "uaserver/methodhandleuanode.h"
 #include "uaserver/opcua_analogitemtype.h"
 

@@ -16,11 +16,10 @@
 #include "uabase/uastring.h"
 
 #include "common/alignment/device.hpp"
+#include "common/alignment/platform.hpp"
 
 #include "common/opcua/pascominterfacecommon.hpp"
 
-
-class Platform;
 
 /// @brief Class representing a mirror panel edge sensor device controller.
 class MPESController : public PasController {
@@ -29,7 +28,7 @@ public:
     /// @brief Instantiate an MPES device controller object.
     /// @param ID The integer index of the device within its type.
     /// @param pPlatform Platform object used to interface with hardware.
-    MPESController(Identity identity, std::shared_ptr<Platform> pPlatform);
+    MPESController(Device::Identity identity, std::shared_ptr<Platform> pPlatform);
 
     /// @brief Destroy an MPES device controller object.
     ~MPESController() override;
@@ -37,6 +36,16 @@ public:
     /// @brief Initialize the MPES by setting its exposure.
     /// #return 0 on success, -1 on failure.
     bool initialize() override;
+
+    /// @brief Get the device's state.
+    /// @param state Variable to store the retrieved state value.
+    /// @return OPC UA status code indicating success or failure.
+    UaStatus getState(Device::DeviceState &state) override;
+
+    /// @brief Set the device's state.
+    /// @param state Value to set the device state to.
+    /// @return OPC UA status code indicating success or failure.
+    UaStatus setState(Device::DeviceState state) override;
 
     /// @brief Get the value of an MPES data variable.
     /// @return OPC UA status code indicating success or failure.
@@ -51,7 +60,7 @@ public:
     UaStatus operate(OpcUa_UInt32 offset, const UaVariantArray &args) override;
 
 private:
-    Device::DeviceState _getState() { return m_pPlatform->getMPES(m_ID)->getState(); }
+    Device::DeviceState _getState() { return m_pPlatform->getMPESbyIdentity(m_ID)->getState(); }
 
     /// @brief Whether the MPES data has been read at least once since initialization.
     bool m_updated = false;

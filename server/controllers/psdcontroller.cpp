@@ -24,14 +24,11 @@
 #include "common/opcua/pasobject.hpp"
 #include "common/opcua/passervertypeids.hpp"
 
-
-#include "common/opcua/passervertypeids.h"
-
 #include "common/alignment/device.hpp"
 
 /// @details By default, sets the update interval to 500 ms. Creates a new GASPSD object,
 /// sets its port, and initializes. Sets its state to On.
-PSDController::PSDController(Identity identity) : PasController(identity, 500)
+PSDController::PSDController(Device::Identity identity) : PasController(identity, 500)
 {
     m_pPSD = std::unique_ptr<GASPSD>(new GASPSD());
     m_pPSD->setPort();
@@ -48,7 +45,7 @@ UaStatus PSDController::getState(Device::DeviceState &state) {
 /// @details Does not allow setting the state to error or setting the state to
 /// its current value. Locks the shared mutex while setting the state.
 UaStatus PSDController::setState(Device::DeviceState state) {
-    return OpcUa_Good;
+    return OpcUa_BadNotWritable;
 }
 
 

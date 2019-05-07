@@ -7,6 +7,7 @@
 #define ALIGNMENT_PLATFORM_HPP
 
 #include <array>
+#include <map>
 #include <memory>
 #include <string>
 #include <vector>
@@ -21,7 +22,6 @@ class Platform : public Device
 {
 public:
     // Public constants
-
     static constexpr const int NUM_ACTS_PER_PLATFORM = 6;
 
     static const std::vector<Device::ErrorDefinition> ERROR_DEFINITIONS;
@@ -30,23 +30,24 @@ public:
     Platform();
     Platform(std::array<int,NUM_ACTS_PER_PLATFORM> actuatorPorts, std::array<int,NUM_ACTS_PER_PLATFORM> actuatorSerials);
 
-    Platform(int CBCSerial, std::array<int, NUM_ACTS_PER_PLATFORM> actuatorPorts,
+    Platform(Device::Identity identity, std::array<int, NUM_ACTS_PER_PLATFORM> actuatorPorts,
              std::array<int, NUM_ACTS_PER_PLATFORM> actuatorSerials, Device::DBInfo dbInfo);
 
-    Platform(int CBCSerial, std::array<int, NUM_ACTS_PER_PLATFORM> actuatorPorts,
+    Platform(Device::Identity identity, std::array<int, NUM_ACTS_PER_PLATFORM> actuatorPorts,
              std::array<int, NUM_ACTS_PER_PLATFORM> actuatorSerials, Device::DBInfo dbInfo,
              Actuator::ASFInfo asfInfo);
     ~Platform();
 
-    void initialize();
-
-    void setCBCserial(int serial) { m_CBCserial = serial; }
-    int getCBCserial() { return m_CBCserial; }
+    bool initialize() override;
 
     void setDBInfo(Device::DBInfo DBInfo);
     void unsetDBInfo();
 
+    int getSerialNumber() { return m_Identity.serialNumber; }
+
     bool loadCBCParameters();
+
+    Device::DeviceState getState() override;
 
     // Platform settings and readings
     void enableHighCurrent();
@@ -64,9 +65,17 @@ public:
 
     std::unique_ptr<Actuator> &getActuator(int idx) { return m_Actuators.at(idx); }
 
+    std::unique_ptr<Actuator> &getActuatorbyIdentity(Device::Identity identity) {
+        return m_Actuators.at(m_ActuatorIdentityMap.at(identity));
+    }
+
     int getMPESCount() const { return m_MPES.size(); }
 
     std::unique_ptr<MPES> &getMPES(int idx) { return m_MPES.at(idx); }
+
+    std::unique_ptr<MPES> &getMPESbyIdentity(Device::Identity identity) {
+        return m_MPES.at(m_MPESIdentityMap.at(identity));
+    }
 
     // Actuator-related methods
 
@@ -90,7 +99,6 @@ public:
     std::array<float, NUM_ACTS_PER_PLATFORM> moveDeltaLengths(std::array<float, NUM_ACTS_PER_PLATFORM> lengthsToMove);
 
     // Error functionality
-
     void clearActuatorErrors();
     void clearPlatformErrors();
 
@@ -100,7 +108,6 @@ public:
      * @brief This function adds MPES if they can be initialized at USB ports.
      In the Sim mode, MPES are added regardlessly.
      */
-    bool addActuator();
     bool addMPES(int USB, int serial);
     MPES::Position readMPES(int idx);
 
@@ -110,29 +117,24 @@ private:
     static const float DEFAULT_EXTERNAL_TEMPERATURE_SLOPE;
     static const float DEFAULT_EXTERNAL_TEMPERATURE_OFFSET;
 
-    int m_CBCserial = 0;
-
     Device::DBInfo m_DBInfo = Device::DBInfo();
+
+    void checkActuatorStatus(int actuatorIdx);
 
     bool m_HighCurrent = false;
     bool m_SynchronousRectification = true;
-
-    Device::DeviceState m_State = Device::DeviceState::On;
-    std::array<bool, NUM_ERROR_TYPES> m_Errors = { false };
 
     std::shared_ptr<CBC> m_pCBC;
     std::vector<std::unique_ptr<MPES>> m_MPES;
     std::array<std::unique_ptr<Actuator>, NUM_ACTS_PER_PLATFORM> m_Actuators;
 
+    std::map<Device::Identity, int> m_MPESIdentityMap;
+    std::map<Device::Identity, int> m_ActuatorIdentityMap;
+
     float m_InternalTemperatureSlope = DEFAULT_INTERNAL_TEMPERATURE_SLOPE;
     float m_InternalTemperatureOffset = DEFAULT_INTERNAL_TEMPERATURE_OFFSET;
     float m_ExternalTemperatureSlope = DEFAULT_EXTERNAL_TEMPERATURE_SLOPE;
     float m_ExternalTemperatureOffset = DEFAULT_EXTERNAL_TEMPERATURE_OFFSET;
-
-    void setState(Device::DeviceState state);
-
-    void setError(int errorCode);
-    void unsetError(int errorCode);
 };
 
 #endif // ALIGNMENT_PLATFORM_HPP

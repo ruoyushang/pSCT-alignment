@@ -58,11 +58,11 @@ public:
     bool initialize() override;
 
     // same as before -- get/set status/data and Operate:
-    UaStatus getState(PASState &state) override;
+    UaStatus getState(Device::DeviceState &state) override;
 
     UaStatus getData(OpcUa_UInt32 offset, UaVariant &value) override;
 
-    UaStatus setState(PASState state) override;
+    UaStatus setState(Device::DeviceState state) override;
 
     UaStatus setData(OpcUa_UInt32 offset, UaVariant value) override;
 

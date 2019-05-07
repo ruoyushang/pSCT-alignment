@@ -4,7 +4,7 @@
 ** Description: Communication interface to access the devices.
 ******************************************************************************/
 #include "pascommunicationinterface.hpp"
-#include "configuration.hpp"
+#include "utilities/configuration.hpp"
 #include "passervertypeids.hpp"
 #include "client/controllers/pascontroller.hpp"
 #include "client/controllers/mirrorcontroller.hpp"
@@ -52,17 +52,6 @@ PasCommunicationInterface::PasCommunicationInterface() :
 PasCommunicationInterface::~PasCommunicationInterface()
 {
     m_stop = OpcUa_True; // Signal Thread to stop
-
-    // Free all allocated memory
-    for (auto& controllers : m_pControllers)
-    {
-        while (!controllers.second.empty())
-        {
-            delete controllers.second.back();
-            controllers.second.pop_back();
-        }
-    }
-
     std::cout << "Closed and cleaned up PasCommunicationInterface\n";
 }
 
@@ -118,7 +107,8 @@ UaStatus PasCommunicationInterface::initialize()
     Description  add a device of specified type
 -----------------------------------------------------------------------------*/
 const Device::Identity
-PasCommunicationInterface::addDevice(Client *pClient, OpcUa_UInt32 deviceType, const Identity &identity)
+PasCommunicationInterface::addDevice(const std::shared_ptr<Client> &pClient, OpcUa_UInt32 deviceType,
+                                     const Device::Identity &identity)
 {
     // check if object already exists -- this way, passing the same object multiple times won't
     // actually add it multiple times
@@ -173,7 +163,7 @@ PasCommunicationInterface::addDevice(Client *pClient, OpcUa_UInt32 deviceType, c
 
     // initialize this controller or return if unable to do so for whatever reason
     if (!pController->initialize()) {
-        cout << " failed" << endl;
+        std::cout << "Initialization failed" << std::endl;
         delete pController;
         return addedId;
     }
@@ -294,7 +284,7 @@ UaStatusCode PasCommunicationInterface::getDeviceConfig(
     Method       getDeviceConfig
     Description  Get configuration of a sensor -- overloaded.
 -----------------------------------------------------------------------------*/
-UaStatusCode PasCommunicationInterface::getDeviceConfig(
+UaStatus PasCommunicationInterface::getDeviceConfig(
         OpcUa_UInt32 type,
         OpcUa_UInt32 deviceIndex,
         Device::Identity &identity)
@@ -385,8 +375,8 @@ UaStatus PasCommunicationInterface::operateDevice(
     Method       getDeviceFromId
     Description  Return a device with the specified id.
 -----------------------------------------------------------------------------*/
-PasController* PasCommunicationInterface::getDeviceFromId(OpcUa_UInt32 type,
-                                                          const Device::Identity &identity)
+std::shared_ptr<PasController> PasCommunicationInterface::getDeviceFromId(OpcUa_UInt32 type,
+                                                                          const Device::Identity &identity)
 {
     int index;
     // try accessing the map for this type

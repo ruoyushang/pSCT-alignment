@@ -126,7 +126,7 @@ UaStatus PasNodeManagerCommon::writeValues(const UaVariableArray &arrUaVariables
                 else
                 {
                     UaVariant vTemp(arrpDataValues[i]->Value);
-                    UaStatusCode status;
+                    UaStatus status;
 
                     if ( status.isGood() )
                     {

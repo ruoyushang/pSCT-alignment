@@ -6,7 +6,7 @@
 #include "client/controllers/positionercontroller.hpp"
 
 #include "passervertypeids.hpp"
-#include "clienthelper.hpp"
+#include "client/clienthelper.hpp"
 #include "common/alignment/device.hpp"
 #include "stdlib.h"
 #include <vector>
@@ -31,7 +31,7 @@ PositionerController::~PositionerController()
 }
 
 
-UaStatus PositionerController::getState(PASState &state)
+UaStatus PositionerController::getState(Device::DeviceState &state)
 {
     UaStatus status;
     //UaMutexLocker lock(&m_mutex);
@@ -41,8 +41,8 @@ UaStatus PositionerController::getState(PASState &state)
     status = m_pClient->read(vec_curread, &res);
 
     if (status.isGood()) {
-        res.toBool(data.isMoving);
-        if (data.isMoving)
+        res.toBool(m_Data.isMoving);
+        if (m_Data.isMoving)
             state = Device::DeviceState::Busy;
         else
             state = Device::DeviceState::On;

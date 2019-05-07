@@ -26,10 +26,10 @@ UaStatus ActController::setState(Device::DeviceState state) {
 
     switch (state) {
         case Device::DeviceState::On:
-            m_pPlatform->getActuator(m_ID)->turnOn();
+            m_pPlatform->getActuatorbyIdentity(m_ID)->turnOn();
             break;
         case Device::DeviceState::Off:
-            m_pPlatform->getActuator(m_ID)->turnOff();
+            m_pPlatform->getActuatorbyIdentity(m_ID)->turnOff();
             break;
         case Device::DeviceState::FatalError:
             return OpcUa_BadInvalidArgument;
@@ -55,7 +55,7 @@ UaStatus ActController::getData(OpcUa_UInt32 offset, UaVariant &value) {
                 value.setFloat(m_DeltaLength);
                 break;
             case PAS_ACTType_CurrentLength:
-                value.setFloat(m_pPlatform->getActuator(m_ID)->measureLength());
+                value.setFloat(m_pPlatform->getActuatorbyIdentity(m_ID)->measureLength());
 		        break;
             case PAS_ACTType_TargetLength:
                 value.setFloat(m_TargetLength);
@@ -78,7 +78,7 @@ UaStatus ActController::getError(OpcUa_UInt32 offset, UaVariant &value) {
 
     OpcUa_UInt32 errorNum = offset - PAS_ACTType_Error0;
     if (errorNum >= 0 && errorNum < ACTObject::ERRORS.size()) {
-        errorStatus = m_pPlatform->getActuator(m_ID)->getError(int(errorNum));
+        errorStatus = m_pPlatform->getActuatorbyIdentity(m_ID)->getError(int(errorNum));
         value.setBool(errorStatus);
     } else {
         status = OpcUa_BadInvalidArgument;
@@ -134,13 +134,13 @@ UaStatus ActController::moveDelta(const UaVariantArray &args) {
 
     std::cout << "ActController :: Moving actuator " << m_ID << " by " << m_DeltaL << " mm." << std::endl;
     deltaL = m_pPlatform->moveDeltaLengths(deltaL);
-    m_DeltaL = deltaL[m_ID];
+    m_DeltaL = deltaL[std::stoi(m_ID.eAddress)];
 
     return OpcUa_Good;
 }
 
 UaStatus ActController::moveToLength(const UaVariantArray &args) {
-    if (!(m_state == PASState::On))
+    if (!(_getState() == Device::DeviceState::On))
         return OpcUa_BadNothingToDo;
 
     UaStatus status;
@@ -148,7 +148,7 @@ UaStatus ActController::moveToLength(const UaVariantArray &args) {
     UaVariantArray tempArgs;
     tempArgs.create(1);
     UaVariant(args[0]).toFloat(m_TargetLength);
-    tempArgs[0] = UaVariant(m_TargetLength - m_pPlatform->getActuatorAt(std::stoi(m_ID.eAddress))->MeasureLength())[0];
+    tempArgs[0] = UaVariant(m_TargetLength - m_pPlatform->getActuator(std::stoi(m_ID.eAddress))->measureLength())[0];
     status = moveDelta(tempArgs);
 
     return status;

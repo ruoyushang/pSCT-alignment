@@ -26,7 +26,7 @@ class PSDController : public PasController
 public:
     /// @brief Instantiate a position sensitive device controller.
     /// @param ID The device ID (index) used to identify it within its parent panel/platform.
-    explicit PSDController(Identity identity);
+    explicit PSDController(Device::Identity identity);
 
     /// @brief Destroy a position sensitive device controller.
     ~PSDController() override;
@@ -34,12 +34,12 @@ public:
     /// @brief Get the device's state.
     /// @param state Variable to store the retrieved state value.
     /// @return OPC UA status code indicating success or failure.
-    UaStatus getState(Device::DeviceState &state);
+    UaStatus getState(Device::DeviceState &state) override;
 
     /// @brief Set the device's state.
     /// @param state Value to set the device state to.
     /// @return OPC UA status code indicating success or failure.
-    UaStatus setState(Device::DeviceState state);
+    UaStatus setState(Device::DeviceState state) override;
 
     /// @brief Get the value of a PSD data variable.
     /// @param offset A number used to uniquely identify the data variable to access.
@@ -57,10 +57,10 @@ public:
     /// @param offset A number used to uniquely identify the method to call.
     /// @param args Array of method arguments as UaVariants.
     /// @return OPC UA status code indicating success or failure.
-    UaStatus operate(OpcUa_UInt32 offset, const UaVariantArray &args);
+    UaStatus operate(OpcUa_UInt32 offset, const UaVariantArray &args) override;
 
 private:
-    Device::DeviceState _getState() { return Device::DeviceState:On; }
+    Device::DeviceState _getState() { return Device::DeviceState::On; }
     /// @brief Pointer to the GASPSD object interfacing directly with thee PSD hardware.
     std::unique_ptr<GASPSD> m_pPSD;
 

@@ -47,8 +47,9 @@ public:
     /// @param deviceType OPC UA type ID for the desired device object type.
     /// @param identity The unique identity of the device.
     /// @return Pointer to the device controller.
-    std::shared_ptr<PasControllerCommon>
-    getDevice(OpcUa_UInt32 deviceType, const Identity &identity) { return m_pControllers.at(deviceType).at(identity); }
+    std::shared_ptr<PasControllerCommon> getDevice(OpcUa_UInt32 deviceType, const Device::Identity &identity) {
+        return m_pControllers.at(deviceType).at(identity);
+    }
 
     /// @brief Get a device's state through its controller.
     /// @param deviceType OPC UA type ID for the desired device object type.
@@ -56,9 +57,9 @@ public:
     /// @param state Variable to store the retrieved state value.
     /// @return OPC UA status code indicating success/failure.
     UaStatus getDeviceState(
-            OpcUa_UInt32 deviceType,
-            const Identity &identity,
-            Device::DeviceStatus &state) override;
+        OpcUa_UInt32 deviceType,
+        const Device::Identity &identity,
+        Device::DeviceState &state) override;
 
     /// @brief Get a device's data through its controller.
     /// @param deviceType OPC UA type ID for the desired device object type.
@@ -68,7 +69,7 @@ public:
     /// @return OPC UA status code indicating success/failure.
     UaStatus getDeviceData(
         OpcUa_UInt32 deviceType,
-        const Identity &identity,
+        const Device::Identity &identity,
         OpcUa_UInt32 offset,
         UaVariant &value) override;
 
@@ -78,9 +79,9 @@ public:
     /// @param state State value to set the device state to.
     /// @return OPC UA status code indicating success/failure.
     UaStatus setDeviceState(
-            OpcUa_UInt32 deviceType,
-            const Identity &identity,
-            Device::DeviceStatus state) override;
+        OpcUa_UInt32 deviceType,
+        const Device::Identity &identity,
+        Device::DeviceState state) override;
 
     /// @brief Set a device's data through its controller.
     /// @param deviceType OPC UA type ID for the desired device object type.
@@ -90,7 +91,7 @@ public:
     /// @return OPC UA status code indicating success/failure.
     UaStatus setDeviceData(
         OpcUa_UInt32 deviceType,
-        const Identity &identity,
+        const Device::Identity &identity,
         OpcUa_UInt32 offset,
         UaVariant value) override;
 
@@ -102,7 +103,7 @@ public:
     /// @return OPC UA status code indicating success/failure.
     UaStatus operateDevice(
         OpcUa_UInt32 deviceType,
-        const Identity &identity,
+        const Device::Identity &identity,
         OpcUa_UInt32 offset,
         const UaVariantArray &args) override;
 

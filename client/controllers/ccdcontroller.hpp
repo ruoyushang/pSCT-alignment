@@ -25,19 +25,19 @@ public:
     ~CCDController() override;
 
     /* Get Controller status and data */
-    UaStatus getState(PASState &state) override;
+    UaStatus getState(Device::DeviceState &state) override;
 
     UaStatus getData(OpcUa_UInt32 offset, UaVariant &value) override;
 
     /* set Controller status and data */
-    UaStatus setState(PASState state) override;
+    UaStatus setState(Device::DeviceState state) override;
 
     UaStatus setData(OpcUa_UInt32 offset, UaVariant value) override;
 
     UaStatus operate(OpcUa_UInt32 offset, const UaVariantArray &args) override;
 
 private:
-    PASState m_state = PASState::Off;
+    Device::DeviceState m_state = Device::DeviceState::Off;
     bool m_updated = false;
 
     UaStatus read();

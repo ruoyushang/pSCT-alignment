@@ -26,8 +26,6 @@
 
 class UaMethodGeneric;
 
-struct Identity;
-
 /// @brief Class representing an OPC UA panel object.
 class PanelObject : public PasObject {
     UA_DISABLE_COPY(PanelObject); // Disables copy construction and copy assignment
@@ -43,25 +41,28 @@ public:
     /// @param pCommIf Pointer to a PasCommunicationInterface which controls
     /// device operation/reading.
     PanelObject(
-            const UaString &name,
-            const UaNodeId &newNodeId,
-            const UaString &defaultLocaleId,
-            PasNodeManager *pNodeManager,
-            Identity identity,
-            PasCommunicationInterface *pCommIf) : PasObject(name, newNodeId, defaultLocaleId,
-                                                            dynamic_cast<PasNodeManagerCommon *>(pNodeManager),
-                                                            identity,
-                                                            dynamic_cast<PasComInterfaceCommon *>(pCommIf)) { initialize(); }
+        const UaString &name,
+        const UaNodeId &newNodeId,
+        const UaString &defaultLocaleId,
+        PasNodeManager *pNodeManager,
+        Device::Identity identity,
+        PasCommunicationInterface *pCommIf) : PasObject(name, newNodeId, defaultLocaleId,
+                                                        dynamic_cast<PasNodeManagerCommon *>(pNodeManager),
+                                                        std::move(identity),
+                                                        dynamic_cast<PasComInterfaceCommon *>(pCommIf)) { initialize(); }
 
     /// @brief Return the UaNodeId for the Panel object type definition node.
     /// @return The UaNodeId uniquely identifying the Panel object type node.
-    UaNodeId typeDefinitionId() const;
+    UaNodeId typeDefinitionId() const override;
 
-    const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, OpcUa_Byte>> getVariableDefs() { return PanelObject::VARIABLES; }
+    const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, OpcUa_Byte>>
+    getVariableDefs() override { return PanelObject::VARIABLES; }
 
-    const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean>> getErrorDefs() { return PanelObject::ERRORS; }
+    const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean>>
+    getErrorDefs() override { return PanelObject::ERRORS; }
 
-    const std::map<OpcUa_UInt32, std::pair<std::string, std::vector<std::tuple<std::string, UaNodeId, std::string>>>> getMethodDefs() { return PanelObject::METHODS; }
+    const std::map<OpcUa_UInt32, std::pair<std::string, std::vector<std::tuple<std::string, UaNodeId, std::string>>>>
+    getMethodDefs() override { return PanelObject::METHODS; }
 
     /// @brief Map of OPC UA type ids for all child variables to their name, default value, is_state value, and access level.
     static const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, OpcUa_Byte>> VARIABLES;

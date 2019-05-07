@@ -15,9 +15,8 @@
 #include "uabase/uastring.h"
 
 #include "common/alignment/device.hpp"
+#include "common/alignment/platform.hpp"
 #include "server/controllers/pascontroller.hpp"
-
-class Platform;
 
 
 /// @brief Class representing an actuator device controller.
@@ -27,14 +26,11 @@ public:
     /// @brief Instantiate an actuator device controller object.
     /// @param ID The integer index of the device within its type.
     /// @param pPlatform Pointer to platform object used to interface directly with hardware.
-    ActController(Identity identity, std::shared_ptr<Platform> pPlatform);
+    ActController(Device::Identity identity, std::shared_ptr<Platform> pPlatform) : PasController(identity,
+                                                                                                  pPlatform) {};
 
     /// @brief Destroy an actuator device controller object.
     ~ActController() override;
-
-    /// @brief Update the controller's internal state to match the underlying Actuator object's state.
-    /// @return OPC UA status code indicating success or failure.
-    UaStatus updateState();
 
     /// @brief Get the internal state of the actuator device.
     /// @param state Variable to store the retrieved state value.
@@ -80,7 +76,7 @@ public:
     void setTargetLength(float targetLength) { m_TargetLength = targetLength; }
 
 private:
-    Device::DeviceState _getState() { return m_pPlatform->getActuator(m_ID)->getState(); }
+    Device::DeviceState _getState() { return m_pPlatform->getActuatorbyIdentity(m_ID)->getState(); }
     /// @brief The distance between the current actuator length and the target length.
     OpcUa_Float m_DeltaL;
     /// @brief The remaining distance between the current actuator length and the target length.

@@ -27,11 +27,11 @@ CCDController::CCDController(Identity identity) : PasController(std::move(identi
     m_ID.eAddress = m_pCCD->getAddress();
     m_ID.name = m_pCCD->getName();
 
-    m_state = PASState::On;
+    m_state = Device::DeviceState::On;
 }
 
 CCDController::~CCDController() {
-    m_state = PASState::Off;
+    m_state = Device::DeviceState::Off;
 }
 
 /* ----------------------------------------------------------------------------
@@ -39,7 +39,7 @@ CCDController::~CCDController() {
     Method       getState
     Description  Get Controller status.
 -----------------------------------------------------------------------------*/
-UaStatus CCDController::getState(PASState &state) {
+UaStatus CCDController::getState(Device::DeviceState &state) {
     //UaMutexLocker lock(&m_mutex);
     state = m_state;
     return OpcUa_Good;
@@ -50,8 +50,8 @@ UaStatus CCDController::getState(PASState &state) {
     Method       setState
     Description  Set Controller status.
 -----------------------------------------------------------------------------*/
-UaStatus CCDController::setState(PASState state) {
-    if (state == PASState::OperableError || state == PASState::FatalError) {
+UaStatus CCDController::setState(Device::DeviceState state) {
+    if (state == Device::DeviceState::OperableError || state == Device::DeviceState::FatalError) {
         return OpcUa_BadInvalidArgument;
     }
     if (state == m_state) {
@@ -137,10 +137,10 @@ UaStatus CCDController::operate(OpcUa_UInt32 offset, const UaVariantArray &args)
             status = read();
             break;
         case PAS_CCDType_Start:
-            status = setState(PASState::On);
+            status = setState(Device::DeviceState::On);
             break;
         case PAS_CCDType_Stop:
-            status = setState(PASState::Off);
+            status = setState(Device::DeviceState::Off);
             break;
         default:
             status = OpcUa_BadInvalidArgument;
@@ -157,7 +157,7 @@ UaStatus CCDController::operate(OpcUa_UInt32 offset, const UaVariantArray &args)
 UaStatus CCDController::read() {
     //UaMutexLocker lock(&m_mutex);
 
-    if (m_state == PASState::On) {
+    if (m_state == Device::DeviceState::On) {
         std::cout << "Reading CCD " << m_ID.name.c_str() << std::endl;
         m_pCCD->Update();
         m_updated = true;

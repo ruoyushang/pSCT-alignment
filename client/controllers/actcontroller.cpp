@@ -17,12 +17,12 @@
 #include "client/controllers/pascontroller.hpp"
 
 ActController::ActController(Identity identity, Client *pClient) : PasController(std::move(identity), pClient) {
-    m_state = PASState::On;
+    m_state = Device::DeviceState::On;
 }
 
 ActController::~ActController() {
     m_pClient = nullptr;
-    m_state = PASState::Off;
+    m_state = Device::DeviceState::Off;
 }
 
 /* ----------------------------------------------------------------------------
@@ -30,7 +30,7 @@ ActController::~ActController() {
     Method       getState
     Description  Get Controller status.
 -----------------------------------------------------------------------------*/
-UaStatus ActController::getState(PASState &state) {
+UaStatus ActController::getState(Device::DeviceState &state) {
     state = m_state;
     return OpcUa_Good;
 }
@@ -40,7 +40,7 @@ UaStatus ActController::getState(PASState &state) {
     Method       setState
     Description  Set Controller status.
 -----------------------------------------------------------------------------*/
-UaStatus ActController::setState(PASState state) {
+UaStatus ActController::setState(Device::DeviceState state) {
     // don't lock the object -- might want to change state while operating the device!
     // UaMutexLocker lock(&m_mutex);
     UaStatus status;
@@ -49,9 +49,9 @@ UaStatus ActController::setState(PASState state) {
         return OpcUa_BadInvalidState;
     }
     m_state = state;
-    if (state == PASState::Off)
+    if (state == Device::DeviceState::Off)
         status = m_pClient->callMethod(m_ID.eAddress, UaString("Stop"));
-    else if (state == PASState::On)
+    else if (state == Device::DeviceState::On)
         status = m_pClient->callMethod(m_ID.eAddress, UaString("Start"));
     else
         status = OpcUa_BadInvalidArgument;

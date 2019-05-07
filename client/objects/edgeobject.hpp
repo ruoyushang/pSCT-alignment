@@ -2,7 +2,7 @@
 #define __PASEDGE_H__
 
 #include "uaserver/methodmanager.h"
-#include "components.hpp"
+#include "common/alignment/device.hpp"
 #include "pasobject.hpp"
 
 #include "common/opcua/pascominterfacecommon.hpp"
@@ -14,19 +14,17 @@
 
 class UaMethodGeneric;
 
-struct Identity;
-
 class EdgeObject : public PasObject {
     UA_DISABLE_COPY(EdgeObject);
 
 public:
     EdgeObject(
-            const UaString &name,
-            const UaNodeId &newNodeId,
-            const UaString &defaultLocaleId,
-            PasNodeManager *pNodeManager,
-            Identity identity,
-            PasCommunicationInterface *pCommIf) : PasObject(name, newNodeId, defaultLocaleId,
+        const UaString &name,
+        const UaNodeId &newNodeId,
+        const UaString &defaultLocaleId,
+        PasNodeManager *pNodeManager,
+        Device::Identity identity,
+        PasCommunicationInterface *pCommIf) : PasObject(name, newNodeId, defaultLocaleId,
                                                             dynamic_cast<PasNodeManagerCommon *>(pNodeManager),
                                                             std::move(identity),
                                                             dynamic_cast<PasComInterfaceCommon *>(pCommIf)) { initialize(); };
