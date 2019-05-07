@@ -408,7 +408,7 @@ UaStatus EdgeController::alignSinglePanel(unsigned panelpos, double alignFrac, b
                 if (panelPair.first != panelpos)
                     twopanels[i++] = panelPair.first;
 
-            std::vector<MPESController *> overlapMPES;
+            std::vector<std::shared_ptr<MPESController>> overlapMPES;
             for (const auto &panelPair : m_ChildrenPositionMap.at(PAS_PanelType)) {
                 if (panelPair.first == panelpos)
                     continue;

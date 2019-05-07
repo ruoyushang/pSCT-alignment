@@ -10,6 +10,7 @@
 #include <chrono>
 #include "TMinuit.h" // ROOT's implementation of MINUIT for chiSq minimization
 
+
 // implementation of the mirror class that controls the whole mirror.
 // math, algorithms and all that coordinate stuff go here
 
@@ -318,7 +319,7 @@ UaStatus MirrorController::setData(OpcUa_UInt32 offset, UaVariant value)
         // Set for all child panels
         PanelController *panel;
         for (auto &p : getChildren(PAS_PanelType)) {
-            panel = dynamic_cast<PanelController *>(p);
+            panel = std::dynamic_pointer_cast<PanelController>(p).get();
             panel->setData(PAS_PanelType_SafetyRadius, value);
         }
     } else if (offset == PAS_MirrorType_SelectedEdges) {
@@ -460,7 +461,8 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
         }
         else {
             for (const auto &idx : edgeIndices) {
-                status = dynamic_cast<EdgeController *>(m_pChildren.at(PAS_EdgeType).at(idx))->operate(PAS_EdgeType_Read);
+                status = std::dynamic_pointer_cast<EdgeController>(m_pChildren.at(PAS_EdgeType).at(idx))->operate(
+                    PAS_EdgeType_Read);
                 if (!status.isGood()) { return status; }
             }
         }
@@ -472,7 +474,7 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
     else if (offset == PAS_MirrorType_Stop) {
         std::cout << m_ID.name << "::Operate() : Attempting to gracefully stop all motions." << std::endl;
         for (const auto &p: m_pChildren.at(PAS_PanelType)) {
-            status = dynamic_cast<PanelController *>(p)->operate(PAS_PanelType_Stop);
+            status = std::dynamic_pointer_cast<PanelController>(p)->operate(PAS_PanelType_Stop);
             if (!status.isGood()) { 
                 updateCoords(false);
                 return status; 
@@ -492,10 +494,11 @@ UaStatus MirrorController::readPositionAll(bool print) {
     UaStatus status;
     
     for (const auto &idx : getSelectedDeviceIndices(PAS_PanelType)) {
-        dynamic_cast<PanelController *>(m_pChildren.at(PAS_PanelType).at(idx))->updateCoords(print);
+        std::dynamic_pointer_cast<PanelController>(m_pChildren.at(PAS_PanelType).at(idx))->updateCoords(print);
         auto pos = m_pChildren.at(PAS_PanelType).at(idx)->getId().position;
 
-        auto padCoordsActs = dynamic_cast<PanelController *>(m_pChildren.at(PAS_PanelType).at(idx))->getPadCoords();
+        auto padCoordsActs = std::dynamic_pointer_cast<PanelController>(
+            m_pChildren.at(PAS_PanelType).at(idx))->getPadCoords();
         if (print) {
             std::cout << "Panel frame pad coordinates:\n" << padCoordsActs << std::endl;
             // and transform this to the telescope reference frame:
@@ -525,7 +528,7 @@ UaStatus MirrorController::moveToCoords(Eigen::VectorXd targetMirrorCoords, bool
         std::cout << std::endl << std::endl;
 
 
-        std::vector<PanelController*> panelsToMove;
+        std::vector<std::shared_ptr<PanelController>> panelsToMove;
         Eigen::VectorXd X(m_pChildren.at(PAS_PanelType).size()*6);
 
         unsigned positionNum;
@@ -538,11 +541,11 @@ UaStatus MirrorController::moveToCoords(Eigen::VectorXd targetMirrorCoords, bool
         for (const auto &pPanel : m_pChildren.at(PAS_PanelType)) {
             positionNum = pPanel->getId().position;
             std::cout << "Panel " << positionNum << ":" << std::endl;
-            dynamic_cast<PanelController *>(pPanel)->operate(PAS_PanelType_ReadAll);
+            std::dynamic_pointer_cast<PanelController>(pPanel)->operate(PAS_PanelType_ReadAll);
             // for this panel, we get PRF pad coords, transform them to TRF,
             // move them in TRF, transform back to PRF, and then compute new ACT lengths
             // based on the new pad coords. so simple!
-            auto padCoords_PanelRF = dynamic_cast<PanelController *>(pPanel)->getPadCoords();
+            auto padCoords_PanelRF = std::dynamic_pointer_cast<PanelController>(pPanel)->getPadCoords();
             auto padCoords_TelRF = padCoords_PanelRF;
             double newPadCoords[3][3];
             for (unsigned pad = 0; pad < 3; pad++) {
@@ -559,16 +562,16 @@ UaStatus MirrorController::moveToCoords(Eigen::VectorXd targetMirrorCoords, bool
             for (int i = 0; i < 6; i++) {
                 targetActLengths(i) = (float)m_SP.GetActLengths()[i];
             }
-            currentActLengths = dynamic_cast<PanelController *>(pPanel)->getActuatorLengths();
+            currentActLengths = std::dynamic_pointer_cast<PanelController>(pPanel)->getActuatorLengths();
 
             deltaActLengths = targetActLengths - currentActLengths;
 
-            if(dynamic_cast<PanelController *>(pPanel)->checkForCollision(deltaActLengths)) {
+            if (std::dynamic_pointer_cast<PanelController>(pPanel)->checkForCollision(deltaActLengths)) {
                 std::cout << "Error: Sensors may go out of range! Disallowed motion, please recalculate or relax safety radius." << std::endl;
                 return OpcUa_Bad;
             }
 
-            panelsToMove.push_back(dynamic_cast<PanelController*>(pPanel));
+            panelsToMove.push_back(std::dynamic_pointer_cast<PanelController>(pPanel));
             X.segment(j,6) = deltaActLengths;
             j += 6;
         }
@@ -656,7 +659,7 @@ UaStatus MirrorController::alignSequential(unsigned startEdge, const std::set<un
                 std::cout << "Error: Failed when executing motion." << std::endl;
                 return status; 
             }
-            while (!dynamic_cast<EdgeController *>(m_pChildren.at(PAS_EdgeType).at(edge))->isAligned()) {
+            while (!std::dynamic_pointer_cast<EdgeController>(m_pChildren.at(PAS_EdgeType).at(edge))->isAligned()) {
                 std::cout << "\nAlignment Iteration " << aligniter << std::endl << std::endl;
                 usleep(400*1000); // microseconds
 
@@ -932,12 +935,13 @@ UaStatus MirrorController::alignSector(const std::set<unsigned> &selectedPanels,
         Eigen::VectorXd Y; // sensor misalignment vector, we want to fit this
 
         // grab all user specified panels to move and sensors to fit
-        std::vector<PanelController*> panelsToMove;
-        std::vector<MPESController *> alignMPES;
+        std::vector<std::shared_ptr<PanelController>> panelsToMove;
+        std::vector<std::shared_ptr<MPESController>> alignMPES;
         for (unsigned idx : getSelectedDeviceIndices(PAS_PanelType))
-            panelsToMove.push_back(dynamic_cast<PanelController *>(m_pChildren.at(PAS_PanelType).at(idx)));
+            panelsToMove.push_back(std::dynamic_pointer_cast<PanelController>(m_pChildren.at(PAS_PanelType).at(idx)));
         for (unsigned idx : getSelectedDeviceIndices(PAS_MPESType)) {
-            MPESController *mpes = dynamic_cast<MPESController *>(m_pChildren.at(PAS_MPESType).at(idx));
+            MPESController *mpes = std::dynamic_pointer_cast<MPESController>(
+                m_pChildren.at(PAS_MPESType).at(idx)).get();
             mpes->read(false);
             if (mpes->isVisible())
                 alignMPES.push_back(mpes);
@@ -951,7 +955,9 @@ UaStatus MirrorController::alignSector(const std::set<unsigned> &selectedPanels,
             for (const auto &mpes : panel->getChildren(PAS_MPESType)) {
                 unsigned overlap = 0;
                 for (const auto &overlapPanel : panelsToMove)
-                    overlap += (dynamic_cast<MPESController *>(mpes)->getPanelSide(overlapPanel->getId().position) != 0);
+                    overlap += (
+                        std::dynamic_pointer_cast<MPESController>(mpes)->getPanelSide(overlapPanel->getId().position) !=
+                        0);
 
                 if (overlap == 2) {
                     idx = m_ChildrenIdentityMap.at(PAS_MPESType).at(mpes->getId());
@@ -973,7 +979,8 @@ UaStatus MirrorController::alignSector(const std::set<unsigned> &selectedPanels,
             std::cout << "Reading the automatically identfied internal MPES:" << std::endl;
             // only read the internal MPES if no user-specified ones have been found
             for (const auto &idx: overlapIndices) {
-                MPESController *mpes = dynamic_cast<MPESController *>(m_pChildren.at(PAS_MPESType).at(idx));
+                MPESController *mpes = std::dynamic_pointer_cast<MPESController>(
+                    m_pChildren.at(PAS_MPESType).at(idx)).get();
                 mpes->read(false);
                 if (mpes->isVisible())
                     alignMPES.push_back(mpes);
@@ -1134,9 +1141,9 @@ UaStatus MirrorController::alignGlobal(unsigned fixPanel, double alignFrac, bool
         Eigen::VectorXd globDisplaceVec = Eigen::VectorXd(numPanels * 6);
 
         // get all the edges we need to fit:
-        std::vector<EdgeController *> edgesToFit; // we actually don't need to keep these in a vector,
+        std::vector<std::shared_ptr<EdgeController>> edgesToFit; // we actually don't need to keep these in a vector,
                                       // but doing this for possible future needs
-        std::vector<PanelController *> panelsToMove;
+        std::vector<std::shared_ptr<PanelController>> panelsToMove;
         unsigned curPanel = fixPanel, nextPanel, cursize = 0;
         Device::Identity id;
         // keep track of the position in the global response matrix
@@ -1156,11 +1163,11 @@ UaStatus MirrorController::alignGlobal(unsigned fixPanel, double alignFrac, bool
                       << std::endl;
 
             try {
-                panelsToMove.push_back(dynamic_cast<PanelController *> (
+                panelsToMove.push_back(std::dynamic_pointer_cast<PanelController>(
                         m_pChildren.at(PAS_PanelType).at(m_ChildrenPositionMap.at(PAS_PanelType).at(curPanel)) ) );
 
                 id.eAddress = SCTMath::GetEdgeFromPanels({curPanel, nextPanel});
-                edgesToFit.push_back(dynamic_cast<EdgeController *>(
+                edgesToFit.push_back(std::dynamic_pointer_cast<EdgeController>(
                             m_pChildren.at(PAS_EdgeType).at(m_ChildrenIdentityMap.at(PAS_EdgeType).at(id)) ) );
                 std::cout << "\t\tThese correspond to the edge " << edgesToFit.back()->getId() << std::endl;
 
@@ -1276,7 +1283,8 @@ UaStatus MirrorController::alignGlobal(unsigned fixPanel, double alignFrac, bool
         for (const auto& edge : edgesToFit) {
             // and set them for each sensor along each edge
             for (const auto& mpes : edge->m_ChildrenPositionMap.at(PAS_MPESType) ) {
-                (dynamic_cast<MPESController *>(edge->m_pChildren.at(PAS_MPESType).at(mpes.second)))->SystematicOffsets =
+                (std::std::dynamic_pointer_cast_cast<MPESController>(
+                    edge->m_pChildren.at(PAS_MPESType).at(mpes.second)))->SystematicOffsets =
                     SystematicOffsetsMPESMap.at(ring).at(mpes.first);
             }
         }
@@ -1458,7 +1466,8 @@ double MirrorController::chiSq(const Eigen::VectorXd &telDelta)
         // as computed from actuator lengths and pad coordinates as computed from telescope
         // coordinates
         for (int pad = 0; pad < 3; pad++) {
-            padCoordsActs = dynamic_cast<PanelController *>(panels.at(idx))->getPadCoords().col(pad);
+            padCoordsActs = std::std::dynamic_pointer_cast_cast<PanelController>(panels.at(idx))->getPadCoords().col(
+                pad);
             // and transform this to the telescope reference frame:
             // these are pad coordinates in TRF as computed from actuator lengths
             padCoordsActs = __toTelRF(pos, padCoordsActs);
