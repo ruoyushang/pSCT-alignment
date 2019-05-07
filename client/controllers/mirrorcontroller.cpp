@@ -14,6 +14,8 @@
 // implementation of the mirror class that controls the whole mirror.
 // math, algorithms and all that coordinate stuff go here
 
+#include "common/alignment/device.hpp"
+
 #include "client/controllers/panelcontroller.hpp"
 #include "client/controllers/mpescontroller.hpp"
 #include "client/controllers/edgecontroller.hpp"
@@ -319,7 +321,7 @@ UaStatus MirrorController::setData(OpcUa_UInt32 offset, UaVariant value)
         // Set for all child panels
         std::shared_ptr<PanelController> panel;
         for (auto &p : getChildren(PAS_PanelType)) {
-            panel = std::dynamic_pointer_cast<PanelController>(p).get();
+            panel = std::dynamic_pointer_cast<PanelController>(p);
             panel->setData(PAS_PanelType_SafetyRadius, value);
         }
     } else if (offset == PAS_MirrorType_SelectedEdges) {

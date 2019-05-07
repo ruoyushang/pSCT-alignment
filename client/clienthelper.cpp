@@ -10,6 +10,7 @@
 #include "uaclient/uasession.h"
 
 #include <map>
+#include <memory>
 
 #define _DEBUG_ 0
 
@@ -94,7 +95,7 @@ void Client::connectionStatusChanged(
     m_serverStatus = serverStatus; 
 }
 
-void Client::setConfiguration(Configuration* pConfiguration) 
+void Client::setConfiguration(std::shared_ptr<Configuration> pConfiguration) 
 { 
     if (m_pSubscription) 
     {
