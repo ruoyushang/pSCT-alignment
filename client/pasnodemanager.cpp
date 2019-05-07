@@ -34,7 +34,7 @@ void PasNodeManager::setCommunicationInterface(PasCommunicationInterface *pCommI
     m_pCommIf = std::unique_ptr<PasComInterfaceCommon>(pCommIf);
 }
 
-void PasNodeManager::setConfiguration(Configuration *pConfiguration)
+void PasNodeManager::setConfiguration(std::shared_ptr<Configuration> pConfiguration)
 {
     std::cout << "PasNodeManager: Setting configuration\n";
     m_pConfiguration = pConfiguration;
@@ -108,11 +108,11 @@ UaStatus PasNodeManager::afterStartUp()
 
     UaFolder *pFolder = nullptr;
     PasObject *pObject = nullptr;
-    PasController *pController = nullptr;
-    std::vector<PasController *>pChildren;
+    std::shared_ptr<PasController> pController = nullptr;
+    std::vector<std::shared_ptr<PasController>> pChildren;
 
     std::map<unsigned, UaFolder *> pDeviceFolders;
-    std::map<PasController *, PasObject *> pDeviceObjects;
+    std::map<std::shared_ptr<PasController>, PasObject *> pDeviceObjects;
 
     std::string deviceName;
     std::string folderName;
@@ -161,7 +161,7 @@ UaStatus PasNodeManager::afterStartUp()
         {
             ret = dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->getDeviceConfig(deviceType, i, sDeviceName, identity);
             pController = dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->getDeviceFromId(deviceType,
-                                                                                                      identity).get();
+                                                                                                      identity);
             //If folder doesn't already exist, create a folder for each object type and add the folder to the DevicesByType folder
             if ( pDeviceFolders.find(deviceType) == pDeviceFolders.end() ) {
                 deviceName = PasCommunicationInterface::deviceTypeNames[deviceType];
@@ -192,7 +192,7 @@ UaStatus PasNodeManager::afterStartUp()
         }
     }
 
-    std::map<PasController *, PasObject *> pRootDevices;
+    std::map<std::shared_ptr<PasController>, PasObject *> pRootDevices;
     pRootDevices.insert(pDeviceObjects.begin(), pDeviceObjects.end());
 
     UaString objectName;
@@ -207,12 +207,12 @@ UaStatus PasNodeManager::afterStartUp()
         objectName = pObject->nodeId().toString();
 
         // Check if object has children (is a composite controller)
-        if (dynamic_cast<PasCompositeController*>(pController)) {
+        if (std::dynamic_pointer_cast<PasCompositeController>(pController)) {
             for (const auto &dev : PasCommunicationInterface::deviceTypeNames) {
                 deviceType = dev.first;
                 deviceName = dev.second;
                 try {
-                    pChildren = dynamic_cast<PasCompositeController*>(pController)->getChildren(deviceType);
+                    pChildren = std::dynamic_pointer_cast<PasCompositeController>(pController)->getChildren(deviceType);
                     if (!pChildren.empty()) {
 
                         pFolder = new UaFolder(UaString(deviceName.c_str()), UaNodeId(objectName + UaString(deviceName.c_str()), getNameSpaceIndex()), m_defaultLocaleId);

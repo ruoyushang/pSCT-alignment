@@ -162,7 +162,7 @@ private:
     StewartPlatform m_SP;
 
     Eigen::VectorXd m_Xcalculated;
-    std::vector<PanelController*> m_panelsToMove;
+    std::vector<std::shared_ptr<PanelController>> m_panelsToMove;
     unsigned m_previousCalculatedMethod;
 };
 

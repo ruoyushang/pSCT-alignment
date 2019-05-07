@@ -66,7 +66,7 @@ bool MPES::initialize()
     std::set<int> newVideoDevices = getVideoDevices(); // check all video devices again
 
     std::set<int> toggledDevices;
-    std::set_difference(newVideoDevices.begin(), newVideoDevices.end(), oldVideoDevices.begin(), oldVideoDevices.end(), toggledDevices.begin());
+    std::set_difference(newVideoDevices.begin(), newVideoDevices.end(), oldVideoDevices.begin(), oldVideoDevices.end(),std::inserter(toggledDevices, toggledDevices.begin()) );
 
     int newVideoDeviceId;
     if (toggledDevices.size() == 1) {

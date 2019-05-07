@@ -34,7 +34,7 @@ public:
 
     /// @brief Setter method to set the Configuration object.
     /// @param pConfiguration Pointer to a new Configuration object.
-    void setConfiguration(Configuration *pConfiguration);
+    void setConfiguration(std::shared_ptr<Configuration> pConfiguration);
     /// @brief Setter method to set the PasCommunicationInterface object.
     /// @param pCommIf Pointer to a new PasCommunicationInterface object.
     void setCommunicationInterface(PasCommunicationInterface *pCommIf);
@@ -53,7 +53,7 @@ private:
     /// @return An OPC UA status code.
     UaStatus amendTypeNodes();
     /// @brief Configuration object used to
-    Configuration *m_pConfiguration = nullptr;
+    std::shared_ptr<Configuration> m_pConfiguration = nullptr;
     /// @brief Pointers to all OPC UA clients (controller boards) connected to
   	/// the master alignment client.
     std::vector<std::shared_ptr<Client>> m_pClients;

@@ -3,6 +3,7 @@
 
 #include "uabase.h"
 #include "uaclient/uaclientsdk.h"
+#include <memory>
 #include <string>
 
 class Subscription;
@@ -24,7 +25,7 @@ public:
     // UaSessionCallback implementation ------------------------------------------------------
 
     // set a configuration object we use to get connection parameters and NodeIds
-    void setConfiguration(Configuration* pConfiguration);
+    void setConfiguration(std::shared_ptr<Configuration> pConfiguration);
     void setAddress(const UaString& address) { m_Address = address; };
 
     // OPC UA service calls
@@ -62,7 +63,7 @@ private:
     PasNodeManager*                     m_pNodeManager;
     UaClientSdk::UaSession*             m_pSession;
     Subscription*                       m_pSubscription;
-    Configuration*                      m_pConfiguration;
+    std::shared_ptr<Configuration>      m_pConfiguration;
     UaClientSdk::UaClient::ServerStatus m_serverStatus;
     Database*                           m_pDatabase;
 

@@ -2,9 +2,8 @@
 
 #include "passervertypeids.hpp"
 #include "common/simulatestewart/stewartplatform.h"
-#include "components.hpp"
-
 #include "uabase/statuscode.h"
+
 #include "uabase/uabase.h"
 #include "uabase/uamutex.h"
 #include "uabase/uastring.h"

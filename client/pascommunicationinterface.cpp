@@ -168,7 +168,7 @@ PasCommunicationInterface::addDevice(const std::shared_ptr<Client> &pClient, Opc
         return addedId;
     }
 
-    m_pControllers[deviceType].push_back(pController);
+    m_pControllers[deviceType].push_back(std::shared_ptr<PasController>(pController));
     unsigned curindex = m_pControllers.at(deviceType).size() - 1;
     m_DeviceIdentityMap[deviceType][addedId] = curindex;
 
@@ -200,8 +200,8 @@ PasCommunicationInterface::addDevice(const std::shared_ptr<Client> &pClient, Opc
                 try {
                     int index = m_DeviceIdentityMap.at(parent.first).at(parentId);
                     // add the current controller
-                    dynamic_cast<PasCompositeController *>(m_pControllers.at(parent.first).at(index))->addChild(
-                        deviceType, pController);
+                    std::dynamic_pointer_cast<PasCompositeController>(m_pControllers.at(parent.first).at(index))->addChild(
+                        deviceType, std::shared_ptr<PasController>(pController));
                 }
                 catch (std::out_of_range &e) { /* no such device for whatever reason -- ignore */ }
             }
@@ -220,7 +220,7 @@ PasCommunicationInterface::addDevice(const std::shared_ptr<Client> &pClient, Opc
                        coparentIdx = m_DeviceIdentityMap.at(coparent.first).at(coparent.second);
                        PasController *parentC = m_pControllers.at(parent.first).at(parentIdx).get();
                        PasController *coparentC = m_pControllers.at(coparent.first).at(coparentIdx).get();
-                       dynamic_cast<PasCompositeController *>(parentC)->addChild(coparent.first, coparentC);
+                       dynamic_cast<PasCompositeController *>(parentC)->addChild(coparent.first, std::shared_ptr<PasController>(coparentC));
                    }
                }
            }

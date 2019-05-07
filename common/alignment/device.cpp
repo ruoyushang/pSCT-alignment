@@ -5,7 +5,7 @@
 // does lexicographical comparison on the first non-default member:
 // (comparison in the order of decreasing global uniqueness)
 // name -> serial -> address -> positiion
-bool Device::Identity::operator<(const Identity &r) const {
+bool Device::Identity::operator<(const Device::Identity &r) const {
     // this is problematic if an ordered map was created with ordering along one of the
     // members but new elements are added with a different ordering.
     // For instance, assume you create a map with the following keys:
@@ -29,7 +29,7 @@ bool Device::Identity::operator<(const Identity &r) const {
 }
 
 // equal when the first non-defualt members are equal (even though others may differ),
-bool Device::Identity::operator==(const Identity &r) const {
+bool Device::Identity::operator==(const Device::Identity &r) const {
     if (!name.empty() && !r.name.empty()) return (name == r.name);
     if (serialNumber != -1 && r.serialNumber != -1) return (serialNumber == r.serialNumber);
     if (!eAddress.empty() && !r.eAddress.empty()) return (eAddress == r.eAddress);
@@ -41,7 +41,7 @@ bool Device::Identity::operator==(const Identity &r) const {
            && (name == r.name) && (position == r.position);
 }
 
-bool Device::Identity::operator!=(const Identity &r) const { return !(*this == r); }
+bool Device::Identity::operator!=(const Device::Identity &r) const { return !(*this == r); }
 
 Device::Device(std::shared_ptr<CBC> pCBC, Device::Identity identity) : m_pCBC(std::move(pCBC)),
                                                                        m_Identity(std::move(identity)),
