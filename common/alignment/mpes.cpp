@@ -26,22 +26,21 @@ const float SAFETY_REGION_Y_MIN = 40.0;
 const float SAFETY_REGION_Y_MAX = 200.0;
 
 const float NOMINAL_INTENSITY = 150000.;
-const float NOMINAL_CENTROID_SD = 20.;
+const float NOMINAL_SPOT_WIDTH = 20.;
 
 const std::vector<Device::ErrorDefinition> MPES::ERROR_DEFINITIONS = {
-    {"Bad connection. No device found",                                                                            Device::DeviceState::FatalError},//error 0
-    {"Intermittent connection, select timeout.",                                                                   Device::DeviceState::FatalError},//error 1
-    {"Cannot find laser spot (totally dark). Laser dead or not in FoV.",                                           Device::DeviceState::OperableError},//error 2
-    {"Too bright. Cleaned Intensity > 1e6. Likely cause: no tube.",                                                Device::DeviceState::OperableError},//error 3
-    {"Too bright. 1e6 >Cleaned Intensity > 5e5 and very wide spot width >20",                                      Device::DeviceState::FatalError},//error 4
-    {"Very uneven spot. Likely due to being in the reflection region (too close to webcam edges) or a bad laser.", Device::DeviceState::OperableError},//error 5
-    {"Uneven spot. Spot is uneven, but not severe. Likely recoverable.",                                           Device::DeviceState::OperableError},//error 6
-    {"Intensity deviation from nominal value (more than 20%).",                                                    Device::DeviceState::OperableError},//error 7
+        {"Bad connection. No device found",                                                                            Device::DeviceState::FatalError},//error 0
+        {"Intermittent connection, possible select timeout or other error.",                                            Device::DeviceState::FatalError},//error 1
+        {"Cannot find laser spot (totally dark). Laser dead or not in FoV.",                                           Device::DeviceState::OperableError},//error 2
+        {"Too bright. Cleaned Intensity > 1e6. Likely cause: no tube.",                                                Device::DeviceState::OperableError},//error 3
+        {"Too bright. 1e6 >Cleaned Intensity > 5e5 and very wide spot width >20",                                      Device::DeviceState::FatalError},//error 4
+        {"Very uneven spot. Likely due to being in the reflection region (too close to webcam edges) or a bad laser.", Device::DeviceState::OperableError},//error 5
+        {"Uneven spot. Spot is uneven, but not severe. Likely recoverable.",                                           Device::DeviceState::OperableError},//error 6
+        {"Intensity deviation from nominal value (more than 20%).",                                                    Device::DeviceState::OperableError},//error 7
 };
 
 MPES::MPES(std::shared_ptr<CBC> pCBC, Device::Identity identity) : Device::Device(std::move(pCBC), std::move(identity)),
-                                                                   m_Calibrate(false)
-{
+                                                                   m_Calibrate(false) {
 }
 
 MPES::~MPES() {
@@ -50,8 +49,7 @@ MPES::~MPES() {
 
 // returns intensity of the sensor image.
 // check this value to see if everything is working fine
-bool MPES::initialize()
-{
+bool MPES::initialize() {
     // we toggle the usb port, checking the video devices when it's off and again when it's on.
     // the new video device is the ID of the newly created MPES.
 
@@ -66,7 +64,8 @@ bool MPES::initialize()
     std::set<int> newVideoDevices = getVideoDevices(); // check all video devices again
 
     std::set<int> toggledDevices;
-    std::set_difference(newVideoDevices.begin(), newVideoDevices.end(), oldVideoDevices.begin(), oldVideoDevices.end(), toggledDevices.begin());
+    std::set_difference(newVideoDevices.begin(), newVideoDevices.end(), oldVideoDevices.begin(), oldVideoDevices.end(),
+                        toggledDevices.begin());
 
     int newVideoDeviceId;
     if (toggledDevices.size() == 1) {
@@ -74,8 +73,7 @@ bool MPES::initialize()
         if (newVideoDeviceId == -1) {
             return false; // make sure this is a valid video device -- i.e., not -1
         }
-    }
-    else {
+    } else {
         setError(0);
         return false; // the list should be just one device at this point
     }
@@ -96,7 +94,7 @@ bool MPES::initialize()
     std::ifstream matFile(matFileFullPath);
     std::ifstream calFile(calFileFullPath);
 
-    if ( matFile.good() && calFile.good() ) { // Check if files exist and can be read
+    if (matFile.good() && calFile.good()) { // Check if files exist and can be read
         matFile.close();
         calFile.close();
 
@@ -104,9 +102,8 @@ bool MPES::initialize()
         m_pDevice->LoadMatrixTransform(matFileFullPath.c_str());
         std::cout << "Read calibration data OK -- using calibrated values\n";
         m_Calibrate = true;
-    }
-    else {
-        std::cout << "Failed to read calibration data -- using raw values\n";
+    } else {
+        std::cout << "Did not read calibration data -- using raw values\n";
     }
 
     return true;
@@ -114,18 +111,16 @@ bool MPES::initialize()
 
 // find and set optimal exposure -- assume I(e) is linear
 // returns measured intensity -- check this value to see if things work fine
-int MPES::setExposure()
-{
+int MPES::setExposure() {
     std::cout << "MPES:: Setting exposure for device at USB " << getPortNumber() << std::endl;
     int intensity;
 
     int counter = 0;
     while ((intensity = updatePosition())
            && (!m_pDevice->isWithinIntensityTolerance(intensity))
-           && (counter <= 5))
-    {
+           && (counter <= 5)) {
         m_pDevice->SetExposure(
-            (int) (m_pDevice->GetTargetIntensity() / intensity * ((float) m_pDevice->GetExposure())));
+                (int) (m_pDevice->GetTargetIntensity() / intensity * ((float) m_pDevice->GetExposure())));
 
         if (++counter > 5) {
             setError(1);
@@ -140,8 +135,7 @@ int MPES::setExposure()
 
 // returns intensity of the beam -- 0 if no beam/device.
 // so check the return value to know if things work fine
-int MPES::updatePosition()
-{
+int MPES::updatePosition() {
     // initialize to something obvious in case of failure
     m_Position.xCentroid = -1.;
     m_Position.yCentroid = -1.;
@@ -152,11 +146,10 @@ int MPES::updatePosition()
     // read sensor
     if (m_pImageSet->Capture()) {
         if (m_Calibrate) {
-    	    m_pImageSet->Matrix_Transform();
-    	    m_pImageSet->Calibrate2D();
-        }
-        else {
-	        m_pImageSet->simpleAverage();
+            m_pImageSet->Matrix_Transform();
+            m_pImageSet->Calibrate2D();
+        } else {
+            m_pImageSet->simpleAverage();
         }
 
         m_Position.xCentroid = m_pImageSet->SetData.xCentroid;
@@ -174,9 +167,9 @@ int MPES::updatePosition()
         setError(3);
     }
 
-    if (std::abs(m_Position.xSpotWidth / m_Position.xSpotWidth - 1) > 0.1) {
+    if (std::abs(m_Position.xSpotWidth / m_Position.ySpotWidth - 1) > 0.1) {
         setError(6);
-    } else if (std::abs(m_Position.xSpotWidth / m_Position.xSpotWidth - 1) > 0.25) {
+    } else if (std::abs(m_Position.xSpotWidth / m_Position.ySpotWidth - 1) > 0.25) {
         setError(5);
     }
 
@@ -189,8 +182,7 @@ int MPES::updatePosition()
     return static_cast<int>(m_Position.cleanedIntensity);
 }
 
-std::set<int> MPES::getVideoDevices()
-{
+std::set<int> MPES::getVideoDevices() {
     std::set<int> videoDevices;
 
     DIR *dir;
@@ -204,37 +196,34 @@ std::set<int> MPES::getVideoDevices()
             std::string substringToFind = "video"; // Locate video devices (name including the string "video")
             if ((pos = currentEntry.find(substringToFind)) != std::string::npos) { // Found video device
                 pos += substringToFind.length(); // go to immediately after the substring "video"
-                int deviceNumber = std::stoi(currentEntry.substr(pos)); // grab remaining part of device name to get the device number
+                int deviceNumber = std::stoi(
+                        currentEntry.substr(pos)); // grab remaining part of device name to get the device number
                 videoDevices.insert(deviceNumber);
             }
         }
         closedir(dir);
-    }
-    else {
+    } else {
         videoDevices = {-1}; // output signalling failure
     }
 
     return videoDevices;
 }
 
-bool DummyMPES::initialize()
-{
+bool DummyMPES::initialize() {
     std::cout << "DummyMPES::initialize(): Creating new video device " << std::endl;
     return true;
 }
 
-int DummyMPES::setExposure()
-{
+int DummyMPES::setExposure() {
     std::cout << "+++ Dummy MPES: Setting exposure for device at USB " << getPortNumber() << std::endl;
     int intensity = NOMINAL_INTENSITY; // dummy value
     return intensity;
 }
 
-int DummyMPES::updatePosition()
-{
+int DummyMPES::updatePosition() {
     // Set internal position variable to dummy values
     m_Position.xCentroid = 160.;
-    m_Position.yCentroid = 80.;
+    m_Position.yCentroid = 120.;
     m_Position.xSpotWidth = 10.;
     m_Position.ySpotWidth = 10.;
     m_Position.cleanedIntensity = NOMINAL_INTENSITY;

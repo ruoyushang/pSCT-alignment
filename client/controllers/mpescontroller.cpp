@@ -10,7 +10,7 @@
 #include <fstream>
 
 float MPESController::kNominalIntensity = 150000.;
-float MPESController::kNominalCentroidSD = 20.;
+float MPESController::kNominalSpotWidth = 20.;
 
 MPESController::MPESController(Device::Identity identity, std::shared_ptr<Client> pClient) : PasController(
     std::move(identity),
@@ -252,11 +252,11 @@ UaStatus MPESController::read(bool print) {
         m_isVisible = true;
         if (m_Data.xCentroidAvg < 0.1) m_isVisible = false;
         if (m_isVisible) {
-            if (m_Data.xCentroidSpotWidth > kNominalCentroidSD) {
+            if (m_Data.xCentroidSpotWidth > kNominalSpotWidth) {
                 std::cout << "+++ WARNING +++ The width of the image along the X axis for " << m_ID.name
                           << " is greater than 20px. Consider fixing things." << std::endl;
             }
-            if (m_Data.yCentroidSpotWidth > kNominalCentroidSD) {
+            if (m_Data.yCentroidSpotWidth > kNominalSpotWidth) {
                 std::cout << "+++ WARNING +++ The width of the image along the Y axis for " << m_ID.name
                           << " is greater than 20px. Consider fixing things." << std::endl;
             }

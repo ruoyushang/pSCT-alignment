@@ -15,6 +15,7 @@
 #include "common/alignment/device.hpp"
 #include "common/opcua/pascominterfacecommon.hpp"
 #include "common/opcua/passervertypeids.hpp"
+#include "common/utilities/DBConfig.hpp"
 
 #include <map>
 #include <memory>

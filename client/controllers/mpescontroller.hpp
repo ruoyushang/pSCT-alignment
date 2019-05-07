@@ -64,7 +64,7 @@ private:
         OpcUa_Double yNominal;
     } m_Data;
     static float kNominalIntensity;
-    static float kNominalCentroidSD;
+    static float kNominalSpotWidth;
 
     Device::Identity m_wPanelId; // id of the webcam-side panel
     // actuator response matrix map -- {panel position -> matrix}

@@ -38,17 +38,18 @@ const std::map<OpcUa_UInt32, std::string> PasCommunicationInterface::deviceTypes
         {PAS_PSDType,   "PSD"}
 };
 
-/// @details Uses hardcoded DB login info to access the device database and retrieve
+/// @details Uses DB login info from environment to access the device database and retrieve
 /// all device mappings and positions. Then, initializes all corresponding controllers, adds all MPES to the platform object,
 /// and attaches all actuator controllers to the corresponding panel controller.
 UaStatus PasCommunicationInterface::initialize() {
-    /// @warning Hardcoded database information. Should be moved to external configuration.
+    /// @remark DB login in uses variables preconfigured in MPCB environment variables.
     Device::DBInfo DbInfo;
-    DbInfo.host = "remus.ucsc.edu";
-    DbInfo.port = "3406";
-    DbInfo.user = "CTAreadonly";
-    DbInfo.password = "readCTAdb";
-    DbInfo.dbname = "CTAonline";
+    DBConfig myConfig = DBConfig::getDefaultConfig();
+    DbInfo.host = myConfig.getHost();
+    DbInfo.port = myConfig.getPort();
+    DbInfo.user = myConfig.getUser();
+    DbInfo.password = myConfig.getPassword();
+    DbInfo.dbname = myConfig.getDatabase();
     std::string dbAddress = "tcp://" + DbInfo.host + ":" + DbInfo.port;
 
     UaStatus status;
