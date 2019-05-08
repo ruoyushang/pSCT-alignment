@@ -167,7 +167,7 @@ class DummyActuator : public Actuator
 {
 public:
     DummyActuator(std::shared_ptr<CBC> pCBC, Device::Identity identity,
-                  Device::DBInfo DBInfo, const ASFInfo &ASFFileInfo) : Actuator(pCBC, identity, DBInfo, ASFFileInfo) {};
+                  Device::DBInfo DBInfo = Device::DBInfo(), const ASFInfo &ASFFileInfo = Actuator::ASFInfo()) : Actuator(pCBC, identity, DBInfo, ASFFileInfo) {};
 
     bool initialize() override;
     int step(int steps) override;
