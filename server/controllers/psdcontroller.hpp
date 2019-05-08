@@ -12,11 +12,10 @@
 #include "uaserver/uaobjecttypes.h"
 
 #include "common/alignment/device.hpp"
+#include "common/globalalignment/psdclass.h"
 
 #include "server/controllers/pascontroller.hpp"
 
-
-class GASPSD;
 
 /// @brief Class representing a device controller for a Position Sensitive Device.
 class PSDController : public PasController
@@ -29,7 +28,7 @@ public:
     explicit PSDController(Device::Identity identity);
 
     /// @brief Destroy a position sensitive device controller.
-    ~PSDController() override;
+    ~PSDController() override {};
 
     /// @brief Get the device's state.
     /// @param state Variable to store the retrieved state value.

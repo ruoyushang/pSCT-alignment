@@ -38,7 +38,7 @@ public:
                                                                                                     pPlatform) {};
 
     /// @brief Destroy a panel device controller object.
-    ~PanelController() override;
+    ~PanelController() override {}
 
     /// @brief Get the device's state.
     /// @param state Variable to store the retrieved state value.

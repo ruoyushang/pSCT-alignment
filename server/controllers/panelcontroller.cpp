@@ -15,6 +15,8 @@
 
 #include "common/alignment/platform.hpp"
 
+#include "server/objects/panelobject.hpp"
+
 #include "server/controllers/actcontroller.hpp"
 #include "server/controllers/mpescontroller.hpp"
 

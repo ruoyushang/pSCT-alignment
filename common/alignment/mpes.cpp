@@ -17,16 +17,16 @@
 #include "common/mpescode/MPESDevice.h"
 
 const int MPES::DEFAULT_IMAGES_TO_CAPTURE = 9;
-const std::string MATRIX_CONSTANTS_DIR_PATH = "/home/root/mpesCalibration/";
-const std::string CAL2D_CONSTANTS_DIR_PATH = "/home/root/mpesCalibration/";
+const std::string MPES::MATRIX_CONSTANTS_DIR_PATH = "/home/root/mpesCalibration/";
+const std::string MPES::CAL2D_CONSTANTS_DIR_PATH = "/home/root/mpesCalibration/";
 
-const float SAFETY_REGION_X_MIN = 60.0;
-const float SAFETY_REGION_X_MAX = 260.0;
-const float SAFETY_REGION_Y_MIN = 40.0;
-const float SAFETY_REGION_Y_MAX = 200.0;
+const float MPES::SAFETY_REGION_X_MIN = 60.0;
+const float MPES::SAFETY_REGION_X_MAX = 260.0;
+const float MPES::SAFETY_REGION_Y_MIN = 40.0;
+const float MPES::SAFETY_REGION_Y_MAX = 200.0;
 
-const float NOMINAL_INTENSITY = 150000.;
-const float NOMINAL_CENTROID_SD = 20.;
+const int MPES::NOMINAL_INTENSITY = 150000;
+const float MPES::NOMINAL_CENTROID_SD = 20.0;
 
 const std::vector<Device::ErrorDefinition> MPES::ERROR_DEFINITIONS = {
     {"Bad connection. No device found",                                                                            Device::DeviceState::FatalError},//error 0
@@ -166,7 +166,7 @@ int MPES::updatePosition()
         m_Position.cleanedIntensity = m_pImageSet->SetData.CleanedIntensity;
     }
 
-    if (std::abs(m_Position.cleanedIntensity - NOMINAL_INTENSITY) >= NOMINAL_INTENSITY * 0.2) {
+    if (std::abs(m_Position.cleanedIntensity - MPES::NOMINAL_INTENSITY) >= MPES::NOMINAL_INTENSITY * 0.2) {
         setError(7);
     } else if (m_Position.cleanedIntensity > 5e5 && m_Position.cleanedIntensity < 1e6) {
         setError(4);
@@ -226,7 +226,7 @@ bool DummyMPES::initialize()
 int DummyMPES::setExposure()
 {
     std::cout << "+++ Dummy MPES: Setting exposure for device at USB " << getPortNumber() << std::endl;
-    int intensity = NOMINAL_INTENSITY; // dummy value
+    int intensity = MPES::NOMINAL_INTENSITY; // dummy value
     return intensity;
 }
 
@@ -237,7 +237,7 @@ int DummyMPES::updatePosition()
     m_Position.yCentroid = 80.;
     m_Position.xSpotWidth = 10.;
     m_Position.ySpotWidth = 10.;
-    m_Position.cleanedIntensity = NOMINAL_INTENSITY;
+    m_Position.cleanedIntensity = MPES::NOMINAL_INTENSITY;
 
     return static_cast<int>(m_Position.cleanedIntensity);
 }

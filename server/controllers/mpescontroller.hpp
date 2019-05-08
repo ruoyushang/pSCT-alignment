@@ -31,7 +31,7 @@ public:
     MPESController(Device::Identity identity, std::shared_ptr<Platform> pPlatform);
 
     /// @brief Destroy an MPES device controller object.
-    ~MPESController() override;
+    ~MPESController() override {}
 
     /// @brief Initialize the MPES by setting its exposure.
     /// #return 0 on success, -1 on failure.

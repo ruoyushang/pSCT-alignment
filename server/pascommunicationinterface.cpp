@@ -124,7 +124,13 @@ UaStatus PasCommunicationInterface::initialize() {
     for (auto act : actPositionToSerial)
         actuatorSerials[act.first - 1] = act.second;
 
-    m_platform = std::make_shared<Platform>(cbcID, actuatorPorts, actuatorSerials, DbInfo);
+    Device::Identity identity;
+    identity.name = std::string("Panel_") + std::to_string(cbcID);
+    identity.serialNumber = cbcID;
+    identity.eAddress = std::string(std::getenv("LOCALIP"));
+    identity.position = panelPosition;
+
+    m_platform = std::make_shared<Platform>(identity, actuatorPorts, actuatorSerials, DbInfo);
 
     // initialize the MPES in the positional order. Not strictly necessary, but keeps things tidy
     // addMPES(port, serial)
@@ -142,7 +148,6 @@ UaStatus PasCommunicationInterface::initialize() {
     }
 
     // initialize expected devices
-    Identity identity;
     std::map<OpcUa_UInt32, int> expectedDeviceCounts;
     expectedDeviceCounts[PAS_PanelType] = 1;
     expectedDeviceCounts[PAS_ACTType] = m_platform->getActuatorCount();

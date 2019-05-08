@@ -50,8 +50,8 @@ SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH FALSE)
 # need libusb.so -- might not be on the system!!
 # brute force it for now
 #SET(LIBUSB_LIBRARIES "/home/root/opcua/pascommon/globalalignment/GlobalAlignment/libusb-1.0.so")
-#SET(LIBUSB_LIBRARIES "/usr/local/lib/libusb-1.0.so.0")
-SET(LIBUSB_LIBRARIES "/usr/lib64/libusb-1.0.so.0")
+SET(LIBUSB_LIBRARIES "/usr/local/lib/libusb-1.0.so.0")
+#SET(LIBUSB_LIBRARIES "/usr/lib64/libusb-1.0.so.0")
 #SET(LIBUSB_LIBRARIES "/lib/x86_64-linux-gnu/libusb-1.0.so.0")
 #SET(LIBUSB_LIBRARIES "${LD_LIBRARY_PATH}/libusb-1.0.so.0")
 
@@ -126,13 +126,13 @@ file(GLOB PASSERVER_SRC
     "${COMMON_CODE_DIR}/utilities/*.cpp"
     "${COMMON_CODE_DIR}/alignment/*.cpp"
     "${COMMON_CODE_DIR}/mpescode/*.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/*.hpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/controllers/*.hpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/objects/*.hpp"
-        "${COMMON_CODE_DIR}/opcua/*.hpp"
-        "${COMMON_CODE_DIR}/utilities/*.hpp"
-        "${COMMON_CODE_DIR}/alignment/*.hpp"
-        "${COMMON_CODE_DIR}/mpescode/*.h"
+    "${CMAKE_CURRENT_SOURCE_DIR}/*.hpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/controllers/*.hpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/objects/*.hpp"
+    "${COMMON_CODE_DIR}/opcua/*.hpp"
+    "${COMMON_CODE_DIR}/utilities/*.hpp"
+    "${COMMON_CODE_DIR}/alignment/*.hpp"
+    "${COMMON_CODE_DIR}/mpescode/*.h"
 )
 
 if ( SIMMODE )

@@ -28,9 +28,8 @@ public:
     /// @param pPlatform Pointer to platform object used to interface directly with hardware.
     ActController(Device::Identity identity, std::shared_ptr<Platform> pPlatform) : PasController(identity,
                                                                                                   pPlatform) {};
-
     /// @brief Destroy an actuator device controller object.
-    ~ActController() override;
+    ~ActController() override {}
 
     /// @brief Get the internal state of the actuator device.
     /// @param state Variable to store the retrieved state value.

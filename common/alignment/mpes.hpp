@@ -56,17 +56,6 @@ public:
     virtual int updatePosition();
     MPES::Position getPosition() const { return m_Position; };
 
-protected:
-    bool m_Calibrate;
-
-    Position m_Position = Position(); // MPES Reading
-
-    // helpers
-    std::shared_ptr<MPESImageSet> m_pImageSet;
-    std::unique_ptr<MPESDevice> m_pDevice;
-
-    static std::set<int> getVideoDevices();
-
     // Hardcoded constants
     static const int DEFAULT_IMAGES_TO_CAPTURE;
     static const std::string MATRIX_CONSTANTS_DIR_PATH;
@@ -79,6 +68,17 @@ protected:
     static const float SAFETY_REGION_X_MAX;
     static const float SAFETY_REGION_Y_MIN;
     static const float SAFETY_REGION_Y_MAX;
+
+protected:
+    bool m_Calibrate;
+
+    Position m_Position = Position(); // MPES Reading
+
+    // helpers
+    std::shared_ptr<MPESImageSet> m_pImageSet;
+    std::unique_ptr<MPESDevice> m_pDevice;
+
+    static std::set<int> getVideoDevices();
 };
 
 class DummyMPES : public MPES

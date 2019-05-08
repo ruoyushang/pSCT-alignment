@@ -25,6 +25,8 @@ public:
     static constexpr const int NUM_ACTS_PER_PLATFORM = 6;
 
     static const std::vector<Device::ErrorDefinition> ERROR_DEFINITIONS;
+    
+    std::vector<Device::ErrorDefinition> getErrorCodeDefinitions() override { return Platform::ERROR_DEFINITIONS; }
 
     // Initialization methods
     Platform();

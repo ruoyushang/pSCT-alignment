@@ -39,11 +39,6 @@ public:
     PasController(Device::Identity identity, int updateInterval) : PasController(identity,
                                                                                  std::shared_ptr<Platform>(nullptr),
                                                                                  updateInterval) {}
-
-    PasController(Device::Identity identity, int updateInterval) : PasController(identity,
-                                                                                 std::shared_ptr<Platform>(nullptr),
-                                                                                 updateInterval) {}
-
     /// @brief Initialize the controller object.
     /// @return 0 on success, -1 on failure.
     virtual bool initialize() { return true; } // only MPES overload this for now
