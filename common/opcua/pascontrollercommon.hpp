@@ -27,8 +27,8 @@ public:
     /* construction / destruction */
     explicit PasControllerCommon(Device::Identity identity, int updateInterval = 0) :
         m_state(Device::DeviceState::On),
-            m_ID(std::move(identity)),
-            m_kUpdateInterval_ms(updateInterval) {};
+        m_ID(identity),
+        m_kUpdateInterval_ms(updateInterval) {};
 
     virtual ~PasControllerCommon() = default;
 

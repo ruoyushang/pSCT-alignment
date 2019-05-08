@@ -23,7 +23,7 @@
 
 MirrorController *MirrorControllerCompute::m_Mirror = nullptr;
 
-MirrorController::MirrorController(Device::Identity identity) : PasCompositeController(std::move(identity), nullptr,
+MirrorController::MirrorController(Device::Identity identity) : PasCompositeController(identity, nullptr,
                                                                                        10000),
                                                                 m_pSurface(nullptr) {
     std::string mirrorprefix;

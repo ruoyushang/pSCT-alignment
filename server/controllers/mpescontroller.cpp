@@ -19,7 +19,7 @@
 #include "common/opcua/pasobject.hpp"
 
 MPESController::MPESController(Device::Identity identity, std::shared_ptr<Platform> pPlatform)
-    : PasController::PasController(std::move(identity), std::move(pPlatform)) {}
+    : PasController::PasController(identity, pPlatform) {}
 
 /// @details Locks the shared mutex while retrieving the state.
 UaStatus MPESController::getState(Device::DeviceState &state) {

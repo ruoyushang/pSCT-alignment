@@ -34,7 +34,7 @@ const std::vector<Device::ErrorDefinition> MPES::ERROR_DEFINITIONS = {
         {"Intensity deviation from nominal value (more than 20%).",                                                    Device::DeviceState::OperableError},//error 7
 };
 
-MPES::MPES(std::shared_ptr<CBC> pCBC, Device::Identity identity) : Device::Device(std::move(pCBC), std::move(identity)),
+MPES::MPES(std::shared_ptr<CBC> pCBC, Device::Identity identity) : Device::Device(pCBC, identity),
                                                                    m_Calibrate(false) {
 }
 

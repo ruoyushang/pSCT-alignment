@@ -25,7 +25,7 @@ public:
         const UaString &defaultLocaleId,
         PasNodeManagerCommon *pNodeManager,
         Device::Identity identity,
-        PasComInterfaceCommon *pCommIf) : PasObject(name, newNodeId, defaultLocaleId, pNodeManager, std::move(identity),
+        PasComInterfaceCommon *pCommIf) : PasObject(name, newNodeId, defaultLocaleId, pNodeManager, identity,
                                                     pCommIf) { initialize(); }
 
     UaNodeId typeDefinitionId() const override;

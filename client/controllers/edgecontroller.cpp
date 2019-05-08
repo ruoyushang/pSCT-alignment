@@ -13,7 +13,7 @@
 #include "client/controllers/actcontroller.hpp"
 
 
-EdgeController::EdgeController(Device::Identity identity) : PasCompositeController(std::move(identity), nullptr, 0),
+EdgeController::EdgeController(Device::Identity identity) : PasCompositeController(identity, nullptr, 0),
                                                             m_isAligned(false) {
     m_ID.name = std::string("Edge_") + m_ID.eAddress;
     m_state = Device::DeviceState::On;

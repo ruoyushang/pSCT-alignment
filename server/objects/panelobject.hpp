@@ -48,7 +48,7 @@ public:
         Device::Identity identity,
         PasCommunicationInterface *pCommIf) : PasObject(name, newNodeId, defaultLocaleId,
                                                         dynamic_cast<PasNodeManagerCommon *>(pNodeManager),
-                                                        std::move(identity),
+                                                        identity,
                                                         dynamic_cast<PasComInterfaceCommon *>(pCommIf)) { initialize(); }
 
     /// @brief Return the UaNodeId for the Panel object type definition node.

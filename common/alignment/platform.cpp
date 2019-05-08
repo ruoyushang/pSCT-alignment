@@ -57,7 +57,7 @@ Platform::Platform() : Device::Device(std::make_shared<CBC>(), Device::Identity(
         #ifndef SIMMODE
         m_Actuators[i] = std::unique_ptr<Actuator>(new Actuator(m_pCBC, act_identity));
         #else
-        m_Actuators[i] = std::unique_ptr<Actuator>(new DummyActuator(&m_pCBC, i + 1));
+        m_Actuators[i] = std::unique_ptr<Actuator>(new DummyActuator(m_pCBC, act_identity));
         #endif
         m_ActuatorIdentityMap.insert(std::make_pair(act_identity, i));
     }
@@ -79,7 +79,7 @@ Platform::Platform(std::array<int, Platform::NUM_ACTS_PER_PLATFORM> actuatorPort
         #ifndef SIMMODE
         m_Actuators[i] = std::unique_ptr<Actuator>(new Actuator(m_pCBC, act_identity));
         #else
-        m_Actuators[i] = std::unique_ptr<Actuator>(new DummyActuator(&m_pCBC, actuatorPorts[i], actuatorSerials[i]));
+        m_Actuators[i] = std::unique_ptr<Actuator>(new DummyActuator(m_pCBC, act_identity));
         #endif
         m_ActuatorIdentityMap.insert(std::make_pair(act_identity, i));
     }
@@ -101,7 +101,7 @@ Platform::Platform(Device::Identity identity, std::array<int, Platform::NUM_ACTS
         #ifndef SIMMODE
         m_Actuators[i] = std::unique_ptr<Actuator>(new Actuator(m_pCBC, act_identity, dbInfo));
         #else
-        m_Actuators[i] = new DummyActuator(&m_pCBC, actuatorPorts[i], actuatorSerials[i], dbInfo);
+        m_Actuators[i] = std::unique_ptr<Actuator>(new DummyActuator(m_pCBC, act_identity, dbInfo));
         #endif
         m_ActuatorIdentityMap.insert(std::make_pair(act_identity, i));
     }
@@ -124,7 +124,7 @@ Platform::Platform(Device::Identity identity, std::array<int, Platform::NUM_ACTS
         #ifndef SIMMODE
         m_Actuators[i] = std::unique_ptr<Actuator>(new Actuator(m_pCBC, act_identity, dbInfo, asfInfo));
         #else
-        m_Actuators[i] = new DummyActuator(&m_pCBC, actuatorPorts[i], actuatorSerials[i], dbInfo, asfInfo);
+        m_Actuators[i] = std::unique_ptr<Actuator>(new DummyActuator(m_pCBC, act_identity, dbInfo, asfInfo));
         #endif
         m_ActuatorIdentityMap.insert(std::make_pair(act_identity, i));
     }
@@ -691,7 +691,7 @@ bool Platform::addMPES(int USB, int serial)
     #ifndef SIMMODE
     std::unique_ptr<MPES> newMPES = std::unique_ptr<MPES>(new MPES(m_pCBC, identity));
     #else
-    std::unique_ptr<MPES> newMPES = std::unique_ptr<MPES>(new DummyMPES(&m_pCBC, identity));
+    std::unique_ptr<MPES> newMPES = std::unique_ptr<MPES>(new DummyMPES(m_pCBC, identity));
     #endif
 
     if (newMPES->initialize()) {
