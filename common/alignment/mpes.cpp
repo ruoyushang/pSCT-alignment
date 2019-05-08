@@ -26,7 +26,7 @@ const float MPES::SAFETY_REGION_Y_MIN = 40.0;
 const float MPES::SAFETY_REGION_Y_MAX = 200.0;
 
 const int MPES::NOMINAL_INTENSITY = 150000;
-const float MPES::NOMINAL_CENTROID_SD = 20.0;
+const float MPES::NOMINAL_SPOT_WIDTH = 20.0;
 
 const std::vector<Device::ErrorDefinition> MPES::ERROR_DEFINITIONS = {
         {"Bad connection. No device found",                                                                            Device::DeviceState::FatalError},//error 0

@@ -61,6 +61,7 @@ int OpcServerMain(const std::string &szAppPath, const std::string &configFilePat
         UaString sAppPath(szAppPath.c_str()); // Set server app path
         UaString sConfigFileName(configFilePath.c_str()); // Set config filename
 
+	std::cout << "Creating OpcServer object..." << std::endl;
         std::unique_ptr<OpcServer> pServer = std::unique_ptr<OpcServer>(
                 new OpcServer()); // initialize and configure server object
         pServer->setServerConfig(sConfigFileName, sAppPath);
@@ -76,12 +77,14 @@ int OpcServerMain(const std::string &szAppPath, const std::string &configFilePat
         endpoints[0]->setEndpointUrl(sEndpointUrl, false);
         */
 
+	std::cout << "Creating Communication Interface..." << std::endl;
         std::unique_ptr<PasCommunicationInterface> pCommIf = std::unique_ptr<PasCommunicationInterface>(
                 new PasCommunicationInterface()); // Initialize communication interface
         pCommIf->setPanelNumber(panelNumber);
         UaStatus retStatus = pCommIf->initialize();
         UA_ASSERT(retStatus.isGood());
 
+	std::cout << "Creating Node Manager..." << std::endl;
         std::unique_ptr<PasNodeManager> pNodeManager = std::unique_ptr<PasNodeManager>(
                 new PasNodeManager()); // Create Node Manager for the server
         pNodeManager->setCommunicationInterface(pCommIf); // set its communication interface
@@ -127,12 +130,12 @@ int main(int argc, char* argv[])
 #endif
 {
     if (argc == 1) {
-        std::cout << "Usage: " << argv[0] << " <CBC IP ADDRESS> -c <CONFIG FILE PATH>\n";
+        std::cout << "Usage: " << argv[0] << " <PANEL POSITION NUMBER> -c <CONFIG FILE PATH>\n";
         return -1;
     }
 
     int c;
-    std::string cbcIPAddress, configFilePath;
+    std::string panelNumber, configFilePath;
 
     while ((c = getopt (argc, argv, "c:")) != -1) {
         switch(c)
@@ -150,10 +153,10 @@ int main(int argc, char* argv[])
 
     if (optind != argc - 1) {
         std::cout << "Invalid number of positional arguments: " << (argc - optind) << std::endl;
-        std::cout << "Usage: " << argv[0] << " <CBC IP ADDRESS> -c <CONFIG FILE PATH>\n";
+        std::cout << "Usage: " << argv[0] << " <PANEL POSITION NUMBER> -c <CONFIG FILE PATH>\n";
         return -1;
     } else {
-        cbcIPAddress = argv[optind];
+        panelNumber = argv[optind];
     }
 
     // NOTE: This method returns a pointer to heap-allocated memory, must be freed manually
@@ -181,7 +184,7 @@ int main(int argc, char* argv[])
     std::cout << "***************************************************\n";
     RegisterSignalHandler();
 
-    int ret = OpcServerMain(pszAppPath, configFilePath, cbcIPAddress);
+    int ret = OpcServerMain(pszAppPath, configFilePath, panelNumber);
 
     delete[] pszAppPath; // release pszAppPath memory manually
 
