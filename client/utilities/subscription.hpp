@@ -11,6 +11,8 @@
 #include "uabase/uabase.h"
 #include "uaclient/uaclientsdk.h"
 #include "client/utilities/configuration.hpp"
+#include "client/utilities/callback.h"
+#include <unistd.h>
 
 /// @brief Class to manage subscriptions to OPC UA nodes. Wraps the standard
 /// UaSubscription and UaSubscriptionCallback classes and takes a configuration
@@ -97,4 +99,18 @@ private:
     Configuration* m_pConfiguration;
 };
 
+UaObjectArray<UaNodeId>                 g_HistoryDataNodeIds;
+UaNodeId                                g_HistoryEventNodeId;
+UaObjectArray<UaNodeId>                 g_EventTriggerObjects;
+UaObjectArray<UaNodeId>                 g_EventTriggerMethods;
+UaByteStringArray                       g_EventIds;
+
+void historyReadDataRaw();
+void historyReadDataProcessed();
+void historyReadDataAtTime();
+void historyUpdateData();
+void historyDeleteData();
+void historyReadEvents();
+void historyUpdateEvents();
+void historyDeleteEvents();
 #endif // SUBSCRIPTION_H
