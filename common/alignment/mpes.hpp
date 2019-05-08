@@ -64,11 +64,6 @@ public:
     static const int NOMINAL_INTENSITY;
     static const float NOMINAL_SPOT_WIDTH;
 
-    static const float SAFETY_REGION_X_MIN;
-    static const float SAFETY_REGION_X_MAX;
-    static const float SAFETY_REGION_Y_MIN;
-    static const float SAFETY_REGION_Y_MAX;
-
 protected:
     bool m_Calibrate;
 

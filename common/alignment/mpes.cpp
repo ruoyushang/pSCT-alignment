@@ -20,13 +20,8 @@ const int MPES::DEFAULT_IMAGES_TO_CAPTURE = 9;
 const std::string MPES::MATRIX_CONSTANTS_DIR_PATH = "/home/root/mpesCalibration/";
 const std::string MPES::CAL2D_CONSTANTS_DIR_PATH = "/home/root/mpesCalibration/";
 
-const float MPES::SAFETY_REGION_X_MIN = 60.0;
-const float MPES::SAFETY_REGION_X_MAX = 260.0;
-const float MPES::SAFETY_REGION_Y_MIN = 40.0;
-const float MPES::SAFETY_REGION_Y_MAX = 200.0;
-
 const int MPES::NOMINAL_INTENSITY = 150000;
-const float MPES::NOMINAL_CENTROID_SD = 20.0;
+const float MPES::NOMINAL_SPOT_WIDTH = 10.0;
 
 const std::vector<Device::ErrorDefinition> MPES::ERROR_DEFINITIONS = {
         {"Bad connection. No device found",                                                                            Device::DeviceState::FatalError},//error 0
@@ -223,8 +218,8 @@ int DummyMPES::updatePosition() {
     // Set internal position variable to dummy values
     m_Position.xCentroid = 160.;
     m_Position.yCentroid = 120.;
-    m_Position.xSpotWidth = 10.;
-    m_Position.ySpotWidth = 10.;
+    m_Position.xSpotWidth = MPES::NOMINAL_SPOT_WIDTH;
+    m_Position.ySpotWidth = MPES::NOMINAL_SPOT_WIDTH;
     m_Position.cleanedIntensity = MPES::NOMINAL_INTENSITY;
 
     return static_cast<int>(m_Position.cleanedIntensity);

@@ -92,9 +92,6 @@ This method calculates Averages and Standard deviations for the multiple paramet
 
 */
         void simpleAverage();
-        /// Calculates averages using ROOT, by fitting values to gaussian and finding sigmas. Populates to SetData object. 
-        //void fitGauss(const char * outfile);
-        void fitGauss();
         /// Prints properties for set of images.
         void printSetProperties(FILE * file);
 	
