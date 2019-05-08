@@ -43,7 +43,7 @@ class PasCompositeController : public PasController
 {
     public:
     PasCompositeController(Device::Identity identity, std::shared_ptr<Client> pClient, int updateInterval = 0) :
-                PasController(std::move(identity), pClient, updateInterval) {};
+        PasController(identity, pClient, updateInterval) {};
 
     ~PasCompositeController() override = default;
 

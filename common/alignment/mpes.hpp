@@ -79,7 +79,7 @@ protected:
 class DummyMPES : public MPES
 {
 public:
-    DummyMPES(std::shared_ptr<CBC> pCBC, Device::Identity identity) : MPES(std::move(pCBC), std::move(identity)) {};
+    DummyMPES(std::shared_ptr<CBC> pCBC, Device::Identity identity) : MPES(pCBC, identity) {};
 
     bool initialize() override;
     int setExposure() override;

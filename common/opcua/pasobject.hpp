@@ -90,7 +90,7 @@ public:
     PasUserData(OpcUa_Boolean isState, OpcUa_UInt32 type,
                 Device::Identity identity,
                 OpcUa_UInt32 variableOffset) :
-        m_isState(isState), m_Type(type), m_Identity(std::move(identity)), m_variableOffset(variableOffset) {}
+        m_isState(isState), m_Type(type), m_Identity(identity), m_variableOffset(variableOffset) {}
 
     virtual ~PasUserData() = default;
 

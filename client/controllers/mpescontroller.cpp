@@ -13,7 +13,7 @@ float MPESController::kNominalIntensity = 150000.;
 float MPESController::kNominalSpotWidth = 10.;
 
 MPESController::MPESController(Device::Identity identity, std::shared_ptr<Client> pClient) : PasController(
-    std::move(identity),
+    identity,
     pClient),
                                                                                              m_updated(false), m_isVisible(false) {
     m_state = Device::DeviceState::On;

@@ -42,9 +42,9 @@ public:
         PasNodeManager *pNodeManager,
         Device::Identity identity,
         PasCommunicationInterface *pCommIf) : PasObject(name, newNodeId, defaultLocaleId,
-                                                            dynamic_cast<PasNodeManagerCommon *>(pNodeManager),
-                                                            std::move(identity),
-                                                            dynamic_cast<PasComInterfaceCommon *>(pCommIf)) { initialize(); }
+                                                        dynamic_cast<PasNodeManagerCommon *>(pNodeManager),
+                                                        identity,
+                                                        dynamic_cast<PasComInterfaceCommon *>(pCommIf)) { initialize(); }
 
     /// @brief Method returning the UaNodeId for the Positioner object type
     /// definition node.

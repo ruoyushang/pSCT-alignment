@@ -18,7 +18,7 @@
 #include "client/controllers/pascontroller.hpp"
 
 ActController::ActController(Device::Identity identity, std::shared_ptr<Client> pClient) : PasController(
-    std::move(identity), pClient) {
+    identity, pClient) {
     m_state = Device::DeviceState::On;
 }
 

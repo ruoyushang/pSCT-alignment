@@ -27,9 +27,9 @@ public:
         PasNodeManager *pNodeManager,
         Device::Identity identity,
         PasCommunicationInterface *pCommIf) : PasObject(name, newNodeId, defaultLocaleId,
-                                                            dynamic_cast<PasNodeManagerCommon *>(pNodeManager),
-                                                            std::move(identity),
-                                                            dynamic_cast<PasComInterfaceCommon *>(pCommIf)) { initialize(); }
+                                                        dynamic_cast<PasNodeManagerCommon *>(pNodeManager),
+                                                        identity,
+                                                        dynamic_cast<PasComInterfaceCommon *>(pCommIf)) { initialize(); }
 
     UaNodeId typeDefinitionId() const override;
 

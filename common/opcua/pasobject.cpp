@@ -23,7 +23,7 @@ PasObject::PasObject(const UaString& name,
                          pNodeManager->getNodeManagerConfig()),
     m_defaultLocaleId(defaultLocaleId),
     m_pSharedMutex(nullptr),
-    m_Identity(std::move(identity)),
+    m_Identity(identity),
     m_pCommIf(pCommIf),
     m_pNodeManager(pNodeManager),
     m_newNodeId(newNodeId) {

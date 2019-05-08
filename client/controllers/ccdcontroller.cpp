@@ -19,7 +19,7 @@
 #include "client/controllers/pascontroller.hpp"
 
 
-CCDController::CCDController(Device::Identity identity) : PasController(std::move(identity), nullptr) {
+CCDController::CCDController(Device::Identity identity) : PasController(identity, nullptr) {
     m_pCCD = new GASCCD();
     m_pCCD->setConfig(m_ID.eAddress);
     m_pCCD->Initialize();
