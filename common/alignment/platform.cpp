@@ -647,16 +647,18 @@ void Platform::clearActuatorErrors() {
     for (auto &act : m_Actuators) {
         act->clearErrors();
     }
+    for (int i = 0; i < 12; i++)
+        unsetError(i);
+    updateState();
 }
 
 void Platform::clearPlatformErrors()
 {
     DEBUG_MSG("Clearing all Platform errors.");
-    for (int i = 0; i < getNumErrors(); i++)
+    for (int i = 12; i < getNumErrors(); i++)
     {
-        m_Errors[i] = false;
+        unsetError(i)
     }
-    m_state = Device::DeviceState::On;
     updateState(); // Update error status to reflect actuator errors
 }
 

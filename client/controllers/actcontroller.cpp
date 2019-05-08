@@ -152,6 +152,15 @@ UaStatus ActController::operate(OpcUa_UInt32 offset, const UaVariantArray &args)
             std::cout << "Stepping actuator " << m_ID.serialNumber << "to target length " << targetLength << " mm\n";
             status = m_pClient->callMethodAsync(m_ID.eAddress, UaString("MoveToLength"), args);
             break;
+        case PAS_ACTType_ForceRecover:
+            status = m_pClient->callMethod(m_ID.eAddress, UaString("ForceRecover"));
+            break;
+        case PAS_ACTType_ClearError:
+            status = m_pClient->callMethod(m_ID.eAddress, UaString("ClearError"), args);
+            break;
+        case PAS_ACTType_ClearAllErrors:
+            status = m_pClient->callMethod(m_ID.eAddress, UaString("ClearAllErrors"));
+            break;
         default:
             status = OpcUa_BadInvalidArgument;
     }
