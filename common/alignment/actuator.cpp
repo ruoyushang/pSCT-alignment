@@ -44,7 +44,8 @@ const std::vector<Device::ErrorDefinition> Actuator::ERROR_DEFINITIONS = {
 const Actuator::ASFInfo Actuator::EMERGENCY_ASF_INFO = {"/.ASF/", ".ASF_Emergency_Port_", ".log"};
 
 Actuator::Actuator(std::shared_ptr<CBC> pCBC, Device::Identity identity, Device::DBInfo DBInfo,
-                   const ASFInfo &ASFFileInfo) : Device::Device(pCBC, identity) {
+                   const ASFInfo &ASFFileInfo) : Device::Device(std::move(pCBC), identity),
+                                                 m_ADCdata(CBC::ADC::adcData()) {
     m_Errors.assign(getNumErrors(), false);
     setError(0); // By default, home position not calibrated
     setError(1); // By default, DB info not set

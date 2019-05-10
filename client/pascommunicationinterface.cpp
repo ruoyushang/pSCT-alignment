@@ -211,20 +211,19 @@ PasCommunicationInterface::addDevice(const std::shared_ptr<Client> &pClient, Opc
         for (unsigned i = 0; i < parentList.size(); i++) {
            const auto& parent = parentList.at(i);
            int parentIdx;
-           try {
-               parentIdx = m_DeviceIdentityMap.at(parent.first).at(parent.second);
-               for (unsigned j = 0; j < parentList.size(); j++) {
-                   if (j != i) {
-                       const auto& coparent = parentList.at(j);
-                       int coparentIdx;
-                       coparentIdx = m_DeviceIdentityMap.at(coparent.first).at(coparent.second);
-                       PasController *parentC = m_pControllers.at(parent.first).at(parentIdx).get();
-                       PasController *coparentC = m_pControllers.at(coparent.first).at(coparentIdx).get();
-                       dynamic_cast<PasCompositeController *>(parentC)->addChild(coparent.first, std::shared_ptr<PasController>(coparentC));
-                   }
-               }
-           }
-           catch (std::out_of_range &e) {/*ignore*/}
+            parentIdx = m_DeviceIdentityMap.at(parent.first).at(parent.second);
+            for (unsigned j = 0; j < parentList.size(); j++) {
+                if (j != i) {
+                    const auto &coparent = parentList.at(j);
+                    int coparentIdx;
+                    coparentIdx = m_DeviceIdentityMap.at(coparent.first).at(coparent.second);
+                    PasController *parentC = m_pControllers.at(parent.first).at(parentIdx).get();
+                    PasController *coparentC = m_pControllers.at(coparent.first).at(coparentIdx).get();
+                    dynamic_cast<PasCompositeController *>(parentC)->addChild(coparent.first,
+                                                                              std::shared_ptr<PasController>(
+                                                                                  coparentC));
+                }
+            }
         }
     } // if (deviceType == PAS_ACTType || deviceType == PAS_MPESType)
 
