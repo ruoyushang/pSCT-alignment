@@ -108,13 +108,13 @@ UaStatus PasNodeManager::afterStartUp()
 
     UaFolder *pFolder = nullptr;
     PasObject *pObject = nullptr;
-    PasController *pController = nullptr;
-    std::vector<PasController *>pChildren;
+    std::shared_ptr<PasController> pController = nullptr;
+    std::vector<std::shared_ptr<PasController> > pChildren;
 
     auto pPasFactory = new PasObjectFactory();
 
     std::map<unsigned, UaFolder *> pDeviceFolders;
-    std::map<PasController *, PasObject *> pDeviceObjects;
+    std::map<std::shared_ptr<PasController>, PasObject *> pDeviceObjects;
 
     std::string deviceName;
     std::string folderName;
@@ -194,7 +194,7 @@ UaStatus PasNodeManager::afterStartUp()
         }
     }
 
-    std::map<PasController *, PasObject *> pRootDevices;
+    std::map<std::shared_ptr<PasController>, PasObject *> pRootDevices;
     pRootDevices.insert(pDeviceObjects.begin(), pDeviceObjects.end());
 
     UaString objectName;
@@ -202,7 +202,8 @@ UaStatus PasNodeManager::afterStartUp()
     std::cout << "Adding all parent-child references between objects...\n";
 
     // Loop through all created objects and add references to children
-    for (std::map<PasController *, PasObject *>::iterator it=pDeviceObjects.begin(); it!=pDeviceObjects.end(); ++it) {
+    for (std::map<std::shared_ptr<PasController>, PasObject *>::iterator it = pDeviceObjects.begin();
+         it != pDeviceObjects.end(); ++it) {
         pController = it->first;
         pObject = it->second;
 
@@ -244,7 +245,8 @@ UaStatus PasNodeManager::afterStartUp()
     UA_ASSERT(ret.isGood());
 
     // Add all root devices (devices with no parents) to the Device Tree Folder
-    for (std::map<PasController *, PasObject *>::iterator it=pRootDevices.begin(); it!=pRootDevices.end(); ++it) {
+    for (std::map<std::shared_ptr<PasController>, PasObject *>::iterator it = pRootDevices.begin();
+         it != pRootDevices.end(); ++it) {
         pController = it->first;
         pObject = it->second;
 

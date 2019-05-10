@@ -54,7 +54,9 @@ class PasCompositeController : public PasController
         // declaring these as virtual, but they should be the same for everything that
         // inherts from here
         virtual void addChild(OpcUa_UInt32 deviceType, std::shared_ptr<PasController> pController);
-        virtual const std::vector<PasController *>& getChildren(unsigned type) const { return m_pChildren.at(type); };
+
+    virtual const std::vector<std::shared_ptr<PasController> > &
+    getChildren(unsigned type) const { return m_pChildren.at(type); };
 
     protected:
         // stores the possbile types of children

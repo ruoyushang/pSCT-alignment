@@ -67,7 +67,7 @@ public:
     UaStatus operate(OpcUa_UInt32 offset, const UaVariantArray &args) override;
 
     // own implementation
-    void addChild(OpcUa_UInt32 deviceType, PasController *pController) override;
+    void addChild(OpcUa_UInt32 deviceType, std::shared_ptr<PasController> pController) override;
 
     // let MirrorControllerCompute access the internal chiSq function
     friend void MirrorControllerCompute::chiSqFCN(int &npar, double *gin, double &f, double *par, int iflag);
