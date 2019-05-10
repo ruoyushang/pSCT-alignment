@@ -135,7 +135,7 @@ int OpcMain(const char *szAppPath, const std::vector<std::string> &serverlist)
         pServer->setServerConfig(sServConfigFile, szAppPath);
 
         // Load configuration.
-        auto pClientConfiguration = new Configuration();
+        std::shared_ptr<Configuration> pClientConfiguration = std::make_shared<Configuration>();
         std::cout << "  ---- Loading Configuration ----\n";
         status = pClientConfiguration->loadConnectionConfiguration(sClientConfigFile);
         status = pClientConfiguration->loadDeviceConfiguration(serverlist);
