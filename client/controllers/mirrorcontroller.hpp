@@ -4,7 +4,7 @@
 #include "client/controllers/pascontroller.hpp"
 #include "TObject.h" // to be able to use ROOT's MINUIT implementation
 // these are included in pascontroller.h, but we add them just in case something changes there
-#include "stewartplatform.h"
+#include "common/simulatestewart/stewartplatform.h"
 
 #include <set>
 // Eigen3 for linear algebra needs

@@ -1,6 +1,6 @@
 #include "mirrorcontroller.hpp"
-#include "mathtools.h"
-#include "mirrordefinitions.h" // definitions of the mirror surfaces
+#include "common/simulatestewart/mathtools.h"
+#include "common/simulatestewart/mirrordefinitions.h" // definitions of the mirror surfaces
 #include "AGeoAsphericDisk.h" // ROBAST dependency
 #include <algorithm> // std::count
 #include <string>
@@ -1155,11 +1155,11 @@ UaStatus MirrorController::alignGlobal(unsigned fixPanel, double alignFrac, bool
                       << std::endl;
 
             try {
-                panelsToMove.push_back(dynamic_cast<PanelController *> (
+                panelsToMove.push_back(std::dynamic_pointer_cast<PanelController>(
                         m_pChildren.at(PAS_PanelType).at(m_ChildrenPositionMap.at(PAS_PanelType).at(curPanel)) ) );
 
                 id.eAddress = SCTMath::GetEdgeFromPanels({curPanel, nextPanel});
-                edgesToFit.push_back(dynamic_cast<EdgeController *>(
+                edgesToFit.push_back(std::dynamic_pointer_cast<EdgeController>(
                             m_pChildren.at(PAS_EdgeType).at(m_ChildrenIdentityMap.at(PAS_EdgeType).at(id)) ) );
                 std::cout << "\t\tThese correspond to the edge " << edgesToFit.back()->getId() << std::endl;
 
