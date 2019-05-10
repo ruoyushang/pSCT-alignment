@@ -15,7 +15,7 @@ public:
     friend EdgeController; // access internal methods for compute
 
     // construction / destruction
-    PanelController(Identity identity, Client *pClient);
+    PanelController(Identity identity, std::shared_ptr<Client> pClient);
 
     virtual ~PanelController();
 

@@ -15,7 +15,7 @@ class PositionerController : public PasController {
     UA_DISABLE_COPY(PositionerController);
 public:
     /* construction / destruction */
-    PositionerController(Identity identity, Client *pClient);
+    PositionerController(Identity identity, std::shared_ptr<Client> pClient);
 
     ~PositionerController();
 

@@ -3,7 +3,7 @@
 
 #include "client/pascommunicationinterface.hpp"
 #include "passervertypeids.hpp"
-#include "stewartplatform.h"
+#include "common/simulatestewart/stewartplatform.h"
 #include "components.hpp"
 
 #include "uabase/statuscode.h"
@@ -27,12 +27,13 @@ class PasController : public PasControllerCommon
     UA_DISABLE_COPY(PasController);
 public:
     /* construction / destruction */
-    PasController(Identity identity, Client *pClient, int updateInterval = 0) : PasControllerCommon(identity,
-                                                                                                    updateInterval),
-                                                                                m_pClient(pClient) {};
+    PasController(Identity identity, std::shared_ptr<Client> pClient, int updateInterval = 0) : PasControllerCommon(
+        identity,
+        updateInterval),
+                                                                                                m_pClient(pClient) {};
 
 protected:
-    Client *m_pClient;
+    std::shared_ptr<Client> m_pClient;
 };
 
 
@@ -41,7 +42,7 @@ protected:
 class PasCompositeController : public PasController
 {
     public:
-        PasCompositeController(Identity identity, Client *pClient, int updateInterval=0) :
+    PasCompositeController(Identity identity, std::shared_ptr<Client> pClient, int updateInterval = 0) :
                 PasController(std::move(identity), pClient, updateInterval) {};
 
     ~PasCompositeController() override = default;
@@ -52,7 +53,7 @@ class PasCompositeController : public PasController
         // a const.
         // declaring these as virtual, but they should be the same for everything that
         // inherts from here
-        virtual void addChild(OpcUa_UInt32 deviceType, PasController *pController);
+        virtual void addChild(OpcUa_UInt32 deviceType, std::shared_ptr<PasController> pController);
         virtual const std::vector<PasController *>& getChildren(unsigned type) const { return m_pChildren.at(type); };
 
     protected:

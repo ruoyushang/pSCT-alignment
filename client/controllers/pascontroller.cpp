@@ -20,7 +20,7 @@
 #include <Eigen/Dense>
 
 // implement PasCompositeController::addChild()
-void PasCompositeController::addChild(OpcUa_UInt32 deviceType, PasController *const pController)
+void PasCompositeController::addChild(OpcUa_UInt32 deviceType, std::shared_ptr<PasController> pController)
 {
     const auto &id = pController->getId();
     auto pos = pController->getId().position;

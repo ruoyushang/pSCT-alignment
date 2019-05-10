@@ -9,7 +9,7 @@
 // 500 ms update interval for PSDs
 int PSDController::kUpdateInterval = 500;
 
-PSDController::PSDController(Identity identity, Client *pClient) :
+PSDController::PSDController(Identity identity, std::shared_ptr<Client> pClient) :
         PasController(std::move(identity), pClient, kUpdateInterval) {
     m_state = PASState::On;
     m_Data = {0.0,

@@ -34,10 +34,10 @@ public:
 
     /// @brief Setter method to set the Configuration object.
     /// @param pConfiguration Pointer to a new Configuration object.
-    void setConfiguration(Configuration *pConfiguration);
+    void setConfiguration(std::shared_ptr<Configuration> pConfiguration);
     /// @brief Setter method to set the PasCommunicationInterface object.
     /// @param pCommIf Pointer to a new PasCommunicationInterface object.
-    void setCommunicationInterface(PasCommunicationInterface *pCommIf);
+    void setCommunicationInterface(std::unique_ptr<PasCommunicationInterface> &pCommIf);
 
     /// @brief Method to get locale ID indicating the region/language.
     /// @return A locale ID string indicating the region/language.
@@ -53,12 +53,12 @@ private:
     /// @return An OPC UA status code.
     UaStatus amendTypeNodes();
     /// @brief Configuration object used to
-    Configuration *m_pConfiguration = nullptr;
+    std::shared_ptr<Configuration> m_pConfiguration;
     /// @brief Pointers to all OPC UA clients (controller boards) connected to
   	/// the master alignment client.
-    std::vector<Client *> m_pClient;
+    std::vector<std::shared_ptr<Client> > m_pClient;
     /// @brief Pointer to telescope positioner OPC UA client.
-    Client *m_pPositioner;
+    std::shared_ptr<Client> m_pPositioner;
 
 };
 

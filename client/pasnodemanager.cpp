@@ -7,7 +7,7 @@
 #include "client/objects/opttableobject.hpp"
 #include "client/objects/positionerobject.hpp"
 #include "clienthelper.hpp"
-#include "configuration.hpp"
+#include "client/utilities/configuration.hpp"
 #include "pascommunicationinterface.hpp"
 #include "pasobjectfactory.hpp"
 #include "passervertypeids.hpp"
@@ -20,28 +20,21 @@ PasNodeManager::PasNodeManager()
 : PasNodeManagerCommon()
 {
     std::cout << "\nCreating new Node Manager\n";
-    m_pPositioner = new Client(this);
+    m_pPositioner = std::make_shared<Client>(this);
 }
 
 PasNodeManager::~PasNodeManager()
 {
-    while (!m_pClient.empty())
-    {
-        delete m_pClient.back();
-        m_pClient.pop_back();
-    }
-    delete m_pPositioner;
-    m_pPositioner = nullptr;
-    std::cout << "\nDeleted Clients\n";
+    std::cout << "Closed and cleaned up PasNodeManager\n";
 }
 
-void PasNodeManager::setCommunicationInterface(PasCommunicationInterface *pCommIf)
+void PasNodeManager::setCommunicationInterface(std::unique_ptr<PasCommunicationInterface> &pCommIf)
 {
     std::cout << "PasNodeManager: Setting communication interface\n";
-    m_pCommIf = std::unique_ptr<PasComInterfaceCommon>(pCommIf);
+    m_pCommIf = std::unique_ptr<PasComInterfaceCommon>(pCommIf.release());
 }
 
-void PasNodeManager::setConfiguration(Configuration *pConfiguration)
+void PasNodeManager::setConfiguration(std::shared_ptr<Configuration> pConfiguration)
 {
     std::cout << "PasNodeManager: Setting configuration\n";
     m_pConfiguration = pConfiguration;
@@ -51,7 +44,7 @@ void PasNodeManager::setConfiguration(Configuration *pConfiguration)
     std::cout << "Will attempt to create " << m_pConfiguration->getServers() << " clients\n\n";
     for (OpcUa_UInt32 i = 0; i < m_pConfiguration->getServers(); i++)
     {
-        m_pClient.push_back(new Client(this));
+        m_pClient.push_back(std::make_shared<Client>(this));
         m_pClient.back()->setConfiguration(m_pConfiguration);
     }
 }

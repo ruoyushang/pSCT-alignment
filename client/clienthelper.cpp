@@ -1,7 +1,7 @@
 #include "clienthelper.hpp"
-#include "subscription.hpp"
-#include "database.hpp"
-#include "configuration.hpp"
+#include "client/utilities/subscription.hpp"
+#include "client/utilities/database.hpp"
+#include "client/utilities/configuration.hpp"
 #include "pasobject.hpp"
 #include "passervertypeids.hpp"
 #include "pasnodemanager.hpp"
@@ -94,7 +94,7 @@ void Client::connectionStatusChanged(
     m_serverStatus = serverStatus; 
 }
 
-void Client::setConfiguration(Configuration* pConfiguration) 
+void Client::setConfiguration(std::shared_ptr<Configuration> pConfiguration)
 { 
     if (m_pSubscription) 
     {

@@ -16,7 +16,8 @@
 #include "client/clienthelper.hpp"
 #include "client/controllers/pascontroller.hpp"
 
-ActController::ActController(Identity identity, Client *pClient) : PasController(std::move(identity), pClient) {
+ActController::ActController(Identity identity, std::shared_ptr<Client> pClient) : PasController(std::move(identity),
+                                                                                                 pClient) {
     m_state = PASState::On;
 }
 

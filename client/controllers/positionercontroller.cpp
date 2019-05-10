@@ -13,7 +13,8 @@
 #include <unistd.h>
 
 
-PositionerController::PositionerController(Identity identity, Client *pClient) : PasController(identity, pClient)
+PositionerController::PositionerController(Identity identity, std::shared_ptr<Client> pClient) : PasController(identity,
+                                                                                                               pClient)
 {
     m_state = PASState::GLOB_Positioner_notMoving;
     m_Data = {0.0, 0.0, 0.0, 0.0, OpcUa_False};
