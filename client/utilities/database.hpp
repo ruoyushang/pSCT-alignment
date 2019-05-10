@@ -25,7 +25,7 @@ public:
 
 	/// @brief Setter method to set internal Configuration object.
 	/// @param Pointer to new Configuration object.
-    void setConfiguration(const std::shared_ptr<Configuration> pConfiguration);
+    void setConfiguration(std::shared_ptr<Configuration> pConfiguration);
 
 	/// @warning Logic to setup statements and connections is
 	/// currently commented out.
@@ -44,7 +44,7 @@ public:
 
 private:
 	/// @brief Pointer to Configuration object.
-    const std::shared_ptr<Configuration> m_pConfiguration;
+    std::shared_ptr<Configuration> m_pConfiguration;
 	/// @brief Vector of MySQL Driver objects to create connections
 	/// to the MySQL server.
     std::vector<sql::Driver*> m_pDriver;

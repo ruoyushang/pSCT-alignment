@@ -60,7 +60,7 @@ class PasCompositeController : public PasController
         // stores the possbile types of children
         std::set<unsigned> m_ChildrenTypes;
         // deviceType -> vector of Children devices
-        std::map< unsigned, std::vector<PasController *> > m_pChildren;
+        std::map<unsigned, std::vector<std::shared_ptr<PasController>>> m_pChildren;
         // deviceType -> {position -> index in m_pChildren.at(deviceType) }
         // m_ChildrenPositionMap.at(deviceType) is oredered by the first index, position.
         // This makes it perfect for cycling through positions.

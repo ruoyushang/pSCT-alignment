@@ -26,7 +26,7 @@ Database::~Database()
  }
 
 /// @details Assigns provided Configuration pointer to object.
-void Database::setConfiguration(const std::shared_ptr<Configuration> pConfiguration)
+void Database::setConfiguration(std::shared_ptr<Configuration> pConfiguration)
 {
     m_pConfiguration = pConfiguration;
 }
