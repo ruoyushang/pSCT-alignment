@@ -114,7 +114,7 @@ PasCommunicationInterface::addDevice(std::shared_ptr<Client> pClient, OpcUa_UInt
     Identity id;
 
     // Found existing copy of device
-    if (m_DeviceIdentityMap.at(deviceType).count(identity) > 0) {
+    if (m_DeviceIdentityMap.count(deviceType) > 0 && m_DeviceIdentityMap.at(deviceType).count(identity) > 0) {
         int index = m_DeviceIdentityMap.at(deviceType).at(identity);
         std::cout << "PasCommunicationInterface::addDevice() : Device " << identity << " already exists as "
                   << PasCommunicationInterface::deviceTypeNames.at(deviceType) << "[" << index << "]. Moving on..."
