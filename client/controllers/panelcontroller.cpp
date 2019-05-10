@@ -287,7 +287,7 @@ bool PanelController::checkForCollision(const Eigen::VectorXd &deltaLengths) {
     if (m_pChildren.count(PAS_EdgeType) > 0) {
         std::cout << m_pChildren.count(PAS_EdgeType) << " edges found." << std::endl;
         for (auto e : m_pChildren.at(PAS_EdgeType)) {
-            auto *edge = dynamic_cast<EdgeController *>(e);
+            std::shared_ptr<EdgeController> edge = std::dynamic_pointer_cast<EdgeController>(e);
             M_response = edge->getResponseMatrix(m_ID.position);
             Sen_current = edge->getCurrentReadings();
             std::cout << "Looking at edge " << edge->getId() << std::endl;
