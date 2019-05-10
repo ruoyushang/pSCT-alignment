@@ -221,7 +221,8 @@ UaStatus EdgeController::findSingleMatrix(unsigned panelIdx, double stepSize) {
     // convenience variable;
     // no need to check with a try/catch block anymore as this has already been done
     // by the caller
-    PanelController *pCurPanel = dynamic_cast<PanelController *>(m_pChildren.at(PAS_PanelType).at(panelIdx));
+    std::shared_ptr<PanelController> pCurPanel = std::dynamic_pointer_cast<PanelController>(
+        m_pChildren.at(PAS_PanelType).at(panelIdx));
     unsigned nACTs = pCurPanel->getActuatorCount();
 
     Eigen::VectorXd vector0(6); // maximum possible size
@@ -236,7 +237,7 @@ UaStatus EdgeController::findSingleMatrix(unsigned panelIdx, double stepSize) {
     deltas.create(nACTs);
 
     UaVariant vtmp;
-    ActController *actuator;
+    std::shared_ptr<ActController> actuator;
     float missedDelta;
 
     for (unsigned j = 0; j < nACTs; j++) {
@@ -266,7 +267,7 @@ UaStatus EdgeController::findSingleMatrix(unsigned panelIdx, double stepSize) {
         sleep(2);
 
         // update missed steps
-        actuator = dynamic_cast<ActController *>(pCurPanel->getChildren(PAS_ACTType)[j]);
+        actuator = std::dynamic_pointer_cast<ActController>(pCurPanel->getChildren(PAS_ACTType)[j]);
         actuator->getData(PAS_ACTType_DeltaLength, vtmp);
         vtmp.toFloat(missedDelta);
 
@@ -408,18 +409,18 @@ UaStatus EdgeController::alignSinglePanel(unsigned panelpos, double alignFrac, b
                 if (panelPair.first != panelpos)
                     twopanels[i++] = panelPair.first;
 
-            std::vector<MPESController *> overlapMPES;
+            std::vector<std::shared_ptr<MPESController>> overlapMPES;
             for (const auto &panelPair : m_ChildrenPositionMap.at(PAS_PanelType)) {
                 if (panelPair.first == panelpos)
                     continue;
 
-                auto pMPES = dynamic_cast<PanelController *>(m_pChildren.at(PAS_PanelType).at(
+                auto pMPES = std::dynamic_pointer_cast<PanelController>(m_pChildren.at(PAS_PanelType).at(
                         panelPair.second))->getChildren(
                         PAS_MPESType);
                 for (const auto &mpes : pMPES)
-                    if (dynamic_cast<MPESController *>(mpes)->getPanelSide(twopanels[0])
-                        && dynamic_cast<MPESController *>(mpes)->getPanelSide(twopanels[1]))
-                        overlapMPES.push_back(dynamic_cast<MPESController *>(mpes));
+                    if (std::dynamic_pointer_cast<MPESController>(mpes)->getPanelSide(twopanels[0])
+                        && std::dynamic_pointer_cast<MPESController>(mpes)->getPanelSide(twopanels[1]))
+                        overlapMPES.push_back(std::dynamic_pointer_cast<MPESController>(mpes));
             }
             auto blockRows = overlapMPES.front()->getResponseMatrix().rows();
             auto blockCols = overlapMPES.front()->getResponseMatrix().cols();
@@ -513,7 +514,8 @@ UaStatus EdgeController::alignSinglePanel(unsigned panelpos, double alignFrac, b
 
         for (const auto &panelPair : m_ChildrenPositionMap.at(PAS_PanelType)) {
             if ((panelPair.first == panelpos) == moveit) { // clever but not clear...
-                PanelController *pCurPanel = dynamic_cast<PanelController *>(m_pChildren.at(PAS_PanelType).at(panelPair.second)); 
+                auto pCurPanel = std::dynamic_pointer_cast<PanelController>(
+                    m_pChildren.at(PAS_PanelType).at(panelPair.second));
                 if(pCurPanel->checkForCollision((X * alignFrac).segment(0,6))) {
                     std::cout << "Error: Sensors may go out of range! Disallowed motion, please recalculate or relax safety radius." << std::endl;
                     return OpcUa_Bad;
@@ -538,11 +540,12 @@ UaStatus EdgeController::alignSinglePanel(unsigned panelpos, double alignFrac, b
         }
         else {
             /* MOVE ACTUATORS */
-            PanelController *pCurPanel;
+            std::shared_ptr<PanelController> pCurPanel;
             int j = 0;
             for (const auto &panelPair : m_ChildrenPositionMap.at(PAS_PanelType)) {
                 if ((panelPair.first == panelpos) == moveit) { // clever but not clear...
-                    pCurPanel = dynamic_cast<PanelController *>(m_pChildren.at(PAS_PanelType).at(panelPair.second));
+                    pCurPanel = std::dynamic_pointer_cast<PanelController>(
+                        m_pChildren.at(PAS_PanelType).at(panelPair.second));
                     auto nACT = pCurPanel->getActuatorCount();
                     // print out to make sure
                     std::cout << "Will move actuators of "
@@ -577,7 +580,7 @@ UaStatus EdgeController::alignSinglePanel(unsigned panelpos, double alignFrac, b
 const Eigen::MatrixXd &EdgeController::getResponseMatrix(unsigned panelpos) {
     auto &pMPES = m_pChildren.at(PAS_MPESType);
     unsigned maxMPES = pMPES.size();
-    unsigned nACT = dynamic_cast<MPESController *>(pMPES.front())->getResponseMatrix().cols();
+    unsigned nACT = std::dynamic_pointer_cast<MPESController>(pMPES.front())->getResponseMatrix().cols();
 
     for (const auto &panelPair : m_ChildrenPositionMap.at(PAS_PanelType)) {
         unsigned panel = panelPair.first;
@@ -589,10 +592,11 @@ const Eigen::MatrixXd &EdgeController::getResponseMatrix(unsigned panelpos) {
 //        for (const auto& mpes : m_ChildrenPositionMap.at(PAS_MPESType)) {
             // do not check if the sensor is visible here -- return the full response matrix
 //            if ( !static_cast<MPESController *>(pMPES.at(nMPES))->isVisible() ) continue;
-            auto panelside = dynamic_cast<MPESController *>(pMPES.at(nMPES))->getPanelSide(panel);
+            auto panelside = std::dynamic_pointer_cast<MPESController>(pMPES.at(nMPES))->getPanelSide(panel);
             // if this is nonzero (so either 'l' or 'w'), add it to the edge response matrix
             if (panelside) {
-                const auto &curresponse = dynamic_cast<MPESController *>(pMPES.at(nMPES))->getResponseMatrix(panelside);
+                const auto &curresponse = std::dynamic_pointer_cast<MPESController>(pMPES.at(nMPES))->getResponseMatrix(
+                    panelside);
                 m_ResponseMatMap.at(panel).block(2 * visibleMPES, 0, curresponse.rows(),
                                                  curresponse.cols()) = curresponse;
             }
@@ -613,11 +617,11 @@ const Eigen::VectorXd &EdgeController::getAlignedReadings() {
 
     m_AlignedReadings = Eigen::VectorXd(2 * pMPES.size());
     for (unsigned nMPES = 0; nMPES < maxMPES; nMPES++) {
-        if (!dynamic_cast<MPESController *>(pMPES.at(nMPES))->isVisible()) continue;
+        if (!std::dynamic_pointer_cast<MPESController>(pMPES.at(nMPES))->isVisible()) continue;
 //    for (const auto& mpes : m_ChildrenPositionMap.at(PAS_MPESType)) {
 //        if ( !static_cast<MPESController *>(pMPES.at(mpes.second))->isVisible() ) continue;
 
-        auto mpes_response = dynamic_cast<MPESController *>(pMPES.at(nMPES))->getAlignedReadings();
+        auto mpes_response = std::dynamic_pointer_cast<MPESController>(pMPES.at(nMPES))->getAlignedReadings();
         m_AlignedReadings.segment(2 * visibleMPES, 2) = mpes_response;
         ++visibleMPES;
     }
@@ -633,12 +637,12 @@ const Eigen::VectorXd &EdgeController::getSystematicOffsets() {
 
     m_systematicOffsets = Eigen::VectorXd(2 * pMPES.size());
     for (unsigned nMPES = 0; nMPES < maxMPES; nMPES++) {
-        if (!dynamic_cast<MPESController *>(pMPES.at(nMPES))->isVisible()) continue;
+        if (!std::dynamic_pointer_cast<MPESController>(pMPES.at(nMPES))->isVisible()) continue;
 //    for (const auto& mpes : m_ChildrenPositionMap.at(PAS_MPESType)) {
 //        if ( !static_cast<MPESController *>(pMPES.at(mpes.second))->isVisible() ) continue;
 
         m_systematicOffsets.segment(2 * visibleMPES, 2) =
-            (dynamic_cast<MPESController *>(pMPES.at(nMPES)))->getSystematicOffsets();
+            (std::dynamic_pointer_cast<MPESController>(pMPES.at(nMPES)))->getSystematicOffsets();
         ++visibleMPES;
     }
     m_systematicOffsets.conservativeResize(2 * visibleMPES);
@@ -658,8 +662,8 @@ const Eigen::VectorXd &EdgeController::getCurrentReadings() {
 
     UaVariant vtmp;
     for (unsigned nMPES = 0; nMPES < maxMPES; nMPES++) {
-        dynamic_cast<MPESController*>(pMPES.at(nMPES))->read(false);
-        if (!dynamic_cast<MPESController *>(pMPES.at(nMPES))->isVisible()) {
+        std::dynamic_pointer_cast<MPESController>(pMPES.at(nMPES))->read(false);
+        if (!std::dynamic_pointer_cast<MPESController>(pMPES.at(nMPES))->isVisible()) {
             std::cout << "+++ WARNING +++ " << pMPES.at(nMPES)->getId().name
                       //for (const auto& mpes : m_ChildrenPositionMap.at(PAS_MPESType)) {
                       //    pMPES.at(mpes.second)->Operate();
