@@ -210,13 +210,13 @@ UaStatus PasNodeManager::afterStartUp()
         objectName = pObject->nodeId().toString();
 
         // Check if object has children (is a composite controller)
-        if (dynamic_cast<PasCompositeController*>(pController)) {
+        if (dynamic_cast<PasCompositeController *>(pController.get())) {
             for (auto it=PasCommunicationInterface::deviceTypeNames.begin();
             it!=PasCommunicationInterface::deviceTypeNames.end(); ++it) {
                 deviceType = it->first;
                 deviceName = it->second;
                 try {
-                    pChildren = dynamic_cast<PasCompositeController*>(pController)->getChildren(deviceType);
+                    pChildren = dynamic_cast<PasCompositeController *>(pController.get())->getChildren(deviceType);
                     if (!pChildren.empty()) {
 
                         pFolder = new UaFolder(UaString(deviceName.c_str()), UaNodeId(objectName + UaString(deviceName.c_str()), getNameSpaceIndex()), m_defaultLocaleId);

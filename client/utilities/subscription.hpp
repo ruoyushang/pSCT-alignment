@@ -12,6 +12,8 @@
 #include "uaclient/uaclientsdk.h"
 #include "client/utilities/configuration.hpp"
 
+#include <memory>
+
 /// @brief Class to manage subscriptions to OPC UA nodes. Wraps the standard
 /// UaSubscription and UaSubscriptionCallback classes and takes a configuration
 // object as input.
@@ -78,7 +80,7 @@ public:
     /// @brief Set a new instance as the internal Configuration object.
     /// @param pConfiguration A Configuration object to attach to the
     /// Subscription.
-    void setConfiguration(Configuration* pConfiguration);
+    void setConfiguration(std::shared_ptr<Configuration> pConfiguration);
 
 private:
     /// @brief Method to delete the existing UaSubscription, re-create it,
@@ -94,7 +96,7 @@ private:
     UaClientSdk::UaSubscription* m_pSubscription;
     /// @brief Pointer to a Configuration object, used to retrieve a list
     /// of OPC UA nodes to monitor via subscription.
-    Configuration* m_pConfiguration;
+    std::shared_ptr<Configuration> m_pConfiguration;
 };
 
 #endif // SUBSCRIPTION_H

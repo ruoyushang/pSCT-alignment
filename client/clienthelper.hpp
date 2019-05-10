@@ -64,7 +64,7 @@ private:
     PasNodeManager*                     m_pNodeManager;
     UaClientSdk::UaSession*             m_pSession;
     Subscription*                       m_pSubscription;
-    Configuration*                      m_pConfiguration;
+    std::shared_ptr<Configuration> m_pConfiguration;
     UaClientSdk::UaClient::ServerStatus m_serverStatus;
     Database*                           m_pDatabase;
 
