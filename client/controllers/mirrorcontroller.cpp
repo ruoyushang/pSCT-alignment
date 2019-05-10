@@ -526,7 +526,7 @@ UaStatus MirrorController::moveToCoords(Eigen::VectorXd targetMirrorCoords, bool
         std::cout << std::endl << std::endl;
 
 
-        std::vector<PanelController*> panelsToMove;
+        std::vector<std::shared_ptr<PanelController>> panelsToMove;
         Eigen::VectorXd X(m_pChildren.at(PAS_PanelType).size()*6);
 
         unsigned positionNum;
@@ -1139,9 +1139,9 @@ UaStatus MirrorController::alignGlobal(unsigned fixPanel, double alignFrac, bool
         Eigen::VectorXd globDisplaceVec = Eigen::VectorXd(numPanels * 6);
 
         // get all the edges we need to fit:
-        std::vector<EdgeController *> edgesToFit; // we actually don't need to keep these in a vector,
+        std::vector<std::shared_ptr<EdgeController>> edgesToFit; // we actually don't need to keep these in a vector,
                                       // but doing this for possible future needs
-        std::vector<PanelController *> panelsToMove;
+        std::vector<std::shared_ptr<PanelController>> panelsToMove;
         unsigned curPanel = fixPanel, nextPanel, cursize = 0;
         Identity id;
         // keep track of the position in the global response matrix
