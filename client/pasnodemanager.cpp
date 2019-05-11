@@ -111,8 +111,6 @@ UaStatus PasNodeManager::afterStartUp()
     std::shared_ptr<PasController> pController = nullptr;
     std::vector<std::shared_ptr<PasController> > pChildren;
 
-    auto pPasFactory = new PasObjectFactory();
-
     std::map<unsigned, UaFolder *> pDeviceFolders;
     std::map<std::shared_ptr<PasController>, PasObject *> pDeviceObjects;
 
@@ -173,9 +171,9 @@ UaStatus PasNodeManager::afterStartUp()
             }
 
             // Create object
-            pObject = pPasFactory->Create(deviceType, sDeviceName, UaNodeId(sDeviceName, getNameSpaceIndex()),
-                                          m_defaultLocaleId, this, identity,
-                                          dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get()));
+            pObject = PasObjectFactory::Create(deviceType, sDeviceName, UaNodeId(sDeviceName, getNameSpaceIndex()),
+                                               m_defaultLocaleId, this, identity,
+                                               dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get()));
 
             // Create node
             ret = addUaNode(pObject);
@@ -202,7 +200,7 @@ UaStatus PasNodeManager::afterStartUp()
     std::cout << "Adding all parent-child references between objects...\n";
 
     // Loop through all created objects and add references to children
-    for (std::map<std::shared_ptr<PasController>, PasObject *>::iterator it = pDeviceObjects.begin();
+    for (auto it = pDeviceObjects.begin();
          it != pDeviceObjects.end(); ++it) {
         pController = it->first;
         pObject = it->second;
@@ -211,10 +209,9 @@ UaStatus PasNodeManager::afterStartUp()
 
         // Check if object has children (is a composite controller)
         if (dynamic_cast<PasCompositeController *>(pController.get())) {
-            for (auto it=PasCommunicationInterface::deviceTypeNames.begin();
-            it!=PasCommunicationInterface::deviceTypeNames.end(); ++it) {
-                deviceType = it->first;
-                deviceName = it->second;
+            for (const auto &devType: PasCommunicationInterface::deviceTypeNames) {
+                deviceType = devType.first;
+                deviceName = devType.second;
                 try {
                     pChildren = dynamic_cast<PasCompositeController *>(pController.get())->getChildren(deviceType);
                     if (!pChildren.empty()) {
@@ -245,10 +242,9 @@ UaStatus PasNodeManager::afterStartUp()
     UA_ASSERT(ret.isGood());
 
     // Add all root devices (devices with no parents) to the Device Tree Folder
-    for (std::map<std::shared_ptr<PasController>, PasObject *>::iterator it = pRootDevices.begin();
-         it != pRootDevices.end(); ++it) {
-        pController = it->first;
-        pObject = it->second;
+    for (const auto &r : pRootDevices) {
+        pController = r.first;
+        pObject = r.second;
 
         ret = addUaReference(pDeviceTreeFolder->nodeId(), pObject->nodeId(), OpcUaId_HasComponent);
         UA_ASSERT(ret.isGood());
