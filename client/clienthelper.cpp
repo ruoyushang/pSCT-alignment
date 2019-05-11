@@ -486,7 +486,7 @@ void Client::addDevices(const OpcUa_ReferenceDescription& referenceDescription)
             printBrowseResults(referenceDescription);
             printf("will add %s %d as %s\n", name.c_str(), identity.serialNumber, identity.eAddress.c_str());
             ((PasCommunicationInterface *) m_pNodeManager->getComInterface().get())->addDevice(
-                std::shared_ptr<Client>(this), type, identity);
+                get_this_shared(), type, identity);
         }
     }
 }
@@ -498,7 +498,7 @@ void Client::printBrowseResults(const OpcUa_ReferenceDescription& referenceDescr
     printf("[Ref=%s] ", referenceTypeId.toString().toUtf8() );
     UaQualifiedName browseName(referenceDescription.BrowseName);
     printf("%s ( ", browseName.toString().toUtf8() );
-    if (referenceDescription.NodeClass & OpcUa_NodeClass_Object) 
+    if (referenceDescriptison.NodeClass & OpcUa_NodeClass_Object)
         printf("Object ");
     if (referenceDescription.NodeClass & OpcUa_NodeClass_Variable) 
         printf("Variable ");
