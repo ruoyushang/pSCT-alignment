@@ -425,7 +425,7 @@ UaStatus Client::recurseAddressSpace(const UaNodeId& nodeToBrowse, OpcUa_UInt32 
         // continue browsing
         while (continuationPoint.length() > 0)
         {
-            printf("\nContinuationPoint is set. BrowseNext...\n");
+            //printf("\nContinuationPoint is set. BrowseNext...\n");
             // browse next
             result = m_pSession->browseNext(serviceSettings, OpcUa_False, continuationPoint, referenceDescriptions);
 
@@ -482,9 +482,9 @@ void Client::addDevices(const OpcUa_ReferenceDescription& referenceDescription)
             identity.name = std::string(sTemp);
             identity.position = m_pConfiguration->getDevicePosition(type, identity.serialNumber);
 
-            printf("=====================================\n");
-            printBrowseResults(referenceDescription);
-            printf("will add %s %d as %s\n", name.c_str(), identity.serialNumber, identity.eAddress.c_str());
+            //printf("=====================================\n");
+            //printBrowseResults(referenceDescription);
+            //printf("will add %s %d as %s\n", name.c_str(), identity.serialNumber, identity.eAddress.c_str());
             ((PasCommunicationInterface *) m_pNodeManager->getComInterface().get())->addDevice(
                 get_this_shared(), type, identity);
         }
@@ -498,7 +498,7 @@ void Client::printBrowseResults(const OpcUa_ReferenceDescription& referenceDescr
     printf("[Ref=%s] ", referenceTypeId.toString().toUtf8() );
     UaQualifiedName browseName(referenceDescription.BrowseName);
     printf("%s ( ", browseName.toString().toUtf8() );
-    if (referenceDescriptison.NodeClass & OpcUa_NodeClass_Object)
+    if (referenceDescription.NodeClass & OpcUa_NodeClass_Object)
         printf("Object ");
     if (referenceDescription.NodeClass & OpcUa_NodeClass_Variable) 
         printf("Variable ");

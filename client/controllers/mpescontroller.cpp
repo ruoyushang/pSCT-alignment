@@ -28,7 +28,7 @@ MPESController::MPESController(Identity identity, std::shared_ptr<Client> pClien
     std::string db_name = myConfig.getDatabase();
     std::string db_address = "tcp://" + db_ip + ":" + db_port;
 
-    std::cout << "Initializing MPES " << m_ID.serialNumber << std::endl;
+    //std::cout << "Initializing MPES " << m_ID.serialNumber << std::endl;
     try {
         sql::Driver *sql_driver = get_driver_instance();
         sql::Connection *sql_conn = sql_driver->connect(db_address, db_user, db_password);
@@ -70,11 +70,11 @@ MPESController::MPESController(Identity identity, std::shared_ptr<Client> pClien
         }
 
         // print out the loaded values
-        std::cout << "\t Aligned readings:\n" << m_AlignedReadings << std::endl;
+        //std::cout << "\t Aligned readings:\n" << m_AlignedReadings << std::endl;
         for (const auto &matrixPair : m_ResponseMatMap)
-            std::cout << "\t " << matrixPair.first << "-side response matrix:\n"
-                      << matrixPair.second << std::endl;
-
+        {
+            //std::cout << "\t " << matrixPair.first << "-side response matrix:\n" << matrixPair.second << std::endl;
+        }
         // pass the aligned readings on to the server
         UaVariant value;
         value.setDouble(m_AlignedReadings(0));

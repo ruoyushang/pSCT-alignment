@@ -76,7 +76,7 @@ void MirrorController::addChild(OpcUa_UInt32 deviceType, std::shared_ptr<PasCont
 
 bool MirrorController::initialize()
 {
-    std::cout << "\n\tInitializing " << m_ID.name << "..." << std::endl;
+    //std::cout << "\n\tInitializing " << m_ID.name << "..." << std::endl;
 
     // precompute everything we need
     if (m_ID.position == 1) {
@@ -208,14 +208,14 @@ bool MirrorController::initialize()
             // to get the origin of the panel frame in the TRF:
             m_PanelOriginTelFrame.at(ring + 1) -= m_PanelFrame.at(ring+1)*PanelCenterPanelFrame;
 
-            std::cout << "Ideal Panel Frame origin for Ring " << ring + 1 << " in the Telescope frame :"
-                      << std::endl << m_PanelOriginTelFrame.at(ring + 1) << std::endl;
-            std::cout << "Ideal Panel Frame for Ring " << ring + 1 << " in the Telescope frame :"
-                      << std::endl << m_PanelFrame.at(ring + 1) << std::endl << std::endl;
+            //std::cout << "Ideal Panel Frame origin for Ring " << ring + 1 << " in the Telescope frame :"
+                      //<< std::endl << m_PanelOriginTelFrame.at(ring + 1) << std::endl;
+            //std::cout << "Ideal Panel Frame for Ring " << ring + 1 << " in the Telescope frame :"
+                      //<< std::endl << m_PanelFrame.at(ring + 1) << std::endl << std::endl;
         }
     }
 
-    std::cout << "Done Initializing " << m_ID.name << std::endl << std::endl;
+    //std::cout << "Done Initializing " << m_ID.name << std::endl << std::endl;
 
     return true;
 }

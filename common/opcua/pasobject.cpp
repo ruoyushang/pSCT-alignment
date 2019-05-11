@@ -38,14 +38,14 @@ void PasObject::initialize() {
 
     std::cout << "PasObject::Initialize(): initializing object w/ identity " << m_Identity << "...\n";
 
-    std::cout << "Creating variables...\n";
+    //std::cout << "Creating variables...\n";
     // Add all child variable nodes
     for (auto &kv : getVariableDefs()) {
         addVariable(m_pNodeManager, typeDefinitionId().identifierNumeric(), kv.first, std::get<2>(kv.second));
     }
 
 
-    std::cout << "Creating error variables...\n";
+    //std::cout << "Creating error variables...\n";
     //Create the folder for the Errors
     UaFolder *pErrorFolder = new UaFolder("Errors", UaNodeId(
             (std::to_string(typeDefinitionId().identifierNumeric()) + "_" + m_Identity.eAddress + "_errors").c_str(),
