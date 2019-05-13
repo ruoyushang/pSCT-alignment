@@ -228,6 +228,12 @@ UaStatus MPESController::operate(OpcUa_UInt32 offset, const UaVariantArray &args
         std::cout << "+++ Adjusting exposure for " << m_ID << std::endl;
         status = m_pClient->callMethod(m_ID.eAddress, UaString("SetExposure"));
         return status;
+    } else if (offset == PAS_MPESType_ClearError) {
+        status = m_pClient->callMethod(m_ID.eAddress, UaString("ClearError"), args);
+        return status;
+    } else if (offset == PAS_MPESType_ClearAllErrors) {
+        status = m_pClient->callMethod(m_ID.eAddress, UaString("ClearAllErrors"));
+        return status;
     } else
         return OpcUa_BadInvalidArgument;
 

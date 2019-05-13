@@ -76,6 +76,8 @@
 #define PAS_MPESType_Stop                           1112
 #define PAS_MPESType_Read                           1113
 #define PAS_MPESType_SetExposure                    1114
+#define PAS_MPESType_ClearError                     1115
+#define PAS_MPESType_ClearAllErrors                 1116
 #define PAS_MPESType_StateCondition                 1121
 // Error variable declarations
 #define PAS_MPESType_Error0                          1191
@@ -104,8 +106,13 @@
 #define PAS_PanelType_MoveDeltaLengths              2020
 #define PAS_PanelType_MoveToLengths                 2021
 #define PAS_PanelType_MoveToCoords                  2022
-#define PAS_PanelType_ReadAll                       2023
+#define PAS_PanelType_ReadPosition                       2023
 #define PAS_PanelType_Stop                          2024
+#define PAS_PanelType_FindHome                      2025
+#define PAS_PanelType_ClearError                    2026
+#define PAS_PanelType_ClearAllErrors                2027
+#define PAS_PanelType_ClearActuatorErrors           2028
+#define PAS_PanelType_ClearPlatformErrors           2029
 // Error variable declarations
 #define PAS_PanelType_Error0                          2800
 #define PAS_PanelType_Error1                          2801
@@ -134,6 +141,9 @@
 #define PAS_ACTType_Stop                            2112
 #define PAS_ACTType_MoveDeltaLength                 2113
 #define PAS_ACTType_MoveToLength                    2114
+#define PAS_ACTType_ForceRecover                    2115
+#define PAS_ACTType_ClearError                      2116
+#define PAS_ACTType_ClearAllErrors                  2117
 // Error variable declarations
 #define PAS_ACTType_Error0                          2900
 #define PAS_ACTType_Error1                          2901
