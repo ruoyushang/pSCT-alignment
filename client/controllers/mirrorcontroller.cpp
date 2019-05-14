@@ -950,7 +950,9 @@ UaStatus MirrorController::alignSector(const std::set<unsigned> &selectedPanels,
         unsigned idx;
         bool userOverlap = false;
         for (const auto &panel : panelsToMove) {
+            std::cout << panel->getId() << std::endl;
             for (const auto &mpes : panel->getChildren(PAS_MPESType)) {
+                std::cout << mpes->getId() << std::endl;
                 unsigned overlap = 0;
                 for (const auto &overlapPanel : panelsToMove)
                     overlap += (
