@@ -204,6 +204,7 @@ UaStatus MPESController::operate(OpcUa_UInt32 offset, const UaVariantArray &args
     else if (offset == PAS_MPESType_SetExposure) {
         std::cout << "+++ Adjusting exposure for " << m_ID << std::endl;
         status = m_pClient->callMethod(m_ID.eAddress, UaString("SetExposure"));
+        std::cout << "Done." << std::endl;
         return status;
     } else
         return OpcUa_BadInvalidArgument;

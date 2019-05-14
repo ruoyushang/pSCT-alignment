@@ -1,3 +1,6 @@
 #!/bin/bash
 
-while read -r line || [[ -n $line ]]; do panel=`echo $line | cut -d ' ' -f2`; echo $panel; ./server.start $panel; done < servermap.dat
+for panel in `cat ../misc/panel_lists/all_panels`; do
+        ./server.start $panel
+        echo ./server.start $panel
+done

@@ -247,6 +247,7 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
     else if (offset == PAS_PanelType_Stop) {
         std::cout << m_ID << "::Operate() : Attempting to gracefully stop the motion." << std::endl;
         status = m_pClient->callMethod(std::string("ns=2;s=Panel_0"), UaString("Stop"));
+        std::cout << m_ID << "::Motion stopped.";
     } 
     else {
         status = OpcUa_BadInvalidArgument;
@@ -300,7 +301,7 @@ bool PanelController::checkForCollision(const Eigen::VectorXd &deltaLengths) {
             std::cout << "\n will deviate from the center position by\n" << Sen_deviation << std::endl;
             std::cout << "The absolute distance from the center for each sensor is: \n";
             double deviation;
-            for (unsigned i = 0; i < 3; i++) {
+            for (unsigned i = 0; i < Sen_deviation.size() / 2; i++) {
                 deviation = pow(pow(Sen_deviation(2 * i), 2) + pow(Sen_deviation(2 * i + 1), 2), 0.5);
                 std::cout << deviation;
                 if (deviation > m_safetyRadius) {
@@ -319,6 +320,7 @@ void PanelController::updateCoords(bool printout) {
     Eigen::VectorXd currentLengths = getActuatorLengths();
 
     if (printout) {
+        std::cout << m_ID << ": " << std::endl;
         std::cout << "Current actuator lengths are:\n";
         std::cout << currentLengths << std::endl;
     }
