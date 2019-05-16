@@ -12,6 +12,7 @@
 #include "common/mpescode/MPESImageSet.h"
 #include "actuator.hpp"
 #include "common/mpescode/MPESDevice.h"
+#include <stdlib.h>
 #include <string>
 #include <fstream>
 #include <cstring>

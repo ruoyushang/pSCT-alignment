@@ -80,7 +80,7 @@ UaStatus OpcServer::afterInitialize()
     d->m_pUaModule = new UaModule;
     // Check if we have a specialized implementation provided by the application
     UaServer *pUaServer = NULL;
-    UaServerApplicationCallback* pCallback = getServerApplicationCallback();
+    pCallback = getServerApplicationCallback();
     if (pCallback)
     {
         pUaServer = pCallback->createUaServer();

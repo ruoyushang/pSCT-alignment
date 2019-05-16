@@ -1,8 +1,6 @@
 #include "uaclient/uaclientsdk.h"
 #include "uaclient/uasession.h"
 #include <vector>
-#include "demo_vector.h"
-#include "demo_uniontest.h"
 #include "uagenericunionvalue.h"
 using namespace UaClientSdk;
 
@@ -170,57 +168,57 @@ void printGenericUnionValue(const UaGenericUnionValue &value, int level)
 
 extern OpcUa_UInt16 g_nsIndex2;
 
-/** Returns true if the structured DataType used for extensionObject is registered to the stack
-    an known by the client. */
-bool isStructuredDataTypeKnown(const UaExtensionObject &extensionObject)
-{
-    if (extensionObject.encoding() != UaExtensionObject::EncodeableObject)
-    {
-        return false;
-    }
-    UaNodeId dataTypeId = extensionObject.dataTypeId();
-    return (dataTypeId == UaNodeId(DemoId_Vector, g_nsIndex2)
-        || dataTypeId == UaNodeId(DemoId_UnionTest, g_nsIndex2));
-}
-
-void printExtensionObjectKnownType(const UaExtensionObject &extensionObject)
-{
-    if (extensionObject.dataTypeId() == UaNodeId(DemoId_Vector, g_nsIndex2))
-    {
-        //Try to convert Vector.
-        Demo::Vector vector;
-        OpcUa_StatusCode status = vector.setVector(extensionObject);
-        if (OpcUa_IsGood(status))
-        {
-            printf("    X: %f\n", vector.getX());
-            printf("    Y: %f\n", vector.getY());
-            printf("    Z: %f\n", vector.getZ());
-            return;
-        }
-    }
-
-    if (extensionObject.dataTypeId() == UaNodeId(DemoId_UnionTest, g_nsIndex2))
-    {
-        //Try to convert Union.
-        Demo::UnionTest unionTest;
-        OpcUa_StatusCode status = unionTest.setUnionTest(extensionObject);
-        if (OpcUa_IsGood(status))
-        {
-            switch (unionTest.type())
-            {
-                case Demo_UnionTest_Null:
-                    break;
-                case Demo_UnionTest_Int32:
-                    printf("    Int32 (union) %d\n", unionTest.getInt32());
-                    break;
-                case Demo_UnionTest_String:
-                    printf("    String (union) %s\n", unionTest.getString().toUtf8());
-                    break;
-            }
-            return;
-        }
-    }
-}
+///** Returns true if the structured DataType used for extensionObject is registered to the stack
+//    an known by the client. */
+//bool isStructuredDataTypeKnown(const UaExtensionObject &extensionObject)
+//{
+//    if (extensionObject.encoding() != UaExtensionObject::EncodeableObject)
+//    {
+//        return false;
+//    }
+//    UaNodeId dataTypeId = extensionObject.dataTypeId();
+//    return (dataTypeId == UaNodeId(DemoId_Vector, g_nsIndex2)
+//        || dataTypeId == UaNodeId(DemoId_UnionTest, g_nsIndex2));
+//}
+//
+//void printExtensionObjectKnownType(const UaExtensionObject &extensionObject)
+//{
+//    if (extensionObject.dataTypeId() == UaNodeId(DemoId_Vector, g_nsIndex2))
+//    {
+//        //Try to convert Vector.
+//        Demo::Vector vector;
+//        OpcUa_StatusCode status = vector.setVector(extensionObject);
+//        if (OpcUa_IsGood(status))
+//        {
+//            printf("    X: %f\n", vector.getX());
+//            printf("    Y: %f\n", vector.getY());
+//            printf("    Z: %f\n", vector.getZ());
+//            return;
+//        }
+//    }
+//
+//    if (extensionObject.dataTypeId() == UaNodeId(DemoId_UnionTest, g_nsIndex2))
+//    {
+//        //Try to convert Union.
+//        Demo::UnionTest unionTest;
+//        OpcUa_StatusCode status = unionTest.setUnionTest(extensionObject);
+//        if (OpcUa_IsGood(status))
+//        {
+//            switch (unionTest.type())
+//            {
+//                case Demo_UnionTest_Null:
+//                    break;
+//                case Demo_UnionTest_Int32:
+//                    printf("    Int32 (union) %d\n", unionTest.getInt32());
+//                    break;
+//                case Demo_UnionTest_String:
+//                    printf("    String (union) %s\n", unionTest.getString().toUtf8());
+//                    break;
+//            }
+//            return;
+//        }
+//    }
+//}
 
 void printExtensionObjectGeneric(const UaExtensionObject &extensionObject)
 {
@@ -252,12 +250,12 @@ void printExtensionObjectGeneric(const UaExtensionObject &extensionObject)
 
 void printExtensionObject(UaExtensionObject &extensionObject)
 {
-    if (isStructuredDataTypeKnown(extensionObject))
-    {
-        printExtensionObjectKnownType(extensionObject);
-    }
-    else
-    {
+//    if (isStructuredDataTypeKnown(extensionObject))
+//    {
+//        printExtensionObjectKnownType(extensionObject);
+//    }
+//    else
+//    {
         if (extensionObject.encoding() != UaExtensionObject::Binary)
         {
             // Try to convert back to Binary since this helper is only able to print binary encoded structures
@@ -274,7 +272,7 @@ void printExtensionObject(UaExtensionObject &extensionObject)
         {
             printf("  The ExtensionObject does not contain a binary encoded value\n");
         }
-    }
+//    }
 }
 
 void printExtensionObjects(const UaVariant &value, const UaString &text)

@@ -224,9 +224,15 @@ int DummyMPES::setExposure()
 }
 int DummyMPES::MeasurePosition()
 {
+
+    double s_time = rand() % 30 + 10;
+    double deviation = rand() % 7 + 3;
+    cout << "sleep " << s_time << " dev " << deviation << endl;
+    sleep(s_time);
+
     // initialize to something obvious in case of failure
-    m_position.xCentroid = 160.;
-    m_position.yCentroid = 120.;
+    m_position.xCentroid = 160. + deviation;
+    m_position.yCentroid = 120. + deviation;
     m_position.xSpotWidth = 10.;
     m_position.ySpotWidth = 10.;
     m_position.CleanedIntensity = 150000.;

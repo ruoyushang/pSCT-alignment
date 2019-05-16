@@ -65,6 +65,7 @@ private:
     Configuration*                      m_pConfiguration;
     UaClientSdk::UaClient::ServerStatus m_serverStatus;
     Database*                           m_pDatabase;
+    UaClientSdk::BrowseContext          browseContext;
 
     // keep track of asynchronous calls
     OpcUa_UInt32 m_TransactionId;

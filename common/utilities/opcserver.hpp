@@ -49,6 +49,7 @@ public:
     virtual ~OpcServer();
 
     virtual OpcUa_DateTime getBuildDate() const;
+    UaServerApplicationCallback* pCallback;
 
 protected:
     virtual Session* createDefaultSession(OpcUa_Int32 sessionID, const UaNodeId &authenticationToken);
