@@ -16,7 +16,7 @@
 
 using namespace UaClientSdk;
 
-Client::Client(PasNodeManager *pNodeManager) : m_pNodeManager(pNodeManager), m_TransactionId(0),
+Client::Client(PasNodeManager *pNodeManager) : m_pNodeManager(pNodeManager),
                                                m_pConfiguration(nullptr),
                                                m_serverStatus(UaClient::ServerStatus::Disconnected),
                                                m_TransactionId(0) {

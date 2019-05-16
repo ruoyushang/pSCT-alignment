@@ -57,7 +57,7 @@ Actuator::Actuator(std::shared_ptr<CBC> pCBC, Device::Identity identity, Device:
             "Actuator::Actuator(): Port: " << getPortNumber() << ". No serial number passed, creating emergency ASF");
     } else {
         setASFInfo(ASFFileInfo);
-        DEBUG_MSG("Actuator::Actuator(): Port: " << getPortNumber() << ". Serial Num: " << m_SerialNumber);
+        DEBUG_MSG("Actuator::Actuator(): Port: " << getPortNumber() << ". Serial Num: " << getSerialNumber());
     }
     if (!DBInfo.empty()) {
         setDBInfo(DBInfo);
@@ -74,7 +74,7 @@ Actuator::Actuator(std::shared_ptr<CBC> pCBC, Device::Identity identity, Device:
 }
 
 void Actuator::loadConfigurationAndCalibration() {
-    DEBUG_MSG("Reading Configuration and Calibration Information from DB for Actuator " << m_SerialNumber);
+    DEBUG_MSG("Reading Configuration and Calibration Information from DB for Actuator " << getSerialNumber());
     //check to make sure number of columns match what is expected.
     if (!m_Errors[1]) {
         try {
@@ -161,7 +161,7 @@ void Actuator::loadConfigurationAndCalibration() {
 bool Actuator::readStatusFromDB(ActuatorStatus &RecordedPosition)
 {
     //check that the number of columns matches what is expected
-    DEBUG_MSG("Reading Status from DB for Actuator " << SerialNumber);
+    DEBUG_MSG("Reading Status from DB for Actuator " << getSerialNumber());
     if (!m_Errors[1]) {
         try {
             sql::Driver *driver;
@@ -257,7 +257,7 @@ void Actuator::loadStatusFromDB() {
 
 void Actuator::saveStatusToDB()//record all error codes to DB. Adjust to new db table structure.
 {
-    DEBUG_MSG("Recording Status to DB for Actuator " << SerialNumber);
+    DEBUG_MSG("Recording Status to DB for Actuator " << getSerialNumber());
     ActuatorStatus statusToSave;
     if (readStatusFromASF(statusToSave)) {
         if (m_Errors[1] == false) {
@@ -319,7 +319,7 @@ void Actuator::saveStatusToDB()//record all error codes to DB. Adjust to new db 
 //read all error codes from ASF. Check size of error codes to make sure version is consistent. Read whether Home is set or not.
 bool Actuator::readStatusFromASF(ActuatorStatus &RecordedPosition)
 {
-    DEBUG_MSG("Reading Status from ASF File with path " << ASFFullPath);
+    DEBUG_MSG("Reading Status from ASF File with path " << m_ASFPath);
     std::ifstream ASF(m_ASFPath);
     //if(ASF.bad())//if file does not exist (or possibly other file issues not expected..)
     if (!ASF.good())//if file does not exist (or possibly other file issues not expected..)
@@ -394,7 +394,7 @@ void Actuator::loadStatusFromASF()
 
 void Actuator::saveStatusToASF()//record all error codes to ASF.
 {
-    //DEBUG_MSG("Recording Status for Actuator " << SerialNumber << " to ASF file with path " << ASFFullPath);
+    DEBUG_MSG("Recording Status for Actuator " << getSerialNumber() << " to ASF file with path " << m_ASFPath);
     copyFile(m_ASFPath, m_OldASFPath);
     std::ofstream ASF(m_NewASFPath);
 
@@ -514,7 +514,7 @@ int Actuator::checkAngleSlow(Position ExpectedPosition) {
 
 int Actuator::step(int steps)//Positive Step is Extension of Motor
 {
-    DEBUG_MSG("Stepping Actuator " << SerialNumber << " " << InputSteps << " steps");
+    DEBUG_MSG("Stepping Actuator " << getSerialNumber() << " " << steps << " steps");
     if (m_State == Device::DeviceState::FatalError)//don't move actuator if there's a fatal error.
     {
         return steps;
@@ -617,7 +617,7 @@ Actuator::Position Actuator::predictNewPosition(Position position,
 }
 
 int Actuator::performHysteresisMotion(int steps) {
-    DEBUG_MSG("Performing Hysteresis Motion of " << inputSteps << " for Actuator " << getSerialNumber());
+    DEBUG_MSG("Performing Hysteresis Motion of " << steps << " for Actuator " << getSerialNumber());
     int stepsRemaining = step(steps - m_HysteresisSteps);
     return step(m_HysteresisSteps + stepsRemaining);
 }
@@ -639,7 +639,7 @@ Actuator::recoverPosition()//consolidates current position and recovers position
 {
     DEBUG_MSG("Actuator: Checking current position...");
     int indexDeviation = checkAngleQuick(m_CurrentPosition);
-    if (m_Errors[7] == true)//check for voltage issue
+    if (m_Errors[7])//check for voltage issue
     {
         return;
     }
@@ -666,10 +666,10 @@ Actuator::recoverPosition()//consolidates current position and recovers position
                                            << " steps away from the last believed position. This number is above the set maximum number of recoverable steps ("
                                            << m_MaxRecoverySteps
                                            << "). Home position will likely need to be found again.");
-        DEBUG_MSG("CurrentPosition: (" << m_CurrentPosition.Revolution << "," << m_CurrentPosition.Angle
+        DEBUG_MSG("CurrentPosition: (" << m_CurrentPosition.revolution << "," << m_CurrentPosition.angle
                                        << "), Probable position: ("
-                                       << PredictPosition(m_CurrentPosition, indexDeviation).revolution << ", "
-                                       << PredictPosition(m_CurrentPosition, indexDeviation).angle << ")");
+                                       << predictNewPosition(m_CurrentPosition, indexDeviation).revolution << ", "
+                                       << predictNewPosition(m_CurrentPosition, indexDeviation).angle << ")");
         setError(9);//fatal
         setError(0);
         saveStatusToASF();
@@ -708,7 +708,7 @@ int Actuator::convertPositionToSteps(Position position) {
 
 void Actuator::probeHome()//method used to define home.
 {
-    DEBUG_MSG("Probing Home for Actuator " << SerialNumber);
+    DEBUG_MSG("Probing Home for Actuator " << getSerialNumber());
     probeExtendStop();
 
     float MeasuredVoltage = readVoltage();
@@ -853,7 +853,7 @@ void Actuator::probeEndStop(int direction) {
 
 void Actuator::createDefaultASF()//hardcoded structure of the ASF file (year,mo,day,hr,min,sec,rev,angle,errorcodes)
 {
-    DEBUG_MSG("Creating ASF File with location: " << ASFFullPath);
+    DEBUG_MSG("Creating ASF File with location: " << m_ASFPath);
     copyFile(m_ASFPath, m_OldASFPath); // Create a copy of the current ASF file contents (the "old" ASF file)
 
     std::ofstream ASFfile(m_NewASFPath); // Write new default ASF file contents to a separate (the "new" ASF file)

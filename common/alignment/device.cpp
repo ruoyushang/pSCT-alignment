@@ -65,7 +65,7 @@ void Device::unsetError(int errorCode) {
 
 void Device::setState(Device::DeviceState state) {
     if (state > m_state) {
-        std::cout << "Setting Device " << m_Identity << " status to " << (int) state << std::endl;
+        std::cout << "Setting Device " << m_Identity << " status to " << deviceStateNames.at(state) << std::endl;
         m_state = state;
     }
 }

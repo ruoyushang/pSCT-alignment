@@ -48,7 +48,7 @@ private:
     std::shared_ptr<Configuration> m_pConfiguration;
 	/// @brief Vector of MySQL Driver objects to create connections
 	/// to the MySQL server.
-    std::vector<std::unique_ptr<sql::Driver>> m_pDriver;
+    std::vector<sql::Driver*> m_pDriver;
 	/// @brief Vector of MySQL Connection objects.
 	/// @warning Currently unused.
     std::vector<std::unique_ptr<sql::Connection>> m_pConnection;

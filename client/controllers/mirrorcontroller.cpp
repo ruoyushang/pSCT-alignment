@@ -64,7 +64,7 @@ MirrorController::MirrorController(Device::Identity identity) : PasCompositeCont
     m_lastUpdateTime = TIME::now() - std::chrono::duration<int, std::ratio<1, 1000>>(m_kUpdateInterval_ms);                                                   
 }
 
-void MirrorController::addChild(OpcUa_UInt32 deviceType, std::shared_ptr<PasController> const pController)
+void MirrorController::addChild(OpcUa_UInt32 deviceType, const std::shared_ptr<PasController>& pController)
 {
     // call the base type's method
     PasCompositeController::addChild(deviceType, pController);

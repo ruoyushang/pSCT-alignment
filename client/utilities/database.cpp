@@ -44,7 +44,7 @@ void Database::connectAndPrepare()
     std::cout << "found "<< m_pConfiguration->getDatabaseHost().length() << " databases" << std::endl;
     for ( i = 0; i < m_pConfiguration->getDatabaseHost().length(); i++ )
     {
-        m_pDriver.push_back(std::unique_ptr<sql::Driver>(get_driver_instance()));
+        m_pDriver.push_back(get_driver_instance());
 
         //m_pConnection.push_back(m_pDriver.back()->connect(UaString(m_pConfiguration->getDatabaseHost()[i]).toUtf8(),
           //  UaString(m_pConfiguration->getDatabaseUser()[i]).toUtf8(),

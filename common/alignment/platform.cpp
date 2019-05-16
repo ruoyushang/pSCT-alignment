@@ -1,5 +1,5 @@
 #ifdef DEBUG
-#define DEBUG_MSG(str) do {std::std::cout << str << std::std::endl;} while (false)
+#define DEBUG_MSG(str) do {std::cout << str << std::endl;} while (false)
 #else
 #define DEBUG_MSG(str) do {} while (false)
 #endif
@@ -141,7 +141,7 @@ bool Platform::loadCBCParameters() {
         DEBUG_MSG("Failed to load CBC Parameters from DB since no CBC Serial given");
         return false;
     }
-    DEBUG_MSG("Loading CBC Parameters for Controller Board " << m_CBCserial);
+    DEBUG_MSG("Loading CBC Parameters for Controller Board " << getSerialNumber());
     if (m_DBInfo.empty())
     {
         std::cout << "Operable Error: Failed to load CBC parameters from DB because no DB info provided." << std::endl;

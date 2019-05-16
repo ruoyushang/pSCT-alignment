@@ -2,6 +2,7 @@
 #define ALIGNMENT_DEVICE_HPP
 
 #include <iostream>
+#include <map>
 #include <memory>
 #include <string>
 #include <vector>
@@ -18,6 +19,15 @@ public:
         FatalError = 3, //Errors that the user should definitely be aware of and handle appropriately. The Actuator should not be able to move with a fatal error without first reconfiguring something.
         Off = 4
     };
+	
+    std::map<DeviceState, std::string> deviceStateNames = {
+	{DeviceState::On, "On"},
+	{DeviceState::OperableError, "OperableError"},
+	{DeviceState::Busy, "Busy"},
+	{DeviceState::FatalError, "FatalError"},
+	{DeviceState::Off, "Off"}
+    };
+
 
 /// @brief Formal definition of a device error: description and severity.
     struct ErrorDefinition {
