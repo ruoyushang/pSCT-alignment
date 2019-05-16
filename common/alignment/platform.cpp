@@ -4,8 +4,6 @@
 #define DEBUG_MSG(str) do {} while (false)
 #endif
 
-#define ERROR_MSG(str) do {std::cout << str << std::endl;} while (true)
-
 #include "common/alignment/platform.hpp"
 
 #include <sstream>
@@ -88,7 +86,7 @@ Platform::Platform(std::array<int, Platform::NUM_ACTS_PER_PLATFORM> actuatorPort
 
 Platform::Platform(Device::Identity identity, std::array<int, Platform::NUM_ACTS_PER_PLATFORM> actuatorPorts,
                    std::array<int, Platform::NUM_ACTS_PER_PLATFORM> actuatorSerials, Device::DBInfo dbInfo)
-    : Device::Device(std::make_shared<CBC>(), identity)
+    : Device::Device(std::make_shared<CBC>(), std::move(identity))
 {
     DEBUG_MSG("Creating Platform Object with Actuator Serial Numbers, Ports, and DB Information");
     Device::Identity act_identity;
@@ -111,7 +109,7 @@ Platform::Platform(Device::Identity identity, std::array<int, Platform::NUM_ACTS
 
 Platform::Platform(Device::Identity identity, std::array<int, Platform::NUM_ACTS_PER_PLATFORM> actuatorPorts,
                    std::array<int, Platform::NUM_ACTS_PER_PLATFORM> actuatorSerials, Device::DBInfo dbInfo,
-                   Actuator::ASFInfo asfInfo) : Device::Device(std::make_shared<CBC>(), identity)
+                   const Actuator::ASFInfo &asfInfo) : Device::Device(std::make_shared<CBC>(), std::move(identity))
 {
     DEBUG_MSG("Creating Platform Object with Actuator Serial Numbers, Ports, DB Information and custom ASF paths");
     Device::Identity act_identity;
@@ -146,14 +144,11 @@ bool Platform::loadCBCParameters() {
     DEBUG_MSG("Loading CBC Parameters for Controller Board " << m_CBCserial);
     if (m_DBInfo.empty())
     {
-        ERROR_MSG("Operable Error: Failed to load CBC parameters from DB because no DB info provided.");
+        std::cout << "Operable Error: Failed to load CBC parameters from DB because no DB info provided." << std::endl;
         setError(13);
         return false;
     }
-    bool highCurrent;
-    bool synchronousRectification;
 
-    float CalibrationTemperature;
     std::array<float, Platform::NUM_ACTS_PER_PLATFORM> EncoderVoltageSlope{};
     std::array<float, Platform::NUM_ACTS_PER_PLATFORM> EncoderVoltageOffset{};
     std::array<float, Platform::NUM_ACTS_PER_PLATFORM> EncoderTemperatureSlope{};
@@ -181,7 +176,7 @@ bool Platform::loadCBCParameters() {
             m_InternalTemperatureOffset = res->getDouble(6);
             m_ExternalTemperatureSlope = res->getDouble(7);
             m_ExternalTemperatureOffset = res->getDouble(8);
-            CalibrationTemperature=res->getDouble(9);
+            m_CalibrationTemperature = res->getDouble(9);
             EncoderVoltageSlope[0]=res->getDouble(10);
             EncoderVoltageOffset[0]=res->getDouble(11);
             EncoderTemperatureSlope[0]=res->getDouble(12);
@@ -206,8 +201,8 @@ bool Platform::loadCBCParameters() {
             EncoderVoltageOffset[5]=res->getDouble(31);
             EncoderTemperatureSlope[5]=res->getDouble(32);
             EncoderTemperatureOffset[5]=res->getDouble(33);
-            synchronousRectification = res->getInt(34);
-            highCurrent = res->getInt(35);
+            m_SynchronousRectification = res->getInt(34);
+            m_HighCurrent = res->getInt(35);
         }
 
         delete res;
@@ -222,11 +217,13 @@ bool Platform::loadCBCParameters() {
         std::cout << "# ERR: " << e.what();
         std::cout << " (MySQL error code: " << e.getErrorCode();
         std::cout << ", SQLState: " << e.getSQLState() << " )" << std::endl;
-        ERROR_MSG("Operable Error: SQL Exception caught for platform. Did not successfully communicate with database.");
+        std::cout
+            << "Operable Error: SQL Exception caught for platform. Did not successfully communicate with database."
+            << std::endl;
         setError(14);
         return false;
     }
-    m_pCBC->adc.setEncoderTemperatureRef(CalibrationTemperature);
+    m_pCBC->adc.setEncoderTemperatureRef(m_CalibrationTemperature);
     for (int i = 0; i < Platform::NUM_ACTS_PER_PLATFORM; i++)
     {
         m_pCBC->adc.setEncoderTemperatureSlope(i+1, EncoderTemperatureSlope[i]);
@@ -234,7 +231,7 @@ bool Platform::loadCBCParameters() {
         m_pCBC->adc.setEncoderVoltageSlope(i+1, EncoderVoltageSlope[i]);
         m_pCBC->adc.setEncoderVoltageOffset(i+1, EncoderVoltageOffset[i]);
     }
-    if (highCurrent)
+    if (m_HighCurrent)
     {
         enableHighCurrent();
     }
@@ -242,7 +239,7 @@ bool Platform::loadCBCParameters() {
     {
         disableHighCurrent();
     }
-    if (synchronousRectification)
+    if (m_SynchronousRectification)
     {
         enableSynchronousRectification();
     }
@@ -294,18 +291,19 @@ Platform::step(std::array<int, Platform::NUM_ACTS_PER_PLATFORM> inputSteps) {
         if (FinalPosition[i].revolution < m_Actuators[i]->ExtendRevolutionLimit ||
             FinalPosition[i].revolution >= m_Actuators[i]->RetractRevolutionLimit)
         {
-            ERROR_MSG("Operable Error: Attempting to move Actuator with Index " << i << " outside of software range.");
+            std::cout << "Operable Error: Attempting to move Actuator with Index " << i << " outside of software range."
+                      << std::endl;
             setError(12);
-            ERROR_MSG("Attempting to move outside of Software Range(" << m_Actuators[i]->HomeLength -
-                                                                         (m_Actuators[i]->RetractRevolutionLimit *
+            std::cout << "Attempting to move outside of Software Range(" << m_Actuators[i]->HomeLength -
+                                                                            (m_Actuators[i]->RetractRevolutionLimit *
                                                                           m_Actuators[i]->StepsPerRevolution *
                                                                           m_Actuators[i]->mmPerStep) << "-"
-                                                                      << m_Actuators[i]->HomeLength -
+                      << m_Actuators[i]->HomeLength -
                                                                          (m_Actuators[i]->ExtendRevolutionLimit *
                                                                           m_Actuators[i]->StepsPerRevolution *
                                                                           m_Actuators[i]->mmPerStep)
-                                                                      << "mm) for Actuator "
-                                                                      << m_Actuators[i]->getSerialNumber());
+                      << "mm) for Actuator "
+                      << m_Actuators[i]->getSerialNumber() << std::endl;
 
             // reset the state to Off
             m_state = Device::DeviceState::Off;
@@ -523,7 +521,7 @@ bool Platform::probeHomeAll()
     probeExtendStopAll();
     if (m_state == Device::DeviceState::FatalError)
     {
-        ERROR_MSG("Platform:: Cannot probe home, Platform has a Fatal Error");
+        std::cout << "Platform:: Cannot probe home, Platform has a Fatal Error" << std::endl;
         return false;
     }
 
@@ -534,8 +532,8 @@ bool Platform::probeHomeAll()
         checkActuatorStatus(i);
         if (m_state == Device::DeviceState::FatalError)
         {
-            ERROR_MSG("Platform:: Actuator " << i
-                                             << " encountered a fatal error after probing home. Stopping probeHomeAll...");
+            std::cout << "Platform:: Actuator " << i
+                      << " encountered a fatal error after probing home. Stopping probeHomeAll..." << std::endl;
             m_pCBC->driver.disableAll();
             return false;
         }
@@ -657,7 +655,7 @@ void Platform::clearPlatformErrors()
     DEBUG_MSG("Clearing all Platform errors.");
     for (int i = 12; i < getNumErrors(); i++)
     {
-        unsetError(i)
+        unsetError(i);
     }
     updateState(); // Update error status to reflect actuator errors
 }
@@ -672,7 +670,7 @@ void Platform::findHomeFromEndStop(int direction, int actuatorIdx)
         m_Actuators.at(actuatorIdx)->findHomeFromRetractStop();
     }
     else {
-        ERROR_MSG("Invalid direction given for findHomeFromEndStop.");
+        std::cout << "Invalid direction given for findHomeFromEndStop." << std::endl;
     }
 }
 
@@ -686,7 +684,8 @@ bool Platform::addMPES(int USB, int serial)
 
     DEBUG_MSG("Adding MPES " << serial << " at USB " << USB);
     if (serial < 0 || USB < 0) {
-        ERROR_MSG("Platform:: Failed to add MPES, invalid USB/serial numbers (" << USB << ", " << serial << ")");
+        std::cout << "Platform:: Failed to add MPES, invalid USB/serial numbers (" << USB << ", " << serial << ")"
+                  << std::endl;
         return false;
     }
 
@@ -702,7 +701,7 @@ bool Platform::addMPES(int USB, int serial)
         return true;
     }
     else {
-        ERROR_MSG("Platform:: Failed to initialize MPES at USB " << USB);
+        std::cout << "Platform:: Failed to initialize MPES at USB " << USB << std::endl;
         return false;
     }
 }

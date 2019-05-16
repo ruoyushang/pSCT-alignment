@@ -44,7 +44,7 @@ const std::vector<Device::ErrorDefinition> Actuator::ERROR_DEFINITIONS = {
 const Actuator::ASFInfo Actuator::EMERGENCY_ASF_INFO = {"/.ASF/", ".ASF_Emergency_Port_", ".log"};
 
 Actuator::Actuator(std::shared_ptr<CBC> pCBC, Device::Identity identity, Device::DBInfo DBInfo,
-                   const ASFInfo &ASFFileInfo) : Device::Device(std::move(pCBC), identity),
+                   const ASFInfo &ASFFileInfo) : Device::Device(std::move(pCBC), std::move(identity)),
                                                  m_ADCdata(CBC::ADC::adcData()) {
     m_Errors.assign(getNumErrors(), false);
     setError(0); // By default, home position not calibrated
@@ -715,8 +715,8 @@ void Actuator::probeHome()//method used to define home.
     if (m_Errors[7] == true) {
         return;
     }
-    float ExtendStopVoltageMax = m_VMax - (StepsPerRevolution / 4) * dV;
-    float ExtendStopVoltageMin = m_VMin + (StepsPerRevolution / 4) * dV;
+    float ExtendStopVoltageMax = m_VMax - (StepsPerRevolution / 4.0) * dV;
+    float ExtendStopVoltageMin = m_VMin + (StepsPerRevolution / 4.0) * dV;
     if (MeasuredVoltage > ExtendStopVoltageMax || MeasuredVoltage < ExtendStopVoltageMin) {
         ERROR_MSG(
             "Operable Error: Actuator " << getSerialNumber() << " voltage at Extend Stop reads: " << MeasuredVoltage
@@ -834,7 +834,7 @@ void Actuator::probeEndStop(int direction) {
 
     bool atStop = false;
 
-    float VoltageBefore = readVoltage();
+    float VoltageBefore;
     float VoltageAfter = readVoltage();
     float AbsDeltaVoltage;
     while (!atStop) {

@@ -24,9 +24,9 @@ public:
     struct ASFInfo {
         ASFInfo() : directory("/.ASF/"), prefix(".ASF_"), suffix(".log") {}
 
-        ASFInfo(std::string directory, std::string prefix, std::string suffix) : directory(directory),
-                                                                                 prefix(prefix),
-                                                                                 suffix(suffix) {}
+        ASFInfo(std::string directory, std::string prefix, std::string suffix) : directory(std::move(directory)),
+                                                                                 prefix(std::move(prefix)),
+                                                                                 suffix(std::move(suffix)) {}
 
         std::string directory;
         std::string prefix;
@@ -101,9 +101,8 @@ protected:
     Device::DeviceState m_State = Device::DeviceState::On;
 
     Device::DBInfo m_DBInfo;
-    ASFInfo m_ASFInfo;
 
-    void copyFile(const std::string &srcFilePath, const std::string &destFilePath);
+    static void copyFile(const std::string &srcFilePath, const std::string &destFilePath);
 
     // Constants
     static const ASFInfo EMERGENCY_ASF_INFO;
@@ -167,7 +166,8 @@ class DummyActuator : public Actuator
 {
 public:
     DummyActuator(std::shared_ptr<CBC> pCBC, Device::Identity identity,
-                  Device::DBInfo DBInfo = Device::DBInfo(), const ASFInfo &ASFFileInfo = Actuator::ASFInfo()) : Actuator(pCBC, identity, DBInfo, ASFFileInfo) {};
+                  Device::DBInfo DBInfo = Device::DBInfo(), const ASFInfo &ASFFileInfo = Actuator::ASFInfo())
+        : Actuator(std::move(pCBC), std::move(identity), std::move(DBInfo), ASFFileInfo) {};
 
     bool initialize() override;
     int step(int steps) override;

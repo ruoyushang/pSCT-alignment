@@ -37,7 +37,7 @@ public:
 
     Platform(Device::Identity identity, std::array<int, NUM_ACTS_PER_PLATFORM> actuatorPorts,
              std::array<int, NUM_ACTS_PER_PLATFORM> actuatorSerials, Device::DBInfo dbInfo,
-             Actuator::ASFInfo asfInfo);
+             const Actuator::ASFInfo &asfInfo);
     ~Platform();
 
     bool initialize() override;
@@ -67,7 +67,7 @@ public:
 
     std::unique_ptr<Actuator> &getActuator(int idx) { return m_Actuators.at(idx); }
 
-    std::unique_ptr<Actuator> &getActuatorbyIdentity(Device::Identity identity) {
+    std::unique_ptr<Actuator> &getActuatorbyIdentity(const Device::Identity &identity) {
         return m_Actuators.at(m_ActuatorIdentityMap.at(identity));
     }
 
@@ -75,7 +75,7 @@ public:
 
     std::unique_ptr<MPES> &getMPES(int idx) { return m_MPES.at(idx); }
 
-    std::unique_ptr<MPES> &getMPESbyIdentity(Device::Identity identity) {
+    std::unique_ptr<MPES> &getMPESbyIdentity(const Device::Identity &identity) {
         return m_MPES.at(m_MPESIdentityMap.at(identity));
     }
 
@@ -125,6 +125,8 @@ private:
 
     bool m_HighCurrent = false;
     bool m_SynchronousRectification = true;
+
+    float m_CalibrationTemperature = 0.0;
 
     std::shared_ptr<CBC> m_pCBC;
     std::vector<std::unique_ptr<MPES>> m_MPES;
