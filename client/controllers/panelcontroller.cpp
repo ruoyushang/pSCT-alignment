@@ -113,6 +113,10 @@ UaStatus PanelController::getData(OpcUa_UInt32 offset, UaVariant &value) {
         status = m_pClient->read({"ns=2;s=Panel_0.ExternalTemperature"}, &value);
     else if (offset == PAS_PanelType_SafetyRadius) {
         value.setDouble(m_safetyRadius);
+    } else if (offset == PAS_PanelType_Position) {
+        status = m_pClient->read({"ns=2;s=Panel_0.Position"}, &value);
+    } else if (offset == PAS_PanelType_Serial) {
+        status = m_pClient->read({"ns=2;s=Panel_0.Serial"}, &value);
     } else
         status = OpcUa_BadInvalidArgument;
 

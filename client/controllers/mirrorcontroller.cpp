@@ -266,8 +266,10 @@ UaStatus MirrorController::getData(OpcUa_UInt32 offset, UaVariant &value)
         value.setDouble(m_sysOffsetsMPES(dataoffset));
     } else if (offset == PAS_MirrorType_SafetyRadius)
         value.setDouble(m_safetyRadius);
+    else if (offset == PAS_MirrorType_Position)
+        value.setInt32(m_ID.position);
     else if (offset == PAS_MirrorType_SelectedEdges) {
-        std::vector<std::string> v(m_selectedEdges.begin(), m_selectedEdges.end());        
+        std::vector<std::string> v(m_selectedEdges.begin(), m_selectedEdges.end());
         std::string s = "[";
         for (int i = 0; i < (int)(v.size()); i++) {
             s += v[i];
@@ -278,7 +280,7 @@ UaStatus MirrorController::getData(OpcUa_UInt32 offset, UaVariant &value)
         s += "]";
         value.setString(s.c_str());
     } else if (offset == PAS_MirrorType_SelectedPanels) {
-        std::vector<unsigned> v(m_selectedPanels.begin(), m_selectedPanels.end());  
+        std::vector<unsigned> v(m_selectedPanels.begin(), m_selectedPanels.end());
         std::string s = "[";
         for (int i = 0; i < (int)(v.size()); i++) {
             s += std::to_string(v[i]);
@@ -299,9 +301,8 @@ UaStatus MirrorController::getData(OpcUa_UInt32 offset, UaVariant &value)
         }
         s += "]";
         value.setString(s.c_str());
-    }
-    else
-       return OpcUa_BadInvalidArgument;
+    } else
+        return OpcUa_BadInvalidArgument;
 
     return OpcUa_Good;
 }

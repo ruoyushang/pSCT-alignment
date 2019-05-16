@@ -34,7 +34,9 @@ public:
 
     UaStatus initialize() override;
 
-    void setConfiguration(std::shared_ptr<Configuration> pConfiguration) { m_pConfiguration = pConfiguration; }
+    void setConfiguration(std::shared_ptr<Configuration> pConfiguration) {
+        m_pConfiguration = std::move(pConfiguration);
+    }
 
     const Identity addDevice(std::shared_ptr<Client> pClient, OpcUa_UInt32 deviceType, const Identity &identity);
 

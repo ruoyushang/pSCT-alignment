@@ -37,7 +37,7 @@ void PasNodeManager::setCommunicationInterface(std::unique_ptr<PasCommunicationI
 void PasNodeManager::setConfiguration(std::shared_ptr<Configuration> pConfiguration)
 {
     std::cout << "PasNodeManager: Setting configuration\n";
-    m_pConfiguration = pConfiguration;
+    m_pConfiguration = std::move(pConfiguration);
 
     m_pPositioner->setConfiguration(m_pConfiguration);
 
@@ -203,7 +203,7 @@ UaStatus PasNodeManager::afterStartUp()
     std::cout << "Adding all parent-child references between objects...\n";
 
     // Loop through all created objects and add references to children
-    for (auto device : pDeviceObjects) {
+    for (const auto &device : pDeviceObjects) {
         pController = device.first;       
         pObject = device.second;
 
@@ -268,11 +268,11 @@ UaStatus PasNodeManager::beforeShutDown()
     if (!ret.isGood())
         return ret;
 
-    for (OpcUa_UInt32 i = 0; i < m_pClient.size(); i++)
+    for (const auto &client : m_pClient)
     {
-        ret = m_pClient.at(i)->disconnect();
+        ret = client->disconnect();
         if (!ret.isGood())
-            break;
+            continue;
     }
 
     return ret;

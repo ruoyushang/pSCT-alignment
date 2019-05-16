@@ -18,7 +18,7 @@ class Client : public std::enable_shared_from_this<Client>, public UaClientSdk::
 public:
     explicit Client(PasNodeManager *pNodeManager);
 
-    ~Client() override;
+    ~Client() override = default;
 
     // UaSessionCallback implementation ----------------------------------------------------
     void
@@ -65,12 +65,12 @@ private:
     void addDevices(const OpcUa_ReferenceDescription& eferenceDescription);
 
     // variables
-    PasNodeManager*                     m_pNodeManager;
-    UaClientSdk::UaSession*             m_pSession;
-    Subscription*                       m_pSubscription;
+    std::shared_ptr<PasNodeManager> m_pNodeManager;
+    std::unique_ptr<UaClientSdk::UaSession> m_pSession;
+    std::unique_ptr<Subscription> m_pSubscription;
     std::shared_ptr<Configuration> m_pConfiguration;
     UaClientSdk::UaClient::ServerStatus m_serverStatus;
-    Database*                           m_pDatabase;
+    std::unique_ptr<Database> m_pDatabase;
 
     // keep track of asynchronous calls
     OpcUa_UInt32 m_TransactionId;

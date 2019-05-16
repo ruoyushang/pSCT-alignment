@@ -2,6 +2,7 @@
 
 #include "client/clienthelper.hpp"
 
+#include <algorithm>
 #include <vector>
 #include <string>
 
@@ -10,7 +11,7 @@
 int PSDController::kUpdateInterval = 500;
 
 PSDController::PSDController(Identity identity, std::shared_ptr<Client> pClient) :
-        PasController(std::move(identity), pClient, kUpdateInterval) {
+    PasController(std::move(identity), std::move(pClient), kUpdateInterval) {
     m_state = PASState::On;
     m_Data = {0.0,
               0.0,
@@ -27,7 +28,6 @@ PSDController::PSDController(Identity identity, std::shared_ptr<Client> pClient)
 }
 
 PSDController::~PSDController() {
-    m_pClient = nullptr;
     m_state = PASState::Off;
 }
 
@@ -38,7 +38,6 @@ UaStatus PSDController::getState(PASState &state) {
 
 UaStatus PSDController::setState(PASState state) {
     //UaMutexLocker lock(&m_mutex);
-
     return OpcUa_BadNotWritable;
 }
 
@@ -90,8 +89,8 @@ UaStatus PSDController::read() {
     std::vector<std::string> varstoread{"x1", "y1", "x2", "y2", "dx1", "dy1", "dx2", "dy2", "Temperature"};
     UaVariant valstoread[9];
 
-    transform(varstoread.begin(), varstoread.end(), varstoread.begin(),
-              [this](std::string &str) { return m_ID.eAddress + "." + str; });
+    std::transform(varstoread.begin(), varstoread.end(), varstoread.begin(),
+                   [this](std::string &str) { return m_ID.eAddress + "." + str; });
 
     status = m_pClient->read(varstoread, &valstoread[0]);
     if (!status.isGood())

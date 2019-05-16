@@ -151,15 +151,19 @@ UaStatus MPESController::getData(OpcUa_UInt32 offset, UaVariant &value) {
     UaStatus status;
     //UaMutexLocker lock(&m_mutex);
 
-    int dataoffset = offset - PAS_MPESType_xCentroidAvg;
-    if ((dataoffset >= 7) || (dataoffset < 0))
+
+    if (offset >= PAS_MPESType_xCentroidAvg && offset <= PAS_MPESType_yCentroidNominal) {
+        if (!m_updated)
+            status = read();
+        int dataoffset = offset - PAS_MPESType_xCentroidAvg;
+        value.setDouble(*(reinterpret_cast<OpcUa_Double *>(&m_Data) + dataoffset));
+    } else if (offset == PAS_MPESType_Position) {
+        status = m_pClient->read({m_ID.eAddress + "." + "Position"}, &value);
+    } else if (offset == PAS_MPESType_Serial) {
+        status = m_pClient->read({m_ID.eAddress + "." + "Serial"}, &value);
+    } else {
         return OpcUa_BadInvalidArgument;
-
-    if (!m_updated)
-        status = read();
-
-    // cast struct to double through reinterpret_cast!
-    value.setDouble(*(reinterpret_cast<OpcUa_Double *>(&m_Data) + dataoffset));
+    }
 
     return OpcUa_Good;
 }

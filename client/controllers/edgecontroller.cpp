@@ -67,6 +67,11 @@ UaStatus EdgeController::setState(PASState state) {
 -----------------------------------------------------------------------------*/
 UaStatus EdgeController::getData(OpcUa_UInt32 offset, UaVariant &value) {
     //UaMutexLocker lock(&m_mutex);
+    if (offset == PAS_EdgeType_Position) {
+        value.setInt32(m_ID.position);
+    } else {
+        return OpcUa_BadInvalidArgument;
+    }
 
     return OpcUa_Good;
 }

@@ -150,7 +150,6 @@ UaStatus PasCommunicationInterface::initialize() {
             m_pControllers[devCount.first] = std::map<Identity, std::shared_ptr<PasControllerCommon>>();
         }
 
-        int eAddress;
         int failed;
         std::shared_ptr<PasControllerCommon> pController;
         for (int i = 0; i < devCount.second; i++) {
@@ -159,7 +158,7 @@ UaStatus PasCommunicationInterface::initialize() {
                 identity.eAddress = std::to_string(i);
                 pController.reset(new PanelController(identity, m_platform));
             } else if (devCount.first == PAS_MPESType) {
-		identity.eAddress = std::to_string(m_platform->getMPESPorts().at(i));
+                identity.eAddress = std::to_string(m_platform->getMPESPorts().at(i));
                 pController.reset(new MPESController(identity, m_platform));
             } else if (devCount.first == PAS_ACTType) {
                 identity.eAddress = std::to_string(i+1);
@@ -167,7 +166,7 @@ UaStatus PasCommunicationInterface::initialize() {
             }
 #ifndef _AMD64
             else if (devCount.first == PAS_PSDType) {
-                identity.eAddress = i;
+                identity.eAddress = std::to_string(i + 1);
                 pController.reset(new PSDController(identity));
             }
 #endif

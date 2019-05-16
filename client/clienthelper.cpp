@@ -15,45 +15,13 @@
 
 using namespace UaClientSdk;
 
-Client::Client(PasNodeManager *pNodeManager) : m_pNodeManager(pNodeManager), m_TransactionId(0),
+Client::Client(PasNodeManager *pNodeManager) : m_pNodeManager(pNodeManager),
                                                m_pConfiguration(nullptr),
-                                               m_serverStatus(UaClient::ServerStatus::Disconnected)
-{
-    m_pSession = new UaSession();
-    m_pSubscription = new Subscription(m_pConfiguration);
-    m_pDatabase = new Database();
-}
-
-Client::~Client()
-{
-    m_pNodeManager = nullptr;
-    m_pConfiguration = nullptr;
-
-    if (m_pSubscription)
-    {
-        // delete local subscription object
-        delete m_pSubscription;
-        m_pSubscription = nullptr;
-    }
-
-    if (m_pDatabase)
-    {
-        // delete local database object
-        delete m_pDatabase;
-        m_pDatabase = nullptr;
-    }
-
-    if (m_pSession)
-    {
-        // disconnect if we're still connected
-        if (m_pSession->isConnected() != OpcUa_False)
-        {
-            ServiceSettings serviceSettings;
-            m_pSession->disconnect(serviceSettings, OpcUa_True);
-        }
-        delete m_pSession;
-        m_pSession = nullptr;
-    }
+                                               m_serverStatus(UaClient::ServerStatus::Disconnected),
+                                               m_TransactionId(0) {
+    m_pSession = std::unique_ptr<UaSession>(new UaSession());
+    m_pSubscription = std::unique_ptr<Subscription>(new Subscription(m_pConfiguration));
+    m_pDatabase = std::unique_ptr<Database>(new Database());
 }
 
 void Client::connectionStatusChanged(
@@ -104,7 +72,7 @@ void Client::setConfiguration(std::shared_ptr<Configuration> pConfiguration)
     {
         m_pDatabase->setConfiguration(pConfiguration);
     }
-    m_pConfiguration = pConfiguration;
+    m_pConfiguration = std::move(pConfiguration);
 }
 
 UaStatus Client::connect()
@@ -525,7 +493,7 @@ UaStatus Client::subscribe()
 {
     UaStatus result;
 
-    result = m_pSubscription->createSubscription(m_pSession);
+    result = m_pSubscription->createSubscription(m_pSession.get());
     if ( result.isGood() )
     {
         result = m_pSubscription->createMonitoredItems();

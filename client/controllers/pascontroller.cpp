@@ -20,7 +20,7 @@
 #include <Eigen/Dense>
 
 // implement PasCompositeController::addChild()
-void PasCompositeController::addChild(OpcUa_UInt32 deviceType, std::shared_ptr<PasController> pController)
+void PasCompositeController::addChild(OpcUa_UInt32 deviceType, const std::shared_ptr<PasController> &pController)
 {
     const auto &id = pController->getId();
     auto pos = pController->getId().position;
@@ -35,7 +35,7 @@ void PasCompositeController::addChild(OpcUa_UInt32 deviceType, std::shared_ptr<P
         if (m_ChildrenTypes.count(deviceType)) {
             std::cout << " --- " << m_ID.name << "::addChild(): "
                       << m_ID.name << ": adding " << pController->getId() << std::endl;
-            m_pChildren[deviceType].push_back(pController);
+            m_pChildren[deviceType].push_back(std::shared_ptr<PasController>(pController));
             m_ChildrenIdentityMap[deviceType][id] = m_pChildren.at(deviceType).size() - 1;
             // this doesn't work for edges, since they don't have an assigned position
             m_ChildrenPositionMap[deviceType][pos] = m_pChildren.at(deviceType).size() - 1;

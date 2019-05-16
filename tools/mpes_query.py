@@ -1,8 +1,7 @@
 #!/usr/bin/env python
-import pymysql
 import argparse
 import os
-
+import pymysql
 
 #included_panels=[2121,2122,2123,2124,2221,2222,2223,2224,2321,2322,2323,2324,2421,2422,2423,2424]
 included_panels=[2121,2122,2123,2124,2221,2321,2322,2323,2324,2421,2422,2423,2424]

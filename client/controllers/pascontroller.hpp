@@ -28,9 +28,10 @@ class PasController : public PasControllerCommon
 public:
     /* construction / destruction */
     PasController(Identity identity, std::shared_ptr<Client> pClient, int updateInterval = 0) : PasControllerCommon(
-        identity,
+        std::move(identity),
         updateInterval),
-                                                                                                m_pClient(pClient) {};
+                                                                                                m_pClient(std::move(
+                                                                                                    pClient)) {};
 
 protected:
     std::shared_ptr<Client> m_pClient;
@@ -43,7 +44,7 @@ class PasCompositeController : public PasController
 {
     public:
     PasCompositeController(Identity identity, std::shared_ptr<Client> pClient, int updateInterval = 0) :
-                PasController(std::move(identity), pClient, updateInterval) {};
+        PasController(std::move(identity), std::move(pClient), updateInterval) {};
 
     ~PasCompositeController() override = default;
 
@@ -53,7 +54,7 @@ class PasCompositeController : public PasController
         // a const.
         // declaring these as virtual, but they should be the same for everything that
         // inherts from here
-        virtual void addChild(OpcUa_UInt32 deviceType, std::shared_ptr<PasController> pController);
+        virtual void addChild(OpcUa_UInt32 deviceType, const std::shared_ptr<PasController> &pController);
 
     virtual const std::vector<std::shared_ptr<PasController> > &
     getChildren(unsigned type) const { return m_pChildren.at(type); };
