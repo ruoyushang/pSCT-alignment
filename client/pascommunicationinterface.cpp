@@ -112,7 +112,7 @@ PasCommunicationInterface::addDevice(const std::shared_ptr<Client> &pClient, Opc
 {
     // check if object already exists -- this way, passing the same object multiple times won't
     // actually add it multiple times
-    Identity id;
+    Device::Identity id;
 
     // Found existing copy of device
     if (m_DeviceIdentityMap.count(deviceType) > 0 && m_DeviceIdentityMap.at(deviceType).count(identity) > 0) {
@@ -171,7 +171,7 @@ PasCommunicationInterface::addDevice(const std::shared_ptr<Client> &pClient, Opc
             for (auto parent : parentList) {
                 // parent.first is type; parent.second is id
                 if (!parent.second.eAddress.empty()) {
-                    Identity parentId = addDevice(pClient, parent.first, parent.second);
+                    Device::Identity parentId = addDevice(pClient, parent.first, parent.second);
                     // update this parent with the full ID
                     parent = std::make_pair(parent.first, parentId);
 

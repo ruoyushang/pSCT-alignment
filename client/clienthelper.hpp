@@ -2,14 +2,15 @@
 #define PASCLIENT_H
 
 #include "uabase.h"
+#include "client/utilities/subscription.hpp"
+#include "client/utilities/database.hpp"
 #include "uaclient/uaclientsdk.h"
+#include "uaclient/uasession.h"
 #include <memory>
 #include <string>
 
 
-class Subscription;
 class Configuration;
-class Database;
 class PasNodeManager;
 
 class Client : public std::enable_shared_from_this<Client>, public UaClientSdk::UaSessionCallback

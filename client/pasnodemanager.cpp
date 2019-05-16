@@ -268,7 +268,7 @@ UaStatus PasNodeManager::beforeShutDown()
     if (!ret.isGood())
         return ret;
 
-    for (const auto &client : m_pClient)
+    for (const auto &client : m_pClients)
     {
         ret = client->disconnect();
         if (!ret.isGood())

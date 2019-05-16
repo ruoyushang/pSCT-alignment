@@ -4,7 +4,7 @@ printf "Reading from database...\n"
 declare -a panel_numbers
 while read -r position;
 do
-  if [[ ${position} = "1001" ]] || [[ ${position} = "2001" ]] || [[ ${position:0:1} = "3" ]]; then
+  if [[ ${position:0:1} = "3" ]] || [[ ${position:0:1} = "2" ]] || [[ ${position:1:1} = "0" ]]; then
       continue
   fi
   panel_numbers+=("$position")
