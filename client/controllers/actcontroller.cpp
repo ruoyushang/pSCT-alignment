@@ -85,6 +85,12 @@ UaStatus ActController::getData(OpcUa_UInt32 offset, UaVariant &value) {
             case PAS_ACTType_TargetLength:
                 varName = "TargetLength";
                 break;
+            case PAS_ACTType_Position:
+                varName = "Position";
+                break;
+            case PAS_ACTType_Serial:
+                varName = "Serial";
+                break;
             default:
                 return OpcUa_BadInvalidArgument;
         }

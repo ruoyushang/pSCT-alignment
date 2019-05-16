@@ -6,24 +6,28 @@
 #include "uaserver/opcua_analogitemtype.h"
 
 const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, OpcUa_Byte>> PanelObject::VARIABLES = {
-        {PAS_PanelType_State,          std::make_tuple("State", UaVariant(0), OpcUa_True, Ua_AccessLevel_CurrentRead)},
-        {PAS_PanelType_ExtTemperature, std::make_tuple("ExternalTemperature", UaVariant(0.0), OpcUa_False,
+    {PAS_PanelType_State,          std::make_tuple("State", UaVariant(0), OpcUa_True, Ua_AccessLevel_CurrentRead)},
+    {PAS_PanelType_Position,       std::make_tuple("Position", UaVariant(0), OpcUa_False,
+                                                   Ua_AccessLevel_CurrentRead)},
+    {PAS_PanelType_Serial,         std::make_tuple("Serial", UaVariant(0), OpcUa_False,
+                                                   Ua_AccessLevel_CurrentRead)},
+    {PAS_PanelType_ExtTemperature, std::make_tuple("ExternalTemperature", UaVariant(0.0), OpcUa_False,
                                                        Ua_AccessLevel_CurrentRead)},
-        {PAS_PanelType_IntTemperature, std::make_tuple("InternalTemperature", UaVariant(0.0), OpcUa_False,
+    {PAS_PanelType_IntTemperature, std::make_tuple("InternalTemperature", UaVariant(0.0), OpcUa_False,
                                                        Ua_AccessLevel_CurrentRead)},
-        {PAS_PanelType_x,              std::make_tuple("x", UaVariant(0.0), OpcUa_False,
+    {PAS_PanelType_x,              std::make_tuple("x", UaVariant(0.0), OpcUa_False,
                                                        Ua_AccessLevel_CurrentRead)},
-        {PAS_PanelType_y,              std::make_tuple("y", UaVariant(0.0), OpcUa_False,
+    {PAS_PanelType_y,              std::make_tuple("y", UaVariant(0.0), OpcUa_False,
                                                        Ua_AccessLevel_CurrentRead)},
-        {PAS_PanelType_z,              std::make_tuple("z", UaVariant(0.0), OpcUa_False,
+    {PAS_PanelType_z,              std::make_tuple("z", UaVariant(0.0), OpcUa_False,
                                                        Ua_AccessLevel_CurrentRead)},
-        {PAS_PanelType_xRot,           std::make_tuple("xRot", UaVariant(0.0), OpcUa_False,
+    {PAS_PanelType_xRot,           std::make_tuple("xRot", UaVariant(0.0), OpcUa_False,
                                                        Ua_AccessLevel_CurrentRead)},
-        {PAS_PanelType_yRot,           std::make_tuple("yRot", UaVariant(0.0), OpcUa_False,
+    {PAS_PanelType_yRot,           std::make_tuple("yRot", UaVariant(0.0), OpcUa_False,
                                                        Ua_AccessLevel_CurrentRead)},
-        {PAS_PanelType_zRot,           std::make_tuple("zRot", UaVariant(0.0), OpcUa_False,
+    {PAS_PanelType_zRot,           std::make_tuple("zRot", UaVariant(0.0), OpcUa_False,
                                                        Ua_AccessLevel_CurrentRead)},
-        {PAS_PanelType_SafetyRadius,   std::make_tuple("SafetyRadius", UaVariant(60.0), OpcUa_False,
+    {PAS_PanelType_SafetyRadius,   std::make_tuple("SafetyRadius", UaVariant(60.0), OpcUa_False,
                                                        Ua_AccessLevel_CurrentRead | Ua_AccessLevel_CurrentWrite)}
 };
 

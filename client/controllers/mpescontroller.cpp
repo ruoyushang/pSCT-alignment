@@ -30,7 +30,7 @@ MPESController::MPESController(Device::Identity identity, std::shared_ptr<Client
     std::string db_name = myConfig.getDatabase();
     std::string db_address = "tcp://" + db_ip + ":" + db_port;
 
-    std::cout << "Initializing MPES " << m_ID.serialNumber << std::endl;
+    //std::cout << "Initializing MPES " << m_ID.serialNumber << std::endl;
     try {
         sql::Driver *sql_driver = get_driver_instance();
         sql::Connection *sql_conn = sql_driver->connect(db_address, db_user, db_password);
@@ -72,11 +72,11 @@ MPESController::MPESController(Device::Identity identity, std::shared_ptr<Client
         }
 
         // print out the loaded values
-        std::cout << "\t Aligned readings:\n" << m_AlignedReadings << std::endl;
+        //std::cout << "\t Aligned readings:\n" << m_AlignedReadings << std::endl;
         for (const auto &matrixPair : m_ResponseMatMap)
-            std::cout << "\t " << matrixPair.first << "-side response matrix:\n"
-                      << matrixPair.second << std::endl;
-
+        {
+            //std::cout << "\t " << matrixPair.first << "-side response matrix:\n" << matrixPair.second << std::endl;
+        }
         // pass the aligned readings on to the server
         UaVariant value;
         value.setDouble(m_AlignedReadings(0));
@@ -156,15 +156,18 @@ UaStatus MPESController::getData(OpcUa_UInt32 offset, UaVariant &value) {
     if (MPESObject::ERRORS.count(offset) > 0) {
         return getError(offset, value);
     } else {
-        int dataoffset = offset - PAS_MPESType_xCentroidAvg;
-        if ((dataoffset >= 7) || (dataoffset < 0))
+        if (offset >= PAS_MPESType_xCentroidAvg && offset <= PAS_MPESType_yCentroidNominal) {
+            if (!m_updated)
+                status = read();
+            int dataoffset = offset - PAS_MPESType_xCentroidAvg;
+            value.setDouble(*(reinterpret_cast<OpcUa_Double *>(&m_Data) + dataoffset));
+        } else if (offset == PAS_MPESType_Position) {
+            status = m_pClient->read({m_ID.eAddress + "." + "Position"}, &value);
+        } else if (offset == PAS_MPESType_Serial) {
+            status = m_pClient->read({m_ID.eAddress + "." + "Serial"}, &value);
+        } else {
             return OpcUa_BadInvalidArgument;
-
-        if (!m_updated)
-            status = read();
-
-        // cast struct to double through reinterpret_cast!
-        value.setDouble(*(reinterpret_cast<OpcUa_Double *>(&m_Data) + dataoffset));
+        }
     }
 
     return OpcUa_Good;
@@ -227,6 +230,7 @@ UaStatus MPESController::operate(OpcUa_UInt32 offset, const UaVariantArray &args
     else if (offset == PAS_MPESType_SetExposure) {
         std::cout << "+++ Adjusting exposure for " << m_ID << std::endl;
         status = m_pClient->callMethod(m_ID.eAddress, UaString("SetExposure"));
+        std::cout << "Done." << std::endl;
         return status;
     } else
         return OpcUa_BadInvalidArgument;

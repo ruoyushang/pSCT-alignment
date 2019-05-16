@@ -64,7 +64,7 @@ MirrorController::MirrorController(Device::Identity identity) : PasCompositeCont
     m_lastUpdateTime = TIME::now() - std::chrono::duration<int, std::ratio<1, 1000>>(m_kUpdateInterval_ms);                                                   
 }
 
-void MirrorController::addChild(OpcUa_UInt32 deviceType, const std::shared_ptr<PasController> &pController)
+void MirrorController::addChild(OpcUa_UInt32 deviceType, std::shared_ptr<PasController> const pController)
 {
     // call the base type's method
     PasCompositeController::addChild(deviceType, pController);
@@ -80,7 +80,7 @@ void MirrorController::addChild(OpcUa_UInt32 deviceType, const std::shared_ptr<P
 
 bool MirrorController::initialize()
 {
-    std::cout << "\n\tInitializing " << m_ID.name << "..." << std::endl;
+    //std::cout << "\n\tInitializing " << m_ID.name << "..." << std::endl;
 
     // precompute everything we need
     if (m_ID.position == 1) {
@@ -212,14 +212,14 @@ bool MirrorController::initialize()
             // to get the origin of the panel frame in the TRF:
             m_PanelOriginTelFrame.at(ring + 1) -= m_PanelFrame.at(ring+1)*PanelCenterPanelFrame;
 
-            std::cout << "Ideal Panel Frame origin for Ring " << ring + 1 << " in the Telescope frame :"
-                      << std::endl << m_PanelOriginTelFrame.at(ring + 1) << std::endl;
-            std::cout << "Ideal Panel Frame for Ring " << ring + 1 << " in the Telescope frame :"
-                      << std::endl << m_PanelFrame.at(ring + 1) << std::endl << std::endl;
+            //std::cout << "Ideal Panel Frame origin for Ring " << ring + 1 << " in the Telescope frame :"
+                      //<< std::endl << m_PanelOriginTelFrame.at(ring + 1) << std::endl;
+            //std::cout << "Ideal Panel Frame for Ring " << ring + 1 << " in the Telescope frame :"
+                      //<< std::endl << m_PanelFrame.at(ring + 1) << std::endl << std::endl;
         }
     }
 
-    std::cout << "Done Initializing " << m_ID.name << std::endl << std::endl;
+    //std::cout << "Done Initializing " << m_ID.name << std::endl << std::endl;
 
     return true;
 }
@@ -270,8 +270,10 @@ UaStatus MirrorController::getData(OpcUa_UInt32 offset, UaVariant &value)
         value.setDouble(m_sysOffsetsMPES(dataoffset));
     } else if (offset == PAS_MirrorType_SafetyRadius)
         value.setDouble(m_safetyRadius);
+    else if (offset == PAS_MirrorType_Position)
+        value.setInt32(m_ID.position);
     else if (offset == PAS_MirrorType_SelectedEdges) {
-        std::vector<std::string> v(m_selectedEdges.begin(), m_selectedEdges.end());        
+        std::vector<std::string> v(m_selectedEdges.begin(), m_selectedEdges.end());
         std::string s = "[";
         for (int i = 0; i < (int)(v.size()); i++) {
             s += v[i];
@@ -282,7 +284,7 @@ UaStatus MirrorController::getData(OpcUa_UInt32 offset, UaVariant &value)
         s += "]";
         value.setString(s.c_str());
     } else if (offset == PAS_MirrorType_SelectedPanels) {
-        std::vector<unsigned> v(m_selectedPanels.begin(), m_selectedPanels.end());  
+        std::vector<unsigned> v(m_selectedPanels.begin(), m_selectedPanels.end());
         std::string s = "[";
         for (int i = 0; i < (int)(v.size()); i++) {
             s += std::to_string(v[i]);
@@ -303,9 +305,8 @@ UaStatus MirrorController::getData(OpcUa_UInt32 offset, UaVariant &value)
         }
         s += "]";
         value.setString(s.c_str());
-    }
-    else
-       return OpcUa_BadInvalidArgument;
+    } else
+        return OpcUa_BadInvalidArgument;
 
     return OpcUa_Good;
 }
@@ -954,7 +955,9 @@ UaStatus MirrorController::alignSector(const std::set<unsigned> &selectedPanels,
         unsigned idx;
         bool userOverlap = false;
         for (const auto &panel : panelsToMove) {
+            std::cout << panel->getId() << std::endl;
             for (const auto &mpes : panel->getChildren(PAS_MPESType)) {
+                std::cout << mpes->getId() << std::endl;
                 unsigned overlap = 0;
                 for (const auto &overlapPanel : panelsToMove)
                     overlap += (

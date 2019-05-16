@@ -18,7 +18,7 @@ using namespace UaClientSdk;
 Subscription::Subscription(std::shared_ptr<Configuration> pConfiguration)
     : m_pSession(nullptr),
       m_pSubscription(nullptr),
-      m_pConfiguration(pConfiguration)
+      m_pConfiguration(std::move(pConfiguration))
 {
 }
 
@@ -235,7 +235,7 @@ UaStatus Subscription::createMonitoredItems()
 /// Configuration object pointer.
 void Subscription::setConfiguration(std::shared_ptr<Configuration> pConfiguration)
 {
-    m_pConfiguration = pConfiguration;
+    m_pConfiguration = std::move(pConfiguration);
 }
 
 /// @details If the object has an internal UaSubscription, deletes it using

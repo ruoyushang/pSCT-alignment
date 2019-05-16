@@ -82,7 +82,11 @@ UaStatus PanelController::getData(OpcUa_UInt32 offset, UaVariant &value) {
             value.setFloat(m_pPlatform->getExternalTemperature());
         } else if (offset == PAS_PanelType_IntTemperature) {
             value.setFloat(m_pPlatform->getInternalTemperature());
-        }
+        } else if (offset == PAS_PanelType_Position) {
+        value.setInt32(m_ID.position);
+    } else if (offset == PAS_PanelType_Serial) {
+        value.setInt32(m_ID.serialNumber);
+    }
     } else if (PanelObject::ERRORS.find(offset) != PanelObject::ERRORS.end()) {
         return getError(offset, value);
     }

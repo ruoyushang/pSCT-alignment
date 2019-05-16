@@ -7,7 +7,7 @@
 #include "client/objects/opttableobject.hpp"
 #include "client/objects/positionerobject.hpp"
 #include "clienthelper.hpp"
-#include "utilities/configuration.hpp"
+#include "client/utilities/configuration.hpp"
 #include "pascommunicationinterface.hpp"
 #include "pasobjectfactory.hpp"
 #include "passervertypeids.hpp"
@@ -25,19 +25,19 @@ PasNodeManager::PasNodeManager()
 
 PasNodeManager::~PasNodeManager()
 {
-    std::cout << "\nDeleted Clients\n";
+    std::cout << "Closed and cleaned up PasNodeManager\n";
 }
 
-void PasNodeManager::setCommunicationInterface(PasCommunicationInterface *pCommIf)
+void PasNodeManager::setCommunicationInterface(std::unique_ptr<PasCommunicationInterface> &pCommIf)
 {
     std::cout << "PasNodeManager: Setting communication interface\n";
-    m_pCommIf = std::unique_ptr<PasComInterfaceCommon>(pCommIf);
+    m_pCommIf = std::unique_ptr<PasComInterfaceCommon>(pCommIf.release());
 }
 
 void PasNodeManager::setConfiguration(std::shared_ptr<Configuration> pConfiguration)
 {
     std::cout << "PasNodeManager: Setting configuration\n";
-    m_pConfiguration = pConfiguration;
+    m_pConfiguration = std::move(pConfiguration);
 
     m_pPositioner->setConfiguration(m_pConfiguration);
 
@@ -193,32 +193,37 @@ UaStatus PasNodeManager::afterStartUp()
     }
 
     std::map<std::shared_ptr<PasController>, PasObject *> pRootDevices;
-    pRootDevices.insert(pDeviceObjects.begin(), pDeviceObjects.end());
+
+    for (const auto &kv : pDeviceObjects) {
+        pRootDevices.insert(std::pair<std::shared_ptr<PasController>, PasObject *>(std::shared_ptr<PasController>(kv.first), kv.second));
+    }
 
     UaString objectName;
 
     std::cout << "Adding all parent-child references between objects...\n";
 
     // Loop through all created objects and add references to children
-    for (auto it = pDeviceObjects.begin(); it != pDeviceObjects.end(); ++it) {
-        pController = it->first;
-        pObject = it->second;
+    for (const auto &device : pDeviceObjects) {
+        pController = device.first;
+        pObject = device.second;
 
         objectName = pObject->nodeId().toString();
 
         // Check if object has children (is a composite controller)
-        if (std::dynamic_pointer_cast<PasCompositeController>(pController)) {
-            for (const auto &dev : PasCommunicationInterface::deviceTypeNames) {
-                deviceType = dev.first;
-                deviceName = dev.second;
+        if (dynamic_cast<PasCompositeController *>(pController.get())) {
+            std::cout << "Parent: " << pController->getId() << std::endl;
+            for (const auto &devType: PasCommunicationInterface::deviceTypeNames) {
+                deviceType = devType.first;
+                deviceName = devType.second;
                 try {
-                    pChildren = std::dynamic_pointer_cast<PasCompositeController>(pController)->getChildren(deviceType);
+                    pChildren = dynamic_cast<PasCompositeController *>(pController.get())->getChildren(deviceType);
                     if (!pChildren.empty()) {
-
+                        std::cout << deviceName << std::endl;
                         pFolder = new UaFolder(UaString(deviceName.c_str()), UaNodeId(objectName + UaString(deviceName.c_str()), getNameSpaceIndex()), m_defaultLocaleId);
                         ret = addNodeAndReference(pObject->nodeId(), pFolder, OpcUaId_HasComponent);
                         UA_ASSERT(ret.isGood());
                         for ( auto &child : pChildren) {
+                            std::cout << child->getId() << std::endl;
                             ret = addUaReference(pFolder->nodeId(), pDeviceObjects[child]->nodeId(), OpcUaId_HasComponent);
                             UA_ASSERT(ret.isGood());
                             // Remove any child from the list of root devices
@@ -230,6 +235,7 @@ UaStatus PasNodeManager::afterStartUp()
                     // Do nothing
                 }
             }
+            std::cout << std::endl << std::endl;
         }
     }
 
@@ -241,8 +247,9 @@ UaStatus PasNodeManager::afterStartUp()
     UA_ASSERT(ret.isGood());
 
     // Add all root devices (devices with no parents) to the Device Tree Folder
-    for (auto it : pRootDevices) {
-        pObject = it.second;
+    for (const auto &r : pRootDevices) {
+        pController = r.first;
+        pObject = r.second;
 
         ret = addUaReference(pDeviceTreeFolder->nodeId(), pObject->nodeId(), OpcUaId_HasComponent);
         UA_ASSERT(ret.isGood());
@@ -261,11 +268,11 @@ UaStatus PasNodeManager::beforeShutDown()
     if (!ret.isGood())
         return ret;
 
-    for (const auto &client : m_pClients)
+    for (const auto &client : m_pClient)
     {
         ret = client->disconnect();
         if (!ret.isGood())
-            break;
+            continue;
     }
 
     return ret;

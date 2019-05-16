@@ -36,7 +36,7 @@ public:
     UaStatus initialize() override;
 
     void setConfiguration(std::shared_ptr<Configuration> pConfiguration) {
-        m_pConfiguration = pConfiguration;
+        m_pConfiguration = std::move(pConfiguration);
     }
 
     const Device::Identity

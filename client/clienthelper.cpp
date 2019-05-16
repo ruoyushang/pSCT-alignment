@@ -1,7 +1,7 @@
 #include "clienthelper.hpp"
-#include "utilities/subscription.hpp"
-#include "utilities/database.hpp"
-#include "utilities/configuration.hpp"
+#include "client/utilities/subscription.hpp"
+#include "client/utilities/database.hpp"
+#include "client/utilities/configuration.hpp"
 #include "pasobject.hpp"
 #include "passervertypeids.hpp"
 #include "pasnodemanager.hpp"
@@ -18,43 +18,11 @@ using namespace UaClientSdk;
 
 Client::Client(PasNodeManager *pNodeManager) : m_pNodeManager(pNodeManager), m_TransactionId(0),
                                                m_pConfiguration(nullptr),
-                                               m_serverStatus(UaClient::ServerStatus::Disconnected)
-{
-    m_pSession = new UaSession();
-    m_pSubscription = new Subscription(m_pConfiguration);
-    m_pDatabase = new Database();
-}
-
-Client::~Client()
-{
-    m_pNodeManager = nullptr;
-    m_pConfiguration = nullptr;
-
-    if (m_pSubscription)
-    {
-        // delete local subscription object
-        delete m_pSubscription;
-        m_pSubscription = nullptr;
-    }
-
-    if (m_pDatabase)
-    {
-        // delete local database object
-        delete m_pDatabase;
-        m_pDatabase = nullptr;
-    }
-
-    if (m_pSession)
-    {
-        // disconnect if we're still connected
-        if (m_pSession->isConnected() != OpcUa_False)
-        {
-            ServiceSettings serviceSettings;
-            m_pSession->disconnect(serviceSettings, OpcUa_True);
-        }
-        delete m_pSession;
-        m_pSession = nullptr;
-    }
+                                               m_serverStatus(UaClient::ServerStatus::Disconnected),
+                                               m_TransactionId(0) {
+    m_pSession = std::unique_ptr<UaSession>(new UaSession());
+    m_pSubscription = std::unique_ptr<Subscription>(new Subscription(m_pConfiguration));
+    m_pDatabase = std::unique_ptr<Database>(new Database());
 }
 
 void Client::connectionStatusChanged(
@@ -95,7 +63,7 @@ void Client::connectionStatusChanged(
     m_serverStatus = serverStatus; 
 }
 
-void Client::setConfiguration(std::shared_ptr<Configuration> pConfiguration) 
+void Client::setConfiguration(std::shared_ptr<Configuration> pConfiguration)
 { 
     if (m_pSubscription) 
     {
@@ -105,7 +73,7 @@ void Client::setConfiguration(std::shared_ptr<Configuration> pConfiguration)
     {
         m_pDatabase->setConfiguration(pConfiguration);
     }
-    m_pConfiguration = pConfiguration;
+    m_pConfiguration = std::move(pConfiguration);
 }
 
 UaStatus Client::connect()
@@ -426,7 +394,7 @@ UaStatus Client::recurseAddressSpace(const UaNodeId& nodeToBrowse, OpcUa_UInt32 
         // continue browsing
         while (continuationPoint.length() > 0)
         {
-            printf("\nContinuationPoint is set. BrowseNext...\n");
+            //printf("\nContinuationPoint is set. BrowseNext...\n");
             // browse next
             result = m_pSession->browseNext(serviceSettings, OpcUa_False, continuationPoint, referenceDescriptions);
 
@@ -483,11 +451,11 @@ void Client::addDevices(const OpcUa_ReferenceDescription& referenceDescription)
             identity.name = std::string(sTemp);
             identity.position = m_pConfiguration->getDevicePosition(type, identity.serialNumber);
 
-            printf("=====================================\n");
-            printBrowseResults(referenceDescription);
-            printf("will add %s %d as %s\n", name.c_str(), identity.serialNumber, identity.eAddress.c_str());
+            //printf("=====================================\n");
+            //printBrowseResults(referenceDescription);
+            //printf("will add %s %d as %s\n", name.c_str(), identity.serialNumber, identity.eAddress.c_str());
             ((PasCommunicationInterface *) m_pNodeManager->getComInterface().get())->addDevice(
-                std::shared_ptr<Client>(this), type, identity);
+                get_this_shared(), type, identity);
         }
     }
 }
@@ -499,7 +467,7 @@ void Client::printBrowseResults(const OpcUa_ReferenceDescription& referenceDescr
     printf("[Ref=%s] ", referenceTypeId.toString().toUtf8() );
     UaQualifiedName browseName(referenceDescription.BrowseName);
     printf("%s ( ", browseName.toString().toUtf8() );
-    if (referenceDescription.NodeClass & OpcUa_NodeClass_Object) 
+    if (referenceDescription.NodeClass & OpcUa_NodeClass_Object)
         printf("Object ");
     if (referenceDescription.NodeClass & OpcUa_NodeClass_Variable) 
         printf("Variable ");
@@ -526,7 +494,7 @@ UaStatus Client::subscribe()
 {
     UaStatus result;
 
-    result = m_pSubscription->createSubscription(m_pSession);
+    result = m_pSubscription->createSubscription(m_pSession.get());
     if ( result.isGood() )
     {
         result = m_pSubscription->createMonitoredItems();

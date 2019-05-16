@@ -6,18 +6,19 @@
 #include <memory>
 #include <string>
 
+
 class Subscription;
 class Configuration;
 class Database;
 class PasNodeManager;
 
-class Client : public UaClientSdk::UaSessionCallback
+class Client : public std::enable_shared_from_this<Client>, public UaClientSdk::UaSessionCallback
 {
     UA_DISABLE_COPY(Client);
 public:
     explicit Client(PasNodeManager *pNodeManager);
 
-    ~Client() override;
+    ~Client() override = default;
 
     // UaSessionCallback implementation ----------------------------------------------------
     void
@@ -51,6 +52,10 @@ public:
     void connectDatabase();
 
 private:
+    std::shared_ptr<Client> get_this_shared() {
+        return shared_from_this();
+    }
+
     UaString m_Address;
     // helper methods
     UaStatus _connect(const UaString& serverUrl, UaClientSdk::SessionSecurityInfo& sessionSecurityInfo);
@@ -60,12 +65,12 @@ private:
     void addDevices(const OpcUa_ReferenceDescription& eferenceDescription);
 
     // variables
-    PasNodeManager*                     m_pNodeManager;
-    UaClientSdk::UaSession*             m_pSession;
-    Subscription*                       m_pSubscription;
-    std::shared_ptr<Configuration>      m_pConfiguration;
+    std::shared_ptr<PasNodeManager> m_pNodeManager;
+    std::unique_ptr<UaClientSdk::UaSession> m_pSession;
+    std::unique_ptr<Subscription> m_pSubscription;
+    std::shared_ptr<Configuration> m_pConfiguration;
     UaClientSdk::UaClient::ServerStatus m_serverStatus;
-    Database*                           m_pDatabase;
+    std::unique_ptr<Database> m_pDatabase;
 
     // keep track of asynchronous calls
     OpcUa_UInt32 m_TransactionId;

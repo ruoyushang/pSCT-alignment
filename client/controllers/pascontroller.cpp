@@ -22,23 +22,20 @@
 // implement PasCompositeController::addChild()
 void PasCompositeController::addChild(OpcUa_UInt32 deviceType, const std::shared_ptr<PasController> &pController)
 {
-    std::cout << " --- " << m_ID.name << "::addChild(): "
-              << m_ID.name << ": adding " << pController->getId() << std::endl;
-
     const auto &id = pController->getId();
     auto pos = pController->getId().position;
     // don't add the same device multiple times
     try {
         // m_ChildrenPositionMap.at(deviceType).at(pos);
         m_ChildrenIdentityMap.at(deviceType).at(id);
-        cout << "\tAlready added. Moving on..." << endl;
-
         return;
     }
     catch (std::out_of_range &e) {
         // only add if this is a possible child
         if (m_ChildrenTypes.count(deviceType)) {
-            m_pChildren[deviceType].push_back(pController);
+            std::cout << " --- " << m_ID.name << "::addChild(): "
+                      << m_ID.name << ": adding " << pController->getId() << std::endl;
+            m_pChildren[deviceType].push_back(std::shared_ptr<PasController>(pController));
             m_ChildrenIdentityMap[deviceType][id] = m_pChildren.at(deviceType).size() - 1;
             // this doesn't work for edges, since they don't have an assigned position
             m_ChildrenPositionMap[deviceType][pos] = m_pChildren.at(deviceType).size() - 1;

@@ -90,6 +90,12 @@ UaStatus MPESController::getData(OpcUa_UInt32 offset, UaVariant &value) {
             case PAS_MPESType_yCentroidNominal:
                 value.setFloat(position.yNominal);
                 break;
+            case PAS_MPESType_Position:
+                value.setInt32(m_ID.position);
+                break;
+            case PAS_MPESType_Serial:
+                value.setInt32(m_ID.serialNumber);
+                break;
             default:
                 break;
         }
