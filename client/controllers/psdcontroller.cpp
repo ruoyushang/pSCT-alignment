@@ -29,7 +29,6 @@ PSDController::PSDController(Device::Identity identity, std::shared_ptr<Client> 
 }
 
 PSDController::~PSDController() {
-    m_pClient = nullptr;
     m_state = Device::DeviceState::Off;
 }
 
@@ -40,7 +39,6 @@ UaStatus PSDController::getState(Device::DeviceState &state) {
 
 UaStatus PSDController::setState(Device::DeviceState state) {
     //UaMutexLocker lock(&m_mutex);
-
     return OpcUa_BadNotWritable;
 }
 

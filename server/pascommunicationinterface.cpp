@@ -194,7 +194,7 @@ UaStatus PasCommunicationInterface::initialize() {
             }
 #ifndef _AMD64
             else if (devCount.first == PAS_PSDType) {
-                identity.eAddress = std::to_string(i);
+                identity.eAddress = std::to_string(i + 1);
                 pController.reset(new PSDController(identity));
             }
 #endif

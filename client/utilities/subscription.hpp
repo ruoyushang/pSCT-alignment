@@ -90,10 +90,10 @@ private:
 
     /// @brief Pointer to an OPC UA session object, used to
     /// create an OPC UA subscription object.
-    UaClientSdk::UaSession* m_pSession;
+    UaClientSdk::UaSession *m_pSession;
     /// @brief Pointer to an OPC UA subscription object, used to create
     /// monitored items (nodes).
-    UaClientSdk::UaSubscription* m_pSubscription;
+    UaClientSdk::UaSubscription *m_pSubscription;
     /// @brief Pointer to a Configuration object, used to retrieve a list
     /// of OPC UA nodes to monitor via subscription.
     std::shared_ptr<Configuration> m_pConfiguration;

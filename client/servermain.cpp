@@ -13,9 +13,9 @@
 #endif
 
 #include "pasnodemanager.hpp"
-#include "utilities/configuration.hpp"
+#include "client/utilities/configuration.hpp"
 #include "pascommunicationinterface.hpp"
-#include "utilities/paslogic.hpp"
+#include "client/utilities/paslogic.hpp"
 #include "shutdown.hpp"
 
 #include <vector>
@@ -142,7 +142,8 @@ int OpcMain(const char *szAppPath, const std::vector<std::string> &serverlist)
         std::cout << "  -- Done Loading Configuration --\n";
 
         // Create and initialize communication interface.
-        PasCommunicationInterface *pCommIf = new PasCommunicationInterface();
+        std::unique_ptr<PasCommunicationInterface> pCommIf = std::unique_ptr<PasCommunicationInterface>(
+            new PasCommunicationInterface());
         pCommIf->setConfiguration(pClientConfiguration);
         // this initializes the communication interface, including all devices that talk
         // directly to it, like Aravis cameras

@@ -60,6 +60,12 @@ UaStatus ActController::getData(OpcUa_UInt32 offset, UaVariant &value) {
             case PAS_ACTType_TargetLength:
                 value.setFloat(m_TargetLength);
                 break;
+            case PAS_ACTType_Position:
+                value.setInt32(m_ID.position);
+                break;
+            case PAS_ACTType_Serial:
+                value.setInt32(m_ID.serialNumber);
+                break;
             default:
                 status = OpcUa_BadInvalidArgument;
         }
@@ -115,6 +121,18 @@ UaStatus ActController::operate(OpcUa_UInt32 offset, const UaVariantArray &args)
                 return OpcUa_BadInvalidArgument;
             }
             status = moveToLength(args);
+            break;
+        case PAS_ACTType_ForceRecover:
+            m_pPlatform->getActuatorbyIdentity(m_ID)->forceRecover();
+            break;
+        case PAS_ACTType_ClearError:
+            if (args.length() != 1) {
+                return OpcUa_BadInvalidArgument;
+            }
+            m_pPlatform->getActuatorbyIdentity(m_ID)->unsetError(args[0].Value.Int32);
+            break;
+        case PAS_ACTType_ClearAllErrors:
+            m_pPlatform->getActuatorbyIdentity(m_ID)->clearErrors();
             break;
         default:
             status = OpcUa_BadInvalidArgument;

@@ -82,7 +82,11 @@ UaStatus PanelController::getData(OpcUa_UInt32 offset, UaVariant &value) {
             value.setFloat(m_pPlatform->getExternalTemperature());
         } else if (offset == PAS_PanelType_IntTemperature) {
             value.setFloat(m_pPlatform->getInternalTemperature());
-        }
+        } else if (offset == PAS_PanelType_Position) {
+        value.setInt32(m_ID.position);
+    } else if (offset == PAS_PanelType_Serial) {
+        value.setInt32(m_ID.serialNumber);
+    }
     } else if (PanelObject::ERRORS.find(offset) != PanelObject::ERRORS.end()) {
         return getError(offset, value);
     }
@@ -209,6 +213,22 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
     } else if (offset == PAS_PanelType_Stop) {
         std::cout << "PanelController::operate(): Attempting to gracefully stop the motion.\n";
         status = setState(Device::DeviceState::Off);
+    } else if (offset == PAS_PanelType_FindHome) {
+        if (args.length() != 1) {
+            return OpcUa_BadInvalidArgument;
+        }
+        m_pPlatform->findHomeFromEndStopAll(args[0].Value.Int32);
+    } else if (offset == PAS_PanelType_ClearError) {
+        if (args.length() != 1) {
+            return OpcUa_BadInvalidArgument;
+        }
+        m_pPlatform->unsetError(args[0].Value.Int32);
+    } else if (offset == PAS_PanelType_ClearAllErrors) {
+        m_pPlatform->clearErrors();
+    } else if (offset == PAS_PanelType_ClearActuatorErrors) {
+        m_pPlatform->clearActuatorErrors();
+    } else if (offset == PAS_PanelType_ClearPlatformErrors) {
+        m_pPlatform->clearPlatformErrors();
     } else {
         status = OpcUa_BadInvalidArgument;
     }

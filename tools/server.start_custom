@@ -1,0 +1,8 @@
+#!/bin/bash
+
+list_name=$1
+
+for panel in `cat ../misc/panel_lists/$list_name`; do
+        ./server.start $panel
+        echo ./server.start $panel
+done

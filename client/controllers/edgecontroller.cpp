@@ -67,6 +67,11 @@ UaStatus EdgeController::setState(Device::DeviceState state) {
 -----------------------------------------------------------------------------*/
 UaStatus EdgeController::getData(OpcUa_UInt32 offset, UaVariant &value) {
     //UaMutexLocker lock(&m_mutex);
+    if (offset == PAS_EdgeType_Position) {
+        value.setInt32(m_ID.position);
+    } else {
+        return OpcUa_BadInvalidArgument;
+    }
 
     return OpcUa_Good;
 }
@@ -221,8 +226,8 @@ UaStatus EdgeController::findSingleMatrix(unsigned panelIdx, double stepSize) {
     // convenience variable;
     // no need to check with a try/catch block anymore as this has already been done
     // by the caller
-    PanelController *pCurPanel = std::dynamic_pointer_cast<PanelController>(
-        m_pChildren.at(PAS_PanelType).at(panelIdx)).get();
+    std::shared_ptr<PanelController> pCurPanel = std::dynamic_pointer_cast<PanelController>(
+        m_pChildren.at(PAS_PanelType).at(panelIdx));
     unsigned nACTs = pCurPanel->getActuatorCount();
 
     Eigen::VectorXd vector0(6); // maximum possible size
@@ -237,7 +242,7 @@ UaStatus EdgeController::findSingleMatrix(unsigned panelIdx, double stepSize) {
     deltas.create(nACTs);
 
     UaVariant vtmp;
-    ActController *actuator;
+    std::shared_ptr<ActController> actuator;
     float missedDelta;
 
     for (unsigned j = 0; j < nACTs; j++) {
@@ -267,7 +272,7 @@ UaStatus EdgeController::findSingleMatrix(unsigned panelIdx, double stepSize) {
         sleep(2);
 
         // update missed steps
-        actuator = std::dynamic_pointer_cast<ActController>(pCurPanel->getChildren(PAS_ACTType)[j]).get();
+        actuator = std::dynamic_pointer_cast<ActController>(pCurPanel->getChildren(PAS_ACTType)[j]);
         actuator->getData(PAS_ACTType_DeltaLength, vtmp);
         vtmp.toFloat(missedDelta);
 
@@ -513,8 +518,8 @@ UaStatus EdgeController::alignSinglePanel(unsigned panelpos, double alignFrac, b
 
         for (const auto &panelPair : m_ChildrenPositionMap.at(PAS_PanelType)) {
             if ((panelPair.first == panelpos) == moveit) { // clever but not clear...
-                PanelController *pCurPanel = std::dynamic_pointer_cast<PanelController>(
-                    m_pChildren.at(PAS_PanelType).at(panelPair.second)).get();
+                auto pCurPanel = std::dynamic_pointer_cast<PanelController>(
+                    m_pChildren.at(PAS_PanelType).at(panelPair.second));
                 if(pCurPanel->checkForCollision((X * alignFrac).segment(0,6))) {
                     std::cout << "Error: Sensors may go out of range! Disallowed motion, please recalculate or relax safety radius." << std::endl;
                     return OpcUa_Bad;
@@ -539,12 +544,12 @@ UaStatus EdgeController::alignSinglePanel(unsigned panelpos, double alignFrac, b
         }
         else {
             /* MOVE ACTUATORS */
-            PanelController *pCurPanel;
+            std::shared_ptr<PanelController> pCurPanel;
             int j = 0;
             for (const auto &panelPair : m_ChildrenPositionMap.at(PAS_PanelType)) {
                 if ((panelPair.first == panelpos) == moveit) { // clever but not clear...
                     pCurPanel = std::dynamic_pointer_cast<PanelController>(
-                        m_pChildren.at(PAS_PanelType).at(panelPair.second)).get();
+                        m_pChildren.at(PAS_PanelType).at(panelPair.second));
                     auto nACT = pCurPanel->getActuatorCount();
                     // print out to make sure
                     std::cout << "Will move actuators of "

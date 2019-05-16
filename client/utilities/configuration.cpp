@@ -67,7 +67,7 @@ UaStatus Configuration::loadConnectionConfiguration(const UaString& sConfigurati
     const char *local_ip = getenv("LOCALIP");
     value = pSettings->value("DiscoveryURL", UaString("opc.tcp://%s:48010").arg(local_ip));
 #else
-    value = pSettings->value("DiscoveryURL", UaString("opc.tcp://172.17.0.201.:48010"));
+    value = pSettings->value("DiscoveryURL", UaString("opc.tcp://172.17.0.201:48010"));
 #endif
     m_discoveryUrl = value.toString();
     value = pSettings->value("PositionerURL", UaString("opc.tcp://127.0.0.1:4840"));
@@ -409,7 +409,6 @@ Configuration::getParents(OpcUa_UInt32 deviceType, const Device::Identity &id)
         unsigned w_pos, l_pos;
         Device::Identity w_panelId, edgeId;
         std::string parentAddress = m_ParentMap.at(deviceType).at(id.serialNumber);
-
         // w panel should be first in the address, but let's be safe in case someone forgets
         // and changes that convention;
         // assume that both of the id's are present though -- the program will throw an exception
@@ -433,6 +432,7 @@ Configuration::getParents(OpcUa_UInt32 deviceType, const Device::Identity &id)
             std::string l_panel_address = m_PanelAddressMap.at(l_pos);
         }
         catch (std::out_of_range &e) {
+            std::cout << "Configuration::getParents(): Failed to locate l_panel " << l_pos << " in panel address map." << std::endl;
             return {{PAS_PanelType, w_panelId}};
         }
 

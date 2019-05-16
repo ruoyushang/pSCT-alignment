@@ -4,7 +4,7 @@
 ** Description: Communication interface to access the devices.
 ******************************************************************************/
 #include "pascommunicationinterface.hpp"
-#include "utilities/configuration.hpp"
+#include "client/utilities/configuration.hpp"
 #include "passervertypeids.hpp"
 #include "client/controllers/pascontroller.hpp"
 #include "client/controllers/mirrorcontroller.hpp"
@@ -112,122 +112,108 @@ PasCommunicationInterface::addDevice(const std::shared_ptr<Client> &pClient, Opc
 {
     // check if object already exists -- this way, passing the same object multiple times won't
     // actually add it multiple times
+    Device::Identity id;
 
-    std::cout << "Attempting to create controller for device with type " << deviceType << " and with Identity "
-              << identity << std::endl;
-
-    Device::Identity addedId;
-
-    PasController *pController = nullptr;
-    // up-casting is implicit
-    if (deviceType == PAS_MPESType)
-        pController = new MPESController(identity, pClient);
-    else if (deviceType == PAS_ACTType)
-        pController = new ActController(identity, pClient);
-    else if (deviceType == PAS_PanelType)
-        pController = dynamic_cast<PasController *>(new PanelController(identity, pClient));
-    else if (deviceType == PAS_EdgeType)
-        pController = new EdgeController(identity);
-    else if (deviceType == PAS_MirrorType)
-        pController = new MirrorController(identity);
-    else if (deviceType == PAS_CCDType)
-        pController = new CCDController(identity);
-    else if (deviceType == PAS_PSDType)
-        pController = new PSDController(identity, pClient);
-    else if (deviceType == GLOB_PositionerType)
-        pController = new PositionerController(identity, pClient);
-    else {
-        return addedId;
-    }
-
-    // get the complete id before testing whether it already exists
-    addedId = pController->getId();
-
-    std::cout << " --- PasCommunicationInterface::addDevice() adding " << addedId;
-    try {
-        int index = m_DeviceIdentityMap.at(deviceType).at(addedId);
-        Device::Identity id = m_pControllers.at(deviceType).at(index)->getId();
-
-        std::cout << ": already exists as "
+    // Found existing copy of device
+    if (m_DeviceIdentityMap.count(deviceType) > 0 && m_DeviceIdentityMap.at(deviceType).count(identity) > 0) {
+        int index = m_DeviceIdentityMap.at(deviceType).at(identity);
+        std::cout << "PasCommunicationInterface::addDevice() : Device " << identity << " already exists as "
                   << PasCommunicationInterface::deviceTypeNames.at(deviceType) << "[" << index << "]. Moving on..."
                   << std::endl;
-
-        // already added -- clean up and return
-        delete pController;
-        return addedId;
+        return identity;
     }
-    catch (std::out_of_range &e)
-    {
-        // do nothing -- simply continue to add the device
-    }
+        // Didn't find existing copy, create new one
+    else {
+        std::shared_ptr<PasController> pController;
+        // up-casting is implicit
+        if (deviceType == PAS_MPESType)
+            pController = std::make_shared<MPESController>(identity, pClient);
+        else if (deviceType == PAS_ACTType)
+            pController = std::make_shared<ActController>(identity, pClient);
+        else if (deviceType == PAS_PanelType)
+            pController = std::make_shared<PanelController>(identity, pClient);
+        else if (deviceType == PAS_EdgeType)
+            pController = std::make_shared<EdgeController>(identity);
+        else if (deviceType == PAS_MirrorType)
+            pController = std::make_shared<MirrorController>(identity);
+        else if (deviceType == PAS_CCDType)
+            pController = std::make_shared<CCDController>(identity);
+        else if (deviceType == PAS_PSDType)
+            pController = std::make_shared<PSDController>(identity, pClient);
+        else if (deviceType == GLOB_PositionerType)
+            pController = std::make_shared<PositionerController>(identity, pClient);
+        else {
+            return identity;
+        }
 
-    // initialize this controller or return if unable to do so for whatever reason
-    if (!pController->initialize()) {
-        std::cout << "Initialization failed" << std::endl;
-        delete pController;
-        return addedId;
-    }
+        // Initialize this controller or return if unable to do so for whatever reason
+        if (!pController->initialize()) {
+            std::cout << "Device " << identity << ": failed to initialize." << std::endl;
+            return identity;
+        }
 
-    m_pControllers[deviceType].push_back(std::shared_ptr<PasController>(pController));
-    unsigned curindex = m_pControllers.at(deviceType).size() - 1;
-    m_DeviceIdentityMap[deviceType][addedId] = curindex;
+        m_pControllers[deviceType].push_back(pController);
+        unsigned curindex = m_pControllers.at(deviceType).size() - 1;
+        m_DeviceIdentityMap[deviceType][identity] = curindex;
 
-    std::cout << " as " << PasCommunicationInterface::deviceTypeNames[deviceType] << "["
-              << curindex << "] with identity " << addedId << std::endl;
+        std::cout << "PasCommunicationInterface::addDevice() Added "
+                  << PasCommunicationInterface::deviceTypeNames[deviceType] << "["
+                  << curindex << "] with identity " << identity << std::endl;
 
-    // get the device's parents and create them.
-    // if added device is MPES, its parents are the w-side panel and the edge;
-    // if added device is ACT, its parent is the panel;
-    // if added device is Panel or Edge, its parent is the mirror.
-    auto parentList = m_pConfiguration->getParents(deviceType, identity);
-    if (!parentList.empty()) {
-        // check the list of parents and print a warning if it's not what's expected
-        if (parentList.size() != 1 && parentList.size() != 2)
-            std::cout << std::endl << " +++ WARNING +++ PasCommunicationInterface::addDevice():"
-                      << "more than 2 parents!" << std::endl;
+        // get the device's parents and create them.
+        // if added device is MPES, its parents are the w-side panel and the edge;
+        // if added device is ACT, its parent is the panel;
+        // if added device is Panel or Edge, its parent is the mirror.
+        auto parentList = m_pConfiguration->getParents(deviceType, identity);
+        if (!parentList.empty()) {
+            // for each parent, create it, complete the ID and add the current device as its child,
+            // and add the other co-parents to it -- this guarantees that panels get added to their edges
+            for (auto parent : parentList) {
+                // parent.first is type; parent.second is id
+                if (!parent.second.eAddress.empty()) {
+                    Device::Identity parentId = addDevice(pClient, parent.first, parent.second);
+                    // update this parent with the full ID
+                    parent = std::make_pair(parent.first, parentId);
 
-        // for each parent, create it, complete the ID and add the current device as its child,
-        // and add the other co-parents to it -- this guarantees that panels get added to their edges
-        for (auto parent : parentList) {
-            // parent.first is type; parent.second is id
-            if (!parent.second.eAddress.empty()) {
-                Device::Identity parentId = addDevice(pClient, parent.first, parent.second);
-                // update this parent with the full ID
-                parent = std::make_pair(parent.first, parentId);
-
-                // this is not necessarily the last element in the vector of controllers --
-                // need to find its real index
+                    // this is not necessarily the last element in the vector of controllers --
+                    // need to find its real index
+                    try {
+                        int index = m_DeviceIdentityMap.at(parent.first).at(parentId);
+                        // add the current controller
+                        std::dynamic_pointer_cast<PasCompositeController>(
+                            m_pControllers.at(parent.first).at(index))->addChild(
+                            deviceType, pController);
+                    }
+                    catch (std::out_of_range &e) { /* no such device for whatever reason -- ignore */ }
+                }
+            }
+            // added all parents -- now add co-parents as each other's children.
+            // Note that only addition of panels to edges or the mirror proceeds; other additions get ignored
+            std::cout << "Adding co-parents as children..." << std::endl;
+            for (unsigned i = 0; i < parentList.size(); i++) {
+                const auto &parent = parentList.at(i);
+                int parentIdx;
                 try {
-                    int index = m_DeviceIdentityMap.at(parent.first).at(parentId);
-                    // add the current controller
-                    std::dynamic_pointer_cast<PasCompositeController>(m_pControllers.at(parent.first).at(index))->addChild(
-                        deviceType, std::shared_ptr<PasController>(pController));
+                    parentIdx = m_DeviceIdentityMap.at(parent.first).at(parent.second);
+                    for (unsigned j = 0; j < parentList.size(); j++) {
+                        if (j != i) {
+                            const auto &coparent = parentList.at(j);
+                            int coparentIdx;
+                            coparentIdx = m_DeviceIdentityMap.at(coparent.first).at(coparent.second);
+                            std::shared_ptr<PasController> parentC = m_pControllers.at(parent.first).at(parentIdx);
+                            std::shared_ptr<PasController> coparentC = m_pControllers.at(coparent.first).at(
+                                coparentIdx);
+                            std::dynamic_pointer_cast<PasCompositeController>(parentC)->addChild(coparent.first,
+                                                                                                 coparentC);
+                        }
+                    }
                 }
-                catch (std::out_of_range &e) { /* no such device for whatever reason -- ignore */ }
+                catch (std::out_of_range &e) {/*ignore*/}
             }
         }
-        // added all parents -- now add co-parents as each other's children.
-        // Note that only addition of panels to edges or the mirror proceeds; other additions get ignored
-        for (unsigned i = 0; i < parentList.size(); i++) {
-           const auto& parent = parentList.at(i);
-           int parentIdx;
-            parentIdx = m_DeviceIdentityMap.at(parent.first).at(parent.second);
-            for (unsigned j = 0; j < parentList.size(); j++) {
-                if (j != i) {
-                    const auto &coparent = parentList.at(j);
-                    int coparentIdx;
-                    coparentIdx = m_DeviceIdentityMap.at(coparent.first).at(coparent.second);
-                    PasController *parentC = m_pControllers.at(parent.first).at(parentIdx).get();
-                    PasController *coparentC = m_pControllers.at(coparent.first).at(coparentIdx).get();
-                    dynamic_cast<PasCompositeController *>(parentC)->addChild(coparent.first,
-                                                                              std::shared_ptr<PasController>(
-                                                                                  coparentC));
-                }
-            }
-        }
-    } // if (deviceType == PAS_ACTType || deviceType == PAS_MPESType)
 
-    return addedId;
+        return identity;
+    }
 }
 /* ----------------------------------------------------------------------------
     Class        PasCommunicationInterface

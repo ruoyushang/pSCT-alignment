@@ -90,6 +90,10 @@ public:
     void turnOff() { setState(Device::DeviceState::Off); }
     void setBusy() { setState(Device::DeviceState::Busy); }
 
+    void unsetError(int errorCode);
+
+    void setError(int errorCode);
+
 protected:
     std::shared_ptr<CBC> m_pCBC;
     Device::Identity m_Identity;
@@ -99,9 +103,6 @@ protected:
 
     void setState(Device::DeviceState state);
     void updateState();
-
-    void setError(int errorCode);
-    void unsetError(int errorCode);
 };
 
 inline std::ostream &operator<<(std::ostream &out, const Device::Identity &id) {

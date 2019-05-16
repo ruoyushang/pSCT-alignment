@@ -54,7 +54,7 @@ UaStatus MPESController::setState(Device::DeviceState state) {
 }
 /// @details Sets exposure for this MPES.
 bool MPESController::initialize() {
-    int ret = m_pPlatform->getMPESbyIdentity(m_ID)->setExposure();
+    int intensity = m_pPlatform->getMPESbyIdentity(m_ID)->setExposure();
     return true;
 }
 
@@ -89,6 +89,12 @@ UaStatus MPESController::getData(OpcUa_UInt32 offset, UaVariant &value) {
                 break;
             case PAS_MPESType_yCentroidNominal:
                 value.setFloat(position.yNominal);
+                break;
+            case PAS_MPESType_Position:
+                value.setInt32(m_ID.position);
+                break;
+            case PAS_MPESType_Serial:
+                value.setInt32(m_ID.serialNumber);
                 break;
             default:
                 break;
@@ -145,16 +151,26 @@ UaStatus MPESController::operate(OpcUa_UInt32 offset, const UaVariantArray &args
 
     switch (offset) {
         case PAS_MPESType_Start:
-            status = OpcUa_BadNotImplemented;
+            status = setState(Device::DeviceState::On);
+            initialize();
             break;
         case PAS_MPESType_Stop:
-            status = OpcUa_BadNotImplemented;
+            status = setState(Device::DeviceState::Off);
             break;
         case PAS_MPESType_Read:
             status = read();
             break;
         case PAS_MPESType_SetExposure:
             m_pPlatform->getMPESbyIdentity(m_ID)->setExposure();
+            break;
+        case PAS_MPESType_ClearError:
+            if (args.length() != 1) {
+                return OpcUa_BadInvalidArgument;
+            }
+            m_pPlatform->getMPESbyIdentity(m_ID)->unsetError(args[0].Value.Int32);
+            break;
+        case PAS_MPESType_ClearAllErrors:
+            m_pPlatform->getMPESbyIdentity(m_ID)->clearErrors();
             break;
         default:
             status = OpcUa_BadInvalidArgument;

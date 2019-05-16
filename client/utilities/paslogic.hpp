@@ -40,43 +40,55 @@ class tee_device
 
 class PasLogic : public UaThread
 {
-    public :
-    explicit PasLogic(PasCommunicationInterface *pCommIf);
-
+public :
+    explicit PasLogic(std::shared_ptr<PasCommunicationInterface> pCommIf);
     ~PasLogic() override = default;
 
     void run() override;
-        void stop() {m_terminate = true; wait();}
-    private:
-        // this is to get all the data from our devices 
-        PasCommunicationInterface *m_pCommIf;
 
-        // this tells when to stop!
-        bool m_terminate;
-        // this keep track if aligned
-        bool m_aligned;
+    void stop() {
+        m_terminate = true;
+        wait();
+    }
 
-        // this is to compute platform motion
-        StewartPlatform m_SP;
+private:
+    // this is to get all the data from our devices
+    std::shared_ptr<PasCommunicationInterface> m_pCommIf;
 
-        // align primary OT through PSD readings 
-        void __align_PSD(unsigned psdNo = 0);
-        UaStatus __move_OT(unsigned otNo, const double coords[6]);
-        bool __PSDmisaligned(unsigned psdNo = 0, bool verbose = true);
-        const double m_kPSDDistance;
-        const double m_kMisalignmentCriterion;
-        const double m_kAngularScale[2];
-        double m_nominalPSDReadings[4];
-        // align secondary OT through PSD readings, after the primary has been aligned
-        bool m_secondaryAligned;
-        bool __telescopeMoving();
-        void __readPSD(double readings[4]);
-        float __telescopeEl();
-        const std::chrono::time_point<std::chrono::system_clock> m_kInitTime;
-        std::string __timeStamp();
+    // this tells when to stop!
+    bool m_terminate;
+    // this keep track if aligned
+    bool m_aligned;
 
-        std::ofstream m_logstream;
-        tee_device tee;
+    // this is to compute platform motion
+    StewartPlatform m_SP;
+
+    // align primary OT through PSD readings
+    void __align_PSD(unsigned psdNo = 0);
+
+    UaStatus __move_OT(unsigned otNo, const double coords[6]);
+
+    bool __PSDmisaligned(unsigned psdNo = 0, bool verbose = true);
+
+    const double m_kPSDDistance;
+    const double m_kMisalignmentCriterion;
+    const double m_kAngularScale[2];
+    double m_nominalPSDReadings[4];
+    // align secondary OT through PSD readings, after the primary has been aligned
+    bool m_secondaryAligned;
+
+    bool __telescopeMoving();
+
+    void __readPSD(double readings[4]);
+
+    float __telescopeEl();
+
+    const std::chrono::time_point<std::chrono::system_clock> m_kInitTime;
+
+    std::string __timeStamp();
+
+    std::ofstream m_logstream;
+    tee_device tee;
 
     Device::Identity m_positionerId;
     Device::Identity m_psdId;

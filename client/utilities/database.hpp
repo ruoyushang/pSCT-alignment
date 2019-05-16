@@ -51,10 +51,10 @@ private:
     std::vector<sql::Driver*> m_pDriver;
 	/// @brief Vector of MySQL Connection objects.
 	/// @warning Currently unused.
-    std::vector<sql::Connection*> m_pConnection;
+    std::vector<std::unique_ptr<sql::Connection>> m_pConnection;
 	/// @brief Vector of MySQL query statement objects.
 	/// @warning Currently unused.
-    std::vector<sql::PreparedStatement*> m_pStmt;
+    std::vector<std::unique_ptr<sql::PreparedStatement>> m_pStmt;
 };
 
 #endif

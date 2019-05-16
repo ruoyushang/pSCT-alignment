@@ -29,7 +29,7 @@ Database::~Database()
 /// @details Assigns provided Configuration pointer to object.
 void Database::setConfiguration(std::shared_ptr<Configuration> pConfiguration)
 {
-    m_pConfiguration = pConfiguration;
+    m_pConfiguration = std::move(pConfiguration);
 }
 
 /// @details Gets list of databases from the Configuration, creates drivers,
