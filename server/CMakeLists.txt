@@ -139,10 +139,10 @@ if ( SIMMODE )
     add_definitions(-D_AMD64)
     add_definitions(-DSIMMODE)
     file(GLOB PASSERVER_SRC
-        ${PASSERVER_SRC}
-        "${COMMON_CODE_DIR}/cbccode/dummycbc.cpp"
-            "${COMMON_CODE_DIR}/cbccode/dummycbc.hpp"
-        )
+            ${PASSERVER_SRC}
+            "${COMMON_CODE_DIR}/cbccode/*.cpp"
+            "${COMMON_CODE_DIR}/cbccode/*.hpp"
+            )
 else ( SIMMODE )
     file(GLOB PASSERVER_SRC
         ${PASSERVER_SRC}
