@@ -88,11 +88,9 @@ class CBC
             {}
         };
 
-        static struct Config config_default;
-
     virtual void configure(struct Config config);
 
-    explicit CBC(struct Config config = CBC::config_default);
+    explicit CBC(struct Config config = CBC::Config());
 
     ~CBC() = default;
 

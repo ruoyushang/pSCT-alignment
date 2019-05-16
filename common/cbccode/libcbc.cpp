@@ -64,6 +64,7 @@ void usleep2 (int usdelay)
 
         /* ADC Number of Samples */
         adc.setDefaultSamples(config.defaultADCSamples);
+        std::cout << "adc.getDefaultSamples(): " << adc.getDefaultSamples() << std::endl;
 
         /* Turn on Ethernet Dongle */
         usb.enableEthernet();
@@ -131,10 +132,6 @@ void usleep2 (int usdelay)
     {
         return m_delay;
     }
-
-    void setDelayTime(int delay);
-    int getDelayTime();
-    struct CBC::Config CBC::config_default;
 
 //----------------------------------------------------------------------------------------------------------------------
 // USB Control
@@ -477,7 +474,8 @@ CBC::ADC::adcData CBC::ADC::measure(int adc_num, int channel, int nsamples)
 
     CBC::ADC::adcData CBC::ADC::readEncoder (int iencoder)
     {
-        return(readEncoder(iencoder,m_defaultSamples));
+        std::cout << "adc.m_defaultSamples: " << m_defaultSamples << std::endl;
+        return (readEncoder(iencoder, m_defaultSamples));
     }
 
     CBC::ADC::adcData CBC::ADC::readEncoder (int iencoder, int nsamples)
