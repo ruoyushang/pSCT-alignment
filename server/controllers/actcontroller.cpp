@@ -122,6 +122,18 @@ UaStatus ActController::operate(OpcUa_UInt32 offset, const UaVariantArray &args)
             }
             status = moveToLength(args);
             break;
+        case PAS_ACTType_ForceRecover:
+            m_pPlatform->getActuatorbyIdentity(m_ID)->forceRecover();
+            break;
+        case PAS_ACTType_ClearError:
+            if (args.length() != 1) {
+                return OpcUa_BadInvalidArgument;
+            }
+            m_pPlatform->getActuatorbyIdentity(m_ID)->unsetError(args[0].Value.Int32);
+            break;
+        case PAS_ACTType_ClearAllErrors:
+            m_pPlatform->getActuatorbyIdentity(m_ID)->clearErrors();
+            break;
         default:
             status = OpcUa_BadInvalidArgument;
     }

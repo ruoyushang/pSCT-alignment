@@ -544,7 +544,7 @@ UaStatus MirrorController::moveToCoords(Eigen::VectorXd targetMirrorCoords, bool
         for (const auto &pPanel : m_pChildren.at(PAS_PanelType)) {
             positionNum = pPanel->getId().position;
             std::cout << "Panel " << positionNum << ":" << std::endl;
-            std::dynamic_pointer_cast<PanelController>(pPanel)->operate(PAS_PanelType_ReadAll);
+            std::dynamic_pointer_cast<PanelController>(pPanel)->operate(PAS_PanelType_ReadPosition);
             // for this panel, we get PRF pad coords, transform them to TRF,
             // move them in TRF, transform back to PRF, and then compute new ACT lengths
             // based on the new pad coords. so simple!

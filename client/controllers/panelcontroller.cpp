@@ -255,7 +255,7 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
         else {
             status = moveToLengths(lengthArgs);
         }
-    } else if (offset == PAS_PanelType_ReadAll) {
+    } else if (offset == PAS_PanelType_ReadPosition) {
         std::cout << std::endl << m_ID << " :" << std::endl;
         std::cout << "\tCurrent coordinates (x, y ,z xRot, yRot, zRot):\n\t\t";
         for (auto coord : m_curCoords) {
@@ -272,7 +272,17 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
     else if (offset == PAS_PanelType_Stop) {
         std::cout << m_ID << "::Operate() : Attempting to gracefully stop the motion." << std::endl;
         status = m_pClient->callMethod(std::string("ns=2;s=Panel_0"), UaString("Stop"));
-        std::cout << m_ID << "::Motion stopped.";
+    } else if (offset == PAS_PanelType_FindHome) {
+        std::cout << m_ID << "::Operate() : Finding home position." << std::endl;
+        status = m_pClient->callMethod(std::string("ns=2;s=Panel_0"), UaString("FindHome"), args);
+    } else if (offset == PAS_PanelType_ClearError) {
+        status = m_pClient->callMethod(std::string("ns=2;s=Panel_0"), UaString("ClearError"), args);
+    } else if (offset == PAS_PanelType_ClearAllErrors) {
+        status = m_pClient->callMethod(std::string("ns=2;s=Panel_0"), UaString("ClearAllErrors"));
+    } else if (offset == PAS_PanelType_ClearActuatorErrors) {
+        status = m_pClient->callMethod(std::string("ns=2;s=Panel_0"), UaString("ClearActuatorErrors"));
+    } else if (offset == PAS_PanelType_ClearPlatformErrors) {
+        status = m_pClient->callMethod(std::string("ns=2;s=Panel_0"), UaString("ClearPlatformErrors"));
     }
     else {
         status = OpcUa_BadInvalidArgument;
