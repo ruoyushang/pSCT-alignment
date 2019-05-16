@@ -7,7 +7,8 @@
 #include <string>
 #include <vector>
 
-class CBC;
+#include "common/cbccode/cbc.hpp"
+
 
 class Device {
 public:

@@ -24,6 +24,8 @@
 #include "common/alignment/platform.hpp"
 #include "common/alignment/device.hpp"
 
+#include "common/cbccode/cbc.hpp"
+
 const std::vector<Device::ErrorDefinition> Actuator::ERROR_DEFINITIONS = {
         {"Home position is not calibrated",                                                                                                                           Device::DeviceState::FatalError},//error 0
         {"DBInfo not set",                                                                                                                                            Device::DeviceState::OperableError},//error 1

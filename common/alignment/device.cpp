@@ -1,6 +1,8 @@
 #include "common/alignment/device.hpp"
 #include <tuple>
 
+#include "common/cbccode/cbc.hpp"
+
 // definition of the comparison operator for identity struct
 // does lexicographical comparison on the first non-default member:
 // (comparison in the order of decreasing global uniqueness)
@@ -44,7 +46,7 @@ bool Device::Identity::operator==(const Device::Identity &r) const {
 bool Device::Identity::operator!=(const Device::Identity &r) const { return !(*this == r); }
 
 Device::Device(std::shared_ptr<CBC> pCBC, Device::Identity identity) : m_pCBC(std::move(pCBC)),
-                                                                       m_Identity(identity),
+                                                                       m_Identity(std::move(identity)),
                                                                        m_state(Device::DeviceState::On) {}
 
 void Device::setError(int errorCode) {

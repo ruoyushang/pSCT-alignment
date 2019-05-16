@@ -2,6 +2,7 @@
 #define CBCCODE_CBC_HPP
 
 #include <vector>
+#include <climits>
 
 /*!
  * The CBC class is responsible for the control of all mirror control board functions.
@@ -91,8 +92,9 @@ class CBC
 
     virtual void configure(struct Config config);
 
-        CBC(struct Config config=CBC::config_default);
-        ~CBC();
+    explicit CBC(struct Config config = CBC::config_default);
+
+    ~CBC() = default;
 
         /*! Power down CBC
          *
@@ -149,7 +151,7 @@ class CBC
             void enableEthernet();
             ///@}
 
-            USB(CBC *cbc);
+            explicit USB(CBC *cbc);
             private:
             CBC *cbc;
 
@@ -286,14 +288,14 @@ class CBC
                  * having to specify each time you perform stepping.
                  */
                 /*! @brief Returns global stepping frequency */
-                int  getSteppingFrequency();
+                int getSteppingFrequency() { return m_steppingFrequency; }
                 /*! @brief Sets global stepping frequency
                  *  @param frequency Stepping frequency, in macrosteps/second
                  */
                 void setSteppingFrequency(int frequency);
                 //@}
 
-                Driver(CBC *cbc);
+            explicit Driver(CBC *cbc);
             private:
                 CBC *cbc;
                 /*!
@@ -310,7 +312,7 @@ class CBC
                  * Right now it is just set to a very large range, but hopefully some sane limits
                  * would be chosen in the future.
                  */
-                static const int  maximumSteppingFrequency = 0x1 << 16;
+                static const int maximumSteppingFrequency = INT_MAX;
                 static const int  minimumSteppingFrequency = 0;
                 ///@}
         } driver;
@@ -331,7 +333,7 @@ class CBC
             bool isEnabled();
             ///@}
 
-            Encoder(CBC *cbc);
+            explicit Encoder(CBC *cbc);
             private:
             CBC *cbc;
         } encoder;
@@ -386,7 +388,7 @@ class CBC
                  *  @param adc Select ADC 0 or 1
                  *  @param channel Select ADC channel 0-11
                  */
-                adcData measure(int adc, int channel);
+                adcData measure(int adc_num, int channel) { return measure(adc_num, channel, m_defaultSamples); }
                 /*! @brief Measure from ADC channel with a specified number of samples
                  *  @param adc Select ADC 0 or 1
                  *  @param channel Measure from ADC channel 0-11
@@ -479,7 +481,7 @@ class CBC
                  *  @param nsamples Number of ADC Samples to average. */
                 void setDefaultSamples(int nsamples);
                 /*! @brief Returns the current default number of samples. */
-                int  getDefaultSamples();
+                int getDefaultSamples() { return m_defaultSamples; }
                 ///@}
 
                 float getEncoderTemperatureSlope  ( int iencoder ) ;
@@ -495,7 +497,7 @@ class CBC
                 void  setEncoderVoltageOffset     ( int iencoder, float offset ) ;
 
 
-                ADC(CBC *cbc);
+            explicit ADC(CBC *cbc);
 
             private:
                 CBC *cbc;
@@ -526,7 +528,7 @@ class CBC
                 /*! Returns status of power to auxillary sensors */
                 bool isEnabled();
 
-                AUXsensor(CBC *cbc);
+            explicit AUXsensor(CBC *cbc);
             private:
                 CBC *cbc;
         } auxSensor;
@@ -550,25 +552,28 @@ class DummyCBC : public CBC {
 public:
     static struct Config dummy_config;
 
-    void configure(struct Config config) override { return; };
+    void configure(struct Config config) override {};
 
-    DummyCBC(struct Config config = DummyCBC::dummy_config) : usb(this), driver(this), encoder(this), adc(this),
-                                                              auxSensor(this) { configure(config); };
+    explicit DummyCBC(struct Config config = DummyCBC::dummy_config) : usb(this), driver(this), encoder(this),
+                                                                       adc(this),
+                                                                       auxSensor(this), m_delay() {
+        configure(std::move(config));
+    };
 
-    ~DummyCBC() {};
+    ~DummyCBC() = default;
 
     struct USB {
-        void enable(int usb) { return; };
+        void enable(int usb_num) {};
 
-        void enableAll() { return; };
+        void enableAll() {};
 
-        void disable(int usb) { return; };
+        void disable(int usb_num) {};
 
-        void disableAll() { return; };
+        void disableAll() {};
 
-        bool isEnabled(int usb) { return false; };
+        bool isEnabled(int usb_num) { return false; };
 
-        USB(DummyCBC *thisDummyCBC) : cbc(thisDummyCBC) {};
+        explicit USB(DummyCBC *thisDummyCBC) : cbc(thisDummyCBC) {};
     private:
         DummyCBC *cbc;
 
@@ -576,59 +581,56 @@ public:
 
     struct Driver {
     public:
-        void setMicrosteps(int microsteps) { return; };
+        void setMicrosteps(int microsteps) {};
 
         int getMicrosteps() { return 0; };
 
-        void enable(int drive) { return; };
+        void enable(int drive) {};
 
-        void enableAll() { return; };
+        void enableAll() {};
 
-        void disable(int drive) { return; };
+        void disable(int drive) {};
 
-        void disableAll() { return; };
+        void disableAll() {};
 
         bool isEnabled(int drive) { return false; };
 
-        void sleep() { return; };
+        void sleep() {};
 
-        void wakeup() { return; };
+        void wakeup() {};
 
         bool isAwake() { return false; };
 
-        void reset() { return; };
+        void reset() {};
 
-        void enableHighCurrent() { return; };
+        void enableHighCurrent() {};
 
-        void disableHighCurrent() { return; };
+        void disableHighCurrent() {};
 
         bool isHighCurrentEnabled() { return false; };
 
-        void enableSR() { return; };
+        void enableSR() {};
 
-        void disableSR() { return; };
+        void disableSR() {};
 
         bool isSREnabled() { return false; };
 
-        void step(int drive, int nsteps) { return; };
+        void step(int drive, int nsteps) {};
 
-        void step(int drive, int nsteps, int frequency) { return; };
+        void step(int drive, int nsteps, int frequency) {};
 
         int getSteppingFrequency() { return 0; };
 
-        void setSteppingFrequency(int frequency) { return; };
+        void setSteppingFrequency(int frequency) {};
 
-        Driver(DummyCBC *thisDummyCBC) : cbc(thisDummyCBC) {};
+        explicit Driver(DummyCBC *thisDummyCBC) : cbc(thisDummyCBC) {};
     private:
         DummyCBC *cbc;
-        int m_steppingFrequency;
-        static const int maximumSteppingFrequency = 0x1 << 16;
-        static const int minimumSteppingFrequency = 0;
     } driver;
 
     struct Encoder {
 
-        Encoder(DummyCBC *thisDummyCBC) : cbc(thisDummyCBC) {};
+        explicit Encoder(DummyCBC *thisDummyCBC) : cbc(thisDummyCBC) {};
     private:
         DummyCBC *cbc;
     } encoder;
@@ -646,9 +648,9 @@ public:
             float rawVoltageMax;
         } dummyData;
 
-        adcData measure(int adc, int channel) { return dummyData; };
+        adcData measure(int adc_num, int channel) { return dummyData; };
 
-        adcData measure(int adc, int channel, int nsamples) { return dummyData; };
+        adcData measure(int adc_num, int channel, int nsamples) { return dummyData; };
 
         adcData readEncoder(int iencoder) { return dummyData; };
 
@@ -668,23 +670,23 @@ public:
 
         adcData readExternalTemp(int nsamples) { return dummyData; };
 
-        adcData readRefLow(int adc) { return dummyData; };
+        adcData readRefLow(int adc_num) { return dummyData; };
 
-        adcData readRefLow(int adc, int nsamples) { return dummyData; };
+        adcData readRefLow(int adc_num, int nsamples) { return dummyData; };
 
-        adcData readRefMid(int adc) { return dummyData; };
+        adcData readRefMid(int adc_num) { return dummyData; };
 
-        adcData readRefMid(int adc, int nsamples) { return dummyData; };
+        adcData readRefMid(int adc_num, int nsamples) { return dummyData; };
 
-        adcData readRefHigh(int adc) { return dummyData; };
+        adcData readRefHigh(int adc_num) { return dummyData; };
 
-        adcData readRefHigh(int adc, int nsamples) { return dummyData; };
+        adcData readRefHigh(int adc_num, int nsamples) { return dummyData; };
 
         int getReadDelay() { return 0; };
 
-        void setReadDelay(int delay) { return; };
+        void setReadDelay(int delay) {};
 
-        void setDefaultSamples(int nsamples) { return; };
+        void setDefaultSamples(int nsamples) {};
 
         int getDefaultSamples() { return 0; };
 
@@ -698,43 +700,34 @@ public:
 
         float getEncoderVoltageOffset(int iencoder) { return 0; };
 
-        void setEncoderTemperatureSlope(int iencoder, float slope) { return; };
+        void setEncoderTemperatureSlope(int iencoder, float slope) {};
 
-        void setEncoderTemperatureOffset(int iencoder, float offset) { return; };
+        void setEncoderTemperatureOffset(int iencoder, float offset) {};
 
-        void setEncoderTemperatureRef(float reference) { return; };
+        void setEncoderTemperatureRef(float reference) {};
 
-        void setEncoderVoltageSlope(int iencoder, float slope) { return; };
+        void setEncoderVoltageSlope(int iencoder, float slope) {};
 
-        void setEncoderVoltageOffset(int iencoder, float offset) { return; };
+        void setEncoderVoltageOffset(int iencoder, float offset) {};
 
 
-        ADC(DummyCBC *thisDummyCBC) : cbc(thisDummyCBC) {};
-
+        explicit ADC(DummyCBC *thisDummyCBC) : cbc(thisDummyCBC), dummyData(adcData()) {};
     private:
         DummyCBC *cbc;
-        int m_readDelay;
-        int m_defaultSamples;
-
-        float m_encoderTemperatureOffset[6];
-        float m_encoderTemperatureSlope[6];
-        float m_encoderTemperatureRef;
-        float m_encoderVoltageOffset[6];
-        float m_encoderVoltageSlope[6];
     } adc;
 
     struct AUXsensor {
     public:
         bool isEnabled() { return false; };
 
-        AUXsensor(DummyCBC *thisDummyCBC) : cbc(thisDummyCBC) {};
+        explicit AUXsensor(DummyCBC *thisDummyCBC) : cbc(thisDummyCBC) {};
     private:
         DummyCBC *cbc;
     } auxSensor;
 
 
     int m_delay; // in milliseconds
-    void setDelayTime(int delay) override { return; };
+    void setDelayTime(int delay) override {};
 
     int getDelayTime() override { return 0; };
 };

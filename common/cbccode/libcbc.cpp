@@ -22,24 +22,20 @@ void usleep2 (int usdelay)
     static const int NANOS =  1000000000LL;
     static const int MICROS = 1000000LL;
     int nanodelay = usdelay * NANOS / MICROS;
-    struct timespec delay;
+    struct timespec delay{};
     delay.tv_sec = 0;
     delay.tv_nsec = nanodelay;
-    clock_nanosleep(CLOCK_MONOTONIC, 0, &delay, NULL);
+    clock_nanosleep(CLOCK_MONOTONIC, 0, &delay, nullptr);
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 // CBC
 //----------------------------------------------------------------------------------------------------------------------
 
-    CBC::~CBC()
-    {
-    };
-
     // Constructor..
-    CBC::CBC (struct Config config) : usb(this), driver(this), encoder (this), adc (this), auxSensor(this)
+    CBC::CBC(struct Config config) : usb(this), driver(this), encoder(this), adc(this), auxSensor(this), m_delay(0)
     {
-        configure(config);
+        configure(std::move(config));
         powerUp();
     }
 
@@ -203,7 +199,7 @@ void usleep2 (int usdelay)
 // Motor Driver Control
 //----------------------------------------------------------------------------------------------------------------------
 
-    CBC::Driver::Driver (CBC *thiscbc) : cbc(thiscbc)
+CBC::Driver::Driver(CBC *thiscbc) : cbc(thiscbc), m_steppingFrequency()
     {
     }
 
@@ -380,7 +376,7 @@ void usleep2 (int usdelay)
             for (unsigned istep=0; istep<microsteps; istep++) {
                 /* Give this thread higher priority to improve timing stability */
                 pthread_t this_thread = pthread_self();
-                struct sched_param params;
+                struct sched_param params{};
                 params.sched_priority = sched_get_priority_max(SCHED_FIFO);
                 pthread_setschedparam(this_thread, SCHED_FIFO, &params);
 
@@ -422,14 +418,17 @@ void usleep2 (int usdelay)
     // Constructor
     //---------------------------------------------
 
-    CBC::ADC::ADC (CBC *thiscbc) : cbc(thiscbc)
+CBC::ADC::ADC(CBC *thiscbc) : cbc(thiscbc), m_readDelay(0),
+                              m_defaultSamples(), m_encoderTemperatureOffset(),
+                              m_encoderTemperatureSlope(), m_encoderTemperatureRef(),
+                              m_encoderVoltageOffset(), m_encoderVoltageSlope()
     {
     }
 
     // Generic ADC Readout
     //---------------------------------------------
 
-    CBC::ADC::adcData CBC::ADC::measure(int adc, int channel, int nsamples)
+CBC::ADC::adcData CBC::ADC::measure(int adc_num, int channel, int nsamples)
     {
         uint32_t sum;
         uint64_t sumsq;
@@ -437,22 +436,22 @@ void usleep2 (int usdelay)
         uint32_t max;
 
         /* initialize to zero */
-        adcData data;
+        adcData data{};
         memset(&data, 0, sizeof(adcData));
 
         /* Make sure we are doing something sensible */
-        if ((adc > 1) | (adc < 0 ))
+        if ((adc_num > 1) | (adc_num < 0))
             return(data);
         if ((channel > 10) | (channel < 0 ))
             return(data);
         if (nsamples < 0)
             return(data);
 
-        MirrorControlBoard::measureADCStat(adc, channel, nsamples, sum, sumsq, min, max, m_readDelay);
+        MirrorControlBoard::measureADCStat(adc_num, channel, nsamples, sum, sumsq, min, max, m_readDelay);
 
         float mean   = double(sum)/nsamples;
         float var    = double((1.0*sumsq) - ((1.0*sum*sum)/nsamples))/nsamples;
-        float stddev = sqrt(var);
+        float stddev = sqrtf(var);
 
         data.voltage      = TLC3548::voltData(mean);
         data.stddev       = TLC3548::voltData(stddev);
@@ -483,7 +482,7 @@ void usleep2 (int usdelay)
 
     CBC::ADC::adcData CBC::ADC::readEncoder (int iencoder, int nsamples)
     {
-        adcData data;
+        adcData data{};
 
         assert(iencoder>0);
         assert(iencoder<7);
@@ -658,33 +657,33 @@ void usleep2 (int usdelay)
     // Internal Voltage References
     //---------------------------------------------
 
-    CBC::ADC::adcData CBC::ADC::readRefLow(int adc)
+CBC::ADC::adcData CBC::ADC::readRefLow(int adc_num)
     {
-        return (readRefLow(adc, m_defaultSamples));
+        return (readRefLow(adc_num, m_defaultSamples));
     }
 
-    CBC::ADC::adcData CBC::ADC::readRefLow(int adc, int nsamples)
+CBC::ADC::adcData CBC::ADC::readRefLow(int adc_num, int nsamples)
     {
-        return(measure(adc,10,nsamples));
+        return (measure(adc_num, 10, nsamples));
     }
 
-    CBC::ADC::adcData CBC::ADC::readRefMid(int adc)
+CBC::ADC::adcData CBC::ADC::readRefMid(int adc_num)
     {
-        return (readRefMid(adc, m_defaultSamples));
+        return (readRefMid(adc_num, m_defaultSamples));
     }
 
-    CBC::ADC::adcData CBC::ADC::readRefMid(int adc, int nsamples)
+CBC::ADC::adcData CBC::ADC::readRefMid(int adc_num, int nsamples)
     {
-        return(measure(adc,9,nsamples));
+        return (measure(adc_num, 9, nsamples));
     }
 
-    CBC::ADC::adcData CBC::ADC::readRefHigh(int adc)
+CBC::ADC::adcData CBC::ADC::readRefHigh(int adc_num)
     {
-        return (readRefHigh(adc, m_defaultSamples));
+        return (readRefHigh(adc_num, m_defaultSamples));
     }
 
-    CBC::ADC::adcData CBC::ADC::readRefHigh(int adc, int nsamples) {
-        return(measure(adc,8,nsamples));
+CBC::ADC::adcData CBC::ADC::readRefHigh(int adc_num, int nsamples) {
+    return (measure(adc_num, 8, nsamples));
     }
 
     // ADC Measurement Options

@@ -16,7 +16,7 @@
 #include "common/alignment/mpes.hpp"
 #include "common/alignment/actuator.hpp"
 
-class CBC;
+#include "common/cbccode/cbc.hpp"
 
 class Platform : public Device
 {
