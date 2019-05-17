@@ -103,7 +103,7 @@ Platform::Platform(Device::Identity identity, std::array<int, Platform::NUM_ACTS
         #endif
         m_ActuatorIdentityMap.insert(std::make_pair(act_identity, i));
     }
-    setDBInfo(std::move(dbInfo));
+    setDBInfo(dbInfo);
     initialize();
 }
 

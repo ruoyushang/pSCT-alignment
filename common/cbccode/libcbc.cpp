@@ -35,7 +35,9 @@ void usleep2 (int usdelay)
     // Constructor..
     CBC::CBC(struct Config config) : usb(this), driver(this), encoder(this), adc(this), auxSensor(this), m_delay(0)
     {
+	std::cout << "Configuring CBC..." << std::endl;
         configure(std::move(config));
+	std::cout << "Powering up CBC..." << std::endl;
         powerUp();
     }
 
@@ -64,8 +66,7 @@ void usleep2 (int usdelay)
 
         /* ADC Number of Samples */
         adc.setDefaultSamples(config.defaultADCSamples);
-        std::cout << "adc.getDefaultSamples(): " << adc.getDefaultSamples() << std::endl;
-
+        
         /* Turn on Ethernet Dongle */
         usb.enableEthernet();
 
@@ -474,7 +475,6 @@ CBC::ADC::adcData CBC::ADC::measure(int adc_num, int channel, int nsamples)
 
     CBC::ADC::adcData CBC::ADC::readEncoder (int iencoder)
     {
-        std::cout << "adc.m_defaultSamples: " << m_defaultSamples << std::endl;
         return (readEncoder(iencoder, m_defaultSamples));
     }
 
