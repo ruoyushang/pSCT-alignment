@@ -160,7 +160,7 @@ UaStatus PasCommunicationInterface::initialize() {
             std::cout << "Attempting to create their virtual counterparts...\n";
 
         // If the device type does not already exist in the m_pControllers map, add it
-        if (m_pControllers.find(devCount.first) == m_pControllers.end()) {
+        if (m_pControllers.count(devCount.first) == 0) {
             m_pControllers[devCount.first] = std::map<Device::Identity, std::shared_ptr<PasControllerCommon>>();
         }
 
@@ -204,7 +204,7 @@ UaStatus PasCommunicationInterface::initialize() {
             else {
                 std::cout << "PasCommunicationInterface:: Invalid device type found.\n";
             }
-            if (pController->initialize() == 0) {
+            if (pController->initialize()) {
                 m_pControllers.at(devCount.first).emplace(identity, pController);
             } else {
                 std::cout << "Could not initialize " << deviceTypes.at(devCount.first)
