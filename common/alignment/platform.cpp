@@ -49,6 +49,7 @@ const float Platform::DEFAULT_EXTERNAL_TEMPERATURE_OFFSET = -61.111;
 Platform::Platform() : Device::Device(std::make_shared<CBC>(), Device::Identity())
 {
     DEBUG_MSG("Creating Platform object...");
+    m_Errors.assign(getNumErrors(), false);
     Device::Identity act_identity;
     for (int i = 0; i < Platform::NUM_ACTS_PER_PLATFORM; i++)
     {
@@ -59,7 +60,6 @@ Platform::Platform() : Device::Device(std::make_shared<CBC>(), Device::Identity(
         #endif
         m_ActuatorIdentityMap.insert(std::make_pair(act_identity, i));
     }
-    m_Errors.assign(getNumErrors(), false);
     initialize();
 }
 
@@ -68,6 +68,7 @@ Platform::Platform(Device::Identity identity, std::array<int, Platform::NUM_ACTS
                    const Actuator::ASFInfo &asfInfo) : Device::Device(std::make_shared<CBC>(), std::move(identity))
 {
     DEBUG_MSG("Creating Platform Object with Actuator Serial Numbers, Ports, DB Information and custom ASF paths");
+    m_Errors.assign(getNumErrors(), false);
     Device::Identity act_identity;
     for (int i = 0; i < Platform::NUM_ACTS_PER_PLATFORM; i++)
     {
@@ -87,7 +88,6 @@ Platform::Platform(Device::Identity identity, std::array<int, Platform::NUM_ACTS
     } else {
         DEBUG_MSG("Platform::Platform(): No DB info provided...");
     }
-    m_Errors.assign(getNumErrors(), false);
     initialize();
 }
 
