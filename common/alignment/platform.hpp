@@ -128,7 +128,6 @@ private:
 
     float m_CalibrationTemperature = 0.0;
 
-    std::shared_ptr<CBC> m_pCBC;
     std::vector<std::unique_ptr<MPES>> m_MPES;
     std::array<std::unique_ptr<Actuator>, NUM_ACTS_PER_PLATFORM> m_Actuators;
 

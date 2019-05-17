@@ -112,7 +112,6 @@ protected:
     std::string m_NewASFPath;
 
     CBC::ADC::adcData m_ADCdata;
-    std::shared_ptr<CBC> m_pCBC;
 
     // Calibration Parameters (defaults)
     float m_CalibrationTemperature = 22.0;

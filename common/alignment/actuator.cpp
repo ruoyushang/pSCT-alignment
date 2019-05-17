@@ -423,6 +423,7 @@ void Actuator::saveStatusToASF()//record all error codes to ASF.
 
 float Actuator::readVoltage() {
     int MeasurementCount = 0;
+    std::cout << "Actuator:: m_pCBC->adc.getDefaultSamples() 5: " << m_pCBC->adc.getDefaultSamples() << std::endl;
     m_ADCdata = m_pCBC->adc.readEncoder(getPortNumber());
     while ((m_ADCdata.stddev > m_StdDevRemeasure) && (MeasurementCount < m_MaxVoltageMeasurementAttempts)) {
         m_ADCdata = m_pCBC->adc.readEncoder(getPortNumber());
@@ -459,6 +460,7 @@ int Actuator::checkAngleQuick(
         Position ExpectedPosition)//First attempts a quicker, less robust method of determining the current actuator angle. Defers to the slower method if it fails. Returns the number of missed steps. (e.g. returns +2 if expected position is 50,100 but measured angle is 102). This method ends when either range is exhausted (set by independent variable QuickAngleCheckSearchDeviation), or when it finds a voltage deviation less than dV/2. checkAngleSlow has no such requirement, and finds minimum voltage scanning over range of actuator steps.
 {
     int ExpectedAngle = ExpectedPosition.angle;
+    std::cout << "Actuator:: m_pCBC->adc.getDefaultSamples() 4: " << m_pCBC->adc.getDefaultSamples() << std::endl;
     float MeasuredVoltage = readVoltage();
     //search the Encoder_Calibration array at the expected angle index, and p/m two indices around this index (making sure we dont go out of range).
     int IndexDeviation = 0;
@@ -628,8 +630,10 @@ int Actuator::performHysteresisMotion(int steps) {
 bool Actuator::initialize() {
     //check if ASF file exists. if it doesn't, create it.
     DEBUG_MSG("Initializing Actuator " << getSerialNumber());
+    std::cout << "Actuator:: m_pCBC->adc.getDefaultSamples() 1: " << m_pCBC->adc.getDefaultSamples() << std::endl;
     loadStatusFromASF();
     loadConfigurationAndCalibration();
+    std::cout << "Actuator:: m_pCBC->adc.getDefaultSamples() 2: " << m_pCBC->adc.getDefaultSamples() << std::endl;
     recoverPosition();
     updateState();
 
@@ -640,6 +644,7 @@ void
 Actuator::recoverPosition()//consolidates current position and recovers position (if not too far away). This is typically ran after reading status from ASF.
 {
     DEBUG_MSG("Actuator: Checking current position...");
+    std::cout << "Actuator:: m_pCBC->adc.getDefaultSamples() 3: " << m_pCBC->adc.getDefaultSamples() << std::endl;
     int indexDeviation = checkAngleQuick(m_CurrentPosition);
     if (m_Errors[7])//check for voltage issue
     {
