@@ -59,6 +59,7 @@ Platform::Platform() : Device::Device(std::make_shared<CBC>(), Device::Identity(
         #endif
         m_ActuatorIdentityMap.insert(std::make_pair(act_identity, i));
     }
+    m_Errors.assign(getNumErrors(), false);
     initialize();
 }
 
@@ -84,8 +85,9 @@ Platform::Platform(Device::Identity identity, std::array<int, Platform::NUM_ACTS
     if (!dbInfo.empty()) {
         setDBInfo(dbInfo);
     } else {
-        DEBUG_MSG("Actuator::Actuator(): No DB info provided...");
+        DEBUG_MSG("Platform::Platform(): No DB info provided...");
     }
+    m_Errors.assign(getNumErrors(), false);
     initialize();
 }
 
