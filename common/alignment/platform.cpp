@@ -62,51 +62,6 @@ Platform::Platform() : Device::Device(std::make_shared<CBC>(), Device::Identity(
     initialize();
 }
 
-Platform::Platform(std::array<int, Platform::NUM_ACTS_PER_PLATFORM> actuatorPorts,
-                   std::array<int, Platform::NUM_ACTS_PER_PLATFORM> actuatorSerials) : Device::Device(
-    std::make_shared<CBC>(), Device::Identity())
-{
-    DEBUG_MSG("Creating Platform Object with Actuator Serial Numbers and Ports");
-    Device::Identity act_identity;
-    for (int i = 0; i < Platform::NUM_ACTS_PER_PLATFORM; i++)
-    {
-        act_identity.name = std::string("ACT_") + std::to_string(actuatorSerials.at(i));
-        act_identity.serialNumber = actuatorSerials.at(i);
-        act_identity.eAddress = std::to_string(actuatorPorts.at(i));
-        act_identity.position = i + 1;
-        #ifndef SIMMODE
-        m_Actuators[i] = std::unique_ptr<Actuator>(new Actuator(m_pCBC, act_identity));
-        #else
-        m_Actuators[i] = std::unique_ptr<Actuator>(new DummyActuator(m_pCBC, act_identity));
-        #endif
-        m_ActuatorIdentityMap.insert(std::make_pair(act_identity, i));
-    }
-    initialize();
-}
-
-Platform::Platform(Device::Identity identity, std::array<int, Platform::NUM_ACTS_PER_PLATFORM> actuatorPorts,
-                   std::array<int, Platform::NUM_ACTS_PER_PLATFORM> actuatorSerials, const Device::DBInfo &dbInfo)
-    : Device::Device(std::make_shared<CBC>(), std::move(identity))
-{
-    DEBUG_MSG("Creating Platform Object with Actuator Serial Numbers, Ports, and DB Information");
-    Device::Identity act_identity;
-    for (int i = 0; i < Platform::NUM_ACTS_PER_PLATFORM; i++)
-    {
-        act_identity.name = std::string("ACT_") + std::to_string(actuatorSerials.at(i));
-        act_identity.serialNumber = actuatorSerials.at(i);
-        act_identity.eAddress = std::to_string(actuatorPorts.at(i));
-        act_identity.position = i + 1;
-        #ifndef SIMMODE
-        m_Actuators[i] = std::unique_ptr<Actuator>(new Actuator(m_pCBC, act_identity, dbInfo));
-        #else
-        m_Actuators[i] = std::unique_ptr<Actuator>(new DummyActuator(m_pCBC, act_identity, dbInfo));
-        #endif
-        m_ActuatorIdentityMap.insert(std::make_pair(act_identity, i));
-    }
-    setDBInfo(dbInfo);
-    initialize();
-}
-
 Platform::Platform(Device::Identity identity, std::array<int, Platform::NUM_ACTS_PER_PLATFORM> actuatorPorts,
                    std::array<int, Platform::NUM_ACTS_PER_PLATFORM> actuatorSerials, Device::DBInfo dbInfo,
                    const Actuator::ASFInfo &asfInfo) : Device::Device(std::make_shared<CBC>(), std::move(identity))
@@ -126,7 +81,11 @@ Platform::Platform(Device::Identity identity, std::array<int, Platform::NUM_ACTS
         #endif
         m_ActuatorIdentityMap.insert(std::make_pair(act_identity, i));
     }
-    setDBInfo(std::move(dbInfo));
+    if (!dbInfo.empty()) {
+        setDBInfo(dbInfo);
+    } else {
+        DEBUG_MSG("Actuator::Actuator(): No DB info provided...");
+    }
     initialize();
 }
 

@@ -30,14 +30,10 @@ public:
 
     // Initialization methods
     Platform();
-    Platform(std::array<int,NUM_ACTS_PER_PLATFORM> actuatorPorts, std::array<int,NUM_ACTS_PER_PLATFORM> actuatorSerials);
 
     Platform(Device::Identity identity, std::array<int, NUM_ACTS_PER_PLATFORM> actuatorPorts,
-             std::array<int, NUM_ACTS_PER_PLATFORM> actuatorSerials, const Device::DBInfo &dbInfo);
-
-    Platform(Device::Identity identity, std::array<int, NUM_ACTS_PER_PLATFORM> actuatorPorts,
-             std::array<int, NUM_ACTS_PER_PLATFORM> actuatorSerials, Device::DBInfo dbInfo,
-             const Actuator::ASFInfo &asfInfo);
+             std::array<int, NUM_ACTS_PER_PLATFORM> actuatorSerials, Device::DBInfo dbInfo = Device::DBInfo(),
+             const Actuator::ASFInfo &asfInfo = Actuator::ASFInfo());
     ~Platform();
 
     bool initialize() override;

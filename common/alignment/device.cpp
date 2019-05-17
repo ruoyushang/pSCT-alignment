@@ -58,7 +58,7 @@ void Device::setError(int errorCode) {
 }
 
 void Device::unsetError(int errorCode) {
-    std::cout << "Unsetting Error " << errorCode << "(" << getErrorCodeDefinitions()[errorCode].description
+    std::cout << "Unsetting Error " << errorCode << " (" << getErrorCodeDefinitions()[errorCode].description
               << ") for Device "
               << m_Identity << std::endl;
     m_Errors[errorCode] = false;
