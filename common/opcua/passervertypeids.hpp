@@ -112,7 +112,7 @@
 #define PAS_PanelType_MoveDeltaLengths              2020
 #define PAS_PanelType_MoveToLengths                 2021
 #define PAS_PanelType_MoveToCoords                  2022
-#define PAS_PanelType_ReadPosition                       2023
+#define PAS_PanelType_ReadPosition                  2023
 #define PAS_PanelType_Stop                          2024
 #define PAS_PanelType_FindHome                      2025
 #define PAS_PanelType_ClearError                    2026

@@ -58,7 +58,7 @@ void PasObject::initialize() {
 
     // Add all error variable nodes
     for (const auto &v : getErrorDefs()) {
-        pDataItem = addVariable(m_pNodeManager, typeDefinitionId().identifierNumeric(), v.first, OpcUa_False, false);
+        pDataItem = addVariable(m_pNodeManager, typeDefinitionId().identifierNumeric(), v.first, OpcUa_False, OpcUa_False);
         addStatus = m_pNodeManager->addUaReference(pErrorFolder->nodeId(), pDataItem->nodeId(), OpcUaId_Organizes);
     }
 
