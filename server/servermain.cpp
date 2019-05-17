@@ -80,7 +80,7 @@ int OpcServerMain(const std::string &szAppPath, const std::string &configFilePat
 	std::cout << "Creating Communication Interface..." << std::endl;
         std::unique_ptr<PasCommunicationInterface> pCommIf = std::unique_ptr<PasCommunicationInterface>(
                 new PasCommunicationInterface()); // Initialize communication interface
-        pCommIf->setPanelNumber(panelNumber);
+        pCommIf->setPanelNumber(std::stoi(panelNumber));
         UaStatus retStatus = pCommIf->initialize();
         UA_ASSERT(retStatus.isGood());
 

@@ -42,7 +42,7 @@ public:
 
     /// @brief Set the panel number used when retreiving information from the database.
     /// @param panelNumber Position number of the panel for this server.
-    void setPanelNumber(const std::string &panelNumber) { m_panelNum = panelNumber; }
+    void setPanelNumber(int panelNumber) { m_panelNum = panelNumber; }
 
     /// @brief Get the a pointer to the device controller for a specific device.
     /// @param deviceType OPC UA type ID for the desired device object type.
@@ -112,8 +112,12 @@ public:
     static const std::map<OpcUa_UInt32, std::string> deviceTypes;
 
 private:
+
     /// @brief Position number of the panel. Used for device database lookup.
-    std::string m_panelNum;
+    int m_panelNum;
+
+    /// @brief Controller board ID of the panel.
+    int m_cbcID;
 
     /// @brief Pointer to the platform object used by all devices to interface with the hardware.
     std::shared_ptr<Platform> m_platform;
