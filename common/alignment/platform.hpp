@@ -33,7 +33,7 @@ public:
     Platform(std::array<int,NUM_ACTS_PER_PLATFORM> actuatorPorts, std::array<int,NUM_ACTS_PER_PLATFORM> actuatorSerials);
 
     Platform(Device::Identity identity, std::array<int, NUM_ACTS_PER_PLATFORM> actuatorPorts,
-             std::array<int, NUM_ACTS_PER_PLATFORM> actuatorSerials, Device::DBInfo dbInfo);
+             std::array<int, NUM_ACTS_PER_PLATFORM> actuatorSerials, const Device::DBInfo &dbInfo);
 
     Platform(Device::Identity identity, std::array<int, NUM_ACTS_PER_PLATFORM> actuatorPorts,
              std::array<int, NUM_ACTS_PER_PLATFORM> actuatorSerials, Device::DBInfo dbInfo,
@@ -119,7 +119,7 @@ private:
     static const float DEFAULT_EXTERNAL_TEMPERATURE_SLOPE;
     static const float DEFAULT_EXTERNAL_TEMPERATURE_OFFSET;
 
-    Device::DBInfo m_DBInfo = Device::DBInfo();
+    Device::DBInfo m_DBInfo;
 
     void checkActuatorStatus(int actuatorIdx);
 

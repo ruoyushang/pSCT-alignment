@@ -85,7 +85,7 @@ Platform::Platform(std::array<int, Platform::NUM_ACTS_PER_PLATFORM> actuatorPort
 }
 
 Platform::Platform(Device::Identity identity, std::array<int, Platform::NUM_ACTS_PER_PLATFORM> actuatorPorts,
-                   std::array<int, Platform::NUM_ACTS_PER_PLATFORM> actuatorSerials, Device::DBInfo dbInfo)
+                   std::array<int, Platform::NUM_ACTS_PER_PLATFORM> actuatorSerials, const Device::DBInfo &dbInfo)
     : Device::Device(std::make_shared<CBC>(), std::move(identity))
 {
     DEBUG_MSG("Creating Platform Object with Actuator Serial Numbers, Ports, and DB Information");
