@@ -223,6 +223,16 @@ UaStatus PasNodeManager::amendTypeNodes()
         UA_ASSERT(status.isGood());
     }
 
+    // Register all error variables
+    for (auto v : PanelObject::ERRORS) {
+        pDataItem = new OpcUa::DataItemType(UaNodeId(v.first, getNameSpaceIndex()),
+                                            std::get<0>(v.second).c_str(), getNameSpaceIndex(), std::get<1>(v.second),
+                                            Ua_AccessLevel_CurrentRead, this);
+        //pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Optional);
+        status = addNodeAndReference(pPanelType, pDataItem, OpcUaId_HasComponent);
+        UA_ASSERT(addStatus.isGood());
+    }
+
     // Register all methods
     OpcUa::BaseMethod *pMethod;
     for (const auto &m : PanelObject::METHODS) {

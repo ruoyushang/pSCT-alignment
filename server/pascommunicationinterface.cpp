@@ -171,7 +171,7 @@ UaStatus PasCommunicationInterface::initialize() {
         std::shared_ptr<PasControllerCommon> pController;
         for (int i = 0; i < devCount.second; i++) {
             if (devCount.first == PAS_PanelType) {
-                identity.name = std::string("Panel_") + std::to_string(m_cbcID);
+                identity.name = std::string("Panel_") + std::to_string(m_panelNum);
                 identity.serialNumber = m_cbcID;
                 identity.eAddress = std::string(std::getenv("LOCALIP"));
                 identity.position = m_panelNum;
