@@ -3,27 +3,31 @@
 **
 ** Description: Communication interface to access the devices.
 ******************************************************************************/
-#include "pascommunicationinterface.hpp"
-#include "client/utilities/configuration.hpp"
-#include "passervertypeids.hpp"
-#include "client/controllers/pascontroller.hpp"
-#include "client/controllers/mirrorcontroller.hpp"
-#include "client/controllers/positionercontroller.hpp"
-#include "client/controllers/panelcontroller.hpp"
-#include "client/controllers/edgecontroller.hpp"
-#include "client/controllers/mpescontroller.hpp"
-#include "client/controllers/ccdcontroller.hpp"
-#include "client/controllers/psdcontroller.hpp"
-#include "client/controllers/actcontroller.hpp"
-#include "uadatetime.h"
+#include "client/pascommunicationinterface.hpp"
+
 #include <dirent.h>
-#include <string>
-#include <stdlib.h>
-#include <stdio.h>
 #include <iostream>
 #include <stdexcept>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string>
 
-// to discover Aravis devices
+#include "uabase/uadatetime.h"
+
+#include "common/opcua/passervertypeids.hpp"
+
+#include "client/controllers/actcontroller.hpp"
+#include "client/controllers/ccdcontroller.hpp"
+#include "client/controllers/edgecontroller.hpp"
+#include "client/controllers/mirrorcontroller.hpp"
+#include "client/controllers/mpescontroller.hpp"
+#include "client/controllers/positionercontroller.hpp"
+#include "client/controllers/panelcontroller.hpp"
+#include "client/controllers/pascontroller.hpp"
+#include "client/controllers/psdcontroller.hpp"
+
+#include "client/utilities/configuration.hpp"
+
 #include <arv.h>
 
 /* ----------------------------------------------------------------------------

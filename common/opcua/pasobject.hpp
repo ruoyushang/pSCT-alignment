@@ -9,6 +9,7 @@
 #include "uaserver/nodemanagerroot.h"
 #include "userdatabase.h"
 #include "common/alignment/device.hpp"
+#include "common/opcua/passervertypeids.hpp"
 
 class PasNodeManager;
 class PasCommunicationInterface;
@@ -27,8 +28,7 @@ public:
               Device::Identity identity,
               PasComInterfaceCommon *pCommIf);
 
-    virtual ~PasObject();
-    virtual UaNodeId typeDefinitionId() const = 0;
+    ~PasObject() override;
 
     void initialize();
 
@@ -40,21 +40,21 @@ public:
     // Implement MethodManager interface
     // general beginCall that spawns a worker thread and calls call() on the desired method
     // from within the thread
-    virtual UaStatus beginCall(
+    UaStatus beginCall(
         MethodManagerCallback* pCallback,
         const ServiceContext&  serviceContext,
         OpcUa_UInt32           callbackHandle,
         MethodHandle*          pMethodHandle,
-        const UaVariantArray&  inputArguments);
+        const UaVariantArray&  inputArguments) override;
 
     /* Own synchronous call implementation that has to be implemented in subclasses */
-    virtual UaStatus call(
+    UaStatus call(
             const ServiceContext&  serviceContext,
             MethodHandle*          pMethodHandle,
             const UaVariantArray&  inputArguments,
             UaVariantArray&        outputArguments,
             UaStatusCodeArray&     inputArgumentResults,
-            UaDiagnosticInfos &inputArgumentDiag);
+            UaDiagnosticInfos &inputArgumentDiag) override;
 
 
     virtual const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, OpcUa_Byte>>
@@ -90,9 +90,7 @@ public:
     PasUserData(OpcUa_Boolean isState, OpcUa_UInt32 type,
                 Device::Identity identity,
                 OpcUa_UInt32 variableOffset) :
-        m_isState(isState), m_Type(type), m_Identity(identity), m_variableOffset(variableOffset) {}
-
-    virtual ~PasUserData() = default;
+        m_isState(isState), m_Type(type), m_Identity(std::move(identity)), m_variableOffset(variableOffset) {}
 
     /** Indicates if this is a state variable. */
     inline OpcUa_UInt32 isState() const { return m_isState; }
@@ -121,10 +119,10 @@ public:
         const UaString& defaultLocaleId,
         PasNodeManagerCommon* pNodeManager,
         Device::Identity identity,
-        PasComInterfaceCommon *pCommIf) : PasObject(name, newNodeId, defaultLocaleId, pNodeManager, identity,
+        PasComInterfaceCommon *pCommIf) : PasObject(name, newNodeId, defaultLocaleId, pNodeManager, std::move(identity),
                                                         pCommIf) { initialize(); }
 
-    UaNodeId typeDefinitionId() const override;
+    UaNodeId typeDefinitionId() const override { return UaNodeId(PAS_MPESType, browseName().namespaceIndex()); }
 
     const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, OpcUa_Byte>>
     getVariableDefs() override { return MPESObject::VARIABLES; }
@@ -156,10 +154,10 @@ public:
         const UaString& defaultLocaleId,
         PasNodeManagerCommon* pNodeManager,
         Device::Identity identity,
-        PasComInterfaceCommon *pCommIf) : PasObject(name, newNodeId, defaultLocaleId, pNodeManager, identity,
+        PasComInterfaceCommon *pCommIf) : PasObject(name, newNodeId, defaultLocaleId, pNodeManager, std::move(identity),
                                                         pCommIf) { initialize(); }
 
-    UaNodeId typeDefinitionId() const override;
+    UaNodeId typeDefinitionId() const override { return UaNodeId(PAS_ACTType, browseName().namespaceIndex()); }
 
     const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, OpcUa_Byte>>
     getVariableDefs() override { return ACTObject::VARIABLES; }
@@ -191,10 +189,10 @@ public:
         const UaString& defaultLocaleId,
         PasNodeManagerCommon* pNodeManager,
         Device::Identity identity,
-        PasComInterfaceCommon *pCommIf) : PasObject(name, newNodeId, defaultLocaleId, pNodeManager, identity,
+        PasComInterfaceCommon *pCommIf) : PasObject(name, newNodeId, defaultLocaleId, pNodeManager, std::move(identity),
                                                         pCommIf) { initialize(); }
 
-    UaNodeId typeDefinitionId() const override;
+    UaNodeId typeDefinitionId() const override { return UaNodeId(PAS_PSDType, browseName().namespaceIndex()); }
 
     const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, OpcUa_Byte>>
     getVariableDefs() override { return PSDObject::VARIABLES; }

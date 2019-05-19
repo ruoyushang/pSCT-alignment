@@ -13,9 +13,6 @@ MPESEventTypeData::MPESEventTypeData(OpcUa_Int16 nsIdx)
     m_nsIdx = nsIdx;
     m_EventTypeId.setNodeId(PAS_MPESEventType, m_nsIdx);
 }
-MPESEventTypeData::~MPESEventTypeData()
-{
-}
 
 /* Registers all event type fields with the EventManagerUaNode.
  */

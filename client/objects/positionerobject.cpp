@@ -37,12 +37,3 @@ const std::map<OpcUa_UInt32, std::pair<std::string, std::vector<std::tuple<std::
     {GLOB_PositionerType_Stop,       {"Stop",       {}}},
 
 };
-
-/// @details Uses the PositionerType id number defined in passervertypeids.h
-/// along with the namspace index to construct the UaNodeId for the Positioner
-/// type node.
-UaNodeId PositionerObject::typeDefinitionId() const
-{
-    UaNodeId ret(GLOB_PositionerType, browseName().namespaceIndex());
-    return ret;
-}

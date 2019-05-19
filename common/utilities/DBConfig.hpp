@@ -23,8 +23,6 @@ public:
         flags.clear();
     };
 
-    ~DBConfig() {}
-
     void overwriteDefaultValues(DBConfig *configptr);
 
     std::string getHost();

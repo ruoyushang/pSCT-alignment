@@ -1,15 +1,16 @@
 #include "common/opcua/pasobject.hpp"
-#include "common/opcua/pasnodemanagercommon.hpp"
-#include "common/opcua/passervertypeids.hpp"
-#include "common/opcua/pascominterfacecommon.hpp"
-#include "mpeseventdata.hpp"
-#include "uaserver/methodhandleuanode.h"
-
-#include "common/alignment/device.hpp"
 
 #include <iostream>
 
 #include "uabase/uamutex.h"
+#include "uaserver/methodhandleuanode.h"
+
+#include "common/alignment/device.hpp"
+
+#include "common/opcua/mpeseventdata.hpp"
+#include "common/opcua/pascominterfacecommon.hpp"
+#include "common/opcua/pasnodemanagercommon.hpp"
+#include "common/opcua/passervertypeids.hpp"
 
 // ----------------------------------------------------------------
 // PasObject implementation
@@ -23,7 +24,7 @@ PasObject::PasObject(const UaString& name,
                          pNodeManager->getNodeManagerConfig()),
     m_defaultLocaleId(defaultLocaleId),
     m_pSharedMutex(nullptr),
-    m_Identity(identity),
+    m_Identity(std::move(identity)),
     m_pCommIf(pCommIf),
     m_pNodeManager(pNodeManager),
     m_newNodeId(newNodeId) {
@@ -252,12 +253,6 @@ const std::map<OpcUa_UInt32, std::pair<std::string, std::vector<std::tuple<std::
     {PAS_MPESType_ClearAllErrors, {"ClearAllErrors", {}}}
 };
 
-UaNodeId MPESObject::typeDefinitionId() const
-{
-    UaNodeId ret(PAS_MPESType, browseName().namespaceIndex());
-    return ret;
-}
-
 const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, OpcUa_Byte>> ACTObject::VARIABLES = {
     {PAS_ACTType_State,         std::make_tuple("State", UaVariant(0), OpcUa_True, Ua_AccessLevel_CurrentRead)},
     {PAS_ACTType_Position,      std::make_tuple("Position", UaVariant(0), OpcUa_False, Ua_AccessLevel_CurrentRead)},
@@ -307,12 +302,6 @@ const std::map<OpcUa_UInt32, std::pair<std::string, std::vector<std::tuple<std::
         {PAS_ACTType_ClearAllErrors,  {"ClearAllErrors", {}}},
 };
 
-UaNodeId ACTObject::typeDefinitionId() const
-{
-    UaNodeId ret(PAS_ACTType, browseName().namespaceIndex());
-    return ret;
-}
-
 const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, OpcUa_Byte>> PSDObject::VARIABLES = {
         {PAS_PSDType_State, std::make_tuple("State", UaVariant(0), OpcUa_True, Ua_AccessLevel_CurrentRead)},
         {PAS_PSDType_x1,    std::make_tuple("x1", UaVariant(0.0), OpcUa_False,
@@ -341,9 +330,3 @@ const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean>> 
 const std::map<OpcUa_UInt32, std::pair<std::string, std::vector<std::tuple<std::string, UaNodeId, std::string>>>> PSDObject::METHODS = {
         {PAS_PSDType_Read, {"Read", {}}}
 };
-
-UaNodeId PSDObject::typeDefinitionId() const
-{
-    UaNodeId ret(PAS_PSDType, browseName().namespaceIndex());
-    return ret;
-}

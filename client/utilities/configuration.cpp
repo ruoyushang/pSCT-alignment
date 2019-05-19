@@ -1,5 +1,5 @@
 #include "configuration.hpp"
-#include "common/simulatestewart/mathtools.h"
+#include "common/simulatestewart/mathtools.hpp"
 #include "uasettings.h"
 #include "uadir.h"
 #include "uapkicertificate.h"

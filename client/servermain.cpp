@@ -12,15 +12,17 @@
   #include "xmldocument.h"
 #endif
 
-#include "pasnodemanager.hpp"
-#include "client/utilities/configuration.hpp"
-#include "pascommunicationinterface.hpp"
-#include "client/utilities/paslogic.hpp"
-#include "shutdown.hpp"
-
-#include <vector>
-#include <string>
 #include <iostream>
+#include <string>
+#include <vector>
+
+#include "common/utilities/shutdown.hpp"
+
+#include "client/pascommunicationinterface.hpp"
+#include "client/pasnodemanager.hpp"
+#include "client/utilities/configuration.hpp"
+#include "client/utilities/paslogic.hpp"
+
 
 #define CLIENT_CPP_SDK_ACTIVATE_MEMCHECK 0
 

@@ -25,10 +25,10 @@ public:
         const UaString &defaultLocaleId,
         PasNodeManagerCommon *pNodeManager,
         Device::Identity identity,
-        PasComInterfaceCommon *pCommIf) : PasObject(name, newNodeId, defaultLocaleId, pNodeManager, identity,
+        PasComInterfaceCommon *pCommIf) : PasObject(name, newNodeId, defaultLocaleId, pNodeManager, std::move(identity),
                                                     pCommIf) { initialize(); }
 
-    UaNodeId typeDefinitionId() const override;
+    UaNodeId typeDefinitionId() const override { return UaNodeId(PAS_CCDType, browseName().namespaceIndex()); }
 
     const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, OpcUa_Byte>>
     getVariableDefs() override { return CCDObject::VARIABLES; }

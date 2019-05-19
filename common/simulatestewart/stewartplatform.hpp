@@ -6,7 +6,7 @@ class StewartPlatform
 {
     public:
         StewartPlatform();
-        ~StewartPlatform(){};
+        ~StewartPlatform() = default;
 
         void BuildPlatform();
         const double *GetPadCoords(int pad) const { return fPadCoords[PadMap.at(pad)]; };

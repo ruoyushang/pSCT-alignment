@@ -8,7 +8,7 @@
 void DBConfig::overwriteDefaultValues(DBConfig *configptr)
 {
     //reset all currently NULL variables to values from configptr
-    if (configptr == NULL)
+    if (configptr == nullptr)
         return;
     if (host_name.empty())
         host_name = configptr->getHost();

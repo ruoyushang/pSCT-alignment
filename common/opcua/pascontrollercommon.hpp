@@ -2,7 +2,7 @@
 #define COMMON_PASCONTROLLERCOMMON_HPP
 
 #include "passervertypeids.hpp"
-#include "common/simulatestewart/stewartplatform.h"
+#include "common/simulatestewart/stewartplatform.hpp"
 
 #include "uabase/statuscode.h"
 #include "uabase/uabase.h"

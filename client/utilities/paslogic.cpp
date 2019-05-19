@@ -6,8 +6,6 @@
 #include <statuscode.h>
 #include <cmath>
 
-#include "client/pascommunicationinterface.hpp"
-
 #define TIME __timeStamp()
 
 PasLogic::PasLogic(std::shared_ptr<PasCommunicationInterface> pCommIf) : m_pCommIf{std::move(pCommIf)},

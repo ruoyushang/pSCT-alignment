@@ -3,7 +3,7 @@
 
 #include "client/pascommunicationinterface.hpp"
 #include "passervertypeids.hpp"
-#include "common/simulatestewart/stewartplatform.h"
+#include "common/simulatestewart/stewartplatform.hpp"
 #include "common/alignment/device.hpp"
 
 #include "uabase/statuscode.h"

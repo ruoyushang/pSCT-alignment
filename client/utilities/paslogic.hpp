@@ -6,7 +6,7 @@
 *************************/
 
 #include "uathread.h"
-#include "common/simulatestewart/stewartplatform.h"
+#include "common/simulatestewart/stewartplatform.hpp"
 #include "common/alignment/device.hpp"
 #include "pascommunicationinterface.hpp"
 #include <string>

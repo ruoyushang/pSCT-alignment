@@ -6,8 +6,10 @@
 #ifndef __PASNODEMANAGER_H__
 #define __PASNODEMANAGER_H__
 
-#include "pasnodemanagercommon.hpp"
 #include <vector>
+
+#include "common/opcua/pasnodemanagercommon.hpp"
+
 
 class PasCommunicationInterface;
 class Configuration;

@@ -1,14 +1,16 @@
 #ifndef PASCLIENT_H
 #define PASCLIENT_H
 
-#include "uabase.h"
-#include "client/utilities/subscription.hpp"
-#include "client/utilities/database.hpp"
-#include "uaclient/uaclientsdk.h"
-#include "uaclient/uasession.h"
 #include <memory>
 #include <string>
 
+#include "uabase/uabase.h"
+
+#include "uaclient/uaclientsdk.h"
+#include "uaclient/uasession.h"
+
+#include "client/utilities/database.hpp"
+#include "client/utilities/subscription.hpp"
 
 class Configuration;
 class PasNodeManager;

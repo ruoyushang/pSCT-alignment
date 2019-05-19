@@ -1,16 +1,19 @@
-#include "clienthelper.hpp"
-#include "client/utilities/subscription.hpp"
-#include "client/utilities/database.hpp"
-#include "client/utilities/configuration.hpp"
-#include "pasobject.hpp"
-#include "passervertypeids.hpp"
-#include "pasnodemanager.hpp"
-#include "pascommunicationinterface.hpp"
-#include "common/alignment/device.hpp"
-#include "uaclient/uasession.h"
+#include "client/clienthelper.hpp"
 
 #include <map>
 #include <memory>
+
+#include "uaclient/uasession.h"
+
+#include "common/alignment/device.hpp"
+#include "common/opcua/pasobject.hpp"
+#include "common/opcua/passervertypeids.hpp"
+
+#include "client/pascommunicationinterface.hpp"
+#include "client/pasnodemanager.hpp"
+#include "client/utilities/configuration.hpp"
+#include "client/utilities/database.hpp"
+#include "client/utilities/subscription.hpp"
 
 #define _DEBUG_ 0
 

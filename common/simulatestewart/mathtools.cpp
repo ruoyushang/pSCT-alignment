@@ -1,5 +1,5 @@
-#include "mathtools.h"
-#include "mirrordefinitions.h"
+#include "mathtools.hpp"
+#include "mirrordefinitions.hpp"
 #include <algorithm>
 #include <numeric> // accumulate
 #include <string>

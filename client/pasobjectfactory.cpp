@@ -1,25 +1,29 @@
-#include "pasobjectfactory.hpp"
-#include "pasnodemanager.hpp"
-#include "passervertypeids.hpp"
-#include "pascommunicationinterface.hpp"
-#include "pascominterfacecommon.hpp"
-#include "pasnodemanagercommon.hpp"
+#include "client/pasobjectfactory.hpp"
+
 #include "common/alignment/device.hpp"
-#include "pasobject.hpp"
+
+#include "common/opcua/pascominterfacecommon.hpp"
+#include "common/opcua/pasnodemanagercommon.hpp"
+#include "common/opcua/pasobject.hpp"
+#include "common/opcua/passervertypeids.hpp"
+
 #include "client/objects/opttableobject.hpp"
 #include "client/objects/mirrorobject.hpp"
 #include "client/objects/panelobject.hpp"
 #include "client/objects/edgeobject.hpp"
 #include "client/objects/ccdobject.hpp"
+#include "client/pascommunicationinterface.hpp"
+#include "client/pasnodemanager.hpp"
+
 
 PasObject* PasObjectFactory::Create(
-        unsigned deviceType,
-        const UaString& name,
-        const UaNodeId& newNodeId,
-        const UaString& defaultLocaleId,
-        PasNodeManager *pNodeManager,
-        Device::Identity identity,
-        PasCommunicationInterface *pCommIf)
+    unsigned deviceType,
+    const UaString& name,
+    const UaNodeId& newNodeId,
+    const UaString& defaultLocaleId,
+    PasNodeManager *pNodeManager,
+    const Device::Identity &identity,
+    PasCommunicationInterface *pCommIf)
 {
     switch (deviceType)
     {

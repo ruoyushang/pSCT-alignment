@@ -9,13 +9,12 @@ class MPESEventTypeData: public BaseEventTypeData
 {
     UA_DISABLE_COPY(MPESEventTypeData);
 public:
-    MPESEventTypeData(OpcUa_Int16 nsIdx);
-    virtual ~MPESEventTypeData();
+    explicit MPESEventTypeData(OpcUa_Int16 nsIdx);
 
     /** Registers all event type fields with the EventManagerUaNode. */
     void registerEventFields();
     /** Get the field value for the passed index. */
-    virtual void getFieldData(OpcUa_UInt32 index, Session* pSession, OpcUa_Variant& data);
+    void getFieldData(OpcUa_UInt32 index, Session* pSession, OpcUa_Variant& data) override;
     /** set the field value for the passed index. **/
     // virtual void setFieldData(OpcUa_UInt32 index, OpcUa_Variant& data);
     

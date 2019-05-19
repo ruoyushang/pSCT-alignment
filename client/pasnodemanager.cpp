@@ -1,20 +1,25 @@
+#include "client/pasnodemanager.hpp"
+
+#include <iostream>
+#include <memory>
+
+#include "uaserver/opcua_analogitemtype.h"
+
+#include "common/alignment/device.hpp"
+#include "common/opcua/pasobject.hpp"
+#include "common/opcua/passervertypeids.hpp"
+
+#include "client/clienthelper.hpp"
 #include "client/controllers/pascontroller.hpp"
-#include "pasnodemanager.hpp"
-#include "pasobject.hpp"
 #include "client/objects/mirrorobject.hpp"
 #include "client/objects/panelobject.hpp"
 #include "client/objects/edgeobject.hpp"
 #include "client/objects/opttableobject.hpp"
 #include "client/objects/positionerobject.hpp"
-#include "clienthelper.hpp"
+#include "client/pascommunicationinterface.hpp"
+#include "client/pasobjectfactory.hpp"
 #include "client/utilities/configuration.hpp"
-#include "pascommunicationinterface.hpp"
-#include "pasobjectfactory.hpp"
-#include "passervertypeids.hpp"
-#include "common/alignment/device.hpp"
-#include <iostream>
-#include <memory>
-#include "uaserver/opcua_analogitemtype.h"
+
 
 PasNodeManager::PasNodeManager()
 : PasNodeManagerCommon()
@@ -42,8 +47,7 @@ void PasNodeManager::setConfiguration(std::shared_ptr<Configuration> pConfigurat
     m_pPositioner->setConfiguration(m_pConfiguration);
 
     std::cout << "Will attempt to create " << m_pConfiguration->getServers() << " clients\n\n";
-    for (OpcUa_UInt32 i = 0; i < m_pConfiguration->getServers(); i++)
-    {
+    for (OpcUa_UInt32 i = 0; i < m_pConfiguration->getServers(); i++) {
         m_pClients.push_back(std::unique_ptr<Client>(new Client(this)));
         m_pClients.back()->setConfiguration(m_pConfiguration);
     }
@@ -71,10 +75,9 @@ UaStatus PasNodeManager::afterStartUp()
         // add the positioner to the comm interface
         dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->addDevice(m_pPositioner, GLOB_PositionerType, id);
         std::cout << "Found positioner and added corresponding controller.\n";
-    }
-    else {
+    } else {
         std::cout << "Failed to connect to positioner at " << m_pConfiguration->getPositionerUrl().toUtf8()
-                  << ". Moving on..." << std::endl;
+            << ". Moving on..." << std::endl;
     }
 
     // connecting each client to its server -- loop through all panels!
@@ -95,8 +98,7 @@ UaStatus PasNodeManager::afterStartUp()
             // add the nodes that are the result of browsing
             ret = m_pClients.at(client)->browseAndAddDevices();
             std::cout << "Successfully connected to Panel " << panelId << " and created controller.\n";
-        }
-        else
+        } else
             std::cout << "Failed to connect to Panel " << panelId << ". Moving on..." << std::endl;
 
         ++client;
@@ -157,8 +159,7 @@ UaStatus PasNodeManager::afterStartUp()
 
         std::cout << "Creating " << it->second << " objects...\n";
 
-        for (unsigned i = 0; i < count; i++)
-        {
+        for (unsigned i = 0; i < count; i++) {
             ret = dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->getDeviceConfig(deviceType, i, sDeviceName, identity);
             pController = dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->getDeviceFromId(deviceType,
                                                                                                       identity);
@@ -268,8 +269,7 @@ UaStatus PasNodeManager::beforeShutDown()
     if (!ret.isGood())
         return ret;
 
-    for (const auto &client : m_pClients)
-    {
+    for (const auto &client : m_pClients) {
         ret = client->disconnect();
         if (!ret.isGood())
             continue;
@@ -503,7 +503,7 @@ UaStatus PasNodeManager::amendTypeNodes()
     // Add Variable "State" as BaseDataVariable
     defaultValue.setUInt32(0);
     pDataItem = new OpcUa::DataItemType(UaNodeId(PAS_OptTableType_State, getNameSpaceIndex()), "State",
-        getNameSpaceIndex(), defaultValue, Ua_AccessLevel_CurrentRead, this);
+                                        getNameSpaceIndex(), defaultValue, Ua_AccessLevel_CurrentRead, this);
     // Set Modelling Rule to Mandatory
     pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
     addStatus = addNodeAndReference(pOptTableType, pDataItem, OpcUaId_HasComponent);
@@ -542,7 +542,7 @@ UaStatus PasNodeManager::amendTypeNodes()
     // Add Variable "State" as BaseDataVariable
     defaultValue.setUInt32(0);
     pDataItem = new OpcUa::DataItemType(UaNodeId(PAS_CCDType_State, getNameSpaceIndex()), "State",
-        getNameSpaceIndex(), defaultValue, Ua_AccessLevel_CurrentRead, this);
+                                        getNameSpaceIndex(), defaultValue, Ua_AccessLevel_CurrentRead, this);
     // Set Modelling Rule to Mandatory
     pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
     addStatus = addNodeAndReference(pCCDType, pDataItem, OpcUaId_HasComponent);
@@ -551,7 +551,7 @@ UaStatus PasNodeManager::amendTypeNodes()
     // Add Variable "xFromLED" as DataItem
     defaultValue.setDouble(0);
     pDataItem = new OpcUa::DataItemType(UaNodeId(PAS_CCDType_xFromLED, getNameSpaceIndex()), "xFromLED",
-        getNameSpaceIndex(), defaultValue, Ua_AccessLevel_CurrentRead, this);
+                                        getNameSpaceIndex(), defaultValue, Ua_AccessLevel_CurrentRead, this);
     pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
     addStatus = addNodeAndReference(pCCDType, pDataItem, OpcUaId_HasComponent);
     UA_ASSERT(addStatus.isGood());
@@ -559,7 +559,7 @@ UaStatus PasNodeManager::amendTypeNodes()
     // Add Variable "yFromLED" as DataItem
     defaultValue.setDouble(0);
     pDataItem = new OpcUa::DataItemType(UaNodeId(PAS_CCDType_yFromLED, getNameSpaceIndex()), "yFromLED",
-        getNameSpaceIndex(), defaultValue, Ua_AccessLevel_CurrentRead, this);
+                                        getNameSpaceIndex(), defaultValue, Ua_AccessLevel_CurrentRead, this);
     pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
     addStatus = addNodeAndReference(pCCDType, pDataItem, OpcUaId_HasComponent);
     UA_ASSERT(addStatus.isGood());
@@ -567,7 +567,7 @@ UaStatus PasNodeManager::amendTypeNodes()
     // Add Variable "zFromLED" as DataItem
     defaultValue.setDouble(0);
     pDataItem = new OpcUa::DataItemType(UaNodeId(PAS_CCDType_zFromLED, getNameSpaceIndex()), "zFromLED",
-        getNameSpaceIndex(), defaultValue, Ua_AccessLevel_CurrentRead, this);
+                                        getNameSpaceIndex(), defaultValue, Ua_AccessLevel_CurrentRead, this);
     pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
     addStatus = addNodeAndReference(pCCDType, pDataItem, OpcUaId_HasComponent);
     UA_ASSERT(addStatus.isGood());
@@ -575,7 +575,7 @@ UaStatus PasNodeManager::amendTypeNodes()
     // Add Variable "psiFromLED" as DataItem
     defaultValue.setDouble(0);
     pDataItem = new OpcUa::DataItemType(UaNodeId(PAS_CCDType_psiFromLED, getNameSpaceIndex()), "psiFromLED",
-        getNameSpaceIndex(), defaultValue, Ua_AccessLevel_CurrentRead, this);
+                                        getNameSpaceIndex(), defaultValue, Ua_AccessLevel_CurrentRead, this);
     pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
     addStatus = addNodeAndReference(pCCDType, pDataItem, OpcUaId_HasComponent);
     UA_ASSERT(addStatus.isGood());
@@ -583,7 +583,7 @@ UaStatus PasNodeManager::amendTypeNodes()
     // Add Variable "thetaFromLED" as DataItem
     defaultValue.setDouble(0);
     pDataItem = new OpcUa::DataItemType(UaNodeId(PAS_CCDType_thetaFromLED, getNameSpaceIndex()), "thetaFromLED",
-        getNameSpaceIndex(), defaultValue, Ua_AccessLevel_CurrentRead, this);
+                                        getNameSpaceIndex(), defaultValue, Ua_AccessLevel_CurrentRead, this);
     pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
     addStatus = addNodeAndReference(pCCDType, pDataItem, OpcUaId_HasComponent);
     UA_ASSERT(addStatus.isGood());
@@ -591,7 +591,7 @@ UaStatus PasNodeManager::amendTypeNodes()
     // Add Variable "phiFromLED" as DataItem
     defaultValue.setDouble(0);
     pDataItem = new OpcUa::DataItemType(UaNodeId(PAS_CCDType_phiFromLED, getNameSpaceIndex()), "phiFromLED",
-        getNameSpaceIndex(), defaultValue, Ua_AccessLevel_CurrentRead, this);
+                                        getNameSpaceIndex(), defaultValue, Ua_AccessLevel_CurrentRead, this);
     pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
     addStatus = addNodeAndReference(pCCDType, pDataItem, OpcUaId_HasComponent);
     UA_ASSERT(addStatus.isGood());
@@ -599,7 +599,7 @@ UaStatus PasNodeManager::amendTypeNodes()
     // Add Variable "xNominal" as DataItem
     defaultValue.setDouble(0);
     pDataItem = new OpcUa::DataItemType(UaNodeId(PAS_CCDType_xNominal, getNameSpaceIndex()), "xNominal",
-        getNameSpaceIndex(), defaultValue, Ua_AccessLevel_CurrentRead | Ua_AccessLevel_CurrentWrite, this);
+                                        getNameSpaceIndex(), defaultValue, Ua_AccessLevel_CurrentRead | Ua_AccessLevel_CurrentWrite, this);
     pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
     addStatus = addNodeAndReference(pCCDType, pDataItem, OpcUaId_HasComponent);
     UA_ASSERT(addStatus.isGood());
@@ -607,7 +607,7 @@ UaStatus PasNodeManager::amendTypeNodes()
     // Add Variable "yNominal" as DataItem
     defaultValue.setDouble(0);
     pDataItem = new OpcUa::DataItemType(UaNodeId(PAS_CCDType_yNominal, getNameSpaceIndex()), "yNominal",
-        getNameSpaceIndex(), defaultValue, Ua_AccessLevel_CurrentRead | Ua_AccessLevel_CurrentWrite, this);
+                                        getNameSpaceIndex(), defaultValue, Ua_AccessLevel_CurrentRead | Ua_AccessLevel_CurrentWrite, this);
     pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
     addStatus = addNodeAndReference(pCCDType, pDataItem, OpcUaId_HasComponent);
     UA_ASSERT(addStatus.isGood());
@@ -615,7 +615,7 @@ UaStatus PasNodeManager::amendTypeNodes()
     // Add Variable "zNominal" as DataItem
     defaultValue.setDouble(0);
     pDataItem = new OpcUa::DataItemType(UaNodeId(PAS_CCDType_zNominal, getNameSpaceIndex()), "zNominal",
-        getNameSpaceIndex(), defaultValue, Ua_AccessLevel_CurrentRead | Ua_AccessLevel_CurrentWrite, this);
+                                        getNameSpaceIndex(), defaultValue, Ua_AccessLevel_CurrentRead | Ua_AccessLevel_CurrentWrite, this);
     pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
     addStatus = addNodeAndReference(pCCDType, pDataItem, OpcUaId_HasComponent);
     UA_ASSERT(addStatus.isGood());
@@ -623,7 +623,7 @@ UaStatus PasNodeManager::amendTypeNodes()
     // Add Variable "psiNominal" as DataItem
     defaultValue.setDouble(0);
     pDataItem = new OpcUa::DataItemType(UaNodeId(PAS_CCDType_psiNominal, getNameSpaceIndex()), "psiNominal",
-        getNameSpaceIndex(), defaultValue, Ua_AccessLevel_CurrentRead | Ua_AccessLevel_CurrentWrite, this);
+                                        getNameSpaceIndex(), defaultValue, Ua_AccessLevel_CurrentRead | Ua_AccessLevel_CurrentWrite, this);
     pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
     addStatus = addNodeAndReference(pCCDType, pDataItem, OpcUaId_HasComponent);
     UA_ASSERT(addStatus.isGood());
@@ -631,7 +631,7 @@ UaStatus PasNodeManager::amendTypeNodes()
     // Add Variable "thetaNominal" as DataItem
     defaultValue.setDouble(0);
     pDataItem = new OpcUa::DataItemType(UaNodeId(PAS_CCDType_thetaNominal, getNameSpaceIndex()), "thetaNominal",
-        getNameSpaceIndex(), defaultValue, Ua_AccessLevel_CurrentRead | Ua_AccessLevel_CurrentWrite, this);
+                                        getNameSpaceIndex(), defaultValue, Ua_AccessLevel_CurrentRead | Ua_AccessLevel_CurrentWrite, this);
     pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
     addStatus = addNodeAndReference(pCCDType, pDataItem, OpcUaId_HasComponent);
     UA_ASSERT(addStatus.isGood());
@@ -639,7 +639,7 @@ UaStatus PasNodeManager::amendTypeNodes()
     // Add Variable "phiNominal" as DataItem
     defaultValue.setDouble(0);
     pDataItem = new OpcUa::DataItemType(UaNodeId(PAS_CCDType_phiNominal, getNameSpaceIndex()), "phiNominal",
-        getNameSpaceIndex(), defaultValue, Ua_AccessLevel_CurrentRead | Ua_AccessLevel_CurrentWrite, this);
+                                        getNameSpaceIndex(), defaultValue, Ua_AccessLevel_CurrentRead | Ua_AccessLevel_CurrentWrite, this);
     pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
     addStatus = addNodeAndReference(pCCDType, pDataItem, OpcUaId_HasComponent);
     UA_ASSERT(addStatus.isGood());
@@ -679,7 +679,7 @@ UaStatus PasNodeManager::amendTypeNodes()
     // Add Variable "isMoving" as BaseDataVariable
     defaultValue.setBool(0);
     pDataItem = new OpcUa::DataItemType(UaNodeId(GLOB_PositionerType_isMoving, getNameSpaceIndex()), "isMoving",
-    getNameSpaceIndex(), defaultValue, Ua_AccessLevel_CurrentRead, this);
+                                        getNameSpaceIndex(), defaultValue, Ua_AccessLevel_CurrentRead, this);
     // Set Modelling Rule to Mandatory
     pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
     addStatus = addNodeAndReference(pPositionerType, pDataItem, OpcUaId_HasComponent);
@@ -688,7 +688,7 @@ UaStatus PasNodeManager::amendTypeNodes()
     // Add Variable "curAz" as BaseDataVariable
     defaultValue.setFloat(0);
     pDataItem = new OpcUa::DataItemType(UaNodeId(GLOB_PositionerType_curAz, getNameSpaceIndex()), "curAz",
-    getNameSpaceIndex(), defaultValue, Ua_AccessLevel_CurrentRead, this);
+                                        getNameSpaceIndex(), defaultValue, Ua_AccessLevel_CurrentRead, this);
     // Set Modelling Rule to Mandatory
     pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
     addStatus = addNodeAndReference(pPositionerType, pDataItem, OpcUaId_HasComponent);
@@ -696,7 +696,7 @@ UaStatus PasNodeManager::amendTypeNodes()
 
     // Add Variable "curEl" as BaseDataVariable
     pDataItem = new OpcUa::DataItemType(UaNodeId(GLOB_PositionerType_curEl, getNameSpaceIndex()), "curEl",
-    getNameSpaceIndex(), defaultValue, Ua_AccessLevel_CurrentRead, this);
+                                        getNameSpaceIndex(), defaultValue, Ua_AccessLevel_CurrentRead, this);
     // Set Modelling Rule to Mandatory
     pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
     addStatus = addNodeAndReference(pPositionerType, pDataItem, OpcUaId_HasComponent);
@@ -705,7 +705,7 @@ UaStatus PasNodeManager::amendTypeNodes()
     // Add Variable "curAz" as BaseDataVariable
     defaultValue.setFloat(0);
     pDataItem = new OpcUa::DataItemType(UaNodeId(GLOB_PositionerType_inAz, getNameSpaceIndex()), "inAz",
-    getNameSpaceIndex(), defaultValue, Ua_AccessLevel_CurrentRead | Ua_AccessLevel_CurrentWrite, this);
+                                        getNameSpaceIndex(), defaultValue, Ua_AccessLevel_CurrentRead | Ua_AccessLevel_CurrentWrite, this);
     // Set Modelling Rule to Mandatory
     pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
     addStatus = addNodeAndReference(pPositionerType, pDataItem, OpcUaId_HasComponent);
@@ -713,7 +713,7 @@ UaStatus PasNodeManager::amendTypeNodes()
 
     // Add Variable "curEl" as BaseDataVariable
     pDataItem = new OpcUa::DataItemType(UaNodeId(GLOB_PositionerType_inEl, getNameSpaceIndex()), "inEl",
-    getNameSpaceIndex(), defaultValue, Ua_AccessLevel_CurrentRead | Ua_AccessLevel_CurrentWrite, this);
+                                        getNameSpaceIndex(), defaultValue, Ua_AccessLevel_CurrentRead | Ua_AccessLevel_CurrentWrite, this);
     // Set Modelling Rule to Mandatory
     pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
     addStatus = addNodeAndReference(pPositionerType, pDataItem, OpcUaId_HasComponent);
@@ -721,7 +721,7 @@ UaStatus PasNodeManager::amendTypeNodes()
 
     defaultValue.setInt16(0);
     pDataItem = new OpcUa::DataItemType(UaNodeId(GLOB_PositionerType_EnergyLevel, getNameSpaceIndex()), "EnergyLevel",
-    getNameSpaceIndex(), defaultValue, Ua_AccessLevel_CurrentRead, this);
+                                        getNameSpaceIndex(), defaultValue, Ua_AccessLevel_CurrentRead, this);
     // Set Modelling Rule to Mandatory
     pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
     addStatus = addNodeAndReference(pPositionerType, pDataItem, OpcUaId_HasComponent);
@@ -762,28 +762,22 @@ OpcUa_Int32 PasNodeManager::Panic()
     OpcUa_Int32 actcount = m_pCommIf->getDeviceCount(PAS_ACTType);
 
     Device::Identity id;
-    for (OpcUa_Int32 i = 0; i < actcount; i++)
-    {
+    for (OpcUa_Int32 i = 0; i < actcount; i++) {
         status = dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->getDeviceConfig(PAS_ACTType, i, id);
-        if (status.isGood())
-        {
+        if (status.isGood()) {
             printf("Will try changing state for %s\n", id.eAddress.c_str());
             status = m_pCommIf->setDeviceState(PAS_ACTType, id, Device::DeviceState::Off);
-        }
-        else
+        } else
             printf("Problem changing state for %s\n", id.eAddress.c_str());
     }
 
     sleep(3);
-    for (OpcUa_Int32 i = 0; i < actcount; i++)
-    {
+    for (OpcUa_Int32 i = 0; i < actcount; i++) {
         status = dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->getDeviceConfig(PAS_ACTType, i, id);
-        if (status.isGood())
-        {
+        if (status.isGood()) {
             printf("Will try changing state for %s again\n", id.eAddress.c_str());
             status = m_pCommIf->setDeviceState(PAS_ACTType, id, Device::DeviceState::On);
-        }
-        else
+        } else
             printf("Problem changing state for %s\n", id.eAddress.c_str());
     }
 

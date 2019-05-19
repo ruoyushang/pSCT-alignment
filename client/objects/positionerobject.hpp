@@ -43,13 +43,13 @@ public:
         Device::Identity identity,
         PasCommunicationInterface *pCommIf) : PasObject(name, newNodeId, defaultLocaleId,
                                                         dynamic_cast<PasNodeManagerCommon *>(pNodeManager),
-                                                        identity,
+                                                        std::move(identity),
                                                         dynamic_cast<PasComInterfaceCommon *>(pCommIf)) { initialize(); }
 
     /// @brief Method returning the UaNodeId for the Positioner object type
     /// definition node.
     /// @return A UaNodeId uniquely identifying the Positioner object type node.
-    UaNodeId typeDefinitionId() const override;
+    UaNodeId typeDefinitionId() const override { return UaNodeId(GLOB_PositionerType, browseName().namespaceIndex()); }
 
     const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, OpcUa_Byte>>
     getVariableDefs() override { return PositionerObject::VARIABLES; }

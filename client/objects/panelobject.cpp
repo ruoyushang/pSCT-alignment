@@ -1,9 +1,13 @@
-#include "panelobject.hpp"
-#include "pasnodemanager.hpp"
-#include "passervertypeids.hpp"
-#include "pascommunicationinterface.hpp"
+#include "client/objects/panelobject.hpp"
+
 #include "uaserver/methodhandleuanode.h"
 #include "uaserver/opcua_analogitemtype.h"
+
+#include "common/opcua/passervertypeids.hpp"
+
+#include "client/pascommunicationinterface.hpp"
+#include "client/pasnodemanager.hpp"
+
 
 const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, OpcUa_Byte>> PanelObject::VARIABLES = {
     {PAS_PanelType_State,          std::make_tuple("State", UaVariant(0), OpcUa_True, Ua_AccessLevel_CurrentRead)},
@@ -116,8 +120,3 @@ const std::map<OpcUa_UInt32, std::pair<std::string, std::vector<std::tuple<std::
     {PAS_PanelType_ClearPlatformErrors, {"ClearPlatformErrors", {}}},
     {PAS_PanelType_Stop,                {"Stop",                {}}}
 };
-
-UaNodeId PanelObject::typeDefinitionId() const {
-    UaNodeId ret(PAS_PanelType, browseName().namespaceIndex());
-    return ret;
-}

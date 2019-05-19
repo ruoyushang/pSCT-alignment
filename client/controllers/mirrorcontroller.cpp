@@ -1,6 +1,6 @@
 #include "mirrorcontroller.hpp"
-#include "common/simulatestewart/mathtools.h"
-#include "common/simulatestewart/mirrordefinitions.h" // definitions of the mirror surfaces
+#include "common/simulatestewart/mathtools.hpp"
+#include "common/simulatestewart/mirrordefinitions.hpp" // definitions of the mirror surfaces
 #include "AGeoAsphericDisk.h" // ROBAST dependency
 #include <algorithm> // std::count
 #include <string>

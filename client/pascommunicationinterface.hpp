@@ -6,20 +6,22 @@
 #ifndef __PASCOMMUNICATIONINTERFACE_H__
 #define __PASCOMMUNICATIONINTERFACE_H__
 
-#include "uabase.h"
-#include "uastring.h"
-#include "statuscode.h"
-#include "uaarraytemplates.h"
-#include "pascominterfacecommon.hpp"
-#include <vector>
 #include <map>
 #include <string>
-#include <utility> // pair
+#include <utility>
+#include <vector>
 
+#include "uabase/statuscode.h"
+#include "uabase/uaarraytemplates.h"
+#include "uabase/uabase.h"
+#include "uabase/uastring.h"
 
 #include "common/alignment/device.hpp"
-#include "client/utilities/configuration.hpp"
+#include "common/opcua/pascominterfacecommon.hpp"
+
 #include "client/clienthelper.hpp"
+#include "client/utilities/configuration.hpp"
+
 
 class PasController;
 
