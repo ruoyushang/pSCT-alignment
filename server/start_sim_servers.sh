@@ -4,7 +4,7 @@ set -u
 # Script to start simulation mode servers.
 # Receives either a list of panel (position) numbers, or the option -a for all
 # when "all" is selected, it will read all panels from the database except
-# the test panels 0, 1, and any optical table panels (1001, 2001)
+# the test panels 3121, 3122, and any optical table panels (1001, 2001)
 
 function interrupt() {
   printf "\nKilling all servers and exiting...\n"
@@ -44,7 +44,7 @@ if ${all} ; then
 
     while read -r position;
     do
-         if [[ ${position} = "0" ]] || [[ ${position} = "1" ]] || [[ ${position:1:1} = "0" ]];
+         if [[ ${position} = "3121" ]] || [[ ${position} = "3122" ]] || [[ ${position:1:1} = "0" ]];
          then
              continue
          fi

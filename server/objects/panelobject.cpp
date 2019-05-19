@@ -103,8 +103,3 @@ const std::map<OpcUa_UInt32, std::pair<std::string, std::vector<std::tuple<std::
     {PAS_PanelType_ClearPlatformErrors, {"ClearPlatformErrors", {}}},
     {PAS_PanelType_Stop,                {"Stop",                {}}}
 };
-
-UaNodeId PanelObject::typeDefinitionId() const {
-    UaNodeId ret(PAS_PanelType, browseName().namespaceIndex());
-    return ret;
-}

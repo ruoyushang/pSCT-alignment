@@ -48,12 +48,12 @@ public:
         Device::Identity identity,
         PasCommunicationInterface *pCommIf) : PasObject(name, newNodeId, defaultLocaleId,
                                                         dynamic_cast<PasNodeManagerCommon *>(pNodeManager),
-                                                        identity,
+                                                        std::move(identity),
                                                         dynamic_cast<PasComInterfaceCommon *>(pCommIf)) { initialize(); }
 
     /// @brief Return the UaNodeId for the Panel object type definition node.
     /// @return The UaNodeId uniquely identifying the Panel object type node.
-    UaNodeId typeDefinitionId() const override;
+    UaNodeId typeDefinitionId() const override { return UaNodeId(PAS_PanelType, browseName().namespaceIndex()); }
 
     const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, OpcUa_Byte>>
     getVariableDefs() override { return PanelObject::VARIABLES; }
@@ -72,8 +72,6 @@ public:
 
     /// @brief Map of OPC UA type ids for all child methods to their name and number of arguments.
     static const std::map<OpcUa_UInt32, std::pair<std::string, std::vector<std::tuple<std::string, UaNodeId, std::string>>>> METHODS;
-
-    std::map<UaNodeId, std::pair<UaMethodGeneric *, OpcUa_UInt32>> m_MethodMap;
 };
 
 #endif //SERVER_PANELOBJECT_HPP

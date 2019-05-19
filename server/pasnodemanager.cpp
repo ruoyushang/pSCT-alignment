@@ -36,10 +36,12 @@ PasNodeManager::PasNodeManager() : PasNodeManagerCommon() {
 
 /// @details Takes ownership of the heap-allocated PasCommunicationInterface by calling release on
 /// the unique ptr and instantiating a new unique pointer.
-void PasNodeManager::setCommunicationInterface(std::unique_ptr<PasCommunicationInterface> &pCommIf) {
+UaStatus PasNodeManager::setCommunicationInterface(std::unique_ptr<PasCommunicationInterface> &pCommIf) {
     std::cout << "PasNodeManager: Setting communication interface\n";
     m_pCommIf = std::unique_ptr<PasComInterfaceCommon>(
             pCommIf.release()); // Note that we need to release the original unique pointer and make a new unique pointer
+
+    return OpcUa_Good;
 }
 
 /// @details Creates all default and custom type nodes. Creates folders for MPES and Actuators.

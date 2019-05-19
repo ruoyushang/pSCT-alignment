@@ -31,26 +31,17 @@
 #include "uaserver/uamodule.h"
 #include "uaserver/uasession.h"
 
+#include <iostream>
+
 #ifndef UA_BUILD_DATE_ZONE
 #define UA_BUILD_DATE_ZONE 1 // Must match UTC offset and daylight saving time at build date
 #endif /* UA_BUILD_DATE_ZONE */
 
-/** Class containing the private members for the OpcServer class. */
-class OpcServerPrivate
-{
-public:
-    OpcServerPrivate()
-    : m_pUaModule(NULL)
-    {}
-    ~OpcServerPrivate(){}
-
-    UaModule*          m_pUaModule;
-};
 
 /** Construction. */
 OpcServer::OpcServer()
 {
-    d = new OpcServerPrivate;
+    m_OpcServerPrivate = std::unique_ptr<OpcServerPrivate>(new OpcServerPrivate());
 }
 
 /** Destruction. */
@@ -61,15 +52,6 @@ OpcServer::~OpcServer()
         UaLocalizedText reason("en","Application shut down");
         stop(0, reason);
     }
-
-    if ( d->m_pUaModule )
-    {
-        delete d->m_pUaModule;
-        d->m_pUaModule = NULL;
-    }
-
-    delete d;
-    d = NULL;
 }
 
 UaStatus OpcServer::afterInitialize()
@@ -77,16 +59,16 @@ UaStatus OpcServer::afterInitialize()
     UaStatus ret;
 
     // Create and initialize UA server module
-    d->m_pUaModule = new UaModule;
+    m_OpcServerPrivate->m_pUaModule = std::unique_ptr<UaModule>(new UaModule());
     // Check if we have a specialized implementation provided by the application
-    UaServer *pUaServer = NULL;
+    UaServer *pUaServer = nullptr;
     UaServerApplicationCallback* pCallback = getServerApplicationCallback();
     if (pCallback)
     {
         pUaServer = pCallback->createUaServer();
     }
-    int result = d->m_pUaModule->initialize(getServerConfig(),pUaServer);
-    if ( 0 != result )
+    int result = m_OpcServerPrivate->m_pUaModule->initialize(getServerConfig(), pUaServer);
+    if (result != 0)
     {
         return OpcUa_BadInternalError;
     }
@@ -96,15 +78,12 @@ UaStatus OpcServer::afterInitialize()
 
 UaStatus OpcServer::afterStartUp()
 {
-    UaStatus ret;
+    UaStatus status;
     // Start UA server module
-    int result = d->m_pUaModule->startUp(getCoreModule());
-    if ( 0 != result )
+    int result = m_OpcServerPrivate->m_pUaModule->startUp(getCoreModule());
+    if (result != 0)
     {
-        d->m_pUaModule->shutDown();
-        delete d->m_pUaModule;
-        d->m_pUaModule = NULL;
-
+        m_OpcServerPrivate->m_pUaModule->shutDown();
         return OpcUa_BadInternalError;
     }
 
@@ -117,15 +96,15 @@ UaStatus OpcServer::afterStartUp()
         uaEndpointArray);
     if ( uaEndpointArray.length() > 0 )
     {
-        printf("***************************************************\n");
-        printf(" Server opened endpoints for following URLs:\n");
+        std::cout << "***************************************************\n";
+        std::cout << " Server opened endpoints for following URLs:\n";
         OpcUa_UInt32 idx;
         bool bError = false;
         for ( idx=0; idx<uaEndpointArray.length(); idx++ )
         {
             if ( uaEndpointArray[idx]->isOpened() )
             {
-                printf("     %s\n", uaEndpointArray[idx]->sEndpointUrl().toUtf8());
+                std::cout << "     " << uaEndpointArray[idx]->sEndpointUrl().toUtf8() << std::endl;
             }
             else
             {
@@ -134,23 +113,21 @@ UaStatus OpcServer::afterStartUp()
         }
         if ( bError )
         {
-            printf("\n");
-            printf("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
-            printf("!!!! The following endpoints URLs failed:\n");
+            std::cout << "\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n";
+            std::cout << "!!!! The following endpoints URLs failed:\n";
             for ( idx=0; idx<uaEndpointArray.length(); idx++ )
             {
-                if ( uaEndpointArray[idx]->isOpened() == false )
+                if (!uaEndpointArray[idx]->isOpened())
                 {
-                    printf("!!!! %s\n", uaEndpointArray[idx]->sEndpointUrl().toUtf8());
+                    std::cout << "!!!! " << uaEndpointArray[idx]->sEndpointUrl().toUtf8() << std::endl;
                 }
             }
-            printf("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
-            printf("\n");
+            std::cout << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n\n";
         }
-        printf("***************************************************\n");
+        std::cout << "***************************************************\n";
     }
 
-    return ret;
+    return status;
 }
 
 UaStatus OpcServer::beforeShutdown()
@@ -158,11 +135,9 @@ UaStatus OpcServer::beforeShutdown()
     UaStatus ret;
 
     // Stop UA server module
-    if ( d->m_pUaModule )
+    if (m_OpcServerPrivate->m_pUaModule)
     {
-        d->m_pUaModule->shutDown();
-        delete d->m_pUaModule;
-        d->m_pUaModule = NULL;
+        m_OpcServerPrivate->m_pUaModule->shutDown();
     }
 
     return ret;

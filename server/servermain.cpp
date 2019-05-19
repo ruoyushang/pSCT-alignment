@@ -32,7 +32,7 @@
 /// @brief Check the available disk space on the system.
 /// @param size Double to store the retrieved file system size (in GB).
 /// @return 0 on success and -1 on failure.
-int CheckSystem(double &size)
+int checkSystem(double &size)
 {
     struct statvfs sysBuf{};
     if (statvfs("/", &sysBuf) == 0) {
@@ -48,51 +48,50 @@ int CheckSystem(double &size)
 /// @param configFilePath The file path to the server configuration file.
 /// @param serverIP The IP address for the server endpoint.
 /// @return 0 on success and -1 on failure.
-int OpcServerMain(const std::string &szAppPath, const std::string &configFilePath, const std::string &panelNumber) {
-    int ret;
+int OpcServerMain(const std::string &szAppPath, const std::string &configFilePath,
+                  const std::string &panelNumber, const std::string &endpointUrl = "") {
+
+    UaStatus status;
 
 #if SUPPORT_XML_PARSER
     UaXmlDocument::initParser(); // initialize the XML Parser
 #endif
 
-    ret = UaPlatformLayer::init(); // initialize the UA Stack platform layer
+    if (UaPlatformLayer::init() == 0) {
+        UaString sAppPath(szAppPath.c_str());
+        UaString sConfigFileName(configFilePath.c_str());
 
-    if (ret == 0) {
-        UaString sAppPath(szAppPath.c_str()); // Set server app path
-        UaString sConfigFileName(configFilePath.c_str()); // Set config filename
-
-	std::cout << "Creating OpcServer object..." << std::endl;
+        std::cout << "Creating OpcServer object..." << std::endl;
+        // initialize and configure server object
         std::unique_ptr<OpcServer> pServer = std::unique_ptr<OpcServer>(
-                new OpcServer()); // initialize and configure server object
+            new OpcServer());
         pServer->setServerConfig(sConfigFileName, sAppPath);
 
-        /**
-        Get config and overwrite endpoint URL
-        UaEndpointArray endpoints;
-        OpcUa_UInt32 rejected_certificates_count = 1;
-        ServerConfig *pConfig = pServer->getServerConfig();
-        pConfig->loadConfiguration();
-        pConfig->getEndpointConfiguration(sAppPath, rejected_certificates_count, endpoints);
-        printf("Number of endpoints: %d\n", endpoints.length());
-        endpoints[0]->setEndpointUrl(sEndpointUrl, false);
-        */
+        if (!endpointUrl.empty()) {
+            UaString sEndpointUrl(endpointUrl.c_str());
+            UaEndpointArray endpoints;
+            OpcUa_UInt32 rejected_certificates_count = 1;
+            ServerConfig *pConfig = pServer->getServerConfig();
+            pConfig->loadConfiguration();
+            pConfig->getEndpointConfiguration(sAppPath, rejected_certificates_count, endpoints);
+            std::cout << "Setting endpoint address to: " << sEndpointUrl.toUtf8() << std::endl;
+            endpoints[0]->setEndpointUrl(sEndpointUrl, false);
+        }
 
-	std::cout << "Creating Communication Interface..." << std::endl;
+        std::cout << "Creating Communication Interface..." << std::endl;
         std::unique_ptr<PasCommunicationInterface> pCommIf = std::unique_ptr<PasCommunicationInterface>(
                 new PasCommunicationInterface()); // Initialize communication interface
         pCommIf->setPanelNumber(std::stoi(panelNumber));
-        UaStatus retStatus = pCommIf->initialize();
-        UA_ASSERT(retStatus.isGood());
+        status = pCommIf->initialize();
+        UA_ASSERT(status.isGood());
 
-	std::cout << "Creating Node Manager..." << std::endl;
+        std::cout << "Creating Node Manager..." << std::endl;
         std::unique_ptr<PasNodeManager> pNodeManager = std::unique_ptr<PasNodeManager>(
                 new PasNodeManager()); // Create Node Manager for the server
-        pNodeManager->setCommunicationInterface(pCommIf); // set its communication interface
-
+        status = pNodeManager->setCommunicationInterface(pCommIf); // set its communication interface
         pServer->addNodeManager(pNodeManager.release()); // Add node manager to server
 
-        ret = pServer->start();
-        if (ret == 0) {
+        if (pServer->start() == 0) {
             std::cout << "***************************************************\n";
             std::cout << " Press " << SHUTDOWN_SEQUENCE << " to shut down server\n";
             std::cout << "***************************************************\n";
@@ -115,8 +114,11 @@ int OpcServerMain(const std::string &szAppPath, const std::string &configFilePat
 #if SUPPORT_XML_PARSER
     UaXmlDocument::cleanupParser(); // Clean up the XML Parser
 #endif
-
-    return ret;
+    if (status.isGood()) {
+        return 0;
+    } else {
+        return -1;
+    }
 }
 
 /// @brief Start the server.
@@ -130,30 +132,38 @@ int main(int argc, char* argv[])
 #endif
 {
     if (argc == 1) {
-        std::cout << "Usage: " << argv[0] << " <PANEL POSITION NUMBER> -c <CONFIG FILE PATH>\n";
+        std::cout << "Usage: " << argv[0]
+                  << " <PANEL POSITION NUMBER> -c <CONFIG FILE PATH (optional)> -u <ENDPOINT URL (optional)>\n";
         return -1;
     }
 
     int c;
-    std::string panelNumber, configFilePath;
+    std::string panelNumber, configFilePath, endpointUrl;
 
-    while ((c = getopt (argc, argv, "c:")) != -1) {
+    while ((c = getopt(argc, argv, "c:u:")) != -1) {
         switch(c)
         {
             case 'c':
                 configFilePath = optarg;
                 break;
+            case 'u':
+                endpointUrl = optarg;
+                break;
             case '?':
                 if (optopt == 'c')
                     std::cout << "Must provide a config file path with option c\n";
+                else if (optopt == 'u')
+                    std::cout << "Must provide an endpoint URL with option u\n";
             default:
                 abort();
         }
     }
 
     if (optind != argc - 1) {
-        std::cout << "Invalid number of positional arguments: " << (argc - optind) << std::endl;
-        std::cout << "Usage: " << argv[0] << " <PANEL POSITION NUMBER> -c <CONFIG FILE PATH>\n";
+        std::cout << "Invalid number of positional arguments: " << (argc - optind)
+                  << ". Expected only 1 (panel number)." << std::endl;
+        std::cout << "Usage: " << argv[0]
+                  << " <PANEL POSITION NUMBER> -c <CONFIG FILE PATH> -u <ENDPOINT URL (optional)>\n";
         return -1;
     } else {
         panelNumber = argv[optind];
@@ -175,7 +185,7 @@ int main(int argc, char* argv[])
 
     double sysFree;
     std::cout << "********************SYSTEM INFO********************\n";
-    if (!CheckSystem(sysFree)) // check available disk space
+    if (!checkSystem(sysFree)) // check available disk space
         std::cout << " Free disk space: " << sysFree << "GB\n";
     else {
         std::cout << " Failed to stat \"/\": terminating\n";
@@ -184,7 +194,7 @@ int main(int argc, char* argv[])
     std::cout << "***************************************************\n";
     RegisterSignalHandler();
 
-    int ret = OpcServerMain(pszAppPath, configFilePath, panelNumber);
+    int ret = OpcServerMain(pszAppPath, configFilePath, panelNumber, endpointUrl);
 
     delete[] pszAppPath; // release pszAppPath memory manually
 

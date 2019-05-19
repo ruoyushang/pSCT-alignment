@@ -11,6 +11,7 @@
 #include <memory>
 #include <stdexcept>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "common/alignment/actuator.hpp"
@@ -159,11 +160,6 @@ UaStatus PasCommunicationInterface::initialize() {
         if (devCount.second > 0)
             std::cout << "Attempting to create their virtual counterparts...\n";
 
-        // If the device type does not already exist in the m_pControllers map, add it
-        if (m_pControllers.count(devCount.first) == 0) {
-            m_pControllers[devCount.first] = std::map<Device::Identity, std::shared_ptr<PasControllerCommon>>();
-        }
-
         int failed;
         int pos;
         std::shared_ptr<PasControllerCommon> pController;
@@ -177,8 +173,11 @@ UaStatus PasCommunicationInterface::initialize() {
                     std::make_shared<PanelController>(identity, m_platform));
             } else if (devCount.first == PAS_MPESType) {
                 pos = mpesPositions.at(i);
+                std::cout << pos << std::endl;
                 identity.name = std::string("MPES_") + std::to_string(mpesPositionToSerial.at(pos));
+                std::cout << mpesPositionToSerial.at(pos) << std::endl;
                 identity.serialNumber = mpesPositionToSerial.at(pos);
+                std::cout << mpesPositionToPort.at(pos) << std::endl;
                 identity.eAddress = std::to_string(mpesPositionToPort.at(pos));
                 identity.position = pos;
                 pController = std::dynamic_pointer_cast<PasControllerCommon>(
@@ -205,7 +204,7 @@ UaStatus PasCommunicationInterface::initialize() {
                 std::cout << "PasCommunicationInterface:: Invalid device type found.\n";
             }
             if (pController->initialize()) {
-                m_pControllers.at(devCount.first).emplace(identity, pController);
+                m_pControllers[devCount.first].insert(std::make_pair(identity, pController));
             } else {
                 std::cout << "Could not initialize " << deviceTypes.at(devCount.first)
                           << " with identity " << identity << std::endl;
@@ -223,7 +222,7 @@ UaStatus PasCommunicationInterface::initialize() {
     try {
         if (m_pControllers[PAS_PanelType].size() != 1) {
             std::cout << "Error: " << m_pControllers[PAS_PanelType].size()
-                      << " panel(s) found. There should be only 1 per server." << std::endl;
+                      << " panel(s) found. There should be exactly 1 per server." << std::endl;
             return OpcUa_Bad;
         }
         std::shared_ptr<PanelController> pPanel = std::dynamic_pointer_cast<PanelController>(

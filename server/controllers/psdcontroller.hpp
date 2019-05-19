@@ -27,9 +27,6 @@ public:
     /// @param ID The device ID (index) used to identify it within its parent panel/platform.
     explicit PSDController(Device::Identity identity);
 
-    /// @brief Destroy a position sensitive device controller.
-    ~PSDController() override {};
-
     /// @brief Get the device's state.
     /// @param state Variable to store the retrieved state value.
     /// @return OPC UA status code indicating success or failure.

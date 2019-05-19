@@ -3,8 +3,6 @@
  * @brief Source file for position sensitive device controller class
  */
 
-#ifndef _AMD64
-
 #include <chrono>
 #include <iostream>
 #include <memory>
@@ -28,7 +26,7 @@
 
 /// @details By default, sets the update interval to 500 ms. Creates a new GASPSD object,
 /// sets its port, and initializes. Sets its state to On.
-PSDController::PSDController(Device::Identity identity) : PasController(identity, 500)
+PSDController::PSDController(Device::Identity identity) : PasController(std::move(identity), 500)
 {
     m_pPSD = std::unique_ptr<GASPSD>(new GASPSD());
     m_pPSD->setPort();
@@ -107,5 +105,3 @@ UaStatus PSDController::read()
         return OpcUa_BadOutOfService;
     }
 }
-
-#endif

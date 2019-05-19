@@ -31,7 +31,7 @@ class PasCommunicationInterface : public PasComInterfaceCommon {
 public:
 
     /// @brief Instantiate a communication interface object.
-    PasCommunicationInterface() = default;
+    PasCommunicationInterface() : m_panelNum(-1), m_cbcID(-1) {};
 
     /// @brief Destroy a communication interface object.
     ~PasCommunicationInterface() override { std::cout << "Closed and cleaned up Communication Interface\n"; }

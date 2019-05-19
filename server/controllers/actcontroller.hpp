@@ -26,10 +26,9 @@ public:
     /// @brief Instantiate an actuator device controller object.
     /// @param ID The integer index of the device within its type.
     /// @param pPlatform Pointer to platform object used to interface directly with hardware.
-    ActController(Device::Identity identity, std::shared_ptr<Platform> pPlatform) : PasController(identity,
-                                                                                                  pPlatform) {};
-    /// @brief Destroy an actuator device controller object.
-    ~ActController() override {}
+    ActController(Device::Identity identity, std::shared_ptr<Platform> pPlatform) : PasController(std::move(identity),
+                                                                                                  std::move(
+                                                                                                      pPlatform)) {}
 
     /// @brief Get the internal state of the actuator device.
     /// @param state Variable to store the retrieved state value.

@@ -54,7 +54,7 @@ UaStatus MPESController::setState(Device::DeviceState state) {
 }
 /// @details Sets exposure for this MPES.
 bool MPESController::initialize() {
-    int intensity = m_pPlatform->getMPESbyIdentity(m_ID)->setExposure();
+    m_pPlatform->getMPESbyIdentity(m_ID)->setExposure();
     return true;
 }
 
