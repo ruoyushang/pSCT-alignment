@@ -5,22 +5,24 @@
 ******************************************************************************/
 #include "client/controllers/positionercontroller.hpp"
 
-#include "passervertypeids.hpp"
-#include "client/clienthelper.hpp"
-#include "common/alignment/device.hpp"
-#include "stdlib.h"
-#include <vector>
-#include <sstream>
-#include <iostream>
-#include <fstream>
 #include <cmath>
+#include <cstdlib>
+#include <fstream>
+#include <iostream>
+#include <sstream>
 #include <string>
 #include <unistd.h>
+#include <vector>
+
+#include "common/alignment/device.hpp"
+#include "common/opcua/passervertypeids.hpp"
+
+#include "client/clienthelper.hpp"
 
 
 PositionerController::PositionerController(Device::Identity identity, std::shared_ptr<Client> pClient) : PasController(
-    identity,
-    pClient)
+    std::move(identity),
+    std::move(pClient)), m_Data()
 {
     m_state = Device::DeviceState::On;
     m_Data = {0.0, 0.0, 0.0, 0.0, OpcUa_False};

@@ -7,9 +7,9 @@
 #include "uabase/uastring.h"
 #include "uabase/uavariant.h"
 
-#include "client/controllers/pascontroller.hpp"
 #include "client/controllers/edgecontroller.hpp"
 #include "client/controllers/mirrorcontroller.hpp"
+#include "client/controllers/pascontroller.hpp"
 
 
 class MPESController : public PasController {
@@ -22,21 +22,21 @@ public:
     /* construction / destruction */
     MPESController(Device::Identity identity, std::shared_ptr<Client> pClient);
 
-    ~MPESController();
+    ~MPESController() override;
 
     /* Get Controller status and data */
-    UaStatus getState(Device::DeviceState &state);
+    UaStatus getState(Device::DeviceState &state) override;
 
-    UaStatus getData(OpcUa_UInt32 offset, UaVariant &value);
+    UaStatus getData(OpcUa_UInt32 offset, UaVariant &value) override;
 
     UaStatus getError(OpcUa_UInt32 offset, UaVariant &value);
 
     /* set Controller status and data */
-    UaStatus setState(Device::DeviceState state);
+    UaStatus setState(Device::DeviceState state) override;
 
-    UaStatus setData(OpcUa_UInt32 offset, UaVariant value);
+    UaStatus setData(OpcUa_UInt32 offset, UaVariant value) override;
 
-    UaStatus operate(OpcUa_UInt32 offset, const UaVariantArray &args = UaVariantArray());
+    UaStatus operate(OpcUa_UInt32 offset, const UaVariantArray &args = UaVariantArray()) override;
 
     // test if current panel is this sensor's webcam-side panel
     char getPanelSide(unsigned panelpos);

@@ -42,7 +42,7 @@ private:
 
     UaStatus read();
 
-    GASCCD *m_pCCD;
+    std::unique_ptr<GASCCD> m_pCCD;
 };
 
 #endif //ALIGNMENT_CCDCONTROLLER_HPP

@@ -1,21 +1,24 @@
-#include "pascontroller.hpp"
-#include "ccdclass.h"
-#include "client/clienthelper.hpp"
-#include "common/alignment/device.hpp"
-#include "common/opcua/pasobject.hpp"
-#include <iostream>
-#include <fstream>
-#include <sstream>
-#include <string>
+#include "client/controllers/pascontroller.hpp"
+
 #include <algorithm>
 #include <cstdlib> // system
+#include <fstream>
+#include <iostream>
+#include <sstream>
+#include <string>
 #include <unistd.h> // usleep
 #include <utility> // make_pair
+
+#include "common/alignment/device.hpp"
+#include "common/globalalignment/ccdclass.h"
+#include "common/opcua/pasobject.hpp"
+#include "common/utilities/DBConfig.hpp"
+
+#include "client/clienthelper.hpp"
 
 // MySQL C++ Connector includes
 #include "mysql_driver.h"
 #include "cppconn/statement.h"
-#include "DBConfig.hpp"
 
 #include <Eigen/Dense>
 

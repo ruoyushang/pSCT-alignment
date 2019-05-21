@@ -1,28 +1,20 @@
 #include "client/controllers/psdcontroller.hpp"
 
-#include "client/clienthelper.hpp"
-
 #include <algorithm>
 #include <vector>
 #include <string>
 
 #include "common/alignment/device.hpp"
 
+#include "client/clienthelper.hpp"
+
+
 // 500 ms update interval for PSDs
 int PSDController::kUpdateInterval = 500;
 
 PSDController::PSDController(Device::Identity identity, std::shared_ptr<Client> pClient) :
-    PasController(identity, pClient, kUpdateInterval) {
+    PasController(std::move(identity), std::move(pClient), kUpdateInterval), m_Data() {
     m_state = Device::DeviceState::On;
-    m_Data = {0.0,
-              0.0,
-              0.0,
-              0.0,
-              0.0,
-              0.0,
-              0.0,
-              0.0,
-              0.0};
     std::cout << "PSDController: update interval set to " << m_kUpdateInterval_ms << " ms" << std::endl;
 
     m_lastUpdateTime = TIME::now() - std::chrono::duration<int, std::ratio<1, 1000>>(m_kUpdateInterval_ms);

@@ -1,15 +1,17 @@
 #ifndef CLIENT_POSITIONERCONTROLLER_HPP
 #define CLIENT_POSITIONERCONTROLLER_HPP
 
-#include "uabase.h"
-#include "statuscode.h"
-#include "client/controllers/pascontroller.hpp"
-#include "pascommunicationinterface.hpp"
-#include "uamutex.h"
+#include "uabase/statuscode.h"
+#include "uabase/uabase.h"
+#include "uabase/uamutex.h"
+
 #include "common/alignment/device.hpp"
 
-class Client;
+#include "client/controllers/pascontroller.hpp"
+#include "client/pascommunicationinterface.hpp"
 
+
+class Client;
 
 class PositionerController : public PasController {
     UA_DISABLE_COPY(PositionerController);

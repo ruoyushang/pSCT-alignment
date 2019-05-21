@@ -5,10 +5,11 @@
 #include "uabase/uabase.h"
 #include "uabase/uavariant.h"
 
+#include "common/alignment/device.hpp"
+
 #include "client/controllers/pascontroller.hpp"
 #include "client/controllers/panelcontroller.hpp"
 
-#include "common/alignment/device.hpp"
 
 class Client;
 

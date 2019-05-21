@@ -1,8 +1,9 @@
 #ifndef ALIGNMENT_PSDCONTROLLER_HPP
 #define ALIGNMENT_PSDCONTROLLER_HPP
 
-#include "client/controllers/pascontroller.hpp"
 #include "client/controllers/mirrorcontroller.hpp"
+#include "client/controllers/pascontroller.hpp"
+
 
 class PSDController : public PasController {
     UA_DISABLE_COPY(PSDController);

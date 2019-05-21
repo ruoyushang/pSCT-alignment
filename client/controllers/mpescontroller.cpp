@@ -1,21 +1,25 @@
 #include "client/controllers/mpescontroller.hpp"
 
-#include "common/utilities/DBConfig.hpp"
-#include "client/clienthelper.hpp"
+#include <fstream>
+
 #include "common/opcua/pasobject.hpp"
+#include "common/utilities/DBConfig.hpp"
+
+#include "client/clienthelper.hpp"
 
 #include "mysql_driver.h"
 #include "cppconn/statement.h"
 
-#include <fstream>
 
 float MPESController::kNominalIntensity = 150000.;
 float MPESController::kNominalSpotWidth = 10.;
 
 MPESController::MPESController(Device::Identity identity, std::shared_ptr<Client> pClient) : PasController(
-    identity,
-    pClient),
-                                                                                             m_updated(false), m_isVisible(false) {
+    std::move(identity),
+    std::move(pClient)),
+                                                                                             m_updated(false),
+                                                                                             m_isVisible(false),
+                                                                                             m_Data() {
     m_state = Device::DeviceState::On;
     m_Data = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
 
@@ -72,11 +76,14 @@ MPESController::MPESController(Device::Identity identity, std::shared_ptr<Client
         }
 
         // print out the loaded values
-        //std::cout << "\t Aligned readings:\n" << m_AlignedReadings << std::endl;
+        /**
+        std::cout << "\t Aligned readings:\n" << m_AlignedReadings << std::endl;
         for (const auto &matrixPair : m_ResponseMatMap)
         {
             //std::cout << "\t " << matrixPair.first << "-side response matrix:\n" << matrixPair.second << std::endl;
         }
+        */
+
         // pass the aligned readings on to the server
         UaVariant value;
         value.setDouble(m_AlignedReadings(0));

@@ -1,16 +1,16 @@
 #ifndef __PASMIRROR_H__
 #define __PASMIRROR_H__
 
-#include "client/controllers/pascontroller.hpp"
-#include "TObject.h" // to be able to use ROOT's MINUIT implementation
-// these are included in pascontroller.h, but we add them just in case something changes there
-#include "common/simulatestewart/stewartplatform.hpp"
-
 #include <set>
-// Eigen3 for linear algebra needs
-#include <Eigen/Dense>
+
+#include "TObject.h" // to be able to use ROOT's MINUIT implementation
+
+#include <Eigen/Dense> // Eigen3 for linear algebra needs
 
 #include "common/alignment/device.hpp"
+#include "common/simulatestewart/stewartplatform.hpp"
+
+#include "client/controllers/pascontroller.hpp"
 
 class AGeoAsphericDisk;
 
@@ -79,7 +79,6 @@ protected:
     virtual double chiSq(const Eigen::VectorXd &telDelta);
 
 private:
-    int m_kUpdateInterval = 10000;
     double m_safetyRadius = 60.0;
 
     std::set<unsigned> m_selectedPanels;
@@ -98,12 +97,11 @@ private:
     // Align all edges fron need_alignment starting at start_idx and  moving in the direction dir
     UaStatus alignSequential(unsigned startEdge, const std::set<unsigned> &selectedEdges, bool dir);
 
-    UaStatus alignSector(const std::set<unsigned> &selectedPanels, const std::set<unsigned> &selectedMPES,
-                     double alignFrac = 0.25, bool execute=false);
+    UaStatus alignSector(double alignFrac = 0.25, bool execute = false);
 
     UaStatus alignGlobal(unsigned fixPanel, double alignFrac = 0.25, bool execute=false);
 
-    UaStatus moveToCoords(Eigen::VectorXd targetCoords, bool execute=false);
+    UaStatus moveToCoords(const Eigen::VectorXd &targetCoords, bool execute = false);
 
     // mirror coords -- x/y/z, xRot, yRot, zRot
     Eigen::VectorXd m_curCoords, m_curCoordsErr, m_sysOffsetsMPES;

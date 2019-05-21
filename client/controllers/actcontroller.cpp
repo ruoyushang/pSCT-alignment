@@ -9,16 +9,16 @@
 #include "uabase/uastring.h"
 #include "uabase/uavariant.h"
 
+#include "common/alignment/device.hpp"
 #include "common/opcua/pascominterfacecommon.hpp"
 #include "common/opcua/pasobject.hpp"
 #include "common/opcua/passervertypeids.hpp"
 
 #include "client/clienthelper.hpp"
-#include "common/alignment/device.hpp"
 #include "client/controllers/pascontroller.hpp"
 
 ActController::ActController(Device::Identity identity, std::shared_ptr<Client> pClient) : PasController(
-    identity, pClient) {
+    std::move(identity), std::move(pClient)) {
     m_state = Device::DeviceState::On;
 }
 

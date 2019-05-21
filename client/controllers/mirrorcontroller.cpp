@@ -1,29 +1,27 @@
-#include "mirrorcontroller.hpp"
-#include "common/simulatestewart/mathtools.hpp"
-#include "common/simulatestewart/mirrordefinitions.hpp" // definitions of the mirror surfaces
-#include "AGeoAsphericDisk.h" // ROBAST dependency
-#include <algorithm> // std::count
-#include <string>
-#include <iostream>
+#include "client/controllers/mirrorcontroller.hpp"
+
+#include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <deque>
-#include <chrono>
+#include <iostream>
+#include <string>
+
+#include "AGeoAsphericDisk.h" // ROBAST dependency
 #include "TMinuit.h" // ROOT's implementation of MINUIT for chiSq minimization
 
-
-// implementation of the mirror class that controls the whole mirror.
-// math, algorithms and all that coordinate stuff go here
-
 #include "common/alignment/device.hpp"
+#include "common/simulatestewart/mathtools.hpp"
+#include "common/simulatestewart/mirrordefinitions.hpp" // definitions of the mirror surfaces
 
-#include "client/controllers/panelcontroller.hpp"
-#include "client/controllers/mpescontroller.hpp"
 #include "client/controllers/edgecontroller.hpp"
+#include "client/controllers/mpescontroller.hpp"
+#include "client/controllers/panelcontroller.hpp"
 #include "client/controllers/pascontroller.hpp"
 
 MirrorController *MirrorControllerCompute::m_Mirror = nullptr;
 
-MirrorController::MirrorController(Device::Identity identity) : PasCompositeController(identity, nullptr,
+MirrorController::MirrorController(Device::Identity identity) : PasCompositeController(std::move(identity), nullptr,
                                                                                        10000),
                                                                 m_pSurface(nullptr) {
     std::string mirrorprefix;
@@ -392,7 +390,7 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
         double alignFrac = args[0].Value.Double;
         bool execute = args[1].Value.Boolean;
 
-        status = alignSector(selectedPanels, selectedMPES, alignFrac, execute);
+        status = alignSector(alignFrac, execute);
         updateCoords(false);
     }
 
@@ -515,7 +513,7 @@ UaStatus MirrorController::readPositionAll(bool print) {
     return status;
 }
 
-UaStatus MirrorController::moveToCoords(Eigen::VectorXd targetMirrorCoords, bool execute) {
+UaStatus MirrorController::moveToCoords(const Eigen::VectorXd &targetMirrorCoords, bool execute) {
     UaStatus status;
     
     if (!execute) {
@@ -924,8 +922,7 @@ Eigen::MatrixXd MirrorController::__computeSystematicsMatrix(unsigned pos1, unsi
     return res;
 }
 
-UaStatus MirrorController::alignSector(const std::set<unsigned> &selectedPanels, const std::set<unsigned> &selectedMPES,
-                              double alignFrac, bool execute) {
+UaStatus MirrorController::alignSector(double alignFrac, bool execute) {
 
     UaStatus status;
  
@@ -983,9 +980,9 @@ UaStatus MirrorController::alignSector(const std::set<unsigned> &selectedPanels,
             std::cout << "\nNo user-speficied internal MPES." << std::endl;
             std::cout << "Reading the automatically identfied internal MPES:" << std::endl;
             // only read the internal MPES if no user-specified ones have been found
-            for (const auto &idx: overlapIndices) {
+            for (const auto &i: overlapIndices) {
                 std::shared_ptr<MPESController> mpes = std::dynamic_pointer_cast<MPESController>(
-                    m_pChildren.at(PAS_MPESType).at(idx));
+                    m_pChildren.at(PAS_MPESType).at(i));
                 mpes->read(false);
                 if (mpes->isVisible())
                     alignMPES.push_back(mpes);
@@ -1437,7 +1434,7 @@ Eigen::Vector3d MirrorController::__moveInCurrentRF(const Eigen::Vector3d &in_ve
     if (tr_coords.size() != 6)
         tr.tail(6 - tr_coords.size()).setZero();
 
-    Eigen::Vector3d out_vec = std::move(in_vec);
+    Eigen::Vector3d out_vec = in_vec;
     // compute the transform due to the change in TRF: Rot(z -> x -> y)*v + T
     out_vec = __rotMat(2, tr(5)) * out_vec;
     out_vec = __rotMat(0, tr(3)) * out_vec;

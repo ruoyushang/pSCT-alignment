@@ -3,11 +3,12 @@
 
 #include <Eigen/Dense>
 
-#include "client/controllers/pascontroller.hpp"
-#include "client/controllers/mirrorcontroller.hpp"
-#include "client/controllers/edgecontroller.hpp"
-
 #include "common/alignment/device.hpp"
+
+#include "client/controllers/edgecontroller.hpp"
+#include "client/controllers/mirrorcontroller.hpp"
+#include "client/controllers/pascontroller.hpp"
+
 
 class PanelController : public PasCompositeController {
     UA_DISABLE_COPY(PanelController);
@@ -47,8 +48,6 @@ public:
     void updateCoords(bool printout = false);
 
 private:
-    int m_kUpdateInterval = 1000;
-
     // x, y, z, xRot, yRot, zRot
     double m_curCoords[6] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
 

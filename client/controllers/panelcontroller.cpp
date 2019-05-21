@@ -1,17 +1,18 @@
 #include "client/controllers/panelcontroller.hpp"
 
-#include <string>
 #include <chrono>
+#include <string>
 
 #include <Eigen/Dense>
 
+#include "common/alignment/device.hpp"
+
 #include "client/clienthelper.hpp"
 #include "client/objects/panelobject.hpp"
-#include "common/alignment/device.hpp"
 
 
 PanelController::PanelController(Device::Identity identity, std::shared_ptr<Client> pClient) :
-    PasCompositeController(identity, pClient, 1000) {
+    PasCompositeController(std::move(identity), std::move(pClient), 1000) {
     m_ID.name = std::string("Panel_") + std::to_string(m_ID.position);
     m_state = Device::DeviceState::On;
     m_SP.SetPanelType(StewartPlatform::PanelType::OPT);
@@ -177,8 +178,6 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
         updateCoords();
     }
 
-    auto &pACT = m_pChildren.at(PAS_ACTType);
-
     /************************************************
      * move actuators to the preset lengths         *
      * **********************************************/
@@ -322,7 +321,7 @@ bool PanelController::checkForCollision(const Eigen::VectorXd &deltaLengths) {
     bool collision = false;
     if (m_pChildren.count(PAS_EdgeType) > 0) {
         std::cout << m_pChildren.count(PAS_EdgeType) << " edges found." << std::endl;
-        for (auto e : m_pChildren.at(PAS_EdgeType)) {
+        for (const auto &e : m_pChildren.at(PAS_EdgeType)) {
             std::shared_ptr<EdgeController> edge = std::dynamic_pointer_cast<EdgeController>(e);
             M_response = edge->getResponseMatrix(m_ID.position);
             Sen_current = edge->getCurrentReadings();

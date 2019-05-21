@@ -1,10 +1,11 @@
 #ifndef __PASCONTROLLER_H__
 #define __PASCONTROLLER_H__
 
-#include "client/pascommunicationinterface.hpp"
-#include "passervertypeids.hpp"
-#include "common/simulatestewart/stewartplatform.hpp"
-#include "common/alignment/device.hpp"
+#include <chrono>
+#include <iostream>
+#include <map>
+#include <set>
+#include <vector>
 
 #include "uabase/statuscode.h"
 #include "uabase/uabase.h"
@@ -12,13 +13,13 @@
 #include "uabase/uastring.h"
 #include "uabase/uavariant.h"
 
-#include <vector>
-#include <set>
-#include <map>
-#include <chrono>
-#include <iostream>
-
+#include "common/alignment/device.hpp"
 #include "common/opcua/pascontrollercommon.hpp"
+#include "common/opcua/passervertypeids.hpp"
+#include "common/simulatestewart/stewartplatform.hpp"
+
+#include "client/pascommunicationinterface.hpp"
+
 
 class Client;
 
@@ -28,9 +29,9 @@ class PasController : public PasControllerCommon
 public:
     /* construction / destruction */
     PasController(Device::Identity identity, std::shared_ptr<Client> pClient, int updateInterval = 0)
-        : PasControllerCommon(identity,
+        : PasControllerCommon(std::move(identity),
                               updateInterval),
-          m_pClient(pClient) {};
+          m_pClient(std::move(pClient)) {}
 
 protected:
     std::shared_ptr<Client> m_pClient;
@@ -43,7 +44,7 @@ class PasCompositeController : public PasController
 {
     public:
     PasCompositeController(Device::Identity identity, std::shared_ptr<Client> pClient, int updateInterval = 0) :
-        PasController(identity, pClient, updateInterval) {};
+        PasController(std::move(identity), std::move(pClient), updateInterval) {}
 
     ~PasCompositeController() override = default;
 
