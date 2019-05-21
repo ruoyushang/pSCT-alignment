@@ -19,13 +19,13 @@
 #include "common/opcua/pasobject.hpp"
 #include "common/utilities/DBConfig.hpp"
 
-#include <mysql_connection.h>
-#include <mysql_driver.h>
+#include "mysql_connection.h"
+#include "mysql_driver.h"
 
-#include <cppconn/driver.h>
-#include <cppconn/exception.h>
-#include <cppconn/resultset.h>
-#include <cppconn/statement.h>
+#include "cppconn/driver.h"
+#include "cppconn/exception.h"
+#include "cppconn/resultset.h"
+#include "cppconn/statement.h"
 
 MPESController::MPESController(Device::Identity identity, std::shared_ptr<Platform> pPlatform)
     : PasController::PasController(std::move(identity), std::move(pPlatform)) {
@@ -68,7 +68,6 @@ MPESController::MPESController(Device::Identity identity, std::shared_ptr<Platfo
         // close the connection!
         sql_conn->close();
         delete sql_conn;
-        sql_driver->threadEnd();
     }
     catch (sql::SQLException &e) {
         std::cout << "# ERR: SQLException in " << __FILE__;
