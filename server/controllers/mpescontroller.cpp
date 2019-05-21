@@ -183,7 +183,7 @@ UaStatus MPESController::operate(OpcUa_UInt32 offset, const UaVariantArray &args
 UaStatus MPESController::read() {
     //UaMutexLocker lock(&m_mutex);
 
-    if (_getState() == Device::DeviceState::On) {
+    if (_getState() == Device::DeviceState::On || _getState() == Device::DeviceState::OperableError) {
         std::cout << "\nReading MPES " << m_ID << std::endl;
         m_pPlatform->getMPESbyIdentity(m_ID)->updatePosition();
         m_updated = true;

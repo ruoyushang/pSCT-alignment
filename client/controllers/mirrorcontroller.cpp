@@ -484,7 +484,7 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
                 for (const auto &mpes : std::dynamic_pointer_cast<PanelController>(*it)->getChildren(
                     PAS_MPESType)) {
                     if (m_selectedMPES.find(mpes->getId().serialNumber) != m_selectedMPES.end()) {
-                        mpes->operate(PAS_MPESType_Read);
+                        std::dynamic_pointer_cast<MPESController>(mpes)->read(false);
                         readings.insert(std::make_pair(mpes->getId(), std::dynamic_pointer_cast<MPESController>(
                             mpes)->getPosition()));
                     }
