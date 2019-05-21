@@ -11,6 +11,8 @@
 #include "client/controllers/mirrorcontroller.hpp"
 #include "client/controllers/pascontroller.hpp"
 
+#include "common/alignment/mpes.hpp"
+
 
 class MPESController : public PasController {
     UA_DISABLE_COPY(MPESController);
@@ -51,18 +53,12 @@ public:
 
     const Eigen::Vector2d &getSystematicOffsets() const { return SystematicOffsets; }
 
+    MPES::Position getPosition() { return m_Data; }
+
 private:
     bool m_updated;
     bool m_isVisible;
-    struct MPESData {
-        OpcUa_Double xCentroidAvg;
-        OpcUa_Double yCentroidAvg;
-        OpcUa_Double xCentroidSpotWidth;
-        OpcUa_Double yCentroidSpotWidth;
-        OpcUa_Double CleanedIntensity;
-        OpcUa_Double xNominal;
-        OpcUa_Double yNominal;
-    } m_Data;
+    MPES::Position m_Data;
     static float kNominalIntensity;
     static float kNominalSpotWidth;
 

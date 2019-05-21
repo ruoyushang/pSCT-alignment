@@ -51,9 +51,11 @@ const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean>> 
 };
 
 const std::map<OpcUa_UInt32, std::pair<std::string, std::vector<std::tuple<std::string, UaNodeId, std::string>>>> MirrorObject::METHODS = {
-    {PAS_MirrorType_ReadPosition,    {"ReadPosition",    {}}},
-    {PAS_MirrorType_ReadSensors,     {"ReadSensors",     {}}},
-    {PAS_MirrorType_MoveToCoords,    {"MoveToCoords",    {
+    {PAS_MirrorType_ReadPosition,        {"ReadPosition",        {}}},
+    {PAS_MirrorType_ReadSensors,         {"ReadSensors",         {}}},
+    {PAS_MirrorType_ReadSensorsParallel, {"ReadSensorsParallel", {}}},
+    {PAS_MirrorType_SelectAll,           {"SelectAll",           {}}},
+    {PAS_MirrorType_MoveToCoords,        {"MoveToCoords",        {
                                                              std::make_tuple("x",
                                                                              UaNodeId(OpcUaId_Double),
                                                                              "Target x-coordinate for the mirror (in mm)."),

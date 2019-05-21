@@ -6,6 +6,7 @@
 #include <deque>
 #include <iostream>
 #include <string>
+#include <common/alignment/mpes.hpp>
 
 #include "AGeoAsphericDisk.h" // ROBAST dependency
 #include "TMinuit.h" // ROOT's implementation of MINUIT for chiSq minimization
@@ -72,6 +73,10 @@ void MirrorController::addChild(OpcUa_UInt32 deviceType, const std::shared_ptr<P
     }
     else if (deviceType == PAS_EdgeType) {
         m_selectedEdges.insert(pController->getId().eAddress);
+        for (const auto &mpes : std::dynamic_pointer_cast<PasCompositeController>(pController)->getChildren(
+            PAS_MPESType)) {
+            m_selectedMPES.insert(mpes->getId().serialNumber);
+        }
     }
 }
 
@@ -467,18 +472,71 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
                 if (!status.isGood()) { return status; }
             }
         }
+    } else if (offset == PAS_MirrorType_ReadSensorsParallel) {
+        std::map<Device::Identity, MPES::Position> readings;
+        if (m_selectedMPES.empty()) {
+            std::cout << "No MPES selected in SelectedMPES! Nothing to do..." << std::endl;
+        } else {
+#pragma omp parallel
+            {
+#pragma omp for
+                for (const auto &panel : getChildren(PAS_PanelType)) {
+                    for (const auto &mpes : std::dynamic_pointer_cast<PanelController>(panel)->getChildren(
+                        PAS_MPESType)) {
+                        if (m_selectedMPES.find(mpes->getId().serialNumber) != m_selectedMPES.end()) {
+                            mpes->operate(PAS_MPESType_Read);
+                            readings.insert(std::make_pair(mpes->getId(), std::dynamic_pointer_cast<MPESController>(
+                                mpes)->getPosition()));
+                        }
+                    }
+                }
+            }
+        }
+
+        // Reorganize by edge and print
+        for (const auto &edge : getChildren(PAS_EdgeType)) {
+            std::cout << "Readings for Edge " << edge->getId() << std::endl << std::endl;
+            for (const auto &mpes : std::dynamic_pointer_cast<PasCompositeController>(edge)->getChildren(
+                PAS_MPESType)) {
+                std::cout << mpes->getId() << " : " << std::endl;
+                auto it = readings.find(mpes->getId());
+                if (it != readings.end()) {
+                    std::cout << "    " << it->second.xCentroid << " [" << it->second.xNominal << "] ("
+                              << it->second.xCentroid - it->second.xNominal << ")" << std::endl;
+                    std::cout << "    " << it->second.yCentroid << " [" << it->second.yNominal << "] ("
+                              << it->second.yCentroid - it->second.yNominal << ")" << std::endl;
+                }
+            }
+            std::cout << std::endl << std::endl;
+        }
+    } else if (offset == PAS_MirrorType_SelectAll) {
+
+        m_selectedPanels.clear();
+        for (const auto &panel : getChildren(PAS_PanelType)) {
+            m_selectedPanels.insert((unsigned) panel->getId().position);
+        }
+
+        m_selectedEdges.clear();
+        for (const auto &edge : getChildren(PAS_EdgeType)) {
+            m_selectedEdges.insert(edge->getId().eAddress);
+        }
+
+        m_selectedMPES.clear();
+        for (const auto &mpes : getChildren(PAS_MPESType)) {
+            m_selectedMPES.insert(mpes->getId().serialNumber);
+        }
     }
 
-    /************************************************
-     * stop the motion in progress                  *
-     * **********************************************/
+        /************************************************
+         * stop the motion in progress                  *
+         * **********************************************/
     else if (offset == PAS_MirrorType_Stop) {
         std::cout << m_ID.name << "::Operate() : Attempting to gracefully stop all motions." << std::endl;
         for (const auto &p: m_pChildren.at(PAS_PanelType)) {
             status = std::dynamic_pointer_cast<PanelController>(p)->operate(PAS_PanelType_Stop);
-            if (!status.isGood()) { 
+            if (!status.isGood()) {
                 updateCoords(false);
-                return status; 
+                return status;
             }
         }
     } else {

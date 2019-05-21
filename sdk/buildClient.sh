@@ -60,14 +60,14 @@ if [ "$TOOLCHAIN" == "" ]; then
         # configure compiler for generic i686
         export CC=gcc
         export CXX=g++
-        export CFLAGS='-march=i686 -fPIC -fno-strict-aliasing -g'
+        export CFLAGS='-march=i686 -fPIC -fno-strict-aliasing -g -fopenmp'
         export CXXFLAGS=$CFLAGS
         export CC CXX CFLAGS CXXFLAGS
     else
         # configure compiler for x64
         export CC=gcc
         export CXX=g++
-        export CFLAGS='-march=x86-64 -mtune=generic -fPIC -fno-strict-aliasing -g'
+        export CFLAGS='-march=x86-64 -mtune=generic -fPIC -fno-strict-aliasing -g -fopenmp'
         export CXXFLAGS=$CFLAGS
         export CC CXX CFLAGS CXXFLAGS
         echo ${CXXFLAGS}

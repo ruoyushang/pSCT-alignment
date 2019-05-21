@@ -46,11 +46,13 @@
 #define PAS_MirrorType_Position                      126
 #define PAS_MirrorType_ReadPosition                  130
 #define PAS_MirrorType_ReadSensors                   131
-#define PAS_MirrorType_MoveToCoords                  132
-#define PAS_MirrorType_AlignSequential               133
-#define PAS_MirrorType_AlignSector                   134
-#define PAS_MirrorType_GlobalAlign                   135
-#define PAS_MirrorType_Stop                          136
+#define PAS_MirrorType_ReadSensorsParallel           132
+#define PAS_MirrorType_MoveToCoords                  133
+#define PAS_MirrorType_AlignSequential               134
+#define PAS_MirrorType_AlignSector                   135
+#define PAS_MirrorType_GlobalAlign                   136
+#define PAS_MirrorType_SelectAll                     137
+#define PAS_MirrorType_Stop                          138
 
 //----------------------------------------------------------//
 // Edge Type

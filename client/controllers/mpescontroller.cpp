@@ -21,7 +21,6 @@ MPESController::MPESController(Device::Identity identity, std::shared_ptr<Client
                                                                                              m_isVisible(false),
                                                                                              m_Data() {
     m_state = Device::DeviceState::On;
-    m_Data = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
 
     // get the nominal aligned readings and response matrices from DB
     /* BEGIN DATABASE HACK */
@@ -267,18 +266,18 @@ UaStatus MPESController::read(bool print) {
         status = __readRequest();
 
         m_isVisible = true;
-        if (m_Data.xCentroidAvg < 0.1) m_isVisible = false;
+        if (m_Data.xCentroid < 0.1) m_isVisible = false;
         if (m_isVisible) {
-            if (m_Data.xCentroidSpotWidth > kNominalSpotWidth) {
+            if (m_Data.xSpotWidth > kNominalSpotWidth) {
                 std::cout << "+++ WARNING +++ The width of the image along the X axis for " << m_ID.name
                           << " is greater than 20px. Consider fixing things." << std::endl;
             }
-            if (m_Data.yCentroidSpotWidth > kNominalSpotWidth) {
+            if (m_Data.ySpotWidth > kNominalSpotWidth) {
                 std::cout << "+++ WARNING +++ The width of the image along the Y axis for " << m_ID.name
                           << " is greater than 20px. Consider fixing things." << std::endl;
             }
 
-            if (fabs(m_Data.CleanedIntensity - kNominalIntensity) / kNominalIntensity > 0.2) {
+            if (fabs(m_Data.cleanedIntensity - kNominalIntensity) / kNominalIntensity > 0.2) {
                 std::cout << "+++ WARNING +++ The intensity of " << m_ID.name
                           << " differs from the magic value by more than 20%\n"
                           << "+++ WARNING +++ Will readjust the exposure now!" << std::endl;
@@ -290,13 +289,13 @@ UaStatus MPESController::read(bool print) {
 
         if (print) {
             std::cout << "MPES reading:" << std::endl;
-            std::cout << "x: " << m_Data.xCentroidAvg << std::endl;
+            std::cout << "x: " << m_Data.xCentroid << std::endl;
             std::cout << "xNominal: " << m_Data.xNominal << std::endl;
-            std::cout << "y: " << m_Data.yCentroidAvg << std::endl;
+            std::cout << "y: " << m_Data.yCentroid << std::endl;
             std::cout << "yNominal: " << m_Data.yNominal << std::endl;
-            std::cout << "xSpotWidth: " << m_Data.xCentroidSpotWidth << std::endl;
-            std::cout << "ySpotWidth: " << m_Data.yCentroidSpotWidth << std::endl;
-            std::cout << "Cleaned Intensity: " << m_Data.CleanedIntensity << std::endl;
+            std::cout << "xSpotWidth: " << m_Data.xSpotWidth << std::endl;
+            std::cout << "ySpotWidth: " << m_Data.ySpotWidth << std::endl;
+            std::cout << "Cleaned Intensity: " << m_Data.cleanedIntensity << std::endl;
         }
 
         time_t now = time(nullptr);
@@ -307,8 +306,8 @@ UaStatus MPESController::read(bool print) {
 
         UaString sql_stmt = UaString(
                 "INSERT INTO Opt_MPESReadings (date, serial_number, xcoord, ycoord, x_SpotWidth, y_SpotWidth, intensity) VALUES  ('%1', '%2', '%3', '%4', '%5', '%6', '%7' );\n").arg(
-            buf).arg(m_ID.serialNumber).arg(m_Data.xCentroidAvg).arg(m_Data.yCentroidAvg).arg(
-            m_Data.xCentroidSpotWidth).arg(m_Data.yCentroidSpotWidth).arg(m_Data.CleanedIntensity);
+            buf).arg(m_ID.serialNumber).arg(m_Data.xCentroid).arg(m_Data.yCentroid).arg(
+            m_Data.xSpotWidth).arg(m_Data.ySpotWidth).arg(m_Data.cleanedIntensity);
         std::ofstream sql_file("MPES_readings.sql", std::ios_base::app);
         sql_file << sql_stmt.toUtf8();
     }
@@ -343,7 +342,7 @@ UaStatus MPESController::__readRequest() {
     if (status.isGood()) m_updated = true;
 
     for (unsigned i = 0; i < varstoread.size(); i++)
-        valstoread[i].toDouble(*(reinterpret_cast<OpcUa_Double *>(&m_Data) + i));
+        valstoread[i].toFloat(*(reinterpret_cast<float *>(&m_Data) + i));
 
     return status;
 }
