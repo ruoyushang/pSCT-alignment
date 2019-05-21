@@ -39,11 +39,11 @@ const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, O
                                                        Ua_AccessLevel_CurrentRead)},
     {PAS_MirrorType_SafetyRadius,      std::make_tuple("SafetyRadius", UaVariant(60.0), OpcUa_False,
                                                        Ua_AccessLevel_CurrentRead | Ua_AccessLevel_CurrentWrite)},
-    {PAS_MirrorType_SelectedMPES,      std::make_tuple("SelectedPanels", UaVariant(), OpcUa_False,
+    {PAS_MirrorType_SelectedMPES,      std::make_tuple("SelectedMPES", UaVariant(), OpcUa_False,
                                                        Ua_AccessLevel_CurrentRead | Ua_AccessLevel_CurrentWrite)},
-    {PAS_MirrorType_SelectedPanels,    std::make_tuple("SelectedEdges", UaVariant(), OpcUa_False,
+    {PAS_MirrorType_SelectedPanels,    std::make_tuple("SelectedPanels", UaVariant(), OpcUa_False,
                                                        Ua_AccessLevel_CurrentRead | Ua_AccessLevel_CurrentWrite)},
-    {PAS_MirrorType_SelectedEdges,     std::make_tuple("Selected", UaVariant(), OpcUa_False,
+    {PAS_MirrorType_SelectedEdges,     std::make_tuple("SelectedEdges", UaVariant(), OpcUa_False,
                                                        Ua_AccessLevel_CurrentRead | Ua_AccessLevel_CurrentWrite)},
 };
 
