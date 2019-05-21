@@ -74,22 +74,6 @@ MPESController::MPESController(Device::Identity identity, std::shared_ptr<Client
             }
         }
 
-        // print out the loaded values
-        /**
-        std::cout << "\t Aligned readings:\n" << m_AlignedReadings << std::endl;
-        for (const auto &matrixPair : m_ResponseMatMap)
-        {
-            //std::cout << "\t " << matrixPair.first << "-side response matrix:\n" << matrixPair.second << std::endl;
-        }
-        */
-
-        // pass the aligned readings on to the server
-        UaVariant value;
-        value.setDouble(m_AlignedReadings(0));
-        setData(PAS_MPESType_xCentroidNominal, value);
-        value.setDouble(m_AlignedReadings(1));
-        setData(PAS_MPESType_yCentroidNominal, value);
-
         // close the connection!
         sql_conn->close();
         delete sql_conn;
@@ -202,21 +186,7 @@ UaStatus MPESController::getError(OpcUa_UInt32 offset, UaVariant &value) {
     Description  Set Controller data.
 -----------------------------------------------------------------------------*/
 UaStatus MPESController::setData(OpcUa_UInt32 offset, UaVariant value) {
-    UaStatus status;
-
-    int dataoffset = offset - PAS_MPESType_xCentroidAvg;
-    if ((dataoffset > 6) | (dataoffset < 5))
-        return OpcUa_BadNotWritable;
-
-    std::string varstowrite[2]{".xCentroidNominal", ".yCentroidNominal"};
-    vector<std::string> vec_curwrite{m_ID.eAddress + varstowrite[dataoffset - 5]};
-
-    // set local variable
-    value.toDouble(*(reinterpret_cast<OpcUa_Double *>(&m_Data) + dataoffset));
-    // and write it to the server
-    status = m_pClient->write(vec_curwrite, &value);
-
-    return status;
+    return OpcUa_BadNotWritable;
 }
 
 /* ----------------------------------------------------------------------------

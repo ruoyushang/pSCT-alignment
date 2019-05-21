@@ -17,9 +17,65 @@
 #include "common/opcua/pascominterfacecommon.hpp"
 #include "common/opcua/passervertypeids.hpp"
 #include "common/opcua/pasobject.hpp"
+#include "common/utilities/DBConfig.hpp"
+
+#include "mysql_driver.h"
+#include "cppconn/statement.h"
 
 MPESController::MPESController(Device::Identity identity, std::shared_ptr<Platform> pPlatform)
-    : PasController::PasController(identity, pPlatform) {}
+    : PasController::PasController(std::move(identity), std::move(pPlatform)) {
+    try {
+        // get the nominal aligned readings and response matrices from DB
+        /* BEGIN DATABASE HACK */
+        //std::string db_ip="172.17.10.10"; // internal ip
+        DBConfig myConfig = DBConfig::getDefaultConfig();
+        std::string db_ip = myConfig.getHost();
+        std::string db_port = myConfig.getPort();
+        std::string db_user = myConfig.getUser();
+        std::string db_password = myConfig.getPassword();
+        std::string db_name = myConfig.getDatabase();
+        std::string db_address = "tcp://" + db_ip + ":" + db_port;
+
+        sql::Driver *sql_driver = get_driver_instance();
+        sql::Connection *sql_conn = sql_driver->connect(db_address, db_user, db_password);
+        sql_conn->setSchema(db_name);
+        sql::Statement *sql_stmt = sql_conn->createStatement();
+        sql::ResultSet *sql_results;
+
+        std::string query =
+            "SELECT coord, nominal_reading FROM Opt_MPESConfigurationAndCalibration WHERE end_date is NULL and serial_number=" +
+            std::to_string(m_ID.serialNumber);
+        sql_stmt->execute(query);
+        sql_results = sql_stmt->getResultSet();
+
+        while (sql_results->next()) {
+            char coord = sql_results->getString(1)[0];
+            if (coord == 'x') {
+                m_pPlatform->getMPESbyIdentity(m_ID)->setxNominalPosition((float) sql_results->getDouble(2));
+            } else if (coord == 'y') {
+                m_pPlatform->getMPESbyIdentity(m_ID)->setyNominalPosition((float) sql_results->getDouble(2));
+            } else {
+                std::cout << "Error: Invalid coord " << coord << " (should be x or y)." << std::endl;
+                // set state to error
+                m_state = Device::DeviceState::FatalError;
+            }
+        }
+        // close the connection!
+        sql_conn->close();
+        delete sql_conn;
+        sql_driver->threadEnd();
+    }
+    catch (sql::SQLException &e) {
+        std::cout << "# ERR: SQLException in " << __FILE__;
+        std::cout << "(" << __FUNCTION__ << ") on line " << __LINE__ << std::endl;
+        std::cout << "# ERR: " << e.what();
+        std::cout << " (MySQL error code: " << e.getErrorCode();
+        std::cout << ", SQLState: " << e.getSQLState() << " )" << std::endl;
+
+        // set state to error
+        m_state = Device::DeviceState::FatalError;
+    }
+}
 
 /// @details Locks the shared mutex while retrieving the state.
 UaStatus MPESController::getState(Device::DeviceState &state) {
