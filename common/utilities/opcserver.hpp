@@ -31,13 +31,12 @@
 #define MAIN_OPCSERVER_H
 
 #include "uaserver/uaserverapplication.h"
+#include "uaserver/uamodule.h"
 
 #include <memory>
 
 class OpcServerPrivate;
 class UaServer;
-
-class UaModule;
 
 /** Main OPC Server object.
   This class is a utility class managing all server SDK modules for common use cases in a simplified way.

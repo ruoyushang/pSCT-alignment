@@ -476,18 +476,17 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
         std::map<Device::Identity, MPES::Position> readings;
         if (m_selectedMPES.empty()) {
             std::cout << "No MPES selected in SelectedMPES! Nothing to do..." << std::endl;
-        } else {
-#pragma omp parallel
-            {
-#pragma omp for
-                for (const auto &panel : getChildren(PAS_PanelType)) {
-                    for (const auto &mpes : std::dynamic_pointer_cast<PanelController>(panel)->getChildren(
-                        PAS_MPESType)) {
-                        if (m_selectedMPES.find(mpes->getId().serialNumber) != m_selectedMPES.end()) {
-                            mpes->operate(PAS_MPESType_Read);
-                            readings.insert(std::make_pair(mpes->getId(), std::dynamic_pointer_cast<MPESController>(
-                                mpes)->getPosition()));
-                        }
+        } 
+        else 
+        {
+            #pragma omp parallel for
+            for (auto it = getChildren(PAS_PanelType).begin(); it < getChildren(PAS_PanelType).end(); it++) {
+                for (const auto &mpes : std::dynamic_pointer_cast<PanelController>(*it)->getChildren(
+                    PAS_MPESType)) {
+                    if (m_selectedMPES.find(mpes->getId().serialNumber) != m_selectedMPES.end()) {
+                        mpes->operate(PAS_MPESType_Read);
+                        readings.insert(std::make_pair(mpes->getId(), std::dynamic_pointer_cast<MPESController>(
+                            mpes)->getPosition()));
                     }
                 }
             }
