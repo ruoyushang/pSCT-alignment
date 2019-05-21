@@ -686,11 +686,12 @@ UaStatus MirrorController::alignSequential(unsigned startEdge, const std::set<un
     std::deque<unsigned> already_aligned{}; // yes, deque, not vector!
 
     unsigned cur_idx = startEdge;
-    while (selectedEdges.find(cur_idx) != selectedEdges.end() && (m_state == Device::DeviceState::On)) {
+    while (selectedEdges.find(cur_idx) != selectedEdges.end() &&
+           (m_state == Device::DeviceState::On || m_state == Device::DeviceState::OperableError)) {
         already_aligned.push_front(cur_idx);
         // align all the preceding panels
         for (unsigned edge : already_aligned) {
-            if (m_state != Device::DeviceState::On) break;
+            if (!(m_state == Device::DeviceState::On || m_state == Device::DeviceState::OperableError)) break;
             // figure out which panel is "greater" and which one is "smaller" in the sense
             // of dir, assuming a two-panel edge for now.
             // get vector of panel positions:

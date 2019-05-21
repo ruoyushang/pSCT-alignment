@@ -94,7 +94,7 @@ UaStatus PSDController::read()
 {
     //UaMutexLocker lock(&m_mutex);
 
-    if ( _getState() == Device::DeviceState::On )
+    if (_getState() == Device::DeviceState::On || _getState() == Device::DeviceState::OperableError)
     {
         std::cout << "\nReading PSD " <<  m_ID << std::endl;
         m_pPSD->Update();

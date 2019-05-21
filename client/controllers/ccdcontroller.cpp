@@ -158,7 +158,7 @@ UaStatus CCDController::operate(OpcUa_UInt32 offset, const UaVariantArray &args)
 UaStatus CCDController::read() {
     //UaMutexLocker lock(&m_mutex);
 
-    if (m_state == Device::DeviceState::On) {
+    if (m_state == Device::DeviceState::On || m_state == Device::DeviceState::OperableError) {
         std::cout << "Reading CCD " << m_ID.name.c_str() << std::endl;
         m_pCCD->Update();
         m_updated = true;

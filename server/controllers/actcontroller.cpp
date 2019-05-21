@@ -112,7 +112,7 @@ UaStatus ActController::operate(OpcUa_UInt32 offset, const UaVariantArray &args)
     UaVariantArray tempArgs;
     switch (offset) {
         case PAS_ACTType_MoveDeltaLength:
-            if (!(_getState() == Device::DeviceState::On))
+            if (!(_getState() == Device::DeviceState::On || _getState() == Device::DeviceState::OperableError))
                 return OpcUa_BadNothingToDo;
             status = moveDelta(args);
             break;
@@ -157,7 +157,7 @@ UaStatus ActController::moveDelta(const UaVariantArray &args) {
 }
 
 UaStatus ActController::moveToLength(const UaVariantArray &args) {
-    if (!(_getState() == Device::DeviceState::On))
+    if (!(_getState() == Device::DeviceState::On || _getState() == Device::DeviceState::OperableError))
         return OpcUa_BadNothingToDo;
 
     UaStatus status;

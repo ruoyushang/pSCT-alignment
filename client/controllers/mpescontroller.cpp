@@ -231,7 +231,7 @@ UaStatus MPESController::read(bool print) {
     m_updated = false;
 
     std::cout << "calling read() on " << m_ID << std::endl;
-    if (m_state == Device::DeviceState::On) {
+    if (m_state == Device::DeviceState::On || m_state == Device::DeviceState::OperableError) {
         // read the values on the server first
         status = __readRequest();
 
