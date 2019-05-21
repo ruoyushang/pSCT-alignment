@@ -41,14 +41,14 @@ void PasObject::initialize() {
 
     std::cout << "PasObject::Initialize(): initializing object w/ identity " << m_Identity << "...\n";
 
-    //std::cout << "Creating variables...\n";
+    std::cout << "Creating variables...\n";
     // Add all child variable nodes
     for (auto &kv : getVariableDefs()) {
         addVariable(m_pNodeManager, typeDefinitionId().identifierNumeric(), kv.first, std::get<2>(kv.second));
     }
 
 
-    //std::cout << "Creating error variables...\n";
+    std::cout << "Creating error variables...\n";
     //Create the folder for the Errors
     UaFolder *pErrorFolder = new UaFolder("Errors", UaNodeId(
             (std::to_string(typeDefinitionId().identifierNumeric()) + "_" + m_Identity.eAddress + "_errors").c_str(),
@@ -59,11 +59,12 @@ void PasObject::initialize() {
 
     // Add all error variable nodes
     for (const auto &v : getErrorDefs()) {
-        pDataItem = addVariable(m_pNodeManager, typeDefinitionId().identifierNumeric(), v.first, OpcUa_False, false);
+        pDataItem = addVariable(m_pNodeManager, typeDefinitionId().identifierNumeric(), v.first, OpcUa_False, OpcUa_False);
         addStatus = m_pNodeManager->addUaReference(pErrorFolder->nodeId(), pDataItem->nodeId(), OpcUaId_Organizes);
     }
 
     // Add all child method nodes
+    std::cout << "Creating method nodes...\n";
     for (auto &m : getMethodDefs()) {
         sName = UaString(m.second.first.c_str());
         sNodeId = UaString("%1.%2").arg(m_newNodeId.toString()).arg(sName);

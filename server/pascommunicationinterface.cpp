@@ -125,18 +125,12 @@ UaStatus PasCommunicationInterface::initialize() {
         actuatorSerials[act.first - 1] = act.second;
 
     Device::Identity identity;
-    identity.name = std::string("Panel_") + std::to_string(m_cbcID);
+    identity.name = std::string("Panel_") + std::to_string(m_panelNum);
     identity.serialNumber = m_cbcID;
     identity.eAddress = std::string(std::getenv("LOCALIP"));
     identity.position = m_panelNum;
 
     m_platform = std::make_shared<Platform>(identity, actuatorPorts, actuatorSerials, DbInfo);
-
-    // initialize the MPES in the positional order. Not strictly necessary, but keeps things tidy
-    // addMPES(port, serial)
-    for (auto mpes : mpesPositionToPort) {
-        m_platform->addMPES(mpes.second, mpesPositionToSerial.at(mpes.first));
-    }
 
     std::vector<int> mpesPositions;
     std::vector<int> actPositions;
@@ -145,6 +139,17 @@ UaStatus PasCommunicationInterface::initialize() {
     }
     for (auto act : actPositionToPort) {
         actPositions.push_back(act.first);
+    }
+
+    // initialize the MPES in the positional order. Not strictly necessary, but keeps things tidy
+    // addMPES(port, serial)
+    int pos;
+    for (auto mpes : mpesPositionToPort) {
+	identity.name = std::string("MPES_") + std::to_string(mpesPositionToSerial.at(mpes.first));
+	identity.serialNumber = mpesPositionToSerial.at(mpes.first);
+	identity.eAddress = std::to_string(mpes.second);
+	identity.position = mpes.first;
+        m_platform->addMPES(identity);
     }
 
     // initialize expected devices
@@ -160,12 +165,14 @@ UaStatus PasCommunicationInterface::initialize() {
         if (devCount.second > 0)
             std::cout << "Attempting to create their virtual counterparts...\n";
 
+        // If the device type does not already exist in the m_pControllers map, add it
+        m_pControllers[devCount.first] = std::map<Device::Identity, std::shared_ptr<PasControllerCommon>>();
+
         int failed;
-        int pos;
         std::shared_ptr<PasControllerCommon> pController;
         for (int i = 0; i < devCount.second; i++) {
             if (devCount.first == PAS_PanelType) {
-                identity.name = std::string("Panel_") + std::to_string(m_cbcID);
+                identity.name = std::string("Panel_") + std::to_string(m_panelNum);
                 identity.serialNumber = m_cbcID;
                 identity.eAddress = std::string(std::getenv("LOCALIP"));
                 identity.position = m_panelNum;
@@ -211,7 +218,7 @@ UaStatus PasCommunicationInterface::initialize() {
             }
         }
         // update the number of devices to the ones initialized
-        failed = devCount.second - m_pControllers.at(devCount.first).size();
+        failed = devCount.second - m_pControllers[devCount.first].size();
         if (failed) {
             std::cout << "\n +++ WARNING +++ Failed to initialize " << failed << " "
                       << deviceTypes.at(devCount.first) << " devices!" << std::endl;
@@ -227,10 +234,10 @@ UaStatus PasCommunicationInterface::initialize() {
         }
         std::shared_ptr<PanelController> pPanel = std::dynamic_pointer_cast<PanelController>(
             m_pControllers[PAS_PanelType].begin()->second); // get the first panel and assign actuators to it
-        for (const auto &act : m_pControllers.at(PAS_ACTType)) {
+        for (const auto &act : m_pControllers[PAS_ACTType]) {
             pPanel->addActuator(std::dynamic_pointer_cast<ActController>(act.second));
         }
-        for (const auto &mpes : m_pControllers.at(PAS_MPESType)) {
+        for (const auto &mpes : m_pControllers[PAS_MPESType]) {
             pPanel->addMPES(std::dynamic_pointer_cast<MPESController>(mpes.second));
         }
     }

@@ -635,17 +635,11 @@ void Platform::findHomeFromEndStop(int direction, int actuatorIdx)
     }
 }
 
-bool Platform::addMPES(int USB, int serial)
+bool Platform::addMPES(Device::Identity identity)
 {
-    Device::Identity identity;
-    identity.name = std::string("MPES_") + std::to_string(serial);
-    identity.serialNumber = serial;
-    identity.eAddress = std::to_string(USB);
-    identity.position = USB;
-
-    DEBUG_MSG("Adding MPES " << serial << " at USB " << USB);
-    if (serial < 0 || USB < 0) {
-        std::cout << "Platform:: Failed to add MPES, invalid USB/serial numbers (" << USB << ", " << serial << ")"
+    DEBUG_MSG("Adding MPES " << identity.serialNumber << " at USB " << identity.eAddress);
+    if (identity.serialNumber < 0 || std::stoi(identity.eAddress) < 0) {
+        std::cout << "Platform:: Failed to add MPES, invalid USB/serial numbers (" << identity.eAddress << ", " << identity.serialNumber << ")"
                   << std::endl;
         return false;
     }
@@ -658,11 +652,11 @@ bool Platform::addMPES(int USB, int serial)
 
     if (newMPES->initialize()) {
         m_MPES.push_back(std::move(newMPES));
-        m_ActuatorIdentityMap.insert(std::make_pair(identity, m_MPES.size() - 1));
+        m_MPESIdentityMap.insert(std::make_pair(identity, m_MPES.size() - 1));
         return true;
     }
     else {
-        std::cout << "Platform:: Failed to initialize MPES at USB " << USB << std::endl;
+        std::cout << "Platform:: Failed to initialize MPES at USB " << identity.eAddress << std::endl;
         return false;
     }
 }

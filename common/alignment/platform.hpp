@@ -106,7 +106,7 @@ public:
      * @brief This function adds MPES if they can be initialized at USB ports.
      In the Sim mode, MPES are added regardlessly.
      */
-    bool addMPES(int USB, int serial);
+    bool addMPES(Device::Identity identity);
     MPES::Position readMPES(int idx);
 
 private:
