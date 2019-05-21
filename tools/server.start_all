@@ -1,6 +1,6 @@
 #!/bin/bash
 
-for panel in `cat ../misc/panel_lists/all_panels`; do
+for panel in `cat panel_lists/all`; do
         ./server.start $panel
         echo ./server.start $panel
 done
