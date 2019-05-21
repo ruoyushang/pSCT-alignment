@@ -19,6 +19,9 @@
 #include "common/opcua/pasobject.hpp"
 #include "common/utilities/DBConfig.hpp"
 
+#include <mysql_connection.h>
+#include <mysql_driver.h>
+
 #include <cppconn/driver.h>
 #include <cppconn/exception.h>
 #include <cppconn/resultset.h>
