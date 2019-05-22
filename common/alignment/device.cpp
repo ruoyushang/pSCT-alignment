@@ -50,19 +50,23 @@ Device::Device(std::shared_ptr<CBC> pCBC, Device::Identity identity) : m_pCBC(st
                                                                        m_state(Device::DeviceState::On) {}
 
 void Device::setError(int errorCode) {
-    std::cout << "Setting Error " << errorCode << " (" << getErrorCodeDefinitions()[errorCode].description
-              << ") for Device "
-              << m_Identity << std::endl;
-    m_Errors[errorCode] = true;
-    updateState();
+    if (!m_Errors.at(errorCode)) {
+        std::cout << "Setting Error " << errorCode << " (" << getErrorCodeDefinitions()[errorCode].description
+                  << ") for Device "
+                  << m_Identity << std::endl;
+        m_Errors[errorCode] = true;
+        updateState();
+    }
 }
 
 void Device::unsetError(int errorCode) {
-    std::cout << "Unsetting Error " << errorCode << " (" << getErrorCodeDefinitions()[errorCode].description
-              << ") for Device "
-              << m_Identity << std::endl;
-    m_Errors[errorCode] = false;
-    updateState();
+    if (m_Errors.at(errorCode)) {
+        std::cout << "Unsetting Error " << errorCode << " (" << getErrorCodeDefinitions()[errorCode].description
+                  << ") for Device "
+                  << m_Identity << std::endl;
+        m_Errors[errorCode] = false;
+        updateState();
+    }
 }
 
 void Device::setState(Device::DeviceState state) {
