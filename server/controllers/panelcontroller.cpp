@@ -125,10 +125,21 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
     Device::DeviceState state;
     getState(state);
 
-    if (state == Device::DeviceState::FatalError) {
-        std::cout << "PanelController::operate(): Panel in fatal error state! "
+    if (offset == PAS_PanelType_MoveToLengths || offset == PAS_PanelType_MoveToCoords || offset == PAS_PanelType_MoveDeltaLengths || offset == PAS_PanelType_FindHome) {
+        if (m_state == Device::DeviceState::FatalError) {
+            std::cout << "PanelController::operate(): Panel in fatal error state! "
                   << "Check what's wrong, fix it, and try again.\n";
-        return OpcUa_BadInvalidState;
+            return OpcUa_BadInvalidState;
+        }
+        if (m_state == Device::DeviceState::Busy) {
+            std::cout << "PanelController::operate() : Current state is 'Busy'! This won't do anything." << std::endl;
+            return OpcUa_BadInvalidState;
+        }
+    }
+
+
+
+    if (state == Device::DeviceState::FatalError) {
     }
 
     if (offset == PAS_PanelType_MoveDeltaLengths) {

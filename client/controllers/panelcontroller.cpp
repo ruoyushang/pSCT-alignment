@@ -111,7 +111,7 @@ UaStatus PanelController::getError(OpcUa_UInt32 offset, UaVariant &value) {
 
     if (PanelObject::ERRORS.count(offset) > 0) {
         std::string varName = std::get<0>(PanelObject::ERRORS.at(offset));
-        std::vector<std::string> varsToRead = {m_ID.eAddress + "." + varName};
+        std::vector<std::string> varsToRead = {std::string("ns=2;s=Panel_0.") + varName};
         status = m_pClient->read(varsToRead, &value);
     } else {
         status = OpcUa_BadInvalidArgument;
@@ -143,7 +143,7 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
     Device::DeviceState dummy;
     getState(dummy);
 
-    if (offset != PAS_PanelType_Stop) {
+    if (offset == PAS_PanelType_MoveToLengths || offset == PAS_PanelType_MoveToCoords || offset == PAS_PanelType_MoveDeltaLengths || offset == PAS_PanelType_FindHome) {
         if (m_state == Device::DeviceState::FatalError)
             std::cout << m_ID << "::Operate() : Current state is 'FatalError'! This won't do anything." << std::endl;
         if (m_state == Device::DeviceState::Busy)
@@ -163,7 +163,7 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
     if (offset == PAS_PanelType_MoveDeltaLengths) {
         for (int i = 0; i < 6; i++) {
             UaVariant(args[i]).toFloat(deltaLength);
-            deltaLengths(i) = deltaLength;
+            deltaLengths(i) = (double)deltaLength;
         }
         std::cout << "Calling Panel::MoveDeltaLengths() with delta lengths: \n";
         std::cout << deltaLengths << std::endl << std::endl;
@@ -177,7 +177,7 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
     } else if (offset == PAS_PanelType_MoveToLengths) {
         for (int i = 0; i < 6; i++) {
             UaVariant(args[i]).toFloat(targetLength);
-            targetLengths(i) = targetLength;
+            targetLengths(i) = (double)targetLength;
         }
         std::cout << "Calling Panel::MoveToLengths() with target lengths: \n";
         std::cout << targetLengths << std::endl << std::endl;
@@ -295,11 +295,15 @@ bool PanelController::checkForCollision(const Eigen::VectorXd &deltaLengths) {
     bool collision = false;
     if (m_pChildren.count(PAS_EdgeType) > 0) {
         std::cout << m_pChildren.count(PAS_EdgeType) << " edges found." << std::endl;
-        for (const auto &e : m_pChildren.at(PAS_EdgeType)) {
+        for (const auto &e : m_pChildren.at(PAS_EdgeType)) {     
             std::shared_ptr<EdgeController> edge = std::dynamic_pointer_cast<EdgeController>(e);
             M_response = edge->getResponseMatrix(m_ID.position);
             Sen_current = edge->getCurrentReadings();
             std::cout << "Looking at edge " << edge->getId() << std::endl;
+            if (Sen_current.size() == 0) {
+                std::cout << "No MPES found for edge " << edge->getId() << ", skipping..." << std::endl;
+                continue;
+            }
             std::cout << "\nCurrent MPES readings:\n" << Sen_current << std::endl << std::endl;
             std::cout << "\nActuator response matrix for this edge:\n" << M_response << std::endl;
             Sen_delta = M_response * deltaLengths;

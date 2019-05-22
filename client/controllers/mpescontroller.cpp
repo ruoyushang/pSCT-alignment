@@ -154,7 +154,8 @@ UaStatus MPESController::getData(OpcUa_UInt32 offset, UaVariant &value) {
             if (!m_updated)
                 status = read(false);
             int dataoffset = offset - PAS_MPESType_xCentroidAvg;
-            value.setFloat(*(reinterpret_cast<float *>(&m_Data) + dataoffset));
+            //std::cout << "MPESController::getData() : " << (double)(*(reinterpret_cast<float *>(&m_Data) + dataoffset)) << std::endl;
+            value.setDouble((double)*(reinterpret_cast<float *>(&m_Data) + dataoffset));
         } else if (offset == PAS_MPESType_Position) {
             status = m_pClient->read({m_ID.eAddress + "." + "Position"}, &value);
         } else if (offset == PAS_MPESType_Serial) {
