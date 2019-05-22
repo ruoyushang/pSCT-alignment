@@ -48,50 +48,27 @@ unsigned PanelController::getActuatorCount() {
 UaStatus PanelController::getState(Device::DeviceState &state) {
     //UaMutexLocker lock(&m_mutex);
     UaStatus status;
-
-    UaVariant val;
-    unsigned intState;
-
+    UaVariant value;
+    int v;
+    
     std::vector<std::string> vec_curread{"ns=2;s=Panel_0.State"};
-    status = m_pClient->read(vec_curread, &val);
-    if (!status.isGood())
-        return status;
+    status = m_pClient->read(vec_curread, &value);
+    value.toInt32(v);
 
-    val.toUInt32(intState);
-    switch (intState) {
-        case static_cast<unsigned>(Device::DeviceState::On) :
-            m_state = Device::DeviceState::On;
-            break;
-        case static_cast<unsigned>(Device::DeviceState::Off) :
-            m_state = Device::DeviceState::Off;
-            break;
-        case static_cast<unsigned>(Device::DeviceState::Busy) :
-            m_state = Device::DeviceState::Busy;
-            break;
-        case static_cast<unsigned>(Device::DeviceState::OperableError) :
-            m_state = Device::DeviceState::OperableError;
-            break;
-        case static_cast<unsigned>(Device::DeviceState::FatalError) :
-            m_state = Device::DeviceState::FatalError;
-            break;
-        default:
-            return OpcUa_BadInvalidState;
-    }
-
-    state = m_state;
+    state = static_cast<Device::DeviceState>(v);
 
     return status;
-
 }
 
 UaStatus PanelController::setState(Device::DeviceState state) {
-    if (state == Device::DeviceState::OperableError || state == Device::DeviceState::FatalError) {
-        return OpcUa_BadInvalidArgument;
-    }
-
-    //UaMutexLocker lock(&m_mutex);
-    m_state = state;
-    return OpcUa_Good;
+    UaStatus status;
+        
+    if (state == Device::DeviceState::Off)
+        status = m_pClient->callMethod(m_ID.eAddress, UaString("Stop"));
+    else if (state == Device::DeviceState::On)
+        status = m_pClient->callMethod(m_ID.eAddress, UaString("Start"));
+    else
+        status = OpcUa_BadInvalidArgument;
 }
 
 UaStatus PanelController::getData(OpcUa_UInt32 offset, UaVariant &value) {
@@ -132,11 +109,8 @@ UaStatus PanelController::getError(OpcUa_UInt32 offset, UaVariant &value) {
     //UaMutexLocker lock(&m_mutex);
     UaStatus status;
 
-    OpcUa_UInt32 errorNum = offset - PAS_ACTType_Error0;
-    // Temporary
-    if (errorNum >= 0 && errorNum < PanelObject::ERRORS.size()) {
-        std::string varName = "Error";
-        varName += std::to_string(errorNum);
+    if (PanelObject::ERRORS.count(offset) > 0) {
+        std::string varName = std::get<0>(PanelObject::ERRORS.at(offset));
         std::vector<std::string> varsToRead = {m_ID.eAddress + "." + varName};
         status = m_pClient->read(varsToRead, &value);
     } else {

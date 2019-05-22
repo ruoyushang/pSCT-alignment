@@ -33,8 +33,17 @@ ActController::~ActController() {
     Description  Get Controller status.
 -----------------------------------------------------------------------------*/
 UaStatus ActController::getState(Device::DeviceState &state) {
-    state = m_state;
-    return OpcUa_Good;
+    //UaMutexLocker lock(&m_mutex);    
+    UaStatus status;
+    UaVariant value;
+    int v;
+    
+    m_pClient->read({m_ID.eAddress + "." + "State"}, &value);
+    value.toInt32(v);
+
+    state = static_cast<Device::DeviceState>(v);
+
+    return status;
 }
 
 /* ----------------------------------------------------------------------------
@@ -47,10 +56,6 @@ UaStatus ActController::setState(Device::DeviceState state) {
     // UaMutexLocker lock(&m_mutex);
     UaStatus status;
 
-    if (state == m_state) {
-        return OpcUa_BadInvalidState;
-    }
-    m_state = state;
     if (state == Device::DeviceState::Off)
         status = m_pClient->callMethod(m_ID.eAddress, UaString("Stop"));
     else if (state == Device::DeviceState::On)
@@ -106,11 +111,8 @@ UaStatus ActController::getError(OpcUa_UInt32 offset, UaVariant &value) {
     //UaMutexLocker lock(&m_mutex);
     UaStatus status;
 
-    OpcUa_UInt32 errorNum = offset - PAS_ACTType_Error0;
-    // Temporary
-    if (errorNum >= 0 && errorNum < ACTObject::ERRORS.size()) {
-        std::string varName = "Error";
-        varName += std::to_string(errorNum);
+    if (ACTObject::ERRORS.count(offset) > 0) {
+        std::string varName = std::get<0>(ACTObject::ERRORS.at(offset));
         std::vector<std::string> varsToRead = {m_ID.eAddress + "." + varName};
         status = m_pClient->read(varsToRead, &value);
     } else {
@@ -166,6 +168,12 @@ UaStatus ActController::operate(OpcUa_UInt32 offset, const UaVariantArray &args)
             break;
         case PAS_ACTType_ClearAllErrors:
             status = m_pClient->callMethod(m_ID.eAddress, UaString("ClearAllErrors"));
+            break;
+        case PAS_ACTType_Start:
+            status = m_pClient->callMethod(m_ID.eAddress, UaString("Start"));
+            break;
+        case PAS_ACTType_Stop:
+            status = m_pClient->callMethod(m_ID.eAddress, UaString("Stop"));
             break;
         default:
             status = OpcUa_BadInvalidArgument;

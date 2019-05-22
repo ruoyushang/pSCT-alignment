@@ -105,9 +105,17 @@ MPESController::~MPESController() {
     Description  Get Controller status.
 -----------------------------------------------------------------------------*/
 UaStatus MPESController::getState(Device::DeviceState &state) {
-    //UaMutexLocker lock(&m_mutex);
-    state = m_state;
-    return OpcUa_Good;
+    //UaMutexLocker lock(&m_mutex);    
+    UaStatus status;
+    UaVariant value;
+    int v;
+    
+    m_pClient->read({m_ID.eAddress + "." + "State"}, &value);
+    value.toInt32(v);
+
+    state = static_cast<Device::DeviceState>(v);
+
+    return status;
 }
 
 /* ----------------------------------------------------------------------------
@@ -118,12 +126,8 @@ UaStatus MPESController::getState(Device::DeviceState &state) {
 UaStatus MPESController::setState(Device::DeviceState state) {
     UaStatus status;
 
-    if (state == m_state) {
-        return OpcUa_BadInvalidState;
-    }
     //UaMutexLocker lock(&m_mutex);
 
-    m_state = state;
     if (state == Device::DeviceState::Off)
         status = m_pClient->callMethod(m_ID.eAddress, UaString("Stop"));
     else if (state == Device::DeviceState::On)
@@ -148,9 +152,9 @@ UaStatus MPESController::getData(OpcUa_UInt32 offset, UaVariant &value) {
     } else {
         if (offset >= PAS_MPESType_xCentroidAvg && offset <= PAS_MPESType_yCentroidNominal) {
             if (!m_updated)
-                status = read();
+                status = read(false);
             int dataoffset = offset - PAS_MPESType_xCentroidAvg;
-            value.setDouble(*(reinterpret_cast<OpcUa_Double *>(&m_Data) + dataoffset));
+            value.setFloat(*(reinterpret_cast<float *>(&m_Data) + dataoffset));
         } else if (offset == PAS_MPESType_Position) {
             status = m_pClient->read({m_ID.eAddress + "." + "Position"}, &value);
         } else if (offset == PAS_MPESType_Serial) {
@@ -167,11 +171,8 @@ UaStatus MPESController::getError(OpcUa_UInt32 offset, UaVariant &value) {
     //UaMutexLocker lock(&m_mutex);
     UaStatus status;
 
-    OpcUa_UInt32 errorNum = offset - PAS_MPESType_Error0;
-    // Temporary
-    if (errorNum >= 0 && errorNum < 14) {
-        std::string varName = "Error";
-        varName += std::to_string(errorNum);
+    if (MPESObject::ERRORS.count(offset) > 0) {
+        std::string varName = std::get<0>(MPESObject::ERRORS.at(offset));
         std::vector<std::string> varsToRead = {m_ID.eAddress + "." + varName};
         status = m_pClient->read(varsToRead, &value);
     } else {
@@ -214,7 +215,14 @@ UaStatus MPESController::operate(OpcUa_UInt32 offset, const UaVariantArray &args
     } else if (offset == PAS_MPESType_ClearAllErrors) {
         status = m_pClient->callMethod(m_ID.eAddress, UaString("ClearAllErrors"));
         return status;
-    } else
+    } else if (offset == PAS_MPESType_Start) {
+        status = m_pClient->callMethod(m_ID.eAddress, UaString("Start"));
+        return status;
+    } else if (offset == PAS_MPESType_Stop) {
+        status = m_pClient->callMethod(m_ID.eAddress, UaString("Stop"));
+        return status;
+    } 
+    else
         return OpcUa_BadInvalidArgument;
 
 }
@@ -229,8 +237,9 @@ UaStatus MPESController::read(bool print) {
     UaStatus status;
 
     m_updated = false;
-
-    std::cout << "calling read() on " << m_ID << std::endl;
+    if (print) {
+        std::cout << "calling read() on " << m_ID << std::endl;
+    }
     if (m_state == Device::DeviceState::On || m_state == Device::DeviceState::OperableError) {
         // read the values on the server first
         status = __readRequest();

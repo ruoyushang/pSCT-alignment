@@ -127,7 +127,7 @@ UaStatus PasCommunicationInterface::initialize() {
     Device::Identity identity;
     identity.name = std::string("Panel_") + std::to_string(m_panelNum);
     identity.serialNumber = m_cbcID;
-    identity.eAddress = std::string(std::getenv("LOCALIP"));
+    identity.eAddress = std::to_string(0);
     identity.position = m_panelNum;
 
     m_platform = std::make_shared<Platform>(identity, actuatorPorts, actuatorSerials, DbInfo);
@@ -174,7 +174,7 @@ UaStatus PasCommunicationInterface::initialize() {
             if (devCount.first == PAS_PanelType) {
                 identity.name = std::string("Panel_") + std::to_string(m_panelNum);
                 identity.serialNumber = m_cbcID;
-                identity.eAddress = std::string(std::getenv("LOCALIP"));
+                identity.eAddress = std::to_string(0);
                 identity.position = m_panelNum;
                 pController = std::dynamic_pointer_cast<PasControllerCommon>(
                     std::make_shared<PanelController>(identity, m_platform));
