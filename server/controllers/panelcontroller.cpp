@@ -230,7 +230,8 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
         }
         m_pPlatform->unsetError(args[0].Value.Int32);
     } else if (offset == PAS_PanelType_ClearAllErrors) {
-        m_pPlatform->clearErrors();
+         m_pPlatform->clearActuatorErrors();
+         m_pPlatform->clearPlatformErrors();
     } else if (offset == PAS_PanelType_ClearActuatorErrors) {
         m_pPlatform->clearActuatorErrors();
     } else if (offset == PAS_PanelType_ClearPlatformErrors) {

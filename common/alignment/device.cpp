@@ -85,7 +85,7 @@ void Device::updateState()//cycle through all errors and set status based on one
 void Device::clearErrors() {
     std::cout << "Clearing All Errors for Device " << m_Identity << std::endl;
     for (int i = 0; i < getNumErrors(); i++) {
-        unsetError(i);
+        m_Errors[i] = false;
     }
     updateState();
 }
