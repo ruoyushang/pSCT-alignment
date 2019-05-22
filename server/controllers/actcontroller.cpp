@@ -117,9 +117,8 @@ UaStatus ActController::operate(OpcUa_UInt32 offset, const UaVariantArray &args)
             status = moveDelta(args);
             break;
         case PAS_ACTType_MoveToLength:
-            if (args.length() != 1) {
-                return OpcUa_BadInvalidArgument;
-            }
+            if (!(_getState() == Device::DeviceState::On || _getState() == Device::DeviceState::OperableError))
+                return OpcUa_BadNothingToDo;
             status = moveToLength(args);
             break;
         case PAS_ACTType_ForceRecover:
