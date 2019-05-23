@@ -64,6 +64,9 @@ public:
     static const int NOMINAL_INTENSITY;
     static const float NOMINAL_SPOT_WIDTH;
 
+    void turnOn() override;
+    void turnOff() override;
+
 protected:
     bool m_Calibrate;
 

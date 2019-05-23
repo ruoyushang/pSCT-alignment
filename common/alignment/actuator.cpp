@@ -890,6 +890,16 @@ bool Actuator::forceRecover() {
     return true;
 }
 
+void Actuator::turnOn() {
+    m_pCBC->driver.enable(getPortNumber());    
+    initialize();
+}
+
+void Actuator::turnOff() {
+    saveStatusToASF();
+    m_pCBC->driver.disable(getPortNumber());    
+}
+
 void Actuator::copyFile(const std::string &srcFilePath, const std::string &destFilePath) {
     std::ifstream srcFile(srcFilePath, std::ios::binary);
     std::ofstream destFile(destFilePath, std::ios::binary);

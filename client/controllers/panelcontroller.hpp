@@ -20,8 +20,6 @@ public:
     // construction / destruction
     PanelController(Device::Identity identity, std::shared_ptr<Client> pClient);
 
-    ~PanelController() override;
-
     // Get Controller status and data
     UaStatus getState(Device::DeviceState &state) override;
 

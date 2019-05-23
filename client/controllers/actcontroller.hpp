@@ -22,8 +22,6 @@ public:
     // construction / destruction
     ActController(Device::Identity identity, std::shared_ptr<Client> pClient);
 
-    ~ActController() override;
-
     // Get Controller status and data
     UaStatus getState(Device::DeviceState &state) override;
 

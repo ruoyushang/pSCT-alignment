@@ -19,12 +19,6 @@
 
 ActController::ActController(Device::Identity identity, std::shared_ptr<Client> pClient) : PasController(
     std::move(identity), std::move(pClient)) {
-    m_state = Device::DeviceState::On;
-}
-
-ActController::~ActController() {
-    m_pClient = nullptr;
-    m_state = Device::DeviceState::Off;
 }
 
 /* ----------------------------------------------------------------------------
