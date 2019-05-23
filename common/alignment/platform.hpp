@@ -97,6 +97,7 @@ public:
     std::array<float, NUM_ACTS_PER_PLATFORM> moveDeltaLengths(std::array<float, NUM_ACTS_PER_PLATFORM> lengthsToMove);
 
     // Error functionality
+    void unsetError(int errorCode) override;
     void clearActuatorErrors();
     void clearPlatformErrors();
 

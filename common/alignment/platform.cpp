@@ -602,10 +602,22 @@ bool Platform::initialize()
     return true;
 }
 
-void Platform::clearActuatorErrors() {
-    for (auto &act : m_Actuators) {
-        act->clearErrors();
+void Platform::unsetError(int errorCode) {
+    if (m_Errors.at(errorCode)) {
+        std::cout << "Unsetting Error " << errorCode << " (" << getErrorCodeDefinitions()[errorCode].description
+                  << ") for Device "
+                  << m_Identity << std::endl;
+        
+        if (errorCode >= 0 && errorCode < 12) {
+           std::cout << "Also clearing corresponding errors for Actuator " << errorCode/2 << "."  << std::endl;
+           m_Actuators.at(errorCode/2)->clearErrors(); 
+        }        
+        m_Errors[errorCode] = false;
+        updateState();
     }
+}
+
+void Platform::clearActuatorErrors() {
     for (int i = 0; i < 12; i++)
         unsetError(i);
     updateState();
