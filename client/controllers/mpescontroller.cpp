@@ -199,9 +199,21 @@ UaStatus MPESController::operate(OpcUa_UInt32 offset, const UaVariantArray &args
         return status;
     }
     else if (offset == PAS_MPESType_SetExposure) {
-        std::cout << "+++ Adjusting exposure for " << m_ID << std::endl;
-        status = m_pClient->callMethod(m_ID.eAddress, UaString("SetExposure"));
-        std::cout << "Done." << std::endl;
+        Device::DeviceState state;
+        getState(state);
+        if (state == Device::DeviceState::On || state == Device::DeviceState::OperableError) {
+            std::cout << "+++ Adjusting exposure for " << m_ID << std::endl;
+            status = m_pClient->callMethod(m_ID.eAddress, UaString("SetExposure"));
+            std::cout << "Done." << std::endl;
+        }
+        else if (state == Device::DeviceState::FatalError) {
+            std::cout << "MPES state is FatalError, cannot set exposure. Clear errors and try again." << std::endl;
+            status = OpcUa_Bad;
+        }
+        else if (state == Device::DeviceState::Off) {
+            std::cout << "MPES is off, cannot set exposure. Turn on and try again." << std::endl;
+            status = OpcUa_Bad;
+        }
         return status;
     } else if (offset == PAS_MPESType_ClearError) {
         status = m_pClient->callMethod(m_ID.eAddress, UaString("ClearError"), args);
@@ -286,6 +298,14 @@ UaStatus MPESController::read(bool print) {
             m_Data.xSpotWidth).arg(m_Data.ySpotWidth).arg(m_Data.cleanedIntensity);
         std::ofstream sql_file("MPES_readings.sql", std::ios_base::app);
         sql_file << sql_stmt.toUtf8();
+    }
+    else if (state == Device::DeviceState::FatalError) {
+        std::cout << "MPES is in state FatalError, unable to read. Clear errors and try again." << std::endl;
+        status = OpcUa_Bad;
+    }
+    else if (state == Device::DeviceState::Off) {
+        std::cout << "MPES is off, unable to read. Turn on with start() and try again." << std::endl;
+        status = OpcUa_Bad;
     }
 
     return status;

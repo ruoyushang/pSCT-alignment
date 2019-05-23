@@ -87,8 +87,8 @@ public:
 
     virtual Device::DeviceState getState() { return m_state; }
 
-    void turnOn() { setState(Device::DeviceState::On); }
-    void turnOff() { setState(Device::DeviceState::Off); }
+    virtual void turnOn() { setState(Device::DeviceState::On); }
+    virtual void turnOff() { setState(Device::DeviceState::Off); }
     void setBusy() { setState(Device::DeviceState::Busy); }
 
     void unsetError(int errorCode);
