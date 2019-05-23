@@ -20,8 +20,6 @@ MPESController::MPESController(Device::Identity identity, std::shared_ptr<Client
                                                                                              m_updated(false),
                                                                                              m_isVisible(false),
                                                                                              m_Data() {
-    m_state = Device::DeviceState::On;
-
     // get the nominal aligned readings and response matrices from DB
     /* BEGIN DATABASE HACK */
     //std::string db_ip="172.17.10.10"; // internal ip
@@ -87,7 +85,7 @@ MPESController::MPESController(Device::Identity identity, std::shared_ptr<Client
         std::cout << ", SQLState: " << e.getSQLState() << " )" << std::endl;
 
         // set state to error
-        m_state = Device::DeviceState::FatalError;
+        setState(Device::DeviceState::FatalError);
     }
     /* END DATABASE HACK */
 
@@ -95,8 +93,6 @@ MPESController::MPESController(Device::Identity identity, std::shared_ptr<Client
 }
 
 MPESController::~MPESController() {
-    m_pClient = nullptr;
-    m_state = Device::DeviceState::Off;
 }
 
 /* ----------------------------------------------------------------------------
@@ -241,7 +237,10 @@ UaStatus MPESController::read(bool print) {
     if (print) {
         std::cout << "calling read() on " << m_ID << std::endl;
     }
-    if (m_state == Device::DeviceState::On || m_state == Device::DeviceState::OperableError) {
+
+    Device::DeviceState state;
+    getState(state);
+    if (state == Device::DeviceState::On || state == Device::DeviceState::OperableError) {
         // read the values on the server first
         status = __readRequest();
 

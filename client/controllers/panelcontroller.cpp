@@ -229,6 +229,7 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
             status = moveToLengths(lengthArgs);
         }
     } else if (offset == PAS_PanelType_ReadPosition) {
+        updateCoords(false);
         std::cout << std::endl << m_ID << " :" << std::endl;
         std::cout << "\tCurrent coordinates (x, y ,z xRot, yRot, zRot):\n\t\t";
         for (auto coord : m_curCoords) {
