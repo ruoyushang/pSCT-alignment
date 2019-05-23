@@ -91,7 +91,7 @@ public:
     virtual void turnOff() { setState(Device::DeviceState::Off); }
     void setBusy() { setState(Device::DeviceState::Busy); }
 
-    void unsetError(int errorCode);
+    virtual void unsetError(int errorCode);
 
     void setError(int errorCode);
 

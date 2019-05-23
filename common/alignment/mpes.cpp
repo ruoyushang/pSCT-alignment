@@ -42,12 +42,12 @@ MPES::~MPES() {
     m_pCBC->usb.disable(getPortNumber());
 }
 
-MPES::turnOn() {
+void MPES::turnOn() {
     initialize();
     updatePosition();
 }
 
-MPES::turnOff() {
+void MPES::turnOff() {
     m_pCBC->usb.disable(getPortNumber());
     setState(Device::DeviceState::Off);
 }
