@@ -46,6 +46,8 @@ public:
     bool loadCBCParameters();
 
     Device::DeviceState getState() override;
+    void turnOn() override;
+    void turnOff() override;
 
     // Platform settings and readings
     void enableHighCurrent();

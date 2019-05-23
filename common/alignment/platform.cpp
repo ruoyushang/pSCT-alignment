@@ -227,15 +227,15 @@ void Platform::unsetDBInfo() {
 
 std::array<int, Platform::NUM_ACTS_PER_PLATFORM>
 Platform::step(std::array<int, Platform::NUM_ACTS_PER_PLATFORM> inputSteps) {
-    m_state = Device::DeviceState::Busy; // mark platform as busy
-
-    DEBUG_MSG("Stepping Platform steps: (" << inputSteps[0] << ", " << inputSteps[1] << ", " << inputSteps[2] << ", " << inputSteps[3] << ", " << inputSteps[4] << ", " << inputSteps[5] << ")");
     if (m_state == Device::DeviceState::FatalError)
     {
-        m_state = Device::DeviceState::Off; // Don't move, turn platform off
         return inputSteps;
     }
+    else {
+        m_state = Device::DeviceState::Busy; // mark platform as busy
+    }
 
+    DEBUG_MSG("Stepping Platform steps: (" << inputSteps[0] << ", " << inputSteps[1] << ", " << inputSteps[2] << ", " << inputSteps[3] << ", " << inputSteps[4] << ", " << inputSteps[5] << ")");
     std::array<int, Platform::NUM_ACTS_PER_PLATFORM> StepsRemaining{};
     std::array<int, Platform::NUM_ACTS_PER_PLATFORM> ActuatorIterations = {0, 0, 0, 0, 0, 0};
     std::array<Actuator::Position, Platform::NUM_ACTS_PER_PLATFORM> FinalPosition{};
@@ -448,6 +448,7 @@ void Platform::findHomeFromEndStopAll(int direction) {
     updateState();
     if (m_state == Device::DeviceState::FatalError)
     {
+        std::cout << "Platform::findHomeFromEndStopAll():Fatal error encountered. Stopping..." << std::endl;
         return;
     }
 
@@ -469,6 +470,7 @@ void Platform::findHomeFromEndStopAll(int direction) {
         checkActuatorStatus(i);
         if (m_state == Device::DeviceState::FatalError)
         {
+            std::cout << "Platform::findHomeFromEndStopAll():Fatal error encountered. Stopping..." << std::endl;
             m_pCBC->driver.disableAll();
             return;
         }
@@ -602,6 +604,16 @@ bool Platform::initialize()
     return true;
 }
 
+void Platform::turnOn() {
+    m_pCBC->powerUp();
+    m_state = Device::DeviceState::On;
+}
+
+void Platform::turnOff() {
+    m_pCBC->powerDown();
+    m_state = Device::DeviceState::Off;
+}
+
 void Platform::unsetError(int errorCode) {
     if (m_Errors.at(errorCode)) {
         std::cout << "Unsetting Error " << errorCode << " (" << getErrorCodeDefinitions()[errorCode].description
@@ -618,8 +630,10 @@ void Platform::unsetError(int errorCode) {
 }
 
 void Platform::clearActuatorErrors() {
-    for (int i = 0; i < 12; i++)
+    for (int i = 0; i < 2 * Platform::NUM_ACTS_PER_PLATFORM; i++)
+    {
         unsetError(i);
+    }
     updateState();
 }
 
