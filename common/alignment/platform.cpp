@@ -46,7 +46,7 @@ const float Platform::DEFAULT_INTERNAL_TEMPERATURE_OFFSET = -50.0;
 const float Platform::DEFAULT_EXTERNAL_TEMPERATURE_SLOPE = 44.444;
 const float Platform::DEFAULT_EXTERNAL_TEMPERATURE_OFFSET = -61.111;
 
-Platform::Platform() : Device::Device(std::make_shared<CBC>(), Device::Identity())
+Platform::Platform() : Device::Device(std::make_shared<CBC>(), Device::Identity()), m_On(true)
 {
     DEBUG_MSG("Creating Platform object...");
     m_Errors.assign(getNumErrors(), false);
@@ -65,7 +65,8 @@ Platform::Platform() : Device::Device(std::make_shared<CBC>(), Device::Identity(
 
 Platform::Platform(Device::Identity identity, std::array<int, Platform::NUM_ACTS_PER_PLATFORM> actuatorPorts,
                    std::array<int, Platform::NUM_ACTS_PER_PLATFORM> actuatorSerials, Device::DBInfo dbInfo,
-                   const Actuator::ASFInfo &asfInfo) : Device::Device(std::make_shared<CBC>(), std::move(identity))
+                   const Actuator::ASFInfo &asfInfo) : Device::Device(std::make_shared<CBC>(), std::move(identity)),
+                                                       m_On(true)
 {
     DEBUG_MSG("Creating Platform Object with Actuator Serial Numbers, Ports, DB Information and custom ASF paths");
     m_Errors.assign(getNumErrors(), false);
@@ -93,7 +94,7 @@ Platform::Platform(Device::Identity identity, std::array<int, Platform::NUM_ACTS
 
 Platform::~Platform()
 {
-    m_pCBC->driver.disableAll();
+    m_pCBC->powerDown();
 }
 
 bool Platform::loadCBCParameters() {
@@ -227,12 +228,18 @@ void Platform::unsetDBInfo() {
 
 std::array<int, Platform::NUM_ACTS_PER_PLATFORM>
 Platform::step(std::array<int, Platform::NUM_ACTS_PER_PLATFORM> inputSteps) {
-    if (m_state == Device::DeviceState::FatalError)
+    if (getState() == Device::DeviceState::FatalError)
     {
+        std::cout << "Platform::step() : Encountered fatal error before starting." << std::endl;
+        return inputSteps;
+    } else if (getState() == Device::DeviceState::Off) {
+        std::cout << "Platform::step() : Platform is off. Nothing to do..." << std::endl;
         return inputSteps;
     }
-    else {
-        m_state = Device::DeviceState::Busy; // mark platform as busy
+
+    bool alreadyBusy = isBusy();
+    if (!alreadyBusy) {
+        setBusy();
     }
 
     DEBUG_MSG("Stepping Platform steps: (" << inputSteps[0] << ", " << inputSteps[1] << ", " << inputSteps[2] << ", " << inputSteps[3] << ", " << inputSteps[4] << ", " << inputSteps[5] << ")");
@@ -266,9 +273,6 @@ Platform::step(std::array<int, Platform::NUM_ACTS_PER_PLATFORM> inputSteps) {
                       << "mm) for Actuator "
                       << m_Actuators[i]->getSerialNumber() << std::endl;
 
-            // reset the state to Off
-            m_state = Device::DeviceState::Off;
-
             return inputSteps;
         }
 
@@ -284,19 +288,18 @@ Platform::step(std::array<int, Platform::NUM_ACTS_PER_PLATFORM> inputSteps) {
     int Sign;
     int StepsMissed;
 
-    // m_state can be changed by an external caller during motion -- need to check this
     m_pCBC->driver.enableAll();
     while(IterationsRemaining>1)
     {
         // need to check the state and if needed, break TWICE --
         // once for the inner actuator loop and once for the outer cycle loop
-        if (m_state == Device::DeviceState::Off || m_state == Device::DeviceState::FatalError) {
+        if (getState() == Device::DeviceState::Off || getState() == Device::DeviceState::FatalError) {
             break;
         }
 
         for (int i = 0; i < Platform::NUM_ACTS_PER_PLATFORM; i++)
         {
-            if (m_state == Device::DeviceState::Off || m_state == Device::DeviceState::FatalError) {
+            if (getState() == Device::DeviceState::Off || getState() == Device::DeviceState::FatalError) {
                 break;
             }
 
@@ -305,10 +308,6 @@ Platform::step(std::array<int, Platform::NUM_ACTS_PER_PLATFORM> inputSteps) {
                 if (getState() == Device::DeviceState::FatalError)
                 {
                     m_pCBC->driver.disableAll();
-
-                    // reset the state to Off
-                    m_state = Device::DeviceState::Off;
-
                     return StepsRemaining;
                 }
                 StepsToTake[i]=StepsToTake[i]+StepsRemaining[i]/IterationsRemaining;
@@ -316,7 +315,6 @@ Platform::step(std::array<int, Platform::NUM_ACTS_PER_PLATFORM> inputSteps) {
                 {
                     Sign=(StepsToTake[i]>0)-(StepsToTake[i]<0);
                     StepsMissed = m_Actuators[i]->step(Sign * m_Actuators[i]->RecordingInterval);
-                    checkActuatorStatus(i);
                     StepsToTake[i] = StepsToTake[i] - (Sign * m_Actuators[i]->RecordingInterval) + StepsMissed;
                     StepsRemaining[i] = -(m_Actuators[i]->convertPositionToSteps(FinalPosition[i]) -
                                           m_Actuators[i]->convertPositionToSteps(m_Actuators[i]->getCurrentPosition()));
@@ -329,33 +327,24 @@ Platform::step(std::array<int, Platform::NUM_ACTS_PER_PLATFORM> inputSteps) {
     }
 
     //Hysteresis Motion
-    if (m_state != Device::DeviceState::Off && m_state != Device::DeviceState::FatalError) {
-        for (int i = 0; i < Platform::NUM_ACTS_PER_PLATFORM; i++)
-        {
-            if (m_state == Device::DeviceState::FatalError)
-            {
-                m_pCBC->driver.disableAll();
-
-                // reset the state to Off
-                m_state = Device::DeviceState::Off;
-
-                return StepsRemaining;
-            }
-            if(StepsRemaining[i] != 0)
-            {
-                m_Actuators[i]->performHysteresisMotion(StepsRemaining[i]);
-                checkActuatorStatus(i);
-                StepsRemaining[i] = -(m_Actuators[i]->convertPositionToSteps(FinalPosition[i]) -
-                                      m_Actuators[i]->convertPositionToSteps(m_Actuators[i]->getCurrentPosition()));
-            }
-
+    for (int i = 0; i < Platform::NUM_ACTS_PER_PLATFORM; i++) {
+        if (getState() == Device::DeviceState::FatalError || getState() == Device::DeviceState::Off) {
+            m_pCBC->driver.disableAll();
+            return StepsRemaining;
         }
+        if (StepsRemaining[i] != 0) {
+            m_Actuators[i]->performHysteresisMotion(StepsRemaining[i]);
+            StepsRemaining[i] = -(m_Actuators[i]->convertPositionToSteps(FinalPosition[i]) -
+                                  m_Actuators[i]->convertPositionToSteps(m_Actuators[i]->getCurrentPosition()));
+        }
+
     }
 
     m_pCBC->driver.disableAll();
 
-    // reset the state to On
-    m_state = Device::DeviceState::On;
+    if (!alreadyBusy) {
+        unsetBusy();
+    }
 
     return StepsRemaining;
 }
@@ -371,21 +360,22 @@ void Platform::checkActuatorStatus(int actuatorIdx) {
     }
 }
 
-Device::DeviceState Platform::getState() {
-    m_state = Device::DeviceState::On;
-    for (int i = 0; i < Platform::NUM_ACTS_PER_PLATFORM; i++)
-    {
-        checkActuatorStatus(i);
-    }
-    return m_state;
-}
-
 void Platform::probeEndStopAll(int direction)
 {
-    if (m_state == Device::DeviceState::FatalError)
+    if (getState() == Device::DeviceState::FatalError)
     {
+        std::cout << "Platform::probeEndStopAll() : Encountered fatal error before starting." << std::endl;
+        return;
+    } else if (getState() == Device::DeviceState::Off) {
+        std::cout << "Platform::probeEndStopAll() : Platform is off. Nothing to do..." << std::endl;
         return;
     }
+
+    bool alreadyBusy = isBusy();
+    if (!alreadyBusy) {
+        setBusy();
+    }
+
     std::array<int, Platform::NUM_ACTS_PER_PLATFORM> SearchSteps{};
     std::array<float, Platform::NUM_ACTS_PER_PLATFORM> VoltageBefore{};
     std::array<float, Platform::NUM_ACTS_PER_PLATFORM> AbsDeltaVoltage{};
@@ -395,9 +385,9 @@ void Platform::probeEndStopAll(int direction)
     {
         SearchSteps[i] = direction * m_Actuators[i]->EndstopSearchStepsize;
         VoltageAfter[i] = m_Actuators[i]->readVoltage();
-        //checkActuatorStatus(i);
-        if (m_state == Device::DeviceState::FatalError)
+        if (getState() == Device::DeviceState::FatalError)
         {
+            std::cout << "Platform::probeEndStopAll() : Encountered fatal error. Stopping..." << std::endl;
             return;
         }
     }
@@ -414,10 +404,10 @@ void Platform::probeEndStopAll(int direction)
                 VoltageBefore[i]=VoltageAfter[i];
                 m_pCBC->driver.step(m_Actuators[i]->getPortNumber(), SearchSteps[i]);
                 VoltageAfter[i] = m_Actuators[i]->readVoltage();
-                checkActuatorStatus(i);
-                if (m_state == Device::DeviceState::FatalError)
+                if (getState() == Device::DeviceState::FatalError)
                 {
                     m_pCBC->driver.disableAll();
+                    std::cout << "Platform::probeEndStopAll() : Encountered fatal error. Stopping..." << std::endl;
                     return;
                 }
                 AbsDeltaVoltage[i]=std::fabs(VoltageAfter[i]-VoltageBefore[i]);
@@ -430,9 +420,18 @@ void Platform::probeEndStopAll(int direction)
     }
 
     m_pCBC->driver.disableAll();
+    if (!alreadyBusy) {
+        unsetBusy();
+    }
 }
 
 void Platform::findHomeFromEndStopAll(int direction) {
+
+    bool alreadyBusy = isBusy();
+    if (!alreadyBusy) {
+        setBusy();
+    }
+
     if (direction == 1)
     {
         probeExtendStopAll();
@@ -445,8 +444,7 @@ void Platform::findHomeFromEndStopAll(int direction) {
         return;
     }
 
-    updateState();
-    if (m_state == Device::DeviceState::FatalError)
+    if (getState() == Device::DeviceState::FatalError)
     {
         std::cout << "Platform::findHomeFromEndStopAll():Fatal error encountered. Stopping..." << std::endl;
         return;
@@ -467,8 +465,7 @@ void Platform::findHomeFromEndStopAll(int direction) {
         {
             return;
         }
-        checkActuatorStatus(i);
-        if (m_state == Device::DeviceState::FatalError)
+        if (getState() == Device::DeviceState::FatalError)
         {
             std::cout << "Platform::findHomeFromEndStopAll():Fatal error encountered. Stopping..." << std::endl;
             m_pCBC->driver.disableAll();
@@ -476,13 +473,23 @@ void Platform::findHomeFromEndStopAll(int direction) {
         }
     }
     m_pCBC->driver.disableAll();
+
+    if (!alreadyBusy) {
+        unsetBusy();
+    }
+
 }
 
 bool Platform::probeHomeAll()
 {
+    bool alreadyBusy = isBusy();
+    if (!alreadyBusy) {
+        setBusy();
+    }
+
     DEBUG_MSG("Probing Home for All Actuators");
     probeExtendStopAll();
-    if (m_state == Device::DeviceState::FatalError)
+    if (getState() == Device::DeviceState::FatalError)
     {
         std::cout << "Platform:: Cannot probe home, Platform has a Fatal Error" << std::endl;
         return false;
@@ -492,8 +499,7 @@ bool Platform::probeHomeAll()
     for (int i = 0; i < Platform::NUM_ACTS_PER_PLATFORM; i++)
     {
         m_Actuators.at(i)->probeHome();
-        checkActuatorStatus(i);
-        if (m_state == Device::DeviceState::FatalError)
+        if (getState() == Device::DeviceState::FatalError)
         {
             std::cout << "Platform:: Actuator " << i
                       << " encountered a fatal error after probing home. Stopping probeHomeAll..." << std::endl;
@@ -502,23 +508,38 @@ bool Platform::probeHomeAll()
         }
     }
     m_pCBC->driver.disableAll();
+
+    if (!alreadyBusy) {
+        unsetBusy();
+    }
+
     return true;
 }
 
 
 std::array<float, Platform::NUM_ACTS_PER_PLATFORM> Platform::measureLengths()//public
 {
+    bool alreadyBusy = isBusy();
+    if (!alreadyBusy) {
+        setBusy();
+    }
+
     DEBUG_MSG("Measuring Lengths of All Actuators");
     std::array<float, Platform::NUM_ACTS_PER_PLATFORM> currentLengths{};
     for (int i = 0; i < Platform::NUM_ACTS_PER_PLATFORM; i++)
     {
         currentLengths[i] = m_Actuators.at(i)->measureLength();
     }
+    if (!alreadyBusy) {
+        unsetBusy();
+    }
+
     return currentLengths;
 }
 
 std::array<float, Platform::NUM_ACTS_PER_PLATFORM>
 Platform::moveToLengths(std::array<float, Platform::NUM_ACTS_PER_PLATFORM> targetLengths) {
+    setBusy();
     std::array<float, Platform::NUM_ACTS_PER_PLATFORM> currentLengths = measureLengths();
     std::array<float, Platform::NUM_ACTS_PER_PLATFORM> deltaLengths{};
     std::array<int, Platform::NUM_ACTS_PER_PLATFORM> stepsToTake{};
@@ -530,11 +551,13 @@ Platform::moveToLengths(std::array<float, Platform::NUM_ACTS_PER_PLATFORM> targe
     }
     step(stepsToTake);
     currentLengths = measureLengths();
+    unsetBusy();
     return currentLengths;
 }
 
 std::array<float, Platform::NUM_ACTS_PER_PLATFORM>
 Platform::moveDeltaLengths(std::array<float, Platform::NUM_ACTS_PER_PLATFORM> deltaLengths) {
+    setBusy();
     std::array<float, Platform::NUM_ACTS_PER_PLATFORM> currentLengths = measureLengths();
     std::array<float, Platform::NUM_ACTS_PER_PLATFORM> targetLengths{};
 
@@ -550,6 +573,9 @@ Platform::moveDeltaLengths(std::array<float, Platform::NUM_ACTS_PER_PLATFORM> de
     {
         distancesFromTargets[i] = targetLengths[i] - currentLengths[i];
     }
+
+    unsetBusy();
+
     return distancesFromTargets;
 }
 
@@ -599,19 +625,37 @@ bool Platform::initialize()
 {
     DEBUG_MSG("Initializing Platform class object...");
     loadCBCParameters();
-    updateState();
-
     return true;
+}
+
+bool Platform::isOn() {
+    return m_On;
 }
 
 void Platform::turnOn() {
     m_pCBC->powerUp();
-    m_state = Device::DeviceState::On;
+    m_On = true;
 }
 
 void Platform::turnOff() {
     m_pCBC->powerDown();
-    m_state = Device::DeviceState::Off;
+    m_On = false;
+}
+
+Device::DeviceState Platform::getErrorState() {
+    for (int i = 0; i < Platform::NUM_ACTS_PER_PLATFORM; i++) {
+        checkActuatorStatus(i);
+    }
+    Device::DeviceState state = Device::DeviceState::On;
+    for (int i = 0; i < getNumErrors(); i++) {
+        if (m_Errors[i]) {
+            if (getErrorCodeDefinitions()[i].severity > state) {
+                state = getErrorCodeDefinitions()[i].severity;
+            }
+        }
+    }
+
+    return state;
 }
 
 void Platform::unsetError(int errorCode) {
@@ -625,7 +669,7 @@ void Platform::unsetError(int errorCode) {
            m_Actuators.at(errorCode/2)->clearErrors(); 
         }        
         m_Errors[errorCode] = false;
-        updateState();
+        getErrorState();
     }
 }
 
@@ -634,7 +678,7 @@ void Platform::clearActuatorErrors() {
     {
         unsetError(i);
     }
-    updateState();
+    getErrorState();
 }
 
 void Platform::clearPlatformErrors()
@@ -644,7 +688,7 @@ void Platform::clearPlatformErrors()
     {
         unsetError(i);
     }
-    updateState(); // Update error status to reflect actuator errors
+    getErrorState(); // Update error status to reflect actuator errors
 }
 
 void Platform::findHomeFromEndStop(int direction, int actuatorIdx)
@@ -661,7 +705,7 @@ void Platform::findHomeFromEndStop(int direction, int actuatorIdx)
     }
 }
 
-bool Platform::addMPES(Device::Identity identity)
+bool Platform::addMPES(const Device::Identity &identity)
 {
     DEBUG_MSG("Adding MPES " << identity.serialNumber << " at USB " << identity.eAddress);
     if (identity.serialNumber < 0 || std::stoi(identity.eAddress) < 0) {

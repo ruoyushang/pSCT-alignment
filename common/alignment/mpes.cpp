@@ -34,7 +34,7 @@ const std::vector<Device::ErrorDefinition> MPES::ERROR_DEFINITIONS = {
         {"Intensity deviation from nominal value (more than 20%).",                                                    Device::DeviceState::OperableError},//error 7
 };
 
-MPES::MPES(std::shared_ptr<CBC> pCBC, Device::Identity identity) : Device::Device(pCBC, identity),
+MPES::MPES(std::shared_ptr<CBC> pCBC, Device::Identity identity) : Device::Device(std::move(pCBC), std::move(identity)),
                                                                    m_Calibrate(false) {
 }
 
@@ -44,17 +44,22 @@ MPES::~MPES() {
 
 void MPES::turnOn() {
     initialize();
+    setExposure();
     updatePosition();
 }
 
 void MPES::turnOff() {
     m_pCBC->usb.disable(getPortNumber());
-    setState(Device::DeviceState::Off);
+}
+
+bool MPES::isOn() {
+    return m_pCBC->usb.isEnabled(getPortNumber());
 }
 
 // returns intensity of the sensor image.
 // check this value to see if everything is working fine
 bool MPES::initialize() {
+    setBusy();
     // we toggle the usb port, checking the video devices when it's off and again when it's on.
     // the new video device is the ID of the newly created MPES.
 
@@ -110,12 +115,14 @@ bool MPES::initialize() {
         std::cout << "Did not read calibration data -- using raw values\n";
     }
 
+    unsetBusy();
     return true;
 }
 
 // find and set optimal exposure -- assume I(e) is linear
 // returns measured intensity -- check this value to see if things work fine
 int MPES::setExposure() {
+    setBusy();
     std::cout << "MPES:: Setting exposure for device at USB " << getPortNumber() << std::endl;
     int intensity;
 
@@ -134,12 +141,17 @@ int MPES::setExposure() {
     }
 
     std::cout << "MPES:: setExposure() DONE" << std::endl;
+    unsetBusy();
     return intensity;
 }
 
 // returns intensity of the beam -- 0 if no beam/device.
 // so check the return value to know if things work fine
 int MPES::updatePosition() {
+    bool alreadyBusy = isBusy();
+    if (!alreadyBusy) {
+        setBusy();
+    }
     // initialize to something obvious in case of failure
     m_Position.xCentroid = -1.;
     m_Position.yCentroid = -1.;
@@ -182,7 +194,9 @@ int MPES::updatePosition() {
         setError(2);
     }
 
-
+    if (!alreadyBusy) {
+        unsetBusy();
+    }
     return static_cast<int>(m_Position.cleanedIntensity);
 }
 
@@ -219,6 +233,8 @@ bool DummyMPES::initialize() {
 }
 
 int DummyMPES::setExposure() {
+
+
     std::cout << "+++ Dummy MPES: Setting exposure for device at USB " << getPortNumber() << std::endl;
     int intensity = MPES::NOMINAL_INTENSITY; // dummy value
     return intensity;

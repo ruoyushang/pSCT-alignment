@@ -91,6 +91,8 @@ public:
 
     void loadStatusFromASF();
 
+    bool isOn() override;
+
     void turnOn() override;
     void turnOff() override;
 
@@ -100,8 +102,6 @@ protected:
 
     static constexpr const unsigned NUM_DB_HEADER_COLUMNS = 5; //id_increment, serial, start_date, rev, angle
     unsigned NUM_DB_COLUMNS{NUM_DB_HEADER_COLUMNS + getNumErrors()};
-
-    Device::DeviceState m_State = Device::DeviceState::On;
 
     Device::DBInfo m_DBInfo;
 

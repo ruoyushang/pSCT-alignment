@@ -73,7 +73,6 @@ public:
     };
 
     Device(std::shared_ptr<CBC> pCBC, Identity identity);
-
     ~Device() = default;
 
     virtual std::vector <Device::ErrorDefinition> getErrorCodeDefinitions() = 0;
@@ -81,29 +80,36 @@ public:
 
     bool getError(int errorCode) { return m_Errors[errorCode]; }
 
+    virtual void setError(int errorCode);
+
+    virtual void unsetError(int errorCode);
     virtual void clearErrors();
 
     virtual bool initialize() = 0;
 
-    virtual Device::DeviceState getState() { return m_state; }
+    Device::DeviceState getState();
 
-    virtual void turnOn() { setState(Device::DeviceState::On); }
-    virtual void turnOff() { setState(Device::DeviceState::Off); }
-    void setBusy() { setState(Device::DeviceState::Busy); }
+    virtual void turnOn() = 0;
 
-    virtual void unsetError(int errorCode);
+    virtual void turnOff() = 0;
 
-    void setError(int errorCode);
+    bool isBusy() { return m_Busy; }
+
+    virtual bool isOn() = 0;
 
 protected:
     std::shared_ptr<CBC> m_pCBC;
     Device::Identity m_Identity;
 
-    Device::DeviceState m_state;
     std::vector<bool> m_Errors;
 
-    void setState(Device::DeviceState state);
-    void updateState();
+    bool m_Busy;
+
+    void setBusy() { m_Busy = true; }
+
+    void unsetBusy() { m_Busy = false; }
+
+    virtual Device::DeviceState getErrorState();
 };
 
 inline std::ostream &operator<<(std::ostream &out, const Device::Identity &id) {

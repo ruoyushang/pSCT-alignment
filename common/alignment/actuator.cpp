@@ -422,6 +422,10 @@ void Actuator::saveStatusToASF()//record all error codes to ASF.
 }
 
 float Actuator::readVoltage() {
+    bool alreadyBusy = isBusy();
+    if (!alreadyBusy) {
+        setBusy();
+    }
     int MeasurementCount = 0;
     m_ADCdata = m_pCBC->adc.readEncoder(getPortNumber());
     while ((m_ADCdata.stddev > m_StdDevRemeasure) && (MeasurementCount < m_MaxVoltageMeasurementAttempts)) {
@@ -435,6 +439,9 @@ float Actuator::readVoltage() {
                                            << " volts");
         setError(7);//fatal
         saveStatusToASF();
+    }
+    if (!alreadyBusy) {
+        unsetBusy();
     }
     return m_ADCdata.voltage;
 }
@@ -516,10 +523,15 @@ int Actuator::checkAngleSlow(Position ExpectedPosition) {
 
 int Actuator::step(int steps)//Positive Step is Extension of Motor
 {
-    DEBUG_MSG("Stepping Actuator " << getSerialNumber() << " " << steps << " steps");
-    if (m_State == Device::DeviceState::FatalError)//don't move actuator if there's a fatal error.
+    if (getState() != Device::DeviceState::On &&
+        getState() != Device::DeviceState::OperableError)//don't move actuator if there's a fatal error.
     {
         return steps;
+    }
+    DEBUG_MSG("Stepping Actuator " << getSerialNumber() << " " << steps << " steps");
+    bool alreadyBusy = isBusy();
+    if (!alreadyBusy) {
+        setBusy();
     }
     loadStatusFromASF();
     recoverPosition();
@@ -540,14 +552,14 @@ int Actuator::step(int steps)//Positive Step is Extension of Motor
     int StepsToTake = Sign * RecordingInterval;
     bool KeepStepping = true;
 
-
-    while ((KeepStepping) && (m_State != Device::DeviceState::FatalError)) {
+    while ((KeepStepping) && (getState() != Device::DeviceState::FatalError)) {
         if (std::abs(StepsRemaining) <= RecordingInterval) {
             StepsToTake = StepsRemaining;
             KeepStepping = false;
         }
         PredictedPosition = predictNewPosition(m_CurrentPosition, -StepsToTake);
         m_pCBC->driver.step(getPortNumber(), StepsToTake);
+        getErrorState();
         MissedSteps = checkAngleQuick(
                 PredictedPosition);//negative*negative=positive sign because retraction is increasing internal counter and missed steps is negative by definition.
         if (m_Errors[7] == true)//if voltage measurement has issues.
@@ -571,6 +583,9 @@ int Actuator::step(int steps)//Positive Step is Extension of Motor
 
         saveStatusToASF();
         StepsRemaining = -(convertPositionToSteps(FinalPosition) - convertPositionToSteps(m_CurrentPosition));
+    }
+    if (!alreadyBusy) {
+        unsetBusy();
     }
     return StepsRemaining;
 }
@@ -631,7 +646,7 @@ bool Actuator::initialize() {
     loadStatusFromASF();
     loadConfigurationAndCalibration();
     recoverPosition();
-    updateState();
+    getErrorState();
 
     return true;
 }
@@ -710,6 +725,7 @@ int Actuator::convertPositionToSteps(Position position) {
 
 void Actuator::probeHome()//method used to define home.
 {
+    setBusy();
     DEBUG_MSG("Probing Home for Actuator " << getSerialNumber());
     probeExtendStop();
 
@@ -785,10 +801,15 @@ void Actuator::probeHome()//method used to define home.
     setCurrentPosition(HomePosition);
     unsetError(0);
     saveStatusToASF();
+    unsetBusy();
 }
 
 void Actuator::findHomeFromEndStop(int direction)//use recorded extendstop and set actuator to that.
 {
+    bool alreadyBusy = isBusy();
+    if (!alreadyBusy) {
+        setBusy();
+    }
     //if direction=1, probeextendstop then set current position to recorded extendstop. compare the number of steps away from the recorded value, and report error if this number is too high.
     Position targetPosition{};
     if (direction == 1) {
@@ -824,9 +845,16 @@ void Actuator::findHomeFromEndStop(int direction)//use recorded extendstop and s
             step(1 * direction * RecordingInterval);
         }
     }
+    if (!alreadyBusy) {
+        unsetBusy();
+    }
 }
 
 void Actuator::probeEndStop(int direction) {
+    bool alreadyBusy = isBusy();
+    if (!alreadyBusy) {
+        setBusy();
+    }
     setError(0); // Set home position not found error until probe home is complete
 
     int searchSteps = direction * EndstopSearchStepsize;
@@ -850,6 +878,9 @@ void Actuator::probeEndStop(int direction) {
         if (AbsDeltaVoltage < std::fabs(dV * searchSteps * m_StoppedSteppingFactor)) {
             atStop = true;
         }
+    }
+    if (!alreadyBusy) {
+        unsetBusy();
     }
 }
 
@@ -890,6 +921,10 @@ bool Actuator::forceRecover() {
     return true;
 }
 
+bool Actuator::isOn() {
+    return m_pCBC->driver.isEnabled(getPortNumber());
+}
+
 void Actuator::turnOn() {
     m_pCBC->driver.enable(getPortNumber());    
     initialize();
@@ -913,7 +948,7 @@ void Actuator::copyFile(const std::string &srcFilePath, const std::string &destF
 int DummyActuator::step(int steps)
 {
     std::cout << "DummyActuator: Stepping Actuator " << getSerialNumber() << " " << steps << " steps" << std::endl;
-    if (m_State == Device::DeviceState::FatalError) {
+    if (getState() != Device::DeviceState::On && getState() != Device::DeviceState::OperableError) {
         ERROR_MSG("DummyActuator: Fatal error. Cannot step.");
         return steps;
     }

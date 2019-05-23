@@ -45,7 +45,7 @@ public:
 
     bool loadCBCParameters();
 
-    Device::DeviceState getState() override;
+    bool isOn() override;
     void turnOn() override;
     void turnOff() override;
 
@@ -103,13 +103,15 @@ public:
     void clearActuatorErrors();
     void clearPlatformErrors();
 
+    Device::DeviceState getErrorState() override;
+
     // MPES functionality
 
     /**
      * @brief This function adds MPES if they can be initialized at USB ports.
      In the Sim mode, MPES are added regardlessly.
      */
-    bool addMPES(Device::Identity identity);
+    bool addMPES(const Device::Identity &identity);
     MPES::Position readMPES(int idx);
 
 private:
@@ -119,6 +121,8 @@ private:
     static const float DEFAULT_EXTERNAL_TEMPERATURE_OFFSET;
 
     Device::DBInfo m_DBInfo;
+
+    bool m_On;
 
     void checkActuatorStatus(int actuatorIdx);
 

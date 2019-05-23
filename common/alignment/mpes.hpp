@@ -67,6 +67,8 @@ public:
     void turnOn() override;
     void turnOff() override;
 
+    bool isOn() override;
+
 protected:
     bool m_Calibrate;
 
@@ -82,7 +84,7 @@ protected:
 class DummyMPES : public MPES
 {
 public:
-    DummyMPES(std::shared_ptr<CBC> pCBC, Device::Identity identity) : MPES(pCBC, identity) {};
+    DummyMPES(std::shared_ptr<CBC> pCBC, Device::Identity identity) : MPES(std::move(pCBC), std::move(identity)) {};
 
     bool initialize() override;
     int setExposure() override;

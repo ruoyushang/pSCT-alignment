@@ -46,8 +46,7 @@ bool Device::Identity::operator==(const Device::Identity &r) const {
 bool Device::Identity::operator!=(const Device::Identity &r) const { return !(*this == r); }
 
 Device::Device(std::shared_ptr<CBC> pCBC, Device::Identity identity) : m_pCBC(std::move(pCBC)),
-                                                                       m_Identity(std::move(identity)),
-                                                                       m_state(Device::DeviceState::On) {}
+                                                                       m_Identity(std::move(identity)), m_Busy(false) {}
 
 void Device::setError(int errorCode) {
     if (!m_Errors.at(errorCode)) {
@@ -55,7 +54,7 @@ void Device::setError(int errorCode) {
                   << ") for Device "
                   << m_Identity << std::endl;
         m_Errors[errorCode] = true;
-        updateState();
+        getErrorState();
     }
 }
 
@@ -65,25 +64,33 @@ void Device::unsetError(int errorCode) {
                   << ") for Device "
                   << m_Identity << std::endl;
         m_Errors[errorCode] = false;
-        updateState();
+        getErrorState();
     }
 }
 
-void Device::setState(Device::DeviceState state) {
-    if (state > m_state) {
-        std::cout << "Setting Device " << m_Identity << " status to " << deviceStateNames.at(state) << std::endl;
-        m_state = state;
-    }
-}
-
-void Device::updateState()//cycle through all errors and set status based on ones triggered.
+Device::DeviceState Device::getState()//cycle through all errors and set state based on ones triggered.
 {
-    m_state = Device::DeviceState::On;
+    if (!isOn()) {
+        return Device::DeviceState::Off;
+    } else if (isBusy()) {
+        return Device::DeviceState::Busy;
+    } else {
+        return getErrorState();
+    }
+}
+
+Device::DeviceState Device::getErrorState()//cycle through all errors and set state based on ones triggered.
+{
+    Device::DeviceState state = Device::DeviceState::On;
     for (int i = 0; i < getNumErrors(); i++) {
         if (m_Errors[i]) {
-            setState(getErrorCodeDefinitions()[i].severity);
+            if (getErrorCodeDefinitions()[i].severity > state) {
+                state = getErrorCodeDefinitions()[i].severity;
+            }
         }
     }
+
+    return state;
 }
 
 void Device::clearErrors() {
@@ -91,5 +98,5 @@ void Device::clearErrors() {
     for (int i = 0; i < getNumErrors(); i++) {
         m_Errors[i] = false;
     }
-    updateState();
+    getErrorState();
 }
