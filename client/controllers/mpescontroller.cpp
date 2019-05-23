@@ -92,9 +92,6 @@ MPESController::MPESController(Device::Identity identity, std::shared_ptr<Client
     SystematicOffsets = Eigen::Vector2d::Zero();
 }
 
-MPESController::~MPESController() {
-}
-
 /* ----------------------------------------------------------------------------
     Class        MPESController
     Method       getState

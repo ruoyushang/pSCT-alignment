@@ -14,7 +14,6 @@
 PanelController::PanelController(Device::Identity identity, std::shared_ptr<Client> pClient) :
     PasCompositeController(std::move(identity), std::move(pClient), 1000) {
     m_ID.name = std::string("Panel_") + std::to_string(m_ID.position);
-    m_state = Device::DeviceState::On;
     m_SP.SetPanelType(StewartPlatform::PanelType::OPT);
 
     // define possible children types
@@ -24,16 +23,6 @@ PanelController::PanelController(Device::Identity identity, std::shared_ptr<Clie
     // duration takes seconds -- hence the conversion with the 1/1000 ratio
     m_lastUpdateTime = TIME::now() - std::chrono::duration<int, std::ratio<1, 1000>>
             (m_kUpdateInterval_ms);
-}
-
-PanelController::~PanelController() {
-    m_pClient = nullptr;
-
-    for (auto &devVector : m_pChildren)
-        for (auto &dev : devVector.second)
-            dev = nullptr;
-
-    m_state = Device::DeviceState::Off;
 }
 
 unsigned PanelController::getActuatorCount() {
@@ -140,13 +129,13 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
     }
 
     // update the state
-    Device::DeviceState dummy;
-    getState(dummy);
+    Device::DeviceState state;
+    getState(state);
 
     if (offset == PAS_PanelType_MoveToLengths || offset == PAS_PanelType_MoveToCoords || offset == PAS_PanelType_MoveDeltaLengths || offset == PAS_PanelType_FindHome) {
-        if (m_state == Device::DeviceState::FatalError)
+        if (state == Device::DeviceState::FatalError)
             std::cout << m_ID << "::Operate() : Current state is 'FatalError'! This won't do anything." << std::endl;
-        if (m_state == Device::DeviceState::Busy)
+        if (state == Device::DeviceState::Busy)
             std::cout << m_ID << "::Operate() : Current state is 'Busy'! This won't do anything." << std::endl;
         // Update coordinates before doing any calculations
         updateCoords();

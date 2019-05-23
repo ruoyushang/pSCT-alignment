@@ -24,8 +24,6 @@ public:
     /* construction / destruction */
     MPESController(Device::Identity identity, std::shared_ptr<Client> pClient);
 
-    ~MPESController() override;
-
     /* Get Controller status and data */
     UaStatus getState(Device::DeviceState &state) override;
 
