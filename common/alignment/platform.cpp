@@ -228,12 +228,13 @@ void Platform::unsetDBInfo() {
 
 std::array<int, Platform::NUM_ACTS_PER_PLATFORM>
 Platform::step(std::array<int, Platform::NUM_ACTS_PER_PLATFORM> inputSteps) {
-    if (getState() == Device::DeviceState::FatalError)
-    {
-        std::cout << "Platform::step() : Encountered fatal error before starting." << std::endl;
+
+    if (getState() == Device::DeviceState::Off) {
+        std::cout << "Platform::step() : Panel is off, nothing to do." << std::endl;
         return inputSteps;
-    } else if (getState() == Device::DeviceState::Off) {
-        std::cout << "Platform::step() : Platform is off. Nothing to do..." << std::endl;
+    }
+    if (getState() == Device::DeviceState::FatalError) {
+        std::cout << "Platform::step() : Encountered fatal error before starting." << std::endl;
         return inputSteps;
     }
 
@@ -293,21 +294,35 @@ Platform::step(std::array<int, Platform::NUM_ACTS_PER_PLATFORM> inputSteps) {
     {
         // need to check the state and if needed, break TWICE --
         // once for the inner actuator loop and once for the outer cycle loop
-        if (getState() == Device::DeviceState::Off || getState() == Device::DeviceState::FatalError) {
+        if (m_EmergencyStop || getState() == Device::DeviceState::FatalError) {
+            m_EmergencyStop = false;
+            m_pCBC->driver.disableAll();
+            if (!alreadyBusy) {
+                unsetBusy();
+            }
             break;
         }
 
         for (int i = 0; i < Platform::NUM_ACTS_PER_PLATFORM; i++)
         {
-            if (getState() == Device::DeviceState::Off || getState() == Device::DeviceState::FatalError) {
+            if (m_EmergencyStop || getState() == Device::DeviceState::FatalError) {
+                m_EmergencyStop = false;
+                m_pCBC->driver.disableAll();
+                if (!alreadyBusy) {
+                    unsetBusy();
+                }
                 break;
             }
 
             if(ActuatorIterations[i] > 1)
             {
-                if (getState() == Device::DeviceState::FatalError)
+                if (m_EmergencyStop || getState() == Device::DeviceState::FatalError)
                 {
+                    m_EmergencyStop = false;
                     m_pCBC->driver.disableAll();
+                    if (!alreadyBusy) {
+                        unsetBusy();
+                    }
                     return StepsRemaining;
                 }
                 StepsToTake[i]=StepsToTake[i]+StepsRemaining[i]/IterationsRemaining;
@@ -328,8 +343,12 @@ Platform::step(std::array<int, Platform::NUM_ACTS_PER_PLATFORM> inputSteps) {
 
     //Hysteresis Motion
     for (int i = 0; i < Platform::NUM_ACTS_PER_PLATFORM; i++) {
-        if (getState() == Device::DeviceState::FatalError || getState() == Device::DeviceState::Off) {
+        if (m_EmergencyStop || getState() == Device::DeviceState::Off) {
+            m_EmergencyStop = false;
             m_pCBC->driver.disableAll();
+            if (!alreadyBusy) {
+                unsetBusy();
+            }
             return StepsRemaining;
         }
         if (StepsRemaining[i] != 0) {
@@ -404,10 +423,15 @@ void Platform::probeEndStopAll(int direction)
                 VoltageBefore[i]=VoltageAfter[i];
                 m_pCBC->driver.step(m_Actuators[i]->getPortNumber(), SearchSteps[i]);
                 VoltageAfter[i] = m_Actuators[i]->readVoltage();
-                if (getState() == Device::DeviceState::FatalError)
+                if (m_EmergencyStop || getState() == Device::DeviceState::FatalError)
                 {
+                    m_EmergencyStop = false;
                     m_pCBC->driver.disableAll();
-                    std::cout << "Platform::probeEndStopAll() : Encountered fatal error. Stopping..." << std::endl;
+                    if (!alreadyBusy) {
+                        unsetBusy();
+                    }
+                    std::cout << "Platform::probeEndStopAll() : Encountered fatal error/stop command. Stopping..."
+                              << std::endl;
                     return;
                 }
                 AbsDeltaVoltage[i]=std::fabs(VoltageAfter[i]-VoltageBefore[i]);
@@ -634,7 +658,14 @@ bool Platform::isOn() {
 
 void Platform::turnOn() {
     m_pCBC->powerUp();
+    m_pCBC->driver.enableAll();
+    m_pCBC->usb.enableAll();
     m_On = true;
+}
+
+void Platform::emergencyStop() {
+    m_EmergencyStop = true;
+    m_pCBC->driver.disableAll();
 }
 
 void Platform::turnOff() {

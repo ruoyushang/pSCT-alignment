@@ -22,26 +22,7 @@ UaStatus ActController::getState(Device::DeviceState &state) {
 }
 
 UaStatus ActController::setState(Device::DeviceState state) {
-    UaMutexLocker lock(&m_mutex);
-
-    switch (state) {
-        case Device::DeviceState::On:
-            m_pPlatform->getActuatorbyIdentity(m_ID)->turnOn();
-            break;
-        case Device::DeviceState::Off:
-            m_pPlatform->getActuatorbyIdentity(m_ID)->turnOff();
-            break;
-        case Device::DeviceState::FatalError:
-            return OpcUa_BadInvalidArgument;
-        case Device::DeviceState::OperableError:
-            return OpcUa_BadInvalidArgument;
-        case Device::DeviceState::Busy:
-            return OpcUa_BadInvalidArgument;
-        default:
-            return OpcUa_BadInvalidArgument;
-    }
-
-    return OpcUa_Good;
+    return OpcUa_BadNotWritable;
 }
 
 /// @details If the offset given points to an error variable, internally calls getError. Locks the shared mutex while reading data.
@@ -132,6 +113,13 @@ UaStatus ActController::operate(OpcUa_UInt32 offset, const UaVariantArray &args)
             break;
         case PAS_ACTType_ClearAllErrors:
             m_pPlatform->getActuatorbyIdentity(m_ID)->clearErrors();
+            break;
+        case PAS_ACTType_TurnOn:
+            m_pPlatform->getActuatorbyIdentity(m_ID)->turnOn();
+            initialize();
+            break;
+        case PAS_ACTType_TurnOff:
+            m_pPlatform->getActuatorbyIdentity(m_ID)->turnOff();
             break;
         default:
             status = OpcUa_BadInvalidArgument;

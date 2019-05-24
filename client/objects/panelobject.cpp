@@ -133,5 +133,7 @@ const std::map<OpcUa_UInt32, std::pair<std::string, std::vector<std::tuple<std::
     {PAS_PanelType_ClearAllErrors,      {"ClearAllErrors",      {}}},
     {PAS_PanelType_ClearActuatorErrors, {"ClearActuatorErrors", {}}},
     {PAS_PanelType_ClearPlatformErrors, {"ClearPlatformErrors", {}}},
+    {PAS_PanelType_TurnOn, {"TurnOn", {}}},
+    {PAS_PanelType_TurnOff, {"TurnOff", {}}},
     {PAS_PanelType_Stop,                {"Stop",                {}}}
 };

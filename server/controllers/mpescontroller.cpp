@@ -91,26 +91,7 @@ UaStatus MPESController::getState(Device::DeviceState &state) {
 /// @details Does not allow setting the state to error or setting the state to
 /// its current value. Locks the shared mutex while setting the state.
 UaStatus MPESController::setState(Device::DeviceState state) {
-    UaMutexLocker lock(&m_mutex);
-
-    switch (state) {
-        case Device::DeviceState::On:
-            m_pPlatform->getMPESbyIdentity(m_ID)->turnOn();
-            break;
-        case Device::DeviceState::Off:
-            m_pPlatform->getMPESbyIdentity(m_ID)->turnOff();
-            break;
-        case Device::DeviceState::FatalError:
-            return OpcUa_BadInvalidArgument;
-        case Device::DeviceState::OperableError:
-            return OpcUa_BadInvalidArgument;
-        case Device::DeviceState::Busy:
-            return OpcUa_BadInvalidArgument;
-        default:
-            return OpcUa_BadInvalidArgument;
-    }
-
-    return OpcUa_Good;
+    return OpcUa_BadNotWritable;
 }
 /// @details Sets exposure for this MPES.
 bool MPESController::initialize() {
@@ -210,12 +191,12 @@ UaStatus MPESController::operate(OpcUa_UInt32 offset, const UaVariantArray &args
     UaStatus status;
 
     switch (offset) {
-        case PAS_MPESType_Start:
-            status = setState(Device::DeviceState::On);
+        case PAS_MPESType_TurnOn:
+            m_pPlatform->getMPESbyIdentity(m_ID)->turnOn();
             initialize();
             break;
-        case PAS_MPESType_Stop:
-            status = setState(Device::DeviceState::Off);
+        case PAS_MPESType_TurnOff:
+            m_pPlatform->getMPESbyIdentity(m_ID)->turnOff();
             break;
         case PAS_MPESType_Read:
             status = read();

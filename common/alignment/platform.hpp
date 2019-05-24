@@ -114,6 +114,9 @@ public:
     bool addMPES(const Device::Identity &identity);
     MPES::Position readMPES(int idx);
 
+
+    void emergencyStop();
+
 private:
     static const float DEFAULT_INTERNAL_TEMPERATURE_SLOPE;
     static const float DEFAULT_INTERNAL_TEMPERATURE_OFFSET;
@@ -123,6 +126,8 @@ private:
     Device::DBInfo m_DBInfo;
 
     bool m_On;
+
+    bool m_EmergencyStop;
 
     void checkActuatorStatus(int actuatorIdx);
 

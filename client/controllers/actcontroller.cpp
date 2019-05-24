@@ -46,18 +46,7 @@ UaStatus ActController::getState(Device::DeviceState &state) {
     Description  Set Controller status.
 -----------------------------------------------------------------------------*/
 UaStatus ActController::setState(Device::DeviceState state) {
-    // don't lock the object -- might want to change state while operating the device!
-    // UaMutexLocker lock(&m_mutex);
-    UaStatus status;
-
-    if (state == Device::DeviceState::Off)
-        status = m_pClient->callMethod(m_ID.eAddress, UaString("Stop"));
-    else if (state == Device::DeviceState::On)
-        status = m_pClient->callMethod(m_ID.eAddress, UaString("Start"));
-    else
-        status = OpcUa_BadInvalidArgument;
-
-    return status;
+    return OpcUa_BadNotWritable;
 }
 /* ----------------------------------------------------------------------------
     Class        ActController
@@ -163,11 +152,11 @@ UaStatus ActController::operate(OpcUa_UInt32 offset, const UaVariantArray &args)
         case PAS_ACTType_ClearAllErrors:
             status = m_pClient->callMethod(m_ID.eAddress, UaString("ClearAllErrors"));
             break;
-        case PAS_ACTType_Start:
-            status = m_pClient->callMethod(m_ID.eAddress, UaString("Start"));
+        case PAS_ACTType_TurnOn:
+            status = m_pClient->callMethod(m_ID.eAddress, UaString("TurnOn"));
             break;
-        case PAS_ACTType_Stop:
-            status = m_pClient->callMethod(m_ID.eAddress, UaString("Stop"));
+        case PAS_ACTType_TurnOff:
+            status = m_pClient->callMethod(m_ID.eAddress, UaString("TurnOff"));
             break;
         default:
             status = OpcUa_BadInvalidArgument;

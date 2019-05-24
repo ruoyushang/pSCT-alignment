@@ -31,26 +31,7 @@ UaStatus PanelController::getState(Device::DeviceState &state) {
 /// @details Does not allow setting the state to error or setting the state to
 /// its current value. Locks the shared mutex while setting the state.
 UaStatus PanelController::setState(Device::DeviceState state) {
-    UaMutexLocker lock(&m_mutex);
-
-    switch (state) {
-        case Device::DeviceState::On:
-            m_pPlatform->turnOn();
-            break;
-        case Device::DeviceState::Off:
-            m_pPlatform->turnOff();
-            break;
-        case Device::DeviceState::FatalError:
-            return OpcUa_BadInvalidArgument;
-        case Device::DeviceState::OperableError:
-            return OpcUa_BadInvalidArgument;
-        case Device::DeviceState::Busy:
-            return OpcUa_BadInvalidArgument;
-        default:
-            return OpcUa_BadInvalidArgument;
-    }
-
-    return OpcUa_Good;
+    return OpcUa_BadNotWritable;
 }
 
 /// @details Locks the shared mutex while setting the state. In SIMMODE,
@@ -218,7 +199,13 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
         status = OpcUa_Good;
     } else if (offset == PAS_PanelType_Stop) {
         std::cout << "PanelController::operate(): Attempting to gracefully stop the motion.\n";
-        status = setState(Device::DeviceState::Off);
+        m_pPlatform->emergencyStop();
+    } else if (offset == PAS_PanelType_TurnOn) {
+        std::cout << "Panel " << m_ID << " turning on...\n";
+        m_pPlatform->turnOn();
+    } else if (offset == PAS_PanelType_TurnOff) {
+        std::cout << "Panel " << m_ID << " turning off...\n";
+        m_pPlatform->turnOff();
     } else if (offset == PAS_PanelType_FindHome) {
         if (args.length() != 1) {
             return OpcUa_BadInvalidArgument;

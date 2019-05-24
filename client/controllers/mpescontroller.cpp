@@ -117,18 +117,7 @@ UaStatus MPESController::getState(Device::DeviceState &state) {
     Description  Set Controller status.
 -----------------------------------------------------------------------------*/
 UaStatus MPESController::setState(Device::DeviceState state) {
-    UaStatus status;
-
-    //UaMutexLocker lock(&m_mutex);
-
-    if (state == Device::DeviceState::Off)
-        status = m_pClient->callMethod(m_ID.eAddress, UaString("Stop"));
-    else if (state == Device::DeviceState::On)
-        status = m_pClient->callMethod(m_ID.eAddress, UaString("Start"));
-    else
-        status = OpcUa_BadInvalidArgument;
-
-    return status;
+    return OpcUa_BadNotWritable;
 }
 
 /* ----------------------------------------------------------------------------
@@ -221,11 +210,11 @@ UaStatus MPESController::operate(OpcUa_UInt32 offset, const UaVariantArray &args
     } else if (offset == PAS_MPESType_ClearAllErrors) {
         status = m_pClient->callMethod(m_ID.eAddress, UaString("ClearAllErrors"));
         return status;
-    } else if (offset == PAS_MPESType_Start) {
-        status = m_pClient->callMethod(m_ID.eAddress, UaString("Start"));
+    } else if (offset == PAS_MPESType_TurnOn) {
+        status = m_pClient->callMethod(m_ID.eAddress, UaString("TurnOn"));
         return status;
-    } else if (offset == PAS_MPESType_Stop) {
-        status = m_pClient->callMethod(m_ID.eAddress, UaString("Stop"));
+    } else if (offset == PAS_MPESType_TurnOff) {
+        status = m_pClient->callMethod(m_ID.eAddress, UaString("TurnOff"));
         return status;
     } 
     else

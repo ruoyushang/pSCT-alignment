@@ -245,8 +245,8 @@ const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean>> 
 };
 
 const std::map<OpcUa_UInt32, std::pair<std::string, std::vector<std::tuple<std::string, UaNodeId, std::string>>>> MPESObject::METHODS = {
-    {PAS_MPESType_Start,          {"Start",          {}}},
-    {PAS_MPESType_Stop,           {"Stop",           {}}},
+    {PAS_MPESType_TurnOn,         {"TurnOn",         {}}},
+    {PAS_MPESType_TurnOff,        {"TurnOff",        {}}},
     {PAS_MPESType_Read,           {"Read",           {}}},
     {PAS_MPESType_SetExposure,    {"SetExposure",    {}}},
     {PAS_MPESType_ClearError,     {"ClearError",     {std::make_tuple("ErrorNum", UaNodeId(OpcUaId_Int32),
@@ -291,16 +291,16 @@ const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean>> 
 };
 
 const std::map<OpcUa_UInt32, std::pair<std::string, std::vector<std::tuple<std::string, UaNodeId, std::string>>>> ACTObject::METHODS = {
-        {PAS_ACTType_Start,           {"Start", {}}},
-        {PAS_ACTType_Stop,            {"Stop",  {}}},
-        {PAS_ACTType_MoveDeltaLength, {"MoveDeltaLength", {std::make_tuple("DeltaLength", UaNodeId(OpcUaId_Double),
+    {PAS_ACTType_TurnOn,          {"TurnOn",          {}}},
+    {PAS_ACTType_TurnOff,         {"TurnOff",         {}}},
+    {PAS_ACTType_MoveDeltaLength, {"MoveDeltaLength", {std::make_tuple("DeltaLength", UaNodeId(OpcUaId_Double),
                                                                            "Desired change in length for the actuator (in mm).")}}},
-        {PAS_ACTType_MoveToLength, {"MoveToLength", {std::make_tuple("TargetLength", UaNodeId(OpcUaId_Double),
+    {PAS_ACTType_MoveToLength,    {"MoveToLength",    {std::make_tuple("TargetLength", UaNodeId(OpcUaId_Double),
                                                                      "Target length for the actuator to move to (in mm).")}}},
-        {PAS_ACTType_ForceRecover,    {"ForceRecover", {}}},
-        {PAS_ACTType_ClearError,      {"ClearError", {     std::make_tuple("ErrorNum", UaNodeId(OpcUaId_Int32),
+    {PAS_ACTType_ForceRecover,    {"ForceRecover", {}}},
+    {PAS_ACTType_ClearError,      {"ClearError", {     std::make_tuple("ErrorNum", UaNodeId(OpcUaId_Int32),
                                                                            "Number of error to clear")}}},
-        {PAS_ACTType_ClearAllErrors,  {"ClearAllErrors", {}}},
+    {PAS_ACTType_ClearAllErrors,  {"ClearAllErrors", {}}},
 };
 
 const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, OpcUa_Byte>> PSDObject::VARIABLES = {

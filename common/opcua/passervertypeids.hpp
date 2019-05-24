@@ -78,8 +78,8 @@
 #define PAS_MPESType_yCentroidNominal               1108
 #define PAS_MPESType_Position                       1109
 #define PAS_MPESType_Serial                         1110
-#define PAS_MPESType_Start                          1111
-#define PAS_MPESType_Stop                           1112
+#define PAS_MPESType_TurnOn                         1111
+#define PAS_MPESType_TurnOff                        1112
 #define PAS_MPESType_Read                           1113
 #define PAS_MPESType_SetExposure                    1114
 #define PAS_MPESType_ClearError                     1115
@@ -116,11 +116,14 @@
 #define PAS_PanelType_MoveToCoords                  2022
 #define PAS_PanelType_ReadPosition                  2023
 #define PAS_PanelType_Stop                          2024
+#define PAS_PanelType_Stop                          2024
 #define PAS_PanelType_FindHome                      2025
 #define PAS_PanelType_ClearError                    2026
 #define PAS_PanelType_ClearAllErrors                2027
 #define PAS_PanelType_ClearActuatorErrors           2028
 #define PAS_PanelType_ClearPlatformErrors           2029
+#define PAS_PanelType_TurnOn                        2030
+#define PAS_PanelType_TurnOff                       2031
 // Error variable declarations
 #define PAS_PanelType_Error0                          2800
 #define PAS_PanelType_Error1                          2801
@@ -147,8 +150,8 @@
 #define PAS_ACTType_DeltaLength                     2104
 #define PAS_ACTType_Position                        2105
 #define PAS_ACTType_Serial                          2106
-#define PAS_ACTType_Start                           2111
-#define PAS_ACTType_Stop                            2112
+#define PAS_ACTType_TurnOn                          2111
+#define PAS_ACTType_TurnOff                         2112
 #define PAS_ACTType_MoveDeltaLength                 2113
 #define PAS_ACTType_MoveToLength                    2114
 #define PAS_ACTType_ForceRecover                    2115

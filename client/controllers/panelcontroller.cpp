@@ -50,14 +50,7 @@ UaStatus PanelController::getState(Device::DeviceState &state) {
 }
 
 UaStatus PanelController::setState(Device::DeviceState state) {
-    UaStatus status;
-        
-    if (state == Device::DeviceState::Off)
-        status = m_pClient->callMethod(m_ID.eAddress, UaString("Stop"));
-    else if (state == Device::DeviceState::On)
-        status = m_pClient->callMethod(m_ID.eAddress, UaString("Start"));
-    else
-        status = OpcUa_BadInvalidArgument;
+    return OpcUa_BadNotWritable;
 }
 
 UaStatus PanelController::getData(OpcUa_UInt32 offset, UaVariant &value) {
@@ -235,6 +228,12 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
     else if (offset == PAS_PanelType_Stop) {
         std::cout << m_ID << "::Operate() : Attempting to gracefully stop the motion." << std::endl;
         status = m_pClient->callMethod(std::string("ns=2;s=Panel_0"), UaString("Stop"));
+    } else if (offset == PAS_PanelType_TurnOn) {
+        std::cout << m_ID << "::Operate() : Turning on..." << std::endl;
+        status = m_pClient->callMethod(std::string("ns=2;s=Panel_0"), UaString("TurnOn"));
+    } else if (offset == PAS_PanelType_TurnOff) {
+        std::cout << m_ID << "::Operate() : Turning off..." << std::endl;
+        status = m_pClient->callMethod(std::string("ns=2;s=Panel_0"), UaString("TurnOff"));
     } else if (offset == PAS_PanelType_FindHome) {
         std::cout << m_ID << "::Operate() : Finding home position." << std::endl;
         status = m_pClient->callMethod(std::string("ns=2;s=Panel_0"), UaString("FindHome"), args);
@@ -246,8 +245,7 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
         status = m_pClient->callMethod(std::string("ns=2;s=Panel_0"), UaString("ClearActuatorErrors"));
     } else if (offset == PAS_PanelType_ClearPlatformErrors) {
         status = m_pClient->callMethod(std::string("ns=2;s=Panel_0"), UaString("ClearPlatformErrors"));
-    }
-    else {
+    } else {
         status = OpcUa_BadInvalidArgument;
     }
 
