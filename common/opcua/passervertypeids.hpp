@@ -78,13 +78,14 @@
 #define PAS_MPESType_yCentroidNominal               1108
 #define PAS_MPESType_Position                       1109
 #define PAS_MPESType_Serial                         1110
-#define PAS_MPESType_TurnOn                         1111
-#define PAS_MPESType_TurnOff                        1112
-#define PAS_MPESType_Read                           1113
-#define PAS_MPESType_SetExposure                    1114
-#define PAS_MPESType_ClearError                     1115
-#define PAS_MPESType_ClearAllErrors                 1116
-#define PAS_MPESType_StateCondition                 1121
+#define PAS_MPESType_ErrorState                     1111
+#define PAS_MPESType_TurnOn                         1151
+#define PAS_MPESType_TurnOff                        1152
+#define PAS_MPESType_Read                           1153
+#define PAS_MPESType_SetExposure                    1154
+#define PAS_MPESType_ClearError                     1155
+#define PAS_MPESType_ClearAllErrors                 1156
+#define PAS_MPESType_StateCondition                 1161
 // Error variable declarations
 #define PAS_MPESType_Error0                          1191
 #define PAS_MPESType_Error1                          1192
@@ -111,11 +112,11 @@
 #define PAS_PanelType_SafetyRadius                  2010
 #define PAS_PanelType_Position                      2011
 #define PAS_PanelType_Serial                        2012
+#define PAS_PanelType_ErrorState                    2013
 #define PAS_PanelType_MoveDeltaLengths              2020
 #define PAS_PanelType_MoveToLengths                 2021
 #define PAS_PanelType_MoveToCoords                  2022
 #define PAS_PanelType_ReadPosition                  2023
-#define PAS_PanelType_Stop                          2024
 #define PAS_PanelType_Stop                          2024
 #define PAS_PanelType_FindHome                      2025
 #define PAS_PanelType_ClearError                    2026
@@ -124,6 +125,7 @@
 #define PAS_PanelType_ClearPlatformErrors           2029
 #define PAS_PanelType_TurnOn                        2030
 #define PAS_PanelType_TurnOff                       2031
+
 // Error variable declarations
 #define PAS_PanelType_Error0                          2800
 #define PAS_PanelType_Error1                          2801
@@ -150,6 +152,7 @@
 #define PAS_ACTType_DeltaLength                     2104
 #define PAS_ACTType_Position                        2105
 #define PAS_ACTType_Serial                          2106
+#define PAS_ACTType_ErrorState                      2107
 #define PAS_ACTType_TurnOn                          2111
 #define PAS_ACTType_TurnOff                         2112
 #define PAS_ACTType_MoveDeltaLength                 2113
