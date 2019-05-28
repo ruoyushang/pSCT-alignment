@@ -37,7 +37,7 @@ public:
     UaStatus operate(OpcUa_UInt32 offset, const UaVariantArray &args) override;
 
 private:
-    Device::DeviceState m_state = Device::DeviceState::Off;
+    Device::ErrorState m_state = Device::ErrorState::Off;
     bool m_updated = false;
 
     UaStatus read();

@@ -17,7 +17,7 @@
 /// @details Calls update state before returning the current state.
 UaStatus ActController::getState(Device::DeviceState &state) {
     UaMutexLocker lock(&m_mutex);
-    state = _getState();
+    state = _getDeviceState();
     return OpcUa_Good;
 }
 
@@ -46,6 +46,9 @@ UaStatus ActController::getData(OpcUa_UInt32 offset, UaVariant &value) {
                 break;
             case PAS_ACTType_Serial:
                 value.setInt32(m_ID.serialNumber);
+                break;
+            case PAS_ACTType_ErrorState:
+                value.setInt32(static_cast<int>(_getErrorState()));
                 break;
             default:
                 status = OpcUa_BadInvalidArgument;
@@ -76,7 +79,6 @@ UaStatus ActController::getError(OpcUa_UInt32 offset, UaVariant &value) {
 /// @details Locks the shared mutex while writing data.
 UaStatus ActController::setData(OpcUa_UInt32 offset, UaVariant value) {
     //UaMutexLocker lock(&m_mutex);
-
     return OpcUa_BadNotWritable;
 }
 
@@ -89,37 +91,51 @@ UaStatus ActController::setError(OpcUa_UInt32 offset, UaVariant value) {
 UaStatus ActController::operate(OpcUa_UInt32 offset, const UaVariantArray &args) {
     //UaMutexLocker lock(&m_mutex); // Lock the object to prevent other actions while operating.
 
+    if (_getDeviceState() == Device::DeviceState::Busy && offset != PAS_ACTType_TurnOff) {
+        std::cout << m_ID << " :: MPESController::operate() : Device is busy. Operate call failed.\n";
+        return OpcUa_BadInvalidState;
+    }
+
     UaStatus status;
     UaVariantArray tempArgs;
     switch (offset) {
         case PAS_ACTType_MoveDeltaLength:
-            if (!(_getState() == Device::DeviceState::On || _getState() == Device::DeviceState::OperableError))
-                return OpcUa_BadNothingToDo;
-            status = moveDelta(args);
+            if (_getDeviceState() == Device::DeviceState::On && _getErrorState() != Device::ErrorState::FatalError) {
+                status = moveDelta(args);
+            } else {
+                std::cout << m_ID
+                          << " :: ActController::operate() : Device is off, busy, or has fatal error. Cannot move.\n";
+                status = OpcUa_BadInvalidState;
+            }
             break;
         case PAS_ACTType_MoveToLength:
-            if (!(_getState() == Device::DeviceState::On || _getState() == Device::DeviceState::OperableError))
-                return OpcUa_BadNothingToDo;
-            status = moveToLength(args);
+            if (_getDeviceState() == Device::DeviceState::On && _getErrorState() != Device::ErrorState::FatalError) {
+                status = moveToLength(args);
+            } else {
+                std::cout << m_ID
+                          << " :: ActController::operate() : Device is off, busy, or has fatal error. Cannot move.\n";
+                status = OpcUa_BadInvalidState;
+            }
             break;
         case PAS_ACTType_ForceRecover:
             m_pPlatform->getActuatorbyIdentity(m_ID)->forceRecover();
             break;
         case PAS_ACTType_ClearError:
-            if (args.length() != 1) {
-                return OpcUa_BadInvalidArgument;
-            }
             m_pPlatform->getActuatorbyIdentity(m_ID)->unsetError(args[0].Value.Int32);
             break;
         case PAS_ACTType_ClearAllErrors:
             m_pPlatform->getActuatorbyIdentity(m_ID)->clearErrors();
             break;
         case PAS_ACTType_TurnOn:
-            m_pPlatform->getActuatorbyIdentity(m_ID)->turnOn();
-            initialize();
+            if (_getDeviceState() == Device::DeviceState::Off) {
+                m_pPlatform->getActuatorbyIdentity(m_ID)->turnOn();
+                initialize();
+            }
             break;
         case PAS_ACTType_TurnOff:
-            m_pPlatform->getActuatorbyIdentity(m_ID)->turnOff();
+            if (_getDeviceState() == Device::DeviceState::On) {
+                m_pPlatform->getActuatorbyIdentity(m_ID)->turnOff();
+            }
             break;
         default:
             status = OpcUa_BadInvalidArgument;
@@ -144,8 +160,6 @@ UaStatus ActController::moveDelta(const UaVariantArray &args) {
 }
 
 UaStatus ActController::moveToLength(const UaVariantArray &args) {
-    if (!(_getState() == Device::DeviceState::On || _getState() == Device::DeviceState::OperableError))
-        return OpcUa_BadNothingToDo;
 
     UaStatus status;
 

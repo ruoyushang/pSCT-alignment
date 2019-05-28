@@ -45,10 +45,6 @@ public:
 
     bool loadCBCParameters();
 
-    bool isOn() override;
-    void turnOn() override;
-    void turnOff() override;
-
     // Platform settings and readings
     void enableHighCurrent();
     void disableHighCurrent();
@@ -103,7 +99,7 @@ public:
     void clearActuatorErrors();
     void clearPlatformErrors();
 
-    Device::DeviceState getErrorState() override;
+    Device::ErrorState getErrorState() override;
 
     // MPES functionality
 
@@ -114,8 +110,13 @@ public:
     bool addMPES(const Device::Identity &identity);
     MPES::Position readMPES(int idx);
 
-
     void emergencyStop();
+
+    bool isOn() override;
+
+    void turnOn() override;
+
+    void turnOff() override;
 
 private:
     static const float DEFAULT_INTERNAL_TEMPERATURE_SLOPE;
@@ -126,8 +127,6 @@ private:
     Device::DBInfo m_DBInfo;
 
     bool m_On;
-
-    bool m_EmergencyStop;
 
     void checkActuatorStatus(int actuatorIdx);
 

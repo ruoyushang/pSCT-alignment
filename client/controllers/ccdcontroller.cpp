@@ -28,11 +28,11 @@ CCDController::CCDController(Device::Identity identity) : PasController(std::mov
     m_ID.eAddress = m_pCCD->getAddress();
     m_ID.name = m_pCCD->getName();
 
-    m_state = Device::DeviceState::On;
+    m_state = Device::ErrorState::On;
 }
 
 CCDController::~CCDController() {
-    m_state = Device::DeviceState::Off;
+    m_state = Device::ErrorState::Off;
 }
 
 /* ----------------------------------------------------------------------------
@@ -52,7 +52,7 @@ UaStatus CCDController::getState(Device::DeviceState &state) {
     Description  Set Controller status.
 -----------------------------------------------------------------------------*/
 UaStatus CCDController::setState(Device::DeviceState state) {
-    if (state == Device::DeviceState::OperableError || state == Device::DeviceState::FatalError) {
+    if (state == Device::ErrorState::OperableError || state == Device::ErrorState::FatalError) {
         return OpcUa_BadInvalidArgument;
     }
     if (state == m_state) {
@@ -138,10 +138,10 @@ UaStatus CCDController::operate(OpcUa_UInt32 offset, const UaVariantArray &args)
             status = read();
             break;
         case PAS_CCDType_Start:
-            status = setState(Device::DeviceState::On);
+            status = setState(Device::ErrorState::On);
             break;
         case PAS_CCDType_Stop:
-            status = setState(Device::DeviceState::Off);
+            status = setState(Device::ErrorState::Off);
             break;
         default:
             status = OpcUa_BadInvalidArgument;
@@ -158,7 +158,7 @@ UaStatus CCDController::operate(OpcUa_UInt32 offset, const UaVariantArray &args)
 UaStatus CCDController::read() {
     //UaMutexLocker lock(&m_mutex);
 
-    if (m_state == Device::DeviceState::On || m_state == Device::DeviceState::OperableError) {
+    if (m_state == Device::ErrorState::On || m_state == Device::ErrorState::OperableError) {
         std::cout << "Reading CCD " << m_ID.name.c_str() << std::endl;
         m_pCCD->Update();
         m_updated = true;

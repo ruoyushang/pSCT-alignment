@@ -29,7 +29,7 @@ UaStatus PasControllerCommon::getState(Device::DeviceState &state) {
 /// its current value. Locks the shared mutex while setting the state.
 UaStatus PasControllerCommon::setState(Device::DeviceState state) {
     //UaMutexLocker lock(&m_mutex);
-    if (state == Device::DeviceState::FatalError || state == Device::DeviceState::OperableError) {
+    if (state == Device::ErrorState::FatalError || state == Device::ErrorState::OperableError) {
         return OpcUa_BadInvalidArgument;
     }
     if (state == m_state) {

@@ -77,7 +77,9 @@ public:
     void addMPES(const std::shared_ptr<MPESController> &pMPES);
 
 private:
-    Device::DeviceState _getState() { return m_pPlatform->getState(); }
+    Device::ErrorState _getErrorState() { return m_pPlatform->getErrorState(); }
+
+    Device::DeviceState _getDeviceState() { return m_pPlatform->getDeviceState(); }
 
     /// @brief A vector of all actuator controllers belonging to this panel.
     std::vector<std::shared_ptr<ActController>> m_pActuators;

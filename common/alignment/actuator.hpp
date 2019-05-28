@@ -49,7 +49,6 @@ public:
     ~Actuator() = default;
 
     int getPortNumber() const { return std::stoi(m_Identity.eAddress); }
-
     int getSerialNumber() const { return (int) m_Identity.serialNumber; }
 
     float readVoltage();
@@ -96,6 +95,8 @@ public:
     void turnOn() override;
     void turnOff() override;
 
+    bool initialize() override;
+
 protected:
     static constexpr const int NUM_ASF_HEADER_COLUMNS = 8;//yr,mo,day,hr,min,sec,rev,angle
     int NUM_ASF_COLUMNS{NUM_ASF_HEADER_COLUMNS + getNumErrors()};
@@ -138,8 +139,7 @@ protected:
     int m_EndStopRecoverySteps{StepsPerRevolution / 4};
     std::vector<float> m_encoderScale;
 
-    bool initialize() override;
-    void loadConfigurationAndCalibration();
+    bool loadConfigurationAndCalibration();
 
     void createDefaultASF();
 
@@ -162,6 +162,8 @@ protected:
     void findHomeFromEndStop(int direction);
 
     void probeEndStop(int direction);
+
+    float __readVoltage();
 };
 
 class DummyActuator : public Actuator

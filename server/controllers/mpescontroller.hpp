@@ -59,10 +59,9 @@ public:
     UaStatus operate(OpcUa_UInt32 offset, const UaVariantArray &args) override;
 
 private:
-    Device::DeviceState _getState() { return m_pPlatform->getMPESbyIdentity(m_ID)->getState(); }
+    Device::ErrorState _getErrorState() { return m_pPlatform->getMPESbyIdentity(m_ID)->getErrorState(); }
 
-    /// @brief Whether the MPES data has been read at least once since initialization.
-    bool m_updated = false;
+    Device::DeviceState _getDeviceState() { return m_pPlatform->getMPESbyIdentity(m_ID)->getDeviceState(); }
 
     /// @brief Update the MPES position data.
     UaStatus read();

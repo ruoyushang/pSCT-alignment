@@ -41,14 +41,14 @@ public:
 
     /* Get device status and data */
     virtual UaStatus
-    getDeviceState(OpcUa_UInt32 type, const Device::Identity &identity, Device::DeviceState &state) = 0;
+    getDeviceState(OpcUa_UInt32 type, const Device::Identity &identity, Device::ErrorState &state) = 0;
 
     virtual UaStatus getDeviceData(OpcUa_UInt32 type, const Device::Identity &identity,
                                    OpcUa_UInt32 offset,
                                    UaVariant &value) = 0;
 
     /* Set device status and data*/
-    virtual UaStatus setDeviceState(OpcUa_UInt32 type, const Device::Identity &identity, Device::DeviceState state) = 0;
+    virtual UaStatus setDeviceState(OpcUa_UInt32 type, const Device::Identity &identity, Device::ErrorState state) = 0;
 
     virtual UaStatus setDeviceData(OpcUa_UInt32 type, const Device::Identity &identity,
                                    OpcUa_UInt32 offset,

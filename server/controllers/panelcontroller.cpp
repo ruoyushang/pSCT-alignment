@@ -24,7 +24,7 @@
 /// @details Locks the shared mutex while retrieving the state.
 UaStatus PanelController::getState(Device::DeviceState &state) {
     //UaMutexLocker lock(&m_mutex);
-    state = _getState();
+    state = _getDeviceState();
     return OpcUa_Good;
 }
 
@@ -65,9 +65,11 @@ UaStatus PanelController::getData(OpcUa_UInt32 offset, UaVariant &value) {
             value.setFloat(m_pPlatform->getInternalTemperature());
         } else if (offset == PAS_PanelType_Position) {
         value.setInt32(m_ID.position);
-    } else if (offset == PAS_PanelType_Serial) {
-        value.setInt32(m_ID.serialNumber);
-    }
+        } else if (offset == PAS_PanelType_Serial) {
+            value.setInt32(m_ID.serialNumber);
+        } else if (offset == PAS_PanelType_ErrorState) {
+            value.setInt32(static_cast<int>(_getErrorState()));
+        }
     } else if (PanelObject::ERRORS.find(offset) != PanelObject::ERRORS.end()) {
         return getError(offset, value);
     }
@@ -103,34 +105,22 @@ UaStatus PanelController::setData(OpcUa_UInt32 offset, UaVariant value) {
 UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &args) {
     UaStatus status;
 
-    Device::DeviceState state;
-    getState(state);
-
-    if (offset == PAS_PanelType_MoveToLengths || offset == PAS_PanelType_MoveToCoords || offset == PAS_PanelType_MoveDeltaLengths || offset == PAS_PanelType_FindHome) {
-        if (_getState() == Device::DeviceState::FatalError) {
-            std::cout << "PanelController::operate(): Panel in fatal error state! "
-                  << "Check what's wrong, fix it, and try again.\n";
-            return OpcUa_BadInvalidState;
-        }
-        if (_getState() == Device::DeviceState::Busy) {
-            std::cout << "PanelController::operate() : Current state is 'Busy'! This won't do anything." << std::endl;
-            return OpcUa_BadInvalidState;
-        }
+    if (_getDeviceState() == Device::DeviceState::Busy && offset != PAS_PanelType_Stop) {
+        std::cout << m_ID << " :: PanelController::operate() : Device is busy. Operate call failed.\n";
+        return OpcUa_BadInvalidState;
     }
 
     if (offset == PAS_PanelType_MoveDeltaLengths) {
         if (args.length() != 6) {
             return OpcUa_BadInvalidArgument;
         }
-        if (_getState() == Device::DeviceState::Off)
+        if (_getDeviceState() == Device::DeviceState::Off)
             setState(Device::DeviceState::On);
-        else if (_getState() == Device::DeviceState::Busy) {
+        else if (_getDeviceState() == Device::DeviceState::Busy) {
             std::cout << "PanelController::operate(): Busy at the moment. "
                       << "Wait for the current operation to finish and try again.\n";
             return OpcUa_BadInvalidState;
         }
-
-        setState(Device::DeviceState::Busy);
 
         std::array<float, 6> deltaLengths{};
 
@@ -161,18 +151,13 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
         std::cout << std::endl;
         status = OpcUa_Good;
     } else if (offset == PAS_PanelType_MoveToLengths) {
-        if (args.length() != 6) {
-            return OpcUa_BadInvalidArgument;
-        }
-        if (_getState() == Device::DeviceState::Off)
+        if (_getDeviceState() == Device::DeviceState::Off)
             setState(Device::DeviceState::On);
-        else if (_getState() == Device::DeviceState::Busy) {
+        else if (_getDeviceState() == Device::DeviceState::Busy) {
             std::cout << "PanelController::Operate(): Busy at the moment. "
                       << "Wait for the current operation to finish and try again.\n";
             return OpcUa_Good;
         }
-
-        setState(Device::DeviceState::Busy); // set the state immeadiately
 
         std::array<float, 6> lengths{};
         UaVariant len;
@@ -198,18 +183,15 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
 
         status = OpcUa_Good;
     } else if (offset == PAS_PanelType_Stop) {
-        std::cout << "PanelController::operate(): Attempting to gracefully stop the motion.\n";
+        std::cout << m_ID << " :: PanelController::operate() : Attempting emergency stop of motion...\n";
         m_pPlatform->emergencyStop();
     } else if (offset == PAS_PanelType_TurnOn) {
-        std::cout << "Panel " << m_ID << " turning on...\n";
+        std::cout << m_ID << " ::  turning on...\n";
         m_pPlatform->turnOn();
     } else if (offset == PAS_PanelType_TurnOff) {
-        std::cout << "Panel " << m_ID << " turning off...\n";
+        std::cout << m_ID << " :: turning off...\n";
         m_pPlatform->turnOff();
     } else if (offset == PAS_PanelType_FindHome) {
-        if (args.length() != 1) {
-            return OpcUa_BadInvalidArgument;
-        }
         m_pPlatform->findHomeFromEndStopAll(args[0].Value.Int32);
     } else if (offset == PAS_PanelType_ClearError) {
         if (args.length() != 1) {

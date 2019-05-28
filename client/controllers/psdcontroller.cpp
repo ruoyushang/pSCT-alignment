@@ -14,14 +14,14 @@ int PSDController::kUpdateInterval = 500;
 
 PSDController::PSDController(Device::Identity identity, std::shared_ptr<Client> pClient) :
     PasController(std::move(identity), std::move(pClient), kUpdateInterval), m_Data() {
-    m_state = Device::DeviceState::On;
+    m_state = Device::ErrorState::On;
     std::cout << "PSDController: update interval set to " << m_kUpdateInterval_ms << " ms" << std::endl;
 
     m_lastUpdateTime = TIME::now() - std::chrono::duration<int, std::ratio<1, 1000>>(m_kUpdateInterval_ms);
 }
 
 PSDController::~PSDController() {
-    m_state = Device::DeviceState::Off;
+    m_state = Device::ErrorState::Off;
 }
 
 UaStatus PSDController::getState(Device::DeviceState &state) {

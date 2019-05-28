@@ -202,6 +202,7 @@
 #define PAS_CCDType_psiNominal                      3111
 #define PAS_CCDType_thetaNominal                    3112
 #define PAS_CCDType_phiNominal                      3113
+#define PAS_CCDType_ErrorState                      3101
 #define PAS_CCDType_Start                           3121
 #define PAS_CCDType_Stop                            3122
 #define PAS_CCDType_Read                            3123
@@ -219,6 +220,7 @@
 #define PAS_PSDType_dx2                             3208
 #define PAS_PSDType_dy2                             3209
 #define PAS_PSDType_Temp                            3210
+#define PAS_PSDType_ErrorState                      3211
 #define PAS_PSDType_Read                            3220
 //----------------------------------------------------------//
 

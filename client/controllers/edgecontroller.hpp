@@ -40,7 +40,6 @@ public:
     bool isAligned() { return m_isAligned; }
 
 private:
-
     // methods
     UaStatus align(unsigned panel_pos, double alignFrac = 0.25, bool moveit = true, bool execute = false);
 

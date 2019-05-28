@@ -49,31 +49,29 @@ public:
 
     const Eigen::Vector2d &getAlignedReadings() const { return m_AlignedReadings; }
 
-    const Eigen::Vector2d &getSystematicOffsets() const { return SystematicOffsets; }
+    const Eigen::Vector2d &getSystematicOffsets() const { return m_SystematicOffsets; }
 
-    MPES::Position getPosition() { return m_Data; }
 
 private:
-    bool m_updated;
     bool m_isVisible;
-    MPES::Position m_Data;
     static float kNominalIntensity;
     static float kNominalSpotWidth;
+    static int kMaxAttempts;
 
-    Device::Identity m_wPanelId; // id of the webcam-side panel
+    int m_numAttempts;
+
+    MPES::Position m_data;
+
     // actuator response matrix map -- {panel position -> matrix}
     std::map<char, Eigen::Matrix<double, 2, 6> > m_ResponseMatMap;
     // aligned readings
     Eigen::Vector2d m_AlignedReadings;
-    Eigen::Vector2d SystematicOffsets;
+    Eigen::Vector2d m_SystematicOffsets;
     // which side the panel is on { panel position -> side ('w' or 'l')
     std::map<unsigned, char> m_PanelSideMap;
 
     // a read that performs such checks and exposure correction
     UaStatus read(bool print=true);
-
-    // a helper for the above
-    UaStatus __readRequest();
 };
 
 #endif //CLIENT_MPESCONTROLLER_HPP

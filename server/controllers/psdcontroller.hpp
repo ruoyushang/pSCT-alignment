@@ -56,7 +56,9 @@ public:
     UaStatus operate(OpcUa_UInt32 offset, const UaVariantArray &args) override;
 
 private:
-    Device::DeviceState _getState() { return Device::DeviceState::On; }
+    Device::ErrorState _getErrorState() { return Device::ErrorState::Nominal; }
+
+    Device::DeviceState _getDeviceState() { return Device::DeviceState::On; }
     /// @brief Pointer to the GASPSD object interfacing directly with thee PSD hardware.
     std::unique_ptr<GASPSD> m_pPSD;
 

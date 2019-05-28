@@ -62,7 +62,7 @@ MPESController::MPESController(Device::Identity identity, std::shared_ptr<Platfo
             } else {
                 std::cout << "Error: Invalid coord " << coord << " (should be x or y)." << std::endl;
                 // set state to error
-                m_state = Device::DeviceState::FatalError;
+                m_state = Device::ErrorState::FatalError;
             }
         }
         // close the connection!
@@ -77,14 +77,14 @@ MPESController::MPESController(Device::Identity identity, std::shared_ptr<Platfo
         std::cout << ", SQLState: " << e.getSQLState() << " )" << std::endl;
 
         // set state to error
-        m_state = Device::DeviceState::FatalError;
+        m_state = Device::ErrorState::FatalError;
     }
 }
 
 /// @details Locks the shared mutex while retrieving the state.
 UaStatus MPESController::getState(Device::DeviceState &state) {
     UaMutexLocker lock(&m_mutex);
-    state = _getState();
+    state = _getDeviceState();
     return OpcUa_Good;
 }
 
@@ -95,8 +95,17 @@ UaStatus MPESController::setState(Device::DeviceState state) {
 }
 /// @details Sets exposure for this MPES.
 bool MPESController::initialize() {
-    m_pPlatform->getMPESbyIdentity(m_ID)->setExposure();
-    return true;
+    if (_getDeviceState() == Device::DeviceState::On && _getErrorState() != Device::ErrorState::FatalError) {
+        m_pPlatform->getMPESbyIdentity(m_ID)->setExposure();
+        read();
+        return true;
+    } else {
+        if (_getDeviceState() == Device::DeviceState::On) {
+            std::cout << m_ID << " :: MPESController::initialize() : Failed to set exposure due to bad state."
+                      << std::endl;
+            return false;
+        }
+    }
 }
 
 /// @details If the MPES has not been read yet, calls read before retrieving data. Locks the shared mutex while reading data.
@@ -104,10 +113,13 @@ UaStatus MPESController::getData(OpcUa_UInt32 offset, UaVariant &value) {
     //UaMutexLocker lock(&m_mutex);
     UaStatus status;
 
-    if (!m_updated)
-        status = read();
-
     if (MPESObject::VARIABLES.find(offset) != MPESObject::VARIABLES.end()) {
+        if (offset != PAS_MPESType_Position && offset != PAS_MPESType_Serial && offset != PAS_MPESType_ErrorState) {
+            status = operate(PAS_MPESType_Read, UaVariantArray());
+            if (status == OpcUa_BadInvalidState) {
+                return status;
+            }
+        }
         const MPES::Position &position = m_pPlatform->getMPESbyIdentity(m_ID)->getPosition();
         switch (offset) {
             case PAS_MPESType_xCentroidAvg:
@@ -136,6 +148,9 @@ UaStatus MPESController::getData(OpcUa_UInt32 offset, UaVariant &value) {
                 break;
             case PAS_MPESType_Serial:
                 value.setInt32(m_ID.serialNumber);
+                break;
+            case PAS_MPESType_ErrorState:
+                value.setInt32(static_cast<int>(_getErrorState()));
                 break;
             default:
                 break;
@@ -190,6 +205,11 @@ UaStatus MPESController::operate(OpcUa_UInt32 offset, const UaVariantArray &args
     //UaMutexLocker lock(&m_mutex);
     UaStatus status;
 
+    if (_getDeviceState() == Device::DeviceState::Busy) {
+        std::cout << m_ID << " :: MPESController::operate() : Device is busy. Operate call failed.\n";
+        return OpcUa_BadInvalidState;
+    }
+
     switch (offset) {
         case PAS_MPESType_TurnOn:
             m_pPlatform->getMPESbyIdentity(m_ID)->turnOn();
@@ -199,15 +219,22 @@ UaStatus MPESController::operate(OpcUa_UInt32 offset, const UaVariantArray &args
             m_pPlatform->getMPESbyIdentity(m_ID)->turnOff();
             break;
         case PAS_MPESType_Read:
-            status = read();
+            if (_getDeviceState() == Device::DeviceState::On && _getErrorState() != Device::ErrorState::FatalError) {
+                status = read();
+            } else {
+                std::cout << m_ID << " :: MPESController::operate() : Device is off or has fatal error. Cannot read.\n";
+                status = OpcUa_BadInvalidState;
+            }
             break;
         case PAS_MPESType_SetExposure:
-            m_pPlatform->getMPESbyIdentity(m_ID)->setExposure();
+            if (_getDeviceState() == Device::DeviceState::On) {
+                m_pPlatform->getMPESbyIdentity(m_ID)->setExposure();
+            } else {
+                std::cout << m_ID << " :: MPESController::operate() : Device is off. Cannot set exposure.\n";
+                status = OpcUa_BadInvalidState;
+            }
             break;
         case PAS_MPESType_ClearError:
-            if (args.length() != 1) {
-                return OpcUa_BadInvalidArgument;
-            }
             m_pPlatform->getMPESbyIdentity(m_ID)->unsetError(args[0].Value.Int32);
             break;
         case PAS_MPESType_ClearAllErrors:
@@ -223,15 +250,6 @@ UaStatus MPESController::operate(OpcUa_UInt32 offset, const UaVariantArray &args
 /// Locks the shared mutex while reading.
 UaStatus MPESController::read() {
     //UaMutexLocker lock(&m_mutex);
-
-    if (_getState() == Device::DeviceState::On || _getState() == Device::DeviceState::OperableError) {
-        std::cout << "\nReading MPES " << m_ID << std::endl;
-        m_pPlatform->getMPESbyIdentity(m_ID)->updatePosition();
-        m_updated = true;
-        return OpcUa_Good;
-    }
-    else {
-        m_updated = false;
-        return OpcUa_Bad;
-    }
+    m_pPlatform->getMPESbyIdentity(m_ID)->updatePosition();
+    return OpcUa_Good;
 }

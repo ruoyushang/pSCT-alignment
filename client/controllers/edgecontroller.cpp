@@ -49,15 +49,7 @@ UaStatus EdgeController::getState(Device::DeviceState &state) {
     Description  Set Controller status.
 -----------------------------------------------------------------------------*/
 UaStatus EdgeController::setState(Device::DeviceState state) {
-    if (state == Device::DeviceState::OperableError || state == Device::DeviceState::FatalError) {
-        return OpcUa_BadInvalidArgument;
-    }
-    if (state == m_state) {
-        return OpcUa_BadInvalidState;
-    }
-    //UaMutexLocker lock(&m_mutex);
-    m_state = state;
-    return OpcUa_Good;
+    return OpcUa_BadInvalidArgument;
 }
 
 /* ----------------------------------------------------------------------------
@@ -562,7 +554,7 @@ UaStatus EdgeController::alignSinglePanel(unsigned panelpos, double alignFrac, b
                         var.setFloat(m_Xcalculated(j++));
                         var.copyTo(&deltas[i]);
                     }
-                    status = pCurPanel->moveDeltaLengths(deltas);
+                    status = pCurPanel->operate(PAS_PanelType_MoveDeltaLengths, deltas);
                     if (!status.isGood()) return status;
                 }
             }
@@ -625,7 +617,6 @@ const Eigen::VectorXd &EdgeController::getAlignedReadings() {
     for (unsigned nMPES = 0; nMPES < maxMPES; nMPES++) {
         std::dynamic_pointer_cast<MPESController>(pMPES.at(nMPES))->getState(state);
         if (!std::dynamic_pointer_cast<MPESController>(pMPES.at(nMPES))->isVisible() ||
-            state == Device::DeviceState::FatalError ||
             state == Device::DeviceState::Off)
             continue;
 //    for (const auto& mpes : m_ChildrenPositionMap.at(PAS_MPESType)) {
@@ -677,7 +668,6 @@ const Eigen::VectorXd &EdgeController::getCurrentReadings() {
         std::dynamic_pointer_cast<MPESController>(pMPES.at(nMPES))->read(false);
         std::dynamic_pointer_cast<MPESController>(pMPES.at(nMPES))->getState(state);
         if (!std::dynamic_pointer_cast<MPESController>(pMPES.at(nMPES))->isVisible() ||
-            state == Device::DeviceState::FatalError ||
             state == Device::DeviceState::Off) {
             std::cout << "+++ WARNING +++ " << pMPES.at(nMPES)->getId().name
                       //for (const auto& mpes : m_ChildrenPositionMap.at(PAS_MPESType)) {

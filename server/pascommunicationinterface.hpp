@@ -60,7 +60,7 @@ public:
     UaStatus getDeviceState(
         OpcUa_UInt32 deviceType,
         const Device::Identity &identity,
-        Device::DeviceState &state) override;
+        Device::ErrorState &state) override;
 
     /// @brief Get a device's data through its controller.
     /// @param deviceType OPC UA type ID for the desired device object type.
@@ -82,7 +82,7 @@ public:
     UaStatus setDeviceState(
         OpcUa_UInt32 deviceType,
         const Device::Identity &identity,
-        Device::DeviceState state) override;
+        Device::ErrorState state) override;
 
     /// @brief Set a device's data through its controller.
     /// @param deviceType OPC UA type ID for the desired device object type.

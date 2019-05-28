@@ -62,7 +62,7 @@ public:
     UaStatus getDeviceState(
         OpcUa_UInt32 type,
         const Device::Identity &identity,
-        Device::DeviceState &state) override;
+        Device::ErrorState &state) override;
 
     UaStatus getDeviceData(
         OpcUa_UInt32 type,
@@ -74,7 +74,7 @@ public:
     UaStatus setDeviceState(
         OpcUa_UInt32 type,
         const Device::Identity &identity,
-        Device::DeviceState state) override;
+        Device::ErrorState state) override;
 
     UaStatus setDeviceData(
         OpcUa_UInt32 type,

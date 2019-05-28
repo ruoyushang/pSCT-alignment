@@ -287,9 +287,9 @@ UaStatus PasCommunicationInterface::getDeviceConfig(
     Description  Get Device status.
 -----------------------------------------------------------------------------*/
 UaStatus PasCommunicationInterface::getDeviceState(
-        OpcUa_UInt32 deviceType,
-        const Device::Identity &identity,
-        Device::DeviceState &state) {
+    OpcUa_UInt32 deviceType,
+    const Device::Identity &identity,
+    Device::ErrorState &state) {
     if (getDeviceFromId(deviceType, identity) != nullptr)
         return getDeviceFromId(deviceType, identity)->getState(state);
 
@@ -301,9 +301,9 @@ UaStatus PasCommunicationInterface::getDeviceState(
     Description  Set Sensor status.
 -----------------------------------------------------------------------------*/
 UaStatus PasCommunicationInterface::setDeviceState(
-        OpcUa_UInt32 deviceType,
-        const Device::Identity &identity,
-        Device::DeviceState state) {
+    OpcUa_UInt32 deviceType,
+    const Device::Identity &identity,
+    Device::ErrorState state) {
     if (getDeviceFromId(deviceType, identity) != nullptr)
         return getDeviceFromId(deviceType, identity)->setState(state);
 

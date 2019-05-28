@@ -27,20 +27,20 @@
 #include "common/cbccode/cbc.hpp"
 
 const std::vector<Device::ErrorDefinition> Actuator::ERROR_DEFINITIONS = {
-        {"Home position is not calibrated",                                                                                                                           Device::DeviceState::FatalError},//error 0
-        {"DBInfo not set",                                                                                                                                            Device::DeviceState::OperableError},//error 1
-        {"MySQL Communication Error",                                                                                                                                 Device::DeviceState::OperableError},//error 2
-        {"DB Columns does not match what is expected",                                                                                                                Device::DeviceState::FatalError},//error 3
-        {"ASF File is Bad",                                                                                                                                           Device::DeviceState::FatalError},//error 4
-        {"ASF File entries does not match what is expected",                                                                                                          Device::DeviceState::FatalError},//error 5
-        {"DB recording more recent than ASF and has mismatch with measured angle",                                                                                    Device::DeviceState::FatalError},//error 6
-        {"Voltage Std Dev is entirely too high",                                                                                                                      Device::DeviceState::FatalError},//error 7
-        {"Actuator Missed too many steps",                                                                                                                            Device::DeviceState::FatalError},//error 8
-        {"Actuator position is too many steps away to recover safely",                                                                                                Device::DeviceState::FatalError},//error 9
-        {"Actuator position is recovering large amount of steps, should be ok",                                                                                       Device::DeviceState::OperableError},//error 10
-        {"Extend Stop Voltage is too close to the discontinuity. Possible 1 cycle uncertainty with calibrated data",                                                  Device::DeviceState::OperableError},//error 11
-        {"End stop is large number of steps away from what is expected. Possible uncertainty in home position",                                                       Device::DeviceState::OperableError},//error 12
-        {"Discrepancy between number of steps from extend stop and recorded number of steps from end stop is too high. Possible uncertainty in probed home position", Device::DeviceState::OperableError}//error 13
+    {"Home position is not calibrated",                                                                                                                           Device::ErrorState::FatalError},//error 0
+    {"DBInfo not set",                                                                                                                                            Device::ErrorState::OperableError},//error 1
+    {"MySQL Communication Error",                                                                                                                                 Device::ErrorState::OperableError},//error 2
+    {"DB Columns does not match what is expected",                                                                                                                Device::ErrorState::FatalError},//error 3
+    {"ASF File is Bad",                                                                                                                                           Device::ErrorState::FatalError},//error 4
+    {"ASF File entries does not match what is expected",                                                                                                          Device::ErrorState::FatalError},//error 5
+    {"DB recording more recent than ASF and has mismatch with measured angle",                                                                                    Device::ErrorState::FatalError},//error 6
+    {"Voltage Std Dev is entirely too high",                                                                                                                      Device::ErrorState::FatalError},//error 7
+    {"Actuator Missed too many steps",                                                                                                                            Device::ErrorState::FatalError},//error 8
+    {"Actuator position is too many steps away to recover safely",                                                                                                Device::ErrorState::FatalError},//error 9
+    {"Actuator position is recovering large amount of steps, should be ok",                                                                                       Device::ErrorState::OperableError},//error 10
+    {"Extend Stop Voltage is too close to the discontinuity. Possible 1 cycle uncertainty with calibrated data",                                                  Device::ErrorState::OperableError},//error 11
+    {"End stop is large number of steps away from what is expected. Possible uncertainty in home position",                                                       Device::ErrorState::OperableError},//error 12
+    {"Discrepancy between number of steps from extend stop and recorded number of steps from end stop is too high. Possible uncertainty in probed home position", Device::ErrorState::OperableError}//error 13
 };
 
 const Actuator::ASFInfo Actuator::EMERGENCY_ASF_INFO = {"/.ASF/", ".ASF_Emergency_Port_", ".log"};
@@ -75,7 +75,7 @@ Actuator::Actuator(std::shared_ptr<CBC> pCBC, Device::Identity identity, Device:
     initialize();
 }
 
-void Actuator::loadConfigurationAndCalibration() {
+bool Actuator::loadConfigurationAndCalibration() {
     DEBUG_MSG("Reading Configuration and Calibration Information from DB for Actuator " << getSerialNumber());
     //check to make sure number of columns match what is expected.
     if (!m_Errors[1]) {
@@ -150,13 +150,15 @@ void Actuator::loadConfigurationAndCalibration() {
             ERROR_MSG("Operable Error: SQL Exception caught for Actuator " << getSerialNumber()
                                                                            << ". Did not successfully communicate with database.");
             setError(2);//operable
+            return false;
         }
     } else {
-        ERROR_MSG("Operable Error: DBFlag is not set for Actuator " << getSerialNumber()
+        ERROR_MSG("Operable Error: DBInfo is not set for Actuator " << getSerialNumber()
                                                                     << ". Cannot read Configuration and Calibration from DB.");
-
+        return false;
     }
     saveStatusToASF();
+    return true;
 }
 
 //read all error codes from DB. Check size of error codes to make sure version is consistent. Adjust this function to the new database table structure.
@@ -232,6 +234,7 @@ bool Actuator::readStatusFromDB(ActuatorStatus &RecordedPosition)
         ERROR_MSG(
             "Operable Error: DBFlag is not set for Actuator " << getSerialNumber() << ". Cannot read Status from DB.");
         setError(1);//operable
+        return false;
     }
     saveStatusToASF();
     return true;
@@ -422,10 +425,19 @@ void Actuator::saveStatusToASF()//record all error codes to ASF.
 }
 
 float Actuator::readVoltage() {
-    bool alreadyBusy = isBusy();
-    if (!alreadyBusy) {
-        setBusy();
+    if (isBusy()) {
+        std::cout << m_Identity << " : Actuator::readVoltage() : Busy, cannot read. \n";
+        return m_ADCdata.voltage;
     }
+
+    float voltage;
+    setBusy();
+    voltage = __readVoltage();
+    unsetBusy();
+    return voltage;
+}
+
+float Actuator::__readVoltage() {
     int MeasurementCount = 0;
     m_ADCdata = m_pCBC->adc.readEncoder(getPortNumber());
     while ((m_ADCdata.stddev > m_StdDevRemeasure) && (MeasurementCount < m_MaxVoltageMeasurementAttempts)) {
@@ -439,9 +451,6 @@ float Actuator::readVoltage() {
                                            << " volts");
         setError(7);//fatal
         saveStatusToASF();
-    }
-    if (!alreadyBusy) {
-        unsetBusy();
     }
     return m_ADCdata.voltage;
 }
@@ -523,16 +532,26 @@ int Actuator::checkAngleSlow(Position ExpectedPosition) {
 
 int Actuator::step(int steps)//Positive Step is Extension of Motor
 {
-    if (getState() != Device::DeviceState::On &&
-        getState() != Device::DeviceState::OperableError)//don't move actuator if there's a fatal error.
+    if (getErrorState() == Device::ErrorState::FatalError)//don't move actuator if there's a fatal error.
     {
+        std::cout << m_Identity << " :: Actuator::step() encountered fatal error before starting. Aborting motion...\n";
         return steps;
     }
+
+    if (getDeviceState() == Device::DeviceState::Off) {
+        std::cout << m_Identity
+                  << " :: Actuator::step() actuator is off, motion aborted. This should only occur when requesting "
+                     " actuator motion from an individual actuator (not through the panel/platform). For actuators "
+                     " attached to a platform this is unsafe and should not be done (instead, call step through the platform/panel)"
+                     ". However, if you wish to step an isolated actuator, you can do so by manually powering on this actuator first.\n";
+
+        return steps;
+    }
+
     DEBUG_MSG("Stepping Actuator " << getSerialNumber() << " " << steps << " steps");
     bool alreadyBusy = isBusy();
-    if (!alreadyBusy) {
-        setBusy();
-    }
+    if (!alreadyBusy) { setBusy(); }
+
     loadStatusFromASF();
     recoverPosition();
     Position FinalPosition = predictNewPosition(m_CurrentPosition, -steps);
@@ -552,14 +571,14 @@ int Actuator::step(int steps)//Positive Step is Extension of Motor
     int StepsToTake = Sign * RecordingInterval;
     bool KeepStepping = true;
 
-    while ((KeepStepping) && (getState() != Device::DeviceState::FatalError)) {
+    while ((KeepStepping) && (getErrorState() != Device::ErrorState::FatalError) &&
+           (getDeviceState() != Device::DeviceState::Off)) {
         if (std::abs(StepsRemaining) <= RecordingInterval) {
             StepsToTake = StepsRemaining;
             KeepStepping = false;
         }
         PredictedPosition = predictNewPosition(m_CurrentPosition, -StepsToTake);
         m_pCBC->driver.step(getPortNumber(), StepsToTake);
-        getErrorState();
         MissedSteps = checkAngleQuick(
                 PredictedPosition);//negative*negative=positive sign because retraction is increasing internal counter and missed steps is negative by definition.
         if (m_Errors[7] == true)//if voltage measurement has issues.
@@ -584,37 +603,50 @@ int Actuator::step(int steps)//Positive Step is Extension of Motor
         saveStatusToASF();
         StepsRemaining = -(convertPositionToSteps(FinalPosition) - convertPositionToSteps(m_CurrentPosition));
     }
-    if (!alreadyBusy) {
-        unsetBusy();
-    }
+    if (!alreadyBusy) { unsetBusy(); }
     return StepsRemaining;
 }
 
 float Actuator::measureLength() {
+    bool alreadyBusy = isBusy();
+    if (!alreadyBusy) { setBusy(); }
+
     DEBUG_MSG("Measuring Actuator Length for Actuator " << getSerialNumber());
     loadStatusFromASF();
     recoverPosition();
     int StepsFromHome = convertPositionToSteps(m_CurrentPosition);
     float DistanceFromHome = StepsFromHome * mmPerStep;
     float currentLength = HomeLength - DistanceFromHome;
+
+    if (!alreadyBusy) { unsetBusy(); }
     return currentLength;
 }
 
 float Actuator::moveToLength(float targetLength) {
+    bool alreadyBusy = isBusy();
+    if (!alreadyBusy) { setBusy(); }
+
     float currentLength = measureLength();
     float lengthToMove = targetLength - currentLength;
     int stepsToMove = std::floor((lengthToMove / mmPerStep) + 0.5);
     step(stepsToMove);
     currentLength = measureLength();
+
+    if (!alreadyBusy) { unsetBusy(); }
     return currentLength;
 }
 
 float Actuator::moveDeltaLength(float lengthToMove) {
+    bool alreadyBusy = isBusy();
+    if (!alreadyBusy) { setBusy(); }
+
     float currentLength = measureLength();
     float targetLength = currentLength + lengthToMove;
     currentLength = moveToLength(targetLength);
     float lengthRemaining = targetLength - currentLength;
     return lengthRemaining;
+
+    if (!alreadyBusy) { unsetBusy(); }
 }
 
 Actuator::Position Actuator::predictNewPosition(Position position,
@@ -634,14 +666,19 @@ Actuator::Position Actuator::predictNewPosition(Position position,
 }
 
 int Actuator::performHysteresisMotion(int steps) {
+    bool alreadyBusy = isBusy();
+    if (!alreadyBusy) { setBusy(); }
+
     DEBUG_MSG("Performing Hysteresis Motion of " << steps << " for Actuator " << getSerialNumber());
     int stepsRemaining = step(steps - m_HysteresisSteps);
-    return step(m_HysteresisSteps + stepsRemaining);
+    stepsRemaining = step(m_HysteresisSteps + stepsRemaining);
+
+    if (!alreadyBusy) { unsetBusy(); }
+    return stepsRemaining;
 }
 
 //Port, Serial, ASFPath, and sometimes DB are loaded. The rest of the loading needs to be designed here. Set Current position
 bool Actuator::initialize() {
-    //check if ASF file exists. if it doesn't, create it.
     DEBUG_MSG("Initializing Actuator " << getSerialNumber());
     loadStatusFromASF();
     loadConfigurationAndCalibration();
@@ -725,7 +762,9 @@ int Actuator::convertPositionToSteps(Position position) {
 
 void Actuator::probeHome()//method used to define home.
 {
-    setBusy();
+    bool alreadyBusy = isBusy();
+    if (!alreadyBusy) { setBusy(); }
+
     DEBUG_MSG("Probing Home for Actuator " << getSerialNumber());
     probeExtendStop();
 
@@ -801,15 +840,15 @@ void Actuator::probeHome()//method used to define home.
     setCurrentPosition(HomePosition);
     unsetError(0);
     saveStatusToASF();
-    unsetBusy();
+
+    if (!alreadyBusy) { unsetBusy(); }
 }
 
 void Actuator::findHomeFromEndStop(int direction)//use recorded extendstop and set actuator to that.
 {
     bool alreadyBusy = isBusy();
-    if (!alreadyBusy) {
-        setBusy();
-    }
+    if (!alreadyBusy) { setBusy(); }
+
     //if direction=1, probeextendstop then set current position to recorded extendstop. compare the number of steps away from the recorded value, and report error if this number is too high.
     Position targetPosition{};
     if (direction == 1) {
@@ -845,16 +884,12 @@ void Actuator::findHomeFromEndStop(int direction)//use recorded extendstop and s
             step(1 * direction * RecordingInterval);
         }
     }
-    if (!alreadyBusy) {
-        unsetBusy();
-    }
+    if (!alreadyBusy) { unsetBusy(); }
 }
 
 void Actuator::probeEndStop(int direction) {
     bool alreadyBusy = isBusy();
-    if (!alreadyBusy) {
-        setBusy();
-    }
+    if (!alreadyBusy) { setBusy(); }
     setError(0); // Set home position not found error until probe home is complete
 
     int searchSteps = direction * EndstopSearchStepsize;
@@ -879,9 +914,7 @@ void Actuator::probeEndStop(int direction) {
             atStop = true;
         }
     }
-    if (!alreadyBusy) {
-        unsetBusy();
-    }
+    if (!alreadyBusy) { unsetBusy(); }
 }
 
 void Actuator::createDefaultASF()//hardcoded structure of the ASF file (year,mo,day,hr,min,sec,rev,angle,errorcodes)
@@ -910,9 +943,9 @@ void Actuator::clearErrors() {
 }
 
 bool Actuator::forceRecover() {
-    ERROR_MSG("Actuator: Force recovering...");
+    std::cout << m_Identity << " :: Force recovering actuator...\n";
     int indexDeviation = checkAngleQuick(m_CurrentPosition);
-    if (m_Errors[7] == true)//check for voltage issue
+    if (m_Errors[7])//check for voltage issue
     {
         return false;
     }
@@ -926,11 +959,13 @@ bool Actuator::isOn() {
 }
 
 void Actuator::turnOn() {
+    std::cout << m_Identity << " :: Turning on...\n";
     m_pCBC->driver.enable(getPortNumber());    
     initialize();
 }
 
 void Actuator::turnOff() {
+    std::cout << m_Identity << " :: Turning off...\n";
     saveStatusToASF();
     m_pCBC->driver.disable(getPortNumber());    
 }
@@ -948,15 +983,11 @@ void Actuator::copyFile(const std::string &srcFilePath, const std::string &destF
 int DummyActuator::step(int steps)
 {
     std::cout << "DummyActuator: Stepping Actuator " << getSerialNumber() << " " << steps << " steps" << std::endl;
-    if (getState() != Device::DeviceState::On && getState() != Device::DeviceState::OperableError) {
-        ERROR_MSG("DummyActuator: Fatal error. Cannot step.");
-        return steps;
-    }
     Position finalPosition = predictNewPosition(m_CurrentPosition, -steps);
     setCurrentPosition(finalPosition); // Set current position to final position (simulate motion)
     int stepsRemaining = -(convertPositionToSteps(finalPosition) - convertPositionToSteps(
             m_CurrentPosition));//negative because positive step is retraction, and (0,0) is defined as full extraction.
-    std::cout << "DummyActuator:: Steps Remaining = " << stepsRemaining << std::endl;
+    std::cout << "DummyActuator:: New length = " << measureLength() << std::endl;
     return stepsRemaining;
 }
 

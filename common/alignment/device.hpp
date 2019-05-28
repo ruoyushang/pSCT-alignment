@@ -13,27 +13,26 @@
 class Device {
 public:
     /// @brief Platform states used to disallow/stop motion based on errors.
-    enum class DeviceState {
-        On = 0,
+    enum class ErrorState {
+        Nominal = 0,
         OperableError = 1, //Errors that the user should be aware of, but shouldn't interfere with normal operation of the actuator.
+        FatalError = 2, //Errors that the user should definitely be aware of and handle appropriately. The Actuator should not be able to move with a fatal error without first reconfiguring something.
+    };
+
+    enum class DeviceState {
+        Off = 0,
+        On = 1,
         Busy = 2,
-        FatalError = 3, //Errors that the user should definitely be aware of and handle appropriately. The Actuator should not be able to move with a fatal error without first reconfiguring something.
-        Off = 4
     };
-	
-    std::map<DeviceState, std::string> deviceStateNames = {
-	{DeviceState::On, "On"},
-	{DeviceState::OperableError, "OperableError"},
-	{DeviceState::Busy, "Busy"},
-	{DeviceState::FatalError, "FatalError"},
-	{DeviceState::Off, "Off"}
-    };
+
+    static const std::map<ErrorState, std::string> errorStateNames;
+    static const std::map<DeviceState, std::string> deviceStateNames;
 
 
 /// @brief Formal definition of a device error: description and severity.
     struct ErrorDefinition {
         std::string description;
-        DeviceState severity;
+        ErrorState severity;
     };
 
     struct DBInfo {
@@ -81,21 +80,17 @@ public:
     bool getError(int errorCode) { return m_Errors[errorCode]; }
 
     virtual void setError(int errorCode);
-
     virtual void unsetError(int errorCode);
     virtual void clearErrors();
 
     virtual bool initialize() = 0;
 
-    Device::DeviceState getState();
+    virtual Device::DeviceState getDeviceState();
+
+    virtual Device::ErrorState getErrorState();
 
     virtual void turnOn() = 0;
-
     virtual void turnOff() = 0;
-
-    bool isBusy() { return m_Busy; }
-
-    virtual bool isOn() = 0;
 
 protected:
     std::shared_ptr<CBC> m_pCBC;
@@ -105,11 +100,13 @@ protected:
 
     bool m_Busy;
 
-    void setBusy() { m_Busy = true; }
+    void setBusy();
 
-    void unsetBusy() { m_Busy = false; }
+    void unsetBusy();
 
-    virtual Device::DeviceState getErrorState();
+    bool isBusy() { return m_Busy; }
+
+    virtual bool isOn() = 0;
 };
 
 inline std::ostream &operator<<(std::ostream &out, const Device::Identity &id) {

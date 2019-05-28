@@ -3,6 +3,19 @@
 
 #include "common/cbccode/cbc.hpp"
 
+const std::map<Device::ErrorState, std::string> Device::errorStateNames = {
+    {Device::ErrorState::Nominal,       "Nominal"},
+    {Device::ErrorState::OperableError, "OperableError"},
+    {Device::ErrorState::FatalError,    "FatalError"},
+};
+
+const std::map<Device::DeviceState, std::string> Device::deviceStateNames = {
+    {Device::DeviceState::Off,  "Off"},
+    {Device::DeviceState::On,   "On"},
+    {Device::DeviceState::Busy, "Busy"},
+};
+
+
 // definition of the comparison operator for identity struct
 // does lexicographical comparison on the first non-default member:
 // (comparison in the order of decreasing global uniqueness)
@@ -50,38 +63,36 @@ Device::Device(std::shared_ptr<CBC> pCBC, Device::Identity identity) : m_pCBC(st
 
 void Device::setError(int errorCode) {
     if (!m_Errors.at(errorCode)) {
-        std::cout << "Setting Error " << errorCode << " (" << getErrorCodeDefinitions()[errorCode].description
-                  << ") for Device "
-                  << m_Identity << std::endl;
+        std::cout << m_Identity << " :: Setting Error " << errorCode << " ("
+                  << getErrorCodeDefinitions()[errorCode].description
+                  << ")\n";
         m_Errors[errorCode] = true;
-        getErrorState();
     }
 }
 
 void Device::unsetError(int errorCode) {
     if (m_Errors.at(errorCode)) {
-        std::cout << "Unsetting Error " << errorCode << " (" << getErrorCodeDefinitions()[errorCode].description
-                  << ") for Device "
-                  << m_Identity << std::endl;
+        std::cout << m_Identity << " :: Unsetting Error " << errorCode << " ("
+                  << getErrorCodeDefinitions()[errorCode].description
+                  << ")\n";
         m_Errors[errorCode] = false;
-        getErrorState();
     }
 }
 
-Device::DeviceState Device::getState()//cycle through all errors and set state based on ones triggered.
-{
-    if (!isOn()) {
-        return Device::DeviceState::Off;
-    } else if (isBusy()) {
-        return Device::DeviceState::Busy;
+Device::DeviceState Device::getDeviceState() {
+    if (isOn()) {
+        if (isBusy()) {
+            return DeviceState::Busy;
+        } else {
+            return DeviceState::On;
+        }
     } else {
-        return getErrorState();
+        return DeviceState::Off;
     }
 }
 
-Device::DeviceState Device::getErrorState()//cycle through all errors and set state based on ones triggered.
-{
-    Device::DeviceState state = Device::DeviceState::On;
+Device::ErrorState Device::getErrorState() {
+    Device::ErrorState state = Device::ErrorState::Nominal;
     for (int i = 0; i < getNumErrors(); i++) {
         if (m_Errors[i]) {
             if (getErrorCodeDefinitions()[i].severity > state) {
@@ -94,9 +105,22 @@ Device::DeviceState Device::getErrorState()//cycle through all errors and set st
 }
 
 void Device::clearErrors() {
-    std::cout << "Clearing All Errors for Device " << m_Identity << std::endl;
+    std::cout << m_Identity << " :: Clearing All Errors... \n";
     for (int i = 0; i < getNumErrors(); i++) {
         m_Errors[i] = false;
     }
-    getErrorState();
+}
+
+void Device::setBusy() {
+    if (!isBusy()) {
+        //std::cout << m_Identity << " :: Blocking task started.\n";
+        m_Busy = false;
+    }
+}
+
+void Device::unsetBusy() {
+    if (isBusy()) {
+        //std::cout << m_Identity << " :: Blocking task completed.\n";
+        m_Busy = false;
+    }
 }

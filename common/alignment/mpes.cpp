@@ -24,42 +24,66 @@ const int MPES::NOMINAL_INTENSITY = 150000;
 const float MPES::NOMINAL_SPOT_WIDTH = 10.0;
 
 const std::vector<Device::ErrorDefinition> MPES::ERROR_DEFINITIONS = {
-        {"Bad connection. No device found",                                                                            Device::DeviceState::FatalError},//error 0
-        {"Intermittent connection, possible select timeout or other error.",                                            Device::DeviceState::FatalError},//error 1
-        {"Cannot find laser spot (totally dark). Laser dead or not in FoV.",                                           Device::DeviceState::FatalError},//error 2
-        {"Too bright. Cleaned Intensity > 1e6. Likely cause: no tube.",                                                Device::DeviceState::FatalError},//error 3
-        {"Too bright. 1e6 >Cleaned Intensity > 5e5 and very wide spot width >20",                                      Device::DeviceState::OperableError},//error 4
-        {"Very uneven spot. Likely due to being in the reflection region (too close to webcam edges) or a bad laser.", Device::DeviceState::OperableError},//error 5
-        {"Uneven spot. Spot is uneven, but not severe. Likely recoverable.",                                           Device::DeviceState::OperableError},//error 6
-        {"Intensity deviation from nominal value (more than 20%).",                                                    Device::DeviceState::OperableError},//error 7
+    {"Bad connection. No device found",                                                                            Device::ErrorState::FatalError},//error 0
+    {"Intermittent connection, possible select timeout or other error.",                                           Device::ErrorState::FatalError},//error 1
+    {"Cannot find laser spot (totally dark). Laser dead or not in FoV.",                                           Device::ErrorState::FatalError},//error 2
+    {"Too bright. Cleaned Intensity > 1e6. Likely cause: no tube.",                                                Device::ErrorState::FatalError},//error 3
+    {"Too bright. 1e6 >Cleaned Intensity > 5e5 and very wide spot width >20",                                      Device::ErrorState::OperableError},//error 4
+    {"Very uneven spot. Likely due to being in the reflection region (too close to webcam edges) or a bad laser.", Device::ErrorState::OperableError},//error 5
+    {"Uneven spot. Spot is uneven, but not severe. Likely recoverable.",                                           Device::ErrorState::OperableError},//error 6
+    {"Intensity deviation from nominal value (more than 20%).",                                                    Device::ErrorState::OperableError},//error 7
 };
 
 MPES::MPES(std::shared_ptr<CBC> pCBC, Device::Identity identity) : Device::Device(std::move(pCBC), std::move(identity)),
-                                                                   m_Calibrate(false) {
-}
+                                                                   m_Calibrate(false) { turnOn(); }
 
 MPES::~MPES() {
-    m_pCBC->usb.disable(getPortNumber());
+    turnOff();
 }
 
 void MPES::turnOn() {
-    initialize();
-    setExposure();
-    updatePosition();
+    if (isBusy()) {
+        std::cout << m_Identity << " : MPES::turnOn() : Busy, cannot turn on.\n";
+        return;
+    }
+    setBusy();
+    __initialize();
+    __setExposure();
+    __updatePosition();
+    unsetBusy();
 }
 
 void MPES::turnOff() {
+    if (isBusy()) {
+        std::cout << m_Identity << " : MPES::turnOff() : Busy, cannot turn off.\n";
+        return;
+    }
+    setBusy();
     m_pCBC->usb.disable(getPortNumber());
+    unsetBusy();
 }
 
 bool MPES::isOn() {
     return m_pCBC->usb.isEnabled(getPortNumber());
 }
 
+bool MPES::initialize() {
+    if (isBusy()) {
+        std::cout << m_Identity << " : MPES::initialize() : Busy, cannot initialize.\n";
+        return -1;
+    }
+
+    bool status;
+    setBusy();
+    status = __initialize();
+    unsetBusy();
+    return status;
+}
+
 // returns intensity of the sensor image.
 // check this value to see if everything is working fine
-bool MPES::initialize() {
-    setBusy();
+bool MPES::__initialize() {
+    std::cout << m_Identity << " : MPES::initialize() : Initializing...\n";
     // we toggle the usb port, checking the video devices when it's off and again when it's on.
     // the new video device is the ID of the newly created MPES.
 
@@ -74,7 +98,8 @@ bool MPES::initialize() {
     std::set<int> newVideoDevices = getVideoDevices(); // check all video devices again
 
     std::set<int> toggledDevices;
-    std::set_difference(newVideoDevices.begin(), newVideoDevices.end(), oldVideoDevices.begin(), oldVideoDevices.end(),std::inserter(toggledDevices, toggledDevices.begin()) );
+    std::set_difference(newVideoDevices.begin(), newVideoDevices.end(), oldVideoDevices.begin(), oldVideoDevices.end(),
+                        std::inserter(toggledDevices, toggledDevices.begin()));
 
     int newVideoDeviceId;
     if (toggledDevices.size() == 1) {
@@ -87,7 +112,7 @@ bool MPES::initialize() {
         return false; // the list should be just one device at this point
     }
 
-    std::cout << "MPES::initialize(): Detected new video device " << newVideoDeviceId << std::endl;
+    //std::cout << "MPES::initialize(): Detected new video device " << newVideoDeviceId << std::endl;
     m_pDevice = std::unique_ptr<MPESDevice>(new MPESDevice(newVideoDeviceId));
     m_pImageSet = std::unique_ptr<MPESImageSet>(new MPESImageSet(m_pDevice.get(), DEFAULT_IMAGES_TO_CAPTURE));
 
@@ -96,9 +121,9 @@ bool MPES::initialize() {
     std::string MPES_IDstring = oss.str();
 
     std::string matFileFullPath = MATRIX_CONSTANTS_DIR_PATH + MPES_IDstring + "_MatConstants.txt";
-    std::cout << "Trying to access " << matFileFullPath << " for Matrix File" << std::endl;
+    //std::cout << "Trying to access " << matFileFullPath << " for Matrix File" << std::endl;
     std::string calFileFullPath = CAL2D_CONSTANTS_DIR_PATH + MPES_IDstring + "_2D_Constants.txt";
-    std::cout << "Trying to access " << calFileFullPath << " for Cal2D File" << std::endl;
+    //std::cout << "Trying to access " << calFileFullPath << " for Cal2D File" << std::endl;
 
     std::ifstream matFile(matFileFullPath);
     std::ifstream calFile(calFileFullPath);
@@ -109,29 +134,41 @@ bool MPES::initialize() {
 
         m_pDevice->LoadCalibration(calFileFullPath.c_str());
         m_pDevice->LoadMatrixTransform(matFileFullPath.c_str());
-        std::cout << "Read calibration data OK -- using calibrated values\n";
+        //std::cout << "Read calibration data OK -- using calibrated values\n";
         m_Calibrate = true;
     } else {
-        std::cout << "Did not read calibration data -- using raw values\n";
+        //std::cout << "Did not read calibration data -- using raw values\n";
     }
 
-    unsetBusy();
+    std::cout << m_Identity << " : MPES::initialize() : Done.\n";
     return true;
 }
 
 // find and set optimal exposure -- assume I(e) is linear
 // returns measured intensity -- check this value to see if things work fine
 int MPES::setExposure() {
+    if (isBusy()) {
+        std::cout << m_Identity << " : MPES::setExposure() : Busy, cannot set exposure.\n";
+        return -1;
+    }
+
+    int intensity;
     setBusy();
-    std::cout << "MPES:: Setting exposure for device at USB " << getPortNumber() << std::endl;
+    intensity = __setExposure();
+    unsetBusy();
+    return intensity;
+}
+
+int MPES::__setExposure() {
+    std::cout << m_Identity << " : MPES::setExposure() : Setting exposure...\n";
     int intensity;
 
     int counter = 0;
-    while ((intensity = updatePosition())
+    while ((intensity = __updatePosition())
            && (!m_pDevice->isWithinIntensityTolerance(intensity))
            && (counter <= 5)) {
         m_pDevice->SetExposure(
-                (int) (m_pDevice->GetTargetIntensity() / intensity * ((float) m_pDevice->GetExposure())));
+            (int) (m_pDevice->GetTargetIntensity() / intensity * ((float) m_pDevice->GetExposure())));
 
         if (++counter > 5) {
             setError(1);
@@ -140,18 +177,29 @@ int MPES::setExposure() {
         }
     }
 
-    std::cout << "MPES:: setExposure() DONE" << std::endl;
-    unsetBusy();
+    std::cout << m_Identity << " : MPES::setExposure() : Done.\n";
     return intensity;
 }
 
 // returns intensity of the beam -- 0 if no beam/device.
+// -1 if busy
 // so check the return value to know if things work fine
 int MPES::updatePosition() {
-    bool alreadyBusy = isBusy();
-    if (!alreadyBusy) {
-        setBusy();
+    if (isBusy()) {
+        std::cout << m_Identity << " : MPES::updatePosition() : Busy, cannot read.\n";
+        return -1;
     }
+
+    int intensity;
+    setBusy();
+    intensity = __updatePosition();
+    unsetBusy();
+    return intensity;
+}
+
+int MPES::__updatePosition() {
+    std::cout << m_Identity << " : MPES::updatePosition() : Reading...\n";
+
     // initialize to something obvious in case of failure
     m_Position.xCentroid = -1.;
     m_Position.yCentroid = -1.;
@@ -194,9 +242,7 @@ int MPES::updatePosition() {
         setError(2);
     }
 
-    if (!alreadyBusy) {
-        unsetBusy();
-    }
+    std::cout << m_Identity << " : MPES::updatePosition() : Done.\n";
     return static_cast<int>(m_Position.cleanedIntensity);
 }
 
@@ -227,20 +273,19 @@ std::set<int> MPES::getVideoDevices() {
     return videoDevices;
 }
 
-bool DummyMPES::initialize() {
-    std::cout << "DummyMPES::initialize(): Creating new video device " << std::endl;
+bool DummyMPES::__initialize() {
+    std::cout << m_Identity << " : calling DummyMPES::initialize()";
     return true;
 }
 
-int DummyMPES::setExposure() {
-
-
-    std::cout << "+++ Dummy MPES: Setting exposure for device at USB " << getPortNumber() << std::endl;
+int DummyMPES::__setExposure() {
+    std::cout << m_Identity << " : calling DummyMPES::setExposure()\n";
     int intensity = MPES::NOMINAL_INTENSITY; // dummy value
     return intensity;
 }
 
-int DummyMPES::updatePosition() {
+int DummyMPES::__updatePosition() {
+    std::cout << m_Identity << " : calling DummyMPES::updatePosition()\n";
     // Set internal position variable to dummy values
     m_Position.xCentroid = 160.;
     m_Position.yCentroid = 120.;

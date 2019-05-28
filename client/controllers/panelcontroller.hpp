@@ -36,14 +36,12 @@ public:
 
     unsigned getActuatorCount();
 
-    UaStatus moveToLengths(const UaVariantArray &args);
-    UaStatus moveDeltaLengths(const UaVariantArray &args);
-
     Eigen::VectorXd getActuatorLengths();
+
     bool checkForCollision(const Eigen::VectorXd &deltaLengths);
 
     // helper
-    void updateCoords(bool printout = false);
+    UaStatus updateCoords(bool printout = false);
 
 private:
     // x, y, z, xRot, yRot, zRot
@@ -58,6 +56,8 @@ private:
 
     // pad coords -- column per pad
     Eigen::Matrix3d m_PadCoords;
+
+    UaStatus __getActuatorLengths(Eigen::VectorXd &lengths);
 };
 
 #endif //CLIENT_PANELCONTROLLER_HPP

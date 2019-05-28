@@ -74,6 +74,12 @@ protected:
 
     Position m_Position = Position(); // MPES Reading
 
+    virtual bool __initialize();
+
+    virtual int __updatePosition();
+
+    virtual int __setExposure();
+
     // helpers
     std::shared_ptr<MPESImageSet> m_pImageSet;
     std::unique_ptr<MPESDevice> m_pDevice;
@@ -86,9 +92,11 @@ class DummyMPES : public MPES
 public:
     DummyMPES(std::shared_ptr<CBC> pCBC, Device::Identity identity) : MPES(std::move(pCBC), std::move(identity)) {};
 
-    bool initialize() override;
-    int setExposure() override;
-    int updatePosition() override;
+    bool __initialize() override;
+
+    int __setExposure() override;
+
+    int __updatePosition() override;
 };
 
 #endif //ALIGNMENT_MPES_HPP

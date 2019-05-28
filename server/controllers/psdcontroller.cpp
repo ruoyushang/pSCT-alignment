@@ -36,7 +36,7 @@ PSDController::PSDController(Device::Identity identity) : PasController(std::mov
 /// @details Locks the shared mutex while retrieving the state.
 UaStatus PSDController::getState(Device::DeviceState &state) {
     UaMutexLocker lock(&m_mutex);
-    state = _getState();
+    state = _getDeviceState();
     return OpcUa_Good;
 }
 
@@ -94,7 +94,7 @@ UaStatus PSDController::read()
 {
     //UaMutexLocker lock(&m_mutex);
 
-    if (_getState() == Device::DeviceState::On || _getState() == Device::DeviceState::OperableError)
+    if (_getErrorState() == Device::ErrorState::Nominal || _getErrorState() == Device::ErrorState::OperableError)
     {
         std::cout << "\nReading PSD " <<  m_ID << std::endl;
         m_pPSD->Update();

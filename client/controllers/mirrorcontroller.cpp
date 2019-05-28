@@ -1155,7 +1155,7 @@ UaStatus MirrorController::alignSector(double alignFrac, bool execute) {
                     val.setFloat(m_Xcalculated(j++));
                     val.copyTo(&deltas[i]);
                 }
-                status = pCurPanel->moveDeltaLengths(deltas);
+                status = pCurPanel->operate(PAS_PanelType_MoveDeltaLengths, deltas);
                 if (!status.isGood()) { return status; }
             }
             m_Xcalculated.setZero(); // reset calculated motion
@@ -1344,7 +1344,7 @@ UaStatus MirrorController::alignGlobal(unsigned fixPanel, double alignFrac, bool
             // and set them for each sensor along each edge
             for (const auto& mpes : edge->m_ChildrenPositionMap.at(PAS_MPESType) ) {
                 (std::dynamic_pointer_cast<MPESController>(
-                    edge->m_pChildren.at(PAS_MPESType).at(mpes.second)))->SystematicOffsets =
+                    edge->m_pChildren.at(PAS_MPESType).at(mpes.second)))->m_SystematicOffsets =
                     SystematicOffsetsMPESMap.at(ring).at(mpes.first);
             }
         }
@@ -1391,7 +1391,7 @@ UaStatus MirrorController::alignGlobal(unsigned fixPanel, double alignFrac, bool
                     val.setFloat(m_Xcalculated(j++));
                     val.copyTo(&deltas[i]);
                 }
-                status = pCurPanel->moveDeltaLengths(deltas);
+                status = pCurPanel->operate(PAS_PanelType_MoveDeltaLengths, deltas);
                 if (!status.isGood()) { return status; }
             }
             m_Xcalculated.setZero(); // reset calculated motion
