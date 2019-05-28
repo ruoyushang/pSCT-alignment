@@ -79,6 +79,9 @@ UaStatus ActController::getData(OpcUa_UInt32 offset, UaVariant &value) {
             case PAS_ACTType_Serial:
                 varName = "Serial";
                 break;
+            case PAS_ACTType_ErrorState:
+                varName = "ErrorState";
+                break;
             default:
                 return OpcUa_BadInvalidArgument;
         }
@@ -145,8 +148,8 @@ UaStatus ActController::operate(OpcUa_UInt32 offset, const UaVariantArray &args)
             UaVariant(args[0]).toFloat(deltaLength);
 
             // Check state manually beforehand
-            if (state == Device::DeviceState::Busy || errorState == Device::ErrorState::FatalError) {
-                std::cout << m_ID << " :: ActController::operate() : Device is in a bad state (busy, error) and "
+            if (state != Device::DeviceState::On || errorState == Device::ErrorState::FatalError) {
+                std::cout << m_ID << " :: ActController::operate() : Device is in a bad state (busy, off, error) and "
                                      "could not execute command. Check state and try again. \n";
                 status = OpcUa_BadInvalidState;
             } else {
@@ -159,8 +162,8 @@ UaStatus ActController::operate(OpcUa_UInt32 offset, const UaVariantArray &args)
             UaVariant(args[0]).toFloat(targetLength);
 
             // Check state manually beforehand
-            if (state == Device::DeviceState::Busy || errorState == Device::ErrorState::FatalError) {
-                std::cout << m_ID << " :: ActController::operate() : Device is in a bad state (busy, error) and "
+            if (state != Device::DeviceState::On || errorState == Device::ErrorState::FatalError) {
+                std::cout << m_ID << " :: ActController::operate() : Device is in a bad state (busy, off, error) and "
                                      "could not execute command. Check state and try again. \n";
                 status = OpcUa_BadInvalidState;
             } else {
