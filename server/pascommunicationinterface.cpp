@@ -180,11 +180,8 @@ UaStatus PasCommunicationInterface::initialize() {
                     std::make_shared<PanelController>(identity, m_platform));
             } else if (devCount.first == PAS_MPESType) {
                 pos = mpesPositions.at(i);
-                std::cout << pos << std::endl;
                 identity.name = std::string("MPES_") + std::to_string(mpesPositionToSerial.at(pos));
-                std::cout << mpesPositionToSerial.at(pos) << std::endl;
                 identity.serialNumber = mpesPositionToSerial.at(pos);
-                std::cout << mpesPositionToPort.at(pos) << std::endl;
                 identity.eAddress = std::to_string(mpesPositionToPort.at(pos));
                 identity.position = pos;
                 pController = std::dynamic_pointer_cast<PasControllerCommon>(
