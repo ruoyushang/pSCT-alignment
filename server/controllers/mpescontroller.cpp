@@ -61,8 +61,6 @@ MPESController::MPESController(Device::Identity identity, std::shared_ptr<Platfo
                 m_pPlatform->getMPESbyIdentity(m_ID)->setyNominalPosition((float) sql_results->getDouble(2));
             } else {
                 std::cout << "Error: Invalid coord " << coord << " (should be x or y)." << std::endl;
-                // set state to error
-                m_state = Device::ErrorState::FatalError;
             }
         }
         // close the connection!
@@ -75,9 +73,6 @@ MPESController::MPESController(Device::Identity identity, std::shared_ptr<Platfo
         std::cout << "# ERR: " << e.what();
         std::cout << " (MySQL error code: " << e.getErrorCode();
         std::cout << ", SQLState: " << e.getSQLState() << " )" << std::endl;
-
-        // set state to error
-        m_state = Device::ErrorState::FatalError;
     }
 }
 
