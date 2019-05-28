@@ -156,13 +156,10 @@ PasCommunicationInterface::addDevice(const std::shared_ptr<Client> &pClient, Opc
             return identity;
         }
 
-        m_pControllers[deviceType].push_back(pController);
-        unsigned curindex = m_pControllers.at(deviceType).size() - 1;
-        m_DeviceIdentityMap[deviceType][identity] = curindex;
-
+        m_pControllers[deviceType][identity] = pController;
+        
         std::cout << "PasCommunicationInterface::addDevice() Added "
-                  << PasCommunicationInterface::deviceTypeNames[deviceType] << "["
-                  << curindex << "] with identity " << identity << std::endl;
+                  << PasCommunicationInterface::deviceTypeNames[deviceType] << " with identity " << identity << std::endl;
 
         // get the device's parents and create them.
         // if added device is MPES, its parents are the w-side panel and the edge;
@@ -182,11 +179,9 @@ PasCommunicationInterface::addDevice(const std::shared_ptr<Client> &pClient, Opc
                     // this is not necessarily the last element in the vector of controllers --
                     // need to find its real index
                     try {
-                        int index = m_DeviceIdentityMap.at(parent.first).at(parentId);
                         // add the current controller
                         std::dynamic_pointer_cast<PasCompositeController>(
-                            m_pControllers.at(parent.first).at(index))->addChild(
-                            deviceType, pController);
+                            m_pControllers.at(parent.first).at(parent.second))->addChild(deviceType, pController);
                     }
                     catch (std::out_of_range &e) { /* no such device for whatever reason -- ignore */ }
                 }
@@ -196,19 +191,13 @@ PasCommunicationInterface::addDevice(const std::shared_ptr<Client> &pClient, Opc
             std::cout << "Adding co-parents as children..." << std::endl;
             for (unsigned i = 0; i < parentList.size(); i++) {
                 const auto &parent = parentList.at(i);
-                int parentIdx;
                 try {
-                    parentIdx = m_DeviceIdentityMap.at(parent.first).at(parent.second);
+                    std::shared_ptr<PasController> parentC = m_DeviceIdentityMap.at(parent.first).at(parent.second);
                     for (unsigned j = 0; j < parentList.size(); j++) {
                         if (j != i) {
                             const auto &coparent = parentList.at(j);
-                            int coparentIdx;
-                            coparentIdx = m_DeviceIdentityMap.at(coparent.first).at(coparent.second);
-                            std::shared_ptr<PasController> parentC = m_pControllers.at(parent.first).at(parentIdx);
-                            std::shared_ptr<PasController> coparentC = m_pControllers.at(coparent.first).at(
-                                coparentIdx);
-                            std::dynamic_pointer_cast<PasCompositeController>(parentC)->addChild(coparent.first,
-                                                                                                 coparentC);
+                            std::shared_ptr<PasController> coparentC = m_pControllers.at(coparent.first).at(coparent.second);
+                            std::dynamic_pointer_cast<PasCompositeController>(parentC)->addChild(coparent.first, coparentC);
                         }
                     }
                 }
@@ -367,26 +356,13 @@ UaStatus PasCommunicationInterface::operateDevice(
 std::shared_ptr<PasController> PasCommunicationInterface::getDeviceFromId(OpcUa_UInt32 type,
                                                                           const Device::Identity &identity)
 {
-    int index;
-    // try accessing the map for this type
     try {
-        m_DeviceIdentityMap.at(type);
+        return m_pControllers.at(type).at(identity);
     }
     catch (std::out_of_range &e)
     {
         return nullptr;
     }
-
-    // try getting the device with this identity
-    try {
-        index = m_DeviceIdentityMap.at(type).at(identity);
-    }
-    catch (std::out_of_range &e)
-    {
-        return nullptr;
-    }
-
-    return m_pControllers.at(type).at(index);
 }
 /* ----------------------------------------------------------------------------
     End Class     PasCommunicationInterface
