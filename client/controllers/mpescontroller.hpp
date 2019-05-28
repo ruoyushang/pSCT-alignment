@@ -51,6 +51,7 @@ public:
 
     const Eigen::Vector2d &getSystematicOffsets() const { return m_SystematicOffsets; }
 
+    MPES::Position getPosition() { return m_data; }
 
 private:
     bool m_isVisible;
