@@ -230,6 +230,8 @@ const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, O
                                                         Ua_AccessLevel_CurrentRead)},
     {PAS_MPESType_yCentroidNominal, std::make_tuple("yCentroidNominal", UaVariant(0.0), OpcUa_False,
                                                         Ua_AccessLevel_CurrentRead)},
+    {PAS_MPESType_ErrorState, std::make_tuple("ErrorState", UaVariant(0), OpcUa_False,
+                                                        Ua_AccessLevel_CurrentRead)},
 };
 
 const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean>> MPESObject::ERRORS = {
@@ -263,7 +265,10 @@ const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, O
     {PAS_ACTType_TargetLength,  std::make_tuple("TargetLength", UaVariant(0.0), OpcUa_False,
                                                     Ua_AccessLevel_CurrentRead)},
     {PAS_ACTType_CurrentLength, std::make_tuple("CurrentLength", UaVariant(0.0), OpcUa_False,
+                                                   Ua_AccessLevel_CurrentRead)},
+    {PAS_ACTType_ErrorState, std::make_tuple("ErrorState", UaVariant(0), OpcUa_False,
                                                    Ua_AccessLevel_CurrentRead)}
+
 };
 
 const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean>> ACTObject::ERRORS = {
