@@ -24,14 +24,12 @@ PositionerController::PositionerController(Device::Identity identity, std::share
     std::move(identity),
     std::move(pClient)), m_Data()
 {
-    m_state = Device::ErrorState::On;
+    m_state = Device::DeviceState::On;
     m_Data = {0.0, 0.0, 0.0, 0.0, OpcUa_False};
 }
 
 PositionerController::~PositionerController()
 {
-    m_pClient = nullptr;
-    m_state = Device::ErrorState::On;
 }
 
 
@@ -47,9 +45,9 @@ UaStatus PositionerController::getState(Device::DeviceState &state)
     if (status.isGood()) {
         res.toBool(m_Data.isMoving);
         if (m_Data.isMoving)
-            state = Device::ErrorState::Busy;
+            state = Device::DeviceState::Busy;
         else
-            state = Device::ErrorState::On;
+            state = Device::DeviceState::On;
     }
 
     return status;

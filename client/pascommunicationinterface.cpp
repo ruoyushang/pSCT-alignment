@@ -289,7 +289,7 @@ UaStatus PasCommunicationInterface::getDeviceConfig(
 UaStatus PasCommunicationInterface::getDeviceState(
     OpcUa_UInt32 deviceType,
     const Device::Identity &identity,
-    Device::ErrorState &state) {
+    Device::DeviceState &state) {
     if (getDeviceFromId(deviceType, identity) != nullptr)
         return getDeviceFromId(deviceType, identity)->getState(state);
 
@@ -303,7 +303,7 @@ UaStatus PasCommunicationInterface::getDeviceState(
 UaStatus PasCommunicationInterface::setDeviceState(
     OpcUa_UInt32 deviceType,
     const Device::Identity &identity,
-    Device::ErrorState state) {
+    Device::DeviceState state) {
     if (getDeviceFromId(deviceType, identity) != nullptr)
         return getDeviceFromId(deviceType, identity)->setState(state);
 

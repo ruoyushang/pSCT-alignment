@@ -765,20 +765,20 @@ OpcUa_Int32 PasNodeManager::Panic()
     for (OpcUa_Int32 i = 0; i < actcount; i++) {
         status = dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->getDeviceConfig(PAS_ACTType, i, id);
         if (status.isGood()) {
-            printf("Will try changing state for %s\n", id.eAddress.c_str());
-            status = m_pCommIf->setDeviceState(PAS_ACTType, id, Device::ErrorState::Off);
+            printf("Will try turning off %s\n", id.eAddress.c_str());
+            status = dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->getDeviceFromId(PAS_ACTType, id)->operate(PAS_ACTType_TurnOff);
         } else
-            printf("Problem changing state for %s\n", id.eAddress.c_str());
+            printf("Problem turning off %s\n", id.eAddress.c_str());
     }
 
     sleep(3);
     for (OpcUa_Int32 i = 0; i < actcount; i++) {
         status = dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->getDeviceConfig(PAS_ACTType, i, id);
         if (status.isGood()) {
-            printf("Will try changing state for %s again\n", id.eAddress.c_str());
-            status = m_pCommIf->setDeviceState(PAS_ACTType, id, Device::ErrorState::On);
+            printf("Will try turning on %s again\n", id.eAddress.c_str());
+            status = dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->getDeviceFromId(PAS_ACTType, id)->operate(PAS_ACTType_TurnOn);
         } else
-            printf("Problem changing state for %s\n", id.eAddress.c_str());
+            printf("Problem turning on %s\n", id.eAddress.c_str());
     }
 
     if (status.isGood())

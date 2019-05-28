@@ -653,7 +653,7 @@ UaStatus MirrorController::moveToCoords(const Eigen::VectorXd &targetMirrorCoord
                     val.setFloat(m_Xcalculated(j++));
                     val.copyTo(&deltas[i]);
                 }
-                status = pCurPanel->moveDeltaLengths(deltas);
+                status = pCurPanel->operate(PAS_PanelType_MoveDeltaLengths, deltas);
                 if (!status.isGood()) { return status; }
             }
             m_Xcalculated.setZero(); // reset calculated motion
@@ -686,12 +686,11 @@ UaStatus MirrorController::alignSequential(unsigned startEdge, const std::set<un
     std::deque<unsigned> already_aligned{}; // yes, deque, not vector!
 
     unsigned cur_idx = startEdge;
-    while (selectedEdges.find(cur_idx) != selectedEdges.end() &&
-           (m_state == Device::DeviceState::On || m_state == Device::DeviceState::OperableError)) {
+    while (selectedEdges.find(cur_idx) != selectedEdges.end() && m_state == Device::DeviceState::On) {
         already_aligned.push_front(cur_idx);
         // align all the preceding panels
         for (unsigned edge : already_aligned) {
-            if (!(m_state == Device::DeviceState::On || m_state == Device::DeviceState::OperableError)) break;
+            if (!(m_state == Device::DeviceState::On)) break;
             // figure out which panel is "greater" and which one is "smaller" in the sense
             // of dir, assuming a two-panel edge for now.
             // get vector of panel positions:
