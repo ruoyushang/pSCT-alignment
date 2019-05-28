@@ -252,7 +252,7 @@ UaStatus PasCommunicationInterface::initialize() {
 UaStatus PasCommunicationInterface::getDeviceState(
     OpcUa_UInt32 deviceType,
     const Device::Identity &identity,
-    Device::ErrorState &state) {
+    Device::DeviceState &state) {
     try {
         return m_pControllers.at(deviceType).at(identity)->getState(state);
     }
@@ -264,7 +264,7 @@ UaStatus PasCommunicationInterface::getDeviceState(
 UaStatus PasCommunicationInterface::setDeviceState(
     OpcUa_UInt32 deviceType,
     const Device::Identity &identity,
-    Device::ErrorState state) {
+    Device::DeviceState state) {
     try {
         return m_pControllers.at(deviceType).at(identity)->setState(state);
     }
