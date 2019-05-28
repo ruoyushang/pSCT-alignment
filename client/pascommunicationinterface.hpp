@@ -44,20 +44,6 @@ public:
     const Device::Identity
     addDevice(const std::shared_ptr<Client> &pClient, OpcUa_UInt32 deviceType, const Device::Identity &identity);
 
-    OpcUa_Int32 getDevices(OpcUa_UInt32 deviceType);
-
-    UaStatus getDeviceConfig(
-        OpcUa_UInt32 type,
-        OpcUa_UInt32 deviceIndex,
-        UaString &sName,
-        Device::Identity &identity);
-
-    /* overloaded getDeviceConfig() for when you only want the identity */
-    UaStatus getDeviceConfig(
-        OpcUa_UInt32 type,
-        OpcUa_UInt32 deviceIndex,
-        Device::Identity &identity);
-
     /* Get device status and data */
     UaStatus getDeviceState(
         OpcUa_UInt32 type,

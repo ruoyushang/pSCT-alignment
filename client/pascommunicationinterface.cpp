@@ -119,10 +119,8 @@ PasCommunicationInterface::addDevice(const std::shared_ptr<Client> &pClient, Opc
     Device::Identity id;
 
     // Found existing copy of device
-    if (m_DeviceIdentityMap.count(deviceType) > 0 && m_DeviceIdentityMap.at(deviceType).count(identity) > 0) {
-        int index = m_DeviceIdentityMap.at(deviceType).at(identity);
-        std::cout << "PasCommunicationInterface::addDevice() : Device " << identity << " already exists as "
-                  << PasCommunicationInterface::deviceTypeNames.at(deviceType) << "[" << index << "]. Moving on..."
+    if (m_pControllers.count(deviceType) > 0 && m_pControllers.at(deviceType).count(identity) > 0) {
+        std::cout << "PasCommunicationInterface::addDevice() : Device " << identity << " already exists. Moving on..."
                   << std::endl;
         return identity;
     }
@@ -192,11 +190,13 @@ PasCommunicationInterface::addDevice(const std::shared_ptr<Client> &pClient, Opc
             for (unsigned i = 0; i < parentList.size(); i++) {
                 const auto &parent = parentList.at(i);
                 try {
-                    std::shared_ptr<PasController> parentC = m_DeviceIdentityMap.at(parent.first).at(parent.second);
+                    std::shared_ptr<PasController> parentC = std::dynamic_pointer_cast<PasController>(
+                        m_pControllers.at(parent.first).at(parent.second));
                     for (unsigned j = 0; j < parentList.size(); j++) {
                         if (j != i) {
                             const auto &coparent = parentList.at(j);
-                            std::shared_ptr<PasController> coparentC = m_pControllers.at(coparent.first).at(coparent.second);
+                            std::shared_ptr<PasController> coparentC = std::dynamic_pointer_cast<PasController>(
+                                m_pControllers.at(coparent.first).at(coparent.second));
                             std::dynamic_pointer_cast<PasCompositeController>(parentC)->addChild(coparent.first, coparentC);
                         }
                     }
@@ -208,68 +208,7 @@ PasCommunicationInterface::addDevice(const std::shared_ptr<Client> &pClient, Opc
         return identity;
     }
 }
-/* ----------------------------------------------------------------------------
-    Class        PasCommunicationInterface
-    Method       getDevices
-    Description  Get available devices of requested type
------------------------------------------------------------------------------*/
-OpcUa_Int32 PasCommunicationInterface::getDevices(OpcUa_UInt32 deviceType)
-{
-    OpcUa_Int32 count;
-    try {
-        count = m_pControllers.at(deviceType).size();
-    }
-    catch (std::out_of_range &e)
-    {
-        count = 0;
-    }
 
-    return count;
-}
-
-/* ----------------------------------------------------------------------------
-    Class        PasCommunicationInterface
-    Method       getDeviceConfig
-    Description  Get configuration of a sensor.
------------------------------------------------------------------------------*/
-UaStatus PasCommunicationInterface::getDeviceConfig(
-        OpcUa_UInt32 type,
-        OpcUa_UInt32 deviceIndex,
-        UaString& sName,
-        Device::Identity &identity)
-{
-
-    OpcUa_UInt32 devCount = getDevices(type);
-
-    if ( deviceIndex < devCount )
-    {
-        try {
-            identity = m_pControllers.at(type).at(deviceIndex)->getId();
-        }
-        catch (std::out_of_range &e)
-        {
-            return OpcUa_BadInvalidArgument;
-        }
-        sName = UaString(identity.name.c_str());
-    }
-    else
-        return OpcUa_BadInvalidArgument;
-
-    return OpcUa_Good;
-}
-/* ----------------------------------------------------------------------------
-    Class        PasCommunicationInterface
-    Method       getDeviceConfig
-    Description  Get configuration of a sensor -- overloaded.
------------------------------------------------------------------------------*/
-UaStatus PasCommunicationInterface::getDeviceConfig(
-        OpcUa_UInt32 type,
-        OpcUa_UInt32 deviceIndex,
-        Device::Identity &identity)
-{
-    UaString sDiscard;
-    return getDeviceConfig(type, deviceIndex, sDiscard, identity);
-}
 /* ----------------------------------------------------------------------------
     Class        PasCommunicationInterface
     Method       getDeviceState
@@ -357,7 +296,7 @@ std::shared_ptr<PasController> PasCommunicationInterface::getDeviceFromId(OpcUa_
                                                                           const Device::Identity &identity)
 {
     try {
-        return m_pControllers.at(type).at(identity);
+        return std::dynamic_pointer_cast<PasController>(m_pControllers.at(type).at(identity));
     }
     catch (std::out_of_range &e)
     {

@@ -120,7 +120,6 @@ UaStatus PasNodeManager::afterStartUp()
     std::string folderName;
     unsigned deviceType;
 
-    OpcUa_UInt32 count;
     Device::Device::Identity identity;
     UaString sDeviceName;
 
@@ -130,11 +129,14 @@ UaStatus PasNodeManager::afterStartUp()
     UA_ASSERT(ret.isGood());
 
     // Locate Positioner device
-    OpcUa_UInt32 posCount = dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->getDevices(GLOB_PositionerType);
+    OpcUa_UInt32 posCount = dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->getDeviceCount(
+        GLOB_PositionerType);
     if (posCount != 1) {
         std::cout << "WARNING: " << posCount << " positioner(s) added. There should be exactly 1.\n" << std::endl;
     }
-    ret = dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->getDeviceConfig(GLOB_PositionerType, 0, sDeviceName, identity);
+    identity = dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->getValidDeviceIdentities(
+        GLOB_PositionerType).at(0);
+    sDeviceName = UaString(identity.name.c_str());
 
     if (ret.isGood()) {
         std::cout << "Creating positioner OPC UA object...\n";
@@ -155,12 +157,11 @@ UaStatus PasNodeManager::afterStartUp()
     // Also add to device folder
     for (auto it=PasCommunicationInterface::deviceTypeNames.begin(); it!=PasCommunicationInterface::deviceTypeNames.end(); ++it) {
         deviceType = it->first;
-        count = dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->getDevices(deviceType);
 
         std::cout << "Creating " << it->second << " objects...\n";
-
-        for (unsigned i = 0; i < count; i++) {
-            ret = dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->getDeviceConfig(deviceType, i, sDeviceName, identity);
+        for (const auto &deviceId : dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->getValidDeviceIdentities(
+            deviceType)) {
+            sDeviceName = UaString(deviceId.name.c_str());
             pController = dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->getDeviceFromId(deviceType,
                                                                                                       identity);
             //If folder doesn't already exist, create a folder for each object type and add the folder to the DevicesByType folder
@@ -759,11 +760,8 @@ OpcUa_Int32 PasNodeManager::Panic()
 {
     UaStatus status;
 
-    OpcUa_Int32 actcount = m_pCommIf->getDeviceCount(PAS_ACTType);
-
-    Device::Identity id;
-    for (OpcUa_Int32 i = 0; i < actcount; i++) {
-        status = dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->getDeviceConfig(PAS_ACTType, i, id);
+    for (const auto &id : dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->getValidDeviceIdentities(
+        PAS_ACTType)) {
         if (status.isGood()) {
             printf("Will try turning off %s\n", id.eAddress.c_str());
             status = dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->getDeviceFromId(PAS_ACTType, id)->operate(PAS_ACTType_TurnOff);
@@ -772,8 +770,8 @@ OpcUa_Int32 PasNodeManager::Panic()
     }
 
     sleep(3);
-    for (OpcUa_Int32 i = 0; i < actcount; i++) {
-        status = dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->getDeviceConfig(PAS_ACTType, i, id);
+    for (const auto &id : dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->getValidDeviceIdentities(
+        PAS_ACTType)) {
         if (status.isGood()) {
             printf("Will try turning on %s again\n", id.eAddress.c_str());
             status = dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->getDeviceFromId(PAS_ACTType, id)->operate(PAS_ACTType_TurnOn);

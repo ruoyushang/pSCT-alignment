@@ -24,9 +24,11 @@ PasLogic::PasLogic(std::shared_ptr<PasCommunicationInterface> pCommIf) : m_pComm
     // doing just OPT
     m_SP.SetPanelType(StewartPlatform::PanelType::OPT);
 
-    UaString sName; 
-    m_pCommIf->getDeviceConfig(GLOB_PositionerType, 0, sName, m_positionerId);
-    m_pCommIf->getDeviceConfig(PAS_PSDType, 0, sName, m_psdId);
+    UaString sName;
+    m_positionerId = m_pCommIf->getValidDeviceIdentities(GLOB_PositionerType).at(0);
+    m_pCommIf->getDeviceFromId(GLOB_PositionerType, m_positionerId);
+    m_psdId = m_pCommIf->getValidDeviceIdentities(PAS_PSDType).at(0);
+    m_pCommIf->getDeviceFromId(PAS_PSDType, m_psdId);
     m_optId[0].position = 1001; // primary OPT
     m_optId[1].position = 2001; // secondary OPT
 }
