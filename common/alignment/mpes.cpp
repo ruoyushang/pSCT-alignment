@@ -35,7 +35,7 @@ const std::vector<Device::ErrorDefinition> MPES::ERROR_DEFINITIONS = {
 };
 
 MPES::MPES(std::shared_ptr<CBC> pCBC, Device::Identity identity) : Device::Device(std::move(pCBC), std::move(identity)),
-                                                                   m_Calibrate(false) { turnOn(); }
+                                                                   m_Calibrate(false) {}
 
 MPES::~MPES() {
     turnOff();
@@ -70,7 +70,7 @@ bool MPES::isOn() {
 bool MPES::initialize() {
     if (isBusy()) {
         std::cout << m_Identity << " : MPES::initialize() : Busy, cannot initialize.\n";
-        return -1;
+        return false;
     }
 
     bool status;
@@ -108,6 +108,7 @@ bool MPES::__initialize() {
             return false; // make sure this is a valid video device -- i.e., not -1
         }
     } else {
+        std::cout << m_Identity << " : MPES::initialize() : Found " << toggledDevices.size() << " devices, should be exactly 1.\n";
         setError(0);
         return false; // the list should be just one device at this point
     }
@@ -190,16 +191,16 @@ int MPES::updatePosition() {
         return -1;
     }
 
+    std::cout << m_Identity << " : MPES::updatePosition() : Reading...\n";
     int intensity;
     setBusy();
     intensity = __updatePosition();
     unsetBusy();
+    std::cout << m_Identity << " : MPES::updatePosition() : Done.\n";
     return intensity;
 }
 
 int MPES::__updatePosition() {
-    std::cout << m_Identity << " : MPES::updatePosition() : Reading...\n";
-
     // initialize to something obvious in case of failure
     m_Position.xCentroid = -1.;
     m_Position.yCentroid = -1.;
@@ -242,7 +243,6 @@ int MPES::__updatePosition() {
         setError(2);
     }
 
-    std::cout << m_Identity << " : MPES::updatePosition() : Done.\n";
     return static_cast<int>(m_Position.cleanedIntensity);
 }
 
