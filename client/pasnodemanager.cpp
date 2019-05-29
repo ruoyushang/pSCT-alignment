@@ -130,14 +130,10 @@ UaStatus PasNodeManager::afterStartUp()
 
     // Locate Positioner device
     OpcUa_UInt32 posCount = dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->getDeviceCount(GLOB_PositionerType);
-    if (posCount != 1) {
-        std::cout << "WARNING: " << posCount << " positioner(s) added. There should be exactly 1.\n" << std::endl;
-    }
-    identity = dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->getValidDeviceIdentities(
-        GLOB_PositionerType).at(0);
-    sDeviceName = UaString(identity.name.c_str());
+    if (posCount == 1) {
+        identity = dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->getValidDeviceIdentities(GLOB_PositionerType).at(0);
+        sDeviceName = UaString(identity.name.c_str());
 
-    if (ret.isGood()) {
         std::cout << "Creating positioner OPC UA object...\n";
         //Create a folder for the positioner and add the folder to the ObjectsFolder
         PositionerObject *pPositioner = new PositionerObject(sDeviceName,
@@ -148,6 +144,10 @@ UaStatus PasNodeManager::afterStartUp()
         UA_ASSERT(ret.isGood());
         ret = addUaReference(pPositioner->nodeId(), pPositioner->typeDefinitionId(), OpcUaId_HasTypeDefinition);
         UA_ASSERT(ret.isGood());
+   
+    }
+    else {
+        std::cout << "WARNING: " << posCount << " positioner(s) added. There should be exactly 1. Moving on...\n" << std::endl;
     }
 
     std::cout << "Creating all other OPC UA device objects and adding to DevicesByType...\n";
