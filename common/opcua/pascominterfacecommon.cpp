@@ -17,7 +17,7 @@ std::size_t PasComInterfaceCommon::getDeviceCount(OpcUa_UInt32 deviceType) {
         return m_pControllers.at(deviceType).size();
     }
     catch (std::out_of_range &e) {
-        return -1;
+        return 0;
     }
 }
 

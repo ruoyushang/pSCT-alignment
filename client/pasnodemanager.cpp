@@ -129,8 +129,7 @@ UaStatus PasNodeManager::afterStartUp()
     UA_ASSERT(ret.isGood());
 
     // Locate Positioner device
-    OpcUa_UInt32 posCount = dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->getDeviceCount(
-        GLOB_PositionerType);
+    OpcUa_UInt32 posCount = dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->getDeviceCount(GLOB_PositionerType);
     if (posCount != 1) {
         std::cout << "WARNING: " << posCount << " positioner(s) added. There should be exactly 1.\n" << std::endl;
     }
