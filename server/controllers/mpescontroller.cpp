@@ -28,7 +28,7 @@
 #include "cppconn/statement.h"
 
 MPESController::MPESController(Device::Identity identity, std::shared_ptr<Platform> pPlatform)
-    : PasController::PasController(std::move(identity), std::move(pPlatform)) {
+    : PasController::PasController(std::move(identity), std::move(pPlatform), 5000) {
     try {
         // get the nominal aligned readings and response matrices from DB
         /* BEGIN DATABASE HACK */
@@ -109,7 +109,8 @@ UaStatus MPESController::getData(OpcUa_UInt32 offset, UaVariant &value) {
     UaStatus status;
 
     if (MPESObject::VARIABLES.find(offset) != MPESObject::VARIABLES.end()) {
-        if (offset != PAS_MPESType_Position && offset != PAS_MPESType_Serial && offset != PAS_MPESType_ErrorState) {
+        if (offset != PAS_MPESType_Position && offset != PAS_MPESType_Serial && offset != PAS_MPESType_ErrorState &&
+            !__expired()) {
             status = operate(PAS_MPESType_Read, UaVariantArray());
             if (status == OpcUa_BadInvalidState) {
                 return status;
