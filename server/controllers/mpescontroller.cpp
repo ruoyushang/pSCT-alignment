@@ -109,12 +109,19 @@ UaStatus MPESController::getData(OpcUa_UInt32 offset, UaVariant &value) {
     UaStatus status;
 
     if (MPESObject::VARIABLES.find(offset) != MPESObject::VARIABLES.end()) {
-        if (offset != PAS_MPESType_Position && offset != PAS_MPESType_Serial && offset != PAS_MPESType_ErrorState &&
-            !__expired()) {
-            status = operate(PAS_MPESType_Read, UaVariantArray());
-            if (status == OpcUa_BadInvalidState) {
-                return status;
-            }
+        if (offset != PAS_MPESType_Position && offset != PAS_MPESType_Serial && offset != PAS_MPESType_ErrorState && offset != PAS_MPESType_xCentroidNominal && offset != PAS_MPESType_yCentroidNominal) {	    
+	    if (_getDeviceState() == Device::DeviceState::On && _getErrorState() != Device::ErrorState::FatalError) {
+	        if (!__expired()) {
+		    status = operate(PAS_MPESType_Read, UaVariantArray());
+	        }
+	    } else {
+	        status = OpcUa_BadInvalidState;
+	    }
+
+	    if (status == OpcUa_BadInvalidState) {
+	        std::cout << m_ID << " :: MPESController::operate() : Device is off or has fatal error. Cannot read.\n";
+	        return status;
+	    }
         }
         const MPES::Position &position = m_pPlatform->getMPESbyIdentity(m_ID)->getPosition();
         switch (offset) {
@@ -218,7 +225,7 @@ UaStatus MPESController::operate(OpcUa_UInt32 offset, const UaVariantArray &args
             if (_getDeviceState() == Device::DeviceState::On && _getErrorState() != Device::ErrorState::FatalError) {
                 status = read();
             } else {
-                //std::cout << m_ID << " :: MPESController::operate() : Device is off or has fatal error. Cannot read.\n";
+                std::cout << m_ID << " :: MPESController::operate() : Device is off or has fatal error. Cannot read.\n";
                 status = OpcUa_BadInvalidState;
             }
             break;
