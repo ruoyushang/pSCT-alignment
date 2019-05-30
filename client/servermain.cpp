@@ -138,10 +138,10 @@ int OpcMain(const char *szAppPath, const std::vector<std::string> &serverlist)
 
         // Load configuration.
         auto pClientConfiguration = std::make_shared<Configuration>();
-        std::cout << "  ---- Loading Configuration ----\n";
+        std::cout << "Loading Configuration...\n";
         status = pClientConfiguration->loadConnectionConfiguration(sClientConfigFile);
         status = pClientConfiguration->loadDeviceConfiguration(serverlist);
-        std::cout << "  -- Done Loading Configuration --\n";
+        std::cout << "Finished loading Configuration...\n";
 
         // Create and initialize communication interface.
         std::unique_ptr<PasCommunicationInterface> pCommIf = std::unique_ptr<PasCommunicationInterface>(

@@ -135,10 +135,11 @@ UaStatus Configuration::loadDeviceConfiguration(const std::vector<std::string> &
                 panelId.eAddress = "opc.tcp://" + sql_results->getString(2) + ":4840";
 #endif
                 panelId.serialNumber = sql_results->getInt(1);
+                panelId.name = std::string("Panel_") + std::to_string(panelId.position);
 
                 // add to the list of devices
                 m_DeviceList[PAS_PanelType].push_back(panelId);
-                std::cout << " +++ Configuration: added Panel " << panelId << " to Device List" << std::endl;
+                std::cout << "    Configuration::loadDeviceConfiguration(): added Panel " << panelId << " to Device List" << std::endl;
 
                 // add to the position map {type -> {serial -> position}}
                 m_DevicePositionMap[PAS_PanelType][panelId.serialNumber] = panelId.position;
@@ -158,7 +159,7 @@ UaStatus Configuration::loadDeviceConfiguration(const std::vector<std::string> &
 
                 // add to the list of devices
                 m_DeviceList[PAS_ACTType].push_back(actId);
-                std::cout << " +++ Configuration: added Actuator " << actId << " to Device List" << std::endl;
+                std::cout << "    Configuration::loadDeviceConfiguration(): added Actuator " << actId << " to Device List" << std::endl;
 
                 // m_deviceSerialMap at (deviceType) at (panel address) at (port number)
                 m_DeviceSerialMap[PAS_ACTType][UaString(panelId.eAddress.c_str())]
@@ -169,7 +170,7 @@ UaStatus Configuration::loadDeviceConfiguration(const std::vector<std::string> &
 
                 // add the actuator and this panel to the parents map
                 m_ParentMap[PAS_ACTType][actId.serialNumber] = std::to_string(panelId.position);
-                std::cout << " +++ Configuration: added Panel " << panelId.position << " as parent of Actuator "
+                std::cout << "    Configuration::loaDeviceConfiguration(): added Panel " << panelId.position << " as parent of Actuator "
                           << actId.serialNumber << std::endl;
             }
 
@@ -186,7 +187,7 @@ UaStatus Configuration::loadDeviceConfiguration(const std::vector<std::string> &
 
                 // add to the list of devices
                 m_DeviceList[PAS_MPESType].push_back(mpesId);
-                std::cout << " +++ Configuration: added MPES " << mpesId << " to Device List" << std::endl;
+                std::cout << "    Configuration::loadDeviceConfiguration(): added MPES " << mpesId << " to Device List" << std::endl;
 
                 // m_deviceSerialMap at (deviceType) at (panel address) at (port number)
                 m_DeviceSerialMap[PAS_MPESType][UaString(panelId.eAddress.c_str())]
@@ -198,7 +199,7 @@ UaStatus Configuration::loadDeviceConfiguration(const std::vector<std::string> &
                 // add the sensor and its panels to the parents map
                 m_ParentMap[PAS_MPESType][mpesId.serialNumber] =
                         "w" + std::to_string(panelId.position) + "l" + l_panelPos;
-                std::cout << " +++ Configuration: added Panels " << m_ParentMap.at(PAS_MPESType).at(mpesId.serialNumber)
+                std::cout << "    Configuration::loadDeviceConfiguration(): added Panels " << m_ParentMap.at(PAS_MPESType).at(mpesId.serialNumber)
                           << " as parents of MPES " << mpesId.serialNumber << std::endl;
             }
         }

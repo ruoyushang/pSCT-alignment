@@ -23,9 +23,14 @@ std::size_t PasComInterfaceCommon::getDeviceCount(OpcUa_UInt32 deviceType) {
 
 std::vector<Device::Identity> PasComInterfaceCommon::getValidDeviceIdentities(OpcUa_UInt32 deviceType) {
     std::vector<Device::Identity> validIdentities;
-    for (auto &it : m_pControllers.at(deviceType)) {
-        validIdentities.push_back(it.first);
+    try {
+        auto devices = m_pControllers.at(deviceType);
+        for (auto &it : m_pControllers.at(deviceType)) {
+            validIdentities.push_back(it.first);
+        }
+        return validIdentities;
     }
-
-    return validIdentities;
+    catch (std::out_of_range &e) {
+        return validIdentities;
+    }
 }
