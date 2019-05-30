@@ -197,7 +197,7 @@ UaStatus PasNodeManager::afterStartUp()
 
     UaString objectName;
 
-    std::cout << "PasNodeManager::afterStartUp(): Adding all parent-child references between objects...\n";
+    std::cout << "\nPasNodeManager::afterStartUp(): Adding all parent-child references between objects...\n\n";
 
     // Loop through all created objects and add references to children
     for (const auto &device : pDeviceObjects) {
@@ -232,11 +232,11 @@ UaStatus PasNodeManager::afterStartUp()
                     // Do nothing
                 }
             }
-            std::cout << std::endl << std::endl;
+            std::cout << std::endl;
         }
     }
 
-    std::cout << "PasNodeManager::afterStartUp(): Creating device tree...\n";
+    std::cout << "\nPasNodeManager::afterStartUp(): Creating device tree...\n";
 
     // Add folder for device tree to Objects folder
     UaFolder *pDeviceTreeFolder = new UaFolder("DeviceTree", UaNodeId("DeviceTree", getNameSpaceIndex()), m_defaultLocaleId);
