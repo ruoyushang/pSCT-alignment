@@ -111,7 +111,7 @@ UaStatus PasCommunicationInterface::initialize()
     Description  add a device of specified type
 -----------------------------------------------------------------------------*/
 const Device::Identity
-PasCommunicationInterface::addDevice(const std::shared_ptr<Client> &pClient, OpcUa_UInt32 deviceType,
+PasCommunicationInterface::addDevice(Client *pClient, OpcUa_UInt32 deviceType,
                                      const Device::Identity &identity)
 {
     // check if object already exists -- this way, passing the same object multiple times won't

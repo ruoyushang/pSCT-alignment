@@ -42,7 +42,7 @@ public:
     }
 
     const Device::Identity
-    addDevice(const std::shared_ptr<Client> &pClient, OpcUa_UInt32 deviceType, const Device::Identity &identity);
+    addDevice(Client *pClient, OpcUa_UInt32 deviceType, const Device::Identity &identity);
 
     /* Get device status and data */
     UaStatus getDeviceState(

@@ -109,16 +109,16 @@ UaStatus PasNodeManager::afterStartUp()
             // Types hardcoded for now, in future consider creating a common factory class
             if (deviceType == PAS_ACTType) {
                 pObject = new ACTObject(deviceName, UaNodeId(deviceName, getNameSpaceIndex()), m_defaultLocaleId,
-                                        static_cast<PasNodeManagerCommon *>(this), identity, m_pCommIf.get());
+                                        dynamic_cast<PasNodeManagerCommon *>(this), identity, m_pCommIf.get());
             } else if (deviceType == PAS_MPESType) {
                 pObject = new MPESObject(deviceName, UaNodeId(deviceName, getNameSpaceIndex()), m_defaultLocaleId,
-                                         static_cast<PasNodeManagerCommon *>(this), identity, m_pCommIf.get());
+                                         dynamic_cast<PasNodeManagerCommon *>(this), identity, m_pCommIf.get());
             } else if (deviceType == PAS_PanelType) {
                 pObject = new PanelObject(deviceName, UaNodeId(deviceName, getNameSpaceIndex()), m_defaultLocaleId,
                                           this, identity, dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get()));
             } else if (deviceType == PAS_PSDType) {
                 pObject = new PSDObject(deviceName, UaNodeId(deviceName, getNameSpaceIndex()), m_defaultLocaleId,
-                                        static_cast<PasNodeManagerCommon *>(this), identity, m_pCommIf.get());
+                                        dynamic_cast<PasNodeManagerCommon *>(this), identity, m_pCommIf.get());
             } else {
                 return OpcUa_Bad;
             }

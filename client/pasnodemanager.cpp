@@ -25,7 +25,7 @@ PasNodeManager::PasNodeManager()
 : PasNodeManagerCommon()
 {
     std::cout << "PasNodeManager:: Creating new Node Manager...\n";
-    m_pPositioner = std::make_shared<Client>(this);
+    m_pPositioner = new Client(this);
 }
 
 PasNodeManager::~PasNodeManager()
@@ -48,7 +48,7 @@ void PasNodeManager::setConfiguration(std::shared_ptr<Configuration> pConfigurat
 
     std::cout << "PasNodeManager:: Attempting to create " << m_pConfiguration->getServers() << " clients\n\n";
     for (OpcUa_UInt32 i = 0; i < m_pConfiguration->getServers(); i++) {
-        m_pClients.push_back(std::make_shared<Client>(this));
+        m_pClients.push_back(new Client(this));
         m_pClients.back()->setConfiguration(m_pConfiguration);
     }
 }

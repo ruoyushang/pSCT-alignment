@@ -58,9 +58,9 @@ private:
     std::shared_ptr<Configuration> m_pConfiguration = nullptr;
     /// @brief Pointers to all OPC UA clients (controller boards) connected to
   	/// the master alignment client.
-    std::vector<std::shared_ptr<Client>> m_pClients;
+    std::vector<Client *> m_pClients;
     /// @brief Pointer to telescope positioner OPC UA client.
-    std::shared_ptr<Client> m_pPositioner;
+    Client *m_pPositioner;
 
 };
 
