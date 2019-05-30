@@ -117,7 +117,6 @@ UaStatus PasNodeManager::afterStartUp()
     std::string folderName;
     unsigned deviceType;
 
-    Device::Device::Identity identity;
     UaString sDeviceName;
 
     // Add folder for devices by category to object folder
@@ -128,7 +127,7 @@ UaStatus PasNodeManager::afterStartUp()
     // Locate Positioner device
     OpcUa_UInt32 posCount = dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->getDeviceCount(GLOB_PositionerType);
     if (posCount == 1) {
-        identity = dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->getValidDeviceIdentities(GLOB_PositionerType).at(0);
+     Device::Device::Identity identity = dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->getValidDeviceIdentities(GLOB_PositionerType).at(0);
         sDeviceName = UaString(identity.name.c_str());
 
         std::cout << "PasNodeManager::afterStartUp(): Creating positioner OPC UA object...\n";
@@ -169,7 +168,7 @@ UaStatus PasNodeManager::afterStartUp()
 
             // Create object
             pObject = PasObjectFactory::Create(deviceType, sDeviceName, UaNodeId(sDeviceName, getNameSpaceIndex()),
-                                               m_defaultLocaleId, this, identity,
+                                               m_defaultLocaleId, this, deviceId,
                                                dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get()));
 
             // Create node

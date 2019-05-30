@@ -398,8 +398,10 @@ Configuration::getParents(OpcUa_UInt32 deviceType, const Device::Identity &id)
     if (deviceType == PAS_ACTType) {
         Device::Identity parentId;
         parentId.position = std::stoi(m_ParentMap.at(deviceType).at(id.serialNumber));
+        parentId.serial = 
         // need to fill in the address of the parent as well!
         parentId.eAddress = m_PanelAddressMap.at(parentId.position);
+        parentId.name = "
         return {{PAS_PanelType, parentId}};
     }
     // for the MPES, the parent is the MPES's w-panel and the edge.
@@ -466,10 +468,23 @@ Configuration::getParents(OpcUa_UInt32 deviceType, const Device::Identity &id)
         // the mirror has no Address or serial, so we set these to be equal to the position
         mirrorId.serialNumber = mirrorId.position;
         mirrorId.eAddress = std::to_string(mirrorId.position);
+        if (mirrorId.position == 1) {
+            mirrorId.name = "PrimaryMirror";
+        }
+        else if (mirrorId.position == 2) {
+            mirrorId.name = "SecondaryMirror";
+        }
+        else if (mirrorId.position == 3) {
+            mirrorId.name = "TestMirror";
+        }
+        else {
+            mirrorId.name = "UnknownMirror";
+        }
 
         std::vector<unsigned> panel_positions {w_pos, l_pos};
         if (third_pos) panel_positions.push_back(third_pos);
         edgeId.eAddress = SCTMath::GetEdgeFromPanels(panel_positions);
+        edgeId.name = std::string("Edge_") + edgeId.eAddress;
 
         return {{PAS_PanelType, w_panelId}, {PAS_EdgeType, edgeId}, {PAS_MirrorType, mirrorId}};
     }
@@ -481,6 +496,18 @@ Configuration::getParents(OpcUa_UInt32 deviceType, const Device::Identity &id)
         // the mirror has no Address or serial, so we set these to be equal to the position
         mirrorId.serialNumber = mirrorId.position;
         mirrorId.eAddress = std::to_string(mirrorId.position);
+        if (mirrorId.position == 1) {
+            mirrorId.name = "PrimaryMirror";
+        }
+        else if (mirrorId.position == 2) {
+            mirrorId.name = "SecondaryMirror";
+        }
+        else if (mirrorId.position == 3) {
+            mirrorId.name = "TestMirror";
+        }
+        else {
+            mirrorId.name = "UnknownMirror";
+        }
 
         return {{PAS_MirrorType, mirrorId}};
     }
@@ -492,6 +519,19 @@ Configuration::getParents(OpcUa_UInt32 deviceType, const Device::Identity &id)
         mirrorId.position = SCTMath::Mirror(SCTMath::GetPanelsFromEdge(id.eAddress, 1).at(0));
         mirrorId.serialNumber = mirrorId.position;
         mirrorId.eAddress = std::to_string(mirrorId.position);
+
+        if (mirrorId.position == 1) {
+            mirrorId.name = "PrimaryMirror";
+        }
+        else if (mirrorId.position == 2) {
+            mirrorId.name = "SecondaryMirror";
+        }
+        else if (mirrorId.position == 3) {
+            mirrorId.name = "TestMirror";
+        }
+        else {
+            mirrorId.name = "UnknownMirror";
+        }
 
         return {{PAS_MirrorType, mirrorId}};
     }

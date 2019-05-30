@@ -25,15 +25,6 @@ MirrorController *MirrorControllerCompute::m_Mirror = nullptr;
 MirrorController::MirrorController(Device::Identity identity) : PasCompositeController(std::move(identity), nullptr,
                                                                                        10000),
                                                                 m_pSurface(nullptr) {
-    std::string mirrorprefix;
-    if (m_ID.position == 1)
-        mirrorprefix = "Primary";
-    else if (m_ID.position == 2)
-        mirrorprefix = "Secondary";
-    else
-        mirrorprefix = "Unknown";
-    m_ID.name = mirrorprefix + "Mirror";
-
     m_state = Device::DeviceState::On;
 
     // define possible children and initialize the selected children string
