@@ -448,12 +448,7 @@ void Client::addDevices(const OpcUa_ReferenceDescription& referenceDescription)
             // get the USB number -- this is the last character of the node name
             std::string sUSB = std::string(UaString(sTemp).toUtf8()).substr(strlen(sTemp)-1, 1);
             // set the identity of the device we're about to add
-            identity.eAddress = std::string(sTemp);
-            identity.serialNumber = m_pConfiguration->getDeviceBySerial(type, std::stoi(sUSB)).serialNumber;
-            sprintf(sTemp, "%s_%03d", name.c_str(), identity.serialNumber);
-            identity.name = std::string(sTemp);
-            identity.position = m_pConfiguration->getDeviceBySerial(type, std::stoi(sUSB)).position;
-
+            identity = m_pConfiguration->getDeviceBySerial(type, std::stoi(sUSB));
             //printf("=====================================\n");
             //printBrowseResults(referenceDescription);
             //printf("will add %s %d as %s\n", name.c_str(), identity.serialNumber, identity.eAddress.c_str());

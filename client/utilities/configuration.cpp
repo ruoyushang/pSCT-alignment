@@ -156,6 +156,7 @@ UaStatus Configuration::loadDeviceConfiguration(const std::vector<std::string> &
                 actId.position = sql_results->getInt(2);
                 std::string port = std::to_string(sql_results->getInt(3));
                 actId.eAddress = port;
+                actId.name = std::string("ACT_") + std::to_string(actId.serialNumber);
 
                 m_DeviceIdentities[PAS_ACTType].insert(actId);
                 std::cout << "    Configuration::loadDeviceConfiguration(): added Actuator " << actId << " to Device List" << std::endl;
@@ -176,6 +177,8 @@ UaStatus Configuration::loadDeviceConfiguration(const std::vector<std::string> &
                 Device::Identity mpesId;
                 mpesId.serialNumber = sql_results->getInt(1);
                 mpesId.position = sql_results->getInt(2);
+                mpesId.eAddress = std::to_string(sql_results->getInt(3));
+                mpesId.name = std::string("MPES_") + std::to_string(mpesId.serialNumber);
                 std::string port = std::to_string(sql_results->getInt(3));
                 std::string l_panelPos = std::to_string(sql_results->getInt(4));
 
@@ -193,16 +196,13 @@ UaStatus Configuration::loadDeviceConfiguration(const std::vector<std::string> &
             }
         }
         //Get laser-side panel for all MPES
-        query = "SELECT serial_number, l_panel FROM Opt_MPESMapping WHERE end_date is NULL";
-        sql_stmt->execute(query);
-        sql_results = sql_stmt->getResultSet();
-        while (sql_results->next()) {
-            int serialNumber = sql_results->getInt(1);
-            int lPanelPosition = sql_results->getInt(2);
+        for (auto mpesId : m_DeviceIdentities.at(PAS_MPESType)) {
+            query = "SELECT l_panel FROM Opt_MPESMapping WHERE end_date is NULL and serial_number=" + std::to_string(mpesId.serialNumber);
+            sql_stmt->execute(query);
+            sql_results = sql_stmt->getResultSet();
+            while (sql_results->next()) {
+                int lPanelPosition = sql_results->getInt(1);
 
-            // get MPES
-            if (m_DeviceSerialMap.at(PAS_MPESType).find(serialNumber) != m_DeviceSerialMap[PAS_MPESType].end()) {
-                Device::Identity mpesId = m_DeviceSerialMap.at(PAS_MPESType).at(serialNumber);
                 // get corresponding laser-side panel if it exists
                 if (m_PanelPositionMap.find(lPanelPosition) != m_PanelPositionMap.end()) {
                     Device::Identity lPanelId = m_PanelPositionMap.at(lPanelPosition);
@@ -210,11 +210,11 @@ UaStatus Configuration::loadDeviceConfiguration(const std::vector<std::string> &
                     m_MPES_SideMap[mpesId]["l"] = lPanelId;
                     // Could optionally add laser-side panel as a parent here.
                 }
-            } else {
-                std::cout << "Configuration::loadDeviceConfiguration(): couldn't locate MPES w/ serial " << serialNumber
-                          << " to add laser-side panel parent. Skipping..." << std::endl;
-                continue;
+                else {
+                    continue;
+                }
             }
+
         }
     }
     catch (sql::SQLException &e) {
@@ -463,7 +463,12 @@ bool Configuration::addMissingParents() {
 // can't return this by reference, since we're creating the objects right here
 std::map<OpcUa_UInt32, std::set<Device::Identity>>
 Configuration::getParents(const Device::Identity &id) {
-    return m_ParentMap.at(id);
+    try {
+        return m_ParentMap.at(id);
+    }
+    catch (std::out_of_range &e) {
+        return std::map<OpcUa_UInt32, std::set<Device::Identity>>();
+    }
 }
 
 Device::Identity Configuration::getMirrorId(int mirrorNum) {
