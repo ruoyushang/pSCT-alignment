@@ -56,14 +56,24 @@ public:
     std::vector<UaStringArray> getDatabaseEntries() const { return m_databaseEntries; }
 
     // get device mappings
-    Device::Identity getDeviceBySerial(OpcUa_UInt32 deviceType, int serial);
+    Device::Identity getDeviceBySerial(OpcUa_UInt32 deviceType, int serial) {
+        return m_DeviceSerialMap.at(deviceType).at(serial);
+    }
     // {serial->Address} map of all devices of the requested type
     const std::set<Device::Identity> &getDevices(OpcUa_UInt32 deviceType) { return m_DeviceIdentities.at(deviceType); };
     // get list of all parents of a given device.
     // this is a vector of pairs {parentType, parentIdentity}
     // need to pass around the whole object!
     // can't return this by reference, since we're creating the objects in place.
-    std::map<OpcUa_UInt32, std::set<Device::Identity>> getParents(const Device::Identity &id);
+    std::map<OpcUa_UInt32, std::set<Device::Identity>> getParents(const Device::Identity &id) {
+        return m_ParentMap.at(id);
+    }
+
+    std::map<OpcUa_UInt32, std::set<Device::Identity>> getChildren(const Device::Identity &id) {
+        return m_ChildMap.at(id);
+    }
+
+    Device::Identity getPanelFromAddress(const std::string &eAddress) { return m_PanelAddressMap.at(eAddress); }
 
     // load configuration from file to fill connection parameters, NamespaceArray and NodeIds
     UaStatus loadConnectionConfiguration(const UaString& sConfigurationFile);
@@ -115,15 +125,23 @@ private:
 
     std::map<OpcUa_UInt32, std::set<Device::Identity>> m_DeviceIdentities;
 
-    // maps device id -> device type -> indexes into m_DeviceIdentities
+    // maps device id -> device type -> identities
     std::map<Device::Identity, std::map<OpcUa_UInt32, std::set<Device::Identity>>> m_ParentMap;
+
+    // maps device id -> device type -> identities
+    std::map<Device::Identity, std::map<OpcUa_UInt32, std::set<Device::Identity>>> m_ChildMap;
+
+    // maps mpes id -> "w", "l" -> panelId
     std::map<Device::Identity, std::map<std::string, Device::Identity>> m_MPES_SideMap;
 
-    // maps devicetype -> serial -> index into m_DeviceIdentities
+    // maps devicetype -> serial -> identity
     std::map<OpcUa_UInt32, std::map<int, Device::Identity>> m_DeviceSerialMap;
 
-    // maps devicetype -> serial -> index into m_DeviceIdentities
+    // maps panel position -> identity
     std::map<int, Device::Identity> m_PanelPositionMap;
+
+    // maps panel eAddress -> identity
+    std::map<std::string, Device::Identity> m_PanelAddressMap;
 };
 
 #endif // CONFIGURATION_H

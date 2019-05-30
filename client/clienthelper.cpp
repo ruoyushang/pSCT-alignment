@@ -446,14 +446,28 @@ void Client::addDevices(const OpcUa_ReferenceDescription& referenceDescription)
                     referenceDescription.BrowseName.NamespaceIndex,
                     UaString(referenceDescription.BrowseName.Name).toUtf8());
             // get the USB number -- this is the last character of the node name
-            std::string sUSB = std::string(UaString(sTemp).toUtf8()).substr(strlen(sTemp)-1, 1);
-            // set the identity of the device we're about to add
-            identity = m_pConfiguration->getDeviceBySerial(type, std::stoi(sUSB));
-            //printf("=====================================\n");
-            //printBrowseResults(referenceDescription);
-            //printf("will add %s %d as %s\n", name.c_str(), identity.serialNumber, identity.eAddress.c_str());
-            ((PasCommunicationInterface *) m_pNodeManager->getComInterface().get())->addDevice(
-                this, type, identity);
+            Device::Identity panelId = m_pConfiguration->getPanelFromAddress(std::string(m_Address.toUtf8()));
+
+            std::string eAddress = std::string(UaString(sTemp).toUtf8()).substr(strlen(sTemp) - 1, 1);
+
+            // find child device of the right type with that eAddress
+            std::set<Device::Identity> children = m_pConfiguration->getChildren(panelId).at(type);
+            auto it = std::find_if(children.begin(), children.end(),
+                                   [eAddress](const Device::Identity &id) -> bool { return id.eAddress == eAddress; });
+
+            if (it != children.end()) {
+                // set the identity of the device we're about to add
+                identity = *it;
+                //printf("=====================================\n");
+                //printBrowseResults(referenceDescription);
+                //printf("will add %s %d as %s\n", name.c_str(), identity.serialNumber, identity.eAddress.c_str());
+                ((PasCommunicationInterface *) m_pNodeManager->getComInterface().get())->addDevice(
+                    this, type, identity);
+            } else {
+                std::cout << "Client::addDevices(): Couldn't find child of Panel " << panelId << " of type " << name
+                          << " with eAddress " << eAddress << ". Skipping...\n";
+                return;
+            }
         }
     }
 }

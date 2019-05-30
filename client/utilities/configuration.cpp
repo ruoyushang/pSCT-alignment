@@ -144,6 +144,7 @@ UaStatus Configuration::loadDeviceConfiguration(const std::vector<std::string> &
                 // add to other maps
                 m_DeviceSerialMap[PAS_PanelType][panelId.serialNumber] = panelId;
                 m_PanelPositionMap[panelId.position] = panelId;
+                m_PanelAddressMap[panelId.eAddress] = panelId;
             }
 
             // get the panel's actuators and add them to all the needed maps
@@ -164,6 +165,7 @@ UaStatus Configuration::loadDeviceConfiguration(const std::vector<std::string> &
                 m_DeviceSerialMap[PAS_ACTType][actId.serialNumber] = actId;
 
                 // add the actuator and this panel to the parents map
+                m_ChildMap[panelId][PAS_ACTType].insert(actId);
                 m_ParentMap[actId][PAS_PanelType].insert(panelId);
                 std::cout << "    Configuration::loaDeviceConfiguration(): added Panel " << panelId.position << " as parent of Actuator "
                           << actId.serialNumber << std::endl;
@@ -189,6 +191,7 @@ UaStatus Configuration::loadDeviceConfiguration(const std::vector<std::string> &
                 m_DeviceSerialMap[PAS_MPESType][mpesId.serialNumber] = mpesId;
 
                 // add the sensor and its panels to the parents map
+                m_ChildMap[panelId][PAS_MPESType].insert(mpesId);
                 m_ParentMap[mpesId][PAS_PanelType].insert(panelId);
                 m_MPES_SideMap[mpesId]["w"] = panelId;
                 std::cout << "    Configuration::loadDeviceConfiguration(): added Panel " << panelId
@@ -196,7 +199,7 @@ UaStatus Configuration::loadDeviceConfiguration(const std::vector<std::string> &
             }
         }
         //Get laser-side panel for all MPES
-        for (auto mpesId : m_DeviceIdentities.at(PAS_MPESType)) {
+        for (const auto &mpesId : m_DeviceIdentities.at(PAS_MPESType)) {
             query = "SELECT l_panel FROM Opt_MPESMapping WHERE end_date is NULL and serial_number=" + std::to_string(mpesId.serialNumber);
             sql_stmt->execute(query);
             sql_results = sql_stmt->getResultSet();
@@ -375,52 +378,42 @@ UaStatus Configuration::updateNamespaceIndexes(const UaStringArray& namespaceArr
     return result;
 }
 
-
-Device::Identity Configuration::getDeviceBySerial(OpcUa_UInt32 deviceType, int serial) {
-    try
-    {
-        return m_DeviceSerialMap.at(deviceType).at(serial);
-    }
-    catch (std::out_of_range &e)
-    {
-        return Device::Identity();
-    }
-}
-
 bool Configuration::addMissingParents() {
     for (const auto &pair : m_DeviceIdentities) {
         OpcUa_UInt32 deviceType = pair.first;
         if (deviceType == PAS_EdgeType) {
-            for (const auto &deviceId : m_DeviceIdentities.at(deviceType)) {
+            for (const auto &edgeId : m_DeviceIdentities.at(deviceType)) {
                 // Add mirror as parent to all edges
-                Device::Identity mirrorId = getMirrorId(SCTMath::GetPanelsFromEdge(deviceId.eAddress, 1).at(0));
+                Device::Identity mirrorId = getMirrorId(SCTMath::GetPanelsFromEdge(edgeId.eAddress, 1).at(0));
                 if (m_DeviceIdentities[PAS_MirrorType].find(mirrorId) != m_DeviceIdentities[PAS_MirrorType].end()) {
                     m_DeviceIdentities[PAS_MirrorType].insert(mirrorId);
                 }
-                m_ParentMap[deviceId][PAS_MirrorType].insert(mirrorId);
+                m_ChildMap[mirrorId][PAS_EdgeType].insert(edgeId);
+                m_ParentMap[edgeId][PAS_MirrorType].insert(mirrorId);
             }
         } else if (deviceType == PAS_PanelType) {
-            for (const auto &deviceId : m_DeviceIdentities.at(deviceType)) {
+            for (const auto &panelId : m_DeviceIdentities.at(deviceType)) {
                 // Add mirror as parent to all panels
-                Device::Identity mirrorId = getMirrorId(deviceId.position);
+                Device::Identity mirrorId = getMirrorId(panelId.position);
                 if (m_DeviceIdentities[PAS_MirrorType].find(mirrorId) != m_DeviceIdentities[PAS_MirrorType].end()) {
                     m_DeviceIdentities[PAS_MirrorType].insert(mirrorId);
                 }
-                m_ParentMap[deviceId][PAS_MirrorType].insert(mirrorId);
+                m_ChildMap[mirrorId][PAS_PanelType].insert(panelId);
+                m_ParentMap[panelId][PAS_MirrorType].insert(mirrorId);
             }
         } else if (deviceType == PAS_MPESType) {
-            for (const auto &deviceId : m_DeviceIdentities.at(deviceType)) {
-                if (m_ParentMap.at(deviceId).at(PAS_PanelType).size() != 1) {
-                    std::cout << " ERROR:: Configuration::createMissingParents(): MPES " << deviceId << " has "
-                              << m_ParentMap.at(deviceId).at(PAS_PanelType).size()
+            for (const auto &mpesId : m_DeviceIdentities.at(deviceType)) {
+                if (m_ParentMap.at(mpesId).at(PAS_PanelType).size() != 1) {
+                    std::cout << " ERROR:: Configuration::createMissingParents(): MPES " << mpesId << " has "
+                              << m_ParentMap.at(mpesId).at(PAS_PanelType).size()
                               << " parent panels (should only have 1). Aborting...\n";
                     return false;
                 }
-                Device::Identity w_panelId = *m_ParentMap.at(deviceId).at(PAS_PanelType).begin();
+                Device::Identity w_panelId = *m_ParentMap.at(mpesId).at(PAS_PanelType).begin();
 
                 // add the edge as a parent only if the l_panel (and possibly third panel) are actually present
-                if (m_MPES_SideMap.at(deviceId).find("l") != m_MPES_SideMap.at(deviceId).end()) {
-                    Device::Identity l_panelId = m_MPES_SideMap.at(deviceId).at("l");
+                if (m_MPES_SideMap.at(mpesId).find("l") != m_MPES_SideMap.at(mpesId).end()) {
+                    Device::Identity l_panelId = m_MPES_SideMap.at(mpesId).at("l");
                     Device::Identity edgeId;
                     std::vector<int> panelPositions{w_panelId.position, l_panelId.position};
                     int thirdPanelPosition = getThirdPanelPosition(w_panelId.position, l_panelId.position);
@@ -435,7 +428,8 @@ bool Configuration::addMissingParents() {
                     if (m_DeviceIdentities[PAS_EdgeType].find(edgeId) != m_DeviceIdentities[PAS_EdgeType].end()) {
                         m_DeviceIdentities[PAS_EdgeType].insert(edgeId);
                     }
-                    m_ParentMap[deviceId][PAS_EdgeType].insert(edgeId);
+                    m_ChildMap[edgeId][PAS_MPESType].insert(mpesId);
+                    m_ParentMap[mpesId][PAS_EdgeType].insert(edgeId);
                 }
 
                 // Add mirror as parent to all MPES
@@ -443,31 +437,22 @@ bool Configuration::addMissingParents() {
                 if (m_DeviceIdentities[PAS_MirrorType].find(mirrorId) != m_DeviceIdentities[PAS_MirrorType].end()) {
                     m_DeviceIdentities[PAS_MirrorType].insert(mirrorId);
                 }
-                m_ParentMap[deviceId][PAS_MirrorType].insert(mirrorId);
+                m_ChildMap[mirrorId][PAS_MPESType].insert(mpesId);
+                m_ParentMap[mpesId][PAS_MirrorType].insert(mirrorId);
             }
         }
     }
 
     // Now, for each MPES, add the parent edges and panels as each others' parents
     for (const auto &mpesId : m_DeviceIdentities.at(PAS_MPESType)) {
-        for (auto panelParentId : m_ParentMap.at(mpesId).at(PAS_PanelType)) {
-            for (auto edgeParentId : m_ParentMap.at(mpesId).at(PAS_EdgeType)) {
+        for (const auto &panelParentId : m_ParentMap.at(mpesId).at(PAS_PanelType)) {
+            for (const auto &edgeParentId : m_ParentMap.at(mpesId).at(PAS_EdgeType)) {
+                m_ChildMap[edgeParentId][PAS_PanelType].insert(panelParentId);
                 m_ParentMap[panelParentId][PAS_EdgeType].insert(edgeParentId);
+                m_ChildMap[panelParentId][PAS_EdgeType].insert(edgeParentId);
                 m_ParentMap[edgeParentId][PAS_PanelType].insert(panelParentId);
             }
         }
-    }
-}
-
-// need to pass around the whole object!
-// can't return this by reference, since we're creating the objects right here
-std::map<OpcUa_UInt32, std::set<Device::Identity>>
-Configuration::getParents(const Device::Identity &id) {
-    try {
-        return m_ParentMap.at(id);
-    }
-    catch (std::out_of_range &e) {
-        return std::map<OpcUa_UInt32, std::set<Device::Identity>>();
     }
 }
 
