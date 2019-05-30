@@ -12,7 +12,7 @@ public:
     friend MirrorController;
 
     // construction / destruction
-    PSDController(Device::Identity identity, std::shared_ptr<Client> pClient);
+    PSDController(Device::Identity identity, Client *pClient);
 
     ~PSDController() override;
 

@@ -20,9 +20,9 @@
 #include "client/clienthelper.hpp"
 
 
-PositionerController::PositionerController(Device::Identity identity, std::shared_ptr<Client> pClient) : PasController(
+PositionerController::PositionerController(Device::Identity identity, Client *pClient) : PasController(
     std::move(identity),
-    std::move(pClient)), m_Data()
+    pClient), m_Data()
 {
     m_state = Device::DeviceState::On;
     m_Data = {0.0, 0.0, 0.0, 0.0, OpcUa_False};

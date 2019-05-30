@@ -17,8 +17,8 @@
 #include "client/clienthelper.hpp"
 #include "client/controllers/pascontroller.hpp"
 
-ActController::ActController(Device::Identity identity, std::shared_ptr<Client> pClient) : PasController(
-    std::move(identity), std::move(pClient)) {
+ActController::ActController(Device::Identity identity, Client *pClient) : PasController(
+    std::move(identity), pClient) {
 }
 
 /* ----------------------------------------------------------------------------

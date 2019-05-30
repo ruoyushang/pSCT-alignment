@@ -15,11 +15,11 @@ float MPESController::kNominalIntensity = 150000.;
 float MPESController::kNominalSpotWidth = 10.;
 int MPESController::kMaxAttempts = 1;
 
-MPESController::MPESController(Device::Identity identity, std::shared_ptr<Client> pClient) : PasController(
+MPESController::MPESController(Device::Identity identity, Client *pClient) : PasController(
     std::move(identity),
-    std::move(pClient)),
-                                                                                             m_isVisible(false),
-                                                                                             m_numAttempts(0) {
+    pClient),
+                                                                             m_isVisible(false),
+                                                                             m_numAttempts(0) {
     // get the nominal aligned readings and response matrices from DB
     /* BEGIN DATABASE HACK */
     //std::string db_ip="172.17.10.10"; // internal ip

@@ -18,7 +18,7 @@ public:
     friend EdgeController; // access internal methods for compute
 
     // construction / destruction
-    PanelController(Device::Identity identity, std::shared_ptr<Client> pClient);
+    PanelController(Device::Identity identity, Client *pClient);
 
     // Get Controller status and data
     UaStatus getState(Device::DeviceState &state) override;
