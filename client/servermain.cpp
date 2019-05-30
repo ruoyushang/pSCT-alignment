@@ -144,8 +144,7 @@ int OpcMain(const char *szAppPath, const std::vector<std::string> &serverlist)
         std::cout << "Finished loading Configuration...\n";
 
         // Create and initialize communication interface.
-        std::unique_ptr<PasCommunicationInterface> pCommIf = std::unique_ptr<PasCommunicationInterface>(
-            new PasCommunicationInterface());
+        std::shared_ptr<PasCommunicationInterface> pCommIf = std::make_shared<PasCommunicationInterface>();
         pCommIf->setConfiguration(pClientConfiguration);
         // this initializes the communication interface, including all devices that talk
         // directly to it, like Aravis cameras

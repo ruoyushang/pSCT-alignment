@@ -21,12 +21,12 @@ public:
 
     UaVariable* getInstanceDeclarationVariable(OpcUa_UInt32 numericIdentifier);
 
-    const std::unique_ptr<PasComInterfaceCommon> &getComInterface() { return m_pCommIf; }
+    const std::shared_ptr<PasComInterfaceCommon> &getComInterface() { return m_pCommIf; }
 
 protected:
     UaStatus createTypeNodes();
 
-    std::unique_ptr<PasComInterfaceCommon> m_pCommIf;
+    std::shared_ptr<PasComInterfaceCommon> m_pCommIf;
 };
 
 #endif // COMMON_PASNODEMANAGER_HPP

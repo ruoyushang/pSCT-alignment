@@ -39,7 +39,7 @@ public:
     void setConfiguration(std::shared_ptr<Configuration> pConfiguration);
     /// @brief Setter method to set the PasCommunicationInterface object.
     /// @param pCommIf Pointer to a new PasCommunicationInterface object.
-    void setCommunicationInterface(std::unique_ptr<PasCommunicationInterface> &pCommIf);
+    void setCommunicationInterface(std::shared_ptr<PasCommunicationInterface> &pCommIf);
 
     /// @brief Method to get locale ID indicating the region/language.
     /// @return A locale ID string indicating the region/language.

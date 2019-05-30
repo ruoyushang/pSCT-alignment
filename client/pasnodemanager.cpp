@@ -33,10 +33,10 @@ PasNodeManager::~PasNodeManager()
     std::cout << "PasNodeManager:: Cleaning up...\n";
 }
 
-void PasNodeManager::setCommunicationInterface(std::unique_ptr<PasCommunicationInterface> &pCommIf)
+void PasNodeManager::setCommunicationInterface(std::shared_ptr<PasCommunicationInterface> &pCommIf)
 {
     std::cout << "PasNodeManager:: Setting communication interface...\n";
-    m_pCommIf = std::unique_ptr<PasComInterfaceCommon>(pCommIf.release());
+    m_pCommIf = pCommIf;
 }
 
 void PasNodeManager::setConfiguration(std::shared_ptr<Configuration> pConfiguration)
