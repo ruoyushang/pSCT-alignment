@@ -31,8 +31,8 @@ UaStatus ActController::getState(Device::DeviceState &state) {
     UaStatus status;
     UaVariant value;
     int v;
-    
-    m_pClient->read({m_ID.eAddress + "." + "State"}, &value);
+
+    m_pClient->read({m_pClient->getDeviceNodeId(m_ID) + "." + "State"}, &value);
     value.toInt32(v);
 
     state = static_cast<Device::DeviceState>(v);
@@ -85,7 +85,7 @@ UaStatus ActController::getData(OpcUa_UInt32 offset, UaVariant &value) {
             default:
                 return OpcUa_BadInvalidArgument;
         }
-        std::vector<std::string> varsToRead = {m_ID.eAddress + "." + varName};
+        std::vector<std::string> varsToRead = {m_pClient->getDeviceNodeId(m_ID) + "." + varName};
         status = m_pClient->read(varsToRead, &value);
     }
 
@@ -104,7 +104,7 @@ UaStatus ActController::getError(OpcUa_UInt32 offset, UaVariant &value) {
 
     if (ACTObject::ERRORS.count(offset) > 0) {
         std::string varName = std::get<0>(ACTObject::ERRORS.at(offset));
-        std::vector<std::string> varsToRead = {m_ID.eAddress + "." + varName};
+        std::vector<std::string> varsToRead = {m_pClient->getDeviceNodeId(m_ID) + "." + varName};
         status = m_pClient->read(varsToRead, &value);
     } else {
         status = OpcUa_BadInvalidArgument;
@@ -154,7 +154,8 @@ UaStatus ActController::operate(OpcUa_UInt32 offset, const UaVariantArray &args)
                 status = OpcUa_BadInvalidState;
             } else {
                 std::cout << "Stepping actuator " << m_ID.serialNumber << " by " << deltaLength << " mm\n";
-                status = m_pClient->callMethodAsync(m_ID.eAddress, UaString("MoveDeltaLength"), args);
+                status = m_pClient->callMethodAsync(m_pClient->getDeviceNodeId(m_ID), UaString("MoveDeltaLength"),
+                                                    args);
             }
             break;
         case PAS_ACTType_MoveToLength:
@@ -169,23 +170,23 @@ UaStatus ActController::operate(OpcUa_UInt32 offset, const UaVariantArray &args)
             } else {
                 std::cout << "Stepping actuator " << m_ID.serialNumber << " to target length " << targetLength
                           << " mm\n";
-                status = m_pClient->callMethodAsync(m_ID.eAddress, UaString("MoveToLength"), args);
+                status = m_pClient->callMethodAsync(m_pClient->getDeviceNodeId(m_ID), UaString("MoveToLength"), args);
             }
             break;
         case PAS_ACTType_ForceRecover:
-            status = m_pClient->callMethod(m_ID.eAddress, UaString("ForceRecover"));
+            status = m_pClient->callMethod(m_pClient->getDeviceNodeId(m_ID), UaString("ForceRecover"));
             break;
         case PAS_ACTType_ClearError:
-            status = m_pClient->callMethod(m_ID.eAddress, UaString("ClearError"), args);
+            status = m_pClient->callMethod(m_pClient->getDeviceNodeId(m_ID), UaString("ClearError"), args);
             break;
         case PAS_ACTType_ClearAllErrors:
-            status = m_pClient->callMethod(m_ID.eAddress, UaString("ClearAllErrors"));
+            status = m_pClient->callMethod(m_pClient->getDeviceNodeId(m_ID), UaString("ClearAllErrors"));
             break;
         case PAS_ACTType_TurnOn:
-            status = m_pClient->callMethod(m_ID.eAddress, UaString("TurnOn"));
+            status = m_pClient->callMethod(m_pClient->getDeviceNodeId(m_ID), UaString("TurnOn"));
             break;
         case PAS_ACTType_TurnOff:
-            status = m_pClient->callMethod(m_ID.eAddress, UaString("TurnOff"));
+            status = m_pClient->callMethod(m_pClient->getDeviceNodeId(m_ID), UaString("TurnOff"));
             break;
         default:
             status = OpcUa_BadInvalidArgument;

@@ -82,7 +82,7 @@ UaStatus PSDController::read() {
     UaVariant valstoread[9];
 
     std::transform(varstoread.begin(), varstoread.end(), varstoread.begin(),
-                   [this](std::string &str) { return m_ID.eAddress + "." + str; });
+                   [this](std::string &str) { return m_pClient->getDeviceNodeId(m_ID) + "." + str; });
 
     status = m_pClient->read(varstoread, &valstoread[0]);
     if (!status.isGood())

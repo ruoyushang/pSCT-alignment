@@ -99,8 +99,8 @@ UaStatus MPESController::getState(Device::DeviceState &state) {
     UaStatus status;
     UaVariant value;
     int v;
-    
-    m_pClient->read({m_ID.eAddress + "." + "State"}, &value);
+
+    m_pClient->read({m_pClient->getDeviceNodeId(m_ID) + "." + "State"}, &value);
     value.toInt32(v);
 
     state = static_cast<Device::DeviceState>(v);
@@ -170,7 +170,7 @@ UaStatus MPESController::getData(OpcUa_UInt32 offset, UaVariant &value) {
                 value.setInt32(m_ID.serialNumber);
                 break;
             case PAS_MPESType_ErrorState:
-                status = m_pClient->read({m_ID.eAddress + "." + "ErrorState"}, &value);
+                status = m_pClient->read({m_pClient->getDeviceNodeId(m_ID) + "." + "ErrorState"}, &value);
                 break;
             default:
                 status = OpcUa_BadInvalidArgument;
@@ -192,7 +192,7 @@ UaStatus MPESController::getError(OpcUa_UInt32 offset, UaVariant &value) {
 
     if (MPESObject::ERRORS.count(offset) > 0) {
         std::string varName = std::get<0>(MPESObject::ERRORS.at(offset));
-        std::vector<std::string> varsToRead = {m_ID.eAddress + "." + varName};
+        std::vector<std::string> varsToRead = {m_pClient->getDeviceNodeId(m_ID) + "." + varName};
         status = m_pClient->read(varsToRead, &value);
     } else {
         status = OpcUa_BadInvalidArgument;
@@ -224,15 +224,15 @@ UaStatus MPESController::operate(OpcUa_UInt32 offset, const UaVariantArray &args
     if (offset == PAS_MPESType_Read) {
         status = read(true);
     } else if (offset == PAS_MPESType_SetExposure) {
-        status = m_pClient->callMethod(m_ID.eAddress, UaString("SetExposure"), args);
+        status = m_pClient->callMethod(m_pClient->getDeviceNodeId(m_ID), UaString("SetExposure"), args);
     } else if (offset == PAS_MPESType_ClearError) {
-        status = m_pClient->callMethod(m_ID.eAddress, UaString("ClearError"), args);
+        status = m_pClient->callMethod(m_pClient->getDeviceNodeId(m_ID), UaString("ClearError"), args);
     } else if (offset == PAS_MPESType_ClearAllErrors) {
-        status = m_pClient->callMethod(m_ID.eAddress, UaString("ClearAllErrors"));
+        status = m_pClient->callMethod(m_pClient->getDeviceNodeId(m_ID), UaString("ClearAllErrors"));
     } else if (offset == PAS_MPESType_TurnOn) {
-        status = m_pClient->callMethod(m_ID.eAddress, UaString("TurnOn"));
+        status = m_pClient->callMethod(m_pClient->getDeviceNodeId(m_ID), UaString("TurnOn"));
     } else if (offset == PAS_MPESType_TurnOff) {
-        status = m_pClient->callMethod(m_ID.eAddress, UaString("TurnOff"));
+        status = m_pClient->callMethod(m_pClient->getDeviceNodeId(m_ID), UaString("TurnOff"));
     } else {
         status = OpcUa_BadInvalidArgument;
     }
@@ -264,7 +264,7 @@ UaStatus MPESController::read(bool print) {
         "xCentroidNominal",
         "yCentroidNominal"};
     std::transform(varstoread.begin(), varstoread.end(), varstoread.begin(),
-                   [this](std::string &str) { return m_ID.eAddress + "." + str; });
+                   [this](std::string &str) { return m_pClient->getDeviceNodeId(m_ID) + "." + str; });
     UaVariant valstoread[7];
 
     status = m_pClient->read(varstoread, &valstoread[0]);

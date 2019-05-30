@@ -54,6 +54,8 @@ public:
     UaStatus unsubscribe();
     void connectDatabase();
 
+    std::string getDeviceNodeId(const Device::Identity &identity) { return m_DeviceNodeIdMap.at(identity); }
+
 private:
     UaString m_Address;
     // helper methods
@@ -73,6 +75,8 @@ private:
 
     // keep track of asynchronous calls
     OpcUa_UInt32 m_TransactionId;
+
+    std::map<Device::Identity, std::string> m_DeviceNodeIdMap;
 };
 
 #endif

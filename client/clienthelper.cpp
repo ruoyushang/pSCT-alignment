@@ -463,6 +463,7 @@ void Client::addDevices(const OpcUa_ReferenceDescription& referenceDescription)
                 //printf("will add %s %d as %s\n", name.c_str(), identity.serialNumber, identity.eAddress.c_str());
                 ((PasCommunicationInterface *) m_pNodeManager->getComInterface().get())->addDevice(
                     this, type, identity);
+                m_DeviceNodeIdMap[identity] = std::string(sTemp);
             } else {
                 std::cout << "Client::addDevices(): Couldn't find child of Panel " << panelId << " of type " << name
                           << " with eAddress " << eAddress << ". Skipping...\n";
