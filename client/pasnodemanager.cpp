@@ -87,7 +87,7 @@ UaStatus PasNodeManager::afterStartUp()
     // number of clients is the same as the number of servers/panels by our set up
     std::cout << "\nPasNodeManager::afterStartUp(): Connecting to all panel servers...\n";
     unsigned client = 0;
-    for (const auto& panelId : m_pConfiguration->getDeviceList(PAS_PanelType)) {
+    for (const auto &panelId : m_pConfiguration->getDevices(PAS_PanelType)) {
         // set the address of the panel as the client helper address and connect to the server
         m_pClients.at(client)->setAddress(UaString(panelId.eAddress.c_str()));
         ret = m_pClients.at(client)->connect();

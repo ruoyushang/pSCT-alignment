@@ -78,7 +78,7 @@ UaStatus PasCommunicationInterface::initialize()
     }
 
     try {
-        for (const auto& CCD : m_pConfiguration->getDeviceList(PAS_CCDType)) {
+        for (const auto &CCD : m_pConfiguration->getDevices(PAS_CCDType)) {
             try {
                 if (serial2ip.at(std::to_string(CCD.serialNumber)) != CCD.eAddress) {
                     std::cout << " +++ WARNING +++ PasCommunicationInterface::Initialize(): "
@@ -160,51 +160,17 @@ PasCommunicationInterface::addDevice(Client *pClient, OpcUa_UInt32 deviceType,
                   << PasCommunicationInterface::deviceTypeNames[deviceType] << " with identity " << identity << std::endl;
 
         // get the device's parents and create them.
-        // if added device is MPES, its parents are the w-side panel and the edge;
-        // if added device is ACT, its parent is the panel;
-        // if added device is Panel or Edge, its parent is the mirror.
-        auto parentList = m_pConfiguration->getParents(deviceType, identity);
-        if (!parentList.empty()) {
-            // for each parent, create it, complete the ID and add the current device as its child,
-            // and add the other co-parents to it -- this guarantees that panels get added to their edges
-            for (auto parent : parentList) {
-                // parent.first is type; parent.second is id
-                if (!parent.second.eAddress.empty()) {
-                    Device::Identity parentId = addDevice(pClient, parent.first, parent.second);
-                    // update this parent with the full ID
-                    parent = std::make_pair(parent.first, parentId);
-
-                    // this is not necessarily the last element in the vector of controllers --
-                    // need to find its real index
-                    try {
-                        // add the current controller
-                        std::dynamic_pointer_cast<PasCompositeController>(
-                            m_pControllers.at(parent.first).at(parent.second))->addChild(deviceType, pController);
-                    }
-                    catch (std::out_of_range &e) { /* no such device for whatever reason -- ignore */ }
+        for (const auto &pair : m_pConfiguration->getParents(identity)) {
+            OpcUa_UInt32 parentDeviceType = pair.first;
+            std::set<Device::Identity> parents = pair.second;
+            for (const auto &parentId : parents) {
+                if (!parentId.eAddress.empty()) {
+                    addDevice(pClient, parentDeviceType, parentId);
+                    std::dynamic_pointer_cast<PasCompositeController>(
+                        m_pControllers.at(parentDeviceType).at(parentId))->addChild(deviceType, pController);
                 }
-            }
-            // added all parents -- now add co-parents as each other's children.
-            // Note that only addition of panels to edges or the mirror proceeds; other additions get ignored
-            std::cout << "Adding co-parents as children..." << std::endl;
-            for (unsigned i = 0; i < parentList.size(); i++) {
-                const auto &parent = parentList.at(i);
-                try {
-                    std::shared_ptr<PasController> parentC = std::dynamic_pointer_cast<PasController>(
-                        m_pControllers.at(parent.first).at(parent.second));
-                    for (unsigned j = 0; j < parentList.size(); j++) {
-                        if (j != i) {
-                            const auto &coparent = parentList.at(j);
-                            std::shared_ptr<PasController> coparentC = std::dynamic_pointer_cast<PasController>(
-                                m_pControllers.at(coparent.first).at(coparent.second));
-                            std::dynamic_pointer_cast<PasCompositeController>(parentC)->addChild(coparent.first, coparentC);
-                        }
-                    }
-                }
-                catch (std::out_of_range &e) {/*ignore*/}
             }
         }
-
         return identity;
     }
 }

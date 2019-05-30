@@ -29,7 +29,7 @@ void PasCompositeController::addChild(OpcUa_UInt32 deviceType, const std::shared
     auto pos = pController->getId().position;
     // don't add the same device multiple times
     try {
-        // m_ChildrenPositionMap.at(deviceType).at(pos);
+        m_ChildrenPositionMap.at(deviceType).at(pos);
         m_ChildrenIdentityMap.at(deviceType).at(id);
         return;
     }

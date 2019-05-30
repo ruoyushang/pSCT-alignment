@@ -21,7 +21,8 @@ namespace SCTMath {
     bool IsLess(unsigned pos1, unsigned pos2, int dir);
     unsigned GetPanelNeighbor(unsigned position, int dir);
     std::string GetEdgeNeighbor(std::string address, int dir);
-    std::string GetEdgeFromPanels(const std::vector<unsigned>& panelPos);
+
+    std::string GetEdgeFromPanels(const std::vector<int> &panelPos);
     // return the panels of this edge, smaller->greater in the sense of dir
     std::vector<unsigned> GetPanelsFromEdge(const std::string& address, int dir);
 };
