@@ -446,11 +446,14 @@ bool Configuration::addMissingParents() {
     // Now, for each MPES, add the parent edges and panels as each others' parents
     for (const auto &mpesId : m_DeviceIdentities.at(PAS_MPESType)) {
         for (const auto &panelParentId : m_ParentMap.at(mpesId).at(PAS_PanelType)) {
-            for (const auto &edgeParentId : m_ParentMap.at(mpesId).at(PAS_EdgeType)) {
-                m_ChildMap[edgeParentId][PAS_PanelType].insert(panelParentId);
-                m_ParentMap[panelParentId][PAS_EdgeType].insert(edgeParentId);
-                m_ChildMap[panelParentId][PAS_EdgeType].insert(edgeParentId);
-                m_ParentMap[edgeParentId][PAS_PanelType].insert(panelParentId);
+            // Check if the mpes has edge parents (i.e. both panels are present)
+            if (m_ParentMap.at(mpesId).find(PAS_EdgeType) != m_ParentMap.at(mpesId).end()) {
+                for (const auto &edgeParentId : m_ParentMap.at(mpesId).at(PAS_EdgeType)) {
+                    m_ChildMap[edgeParentId][PAS_PanelType].insert(panelParentId);
+                    m_ParentMap[panelParentId][PAS_EdgeType].insert(edgeParentId);
+                    m_ChildMap[panelParentId][PAS_EdgeType].insert(edgeParentId);
+                    m_ParentMap[edgeParentId][PAS_PanelType].insert(panelParentId);
+                }
             }
         }
     }
