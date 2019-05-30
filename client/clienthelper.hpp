@@ -15,7 +15,7 @@
 class Configuration;
 class PasNodeManager;
 
-class Client : public std::enable_shared_from_this<Client>, public UaClientSdk::UaSessionCallback
+class Client : public UaClientSdk::UaSessionCallback
 {
     UA_DISABLE_COPY(Client);
 public:
@@ -55,10 +55,6 @@ public:
     void connectDatabase();
 
 private:
-    std::shared_ptr<Client> get_this_shared() {
-        return shared_from_this();
-    }
-
     UaString m_Address;
     // helper methods
     UaStatus _connect(const UaString& serverUrl, UaClientSdk::SessionSecurityInfo& sessionSecurityInfo);
