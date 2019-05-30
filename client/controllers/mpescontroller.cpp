@@ -178,11 +178,6 @@ UaStatus MPESController::getData(OpcUa_UInt32 offset, UaVariant &value) {
         }
     }
 
-    if (status == OpcUa_BadInvalidState) {
-        std::cout << m_ID << " :: MPESController::getData() : Device is in a bad state (busy, off, error) and "
-                             "could not read data. Check state and try again. \n";
-    }
-
     return OpcUa_Good;
 }
 
@@ -268,6 +263,7 @@ UaStatus MPESController::read(bool print) {
     UaVariant valstoread[7];
 
     status = m_pClient->read(varstoread, &valstoread[0]);
+    m_numAttempts = 1;
 
     for (unsigned i = 0; i < varstoread.size(); i++)
         valstoread[i].toFloat(*(reinterpret_cast<float *>(&m_data) + i));
@@ -284,7 +280,7 @@ UaStatus MPESController::read(bool print) {
     }
 
     if (status == OpcUa_BadInvalidState) {
-        if (m_numAttempts <= kMaxAttempts) {
+        if (m_numAttempts < kMaxAttempts) {
             std::cout << m_ID << " :: MPESController::read() : Device is in a bad state (busy, off, error) and "
                                  "could not read. Waiting and re-trying... \n";
             sleep(1);
@@ -293,6 +289,9 @@ UaStatus MPESController::read(bool print) {
             status = read(print);
         } else {
             m_numAttempts = 0;
+            std::cout << m_ID << " :: MPESController::read() : Device is in a bad state (busy, off, error) and "
+                                 "could not read.\n";
+            return status;
         }
     }
 

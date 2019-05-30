@@ -218,7 +218,7 @@ UaStatus MPESController::operate(OpcUa_UInt32 offset, const UaVariantArray &args
             if (_getDeviceState() == Device::DeviceState::On && _getErrorState() != Device::ErrorState::FatalError) {
                 status = read();
             } else {
-                std::cout << m_ID << " :: MPESController::operate() : Device is off or has fatal error. Cannot read.\n";
+                //std::cout << m_ID << " :: MPESController::operate() : Device is off or has fatal error. Cannot read.\n";
                 status = OpcUa_BadInvalidState;
             }
             break;

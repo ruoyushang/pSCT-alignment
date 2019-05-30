@@ -193,7 +193,8 @@ UaStatus Client::read(std::vector<std::string> sNodeNames, UaVariant *data)
                 data[i] = UaVariant(values[i].Value);
             }
             else {
-                printf("Read failed for item[%d] with status %s\n", i, UaStatus(values[i].StatusCode).toString().toUtf8());
+                return UaStatus(values[i].StatusCode);
+                //printf("Read failed for item[%d] with status %s\n", i, UaStatus(values[i].StatusCode).toString().toUtf8());
             }
         }
     }
