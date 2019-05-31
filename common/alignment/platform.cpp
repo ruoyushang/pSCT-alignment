@@ -233,12 +233,6 @@ Platform::step(std::array<int, Platform::NUM_ACTS_PER_PLATFORM> inputSteps) {
         return inputSteps;
     }
 
-    if (getErrorState() == Device::ErrorState::FatalError) {
-        std::cout << m_Identity << " :: Platform::step() : Encountered fatal error before starting. Motion aborted"
-                  << std::endl;
-        return inputSteps;
-    }
-
     bool alreadyBusy = isBusy();
     if (!alreadyBusy) { setBusy(); }
 
@@ -295,7 +289,7 @@ Platform::step(std::array<int, Platform::NUM_ACTS_PER_PLATFORM> inputSteps) {
         {
             if(ActuatorIterations[i] > 1)
             {
-                if (!m_pCBC->driver.isEnabled(i) || getErrorState() == Device::ErrorState::FatalError) {
+                if (getDeviceState() == Device::DeviceState::Off || getErrorState() == Device::ErrorState::FatalError) {
                     m_pCBC->driver.disableAll();
                     std::cout << m_Identity << " :: Platform::step() : successfully stopped motion.\n";
                     if (!alreadyBusy) { unsetBusy(); }
@@ -602,7 +596,7 @@ bool Platform::isOn() {
 void Platform::turnOn() {
     std::cout << m_Identity << " :: turning on...\n";
     m_pCBC->powerUp();
-    for (auto pMPES : m_MPES) {
+    for (const auto& pMPES : m_MPES) {
     	pMPES->turnOn();
     }
     m_On = true;
@@ -610,7 +604,9 @@ void Platform::turnOn() {
 
 void Platform::emergencyStop() {
     std::cout << m_Identity << " :: executing emergency stop...\n";
+    m_On = false; // We temporarily set the state to off to indicate that the motion should be stopped.
     m_pCBC->driver.disableAll();
+    m_On = true;
 }
 
 void Platform::turnOff() {
