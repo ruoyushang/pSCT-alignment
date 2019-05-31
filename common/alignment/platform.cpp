@@ -601,7 +601,6 @@ bool Platform::isOn() {
 
 void Platform::turnOn() {
     m_pCBC->powerUp();
-    m_pCBC->driver.enableAll();
     m_pCBC->usb.enableAll();
     m_On = true;
 }
