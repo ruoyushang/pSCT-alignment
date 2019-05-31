@@ -600,8 +600,11 @@ bool Platform::isOn() {
 }
 
 void Platform::turnOn() {
+    std::cout << m_Identity << " :: turning on...\n";
     m_pCBC->powerUp();
-    m_pCBC->usb.enableAll();
+    for (auto pMPES : m_MPES) {
+    	pMPES->turnOn();
+    }
     m_On = true;
 }
 
