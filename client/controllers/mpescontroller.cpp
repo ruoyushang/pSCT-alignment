@@ -131,13 +131,12 @@ UaStatus MPESController::getData(OpcUa_UInt32 offset, UaVariant &value) {
     } else {
         if (offset == PAS_MPESType_xCentroidAvg || offset == PAS_MPESType_yCentroidAvg ||
             offset == PAS_MPESType_xCentroidSpotWidth ||
-            offset == PAS_MPESType_yCentroidSpotWidth || offset == PAS_MPESType_xCentroidNominal ||
-            offset == PAS_MPESType_yCentroidNominal ||
+            offset == PAS_MPESType_yCentroidSpotWidth || 
             offset == PAS_MPESType_CleanedIntensity) {
             status = read(false);
             if (status.isBad()) {
-                std::cout << m_ID << " :: MPESController::getData() : Device is in a bad state (busy, off, error) and "
-                                     "could not read data. Check state and try again. \n";
+                //std::cout << m_ID << " :: MPESController::getData() : Device is in a bad state (busy, off, error) and "
+                //                     "could not read data. Check state and try again. \n";
                 return status;
             }
         }
@@ -158,10 +157,10 @@ UaStatus MPESController::getData(OpcUa_UInt32 offset, UaVariant &value) {
                 value.setFloat(m_data.cleanedIntensity);
                 break;
             case PAS_MPESType_xCentroidNominal:
-                value.setFloat(m_data.xNominal);
+                status = m_pClient->read({m_pClient->getDeviceNodeId(m_ID) + "." + "xCentroidNominal"}, &value);
                 break;
             case PAS_MPESType_yCentroidNominal:
-                value.setFloat(m_data.yNominal);
+                status = m_pClient->read({m_pClient->getDeviceNodeId(m_ID) + "." + "yCentroidNominal"}, &value);
                 break;
             case PAS_MPESType_Position:
                 value.setInt32(m_ID.position);
@@ -217,6 +216,7 @@ UaStatus MPESController::operate(OpcUa_UInt32 offset, const UaVariantArray &args
               << std::endl;
 
     if (offset == PAS_MPESType_Read) {
+        status = m_pClient->callMethod(m_pClient->getDeviceNodeId(m_ID), UaString("Read"), UaVariantArray());
         status = read(true);
     } else if (offset == PAS_MPESType_SetExposure) {
         status = m_pClient->callMethod(m_pClient->getDeviceNodeId(m_ID), UaString("SetExposure"), args);
@@ -246,7 +246,7 @@ UaStatus MPESController::operate(OpcUa_UInt32 offset, const UaVariantArray &args
     Method       read
     Description  Read Controller data.
 -----------------------------------------------------------------------------*/
-UaStatus MPESController::read(bool print) {
+UaStatus MPESController::read(bool print) {  
     //UaMutexLocker lock(&m_mutex);
     UaStatus status;
 
@@ -289,8 +289,6 @@ UaStatus MPESController::read(bool print) {
             status = read(print);
         } else {
             m_numAttempts = 0;
-            std::cout << m_ID << " :: MPESController::read() : Device is in a bad state (busy, off, error) and "
-                                 "could not read.\n";
             return status;
         }
     }

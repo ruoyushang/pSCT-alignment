@@ -12,7 +12,7 @@
 
 
 PanelController::PanelController(Device::Identity identity, Client *pClient) :
-    PasCompositeController(std::move(identity), pClient, 1000) {
+    PasCompositeController(std::move(identity), pClient, 5000) {
     m_ID.name = std::string("Panel_") + std::to_string(m_ID.position);
     m_SP.SetPanelType(StewartPlatform::PanelType::OPT);
 
@@ -84,8 +84,11 @@ UaStatus PanelController::getData(OpcUa_UInt32 offset, UaVariant &value) {
     } else if (offset == PAS_PanelType_Position) {
         status = m_pClient->read({"ns=2;s=Panel_0.Position"}, &value);
     } else if (offset == PAS_PanelType_Serial) {
-        status = m_pClient->read({"ns=2;s=Panel_0.Serial"}, &value);
-    } else
+        status = m_pClient->read({"ns=2;s=Panel_0.Serial"}, &value); 
+    } else if (offset == PAS_PanelType_ErrorState) {
+        status = m_pClient->read({"ns=2;s=Panel_0.ErrorState"}, &value);
+    }
+    else
         status = OpcUa_BadInvalidArgument;
 
     if (status == OpcUa_BadInvalidState) {
