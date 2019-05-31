@@ -569,13 +569,13 @@ int Actuator::step(int steps)//Positive Step is Extension of Motor
     }
 
     int StepsToTake = Sign * RecordingInterval;
-    bool KeepStepping = true;
+    m_keepStepping = true;
 
-    while ((KeepStepping) && (getErrorState() != Device::ErrorState::FatalError) &&
+    while ((m_keepStepping) && (getErrorState() != Device::ErrorState::FatalError) &&
            (getDeviceState() != Device::DeviceState::Off)) {
         if (std::abs(StepsRemaining) <= RecordingInterval) {
             StepsToTake = StepsRemaining;
-            KeepStepping = false;
+            m_keepStepping = false;
         }
         PredictedPosition = predictNewPosition(m_CurrentPosition, -StepsToTake);
         m_pCBC->driver.step(getPortNumber(), StepsToTake);
@@ -794,8 +794,9 @@ void Actuator::probeHome()//method used to define home.
     int CurrentCyclesFromExtendStop = 0;
     int StepsFromExtendStop = 0;
     bool NotReachedHome = true;
+    m_keepStepping = true;
 
-    while (NotReachedHome) {
+    while (NotReachedHome && m_keepStepping) {
         VoltageBefore = VoltageAfter;
         m_pCBC->driver.step(getPortNumber(), -1);//step once, negative is retraction.
         StepsFromExtendStop++;
@@ -898,11 +899,12 @@ void Actuator::probeEndStop(int direction) {
     }
 
     bool atStop = false;
+    m_keepStepping = true;
 
     float VoltageBefore;
     float VoltageAfter = readVoltage();
     float AbsDeltaVoltage;
-    while (!atStop) {
+    while (!atStop && m_keepStepping) {
         VoltageBefore = VoltageAfter;
         m_pCBC->driver.step(getPortNumber(), searchSteps);
         VoltageAfter = readVoltage();
@@ -968,6 +970,11 @@ void Actuator::turnOff() {
     std::cout << m_Identity << " :: Turning off...\n";
     saveStatusToASF();
     m_pCBC->driver.disable(getPortNumber());    
+}
+
+void Actuator::emergencyStop() {
+    std::cout << m_Identity << " :: Doing emergency stop...\n";
+    m_keepStepping = false;
 }
 
 void Actuator::copyFile(const std::string &srcFilePath, const std::string &destFilePath) {

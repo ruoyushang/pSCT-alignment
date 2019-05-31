@@ -160,6 +160,7 @@
 #define PAS_ACTType_ForceRecover                    2115
 #define PAS_ACTType_ClearError                      2116
 #define PAS_ACTType_ClearAllErrors                  2117
+#define PAS_ACTType_Stop                            2118
 // Error variable declarations
 #define PAS_ACTType_Error0                          2900
 #define PAS_ACTType_Error1                          2901

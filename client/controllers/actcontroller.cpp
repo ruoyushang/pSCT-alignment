@@ -188,6 +188,9 @@ UaStatus ActController::operate(OpcUa_UInt32 offset, const UaVariantArray &args)
         case PAS_ACTType_TurnOff:
             status = m_pClient->callMethod(m_pClient->getDeviceNodeId(m_ID), UaString("TurnOff"));
             break;
+        case PAS_ACTType_Stop:
+            status = m_pClient->callMethod(m_pClient->getDeviceNodeId(m_ID), UaString("Stop"));
+            break;
         default:
             status = OpcUa_BadInvalidArgument;
     }

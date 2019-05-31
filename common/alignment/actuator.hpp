@@ -97,7 +97,11 @@ public:
 
     bool initialize() override;
 
+    void emergencyStop();
+
 protected:
+    bool m_keepStepping;
+
     static constexpr const int NUM_ASF_HEADER_COLUMNS = 8;//yr,mo,day,hr,min,sec,rev,angle
     int NUM_ASF_COLUMNS{NUM_ASF_HEADER_COLUMNS + getNumErrors()};
 

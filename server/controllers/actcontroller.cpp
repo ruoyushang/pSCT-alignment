@@ -137,6 +137,9 @@ UaStatus ActController::operate(OpcUa_UInt32 offset, const UaVariantArray &args)
                 m_pPlatform->getActuatorbyIdentity(m_ID)->turnOff();
             }
             break;
+        case PAS_ACTType_Stop:
+            m_pPlatform->getActuatorbyIdentity(m_ID)->emergencyStop();
+            break;
         default:
             status = OpcUa_BadInvalidArgument;
     }
