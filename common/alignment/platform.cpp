@@ -313,7 +313,7 @@ Platform::step(std::array<int, Platform::NUM_ACTS_PER_PLATFORM> inputSteps) {
 
     //Hysteresis Motion
     for (int i = 0; i < Platform::NUM_ACTS_PER_PLATFORM; i++) {
-        if (!m_pCBC->driver.isEnabled(i) || getErrorState() == Device::ErrorState::FatalError) {
+        if (getDeviceState() == Device::DeviceState::Off || getErrorState() == Device::ErrorState::FatalError) {
             m_pCBC->driver.disableAll();
             std::cout << m_Identity << " :: Platform::step() : successfully stopped motion.\n";
             if (!alreadyBusy) { unsetBusy(); }
@@ -389,7 +389,7 @@ void Platform::probeEndStopAll(int direction)
                 VoltageBefore[i]=VoltageAfter[i];
                 m_pCBC->driver.step(m_Actuators[i]->getPortNumber(), SearchSteps[i]);
                 VoltageAfter[i] = m_Actuators[i]->readVoltage();
-                if (!m_pCBC->driver.isEnabled(i) || getErrorState() == Device::ErrorState::FatalError) {
+                if (getDeviceState() == Device::DeviceState::Off || getErrorState() == Device::ErrorState::FatalError) {
                     m_pCBC->driver.disableAll();
                     std::cout << m_Identity << " :: Platform::probeEndStopAll() : successfully stopped motion.\n";
                     if (!alreadyBusy) { unsetBusy(); }
