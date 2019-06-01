@@ -346,11 +346,6 @@ void Platform::checkActuatorStatus(int actuatorIdx) {
 
 void Platform::probeEndStopAll(int direction)
 {
-    if (getErrorState() == Device::ErrorState::FatalError) {
-        std::cout << "Platform::probeEndStopAll() : Encountered fatal error before starting. Aborting motion"
-                  << std::endl;
-        return;
-    }
     if (getDeviceState() == Device::DeviceState::Off) {
         std::cout << "Platform::probeEndStopAll() : Platform is off. Aborting motion." << std::endl;
         return;
@@ -611,6 +606,9 @@ void Platform::emergencyStop() {
 
 void Platform::turnOff() {
     std::cout << m_Identity << " :: turning off...\n";
+    for (const auto& pActuator : m_Actuators) {
+    	pActuator->turnOff();
+    }
     m_pCBC->powerDown();
     m_On = false;
 }
