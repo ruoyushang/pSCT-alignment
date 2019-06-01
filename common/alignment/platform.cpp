@@ -15,6 +15,7 @@
 #include <cppconn/statement.h>
 #include <iostream>
 #include <algorithm>
+#include <unistd.h>
 
 #include "common/alignment/device.hpp"
 #include "common/cbccode/cbc.hpp"
