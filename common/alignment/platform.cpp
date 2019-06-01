@@ -23,8 +23,6 @@
 
 // Hardcoded
 const std::vector<Device::ErrorDefinition> Platform::ERROR_DEFINITIONS = {
-    {"Actuator 0 Operable Error",             Device::ErrorState::OperableError},
-    {"Actuator 0 Fatal Error",                Device::ErrorState::FatalError},
     {"Actuator 1 Operable Error",             Device::ErrorState::OperableError},
     {"Actuator 1 Fatal Error",                Device::ErrorState::FatalError},
     {"Actuator 2 Operable Error",             Device::ErrorState::OperableError},
@@ -35,6 +33,8 @@ const std::vector<Device::ErrorDefinition> Platform::ERROR_DEFINITIONS = {
     {"Actuator 4 Fatal Error",                Device::ErrorState::FatalError},
     {"Actuator 5 Operable Error",             Device::ErrorState::OperableError},
     {"Actuator 5 Fatal Error",                Device::ErrorState::FatalError},
+    {"Actuator 6 Operable Error",             Device::ErrorState::OperableError},
+    {"Actuator 6 Fatal Error",                Device::ErrorState::FatalError},
     {"Attempt to move out of Software Range", Device::ErrorState::OperableError},
     {"DBInfo not set",                        Device::ErrorState::OperableError},
     {"MySQL Communication Error",             Device::ErrorState::OperableError}
@@ -363,13 +363,6 @@ void Platform::probeEndStopAll(int direction)
     {
         SearchSteps[i] = direction * m_Actuators[i]->EndstopSearchStepsize;
         VoltageAfter[i] = m_Actuators[i]->readVoltage();
-        if (getErrorState() == Device::ErrorState::FatalError)
-        {
-            std::cout
-                << "Platform::probeEndStopAll() : Encountered fatal error during voltage measurement. Aborting......"
-                << std::endl;
-            return;
-        }
     }
     float StoppedSteppingFactor=0.5;
     std::array<bool, Platform::NUM_ACTS_PER_PLATFORM> NotReachedStop = {true, true, true, true, true, true};
@@ -384,7 +377,7 @@ void Platform::probeEndStopAll(int direction)
                 VoltageBefore[i]=VoltageAfter[i];
                 m_pCBC->driver.step(m_Actuators[i]->getPortNumber(), SearchSteps[i]);
                 VoltageAfter[i] = m_Actuators[i]->readVoltage();
-                if (getDeviceState() == Device::DeviceState::Off || getErrorState() == Device::ErrorState::FatalError) {
+                if (getDeviceState() == Device::DeviceState::Off) {
                     m_pCBC->driver.disableAll();
                     std::cout << m_Identity << " :: Platform::probeEndStopAll() : successfully stopped motion.\n";
                     if (!alreadyBusy) { unsetBusy(); }
@@ -429,13 +422,6 @@ void Platform::findHomeFromEndStopAll(int direction) {
         {
             return;
         }
-        if (getErrorState() == Device::ErrorState::FatalError)
-        {
-            std::cout << "Platform::findHomeFromEndStopAll():Fatal error encountered. Stopping..." << std::endl;
-            m_pCBC->driver.disableAll();
-            if (!alreadyBusy) { unsetBusy(); }
-            return;
-        }
     }
     m_pCBC->driver.disableAll();
     if (!alreadyBusy) { unsetBusy(); }
@@ -448,23 +434,10 @@ bool Platform::probeHomeAll()
 
     DEBUG_MSG("Probing Home for All Actuators");
     probeExtendStopAll();
-    if (getErrorState() == Device::ErrorState::FatalError)
-    {
-        std::cout << m_Identity << " :: Cannot probe home, Platform has a Fatal Error" << std::endl;
-        return false;
-    }
-
     m_pCBC->driver.enableAll();
     for (int i = 0; i < Platform::NUM_ACTS_PER_PLATFORM; i++)
     {
         m_Actuators.at(i)->probeHome();
-        if (getErrorState() == Device::ErrorState::FatalError)
-        {
-            std::cout << m_Identity << " :: Actuator " << i
-                      << " encountered a fatal error while probing home. Stopping probeHomeAll..." << std::endl;
-            m_pCBC->driver.disableAll();
-            return false;
-        }
     }
     m_pCBC->driver.disableAll();
 
@@ -594,13 +567,16 @@ void Platform::turnOn() {
     for (const auto& pMPES : m_MPES) {
     	pMPES->turnOn();
     }
+    for (const auto& pActuator : m_Actuators) {
+    	pActuator->turnOn();
+    }
     m_On = true;
 }
 
 void Platform::emergencyStop() {
-    std::cout << m_Identity << " :: executing emergency stop...\n";
+    std::cout << m_Identity << " :: Platform::emergencyStop(): executing emergency stop...\n";
     m_On = false; // We temporarily set the state to off to indicate that the motion should be stopped.
-    m_pCBC->driver.disableAll();
+    sleep(1);
     m_On = true;
 }
 
