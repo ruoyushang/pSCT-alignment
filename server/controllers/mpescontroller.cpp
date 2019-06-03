@@ -74,6 +74,12 @@ MPESController::MPESController(Device::Identity identity, std::shared_ptr<Platfo
         std::cout << " (MySQL error code: " << e.getErrorCode();
         std::cout << ", SQLState: " << e.getSQLState() << " )" << std::endl;
     }
+
+    // make sure things update on the first boot up
+    // duration takes seconds -- hence the conversion with the 1/1000 ratio
+    m_lastUpdateTime = TIME::now() - std::chrono::duration<int, std::ratio<1, 1000>>
+            (m_kUpdateInterval_ms);
+
 }
 
 /// @details Locks the shared mutex while retrieving the state.
@@ -92,7 +98,6 @@ UaStatus MPESController::setState(Device::DeviceState state) {
 bool MPESController::initialize() {
     if (_getDeviceState() == Device::DeviceState::On && _getErrorState() != Device::ErrorState::FatalError) {
         m_pPlatform->getMPESbyIdentity(m_ID)->setExposure();
-        read();
         return true;
     } else {
         if (_getDeviceState() == Device::DeviceState::On) {

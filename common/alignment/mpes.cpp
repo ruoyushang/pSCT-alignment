@@ -49,7 +49,6 @@ void MPES::turnOn() {
     setBusy();
     __initialize();
     __setExposure();
-    __updatePosition();
     unsetBusy();
 }
 

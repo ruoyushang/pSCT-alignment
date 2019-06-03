@@ -144,7 +144,7 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
     var.toInt32(err);
     errorState = static_cast<Device::ErrorState>(err);
 
-    if (offset == PAS_PanelType_MoveToLengths || offset == PAS_PanelType_MoveToCoords || offset == PAS_PanelType_MoveDeltaLengths || offset == PAS_PanelType_FindHome) {
+    if (offset == PAS_PanelType_MoveToLengths || offset == PAS_PanelType_MoveToCoords || offset == PAS_PanelType_MoveDeltaLengths) {
         if (errorState == Device::ErrorState::FatalError || state != Device::DeviceState::On) {
             std::cout << m_ID << " :: PanelController::operate() : Device is in a bad state (busy, off, error) and "
                                  "could not execute command. Check state and try again. \n";
