@@ -114,7 +114,7 @@ void Device::clearErrors() {
 void Device::setBusy() {
     if (!isBusy()) {
         //std::cout << m_Identity << " :: Blocking task started.\n";
-        m_Busy = false;
+        m_Busy = true;
     }
 }
 
