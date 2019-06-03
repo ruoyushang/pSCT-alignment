@@ -161,7 +161,7 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
     float targetLength;
     Eigen::VectorXd deltaLengths(6);
     Eigen::VectorXd targetLengths(6);
-    Eigen::VectorXd currentLengths = getActuatorLengths();
+    
     if (offset == PAS_PanelType_MoveDeltaLengths) {
         for (int i = 0; i < 6; i++) {
             UaVariant(args[i]).toFloat(deltaLength);
@@ -183,6 +183,7 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
         }
         std::cout << "Calling Panel::MoveToLengths() with target lengths: \n";
         std::cout << targetLengths << std::endl << std::endl;
+        Eigen::VectorXd currentLengths = getActuatorLengths();
         deltaLengths = targetLengths - currentLengths;
         if (checkForCollision(deltaLengths)) {
             std::cout << "Error: Sensors may go out of range! Motion cancelled." << std::endl;
@@ -221,7 +222,8 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
             val.copyTo(&lengthArgs[i]);
             std::cout << lengthArgs[i].Value.Float << std::endl;
         }
-
+        
+        Eigen::VectorXd currentLengths = getActuatorLengths();
         deltaLengths = targetLengths - currentLengths;
         if (checkForCollision(deltaLengths)) {
             std::cout << "Error: Sensors may go out of range! Motion cancelled." << std::endl;
@@ -255,6 +257,11 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
         std::cout << m_ID << "::Operate() : Turning off..." << std::endl;
         status = m_pClient->callMethod(std::string("ns=2;s=Panel_0"), UaString("TurnOff"));
     } else if (offset == PAS_PanelType_FindHome) {
+        if (state != Device::DeviceState::On) {
+            std::cout << m_ID << " :: PanelController::operate() : Device is in a bad state (busy, off) and "
+                                 "could not execute command. Check state and try again. \n";
+            return OpcUa_BadInvalidState;
+        }
         std::cout << m_ID << "::Operate() : Finding home position." << std::endl;
         status = m_pClient->callMethodAsync(std::string("ns=2;s=Panel_0"), UaString("FindHome"), args);
     } else if (offset == PAS_PanelType_ClearError) {
