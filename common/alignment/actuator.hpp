@@ -60,10 +60,8 @@ public:
     float moveDeltaLength(float lengthToMove);
 
     void probeHome();
-    void findHomeFromExtendStop() { findHomeFromEndStop(1); }
-    void findHomeFromRetractStop() { findHomeFromEndStop(-1); }
-    void probeExtendStop() { probeEndStop(1); }
-    void probeRetractStop() { probeEndStop(-1); }
+
+    void findHomeFromEndStop(int direction);
 
     bool forceRecover();
 
@@ -81,6 +79,8 @@ public:
     int convertPositionToSteps(Position position);
 
     virtual int step(int inputSteps);
+
+    virtual int stepDriver(int inputSteps);
 
     int performHysteresisMotion(int steps);
 
@@ -163,11 +163,13 @@ protected:
 
     void setCurrentPosition(Position position) { m_CurrentPosition = position; }
 
-    void findHomeFromEndStop(int direction);
-
     void probeEndStop(int direction);
 
     float __readVoltage();
+
+    int __step(int steps);
+
+    void __probeEndStop(int direction);
 };
 
 class DummyActuator : public Actuator

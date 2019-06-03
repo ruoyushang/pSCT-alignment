@@ -548,9 +548,14 @@ int Actuator::step(int steps)//Positive Step is Extension of Motor
         return steps;
     }
 
+    setBusy();
+    int stepsRemaining = __step(steps);
+    unsetBusy();
+    return stepsRemaining;
+}
+
+int Actuator::__step(int steps) {
     DEBUG_MSG("Stepping Actuator " << getSerialNumber() << " " << steps << " steps");
-    bool alreadyBusy = isBusy();
-    if (!alreadyBusy) { setBusy(); }
 
     loadStatusFromASF();
     recoverPosition();
@@ -560,7 +565,7 @@ int Actuator::step(int steps)//Positive Step is Extension of Motor
     int StepsTaken;
     int Sign;
     int StepsRemaining = -(convertPositionToSteps(FinalPosition) - convertPositionToSteps(
-            m_CurrentPosition));//negative because positive step is retraction, and (0,0) is defined as full extraction.
+        m_CurrentPosition));//negative because positive step is retraction, and (0,0) is defined as full extraction.
 
     if (steps < 0) {
         Sign = -1;
@@ -580,7 +585,7 @@ int Actuator::step(int steps)//Positive Step is Extension of Motor
         PredictedPosition = predictNewPosition(m_CurrentPosition, -StepsToTake);
         m_pCBC->driver.step(getPortNumber(), StepsToTake);
         MissedSteps = checkAngleQuick(
-                PredictedPosition);//negative*negative=positive sign because retraction is increasing internal counter and missed steps is negative by definition.
+            PredictedPosition);//negative*negative=positive sign because retraction is increasing internal counter and missed steps is negative by definition.
         if (m_Errors[7] == true)//if voltage measurement has issues.
         {
             return StepsRemaining;
@@ -594,7 +599,7 @@ int Actuator::step(int steps)//Positive Step is Extension of Motor
             std::max(int(m_TolerablePercentOfMissedSteps * std::abs(StepsToTake)), m_MinimumMissedStepsToFlagError)) {
             ERROR_MSG(
                 "Fatal Error: Actuator " << getSerialNumber() << " missed a large number of steps (" << MissedSteps
-                                         << ").");
+                    << ").");
             setError(8);//fatal
             saveStatusToASF();
             return StepsRemaining;//quit, don't record or register steps attempted to be taken.
@@ -603,7 +608,7 @@ int Actuator::step(int steps)//Positive Step is Extension of Motor
         saveStatusToASF();
         StepsRemaining = -(convertPositionToSteps(FinalPosition) - convertPositionToSteps(m_CurrentPosition));
     }
-    if (!alreadyBusy) { unsetBusy(); }
+
     return StepsRemaining;
 }
 
@@ -623,30 +628,25 @@ float Actuator::measureLength() {
 }
 
 float Actuator::moveToLength(float targetLength) {
-    bool alreadyBusy = isBusy();
-    if (!alreadyBusy) { setBusy(); }
+    setBusy();
 
     float currentLength = measureLength();
     float lengthToMove = targetLength - currentLength;
     int stepsToMove = std::floor((lengthToMove / mmPerStep) + 0.5);
-    step(stepsToMove);
+    __step(stepsToMove);
     currentLength = measureLength();
 
-    if (!alreadyBusy) { unsetBusy(); }
+    unsetBusy();
     return currentLength;
 }
 
 float Actuator::moveDeltaLength(float lengthToMove) {
-    bool alreadyBusy = isBusy();
-    if (!alreadyBusy) { setBusy(); }
-
-    float currentLength = measureLength();
-    float targetLength = currentLength + lengthToMove;
-    currentLength = moveToLength(targetLength);
-    float lengthRemaining = targetLength - currentLength;
+    setBusy();
+    int stepsToMove = std::floor((lengthToMove / mmPerStep) + 0.5);
+    int stepsRemaining = __step(stepsToMove);
+    float lengthRemaining = stepsRemaining * mmPerStep;
+    unsetBusy();
     return lengthRemaining;
-
-    if (!alreadyBusy) { unsetBusy(); }
 }
 
 Actuator::Position Actuator::predictNewPosition(Position position,
@@ -666,14 +666,13 @@ Actuator::Position Actuator::predictNewPosition(Position position,
 }
 
 int Actuator::performHysteresisMotion(int steps) {
-    bool alreadyBusy = isBusy();
-    if (!alreadyBusy) { setBusy(); }
+    setBusy();
 
     DEBUG_MSG("Performing Hysteresis Motion of " << steps << " for Actuator " << getSerialNumber());
-    int stepsRemaining = step(steps - m_HysteresisSteps);
-    stepsRemaining = step(m_HysteresisSteps + stepsRemaining);
+    int stepsRemaining = __step(steps - m_HysteresisSteps);
+    stepsRemaining = __step(m_HysteresisSteps + stepsRemaining);
 
-    if (!alreadyBusy) { unsetBusy(); }
+    unsetBusy();
     return stepsRemaining;
 }
 
@@ -762,13 +761,11 @@ int Actuator::convertPositionToSteps(Position position) {
 
 void Actuator::probeHome()//method used to define home.
 {
-    bool alreadyBusy = isBusy();
-    if (!alreadyBusy) { setBusy(); }
-
+    setBusy();
     DEBUG_MSG("Probing Home for Actuator " << getSerialNumber());
-    probeExtendStop();
+    __probeEndStop(1);
 
-    float MeasuredVoltage = readVoltage();
+    float MeasuredVoltage = __readVoltage();
     if (m_Errors[7] == true) {
         return;
     }
@@ -800,7 +797,7 @@ void Actuator::probeHome()//method used to define home.
         VoltageBefore = VoltageAfter;
         m_pCBC->driver.step(getPortNumber(), -1);//step once, negative is retraction.
         StepsFromExtendStop++;
-        VoltageAfter = readVoltage();
+        VoltageAfter = __readVoltage();
         if (m_Errors[7] == true) {
             return;
         }
@@ -842,25 +839,27 @@ void Actuator::probeHome()//method used to define home.
     unsetError(0);
     saveStatusToASF();
 
-    if (!alreadyBusy) { unsetBusy(); }
+    unsetBusy();
 }
 
 void Actuator::findHomeFromEndStop(int direction)//use recorded extendstop and set actuator to that.
 {
-    bool alreadyBusy = isBusy();
-    if (!alreadyBusy) { setBusy(); }
+    setBusy();
 
     //if direction=1, probeextendstop then set current position to recorded extendstop. compare the number of steps away from the recorded value, and report error if this number is too high.
     Position targetPosition{};
     if (direction == 1) {
         targetPosition = m_ExtendStopPosition;
-        probeExtendStop();
     } else if (direction == -1) {
         targetPosition = m_RetractStopPosition;
-        probeRetractStop();
     } else {
+        std::cout << m_Identity << " :: Actuator::findHomeFromEndStop(): Invalid choice of direction " << direction
+                  << " (must be 1 for extend or -1 for retract.)\n";
         return;
     }
+
+    __probeEndStop(direction);
+
     int indexDeviation = checkAngleSlow(targetPosition);
     setCurrentPosition(predictNewPosition(targetPosition, indexDeviation));
     if (std::abs(indexDeviation) > m_EndStopRecoverySteps) {
@@ -874,7 +873,7 @@ void Actuator::findHomeFromEndStop(int direction)//use recorded extendstop and s
         unsetError(0);
         saveStatusToASF();
         //Step here to check if we are stuck?
-        int StepsRemaining = step(-1 * direction * RecordingInterval);
+        int StepsRemaining = __step(-1 * direction * RecordingInterval);
         if (std::abs(StepsRemaining) > (RecordingInterval / 2))//If we miss more than half of the steps
         {
             ERROR_MSG("Fatal Error: Actuator " << getSerialNumber() << " appears to be stuck at the end stop.");
@@ -882,15 +881,24 @@ void Actuator::findHomeFromEndStop(int direction)//use recorded extendstop and s
             //setError(14);
             saveStatusToASF();
         } else {
-            step(1 * direction * RecordingInterval);
+            __step(1 * direction * RecordingInterval);
         }
     }
-    if (!alreadyBusy) { unsetBusy(); }
+    unsetBusy();
 }
 
 void Actuator::probeEndStop(int direction) {
-    bool alreadyBusy = isBusy();
-    if (!alreadyBusy) { setBusy(); }
+    if (direction != 1 && direction != -1) {
+        std::cout << m_Identity << " :: Actuator::probeEndStop(): Invalid choice of direction " << direction
+                  << " (must be 1 for extend or -1 for retract.)\n";
+        return;
+    }
+    setBusy();
+    __probeEndStop(direction);
+    unsetBusy();
+}
+
+void Actuator::__probeEndStop(int direction) {
     setError(0); // Set home position not found error until probe home is complete
 
     int searchSteps = direction * EndstopSearchStepsize;
@@ -916,7 +924,12 @@ void Actuator::probeEndStop(int direction) {
             atStop = true;
         }
     }
-    if (!alreadyBusy) { unsetBusy(); }
+}
+
+int Actuator::stepDriver(int inputSteps) {
+    setBusy();
+    m_pCBC->driver.step(getPortNumber(), inputSteps);
+    unsetBusy();
 }
 
 void Actuator::createDefaultASF()//hardcoded structure of the ASF file (year,mo,day,hr,min,sec,rev,angle,errorcodes)

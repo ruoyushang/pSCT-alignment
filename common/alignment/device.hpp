@@ -101,7 +101,6 @@ protected:
     bool m_Busy;
 
     void setBusy();
-
     void unsetBusy();
 
     bool isBusy() { return m_Busy; }

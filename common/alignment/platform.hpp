@@ -74,19 +74,8 @@ public:
     }
 
     // Actuator-related methods
-
-    void findHomeFromEndStop(int direction, int actuatorIdx);
-    void findHomeFromExtendStop(int actuatorIdx) { findHomeFromEndStop(1, actuatorIdx); }
-    void findHomeFromRetractStop(int actuatorIdx) { findHomeFromEndStop(-1, actuatorIdx); }
-
     void probeEndStopAll(int direction);
-    void probeExtendStopAll() { probeEndStopAll(1); }
-    void probeRetractStopAll() { probeEndStopAll(-1); }
-
     void findHomeFromEndStopAll(int direction);
-    void findHomeFromExtendStopAll() { findHomeFromEndStopAll(1); }
-    void findHomeFromRetractStopAll() { findHomeFromEndStopAll(-1); }
-
     bool probeHomeAll();
 
     std::array<int, NUM_ACTS_PER_PLATFORM> step(std::array<int, NUM_ACTS_PER_PLATFORM> inputSteps);
@@ -129,6 +118,12 @@ private:
     bool m_On;
 
     void checkActuatorStatus(int actuatorIdx);
+
+    std::array<int, NUM_ACTS_PER_PLATFORM> __step(std::array<int, NUM_ACTS_PER_PLATFORM> inputSteps);
+
+    std::array<float, NUM_ACTS_PER_PLATFORM> __measureLengths();
+
+    void __probeEndStopAll(int direction);
 
     bool m_HighCurrent = false;
     bool m_SynchronousRectification = true;

@@ -234,72 +234,72 @@ Platform::step(std::array<int, Platform::NUM_ACTS_PER_PLATFORM> inputSteps) {
         return inputSteps;
     }
 
-    bool alreadyBusy = isBusy();
-    if (!alreadyBusy) { setBusy(); }
+    setBusy();
+    std::array<int, Platform::NUM_ACTS_PER_PLATFORM> stepsRemaining = __step(inputSteps);
+    unsetBusy();
 
-    DEBUG_MSG("Stepping Platform steps: (" << inputSteps[0] << ", " << inputSteps[1] << ", " << inputSteps[2] << ", " << inputSteps[3] << ", " << inputSteps[4] << ", " << inputSteps[5] << ")");
+    return stepsRemaining;
+}
+
+std::array<int, Platform::NUM_ACTS_PER_PLATFORM>
+Platform::__step(std::array<int, Platform::NUM_ACTS_PER_PLATFORM> inputSteps) {
+
+    DEBUG_MSG("Stepping Platform steps: (" << inputSteps[0] << ", " << inputSteps[1] << ", " << inputSteps[2] << ", "
+                                           << inputSteps[3] << ", " << inputSteps[4] << ", " << inputSteps[5] << ")");
     std::array<int, Platform::NUM_ACTS_PER_PLATFORM> StepsRemaining{};
     std::array<int, Platform::NUM_ACTS_PER_PLATFORM> ActuatorIterations = {0, 0, 0, 0, 0, 0};
     std::array<Actuator::Position, Platform::NUM_ACTS_PER_PLATFORM> FinalPosition{};
 
-    for (int i = 0; i < Platform::NUM_ACTS_PER_PLATFORM; i++)
-    {
+    for (int i = 0; i < Platform::NUM_ACTS_PER_PLATFORM; i++) {
         m_Actuators[i]->loadStatusFromASF();
         m_Actuators[i]->recoverPosition();
         FinalPosition[i] = m_Actuators[i]->predictNewPosition(m_Actuators[i]->getCurrentPosition(),
-                                                           -inputSteps[i]);//negative steps because positive step is extension of motor, negative steps increases counter since home is defined (0,0)
+                                                              -inputSteps[i]);//negative steps because positive step is extension of motor, negative steps increases counter since home is defined (0,0)
         StepsRemaining[i] = -(m_Actuators[i]->convertPositionToSteps(FinalPosition[i]) -
                               m_Actuators[i]->convertPositionToSteps(m_Actuators[i]->getCurrentPosition()));
 
         if (FinalPosition[i].revolution < m_Actuators[i]->ExtendRevolutionLimit ||
-            FinalPosition[i].revolution >= m_Actuators[i]->RetractRevolutionLimit)
-        {
+            FinalPosition[i].revolution >= m_Actuators[i]->RetractRevolutionLimit) {
             std::cout << "Operable Error: Attempting to move Actuator with Index " << i << " outside of software range."
                       << std::endl;
             setError(12);
             std::cout << "Attempting to move outside of Software Range(" << m_Actuators[i]->HomeLength -
                                                                             (m_Actuators[i]->RetractRevolutionLimit *
-                                                                          m_Actuators[i]->StepsPerRevolution *
-                                                                          m_Actuators[i]->mmPerStep) << "-"
+                                                                             m_Actuators[i]->StepsPerRevolution *
+                                                                             m_Actuators[i]->mmPerStep) << "-"
                       << m_Actuators[i]->HomeLength -
-                                                                         (m_Actuators[i]->ExtendRevolutionLimit *
-                                                                          m_Actuators[i]->StepsPerRevolution *
-                                                                          m_Actuators[i]->mmPerStep)
+                         (m_Actuators[i]->ExtendRevolutionLimit *
+                          m_Actuators[i]->StepsPerRevolution *
+                          m_Actuators[i]->mmPerStep)
                       << "mm) for Actuator "
                       << m_Actuators[i]->getSerialNumber() << std::endl;
 
             return inputSteps;
         }
 
-        if(StepsRemaining[i] != 0)
-        {
+        if (StepsRemaining[i] != 0) {
             ActuatorIterations[i] = 1 + ((std::abs(StepsRemaining[i]) - 1) /
                                          m_Actuators[i]->RecordingInterval);//simply integer division rounded up, hence the -1.
         }
     }
 
-    int IterationsRemaining=*std::max_element(ActuatorIterations.begin(), ActuatorIterations.end());
+    int IterationsRemaining = *std::max_element(ActuatorIterations.begin(), ActuatorIterations.end());
     std::array<int, Platform::NUM_ACTS_PER_PLATFORM> StepsToTake = {0, 0, 0, 0, 0, 0};
     int Sign;
     int StepsMissed;
 
     m_pCBC->driver.enableAll();
-    while(IterationsRemaining>1)
-    {
-        for (int i = 0; i < Platform::NUM_ACTS_PER_PLATFORM; i++)
-        {
-            if(ActuatorIterations[i] > 1)
-            {
+    while (IterationsRemaining > 1) {
+        for (int i = 0; i < Platform::NUM_ACTS_PER_PLATFORM; i++) {
+            if (ActuatorIterations[i] > 1) {
                 if (getDeviceState() == Device::DeviceState::Off || getErrorState() == Device::ErrorState::FatalError) {
                     m_pCBC->driver.disableAll();
                     std::cout << m_Identity << " :: Platform::step() : successfully stopped motion.\n";
-                    if (!alreadyBusy) { unsetBusy(); }
                     return StepsRemaining;
                 }
-                StepsToTake[i]=StepsToTake[i]+StepsRemaining[i]/IterationsRemaining;
-                if (std::abs(StepsToTake[i]) > m_Actuators[i]->RecordingInterval)
-                {
-                    Sign=(StepsToTake[i]>0)-(StepsToTake[i]<0);
+                StepsToTake[i] = StepsToTake[i] + StepsRemaining[i] / IterationsRemaining;
+                if (std::abs(StepsToTake[i]) > m_Actuators[i]->RecordingInterval) {
+                    Sign = (StepsToTake[i] > 0) - (StepsToTake[i] < 0);
                     StepsMissed = m_Actuators[i]->step(Sign * m_Actuators[i]->RecordingInterval);
                     StepsToTake[i] = StepsToTake[i] - (Sign * m_Actuators[i]->RecordingInterval) + StepsMissed;
                     StepsRemaining[i] = -(m_Actuators[i]->convertPositionToSteps(FinalPosition[i]) -
@@ -309,7 +309,7 @@ Platform::step(std::array<int, Platform::NUM_ACTS_PER_PLATFORM> inputSteps) {
                 }
             }
         }
-        IterationsRemaining=*std::max_element(ActuatorIterations.begin(), ActuatorIterations.end());
+        IterationsRemaining = *std::max_element(ActuatorIterations.begin(), ActuatorIterations.end());
     }
 
     //Hysteresis Motion
@@ -317,7 +317,6 @@ Platform::step(std::array<int, Platform::NUM_ACTS_PER_PLATFORM> inputSteps) {
         if (getDeviceState() == Device::DeviceState::Off || getErrorState() == Device::ErrorState::FatalError) {
             m_pCBC->driver.disableAll();
             std::cout << m_Identity << " :: Platform::step() : successfully stopped motion.\n";
-            if (!alreadyBusy) { unsetBusy(); }
             return StepsRemaining;
         }
         if (StepsRemaining[i] != 0) {
@@ -329,10 +328,9 @@ Platform::step(std::array<int, Platform::NUM_ACTS_PER_PLATFORM> inputSteps) {
     }
 
     m_pCBC->driver.disableAll();
-    if (!alreadyBusy) { unsetBusy(); }
-
     return StepsRemaining;
 }
+
 
 void Platform::checkActuatorStatus(int actuatorIdx) {
     Device::ErrorState actuatorStatus = m_Actuators.at(actuatorIdx)->getErrorState();
@@ -352,89 +350,79 @@ void Platform::probeEndStopAll(int direction)
         return;
     }
 
-    bool alreadyBusy = isBusy();
-    if (!alreadyBusy) { setBusy(); }
+    if (direction != 1 && direction != -1) {
+        std::cout << m_Identity << " :: Platform::probeEndStopAll(): Invalid choice of direction " << direction
+                  << " (must be 1 for extend or -1 for retract.)\n";
+        return;
+    }
 
+    setBusy();
+    __probeEndStopAll(direction);
+    unsetBusy();
+}
+
+void Platform::__probeEndStopAll(int direction) {
     std::array<int, Platform::NUM_ACTS_PER_PLATFORM> SearchSteps{};
     std::array<float, Platform::NUM_ACTS_PER_PLATFORM> VoltageBefore{};
     std::array<float, Platform::NUM_ACTS_PER_PLATFORM> AbsDeltaVoltage{};
     std::array<float, Platform::NUM_ACTS_PER_PLATFORM> VoltageAfter{};
 
-    for (int i = 0; i < Platform::NUM_ACTS_PER_PLATFORM; i++)
-    {
+    for (int i = 0; i < Platform::NUM_ACTS_PER_PLATFORM; i++) {
         SearchSteps[i] = direction * m_Actuators[i]->EndstopSearchStepsize;
         VoltageAfter[i] = m_Actuators[i]->readVoltage();
     }
-    float StoppedSteppingFactor=0.5;
+    float StoppedSteppingFactor = 0.5;
     std::array<bool, Platform::NUM_ACTS_PER_PLATFORM> NotReachedStop = {true, true, true, true, true, true};
 
     m_pCBC->driver.enableAll();
-    while( NotReachedStop[0] || NotReachedStop[1] || NotReachedStop[2] || NotReachedStop[3] || NotReachedStop[4] || NotReachedStop[5] )
-    {
-        for (int i = 0; i < Platform::NUM_ACTS_PER_PLATFORM; i++)
-        {
-            if (NotReachedStop[i])
-            {
-                VoltageBefore[i]=VoltageAfter[i];
-                m_pCBC->driver.step(m_Actuators[i]->getPortNumber(), SearchSteps[i]);
+    while (NotReachedStop[0] || NotReachedStop[1] || NotReachedStop[2] || NotReachedStop[3] || NotReachedStop[4] ||
+           NotReachedStop[5]) {
+        for (int i = 0; i < Platform::NUM_ACTS_PER_PLATFORM; i++) {
+            if (NotReachedStop[i]) {
+                VoltageBefore[i] = VoltageAfter[i];
+                m_Actuators[i]->stepDriver(SearchSteps[i]);
                 VoltageAfter[i] = m_Actuators[i]->readVoltage();
                 if (getDeviceState() == Device::DeviceState::Off) {
-                    m_pCBC->driver.disableAll();
                     std::cout << m_Identity << " :: Platform::probeEndStopAll() : successfully stopped motion.\n";
-                    if (!alreadyBusy) { unsetBusy(); }
+                    m_pCBC->driver.disableAll();
                     return;
                 }
-                AbsDeltaVoltage[i]=std::fabs(VoltageAfter[i]-VoltageBefore[i]);
-                if (AbsDeltaVoltage[i] < std::fabs(m_Actuators[i]->dV * SearchSteps[i] * StoppedSteppingFactor))
-                {
-                    NotReachedStop[i]=false;
+                AbsDeltaVoltage[i] = std::fabs(VoltageAfter[i] - VoltageBefore[i]);
+                if (AbsDeltaVoltage[i] < std::fabs(m_Actuators[i]->dV * SearchSteps[i] * StoppedSteppingFactor)) {
+                    NotReachedStop[i] = false;
                 }
             }
         }
     }
-
     m_pCBC->driver.disableAll();
-    if (!alreadyBusy) { unsetBusy(); }
 }
 
 void Platform::findHomeFromEndStopAll(int direction) {
-    bool alreadyBusy = isBusy();
-    if (!alreadyBusy) { setBusy(); }
+    setBusy();
 
-    if (direction == 1)
-        probeExtendStopAll();
-    else if (direction == -1)
-        probeRetractStopAll();
-    else
+    if (direction != 1 && direction != -1) {
+        std::cout << m_Identity << " :: Platform::findHomeFromEndStopAll(): Invalid choice of direction " << direction
+                  << " (must be 1 for extend or -1 for retract.)\n";
         return;
+    }
+
+    __probeEndStopAll(direction);
 
     m_pCBC->driver.enableAll();
 
     for (int i = 0; i < Platform::NUM_ACTS_PER_PLATFORM; i++)
     {
-        if (direction == 1)
-        {
-            m_Actuators[i]->findHomeFromExtendStop();
-        } else if (direction == -1)
-        {
-            m_Actuators[i]->findHomeFromRetractStop();
-        }
-        else
-        {
-            return;
-        }
+        m_Actuators[i]->findHomeFromEndStop(direction);
     }
     m_pCBC->driver.disableAll();
-    if (!alreadyBusy) { unsetBusy(); }
+    unsetBusy();
 }
 
 bool Platform::probeHomeAll()
 {
-    bool alreadyBusy = isBusy();
-    if (!alreadyBusy) { setBusy(); }
-
+    setBusy();
     DEBUG_MSG("Probing Home for All Actuators");
-    probeExtendStopAll();
+    __probeEndStopAll(1);
     m_pCBC->driver.enableAll();
     for (int i = 0; i < Platform::NUM_ACTS_PER_PLATFORM; i++)
     {
@@ -442,33 +430,33 @@ bool Platform::probeHomeAll()
     }
     m_pCBC->driver.disableAll();
 
-    if (!alreadyBusy) { unsetBusy(); }
+    unsetBusy();
     return true;
 }
 
 
 std::array<float, Platform::NUM_ACTS_PER_PLATFORM> Platform::measureLengths()//public
 {
-    bool alreadyBusy = isBusy();
-    if (!alreadyBusy) { setBusy(); }
+    setBusy();
+    std::array<float, Platform::NUM_ACTS_PER_PLATFORM> currentLengths = __measureLengths();
+    unsetBusy();
+    return currentLengths;
+}
 
+std::array<float, Platform::NUM_ACTS_PER_PLATFORM> Platform::__measureLengths() {
     DEBUG_MSG("Measuring Lengths of All Actuators");
     std::array<float, Platform::NUM_ACTS_PER_PLATFORM> currentLengths{};
-    for (int i = 0; i < Platform::NUM_ACTS_PER_PLATFORM; i++)
-    {
+    for (int i = 0; i < Platform::NUM_ACTS_PER_PLATFORM; i++) {
         currentLengths[i] = m_Actuators.at(i)->measureLength();
     }
-
-    if (!alreadyBusy) { unsetBusy(); }
     return currentLengths;
 }
 
 std::array<float, Platform::NUM_ACTS_PER_PLATFORM>
 Platform::moveToLengths(std::array<float, Platform::NUM_ACTS_PER_PLATFORM> targetLengths) {
-    bool alreadyBusy = isBusy();
-    if (!alreadyBusy) { setBusy(); }
+    setBusy();
 
-    std::array<float, Platform::NUM_ACTS_PER_PLATFORM> currentLengths = measureLengths();
+    std::array<float, Platform::NUM_ACTS_PER_PLATFORM> currentLengths = __measureLengths();
     std::array<float, Platform::NUM_ACTS_PER_PLATFORM> deltaLengths{};
     std::array<int, Platform::NUM_ACTS_PER_PLATFORM> stepsToTake{};
 
@@ -477,35 +465,31 @@ Platform::moveToLengths(std::array<float, Platform::NUM_ACTS_PER_PLATFORM> targe
         deltaLengths[i] = targetLengths[i] - currentLengths[i];
         stepsToTake[i] = std::floor((deltaLengths[i]/(m_Actuators.at(i)->mmPerStep)) + 0.5);
     }
-    step(stepsToTake);
-    currentLengths = measureLengths();
+    __step(stepsToTake);
+    currentLengths = __measureLengths();
 
-    if (!alreadyBusy) { unsetBusy(); }
+    unsetBusy();
     return currentLengths;
 }
 
 std::array<float, Platform::NUM_ACTS_PER_PLATFORM>
 Platform::moveDeltaLengths(std::array<float, Platform::NUM_ACTS_PER_PLATFORM> deltaLengths) {
-    bool alreadyBusy = isBusy();
-    if (!alreadyBusy) { setBusy(); }
-
-    std::array<float, Platform::NUM_ACTS_PER_PLATFORM> currentLengths = measureLengths();
-    std::array<float, Platform::NUM_ACTS_PER_PLATFORM> targetLengths{};
+    setBusy();
+    std::array<int, Platform::NUM_ACTS_PER_PLATFORM> stepsToTake{};
 
     for (int i = 0; i < Platform::NUM_ACTS_PER_PLATFORM; i++)
     {
-        targetLengths[i] = currentLengths[i] + deltaLengths[i];
+        stepsToTake[i] = std::floor((deltaLengths[i] / (m_Actuators.at(i)->mmPerStep)) + 0.5);
     }
-
-    currentLengths = moveToLengths(targetLengths);
+    std::array<int, Platform::NUM_ACTS_PER_PLATFORM> stepsRemaining = __step(stepsToTake);
 
     std::array<float, Platform::NUM_ACTS_PER_PLATFORM> distancesFromTargets{};
     for (int i = 0; i < Platform::NUM_ACTS_PER_PLATFORM; i++)
     {
-        distancesFromTargets[i] = targetLengths[i] - currentLengths[i];
+        distancesFromTargets[i] = stepsRemaining[i] * m_Actuators.at(i)->mmPerStep;
     }
 
-    if (!alreadyBusy) { unsetBusy(); }
+    unsetBusy();
     return distancesFromTargets;
 }
 
@@ -564,6 +548,7 @@ bool Platform::isOn() {
 
 void Platform::turnOn() {
     std::cout << m_Identity << " :: turning on...\n";
+    setBusy();
     m_pCBC->powerUp();
     for (const auto& pMPES : m_MPES) {
     	pMPES->turnOn();
@@ -572,6 +557,7 @@ void Platform::turnOn() {
     	pActuator->turnOn();
     }
     m_On = true;
+    unsetBusy();
 }
 
 void Platform::emergencyStop() {
@@ -583,11 +569,13 @@ void Platform::emergencyStop() {
 
 void Platform::turnOff() {
     std::cout << m_Identity << " :: turning off...\n";
+    setBusy();
     for (const auto& pActuator : m_Actuators) {
     	pActuator->turnOff();
     }
     m_pCBC->powerDown();
     m_On = false;
+    unsetBusy();
 }
 
 Device::ErrorState Platform::getErrorState() {
@@ -633,20 +621,6 @@ void Platform::clearPlatformErrors()
     for (int i = 12; i < getNumErrors(); i++)
     {
         unsetError(i);
-    }
-}
-
-void Platform::findHomeFromEndStop(int direction, int actuatorIdx)
-{
-    DEBUG_MSG("Finding home from end stop.");
-    if(direction == 1) {
-        m_Actuators.at(actuatorIdx)->findHomeFromExtendStop();
-    }
-    else if(direction == -1) {
-        m_Actuators.at(actuatorIdx)->findHomeFromRetractStop();
-    }
-    else {
-        std::cout << "Invalid direction given for findHomeFromEndStop." << std::endl;
     }
 }
 
