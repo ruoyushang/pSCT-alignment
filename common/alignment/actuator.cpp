@@ -388,11 +388,9 @@ void Actuator::loadStatusFromASF()
             if (RecordedPosition.errorCodes[i]) {
                 setError(i);
             }
-        }
-        if (m_Errors[0]) {
-            if (!RecordedPosition.errorCodes[0]) {
-                unsetError(0);
-            }
+	    else {
+                unsetError(i);
+	    }
         }
     }
 }
@@ -418,7 +416,7 @@ void Actuator::saveStatusToASF()//record all error codes to ASF.
         << ptm->tm_min << " " << ptm->tm_sec << " ";
     ASF << m_CurrentPosition.revolution << " " << m_CurrentPosition.angle;
     for (int i = 0; i < getNumErrors(); i++) {
-        ASF << " " << m_Errors[i];
+        ASF << " " << (int)m_Errors[i];
     }
     ASF.close();
     copyFile(m_NewASFPath, m_ASFPath);

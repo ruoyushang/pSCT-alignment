@@ -521,14 +521,11 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
          * stop the motion in progress                  *
          * **********************************************/
     else if (offset == PAS_MirrorType_Stop) {
-        std::cout << m_ID.name << "::Operate() : Attempting to gracefully stop all motions." << std::endl;
-        for (const auto &p: m_pChildren.at(PAS_PanelType)) {
-            status = std::dynamic_pointer_cast<PanelController>(p)->operate(PAS_PanelType_Stop);
-            if (!status.isGood()) {
-                updateCoords(false);
-                return status;
-            }
+        std::cout << m_ID.name << ":: MirrorController::Operate() : Attempting to stop all *selected* panels." << std::endl;
+        for (const auto &idx : getSelectedDeviceIndices(PAS_PanelType)) {
+            std::dynamic_pointer_cast<PanelController>(m_pChildren.at(PAS_PanelType).at(idx))->operate(PAS_PanelType_Stop);
         }
+        updateCoords(false);
     } else {
         return OpcUa_BadNotImplemented;
     }

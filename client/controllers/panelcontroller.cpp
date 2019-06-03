@@ -69,7 +69,7 @@ UaStatus PanelController::getData(OpcUa_UInt32 offset, UaVariant &value) {
         if (__expired()) {
             status = updateCoords();
             if (status.isBad()) {
-                std::cout << m_ID << " :: PanelController::getData() : Failed to update coordinates." << std::endl;
+                std::cout << m_ID << " :: PanelController::operate() : Failed to update coordinates." << std::endl;
                 return status;
             }
         }
@@ -92,8 +92,8 @@ UaStatus PanelController::getData(OpcUa_UInt32 offset, UaVariant &value) {
         status = OpcUa_BadInvalidArgument;
 
     if (status == OpcUa_BadInvalidState) {
-        std::cout << m_ID << " :: PanelController::getData() : Device is in a bad state (busy, off, error) and "
-                             "could not read data. Check state and try again. \n";
+        std::cout << m_ID << " :: PanelController::operate() : Device is in a bad state (busy, off, error) and "
+                             "could not execute command. Check state and try again. \n";
     }
 
     return status;
@@ -133,19 +133,8 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
         return OpcUa_Good;
     }
 
-    // update the state
-    Device::DeviceState state;
-    getState(state);
-
-    Device::ErrorState errorState;
-    UaVariant var;
-    int err;
-    getData(PAS_ACTType_ErrorState, var);
-    var.toInt32(err);
-    errorState = static_cast<Device::ErrorState>(err);
-
-    if (offset == PAS_PanelType_MoveToLengths || offset == PAS_PanelType_MoveToCoords || offset == PAS_PanelType_MoveDeltaLengths || offset == PAS_PanelType_FindHome) {
-        if (errorState == Device::ErrorState::FatalError || state != Device::DeviceState::On) {
+    if (offset == PAS_PanelType_MoveToLengths || offset == PAS_PanelType_MoveToCoords || offset == PAS_PanelType_MoveDeltaLengths) {
+        if (__getErrorState() == Device::ErrorState::FatalError || __getDeviceState() != Device::DeviceState::On) {
             std::cout << m_ID << " :: PanelController::operate() : Device is in a bad state (busy, off, error) and "
                                  "could not execute command. Check state and try again. \n";
             return OpcUa_BadInvalidState;
@@ -161,7 +150,7 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
     float targetLength;
     Eigen::VectorXd deltaLengths(6);
     Eigen::VectorXd targetLengths(6);
-    Eigen::VectorXd currentLengths = getActuatorLengths();
+    
     if (offset == PAS_PanelType_MoveDeltaLengths) {
         for (int i = 0; i < 6; i++) {
             UaVariant(args[i]).toFloat(deltaLength);
@@ -183,6 +172,7 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
         }
         std::cout << "Calling Panel::MoveToLengths() with target lengths: \n";
         std::cout << targetLengths << std::endl << std::endl;
+        Eigen::VectorXd currentLengths = getActuatorLengths();
         deltaLengths = targetLengths - currentLengths;
         if (checkForCollision(deltaLengths)) {
             std::cout << "Error: Sensors may go out of range! Motion cancelled." << std::endl;
@@ -221,14 +211,15 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
             val.copyTo(&lengthArgs[i]);
             std::cout << lengthArgs[i].Value.Float << std::endl;
         }
-
+        
+        Eigen::VectorXd currentLengths = getActuatorLengths();
         deltaLengths = targetLengths - currentLengths;
         if (checkForCollision(deltaLengths)) {
             std::cout << "Error: Sensors may go out of range! Motion cancelled." << std::endl;
             return OpcUa_Bad;
         }
         else {
-            status = m_pClient->callMethodAsync(std::string("ns=2;s=Panel_0"), UaString("MoveToLengths"), lengthArgs);
+            status = m_pClient->callMethodAsync(std::string("ns=2;s=Panel_0"), UaString("MoveToLengths"), args);
         }
     } else if (offset == PAS_PanelType_ReadPosition) {
         status = updateCoords(false);
@@ -247,7 +238,7 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
          * **********************************************/
     else if (offset == PAS_PanelType_Stop) {
         std::cout << m_ID << "::Operate() : Attempting to gracefully stop the motion." << std::endl;
-        status = m_pClient->callMethod(std::string("ns=2;s=Panel_0"), UaString("Stop"));
+        status = m_pClient->callMethodAsync(std::string("ns=2;s=Panel_0"), UaString("Stop"));
     } else if (offset == PAS_PanelType_TurnOn) {
         std::cout << m_ID << "::Operate() : Turning on..." << std::endl;
         status = m_pClient->callMethod(std::string("ns=2;s=Panel_0"), UaString("TurnOn"));
@@ -255,8 +246,13 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
         std::cout << m_ID << "::Operate() : Turning off..." << std::endl;
         status = m_pClient->callMethod(std::string("ns=2;s=Panel_0"), UaString("TurnOff"));
     } else if (offset == PAS_PanelType_FindHome) {
+        if (__getDeviceState() != Device::DeviceState::On) {
+            std::cout << m_ID << " :: PanelController::operate() : Device is in a bad state (busy, off) and "
+                                 "could not execute command. Check state and try again. \n";
+            return OpcUa_BadInvalidState;
+        }
         std::cout << m_ID << "::Operate() : Finding home position." << std::endl;
-        status = m_pClient->callMethod(std::string("ns=2;s=Panel_0"), UaString("FindHome"), args);
+        status = m_pClient->callMethodAsync(std::string("ns=2;s=Panel_0"), UaString("FindHome"), args);
     } else if (offset == PAS_PanelType_ClearError) {
         status = m_pClient->callMethod(std::string("ns=2;s=Panel_0"), UaString("ClearError"), args);
     } else if (offset == PAS_PanelType_ClearAllErrors) {
@@ -395,4 +391,19 @@ UaStatus PanelController::__getActuatorLengths(Eigen::VectorXd &lengths) {
     }
 
     return status;
+}
+
+Device::DeviceState PanelController::__getDeviceState() {
+    Device::DeviceState state;
+    getState(state);
+
+    return state;
+}
+
+Device::ErrorState PanelController::__getErrorState() {
+    UaVariant var;
+    int err;
+    getData(PAS_ACTType_ErrorState, var);
+    var.toInt32(err);
+    return static_cast<Device::ErrorState>(err);
 }

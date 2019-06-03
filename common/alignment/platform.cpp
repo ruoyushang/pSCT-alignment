@@ -345,8 +345,13 @@ void Platform::checkActuatorStatus(int actuatorIdx) {
 
 void Platform::probeEndStopAll(int direction)
 {
+    if (getErrorState() == Device::ErrorState::FatalError) {
+        std::cout << "Platform::probeEndStopAll() : Encountered fatal error before starting. Motion aborted."
+                  << std::endl;
+        return;
+    }
     if (getDeviceState() == Device::DeviceState::Off) {
-        std::cout << "Platform::probeEndStopAll() : Platform is off. Aborting motion." << std::endl;
+        std::cout << "Platform::probeEndStopAll() : Platform is off. Motion aborted." << std::endl;
         return;
     }
 
@@ -398,7 +403,15 @@ void Platform::__probeEndStopAll(int direction) {
 }
 
 void Platform::findHomeFromEndStopAll(int direction) {
-    setBusy();
+    if (getErrorState() == Device::ErrorState::FatalError) {
+        std::cout << "Platform::findHomeFromEndStopAll() : Encountered fatal error before starting. Motion aborted."
+                  << std::endl;
+        return;
+    }
+    if (getDeviceState() == Device::DeviceState::Off) {
+        std::cout << "Platform::findHomeFromEndStopAll() : Platform is off. Motion aborted." << std::endl;
+        return;
+    }
 
     if (direction != 1 && direction != -1) {
         std::cout << m_Identity << " :: Platform::findHomeFromEndStopAll(): Invalid choice of direction " << direction
@@ -406,10 +419,22 @@ void Platform::findHomeFromEndStopAll(int direction) {
         return;
     }
 
+    setBusy();
     __probeEndStopAll(direction);
 
-    m_pCBC->driver.enableAll();
+    if (getErrorState() == Device::ErrorState::FatalError) {
+        std::cout << "Platform::findHomeFromEndStopAll() : Failed to reach end stop due to fatal error in probeEndStopAll(). Find home aborted."
+                  << std::endl;
+        unsetBusy();
+        return;
+    }
+    else if (getDeviceState() == Device::DeviceState::Off) {
+        std::cout << "Platform::findHomeFromEndStopAll() : Platform is off. Find home aborted." << std::endl;
+        unsetBusy();
+        return;
+    }
 
+    m_pCBC->driver.enableAll();
     for (int i = 0; i < Platform::NUM_ACTS_PER_PLATFORM; i++)
     {
         m_Actuators[i]->findHomeFromEndStop(direction);
@@ -569,10 +594,6 @@ void Platform::emergencyStop() {
 
 void Platform::turnOff() {
     std::cout << m_Identity << " :: turning off...\n";
-    setBusy();
-    for (const auto& pActuator : m_Actuators) {
-    	pActuator->turnOff();
-    }
     m_pCBC->powerDown();
     m_On = false;
     unsetBusy();
@@ -601,7 +622,7 @@ void Platform::unsetError(int errorCode) {
                   << ")\n";
         
         if (errorCode >= 0 && errorCode < 12) {
-           std::cout << "Also clearing corresponding errors for Actuator " << errorCode/2 << "."  << std::endl;
+           std::cout << "Also clearing corresponding errors for Actuator " << (errorCode/2) + 1 << "."  << std::endl;
            m_Actuators.at(errorCode/2)->clearErrors(); 
         }        
         m_Errors[errorCode] = false;

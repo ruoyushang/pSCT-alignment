@@ -172,6 +172,7 @@ UaStatus EdgeController::operate(OpcUa_UInt32 offset, const UaVariantArray &args
             break;
         case PAS_EdgeType_Stop: {
             // stop motion of all panels
+            std::cout << m_ID.name << "EdgeController::Operate() : Attempting to stop all panels in edge." << std::endl;
             for (const auto &panel : m_pChildren.at(PAS_PanelType))
                 panel->operate(PAS_PanelType_Stop);
             break;
