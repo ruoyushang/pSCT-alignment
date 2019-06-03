@@ -133,19 +133,8 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
         return OpcUa_Good;
     }
 
-    // update the state
-    Device::DeviceState state;
-    getState(state);
-
-    Device::ErrorState errorState;
-    UaVariant var;
-    int err;
-    getData(PAS_ACTType_ErrorState, var);
-    var.toInt32(err);
-    errorState = static_cast<Device::ErrorState>(err);
-
     if (offset == PAS_PanelType_MoveToLengths || offset == PAS_PanelType_MoveToCoords || offset == PAS_PanelType_MoveDeltaLengths) {
-        if (errorState == Device::ErrorState::FatalError || state != Device::DeviceState::On) {
+        if (__getErrorState() == Device::ErrorState::FatalError || __getDeviceState() != Device::DeviceState::On) {
             std::cout << m_ID << " :: PanelController::operate() : Device is in a bad state (busy, off, error) and "
                                  "could not execute command. Check state and try again. \n";
             return OpcUa_BadInvalidState;
@@ -257,7 +246,7 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
         std::cout << m_ID << "::Operate() : Turning off..." << std::endl;
         status = m_pClient->callMethod(std::string("ns=2;s=Panel_0"), UaString("TurnOff"));
     } else if (offset == PAS_PanelType_FindHome) {
-        if (state != Device::DeviceState::On) {
+        if (__getDeviceState() != Device::DeviceState::On) {
             std::cout << m_ID << " :: PanelController::operate() : Device is in a bad state (busy, off) and "
                                  "could not execute command. Check state and try again. \n";
             return OpcUa_BadInvalidState;
@@ -402,4 +391,19 @@ UaStatus PanelController::__getActuatorLengths(Eigen::VectorXd &lengths) {
     }
 
     return status;
+}
+
+Device::DeviceState PanelController::__getDeviceState() {
+    Device::DeviceState state;
+    getState(state);
+
+    return state;
+}
+
+Device::ErrorState PanelController::__getErrorState() {
+    UaVariant var;
+    int err;
+    getData(PAS_ACTType_ErrorState, var);
+    var.toInt32(err);
+    return static_cast<Device::ErrorState>(err);
 }

@@ -58,6 +58,10 @@ private:
     Eigen::Matrix3d m_PadCoords;
 
     UaStatus __getActuatorLengths(Eigen::VectorXd &lengths);
+
+    Device::ErrorState __getErrorState();
+
+    Device::DeviceState __getDeviceState();
 };
 
 #endif //CLIENT_PANELCONTROLLER_HPP
