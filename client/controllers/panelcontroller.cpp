@@ -69,7 +69,7 @@ UaStatus PanelController::getData(OpcUa_UInt32 offset, UaVariant &value) {
         if (__expired()) {
             status = updateCoords();
             if (status.isBad()) {
-                std::cout << m_ID << " :: PanelController::getData() : Failed to update coordinates." << std::endl;
+                std::cout << m_ID << " :: PanelController::operate() : Failed to update coordinates." << std::endl;
                 return status;
             }
         }
@@ -92,8 +92,8 @@ UaStatus PanelController::getData(OpcUa_UInt32 offset, UaVariant &value) {
         status = OpcUa_BadInvalidArgument;
 
     if (status == OpcUa_BadInvalidState) {
-        std::cout << m_ID << " :: PanelController::getData() : Device is in a bad state (busy, off, error) and "
-                             "could not read data. Check state and try again. \n";
+        std::cout << m_ID << " :: PanelController::operate() : Device is in a bad state (busy, off, error) and "
+                             "could not execute command. Check state and try again. \n";
     }
 
     return status;
@@ -144,7 +144,7 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
     var.toInt32(err);
     errorState = static_cast<Device::ErrorState>(err);
 
-    if (offset == PAS_PanelType_MoveToLengths || offset == PAS_PanelType_MoveToCoords || offset == PAS_PanelType_MoveDeltaLengths || offset == PAS_PanelType_FindHome) {
+    if (offset == PAS_PanelType_MoveToLengths || offset == PAS_PanelType_MoveToCoords || offset == PAS_PanelType_MoveDeltaLengths) {
         if (errorState == Device::ErrorState::FatalError || state != Device::DeviceState::On) {
             std::cout << m_ID << " :: PanelController::operate() : Device is in a bad state (busy, off, error) and "
                                  "could not execute command. Check state and try again. \n";
@@ -228,7 +228,7 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
             return OpcUa_Bad;
         }
         else {
-            status = m_pClient->callMethodAsync(std::string("ns=2;s=Panel_0"), UaString("MoveToLengths"), lengthArgs);
+            status = m_pClient->callMethodAsync(std::string("ns=2;s=Panel_0"), UaString("MoveToLengths"), args);
         }
     } else if (offset == PAS_PanelType_ReadPosition) {
         status = updateCoords(false);

@@ -15,6 +15,7 @@
 #include <cppconn/statement.h>
 #include <iostream>
 #include <algorithm>
+#include <unistd.h>
 
 #include "common/alignment/device.hpp"
 #include "common/cbccode/cbc.hpp"
@@ -346,8 +347,13 @@ void Platform::checkActuatorStatus(int actuatorIdx) {
 
 void Platform::probeEndStopAll(int direction)
 {
+    if (getErrorState() == Device::ErrorState::FatalError) {
+        std::cout << "Platform::probeEndStopAll() : Encountered fatal error before starting. Motion aborted."
+                  << std::endl;
+        return;
+    }
     if (getDeviceState() == Device::DeviceState::Off) {
-        std::cout << "Platform::probeEndStopAll() : Platform is off. Aborting motion." << std::endl;
+        std::cout << "Platform::probeEndStopAll() : Platform is off. Motion aborted." << std::endl;
         return;
     }
 
@@ -396,7 +402,17 @@ void Platform::probeEndStopAll(int direction)
     if (!alreadyBusy) { unsetBusy(); }
 }
 
-void Platform::findHomeFromEndStopAll(int direction) {
+void Platform::findHomeFromEndStopAll(int direction) { 
+    if (getErrorState() == Device::ErrorState::FatalError) {
+        std::cout << "Platform::findHomeFromEndStopAll() : Encountered fatal error before starting. Motion aborted."
+                  << std::endl;
+        return;
+    }
+    if (getDeviceState() == Device::DeviceState::Off) {
+        std::cout << "Platform::findHomeFromEndStopAll() : Platform is off. Motion aborted." << std::endl;
+        return;
+    }
+
     bool alreadyBusy = isBusy();
     if (!alreadyBusy) { setBusy(); }
 
@@ -406,6 +422,16 @@ void Platform::findHomeFromEndStopAll(int direction) {
         probeRetractStopAll();
     else
         return;
+
+    if (getErrorState() == Device::ErrorState::FatalError) {
+        std::cout << "Platform::findHomeFromEndStopAll() : Failed to reach end stop due to fatal error in probeEndStopAll(). Find home aborted."
+                  << std::endl;
+        return;
+    }
+    if (getDeviceState() == Device::DeviceState::Off) {
+        std::cout << "Platform::findHomeFromEndStopAll() : Platform is off. Find home aborted." << std::endl;
+        return;
+    }
 
     m_pCBC->driver.enableAll();
 
@@ -582,9 +608,6 @@ void Platform::emergencyStop() {
 
 void Platform::turnOff() {
     std::cout << m_Identity << " :: turning off...\n";
-    for (const auto& pActuator : m_Actuators) {
-    	pActuator->turnOff();
-    }
     m_pCBC->powerDown();
     m_On = false;
 }
@@ -612,7 +635,7 @@ void Platform::unsetError(int errorCode) {
                   << ")\n";
         
         if (errorCode >= 0 && errorCode < 12) {
-           std::cout << "Also clearing corresponding errors for Actuator " << errorCode/2 << "."  << std::endl;
+           std::cout << "Also clearing corresponding errors for Actuator " << (errorCode/2) + 1 << "."  << std::endl;
            m_Actuators.at(errorCode/2)->clearErrors(); 
         }        
         m_Errors[errorCode] = false;
