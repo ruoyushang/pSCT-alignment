@@ -265,6 +265,10 @@ UaStatus MPESController::read(bool print) {
     status = m_pClient->read(varstoread, &valstoread[0]);
     m_numAttempts = 1;
 
+    if (!status.isGood()) {
+        return status;
+    }
+
     for (unsigned i = 0; i < varstoread.size(); i++)
         valstoread[i].toFloat(*(reinterpret_cast<float *>(&m_data) + i));
 
@@ -277,20 +281,6 @@ UaStatus MPESController::read(bool print) {
         std::cout << "xSpotWidth: " << m_data.xSpotWidth << std::endl;
         std::cout << "ySpotWidth: " << m_data.ySpotWidth << std::endl;
         std::cout << "Cleaned Intensity: " << m_data.cleanedIntensity << std::endl;
-    }
-
-    if (status == OpcUa_BadInvalidState) {
-        if (m_numAttempts < kMaxAttempts) {
-            std::cout << m_ID << " :: MPESController::read() : Device is in a bad state (busy, off, error) and "
-                                 "could not read. Waiting and re-trying... \n";
-            sleep(1);
-            m_numAttempts++;
-            // read the sensor again
-            status = read(print);
-        } else {
-            m_numAttempts = 0;
-            return status;
-        }
     }
 
     if (m_data.xCentroid < 0.1 || m_data.yCentroid < 0.1)

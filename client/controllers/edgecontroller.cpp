@@ -151,8 +151,8 @@ UaStatus EdgeController::operate(OpcUa_UInt32 offset, const UaVariantArray &args
         case PAS_EdgeType_Read:
             // update current and target readings and print them out
             std::cout << "\n" << m_ID.name << " :" << std::endl;;
-            getCurrentReadings();
-            getAlignedReadings();
+            updateCurrentReadings();
+            updateAlignedReadings();
 
             if (!m_CurrentReadings.size() || !m_AlignedReadings.size()) {
                 std::cout
@@ -606,29 +606,40 @@ const Eigen::MatrixXd &EdgeController::getResponseMatrix(unsigned panelpos) {
 }
 
 
-const Eigen::VectorXd &EdgeController::getAlignedReadings() {
+UaStatus EdgeController::updateAlignedReadings() {
+    UaStatus status;
+    
     auto &pMPES = m_pChildren.at(PAS_MPESType);
     unsigned maxMPES = pMPES.size();
     unsigned visibleMPES = 0;
 
     Device::DeviceState state;
+    Device::ErrorState errorState;
 
     m_AlignedReadings = Eigen::VectorXd(2 * pMPES.size());
-    for (unsigned nMPES = 0; nMPES < maxMPES; nMPES++) {
-        std::dynamic_pointer_cast<MPESController>(pMPES.at(nMPES))->getState(state);
-        if (!std::dynamic_pointer_cast<MPESController>(pMPES.at(nMPES))->isVisible() ||
-            state == Device::DeviceState::Off)
-            continue;
-//    for (const auto& mpes : m_ChildrenPositionMap.at(PAS_MPESType)) {
-//        if ( !static_cast<MPESController *>(pMPES.at(mpes.second))->isVisible() ) continue;
 
+    UaVariant vtmp;
+    int temp;
+    for (unsigned nMPES = 0; nMPES < maxMPES; nMPES++) {
+        status = std::dynamic_pointer_cast<MPESController>(pMPES.at(nMPES))->read(false);
+        status = std::dynamic_pointer_cast<MPESController>(pMPES.at(nMPES))->getState(state);
+        
+        status = std::dynamic_pointer_cast<MPESController>(pMPES.at(nMPES))->getData(PAS_MPESType_ErrorState, vtmp);
+        vtmp.toInt32(temp);
+        errorState = static_cast<Device::ErrorState>(temp);
+        if (!std::dynamic_pointer_cast<MPESController>(pMPES.at(nMPES))->isVisible() ||
+            state == Device::DeviceState::Off || errorState == Device::ErrorState::FatalError) {
+            std::cout << "+++ WARNING +++ " << pMPES.at(nMPES)->getId()
+                      << " is either off, in a fatal error state, or not in the field of view! Will ignore it." << std::endl;
+            continue;
+        }
         auto mpes_response = std::dynamic_pointer_cast<MPESController>(pMPES.at(nMPES))->getAlignedReadings();
         m_AlignedReadings.segment(2 * visibleMPES, 2) = mpes_response;
         ++visibleMPES;
     }
     m_AlignedReadings.conservativeResize(2 * visibleMPES);
 
-    return m_AlignedReadings;
+    return status;
 }
 
 const Eigen::VectorXd &EdgeController::getSystematicOffsets() {
@@ -651,7 +662,9 @@ const Eigen::VectorXd &EdgeController::getSystematicOffsets() {
     return m_systematicOffsets;
 }
 
-const Eigen::VectorXd &EdgeController::getCurrentReadings() {
+UaStatus EdgeController::updateCurrentReadings() {
+    UaStatus status;
+    
     // edge should have at least one sensor by definition -- otherwise it wouldn't be created.
     // so this is safe.
     auto &pMPES = m_pChildren.at(PAS_MPESType);
@@ -662,22 +675,23 @@ const Eigen::VectorXd &EdgeController::getCurrentReadings() {
     m_CurrentReadingsSpotWidth = Eigen::VectorXd(2 * maxMPES);
 
     Device::DeviceState state;
+    Device::ErrorState errorState;
 
     UaVariant vtmp;
+    int temp;
     for (unsigned nMPES = 0; nMPES < maxMPES; nMPES++) {
-        std::dynamic_pointer_cast<MPESController>(pMPES.at(nMPES))->read(false);
-        std::dynamic_pointer_cast<MPESController>(pMPES.at(nMPES))->getState(state);
+        status = std::dynamic_pointer_cast<MPESController>(pMPES.at(nMPES))->read(false);
+        status = std::dynamic_pointer_cast<MPESController>(pMPES.at(nMPES))->getState(state);
+        
+        status = std::dynamic_pointer_cast<MPESController>(pMPES.at(nMPES))->getData(PAS_MPESType_ErrorState, vtmp);
+        vtmp.toInt32(temp);
+        errorState = static_cast<Device::ErrorState>(temp);
         if (!std::dynamic_pointer_cast<MPESController>(pMPES.at(nMPES))->isVisible() ||
-            state == Device::DeviceState::Off) {
-            std::cout << "+++ WARNING +++ " << pMPES.at(nMPES)->getId().name
-                      //for (const auto& mpes : m_ChildrenPositionMap.at(PAS_MPESType)) {
-                      //    pMPES.at(mpes.second)->Operate();
-                      //    if ( !static_cast<MPESController *>(pMPES.at(mpes.second))->isVisible() ) {
-                      //        std::cout << "+++ WARNING +++ " << pMPES.at(mpes.second)->getId().name
-                      << " is not in the field of view! Will ignore it." << std::endl;
+            state == Device::DeviceState::Off || errorState == Device::ErrorState::FatalError) {
+            std::cout << "+++ WARNING +++ " << pMPES.at(nMPES)->getId()
+                      << " is either off, in a fatal error state, or not in the field of view! Will ignore it." << std::endl;
             continue;
         }
-
         pMPES.at(nMPES)->getData(PAS_MPESType_xCentroidAvg, vtmp);
         vtmp.toDouble(m_CurrentReadings(visibleMPES * 2));
         pMPES.at(nMPES)->getData(PAS_MPESType_yCentroidAvg, vtmp);
@@ -693,5 +707,5 @@ const Eigen::VectorXd &EdgeController::getCurrentReadings() {
     m_CurrentReadings.conservativeResize(2 * visibleMPES);
     m_CurrentReadingsSpotWidth.conservativeResize(2 * visibleMPES);
 
-    return m_CurrentReadings;
+    return status;
 }

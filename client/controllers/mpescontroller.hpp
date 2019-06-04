@@ -53,6 +53,9 @@ public:
 
     MPES::Position getPosition() { return m_data; }
 
+    // a read that performs such checks and exposure correction
+    UaStatus read(bool print=true);
+
 private:
     bool m_isVisible;
     static float kNominalIntensity;
@@ -70,9 +73,6 @@ private:
     Eigen::Vector2d m_SystematicOffsets;
     // which side the panel is on { panel position -> side ('w' or 'l')
     std::map<unsigned, char> m_PanelSideMap;
-
-    // a read that performs such checks and exposure correction
-    UaStatus read(bool print=true);
 };
 
 #endif //CLIENT_MPESCONTROLLER_HPP

@@ -31,11 +31,11 @@ public:
 
     const Eigen::MatrixXd &getResponseMatrix(unsigned panelpos);
 
-    const Eigen::VectorXd &getAlignedReadings();
+    const Eigen::VectorXd &getAlignedReadings() { return m_AlignedReadings; }
 
     const Eigen::VectorXd &getSystematicOffsets();
 
-    const Eigen::VectorXd &getCurrentReadings();
+    const Eigen::VectorXd &getCurrentReadings() { return m_CurrentReadings; }
 
     bool isAligned() { return m_isAligned; }
 
@@ -59,6 +59,10 @@ private:
     Eigen::VectorXd m_systematicOffsets;
     Eigen::VectorXd m_CurrentReadings;
     Eigen::VectorXd m_CurrentReadingsSpotWidth;
+
+    UaStatus updateCurrentReadings();
+
+    UaStatus updateAlignedReadings();
 
     bool m_isAligned;
 };
