@@ -454,7 +454,7 @@ float Actuator::__readVoltage() {
 }
 
 int Actuator::readAngle() {
-    float voltage = readVoltage();
+    float voltage = __readVoltage();
     //find minimum deviation from measured voltage and array of voltages. index of this array is the angle.
     float MinimumDifference = std::fabs(voltage - m_encoderScale[0]);
     int index = 0;
@@ -473,7 +473,7 @@ int Actuator::checkAngleQuick(
         Position ExpectedPosition)//First attempts a quicker, less robust method of determining the current actuator angle. Defers to the slower method if it fails. Returns the number of missed steps. (e.g. returns +2 if expected position is 50,100 but measured angle is 102). This method ends when either range is exhausted (set by independent variable QuickAngleCheckSearchDeviation), or when it finds a voltage deviation less than dV/2. checkAngleSlow has no such requirement, and finds minimum voltage scanning over range of actuator steps.
 {
     int ExpectedAngle = ExpectedPosition.angle;
-    float MeasuredVoltage = readVoltage();
+    float MeasuredVoltage = __readVoltage();
     //search the Encoder_Calibration array at the expected angle index, and p/m two indices around this index (making sure we dont go out of range).
     int IndexDeviation = 0;
     float VoltageDeviation;
@@ -908,12 +908,12 @@ void Actuator::__probeEndStop(int direction) {
     m_keepStepping = true;
 
     float VoltageBefore;
-    float VoltageAfter = readVoltage();
+    float VoltageAfter = __readVoltage();
     float AbsDeltaVoltage;
     while (!atStop && m_keepStepping) {
         VoltageBefore = VoltageAfter;
         m_pCBC->driver.step(getPortNumber(), searchSteps);
-        VoltageAfter = readVoltage();
+        VoltageAfter = __readVoltage();
         if (m_Errors[7] == true) {
             return;
         }

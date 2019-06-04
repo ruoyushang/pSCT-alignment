@@ -159,6 +159,7 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
             return OpcUa_Good;
         }
 
+        std::cout << "Received MoveToLengths command with target lengths: " << std::endl;
         std::array<float, 6> lengths{};
         UaVariant len;
         for (int i = 0; i < 6; i++) {
