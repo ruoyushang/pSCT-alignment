@@ -140,16 +140,15 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
 
         deltaLengths = m_pPlatform->moveDeltaLengths(deltaLengths);
         // update missed lengths
-        std::cout << "Missed targets by: " << std::endl;
-        float remainingLength;
+        std::cout << "Final lengths (distance from target):" << std::endl;
+        float finalLength;
         for (int i = 0; i < 6; i++) {
             m_pActuators.at(i)->setDeltaLength(deltaLengths[i]);
-            status = m_pActuators.at(i)->getData(PAS_ACTType_DeltaLength, dL);
-            dL.toFloat(remainingLength);
-            std::cout << remainingLength << std::endl;
+            status = m_pActuators.at(i)->getData(PAS_ACTType_CurrentLength, dL);
+            dL.toFloat(finalLength);
+            std::cout << finalLength << " (" << deltaLengths[i] << ")" << std::endl;
         }
         std::cout << std::endl;
-        status = OpcUa_Good;
     } else if (offset == PAS_PanelType_MoveToLengths) {
         if (_getDeviceState() == Device::DeviceState::Off)
             setState(Device::DeviceState::On);
@@ -159,6 +158,7 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
             return OpcUa_Good;
         }
 
+        std::cout << "Received MoveToLengths command with target lengths: " << std::endl;
         std::array<float, 6> lengths{};
         UaVariant len;
         for (int i = 0; i < 6; i++) {
@@ -169,19 +169,14 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
         }
         std::cout << std::endl << std::endl;
 
-        lengths = m_pPlatform->moveToLengths(lengths);
+        std::array<float, 6> finalLengths = m_pPlatform->moveToLengths(lengths);
 
-        float l;
-        std::cout << "Missed targets by: " << std::endl;
+        std::cout << "Final lengths (distance from target): " << std::endl;
         for (int i = 0; i < 6; i++) {
-            m_pActuators.at(i)->setDeltaLength(lengths[i]);
-            status = m_pActuators.at(i)->getData(PAS_ACTType_DeltaLength, len);
-            len.toFloat(l);
-            std::cout << l << std::endl;
+            std::cout << finalLengths[i] << " (" <<  finalLengths[i] - lengths[i] << ")" << std::endl;
+            m_pActuators.at(i)->setDeltaLength(finalLengths[i] - lengths[i]);
         }
         std::cout << std::endl;
-
-        status = OpcUa_Good;
     } else if (offset == PAS_PanelType_Stop) {
         std::cout << m_ID << " :: PanelController::operate() : Attempting emergency stop of motion...\n";
         m_pPlatform->emergencyStop();
