@@ -219,7 +219,7 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
             return OpcUa_Bad;
         }
         else {
-            status = m_pClient->callMethodAsync(std::string("ns=2;s=Panel_0"), UaString("MoveToLengths"), args);
+            status = m_pClient->callMethodAsync(std::string("ns=2;s=Panel_0"), UaString("MoveToLengths"), lengthArgs);
         }
     } else if (offset == PAS_PanelType_ReadPosition) {
         status = updateCoords(false);
