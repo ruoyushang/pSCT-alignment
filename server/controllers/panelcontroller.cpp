@@ -173,7 +173,7 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
 
         std::cout << "Final lengths (distance from target): " << std::endl;
         for (int i = 0; i < 6; i++) {
-            std::cout << finalLengths[i] << " (" <<  finalLengths[i] - lengths[i] << ") << std::endl;
+            std::cout << finalLengths[i] << " (" <<  finalLengths[i] - lengths[i] << ")" << std::endl;
             m_pActuators.at(i)->setDeltaLength(finalLengths[i] - lengths[i]);
         }
         std::cout << std::endl;
