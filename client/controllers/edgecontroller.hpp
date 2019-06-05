@@ -15,8 +15,6 @@ public:
     // construction / destruction
     explicit EdgeController(Device::Identity identity);
 
-    ~EdgeController() override;
-
     // Get Controller status and data
     UaStatus getState(Device::DeviceState &state) override;
 
@@ -29,41 +27,27 @@ public:
 
     UaStatus operate(OpcUa_UInt32 offset, const UaVariantArray &args = UaVariantArray()) override;
 
-    const Eigen::MatrixXd &getResponseMatrix(unsigned panelpos);
+    Eigen::MatrixXd getResponseMatrix(unsigned panelpos);
 
-    const Eigen::VectorXd &getAlignedReadings() { return m_AlignedReadings; }
+    std::pair<Eigen::VectorXd, Eigen::VectorXd> getCurrentReadings();
 
-    const Eigen::VectorXd &getSystematicOffsets();
+    Eigen::VectorXd getAlignedReadings();
 
-    const Eigen::VectorXd &getCurrentReadings() { return m_CurrentReadings; }
+    Eigen::VectorXd getSystematicOffsets();
 
     bool isAligned() { return m_isAligned; }
-
 private:
-    // methods
     UaStatus align(unsigned panel_pos, double alignFrac = 0.25, bool moveit = true, bool execute = false);
 
-    UaStatus findMatrix(UaVariantArray args);
-
-    // helpers for the above
-    UaStatus findSingleMatrix(unsigned panelIdx, double stepSize = 0.5);
-
     UaStatus alignSinglePanel(unsigned panelpos, double alignFrac, bool moveit = true, bool execute = false);
+
+    UaStatus findMatrix(UaVariantArray args);
+    UaStatus findSingleMatrix(unsigned panelIdx, double stepSize = 0.5);
 
     // temporarily hold calculated alignment motion
     Eigen::VectorXd m_Xcalculated;
 
-    // maps panel position to its response matrix
-    std::map<unsigned, Eigen::MatrixXd> m_ResponseMatMap;
-    Eigen::VectorXd m_AlignedReadings;
-    Eigen::VectorXd m_systematicOffsets;
-    Eigen::VectorXd m_CurrentReadings;
-    Eigen::VectorXd m_CurrentReadingsSpotWidth;
-
-    UaStatus updateCurrentReadings();
-
-    UaStatus updateAlignedReadings();
-
+    // indicates whether edge is aligned
     bool m_isAligned;
 };
 

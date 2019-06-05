@@ -22,8 +22,6 @@ public:
     /* construction / destruction */
     explicit CCDController(Device::Identity identity);
 
-    ~CCDController() override;
-
     /* Get Controller status and data */
     UaStatus getState(Device::DeviceState &state) override;
 
@@ -39,7 +37,7 @@ public:
 private:
     bool m_updated = false;
 
-    UaStatus read();
+    UaStatus read(bool print = true);
 
     std::unique_ptr<GASCCD> m_pCCD;
 };

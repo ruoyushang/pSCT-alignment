@@ -25,8 +25,6 @@ MirrorController *MirrorControllerCompute::m_Mirror = nullptr;
 MirrorController::MirrorController(Device::Identity identity) : PasCompositeController(std::move(identity), nullptr,
                                                                                        10000),
                                                                 m_pSurface(nullptr) {
-    m_state = Device::DeviceState::On;
-
     // define possible children and initialize the selected children string
     m_ChildrenTypes = {PAS_PanelType, PAS_EdgeType, PAS_MPESType};
 
@@ -80,7 +78,7 @@ bool MirrorController::initialize()
     if (m_ID.position == 1) {
         // bottom (w.r.t. z) surface first, then top surface --
         // back surface first, then optical surface
-        m_pSurface = new AGeoAsphericDisk(m_ID.name.c_str(),
+        m_pSurface = std::make_shared<AGeoAsphericDisk>(m_ID.name.c_str(),
                                           SCT::Primary::kZ + SCT::Primary::kz[0] - SCT::Primary::kMirrorThickness, 0,
                                           SCT::Primary::kZ + SCT::Primary::kz[0], 0,
                                           SCT::Primary::kD / 2., 0);
@@ -107,9 +105,9 @@ bool MirrorController::initialize()
     else if (m_ID.position == 2) {
         // bottom (w.r.t. z) surface first, then top surface --
         // optical surface first, then back surface
-        m_pSurface = new AGeoAsphericDisk(m_ID.name.c_str(),
+        m_pSurface = std::make_shared<AGeoAsphericDisk>(m_ID.name.c_str(),
                                           SCT::Secondary::kZ + SCT::Secondary::kz[0] - SCT::Secondary::kMirrorThickness,
-                                          0,
+                                                        0,
                                           SCT::Secondary::kZ + SCT::Secondary::kz[0], 0,
                                           SCT::Secondary::kD / 2., 0);
         m_pSurface->SetPolynomials(SCT::kNPar - 1, &SCT::Secondary::kz[1],
@@ -135,7 +133,7 @@ bool MirrorController::initialize()
     else if (m_ID.position == 3) { // this is used for the test setup in the lab (2 P2 panels) - duplicates the primary mirror geometry
         // bottom (w.r.t. z) surface first, then top surface --
         // back surface first, then optical surface
-        m_pSurface = new AGeoAsphericDisk(m_ID.name.c_str(),
+        m_pSurface = std::make_shared<AGeoAsphericDisk>(m_ID.name.c_str(),
                                           SCT::Primary::kZ + SCT::Primary::kz[0] - SCT::Primary::kMirrorThickness, 0,
                                           SCT::Primary::kZ + SCT::Primary::kz[0], 0,
                                           SCT::Primary::kD / 2., 0);
@@ -164,6 +162,8 @@ bool MirrorController::initialize()
         std::cout << "\tNo mirror at position " << m_ID.position << " -- nothing to do!" << std::endl;
         return false;
     }
+
+    m_pStewartPlatform = std::make_shared<StewartPlatform>();
 
     // precompute ideal offsets and norms
     if (m_pSurface) {
@@ -194,12 +194,12 @@ bool MirrorController::initialize()
             // the true panel origin is at the base triangle, not at the mirror surface --
             // need to shift the one computed above to the base triangle
             // compute the center of the mirror panel in the panel frame:
-            m_SP.SetPanelType(StewartPlatform::PanelType::OPT);
+            m_pStewartPlatform->SetPanelType(StewartPlatform::PanelType::OPT);
             double actL[6];
             for (auto &len : actL)
                 len = SCT::kActuatorLength;
-            m_SP.ComputeStewart(actL);
-            Eigen::Vector3d PanelCenterPanelFrame(m_SP.GetPanelCoords());
+            m_pStewartPlatform->ComputeStewart(actL);
+            Eigen::Vector3d PanelCenterPanelFrame(m_pStewartPlatform->GetPanelCoords());
             // this is the center of the mirror panel in the panel frame;
             // what we obtained before was the center of the mirror panel in the TRF --
             // need to shift those coordinates by this much opposite to the mirror norm
@@ -216,21 +216,6 @@ bool MirrorController::initialize()
     //std::cout << "Done Initializing " << m_ID.name << std::endl << std::endl;
 
     return true;
-}
-
-
-MirrorController::~MirrorController()
-{
-    m_pClient = nullptr; // this shouldn't have been changed anyway, but just in case
-
-    delete m_pSurface;
-    m_pSurface = nullptr;
-
-    for (auto &devVector : m_pChildren)
-        for (auto &dev : devVector.second)
-            dev = nullptr;
-
-    m_state = Device::DeviceState::Off;
 }
 
 UaStatus MirrorController::getState(Device::DeviceState &state)
@@ -604,9 +589,9 @@ UaStatus MirrorController::moveToCoords(const Eigen::VectorXd &targetMirrorCoord
                 for (unsigned coord = 0; coord < 3; coord++)
                     newPadCoords[pad][coord] = padCoords_PanelRF.col(pad)(coord);
             }
-            m_SP.ComputeActsFromPads(newPadCoords);
+            m_pStewartPlatform->ComputeActsFromPads(newPadCoords);
             for (int i = 0; i < 6; i++) {
-                targetActLengths(i) = (float)m_SP.GetActLengths()[i];
+                targetActLengths(i) = (float) m_pStewartPlatform->GetActLengths()[i];
             }
             currentActLengths = std::dynamic_pointer_cast<PanelController>(pPanel)->getActuatorLengths();
 
@@ -923,12 +908,12 @@ Eigen::MatrixXd MirrorController::__computeSystematicsMatrix(unsigned pos1, unsi
             PadCoords[pad][coord] = orig_padCoords2_PRF2.col(pad)(coord);
     }
 
-    m_SP.ComputeActsFromPads(PadCoords);
+    m_pStewartPlatform->ComputeActsFromPads(PadCoords);
     for (unsigned act = 0; act < 6; act++)
-        Acts[act] = m_SP.GetActLengths()[act];
-    m_SP.ComputeStewart(Acts);
+        Acts[act] = m_pStewartPlatform->GetActLengths()[act];
+    m_pStewartPlatform->ComputeStewart(Acts);
     for (unsigned coord = 0; coord < 6; coord++)
-        orig_panelCoords2(coord) = m_SP.GetPanelCoords()[coord];
+        orig_panelCoords2(coord) = m_pStewartPlatform->GetPanelCoords()[coord];
 
     // handle pads coords of panel 2
     Eigen::Matrix3d padCoords2;
@@ -951,15 +936,15 @@ Eigen::MatrixXd MirrorController::__computeSystematicsMatrix(unsigned pos1, unsi
                 PadCoords[pad][coord] = padCoords2.col(pad)(coord);
         }
         // compute the new position of panel2 in its own frame:
-        m_SP.ComputeActsFromPads(PadCoords);
+        m_pStewartPlatform->ComputeActsFromPads(PadCoords);
         for (unsigned act = 0; act < 6; act++)
-            Acts[act] = m_SP.GetActLengths()[act];
+            Acts[act] = m_pStewartPlatform->GetActLengths()[act];
         // phew done!
         // compute new panel coordinates based on these actuator lengths
-        m_SP.ComputeStewart(Acts);
+        m_pStewartPlatform->ComputeStewart(Acts);
 
         for (unsigned coord = 0; coord < 6; coord++)
-            panelCoords2(coord) = m_SP.GetPanelCoords()[coord];
+            panelCoords2(coord) = m_pStewartPlatform->GetPanelCoords()[coord];
 
         res.col(TR) = (panelCoords2 - orig_panelCoords2);
     }
@@ -1154,7 +1139,7 @@ UaStatus MirrorController::alignSector(double alignFrac, bool execute) {
 }
 
 
-UaStatus MirrorController::alignGlobal(unsigned fixPanel, double alignFrac, bool execute)
+UaStatus MirrorController::alignGlobal(int fixPanel, double alignFrac, bool execute)
 {
     UaStatus status;
     if (!execute) {
@@ -1191,7 +1176,7 @@ UaStatus MirrorController::alignGlobal(unsigned fixPanel, double alignFrac, bool
         std::vector<std::shared_ptr<EdgeController>> edgesToFit; // we actually don't need to keep these in a vector,
                                       // but doing this for possible future needs
         std::vector<std::shared_ptr<PanelController>> panelsToMove;
-        unsigned curPanel = fixPanel, nextPanel, cursize = 0;
+        int curPanel = fixPanel, nextPanel, cursize = 0;
         Device::Identity id;
         // keep track of the position in the global response matrix
         unsigned blockRow = 0;
@@ -1219,7 +1204,7 @@ UaStatus MirrorController::alignGlobal(unsigned fixPanel, double alignFrac, bool
                 std::cout << "\t\tThese correspond to the edge " << edgesToFit.back()->getId() << std::endl;
 
                 std::cout << "\t\tReading the sensors of this edge." << std::endl;
-                localCurRead = edgesToFit.back()->getCurrentReadings();
+                localCurRead = edgesToFit.back()->getCurrentReadings().first;
                 localAlignRead = edgesToFit.back()->getAlignedReadings();
 
                 misalignVec = localAlignRead - localCurRead;

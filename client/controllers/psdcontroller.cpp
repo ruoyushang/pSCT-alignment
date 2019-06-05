@@ -9,18 +9,10 @@
 #include "client/clienthelper.hpp"
 
 
-// 500 ms update interval for PSDs
-int PSDController::kUpdateInterval = 500;
-
 PSDController::PSDController(Device::Identity identity, Client *pClient) :
-    PasController(std::move(identity), pClient, kUpdateInterval), m_Data() {
-    m_state = Device::DeviceState::On;
-    std::cout << "PSDController: update interval set to " << m_kUpdateInterval_ms << " ms" << std::endl;
+    PasController(std::move(identity), pClient, 500), m_data() {
 
     m_lastUpdateTime = TIME::now() - std::chrono::duration<int, std::ratio<1, 1000>>(m_kUpdateInterval_ms);
-}
-
-PSDController::~PSDController() {
 }
 
 UaStatus PSDController::getState(Device::DeviceState &state) {
@@ -34,19 +26,43 @@ UaStatus PSDController::setState(Device::DeviceState state) {
 }
 
 UaStatus PSDController::getData(OpcUa_UInt32 offset, UaVariant &value) {
-    int dataoffset = offset - PAS_PSDType_x1;
-    if (dataoffset >= 9) {
-        return OpcUa_BadInvalidArgument;
-    }
-
     //UaMutexLocker lock(&m_mutex);
     UaStatus status;
 
     if (__expired()) // if cached values expired, update them
         status = read();
 
-    value.setDouble(*(reinterpret_cast<OpcUa_Double *>(&m_Data) + dataoffset));
-
+    switch (offset) {
+        case PAS_PSDType_x1:
+            value.setDouble(m_data.x1);
+            break;
+        case PAS_PSDType_y1:
+            value.setDouble(m_data.y1);
+            break;
+        case PAS_PSDType_x2:
+            value.setDouble(m_data.x2);
+            break;
+        case PAS_PSDType_y2:
+            value.setDouble(m_data.y2);
+            break;
+        case PAS_PSDType_dx1:
+            value.setDouble(m_data.dx1);
+            break;
+        case PAS_PSDType_dy1:
+            value.setDouble(m_data.dy1);
+            break;
+        case PAS_PSDType_dx2:
+            value.setDouble(m_data.dx2);
+            break;
+        case PAS_PSDType_dy2:
+            value.setDouble(m_data.dy2);
+            break;
+        case PAS_PSDType_Temp:
+            value.setDouble(m_data.Temperature);
+            break;
+        default:
+            return OpcUa_BadInvalidArgument;
+    }
     return status;
 }
 
@@ -56,12 +72,8 @@ UaStatus PSDController::setData(OpcUa_UInt32 offset, UaVariant value) {
 
 UaStatus PSDController::operate(OpcUa_UInt32 offset, const UaVariantArray &args) {
     UaStatus status;
-
-    if (offset >= 1)
-        return OpcUa_BadInvalidArgument;
-
-    // don't lock the object -- might want to change state while operating the device!
     // UaMutexLocker lock(&m_mutex);
+
     if (offset == PAS_PSDType_Read) {
         status = read();
     } else {
@@ -88,9 +100,10 @@ UaStatus PSDController::read() {
     if (!status.isGood())
         return status;
 
-    m_lastUpdateTime = TIME::now();
     for (unsigned i = 0; i < varstoread.size(); i++)
-        valstoread[i].toDouble(*(reinterpret_cast<OpcUa_Double *>(&m_Data) + i));
+        valstoread[i].toDouble(*(reinterpret_cast<OpcUa_Double *>(&m_data) + i));
+
+    m_lastUpdateTime = TIME::now();
 
     return OpcUa_Good;
 }

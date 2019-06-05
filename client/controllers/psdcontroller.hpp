@@ -14,8 +14,6 @@ public:
     // construction / destruction
     PSDController(Device::Identity identity, Client *pClient);
 
-    ~PSDController() override;
-
     // Get Controller status and data
     UaStatus getState(Device::DeviceState &state) override;
 
@@ -28,9 +26,6 @@ public:
 
     UaStatus operate(OpcUa_UInt32 offset, const UaVariantArray &args) override;
 
-    // update interval in ms
-    static int kUpdateInterval;
-
 private:
     struct PSDData {
         OpcUa_Double x1;
@@ -42,7 +37,9 @@ private:
         OpcUa_Double dx2;
         OpcUa_Double dy2;
         OpcUa_Double Temperature;
-    } m_Data;
+
+        PSDData() : x1(0.0), y1(0.0), x2(0.0), y2(0.0), dx1(0.0), dy1(0.0), dx2(0.0), dy2(0.0), Temperature(0.0) {}
+    } m_data;
 
     UaStatus read();
 };

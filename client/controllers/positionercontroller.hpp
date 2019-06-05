@@ -17,9 +17,10 @@ class PositionerController : public PasController {
     UA_DISABLE_COPY(PositionerController);
 public:
     /* construction / destruction */
-    PositionerController(Device::Identity identity, Client *pClient);
-
-    ~PositionerController() override;
+    PositionerController(Device::Identity identity, Client *pClient) : PasController(
+        std::move(identity),
+        pClient), m_Data() {
+    }
 
     /* Get Controller status and data */
     UaStatus getState(Device::DeviceState &state) override;
@@ -39,7 +40,10 @@ private:
         OpcUa_Float curEl;
         OpcUa_Float inAz;
         OpcUa_Float inEl;
+        OpcUa_Int16 energyLevel;
         OpcUa_Boolean isMoving;
+
+        Position() : curAz(0.0), curEl(0.0), inAz(0.0), inEl(0.0), energyLevel(0), isMoving(OpcUa_False) {}
     } m_Data;
 };
 

@@ -41,23 +41,17 @@ public:
     // test if current panel is this sensor's webcam-side panel
     char getPanelSide(unsigned panelpos);
 
-    bool isVisible() const { return m_isVisible; };
+    bool isVisible();
 
     const Eigen::Matrix<double, 2, 6> &getResponseMatrix(char panelside = 'w') const {
         return m_ResponseMatMap.at(panelside);
     }
 
-    const Eigen::Vector2d &getAlignedReadings() const { return m_AlignedReadings; }
-
+    Eigen::Vector2d getAlignedReadings();
     const Eigen::Vector2d &getSystematicOffsets() const { return m_SystematicOffsets; }
-
     MPES::Position getPosition() { return m_data; }
 
-    // a read that performs such checks and exposure correction
-    UaStatus read(bool print=true);
-
 private:
-    bool m_isVisible;
     static float kNominalIntensity;
     static float kNominalSpotWidth;
     static int kMaxAttempts;
@@ -66,10 +60,12 @@ private:
 
     MPES::Position m_data;
 
+    // a read that performs such checks and exposure correction
+    UaStatus read(bool print = true);
+
     // actuator response matrix map -- {panel position -> matrix}
     std::map<char, Eigen::Matrix<double, 2, 6> > m_ResponseMatMap;
-    // aligned readings
-    Eigen::Vector2d m_AlignedReadings;
+    // systematic offsets
     Eigen::Vector2d m_SystematicOffsets;
     // which side the panel is on { panel position -> side ('w' or 'l')
     std::map<unsigned, char> m_PanelSideMap;

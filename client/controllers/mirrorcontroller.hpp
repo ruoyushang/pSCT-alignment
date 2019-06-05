@@ -52,8 +52,6 @@ class MirrorController : public PasCompositeController {
 public:
     explicit MirrorController(Device::Identity identity);
 
-    ~MirrorController() override;
-
     // initialize and precompute everything
     bool initialize() override;
 
@@ -99,7 +97,7 @@ private:
 
     UaStatus alignSector(double alignFrac = 0.25, bool execute = false);
 
-    UaStatus alignGlobal(unsigned fixPanel, double alignFrac = 0.25, bool execute=false);
+    UaStatus alignGlobal(int fixPanel, double alignFrac = 0.25, bool execute = false);
 
     UaStatus moveToCoords(const Eigen::VectorXd &targetCoords, bool execute = false);
 
@@ -155,9 +153,9 @@ private:
 
     /**** SIMULATED OBJECTS WE RELY ON FOR COMPUTE *****/
     // A simulated surface of this mirror
-    AGeoAsphericDisk *m_pSurface;
+    std::shared_ptr<AGeoAsphericDisk> m_pSurface;
     // A simulated stewart platform
-    StewartPlatform m_SP;
+    std::shared_ptr<StewartPlatform> m_pStewartPlatform;
 
     Eigen::VectorXd m_Xcalculated;
     std::vector<std::shared_ptr<PanelController>> m_panelsToMove;

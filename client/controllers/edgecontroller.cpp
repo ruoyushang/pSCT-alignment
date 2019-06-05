@@ -15,20 +15,9 @@
 
 EdgeController::EdgeController(Device::Identity identity) : PasCompositeController(std::move(identity), nullptr, 0),
                                                             m_isAligned(false) {
-    m_state = Device::DeviceState::On;
-    // defin possible children types
+    // define possible children types
     m_ChildrenTypes = {PAS_MPESType, PAS_PanelType};
     m_Xcalculated = Eigen::VectorXd(0);
-}
-
-EdgeController::~EdgeController() {
-    m_pClient = nullptr;
-
-    for (auto &devVector : m_pChildren)
-        for (auto &dev : devVector.second)
-            dev = nullptr;
-
-    m_state = Device::DeviceState::Off;
 }
 
 /* ----------------------------------------------------------------------------
@@ -74,7 +63,6 @@ UaStatus EdgeController::getData(OpcUa_UInt32 offset, UaVariant &value) {
 -----------------------------------------------------------------------------*/
 UaStatus EdgeController::setData(OpcUa_UInt32 offset, UaVariant value) {
     //UaMutexLocker lock(&m_mutex);
-
     return OpcUa_BadNotWritable;
 }
 
@@ -104,8 +92,6 @@ UaStatus EdgeController::operate(OpcUa_UInt32 offset, const UaVariantArray &args
             status = findMatrix(args);
             break;
         case PAS_EdgeType_Align: {
-            // input args should have been validated by this point.
-
             // this is the utilities:
             //      if edge has 2 panels, things are unambiguous -- move the
             //      panel specified by the panel_move value (arg[0]) keeping
@@ -148,13 +134,15 @@ UaStatus EdgeController::operate(OpcUa_UInt32 offset, const UaVariantArray &args
             status = align(panel, alignFrac, moveit, execute);
             break;
         }
-        case PAS_EdgeType_Read:
+        case PAS_EdgeType_Read: {
             // update current and target readings and print them out
             std::cout << "\n" << m_ID.name << " :" << std::endl;;
-            updateCurrentReadings();
-            updateAlignedReadings();
+            std::pair<Eigen::VectorXd, Eigen::VectorXd> currentReadingsPair = getCurrentReadings();
+            Eigen::VectorXd currentReadings = currentReadingsPair.first;
+            Eigen::VectorXd currentReadingsSpotWidth = currentReadingsPair.second;
+            Eigen::VectorXd alignedReadings = getAlignedReadings();
 
-            if (!m_CurrentReadings.size() || !m_AlignedReadings.size()) {
+            if (!currentReadings.size() || !alignedReadings.size()) {
                 std::cout
                         << "+++ ERROR +++ No physical sensor readings! Make sure the sensors are in the field of view. Nothing to do for now."
                         << std::endl;
@@ -163,12 +151,13 @@ UaStatus EdgeController::operate(OpcUa_UInt32 offset, const UaVariantArray &args
             }
 
             std::cout << "\nCurrent MPES readings:\n";
-            for (unsigned i = 0; i < m_CurrentReadings.size(); i++)
-                std::cout << m_CurrentReadings(i) << " +/- " << m_CurrentReadingsSpotWidth(i) << std::endl;
+            for (unsigned i = 0; i < currentReadings.size(); i++)
+                std::cout << currentReadings(i) << " +/- " << currentReadingsSpotWidth(i) << std::endl;
 
-            std::cout << "\nTarget MPES readings:\n" << m_AlignedReadings << std::endl << std::endl;
-            std::cout << "\nMisalignment:\n" << m_AlignedReadings - m_CurrentReadings << std::endl << std::endl;
+            std::cout << "\nTarget MPES readings:\n" << alignedReadings << std::endl << std::endl;
+            std::cout << "\nMisalignment:\n" << alignedReadings - currentReadings << std::endl << std::endl;
             status = OpcUa_Good;
+        }
             break;
         case PAS_EdgeType_Stop: {
             // stop motion of all panels
@@ -196,13 +185,14 @@ UaStatus EdgeController::findMatrix(UaVariantArray args) {
     double stepSize;
     UaVariant(args[0]).toDouble(stepSize);
 
-    // safety of this has already been checked by the caller
     unsigned numPanels = m_pChildren.at(PAS_PanelType).size();
 
     for (unsigned i = 0; i < numPanels; i++) {
         status = findSingleMatrix(i, stepSize);
-        if (!status.isGood())
+        if (!status.isGood()) {
+            std::cout << "Encountered error after first call to findSingleMatrix(). Aborting...\n";
             return status;
+        }
     }
 
     return status;
@@ -244,7 +234,7 @@ UaStatus EdgeController::findSingleMatrix(unsigned panelIdx, double stepSize) {
 
         missedDelta = 0.;
 
-        vector0 = getCurrentReadings();
+        vector0 = getCurrentReadings().first;
         std::cout << "+++ CURRENT READINGS:\n" << vector0 << std::endl << "Sleeping for 1s" << std::endl;
         sleep(1); // seconds
 
@@ -270,7 +260,7 @@ UaStatus EdgeController::findSingleMatrix(unsigned panelIdx, double stepSize) {
 
         printf("actuator %d missed target by %5.3f mm\n", j, missedDelta);
 
-        vector1 = getCurrentReadings();
+        vector1 = getCurrentReadings().first;
         std::cout << "+++ CURRENT READINGS:\n" << vector1 << std::endl << "Sleeping for 1s" << std::endl;
         sleep(1); // seconds
         std::cout << "+++ Difference in sensor readings:\n" << vector1 - vector0 << std::endl;
@@ -315,37 +305,14 @@ UaStatus EdgeController::align(unsigned panel_pos, double alignFrac, bool moveit
     UaStatus status;
 
     std::cout << "\nAligning " << m_ID.name << ": ";
-    if (moveit)
+    if (moveit) {
         std::cout << "Will align panel " << panel_pos << std::endl;
-    else
+    } else {
         std::cout << "Will keep fixed panel " << panel_pos << std::endl;
+    }
 
     status = alignSinglePanel(panel_pos, alignFrac, moveit, execute);
 
-
-/*
-    unsigned numPanels;
-    try {
-        numPanels = m_pChildren.at(PAS_PanelType).size();
-        m_pChildren.at(PAS_MPESType).size();
-    }
-    catch (out_of_range) {
-        // this should never happen -- and edge should never exist without panels
-        std::cout << m_ID << "::align() : no panels or sensors, nothing to do. "
-            << "This should never happen, by the way. Just saying." << std::endl;
-        return OpcUa_BadInvalidState;
-    }
-
-    // FOR NOW: move only the panel with the lower position value
-    // (this will move P1/S1 in the case of the P1-P2/S1-S2 edge)
-    for (const auto& panelPair : m_ChildrenPositionMap.at(PAS_PanelType)) {
-        std::cout << "Will align panel " << panelPair.first << std::endl;
-        status = __alignSinglePanel(panelPair.second);
-        // return after the first panel
-        //if (!status.isGood())
-            return status;
-    }
-*/
     return status;
 }
 
@@ -357,7 +324,7 @@ UaStatus EdgeController::alignSinglePanel(unsigned panelpos, double alignFrac, b
         Eigen::MatrixXd A; // response matrix
         Eigen::MatrixXd C; // constraint matrix
         Eigen::MatrixXd B; // complete matrix we want to solve for
-        Eigen::VectorXd current_read = getCurrentReadings();
+        Eigen::VectorXd current_read = getCurrentReadings().first;
         Eigen::VectorXd aligned_read = getAlignedReadings() - getSystematicOffsets();
         if (!current_read.size() || !aligned_read.size()) {
             std::cout
@@ -425,10 +392,19 @@ UaStatus EdgeController::alignSinglePanel(unsigned panelpos, double alignFrac, b
             Eigen::VectorXd overlap_current(overlapMPES.size() * 2);
             Eigen::VectorXd overlap_aligned(overlapMPES.size() * 2);
             UaVariant vtmp;
-            unsigned visible = 0;
+            int temp;
+            Device::DeviceState state;
+            Device::ErrorState errorState;
+            int visible = 0;
             for (auto &mpes : overlapMPES) {
                 mpes->read(false);
-                if (!mpes->isVisible()) continue;
+                std::dynamic_pointer_cast<MPESController>(mpes)->getState(state);
+                std::dynamic_pointer_cast<MPESController>(mpes)->getData(PAS_MPESType_ErrorState, vtmp);
+                vtmp.toInt32(temp);
+                errorState = static_cast<Device::ErrorState>(temp);
+                if (state == Device::DeviceState::Off || errorState == Device::ErrorState::FatalError) {
+                    continue;
+                }
 
                 mpes->getData(PAS_MPESType_xCentroidAvg, vtmp);
                 vtmp.toDouble(overlap_current(visible * 2));
@@ -449,7 +425,13 @@ UaStatus EdgeController::alignSinglePanel(unsigned panelpos, double alignFrac, b
             for (int j = 0; j < 2; j++) {
                 int k = 0;
                 for (const auto &mpes : overlapMPES) {
-                    if (!mpes->isVisible()) continue;
+                    std::dynamic_pointer_cast<MPESController>(mpes)->getState(state);
+                    std::dynamic_pointer_cast<MPESController>(mpes)->getData(PAS_MPESType_ErrorState, vtmp);
+                    vtmp.toInt32(temp);
+                    errorState = static_cast<Device::ErrorState>(temp);
+                    if (state == Device::DeviceState::Off || errorState == Device::ErrorState::FatalError) {
+                        continue;
+                    }
                     auto panelside = mpes->getPanelSide(twopanels[j]);
                     C.block(blockRows * k, blockCols * j, blockRows, blockCols) = mpes->getResponseMatrix(panelside);
                     k++;
@@ -573,42 +555,33 @@ UaStatus EdgeController::alignSinglePanel(unsigned panelpos, double alignFrac, b
 
 // Get response matrix for the panel defined by 'panelpos'
 // this is the response of the sensors on this edge to the motion of the requested panel
-const Eigen::MatrixXd &EdgeController::getResponseMatrix(unsigned panelpos) {
+Eigen::MatrixXd EdgeController::getResponseMatrix(unsigned panelpos) {
     auto &pMPES = m_pChildren.at(PAS_MPESType);
     unsigned maxMPES = pMPES.size();
     unsigned nACT = std::dynamic_pointer_cast<MPESController>(pMPES.front())->getResponseMatrix().cols();
 
-    for (const auto &panelPair : m_ChildrenPositionMap.at(PAS_PanelType)) {
-        unsigned panel = panelPair.first;
+    Eigen::MatrixXd responseMatrix = Eigen::MatrixXd(maxMPES * 2, nACT);
+    responseMatrix.setZero();
 
-        unsigned visibleMPES = 0;
-        m_ResponseMatMap[panel] = Eigen::MatrixXd(maxMPES * 2, nACT);
-        m_ResponseMatMap.at(panel).setZero();
-        for (unsigned nMPES = 0; nMPES < maxMPES; nMPES++) {
-//        for (const auto& mpes : m_ChildrenPositionMap.at(PAS_MPESType)) {
-            // do not check if the sensor is visible here -- return the full response matrix
-//            if ( !static_cast<MPESController *>(pMPES.at(nMPES))->isVisible() ) continue;
-            auto panelside = std::dynamic_pointer_cast<MPESController>(pMPES.at(nMPES))->getPanelSide(panel);
-            // if this is nonzero (so either 'l' or 'w'), add it to the edge response matrix
-            if (panelside) {
-                const auto &curresponse = std::dynamic_pointer_cast<MPESController>(pMPES.at(nMPES))->getResponseMatrix(
-                    panelside);
-                m_ResponseMatMap.at(panel).block(2 * visibleMPES, 0, curresponse.rows(),
-                                                 curresponse.cols()) = curresponse;
-            }
-            ++visibleMPES;
+    int visibleMPES = 0;
+    for (unsigned nMPES = 0; nMPES < maxMPES; nMPES++) {
+        auto panelside = std::dynamic_pointer_cast<MPESController>(pMPES.at(nMPES))->getPanelSide(panelpos);
+        // if this is nonzero (so either 'l' or 'w'), add it to the edge response matrix
+        if (panelside) {
+            const auto &curresponse = std::dynamic_pointer_cast<MPESController>(pMPES.at(nMPES))->getResponseMatrix(
+                panelside);
+            responseMatrix.block(2 * visibleMPES, 0, curresponse.rows(),
+                                 curresponse.cols()) = curresponse;
         }
-        m_ResponseMatMap.at(panel).conservativeResize(2 * visibleMPES, nACT);
+        ++visibleMPES;
     }
+    responseMatrix.conservativeResize(2 * visibleMPES, nACT);
 
     // no need to try-catch -- panelpos here is always valid
-    return m_ResponseMatMap.at(panelpos);
+    return responseMatrix;
 }
 
-
-UaStatus EdgeController::updateAlignedReadings() {
-    UaStatus status;
-    
+Eigen::VectorXd EdgeController::getAlignedReadings() {
     auto &pMPES = m_pChildren.at(PAS_MPESType);
     unsigned maxMPES = pMPES.size();
     unsigned visibleMPES = 0;
@@ -616,63 +589,71 @@ UaStatus EdgeController::updateAlignedReadings() {
     Device::DeviceState state;
     Device::ErrorState errorState;
 
-    m_AlignedReadings = Eigen::VectorXd(2 * pMPES.size());
+    Eigen::VectorXd alignedReadings = Eigen::VectorXd(2 * pMPES.size());
 
     UaVariant vtmp;
     int temp;
     for (unsigned nMPES = 0; nMPES < maxMPES; nMPES++) {
-        status = std::dynamic_pointer_cast<MPESController>(pMPES.at(nMPES))->read(false);
-        status = std::dynamic_pointer_cast<MPESController>(pMPES.at(nMPES))->getState(state);
-        
-        status = std::dynamic_pointer_cast<MPESController>(pMPES.at(nMPES))->getData(PAS_MPESType_ErrorState, vtmp);
+        std::dynamic_pointer_cast<MPESController>(pMPES.at(nMPES))->getState(state);
+        std::dynamic_pointer_cast<MPESController>(pMPES.at(nMPES))->getData(PAS_MPESType_ErrorState, vtmp);
         vtmp.toInt32(temp);
         errorState = static_cast<Device::ErrorState>(temp);
-        if (!std::dynamic_pointer_cast<MPESController>(pMPES.at(nMPES))->isVisible() ||
-            state == Device::DeviceState::Off || errorState == Device::ErrorState::FatalError) {
+        if (state == Device::DeviceState::Off || errorState == Device::ErrorState::FatalError) {
             std::cout << "+++ WARNING +++ " << pMPES.at(nMPES)->getId()
                       << " is either off, in a fatal error state, or not in the field of view! Will ignore it." << std::endl;
             continue;
         }
-        auto mpes_response = std::dynamic_pointer_cast<MPESController>(pMPES.at(nMPES))->getAlignedReadings();
-        m_AlignedReadings.segment(2 * visibleMPES, 2) = mpes_response;
+
+        alignedReadings.segment(2 * visibleMPES, 2) = std::dynamic_pointer_cast<MPESController>(
+            pMPES.at(nMPES))->getAlignedReadings();
         ++visibleMPES;
     }
-    m_AlignedReadings.conservativeResize(2 * visibleMPES);
+    alignedReadings.conservativeResize(2 * visibleMPES);
 
-    return status;
+    return alignedReadings;
 }
 
-const Eigen::VectorXd &EdgeController::getSystematicOffsets() {
+Eigen::VectorXd EdgeController::getSystematicOffsets() {
     auto &pMPES = m_pChildren.at(PAS_MPESType);
     unsigned maxMPES = pMPES.size();
     unsigned visibleMPES = 0;
 
-    m_systematicOffsets = Eigen::VectorXd(2 * pMPES.size());
-    for (unsigned nMPES = 0; nMPES < maxMPES; nMPES++) {
-        if (!std::dynamic_pointer_cast<MPESController>(pMPES.at(nMPES))->isVisible()) continue;
-//    for (const auto& mpes : m_ChildrenPositionMap.at(PAS_MPESType)) {
-//        if ( !static_cast<MPESController *>(pMPES.at(mpes.second))->isVisible() ) continue;
+    Eigen::VectorXd systematicOffsets = Eigen::VectorXd(2 * pMPES.size());
 
-        m_systematicOffsets.segment(2 * visibleMPES, 2) =
+    Device::DeviceState state;
+    Device::ErrorState errorState;
+
+    UaVariant vtmp;
+    int temp;
+    for (unsigned nMPES = 0; nMPES < maxMPES; nMPES++) {
+        std::dynamic_pointer_cast<MPESController>(pMPES.at(nMPES))->getState(state);
+        std::dynamic_pointer_cast<MPESController>(pMPES.at(nMPES))->getData(PAS_MPESType_ErrorState, vtmp);
+        vtmp.toInt32(temp);
+        errorState = static_cast<Device::ErrorState>(temp);
+        if (state == Device::DeviceState::Off || errorState == Device::ErrorState::FatalError) {
+            std::cout << "+++ WARNING +++ " << pMPES.at(nMPES)->getId()
+                      << " is either off, in a fatal error state, or not in the field of view! Will ignore it."
+                      << std::endl;
+            continue;
+        }
+        systematicOffsets.segment(2 * visibleMPES, 2) =
             (std::dynamic_pointer_cast<MPESController>(pMPES.at(nMPES)))->getSystematicOffsets();
         ++visibleMPES;
     }
-    m_systematicOffsets.conservativeResize(2 * visibleMPES);
+    systematicOffsets.conservativeResize(2 * visibleMPES);
 
-    return m_systematicOffsets;
+    return systematicOffsets;
 }
 
-UaStatus EdgeController::updateCurrentReadings() {
-    UaStatus status;
-    
+std::pair<Eigen::VectorXd, Eigen::VectorXd> EdgeController::getCurrentReadings() {
     // edge should have at least one sensor by definition -- otherwise it wouldn't be created.
     // so this is safe.
     auto &pMPES = m_pChildren.at(PAS_MPESType);
     unsigned maxMPES = pMPES.size();
     unsigned visibleMPES = 0;
 
-    m_CurrentReadings = Eigen::VectorXd(2 * maxMPES);
-    m_CurrentReadingsSpotWidth = Eigen::VectorXd(2 * maxMPES);
+    Eigen::VectorXd currentReadings = Eigen::VectorXd(2 * maxMPES);
+    Eigen::VectorXd currentReadingsSpotWidth = Eigen::VectorXd(2 * maxMPES);
 
     Device::DeviceState state;
     Device::ErrorState errorState;
@@ -680,32 +661,33 @@ UaStatus EdgeController::updateCurrentReadings() {
     UaVariant vtmp;
     int temp;
     for (unsigned nMPES = 0; nMPES < maxMPES; nMPES++) {
-        status = std::dynamic_pointer_cast<MPESController>(pMPES.at(nMPES))->read(false);
-        status = std::dynamic_pointer_cast<MPESController>(pMPES.at(nMPES))->getState(state);
-        
-        status = std::dynamic_pointer_cast<MPESController>(pMPES.at(nMPES))->getData(PAS_MPESType_ErrorState, vtmp);
+        std::dynamic_pointer_cast<MPESController>(pMPES.at(nMPES))->getState(state);
+
+        std::dynamic_pointer_cast<MPESController>(pMPES.at(nMPES))->getData(PAS_MPESType_ErrorState, vtmp);
         vtmp.toInt32(temp);
         errorState = static_cast<Device::ErrorState>(temp);
-        if (!std::dynamic_pointer_cast<MPESController>(pMPES.at(nMPES))->isVisible() ||
-            state == Device::DeviceState::Off || errorState == Device::ErrorState::FatalError) {
+        if (state == Device::DeviceState::Off || errorState == Device::ErrorState::FatalError) {
             std::cout << "+++ WARNING +++ " << pMPES.at(nMPES)->getId()
                       << " is either off, in a fatal error state, or not in the field of view! Will ignore it." << std::endl;
             continue;
         }
+
+        std::dynamic_pointer_cast<MPESController>(pMPES.at(nMPES))->read(false);
+
         pMPES.at(nMPES)->getData(PAS_MPESType_xCentroidAvg, vtmp);
-        vtmp.toDouble(m_CurrentReadings(visibleMPES * 2));
+        vtmp.toDouble(currentReadings(visibleMPES * 2));
         pMPES.at(nMPES)->getData(PAS_MPESType_yCentroidAvg, vtmp);
-        vtmp.toDouble(m_CurrentReadings(visibleMPES * 2 + 1));
+        vtmp.toDouble(currentReadings(visibleMPES * 2 + 1));
 
         pMPES.at(nMPES)->getData(PAS_MPESType_xCentroidSpotWidth, vtmp);
-        vtmp.toDouble(m_CurrentReadingsSpotWidth(visibleMPES * 2));
+        vtmp.toDouble(currentReadingsSpotWidth(visibleMPES * 2));
         pMPES.at(nMPES)->getData(PAS_MPESType_yCentroidSpotWidth, vtmp);
-        vtmp.toDouble(m_CurrentReadingsSpotWidth(visibleMPES * 2 + 1));
+        vtmp.toDouble(currentReadingsSpotWidth(visibleMPES * 2 + 1));
 
         ++visibleMPES;
     }
-    m_CurrentReadings.conservativeResize(2 * visibleMPES);
-    m_CurrentReadingsSpotWidth.conservativeResize(2 * visibleMPES);
+    currentReadings.conservativeResize(2 * visibleMPES);
+    currentReadingsSpotWidth.conservativeResize(2 * visibleMPES);
 
-    return status;
+    return std::make_pair(currentReadings, currentReadingsSpotWidth);
 }

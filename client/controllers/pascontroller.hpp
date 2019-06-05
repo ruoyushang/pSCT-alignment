@@ -48,13 +48,13 @@ class PasCompositeController : public PasController
 
     ~PasCompositeController() override = default;
 
-        // yes, this indeed needs to be the specified type -- a const pointer to a
-        // (non-const) PasController. The constness guarantees that the panel doesn't change the
-        // pointer -- but other methods we use require that the underlying object itself is not
-        // a const.
-        // declaring these as virtual, but they should be the same for everything that
-        // inherts from here
-        virtual void addChild(OpcUa_UInt32 deviceType, const std::shared_ptr<PasController> &pController);
+    // yes, this indeed needs to be the specified type -- a const pointer to a
+    // (non-const) PasController. The constness guarantees that the panel doesn't change the
+    // pointer -- but other methods we use require that the underlying object itself is not
+    // a const.
+    // declaring these as virtual, but they should be the same for everything that
+    // inherts from here
+    virtual void addChild(OpcUa_UInt32 deviceType, const std::shared_ptr<PasController> &pController);
 
     virtual const std::vector<std::shared_ptr<PasController>> &getChildren(unsigned type) const {
         return m_pChildren.at(type);

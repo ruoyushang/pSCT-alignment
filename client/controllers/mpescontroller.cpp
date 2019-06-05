@@ -16,9 +16,7 @@ float MPESController::kNominalSpotWidth = 10.;
 int MPESController::kMaxAttempts = 1;
 
 MPESController::MPESController(Device::Identity identity, Client *pClient) : PasController(
-    std::move(identity),
-    pClient),
-                                                                             m_isVisible(false),
+    std::move(identity), pClient),
                                                                              m_numAttempts(0) {
     // get the nominal aligned readings and response matrices from DB
     /* BEGIN DATABASE HACK */
@@ -56,7 +54,7 @@ MPESController::MPESController(Device::Identity identity, Client *pClient) : Pas
         for (const auto &panel : panelType)
             for (int act = 1; act <= 6; act++)
                 query += ", " + std::string(1, panel) + "_response_actuator" + to_string(act);
-        query = "SELECT coord, nominal_reading" + query +
+        query = "SELECT coord, " + query +
                 " FROM Opt_MPESConfigurationAndCalibration WHERE end_date is NULL and serial_number=" +
                 to_string(m_ID.serialNumber);
         sql_stmt->execute(query);
@@ -64,11 +62,10 @@ MPESController::MPESController(Device::Identity identity, Client *pClient) : Pas
 
         while (sql_results->next()) {
             char coord = sql_results->getString(1)[0];
-            m_AlignedReadings(int(coord - 'x')) = sql_results->getDouble(2);
             for (int panel = 0; panel < 2; panel++) {
                 for (int act = 1; act <= 6; act++)
                     m_ResponseMatMap[panelType[panel]](int(coord - 'x'), act - 1) =
-                            sql_results->getDouble(2 + panel * 6 + act);
+                        sql_results->getDouble(1 + panel * 6 + act);
             }
         }
 
@@ -157,10 +154,10 @@ UaStatus MPESController::getData(OpcUa_UInt32 offset, UaVariant &value) {
                 value.setFloat(m_data.cleanedIntensity);
                 break;
             case PAS_MPESType_xCentroidNominal:
-                status = m_pClient->read({m_pClient->getDeviceNodeId(m_ID) + "." + "xCentroidNominal"}, &value);
+                value.setFloat(m_data.xNominal);
                 break;
             case PAS_MPESType_yCentroidNominal:
-                status = m_pClient->read({m_pClient->getDeviceNodeId(m_ID) + "." + "yCentroidNominal"}, &value);
+                value.setFloat(m_data.yNominal);
                 break;
             case PAS_MPESType_Position:
                 value.setInt32(m_ID.position);
@@ -257,7 +254,8 @@ UaStatus MPESController::read(bool print) {
         "yCentroidSpotWidth",
         "CleanedIntensity",
         "xCentroidNominal",
-        "yCentroidNominal"};
+        "yCentroidNominal"
+    };
     std::transform(varstoread.begin(), varstoread.end(), varstoread.begin(),
                    [this](std::string &str) { return m_pClient->getDeviceNodeId(m_ID) + "." + str; });
     UaVariant valstoread[7];
@@ -283,12 +281,7 @@ UaStatus MPESController::read(bool print) {
         std::cout << "Cleaned Intensity: " << m_data.cleanedIntensity << std::endl;
     }
 
-    if (m_data.xCentroid < 0.1 || m_data.yCentroid < 0.1)
-        m_isVisible = false;
-    else
-        m_isVisible = true;
-
-    if (m_isVisible) {
+    if (isVisible()) {
         if (m_data.xSpotWidth > kNominalSpotWidth) {
             std::cout << "+++ WARNING +++ The width of the image along the X axis for " << m_ID.name
                       << " is greater than 20px. Consider fixing things." << std::endl;
@@ -339,4 +332,22 @@ char MPESController::getPanelSide(unsigned panelpos) {
 
     return panelside;
 }
+
+bool MPESController::isVisible() {
+    UaVariant temp;
+    OpcUa_Boolean missingLaserError;
+    getError(PAS_MPESType_Error2, temp);
+    temp.toBool(missingLaserError);
+
+    return !missingLaserError;
+}
+
+Eigen::Vector2d MPESController::getAlignedReadings() {
+    Eigen::Vector2d alignedReadings;
+
+    alignedReadings(0) = m_data.xNominal;
+    alignedReadings(1) = m_data.yNominal;
+
+    return alignedReadings;
+};
 
