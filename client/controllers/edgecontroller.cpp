@@ -20,31 +20,16 @@ EdgeController::EdgeController(Device::Identity identity) : PasCompositeControll
     m_Xcalculated = Eigen::VectorXd(0);
 }
 
-/* ----------------------------------------------------------------------------
-    Class        EdgeController
-    Method       getState
-    Description  Get Controller status.
------------------------------------------------------------------------------*/
 UaStatus EdgeController::getState(Device::DeviceState &state) {
     //UaMutexLocker lock(&m_mutex);
     state = m_state;
     return OpcUa_Good;
 }
 
-/* ----------------------------------------------------------------------------
-    Class        EdgeController
-    Method       setState
-    Description  Set Controller status.
------------------------------------------------------------------------------*/
 UaStatus EdgeController::setState(Device::DeviceState state) {
     return OpcUa_BadInvalidArgument;
 }
 
-/* ----------------------------------------------------------------------------
-    Class        EdgeController
-    Method       getData
-    Description  Get Controller data.
------------------------------------------------------------------------------*/
 UaStatus EdgeController::getData(OpcUa_UInt32 offset, UaVariant &value) {
     //UaMutexLocker lock(&m_mutex);
     if (offset == PAS_EdgeType_Position) {
@@ -56,21 +41,11 @@ UaStatus EdgeController::getData(OpcUa_UInt32 offset, UaVariant &value) {
     return OpcUa_Good;
 }
 
-/* ----------------------------------------------------------------------------
-    Class        EdgeController
-    Method       setData
-    Description  Set Controller data.
------------------------------------------------------------------------------*/
 UaStatus EdgeController::setData(OpcUa_UInt32 offset, UaVariant value) {
     //UaMutexLocker lock(&m_mutex);
     return OpcUa_BadNotWritable;
 }
 
-/* ----------------------------------------------------------------------------
-    Class        EdgeController
-    Method       Operate
-    Description  run a method on the actuator
------------------------------------------------------------------------------*/
 UaStatus EdgeController::operate(OpcUa_UInt32 offset, const UaVariantArray &args) {
     //UaMutexLocker lock(&m_mutex);
     UaStatus status;
@@ -136,7 +111,7 @@ UaStatus EdgeController::operate(OpcUa_UInt32 offset, const UaVariantArray &args
         }
         case PAS_EdgeType_Read: {
             // update current and target readings and print them out
-            std::cout << "\n" << m_ID.name << " :" << std::endl;;
+            std::cout << "\n" << m_ID.name << " :" << std::endl;
             std::pair<Eigen::VectorXd, Eigen::VectorXd> currentReadingsPair = getCurrentReadings();
             Eigen::VectorXd currentReadings = currentReadingsPair.first;
             Eigen::VectorXd currentReadingsSpotWidth = currentReadingsPair.second;
@@ -144,8 +119,8 @@ UaStatus EdgeController::operate(OpcUa_UInt32 offset, const UaVariantArray &args
 
             if (!currentReadings.size() || !alignedReadings.size()) {
                 std::cout
-                        << "+++ ERROR +++ No physical sensor readings! Make sure the sensors are in the field of view. Nothing to do for now."
-                        << std::endl;
+                    << "+++ ERROR +++ No physical sensor readings! Make sure the sensors are on/operable/in the field of view. Nothing to do for now."
+                    << std::endl;
                 status = OpcUa_Bad;
                 break;
             }
@@ -173,11 +148,8 @@ UaStatus EdgeController::operate(OpcUa_UInt32 offset, const UaVariantArray &args
     return status;
 }
 
-/* ----------------------------------------------------------------------------
-    Class        EdgeController
-    Method       findMatrix
-    Description  Find the alignment matrix for this edge
------------------------------------------------------------------------------*/
+// NOTE: This method performs no safety checks for collision (for speed). It is assumed that a reasonably small step size
+// will be used such that there is no risk of collision.
 UaStatus EdgeController::findMatrix(UaVariantArray args) {
     //UaMutexLocker lock(&m_mutex);
     UaStatus status;
@@ -199,6 +171,8 @@ UaStatus EdgeController::findMatrix(UaVariantArray args) {
 }
 
 // helper method for the above -- actually moving the panel and measuring the matrix
+// NOTE: This method performs no safety checks for collision (for speed). It is assumed that a reasonably small step size
+// will be used such that there is no risk of collision.
 UaStatus EdgeController::findSingleMatrix(unsigned panelIdx, double stepSize) {
     //UaMutexLocker lock(&m_mutex);
     UaStatus status;
@@ -240,14 +214,14 @@ UaStatus EdgeController::findSingleMatrix(unsigned panelIdx, double stepSize) {
 
         printf("attempting to move actuator %d by %5.3f mm\n", j, stepSize);
         deltaL.copyTo(&deltas[j]);
-        status = pCurPanel->operate(PAS_PanelType_MoveDeltaLengths, deltas);
+        status = pCurPanel->__moveDeltaLengths(deltas);
         if (!status.isGood()) return status;
         // Stepping is asynchronous. but here, we want it to actually complete
         // before the next step. So we wait.
         // Need to change stepping to not be asynchronous?
         Device::DeviceState curState = Device::DeviceState::Busy;
         while (curState == Device::DeviceState::Busy) {
-            usleep(300 * 1000); // microseconds
+            usleep(300 * 1000 * stepSize); // microseconds
             pCurPanel->getState(curState);
         }
         std::cout << "+++ MOTION SHOULD HAVE FINISHED. Sleeping for 2s" << std::endl;
@@ -267,7 +241,7 @@ UaStatus EdgeController::findSingleMatrix(unsigned panelIdx, double stepSize) {
         // move the same actuator back
         printf("moving actuator %d back", j);
         minusdeltaL.copyTo(&deltas[j]);
-        status = pCurPanel->operate(PAS_PanelType_MoveDeltaLengths, deltas);
+        status = pCurPanel->__moveDeltaLengths(deltas);
         if (!status.isGood()) return status;
         // Stepping is asynchronous. but here, we want it to actually complete
         // before the next step. So we wait.
@@ -295,11 +269,6 @@ UaStatus EdgeController::findSingleMatrix(unsigned panelIdx, double stepSize) {
     return status;
 }
 
-/*-------------------------------------------------------------------------
-    Class        EdgeController
-    Method       align
-    Description  Align this edge to the nominal position using the found matrix
------------------------------------------------------------------------------*/
 UaStatus EdgeController::align(unsigned panel_pos, double alignFrac, bool moveit, bool execute) {
     //UaMutexLocker lock(&m_mutex);
     UaStatus status;
@@ -517,7 +486,6 @@ UaStatus EdgeController::alignSinglePanel(unsigned panelpos, double alignFrac, b
             return OpcUa_Bad;
         }
         else {
-            /* MOVE ACTUATORS */
             std::shared_ptr<PanelController> pCurPanel;
             int j = 0;
             for (const auto &panelPair : m_ChildrenPositionMap.at(PAS_PanelType)) {
@@ -536,7 +504,7 @@ UaStatus EdgeController::alignSinglePanel(unsigned panelpos, double alignFrac, b
                         var.setFloat(m_Xcalculated(j++));
                         var.copyTo(&deltas[i]);
                     }
-                    status = pCurPanel->operate(PAS_PanelType_MoveDeltaLengths, deltas);
+                    status = pCurPanel->__moveDeltaLengths(deltas);
                     if (!status.isGood()) return status;
                 }
             }

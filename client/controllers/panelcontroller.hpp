@@ -62,6 +62,14 @@ private:
     Device::ErrorState __getErrorState();
 
     Device::DeviceState __getDeviceState();
+
+    UaStatus __moveToLengths(const UaVariantArray &args) {
+        return m_pClient->callMethodAsync(std::string("ns=2;s=Panel_0"), UaString("MoveToLengths"), args);
+    }
+
+    UaStatus __moveDeltaLengths(const UaVariantArray &args) {
+        return m_pClient->callMethodAsync(std::string("ns=2;s=Panel_0"), UaString("MoveDeltaLengths"), args);
+    }
 };
 
 #endif //CLIENT_PANELCONTROLLER_HPP

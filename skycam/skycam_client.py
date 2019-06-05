@@ -1,12 +1,12 @@
 #import sys
 #sys.path.insert(0, "..")
 
-from opcua import Client
-#import errno
-import sys
 import argparse
 import os
+# import errno
+import sys
 
+from opcua import Client
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Measure astrometry for an images')

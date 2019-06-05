@@ -626,7 +626,7 @@ UaStatus MirrorController::moveToCoords(const Eigen::VectorXd &targetMirrorCoord
                     val.setFloat(m_Xcalculated(j++));
                     val.copyTo(&deltas[i]);
                 }
-                status = pCurPanel->operate(PAS_PanelType_MoveDeltaLengths, deltas);
+                status = pCurPanel->__moveDeltaLengths(deltas);
                 if (!status.isGood()) { return status; }
             }
             m_Xcalculated.setZero(); // reset calculated motion
@@ -1127,7 +1127,7 @@ UaStatus MirrorController::alignSector(double alignFrac, bool execute) {
                     val.setFloat(m_Xcalculated(j++));
                     val.copyTo(&deltas[i]);
                 }
-                status = pCurPanel->operate(PAS_PanelType_MoveDeltaLengths, deltas);
+                status = pCurPanel->__moveDeltaLengths(deltas);
                 if (!status.isGood()) { return status; }
             }
             m_Xcalculated.setZero(); // reset calculated motion
@@ -1363,7 +1363,7 @@ UaStatus MirrorController::alignGlobal(int fixPanel, double alignFrac, bool exec
                     val.setFloat(m_Xcalculated(j++));
                     val.copyTo(&deltas[i]);
                 }
-                status = pCurPanel->operate(PAS_PanelType_MoveDeltaLengths, deltas);
+                status = pCurPanel->__moveDeltaLengths(deltas);
                 if (!status.isGood()) { return status; }
             }
             m_Xcalculated.setZero(); // reset calculated motion
