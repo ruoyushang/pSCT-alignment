@@ -295,7 +295,7 @@ bool PanelController::checkForCollision(const Eigen::VectorXd &deltaLengths) {
             std::shared_ptr<EdgeController> edge = std::dynamic_pointer_cast<EdgeController>(e);
             M_response = edge->getResponseMatrix(m_ID.position);
 
-            Sen_current = edge->getCurrentReadings();
+            Sen_current = edge->getCurrentReadings().first;
             std::cout << "Looking at edge " << edge->getId() << std::endl;
             if (Sen_current.size() == 0) {
                 std::cout << "No MPES found for edge " << edge->getId() << ", skipping..." << std::endl;

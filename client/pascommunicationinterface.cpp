@@ -78,20 +78,20 @@ UaStatus PasCommunicationInterface::initialize()
     }
 
     try {
-        for (const auto &CCD : m_pConfiguration->getDevices(PAS_CCDType)) {
+        for (const auto &identity : m_pConfiguration->getDevices(PAS_CCDType)) {
             try {
-                if (serial2ip.at(std::to_string(CCD.serialNumber)) != CCD.eAddress) {
+                if (serial2ip.at(std::to_string(identity.serialNumber)) != identity.eAddress) {
                     std::cout << " +++ WARNING +++ PasCommunicationInterface::Initialize(): "
                                  "mismatch in recorded config and actual IP assignment:" << std::endl;
-                    std::cout << "        " << CCD.serialNumber << " is assigned "
-                              << CCD.eAddress << ", but actually obtained "
-                              << serial2ip[std::to_string(CCD.serialNumber)] << std::endl;
+                    std::cout << "        " << identity.serialNumber << " is assigned "
+                              << identity.eAddress << ", but actually obtained "
+                              << serial2ip[std::to_string(identity.serialNumber)] << std::endl;
                 }
-                addDevice(nullptr, PAS_CCDType, CCD);
+                addDevice(nullptr, PAS_CCDType, identity);
             }
             catch (std::out_of_range &e) {
                 std::cout << " +++ WARNING +++ PasCommunicationInterface::Initialize(): CCD "
-                          << CCD.serialNumber << " with assigned IP " << CCD.eAddress
+                          << identity.serialNumber << " with assigned IP " << identity.eAddress
                           << " isn't found on the network. Check your connection and restart."
                           << " Skipping..." << std::endl;
             }

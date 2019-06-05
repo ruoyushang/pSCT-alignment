@@ -10,8 +10,7 @@
 #include "client/controllers/pascontroller.hpp"
 #include "client/controllers/mirrorcontroller.hpp"
 
-class GASCCD;
-
+#include "common/globalalignment/ccdclass.h"
 
 class CCDController : public PasController {
     UA_DISABLE_COPY(CCDController);
