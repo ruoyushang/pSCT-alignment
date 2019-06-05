@@ -54,7 +54,7 @@ MPESController::MPESController(Device::Identity identity, Client *pClient) : Pas
         for (const auto &panel : panelType)
             for (int act = 1; act <= 6; act++)
                 query += ", " + std::string(1, panel) + "_response_actuator" + to_string(act);
-        query = "SELECT coord, " + query +
+        query = "SELECT coord" + query +
                 " FROM Opt_MPESConfigurationAndCalibration WHERE end_date is NULL and serial_number=" +
                 to_string(m_ID.serialNumber);
         sql_stmt->execute(query);
@@ -213,7 +213,6 @@ UaStatus MPESController::operate(OpcUa_UInt32 offset, const UaVariantArray &args
               << std::endl;
 
     if (offset == PAS_MPESType_Read) {
-        status = m_pClient->callMethod(m_pClient->getDeviceNodeId(m_ID), UaString("Read"), UaVariantArray());
         status = read(true);
     } else if (offset == PAS_MPESType_SetExposure) {
         status = m_pClient->callMethod(m_pClient->getDeviceNodeId(m_ID), UaString("SetExposure"), args);
@@ -246,6 +245,12 @@ UaStatus MPESController::operate(OpcUa_UInt32 offset, const UaVariantArray &args
 UaStatus MPESController::read(bool print) {  
     //UaMutexLocker lock(&m_mutex);
     UaStatus status;
+
+    status = m_pClient->callMethod(m_pClient->getDeviceNodeId(m_ID), UaString("Read"), UaVariantArray());
+
+    if (!status.isGood()) {
+        return status;
+    }
 
     std::vector<std::string> varstoread{
         "xCentroidAvg",
