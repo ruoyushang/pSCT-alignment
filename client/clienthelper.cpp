@@ -346,9 +346,9 @@ UaStatus Client::callMethodAsync(const std::string &sNodeName, const UaString &s
 
 void Client::callComplete(OpcUa_UInt32 transactionId, const UaStatus &result, const CallOut &callResponse)
 {
-        printf("-- Event callComplete --------------------------------\n");
-        printf("\ttransactionId %d \n", transactionId);
-        printf("\tresultStatus %s \n", result.toString().toUtf8());
+        //printf("-- Event callComplete --------------------------------\n");
+        //printf("\ttransactionId %d \n", transactionId);
+        //printf("\tresultStatus %s \n", result.toString().toUtf8());
         // this should duplicate the behavior of the synchronous callMethod() after the method
         // call succeeds. But we're not doing anything there for now, so this too is empty
 }

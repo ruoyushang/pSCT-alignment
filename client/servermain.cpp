@@ -167,7 +167,7 @@ int OpcMain(const char *szAppPath, const std::vector<std::string> &serverlist)
             std::cout << "************************************\n";
             std::cout << "  ---- SERVER/CLIENT STARTED ----\n";
             std::cout << "    Press x to shut down server\n";
-            std::cout << "************************************\n";
+            std::cout << "************************************" << std::endl;
             
             //pLogic = new PasLogic(pCommIf);
             //pLogic->start();
@@ -191,7 +191,7 @@ int OpcMain(const char *szAppPath, const std::vector<std::string> &serverlist)
 
             std::cout << "*************************************\n";
             std::cout << " Shutting down server/client\n";
-            std::cout << "*************************************\n";
+            std::cout << "*************************************" << std::endl;
 
             // Stop the utilities thread;
             //pLogic->stop();
@@ -203,7 +203,7 @@ int OpcMain(const char *szAppPath, const std::vector<std::string> &serverlist)
             std::cout << "*******************************************\n";
             std::cout << "  ---- FAILED TO START SERVER/CLIENT ----\n";
             std::cout << "             Shutting down\n";
-            std::cout << "*******************************************\n";
+            std::cout << "*******************************************" << std::endl;
         }
 
         delete pServer;
@@ -224,7 +224,7 @@ int main(int argc, char* argv[])
 #endif
 {
     if (argc < 2) {
-        std::cout << "Usage: " << argv[0] << " <Positions of panels to connect to>\n";
+        std::cout << "Usage: " << argv[0] << " <Positions of panels to connect to>" << std::endl;
         return 1;
     }
 

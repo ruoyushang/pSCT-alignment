@@ -27,7 +27,8 @@ UaStatus EdgeController::getState(Device::DeviceState &state) {
 }
 
 UaStatus EdgeController::setState(Device::DeviceState state) {
-    return OpcUa_BadInvalidArgument;
+    m_state = state;
+    return OpcUa_Good;
 }
 
 UaStatus EdgeController::getData(OpcUa_UInt32 offset, UaVariant &value) {
@@ -62,6 +63,11 @@ UaStatus EdgeController::operate(OpcUa_UInt32 offset, const UaVariantArray &args
         return OpcUa_BadInvalidState;
     }
 
+    if (m_state == Device::DeviceState::Busy && offset != PAS_EdgeType_Stop) {
+        std::cout << "EdgeController::operate() : Device is busy, operate aborted." << std::endl;
+        return OpcUa_BadInvalidState;
+    }
+
     switch (offset) {
         case PAS_EdgeType_FindMatrix:
             status = findMatrix(args);
@@ -84,6 +90,20 @@ UaStatus EdgeController::operate(OpcUa_UInt32 offset, const UaVariantArray &args
             double alignFrac;
             bool execute;
 
+            std::set<int> allowedPanels;
+            for (const auto &panel : m_pChildren.at(PAS_PanelType))
+                allowedPanels.insert(panel->getId().position);
+
+            if (allowedPanels.find((int)args[0].Value.UInt32) == allowedPanels.end()) {
+                std::cout << "Invalid choice of move panel " << args[0].Value.UInt32 << " (not in edge)." << std::endl;
+                return OpcUa_BadInvalidArgument;
+            }
+            if (allowedPanels.find((int)args[1].Value.UInt32) == allowedPanels.end()) {
+                std::cout << "Invalid choice of fixed panel " << args[1].Value.UInt32 << " (not in edge)." << std::endl;
+                return OpcUa_BadInvalidArgument;
+            }
+
+
             if (numPanels == 2) {
                 panel = args[0].Value.UInt32;
                 moveit = true;
@@ -97,14 +117,19 @@ UaStatus EdgeController::operate(OpcUa_UInt32 offset, const UaVariantArray &args
                     // the panel_fix panel is P1
                     moveit = false;
                 else {
-                    status = OpcUa_BadInvalidArgument;
-                    break;
+                    std::cout << "Invalid choice of panels (at least one of the two selected must be an inner ring (P1/S1) panel when aligning a 3-panel edge." << std::endl;
+                    return OpcUa_BadInvalidArgument;
                 }
             }
 
             execute = args[3].Value.Boolean;
 
             UaVariant(args[2]).toDouble(alignFrac);
+
+            if (alignFrac > 1.0 || alignFrac <= 0.0) {
+                std::cout << "Invalid choice of alignFrac, should be between 0.0 and 1.0." << std::endl;
+                return OpcUa_BadInvalidArgument;
+            }
 
             status = align(panel, alignFrac, moveit, execute);
             break;
@@ -117,6 +142,12 @@ UaStatus EdgeController::operate(OpcUa_UInt32 offset, const UaVariantArray &args
             Eigen::VectorXd currentReadingsSpotWidth = currentReadingsPair.second;
             Eigen::VectorXd alignedReadings = getAlignedReadings();
 
+            if (m_state == Device::DeviceState::Off) {
+                std::cout << "EdgeController::operate() : Stop signal received. Read stopped." << std::endl;
+                setState(Device::DeviceState::On);
+                return OpcUa_Good;
+            }
+
             if (!currentReadings.size() || !alignedReadings.size()) {
                 std::cout
                     << "+++ ERROR +++ No physical sensor readings! Make sure the sensors are on/operable/in the field of view. Nothing to do for now."
@@ -125,18 +156,32 @@ UaStatus EdgeController::operate(OpcUa_UInt32 offset, const UaVariantArray &args
                 break;
             }
 
-            std::cout << "\nCurrent MPES readings:\n";
-            for (unsigned i = 0; i < currentReadings.size(); i++)
-                std::cout << currentReadings(i) << " +/- " << currentReadingsSpotWidth(i) << std::endl;
+            std::cout << "\nCurrent position +/- Spot width [Aligned position] (Misalignment)\n" << std::endl;
 
-            std::cout << "\nTarget MPES readings:\n" << alignedReadings << std::endl << std::endl;
-            std::cout << "\nMisalignment:\n" << alignedReadings - currentReadings << std::endl << std::endl;
-            status = OpcUa_Good;
+            int i = 0;
+            Device::DeviceState mpesState;
+            Device::ErrorState errorState;
+            int temp;
+            UaVariant vtmp;
+            for (const auto& pMPES : m_pChildren.at(PAS_MPESType)) {
+                std::dynamic_pointer_cast<MPESController>(pMPES)->getState(mpesState);
+                std::dynamic_pointer_cast<MPESController>(pMPES)->getData(PAS_MPESType_ErrorState, vtmp);
+                vtmp.toInt32(temp);
+                errorState = static_cast<Device::ErrorState>(temp);
+                if (mpesState == Device::DeviceState::Off || errorState == Device::ErrorState::FatalError) {
+                    continue;
+                }
+                std::cout << std::dynamic_pointer_cast<MPESController>(pMPES)->getId() << ":" << std::endl;
+                std::cout << "    " << currentReadings(i) << " +/- " << currentReadingsSpotWidth(i) << " [" << alignedReadings(i) << "] (" << currentReadings(i) - alignedReadings(i) << ")" << std::endl;
+                std::cout << "    " << currentReadings(i+1) << " +/- " << currentReadingsSpotWidth(i+1) << " [" << alignedReadings(i+1) << "] (" << currentReadings(i+1) - alignedReadings(i+1) << ")" << std::endl;
+                i += 2;
+            }
         }
             break;
         case PAS_EdgeType_Stop: {
             // stop motion of all panels
-            std::cout << m_ID.name << "EdgeController::Operate() : Attempting to stop all panels in edge." << std::endl;
+            std::cout << m_ID << " :: EdgeController::Operate() : Attempting to stop all panels in edge." << std::endl;
+            setState(Device::DeviceState::Off); // Turn state off to stop all methods
             for (const auto &panel : m_pChildren.at(PAS_PanelType))
                 panel->operate(PAS_PanelType_Stop);
             break;
@@ -159,13 +204,21 @@ UaStatus EdgeController::findMatrix(UaVariantArray args) {
 
     unsigned numPanels = m_pChildren.at(PAS_PanelType).size();
 
+    setState(Device::DeviceState::Busy);
     for (unsigned i = 0; i < numPanels; i++) {
-        status = findSingleMatrix(i, stepSize);
-        if (!status.isGood()) {
-            std::cout << "Encountered error after first call to findSingleMatrix(). Aborting...\n";
-            return status;
+        if (m_state != Device::DeviceState::Off) {
+            status = findSingleMatrix(i, stepSize);
+            if (!status.isGood()) {
+                std::cout << "Encountered error after first call to findSingleMatrix(). Aborting...\n";
+                return status;
+            }
+        }
+        else {
+            std::cout << "EdgeController::findMatrix() : Edge stop detected. Method stopped." << std::endl;
+            break;
         }
     }
+    setState(Device::DeviceState::On);
 
     return status;
 }
@@ -176,6 +229,8 @@ UaStatus EdgeController::findMatrix(UaVariantArray args) {
 UaStatus EdgeController::findSingleMatrix(unsigned panelIdx, double stepSize) {
     //UaMutexLocker lock(&m_mutex);
     UaStatus status;
+
+    bool stop = false;
 
     Eigen::MatrixXd responseMatrix(6, 6);
     responseMatrix.setZero();
@@ -201,63 +256,70 @@ UaStatus EdgeController::findSingleMatrix(unsigned panelIdx, double stepSize) {
     std::shared_ptr<ActController> actuator;
     float missedDelta;
 
-    for (unsigned j = 0; j < nACTs; j++) {
+    for (unsigned j = 0; j < nACTs && !stop; j++) {
         // extra safety -- initialize array to zero every time
         for (unsigned k = 0; k < nACTs; k++)
             zeroDelta.copyTo(&deltas[k]);
 
         missedDelta = 0.;
 
-        vector0 = getCurrentReadings().first;
-        std::cout << "+++ CURRENT READINGS:\n" << vector0 << std::endl << "Sleeping for 1s" << std::endl;
-        sleep(1); // seconds
-
-        printf("attempting to move actuator %d by %5.3f mm\n", j, stepSize);
+        vector0 = __getCurrentReadings().first;
+        std::cout << "\nEdge MPES readings (before):\n" << vector0 << std::endl;
+        
+        std::cout << "\nMoving actuator " << j+1 << " by " << stepSize << " mm..." << std::endl;
+        std::cout << "Waiting..." << std::endl; 
         deltaL.copyTo(&deltas[j]);
         status = pCurPanel->__moveDeltaLengths(deltas);
         if (!status.isGood()) return status;
         // Stepping is asynchronous. but here, we want it to actually complete
         // before the next step. So we wait.
         // Need to change stepping to not be asynchronous?
-        Device::DeviceState curState = Device::DeviceState::Busy;
+        Device::DeviceState curState;
+        pCurPanel->getState(curState);
         while (curState == Device::DeviceState::Busy) {
-            usleep(300 * 1000 * stepSize); // microseconds
+            usleep(500 * 1000); // microseconds
             pCurPanel->getState(curState);
         }
-        std::cout << "+++ MOTION SHOULD HAVE FINISHED. Sleeping for 2s" << std::endl;
-        sleep(2);
+        if (m_state == Device::DeviceState::Off) { return status; }
+
+        std::cout << "Motion finished." << std::endl;
 
         // update missed steps
         actuator = std::dynamic_pointer_cast<ActController>(pCurPanel->getChildren(PAS_ACTType)[j]);
         actuator->getData(PAS_ACTType_DeltaLength, vtmp);
         vtmp.toFloat(missedDelta);
 
-        printf("actuator %d missed target by %5.3f mm\n", j, missedDelta);
+        std::cout << "Actuator " << j+1 << " missed target by " << missedDelta << " mm\n" << std::endl;
 
-        vector1 = getCurrentReadings().first;
-        std::cout << "+++ CURRENT READINGS:\n" << vector1 << std::endl << "Sleeping for 1s" << std::endl;
-        sleep(1); // seconds
-        std::cout << "+++ Difference in sensor readings:\n" << vector1 - vector0 << std::endl;
+        vector1 = __getCurrentReadings().first;
+        if (m_state == Device::DeviceState::Off) { return status; }
+
+        std::cout << "\n Edge MPES readings (after)\n" << vector1 << std::endl;
+
+        std::cout << "\nDifference in sensor readings:\n" << vector1 - vector0 << std::endl;
+        
         // move the same actuator back
-        printf("moving actuator %d back", j);
+        std::cout << "\nMoving actuator " << j+1 << " back to original position." << std::endl;
+        std::cout << "Waiting..." << std::endl; 
         minusdeltaL.copyTo(&deltas[j]);
         status = pCurPanel->__moveDeltaLengths(deltas);
         if (!status.isGood()) return status;
         // Stepping is asynchronous. but here, we want it to actually complete
         // before the next step. So we wait.
-        curState = Device::DeviceState::Busy;
+        pCurPanel->getState(curState);
         while (curState == Device::DeviceState::Busy) {
-            usleep(300 * 1000); // microseconds
+            usleep(500 * 1000); // microseconds
             pCurPanel->getState(curState);
         }
-        std::cout << "+++ MOTION SHOULD HAVE FINISHED. Sleeping for 2s" << std::endl;
-        sleep(2);
+        if(m_state == Device::DeviceState::Off) { return status; }
+        std::cout << "Motion finished.\n" << std::endl;
 
         responseMatrix.col(j) = (vector1 - vector0) / (stepSize - missedDelta);
-        std::cout << "+++ CURRENT RESPONSE MATRIX:\n" << responseMatrix << std::endl;
+        std::cout << "\n+++ CURRENT RESPONSE MATRIX:\n" << responseMatrix << std::endl;
     }
     std::cout << "\n+++ ALL DONE FOR THIS PANEL!" << std::endl;
-    std::cout << "+++ Response matrix for " << m_ID.eAddress << ": panel " << pCurPanel->getId().position << std::endl;
+    
+    std::cout << "\n+++ Response matrix for " << m_ID.eAddress << ": panel " << pCurPanel->getId().position << std::endl;
     std::cout << responseMatrix << std::endl;
 
     std::string outfilename = "/home/ctauser/PanelAlignmentData/ResponseMatrix_" + m_ID.eAddress + ".txt";
@@ -273,6 +335,8 @@ UaStatus EdgeController::align(unsigned panel_pos, double alignFrac, bool moveit
     //UaMutexLocker lock(&m_mutex);
     UaStatus status;
 
+    setState(Device::DeviceState::Busy);
+
     std::cout << "\nAligning " << m_ID.name << ": ";
     if (moveit) {
         std::cout << "Will align panel " << panel_pos << std::endl;
@@ -282,6 +346,8 @@ UaStatus EdgeController::align(unsigned panel_pos, double alignFrac, bool moveit
 
     status = alignSinglePanel(panel_pos, alignFrac, moveit, execute);
 
+    setState(Device::DeviceState::On);
+
     return status;
 }
 
@@ -289,6 +355,7 @@ UaStatus EdgeController::alignSinglePanel(unsigned panelpos, double alignFrac, b
 
     //UaMutexLocker lock(&m_mutex);
     UaStatus status;
+    
     if (!execute) {
         Eigen::MatrixXd A; // response matrix
         Eigen::MatrixXd C; // constraint matrix
@@ -478,7 +545,7 @@ UaStatus EdgeController::alignSinglePanel(unsigned panelpos, double alignFrac, b
             std::cout << X << std::endl;
         }
         m_Xcalculated = X;
-        std::cout << "Calculation done! You should call the method again with execute=True to actually execute the motion." << std::endl;
+        std::cout << "\nCalculation done! You should call the method again with execute=True to actually execute the motion." << std::endl;
     }
     else {
         if (m_Xcalculated.isZero(0)) {
@@ -614,6 +681,16 @@ Eigen::VectorXd EdgeController::getSystematicOffsets() {
 }
 
 std::pair<Eigen::VectorXd, Eigen::VectorXd> EdgeController::getCurrentReadings() {
+    setState(Device::DeviceState::Busy);
+    std::pair<Eigen::VectorXd, Eigen::VectorXd> currentReadings = __getCurrentReadings();
+    setState(Device::DeviceState::On);
+
+    return currentReadings;
+}
+
+std::pair<Eigen::VectorXd, Eigen::VectorXd> EdgeController::__getCurrentReadings() 
+{
+    bool stop = false;
     // edge should have at least one sensor by definition -- otherwise it wouldn't be created.
     // so this is safe.
     auto &pMPES = m_pChildren.at(PAS_MPESType);
@@ -628,7 +705,7 @@ std::pair<Eigen::VectorXd, Eigen::VectorXd> EdgeController::getCurrentReadings()
 
     UaVariant vtmp;
     int temp;
-    for (unsigned nMPES = 0; nMPES < maxMPES; nMPES++) {
+    for (unsigned nMPES = 0; nMPES < maxMPES && !stop; nMPES++) {
         std::dynamic_pointer_cast<MPESController>(pMPES.at(nMPES))->getState(state);
 
         std::dynamic_pointer_cast<MPESController>(pMPES.at(nMPES))->getData(PAS_MPESType_ErrorState, vtmp);
@@ -640,7 +717,9 @@ std::pair<Eigen::VectorXd, Eigen::VectorXd> EdgeController::getCurrentReadings()
             continue;
         }
 
+        std::cout << "Reading MPES " << pMPES.at(nMPES)->getId() << "..." << std::endl;
         std::dynamic_pointer_cast<MPESController>(pMPES.at(nMPES))->read(false);
+        if (m_state == Device::DeviceState::Off) { stop = true; break; }
 
         pMPES.at(nMPES)->getData(PAS_MPESType_xCentroidAvg, vtmp);
         vtmp.toDouble(currentReadings(visibleMPES * 2));

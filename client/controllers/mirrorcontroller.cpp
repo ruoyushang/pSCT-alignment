@@ -62,10 +62,9 @@ void MirrorController::addChild(OpcUa_UInt32 deviceType, const std::shared_ptr<P
     }
     else if (deviceType == PAS_EdgeType) {
         m_selectedEdges.insert(pController->getId().eAddress);
-        for (const auto &mpes : std::dynamic_pointer_cast<PasCompositeController>(pController)->getChildren(
-            PAS_MPESType)) {
-            m_selectedMPES.insert(mpes->getId().serialNumber);
-        }
+    }
+    else if (deviceType == PAS_MPESType) {
+        m_selectedMPES.insert(pController->getId().serialNumber);
     }
 }
 
@@ -325,10 +324,16 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
     UaStatus status;
     //UaMutexLocker lock(&m_mutex);
 
+    if (m_state == Device::DeviceState::Busy && offset != PAS_MirrorType_Stop) {
+        std::cout << "MirrorController::operate() : State is busy, cannot call operate." << std::endl;
+        return OpcUa_BadInvalidState;
+    }
+
     /**********************************************************
      * Move the whole mirror in the telescope reference frame *
      * ********************************************************/
     if (offset == PAS_MirrorType_MoveToCoords) {
+        setState(Device::DeviceState::Busy);
         updateCoords(false);    
         Eigen::VectorXd targetMirrorCoords(6);
         for (int i = 0; i < 6; i++) {
@@ -339,20 +344,24 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
 
         status = moveToCoords(targetMirrorCoords, execute);
         updateCoords(false);
+        setState(Device::DeviceState::On);
     }
     /**********************************************************
      * Read out all current panel positions in their frames   *
      * ********************************************************/
     else if (offset == PAS_MirrorType_ReadPosition) {
+        setState(Device::DeviceState::Busy);
         // read out all individual positions
         // and get global mirror coordinates
         updateCoords();
+        setState(Device::DeviceState::On);
     }
 
     /**********************************************************
      * Align the selected sector to selected sensors          *
      * ********************************************************/
     else if (offset == PAS_MirrorType_AlignSector) {
+        setState(Device::DeviceState::Busy);
 
         std::set<unsigned> selectedPanels = getSelectedDeviceIndices(PAS_PanelType);
         std::set<unsigned> selectedMPES = getSelectedDeviceIndices(PAS_MPESType);
@@ -373,12 +382,14 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
 
         status = alignSector(alignFrac, execute);
         updateCoords(false);
+        setState(Device::DeviceState::On);
     }
 
     /**********************************************************************************************
      * Perform global alignment and compute the systematics vector keeping the input panel fixed  *
      * ********************************************************************************************/
     else if (offset == PAS_MirrorType_GlobalAlign) {
+        setState(Device::DeviceState::Busy);
         // get the position of the panel to keep fixed
         unsigned fixPanel = args[0].Value.UInt32;
 
@@ -394,6 +405,7 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
         
         status = alignGlobal(fixPanel, execute);
         updateCoords(false);
+        setState(Device::DeviceState::On);
     }
 
 
@@ -401,6 +413,7 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
      * Align all edges of the mirror                          *
      * ********************************************************/
     else if (offset == PAS_MirrorType_AlignSequential) {
+        setState(Device::DeviceState::Busy);
         // make sure the arguments make sense -- we are supposed
         // to get an edge position and a direction. The type has
         // already been validated by the caller, but we need to
@@ -431,24 +444,34 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
 
         status = alignSequential(idx, selectedEdges, (bool) dir);
         updateCoords(false);
+        setState(Device::DeviceState::On);
     }
 
     /**********************************************************
      * Read out all current edge sensors                      *
      * ********************************************************/
     else if (offset == PAS_MirrorType_ReadSensors) {
+        setState(Device::DeviceState::Busy);
         auto edgeIndices = getSelectedDeviceIndices(PAS_EdgeType);
         if (edgeIndices.empty()) {
             std::cout << "No edges selected in SelectedEdges! Nothing to do..." << std::endl;
         }
         else {
             for (const auto &idx : edgeIndices) {
-                status = std::dynamic_pointer_cast<EdgeController>(m_pChildren.at(PAS_EdgeType).at(idx))->operate(
-                    PAS_EdgeType_Read);
-                if (!status.isGood()) { return status; }
+                if (m_state == Device::DeviceState::Busy) {
+                    status = std::dynamic_pointer_cast<EdgeController>(m_pChildren.at(PAS_EdgeType).at(idx))->operate(
+                        PAS_EdgeType_Read);
+                    if (!status.isGood()) { return status; }
+                }
+                else {
+                    std::cout << "EdgeController::readSensors() : Mirror stop detected. Readings stopped." << std::endl;
+                }
             }
         }
+        setState(Device::DeviceState::On);
     } else if (offset == PAS_MirrorType_ReadSensorsParallel) {
+        setState(Device::DeviceState::Busy);
+        bool stopped = false;
         std::map<Device::Identity, MPES::Position> readings;
         if (m_selectedMPES.empty()) {
             std::cout << "No MPES selected in SelectedMPES! Nothing to do..." << std::endl;
@@ -460,30 +483,43 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
                 for (const auto &mpes : std::dynamic_pointer_cast<PanelController>(*it)->getChildren(
                     PAS_MPESType)) {
                     if (m_selectedMPES.find(mpes->getId().serialNumber) != m_selectedMPES.end()) {
-                        std::dynamic_pointer_cast<MPESController>(mpes)->read(false);
-                        readings.insert(std::make_pair(mpes->getId(), std::dynamic_pointer_cast<MPESController>(
-                            mpes)->getPosition()));
+                        if (m_state == Device::DeviceState::Busy) {
+                            std::dynamic_pointer_cast<MPESController>(mpes)->read(false);
+                            readings.insert(std::make_pair(mpes->getId(), std::dynamic_pointer_cast<MPESController>(
+                                mpes)->getPosition()));
+                        }
+                        else {
+                            stopped = true;
+                            break;
+                        }
                     }
                 }
             }
         }
 
-        // Reorganize by edge and print
-        for (const auto &edge : getChildren(PAS_EdgeType)) {
-            std::cout << "Readings for Edge " << edge->getId() << std::endl << std::endl;
-            for (const auto &mpes : std::dynamic_pointer_cast<PasCompositeController>(edge)->getChildren(
-                PAS_MPESType)) {
-                std::cout << mpes->getId() << " : " << std::endl;
-                auto it = readings.find(mpes->getId());
-                if (it != readings.end()) {
-                    std::cout << "    " << it->second.xCentroid << " [" << it->second.xNominal << "] ("
-                              << it->second.xCentroid - it->second.xNominal << ")" << std::endl;
-                    std::cout << "    " << it->second.yCentroid << " [" << it->second.yNominal << "] ("
-                              << it->second.yCentroid - it->second.yNominal << ")" << std::endl;
+        if (!stopped) {
+            // Reorganize by edge and print
+            for (const auto &edge : getChildren(PAS_EdgeType)) {
+                std::cout << "Readings for Edge " << edge->getId() << std::endl << std::endl;
+                std::cout << "\nCurrent position +/- Spot width [Aligned position] (Misalignment)" << std::endl;
+                for (const auto &mpes : std::dynamic_pointer_cast<PasCompositeController>(edge)->getChildren(
+                    PAS_MPESType)) {
+                    std::cout << mpes->getId() << " : " << std::endl;
+                    auto it = readings.find(mpes->getId());
+                    if (it != readings.end()) {
+                        std::cout << "    " << it->second.xCentroid << " +/- " << it->second.xSpotWidth << " [" << it->second.xNominal << "] ("
+                                  << it->second.xCentroid - it->second.xNominal << ")" << std::endl;
+                        std::cout << "    " << it->second.yCentroid << " +/- " << it->second.ySpotWidth << " [" << it->second.yNominal << "] ("
+                                  << it->second.yCentroid - it->second.yNominal << ")" << std::endl;
+                    }
                 }
+                std::cout << std::endl << std::endl;
             }
-            std::cout << std::endl << std::endl;
         }
+        else {
+            std::cout << "EdgeController::readSensorsParallel() : Mirror stop detected. Readings stopped." << std::endl;
+        }
+        setState(Device::DeviceState::On);
     } else if (offset == PAS_MirrorType_SelectAll) {
 
         m_selectedPanels.clear();
@@ -506,11 +542,11 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
          * stop the motion in progress                  *
          * **********************************************/
     else if (offset == PAS_MirrorType_Stop) {
-        std::cout << m_ID.name << ":: MirrorController::Operate() : Attempting to stop all *selected* panels." << std::endl;
-        for (const auto &idx : getSelectedDeviceIndices(PAS_PanelType)) {
-            std::dynamic_pointer_cast<PanelController>(m_pChildren.at(PAS_PanelType).at(idx))->operate(PAS_PanelType_Stop);
+        std::cout << m_ID.name << ":: MirrorController::Operate() : Attempting to stop all edges and their child panels." << std::endl;
+        for (const auto &pEdge : m_pChildren.at(PAS_EdgeType)) {
+            std::dynamic_pointer_cast<EdgeController>(pEdge)->operate(PAS_EdgeType_Stop);
         }
-        updateCoords(false);
+        setState(Device::DeviceState::Off); // Turn state off to stop all methods
     } else {
         return OpcUa_BadNotImplemented;
     }
@@ -554,8 +590,8 @@ UaStatus MirrorController::moveToCoords(const Eigen::VectorXd &targetMirrorCoord
         std::cout << "Moving Mirror " << m_ID.position << " To Target Coordinates:\n"
                   << targetMirrorCoords << std::endl;
 
-        std::cout << "Delta Coordinates: "
-                  << deltaMirrorCoords << std::endl;
+        std::cout << "Delta Coordinates:" << std::end;
+        std::cout << deltaMirrorCoords << std::endl;
         std::cout << std::endl << std::endl;
 
 
@@ -628,6 +664,7 @@ UaStatus MirrorController::moveToCoords(const Eigen::VectorXd &targetMirrorCoord
                 }
                 status = pCurPanel->__moveDeltaLengths(deltas);
                 if (!status.isGood()) { return status; }
+                if (m_state == Device::DeviceState::Off) { break; }
             }
             m_Xcalculated.setZero(); // reset calculated motion
             m_panelsToMove.clear();
@@ -659,11 +696,10 @@ UaStatus MirrorController::alignSequential(unsigned startEdge, const std::set<un
     std::deque<unsigned> already_aligned{}; // yes, deque, not vector!
 
     unsigned cur_idx = startEdge;
-    while (selectedEdges.find(cur_idx) != selectedEdges.end() && m_state == Device::DeviceState::On) {
+    while (selectedEdges.find(cur_idx) != selectedEdges.end() && m_state != Device::DeviceState::Off) {
         already_aligned.push_front(cur_idx);
         // align all the preceding panels
         for (unsigned edge : already_aligned) {
-            if (!(m_state == Device::DeviceState::On)) break;
             // figure out which panel is "greater" and which one is "smaller" in the sense
             // of dir, assuming a two-panel edge for now.
             // get vector of panel positions:
@@ -684,12 +720,14 @@ UaStatus MirrorController::alignSequential(unsigned startEdge, const std::set<un
                 std::cout << "Error: Failed when calculating motion." << std::endl;
                 return status; 
             }
+            if (m_state == Device::DeviceState::Off) { break; }
             args[3].Value.Boolean = true;
             status = m_pChildren.at(PAS_EdgeType).at(edge)->operate(PAS_EdgeType_Align, args);
             if (!status.isGood()) { 
                 std::cout << "Error: Failed when executing motion." << std::endl;
                 return status; 
             }
+            if (m_state == Device::DeviceState::Off) { break; }
             while (!std::dynamic_pointer_cast<EdgeController>(m_pChildren.at(PAS_EdgeType).at(edge))->isAligned()) {
                 std::cout << "\nAlignment Iteration " << aligniter << std::endl << std::endl;
                 usleep(400*1000); // microseconds
@@ -708,12 +746,14 @@ UaStatus MirrorController::alignSequential(unsigned startEdge, const std::set<un
                     std::cout << "Error: Failed when calculating motion." << std::endl;
                     return status; 
                 }
+                if (m_state == Device::DeviceState::Off) { break; }
                 args[3].Value.Boolean = true;
                 status = m_pChildren.at(PAS_EdgeType).at(edge)->operate(PAS_EdgeType_Align, args);
                 if (!status.isGood()) { 
                     std::cout << "Error: Failed when executing motion." << std::endl;
                     return status; 
                 }
+                if (m_state == Device::DeviceState::Off) { break; }
             }
             std::cout << "\n" << m_pChildren.at(PAS_EdgeType).at(edge)->getId().name
                       << " is aligned!" << std::endl;
@@ -737,7 +777,7 @@ void MirrorController::parseAndSetSelection(const std::string &selectionString, 
     // process a separated string and find the panels or edges described by it
     // pad by a space from the right so we don't hit the end of the line without a delimiter
  
-    // Strip leading and trailing brackets if present
+    // Strip leading and trailing brackets if present   
     int front = 0;
     int back = selectionString.size();
     if (selectionString.front() == '[') {
@@ -867,9 +907,10 @@ UaStatus MirrorController::updateCoords(bool print)
         minuit->GetParameter(i, m_curCoords(i), m_curCoordsErr(i));
 
     if (print) {
-        std::cout << "\n" << m_ID.name << " coordinates:\n";
+        std::cout << "\n" << m_ID << " coordinates:\n";
         for (int i = 0; i < 6; i++)
             std::cout << m_curCoords(i) << " +/- " << m_curCoordsErr(i) << std::endl;
+        std::cout << std::endl << std::endl;
         // display angle in common coordinates -- angle*baseRad
     //    for (int i = 3; i < 6; i++)
     //       std::cout << m_curCoords(i)*kBaseRadius << " +/- " << m_curCoordsErr(i)*kBaseRadius << std::endl;
@@ -982,9 +1023,7 @@ UaStatus MirrorController::alignSector(double alignFrac, bool execute) {
         unsigned idx;
         bool userOverlap = false;
         for (const auto &panel : panelsToMove) {
-            std::cout << panel->getId() << std::endl;
             for (const auto &mpes : panel->getChildren(PAS_MPESType)) {
-                std::cout << mpes->getId() << std::endl;
                 unsigned overlap = 0;
                 for (const auto &overlapPanel : panelsToMove)
                     overlap += (
@@ -1018,20 +1057,20 @@ UaStatus MirrorController::alignSector(double alignFrac, bool execute) {
                     alignMPES.push_back(mpes);
             }
         } else if (overlapIndices.empty())
-            std::cout << "\nIdentified NO internal MPES. Are you alignining a single panel?";
+            std::cout << "\nIdentified NO internal MPES. Are you alignining a single panel?\n" << std::endl;
         else
-            std::cout << "\nWill be using user-specified internal MPES.";
+            std::cout << "\nWill be using user-specified internal MPES.\n" << std::endl;
         std::cout << std::endl;
 
 
         std::cout << "Will align the following panels:" << std::endl;
         for (auto &panel : panelsToMove)
             std::cout << panel->getId().position << " ";
-        std::cout << std::endl;
+        std::cout << std::endl << std::endl;
         std::cout << "Will use the following sensors for alignment:" << std::endl;
         for (auto &mpes: alignMPES)
             std::cout << mpes->getId().serialNumber << " ";
-        std::cout << std::endl;
+        std::cout << std::endl << std::endl;
 
         // construct the overall target vector and the response matrix
         UaVariant vtmp;
@@ -1110,6 +1149,8 @@ UaStatus MirrorController::alignSector(double alignFrac, bool execute) {
         m_Xcalculated = X; // set calculated motion
         m_panelsToMove = panelsToMove;
         m_previousCalculatedMethod = PAS_MirrorType_AlignSector;
+    
+        std::cout << "Calculation done! Call the method again with execute=True to carry out the calculated motion." << std::endl;
     }
     else {
         if (m_Xcalculated.isZero(0) || m_previousCalculatedMethod != PAS_MirrorType_AlignSector) {
@@ -1129,6 +1170,7 @@ UaStatus MirrorController::alignSector(double alignFrac, bool execute) {
                 }
                 status = pCurPanel->__moveDeltaLengths(deltas);
                 if (!status.isGood()) { return status; }
+                if (m_state == Device::DeviceState::Off) { break; }
             }
             m_Xcalculated.setZero(); // reset calculated motion
             m_panelsToMove.clear();
@@ -1365,6 +1407,7 @@ UaStatus MirrorController::alignGlobal(int fixPanel, double alignFrac, bool exec
                 }
                 status = pCurPanel->__moveDeltaLengths(deltas);
                 if (!status.isGood()) { return status; }
+                if (m_state == Device::DeviceState::Off) { break; }
             }
             m_Xcalculated.setZero(); // reset calculated motion
             m_panelsToMove.clear();

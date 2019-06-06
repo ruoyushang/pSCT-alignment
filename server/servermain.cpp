@@ -94,7 +94,7 @@ int OpcServerMain(const std::string &szAppPath, const std::string &configFilePat
         if (pServer->start() == 0) {
             std::cout << "***************************************************\n";
             std::cout << " Press " << SHUTDOWN_SEQUENCE << " to shut down server\n";
-            std::cout << "***************************************************\n";
+            std::cout << "***************************************************" << std::endl;
 
             while (ShutDownFlag() == 0) {
                 UaThread::msleep(1000); // Wait for user command to terminate the server.
@@ -102,7 +102,7 @@ int OpcServerMain(const std::string &szAppPath, const std::string &configFilePat
 
             std::cout << "***************************************************\n";
             std::cout << " Shutting down server\n";
-            std::cout << "***************************************************\n";
+            std::cout << "***************************************************" << std::endl;
 
             // Stop the server and wait three seconds if clients are connected
             // to allow them to disconnect after they received the shutdown signal
@@ -133,7 +133,7 @@ int main(int argc, char* argv[])
 {
     if (argc == 1) {
         std::cout << "Usage: " << argv[0]
-                  << " <PANEL POSITION NUMBER> -c <CONFIG FILE PATH (optional)> -u <ENDPOINT URL (optional)>\n";
+                  << " <PANEL POSITION NUMBER> -c <CONFIG FILE PATH (optional)> -u <ENDPOINT URL (optional)>" << std::endl;
         return -1;
     }
 
@@ -163,7 +163,7 @@ int main(int argc, char* argv[])
         std::cout << "Invalid number of positional arguments: " << (argc - optind)
                   << ". Expected only 1 (panel number)." << std::endl;
         std::cout << "Usage: " << argv[0]
-                  << " <PANEL POSITION NUMBER> -c <CONFIG FILE PATH> -u <ENDPOINT URL (optional)>\n";
+                  << " <PANEL POSITION NUMBER> -c <CONFIG FILE PATH> -u <ENDPOINT URL (optional)>" << std::endl;
         return -1;
     } else {
         panelNumber = argv[optind];
@@ -191,7 +191,7 @@ int main(int argc, char* argv[])
         std::cout << " Failed to stat \"/\": terminating\n";
         return -1;
     }
-    std::cout << "***************************************************\n";
+    std::cout << "***************************************************" << std::endl;
     RegisterSignalHandler();
 
     int ret = OpcServerMain(pszAppPath, configFilePath, panelNumber, endpointUrl);

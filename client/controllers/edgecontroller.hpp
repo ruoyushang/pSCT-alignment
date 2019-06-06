@@ -44,6 +44,8 @@ private:
     UaStatus findMatrix(UaVariantArray args);
     UaStatus findSingleMatrix(unsigned panelIdx, double stepSize = 0.5);
 
+    std::pair<Eigen::VectorXd, Eigen::VectorXd> __getCurrentReadings();
+
     // temporarily hold calculated alignment motion
     Eigen::VectorXd m_Xcalculated;
 

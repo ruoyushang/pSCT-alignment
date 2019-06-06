@@ -159,7 +159,6 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
         std::cout << "Calling Panel::MoveDeltaLengths() with delta lengths: \n";
         std::cout << deltaLengths << std::endl << std::endl;
         if (checkForCollision(deltaLengths)) {
-            std::cout << "Error: Sensors may go out of range! Motion cancelled." << std::endl;
             return OpcUa_Bad;
         }
         else {
@@ -175,7 +174,6 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
         Eigen::VectorXd currentLengths = getActuatorLengths();
         deltaLengths = targetLengths - currentLengths;
         if (checkForCollision(deltaLengths)) {
-            std::cout << "Error: Sensors may go out of range! Motion cancelled." << std::endl;
             return OpcUa_Bad;
         }
         else {
@@ -215,7 +213,6 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
         Eigen::VectorXd currentLengths = getActuatorLengths();
         deltaLengths = targetLengths - currentLengths;
         if (checkForCollision(deltaLengths)) {
-            std::cout << "Error: Sensors may go out of range! Motion cancelled." << std::endl;
             return OpcUa_Bad;
         }
         else {
@@ -279,18 +276,19 @@ bool PanelController::checkForCollision(const Eigen::VectorXd &deltaLengths) {
     Eigen::VectorXd Sen_delta; // sensor delta
     Eigen::VectorXd Sen_new; // sensor new position = Sen_delta + current sensor reading
     Eigen::VectorXd Sen_center(6); // center of sensor camera
-    Sen_center << 160.0, 120.0, 160.0, 120.0, 160.0, 120.0;
+    Sen_center << 160.0, 120.0, 160.0, 120.0, 160.0, 120.0; // Hardcoded
     Eigen::VectorXd Sen_deviation; // deviated sensor reading
 
     Eigen::VectorXd currentLengths = getActuatorLengths();
 
-    std::cout << "Current Act lengths are: \n" << currentLengths << std::endl;
-    std::cout << "Delta Act lengths are: \n" << deltaLengths << std::endl;
-    std::cout << "New Act lengths are: \n" << currentLengths + deltaLengths << std::endl;
+    std::cout << "Current length (Delta length) => Target length\n" << std::endl;
+    for (int i=0; i<6; i++) {
+        std::cout << currentLengths(i) << " (" << deltaLengths(i) << ") => " << currentLengths(i) + deltaLengths(i) << std::endl;
+    }
 
     bool collision = false;
     if (m_pChildren.count(PAS_EdgeType) > 0) {
-        std::cout << m_pChildren.count(PAS_EdgeType) << " edges found." << std::endl;
+        std::cout << "\n" << m_pChildren.count(PAS_EdgeType) << " edges found." << std::endl;
         for (const auto &e : m_pChildren.at(PAS_EdgeType)) {     
             std::shared_ptr<EdgeController> edge = std::dynamic_pointer_cast<EdgeController>(e);
             M_response = edge->getResponseMatrix(m_ID.position);
@@ -301,24 +299,32 @@ bool PanelController::checkForCollision(const Eigen::VectorXd &deltaLengths) {
                 continue;
             }
             std::cout << "\nCurrent MPES readings:\n" << Sen_current << std::endl << std::endl;
-            std::cout << "\nActuator response matrix for this edge:\n" << M_response << std::endl;
+            std::cout << "Actuator response matrix for this edge:\n" << M_response << std::endl;
             Sen_delta = M_response * deltaLengths;
             Sen_new = Sen_delta + Sen_current;
-            std::cout << "The new sensor coordinates (x, y) will be:\n" << Sen_new << std::endl;
-            Sen_deviation = Sen_new - Sen_center;
-            std::cout << "\n will deviate from the center position by\n" << Sen_deviation << std::endl;
-            std::cout << "The absolute distance from the center for each sensor is: \n";
+            Sen_deviation = Sen_new - Sen_center; 
+            std::cout << "\nNew sensor readings (pixels off from center)\n"; 
+            for (int i=0; i<6; i++) {
+                std::cout << Sen_new(i) << " (" << Sen_deviation(i) << ")\n";;
+            }
+            std::cout << "\nOffset of laser dot from camera center by sensor (px) [safety limit]: \n";
             double deviation;
             for (unsigned i = 0; i < Sen_deviation.size() / 2; i++) {
                 deviation = pow(pow(Sen_deviation(2 * i), 2) + pow(Sen_deviation(2 * i + 1), 2), 0.5);
-                std::cout << deviation;
+                std::cout << deviation << " [" << m_safetyRadius << "]";
                 if (deviation > m_safetyRadius) {
-                    std::cout << " [WARNING: Deviation is greater than safety radius (" << m_safetyRadius << " px)";
+                    std::cout << " (WARNING: Deviation is greater than safety radius)";
                     collision = true;
                 }
                 std::cout << std::endl;
             }
         }
+    }
+    if (collision) {
+        std::cout << "Error: Sensors may go out of range! Motion cancelled." << std::endl;
+    }
+    else {
+        std::cout << "Collision check passed: all sensors will stay in the safety radius." << std::endl;
     }
     return collision;
 }

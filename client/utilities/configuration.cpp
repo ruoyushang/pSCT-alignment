@@ -230,6 +230,7 @@ UaStatus Configuration::loadDeviceConfiguration(const std::vector<std::string> &
         return OpcUa_Bad;
     }
 
+    std::cout << "Configuration::loadDeviceConfiguration(): Adding missing parents..." << std::endl;
     bool result = addMissingParents();
     if (!result) {
         return OpcUa_Bad;
@@ -379,76 +380,72 @@ UaStatus Configuration::updateNamespaceIndexes(const UaStringArray& namespaceArr
 }
 
 bool Configuration::addMissingParents() {
-    for (const auto &pair : m_DeviceIdentities) {
-        OpcUa_UInt32 deviceType = pair.first;
-        if (deviceType == PAS_EdgeType) {
-            for (const auto &edgeId : m_DeviceIdentities.at(deviceType)) {
-                // Add mirror as parent to all edges
-                Device::Identity mirrorId = getMirrorId(SCTMath::GetPanelsFromEdge(edgeId.eAddress, 1).at(0));
-                if (m_DeviceIdentities[PAS_MirrorType].find(mirrorId) != m_DeviceIdentities[PAS_MirrorType].end()) {
-                    m_DeviceIdentities[PAS_MirrorType].insert(mirrorId);
-                }
-                m_ChildMap[mirrorId][PAS_EdgeType].insert(edgeId);
-                m_ParentMap[edgeId][PAS_MirrorType].insert(mirrorId);
-            }
-        } else if (deviceType == PAS_PanelType) {
-            for (const auto &panelId : m_DeviceIdentities.at(deviceType)) {
-                // Add mirror as parent to all panels
-                Device::Identity mirrorId = getMirrorId(panelId.position);
-                if (m_DeviceIdentities[PAS_MirrorType].find(mirrorId) != m_DeviceIdentities[PAS_MirrorType].end()) {
-                    m_DeviceIdentities[PAS_MirrorType].insert(mirrorId);
-                }
-                m_ChildMap[mirrorId][PAS_PanelType].insert(panelId);
-                m_ParentMap[panelId][PAS_MirrorType].insert(mirrorId);
-            }
-        } else if (deviceType == PAS_MPESType) {
-            for (const auto &mpesId : m_DeviceIdentities.at(deviceType)) {
-                if (m_ParentMap.at(mpesId).at(PAS_PanelType).size() != 1) {
-                    std::cout << " ERROR:: Configuration::createMissingParents(): MPES " << mpesId << " has "
-                              << m_ParentMap.at(mpesId).at(PAS_PanelType).size()
-                              << " parent panels (should only have 1). Aborting...\n";
-                    return false;
-                }
-                Device::Identity w_panelId = *m_ParentMap.at(mpesId).at(PAS_PanelType).begin();
-
-                // add the edge as a parent only if the l_panel (and possibly third panel) are actually present
-                if (m_MPES_SideMap.at(mpesId).find("l") != m_MPES_SideMap.at(mpesId).end()) {
-                    Device::Identity l_panelId = m_MPES_SideMap.at(mpesId).at("l");
-                    Device::Identity edgeId;
-                    std::vector<int> panelPositions{w_panelId.position, l_panelId.position};
-                    int thirdPanelPosition = getThirdPanelPosition(w_panelId.position, l_panelId.position);
-
-                    if (thirdPanelPosition > 0 &&
-                        m_PanelPositionMap.find(thirdPanelPosition) != m_PanelPositionMap.end()) {
-                        panelPositions.push_back(thirdPanelPosition);
-                    }
-                    edgeId.eAddress = SCTMath::GetEdgeFromPanels(panelPositions);
-                    edgeId.name = std::string("Edge_") + edgeId.eAddress;
-
-                    if (m_DeviceIdentities[PAS_EdgeType].find(edgeId) != m_DeviceIdentities[PAS_EdgeType].end()) {
-                        m_DeviceIdentities[PAS_EdgeType].insert(edgeId);
-                    }
-                    m_ChildMap[edgeId][PAS_MPESType].insert(mpesId);
-                    m_ParentMap[mpesId][PAS_EdgeType].insert(edgeId);
-                }
-
-                // Add mirror as parent to all MPES
-                Device::Identity mirrorId = getMirrorId(w_panelId.position);
-                if (m_DeviceIdentities[PAS_MirrorType].find(mirrorId) != m_DeviceIdentities[PAS_MirrorType].end()) {
-                    m_DeviceIdentities[PAS_MirrorType].insert(mirrorId);
-                }
-                m_ChildMap[mirrorId][PAS_MPESType].insert(mpesId);
-                m_ParentMap[mpesId][PAS_MirrorType].insert(mirrorId);
-            }
+    for (const auto &panelId : m_DeviceIdentities.at(PAS_PanelType)) {
+        // Add mirror as parent to all panels
+        Device::Identity mirrorId = getMirrorId(panelId.position);
+        if (m_DeviceIdentities[PAS_MirrorType].find(mirrorId) == m_DeviceIdentities[PAS_MirrorType].end()) {
+            std::cout << "Configuration::addMissingParents(): Added Mirror " << mirrorId << " to Device List" << std::endl;
+            m_DeviceIdentities[PAS_MirrorType].insert(mirrorId);
         }
+        m_ChildMap[mirrorId][PAS_PanelType].insert(panelId);
+        m_ParentMap[panelId][PAS_MirrorType].insert(mirrorId);
+    }
+    for (const auto &mpesId : m_DeviceIdentities.at(PAS_MPESType)) {
+        if (m_ParentMap.at(mpesId).at(PAS_PanelType).size() != 1) {
+            std::cout << " ERROR:: Configuration::createMissingParents(): MPES " << mpesId << " has "
+                      << m_ParentMap.at(mpesId).at(PAS_PanelType).size()
+                      << " parent panels (should only have 1). Aborting...\n";
+            return false;
+        }
+        Device::Identity w_panelId = *m_ParentMap.at(mpesId).at(PAS_PanelType).begin();
+
+        // add the edge as a parent only if the l_panel (and possibly third panel) are actually present
+        if (m_MPES_SideMap.at(mpesId).find("l") != m_MPES_SideMap.at(mpesId).end()) {
+            Device::Identity l_panelId = m_MPES_SideMap.at(mpesId).at("l");
+            Device::Identity edgeId;
+            std::vector<int> panelPositions{w_panelId.position, l_panelId.position};
+            int thirdPanelPosition = getThirdPanelPosition(w_panelId.position, l_panelId.position);
+
+            if (thirdPanelPosition > 0 &&
+                m_PanelPositionMap.find(thirdPanelPosition) != m_PanelPositionMap.end()) {
+                panelPositions.push_back(thirdPanelPosition);
+            }
+            edgeId.eAddress = SCTMath::GetEdgeFromPanels(panelPositions);
+            edgeId.name = std::string("Edge_") + edgeId.eAddress;
+
+            if (m_DeviceIdentities[PAS_EdgeType].find(edgeId) == m_DeviceIdentities[PAS_EdgeType].end()) {
+                std::cout << "Configuration::addMissingParents(): Added Edge " << edgeId << " to Device List" << std::endl;
+                m_DeviceIdentities[PAS_EdgeType].insert(edgeId);
+            }
+            m_ChildMap[edgeId][PAS_MPESType].insert(mpesId);
+            m_ParentMap[mpesId][PAS_EdgeType].insert(edgeId);
+        }
+
+        // Add mirror as parent to all MPES
+        Device::Identity mirrorId = getMirrorId(w_panelId.position);
+        if (m_DeviceIdentities[PAS_MirrorType].find(mirrorId) == m_DeviceIdentities[PAS_MirrorType].end()) {
+            std::cout << "Configuration::addMissingParents(): Added Mirror " << mirrorId << " to Device List" << std::endl;
+            m_DeviceIdentities[PAS_MirrorType].insert(mirrorId);
+        }
+        m_ChildMap[mirrorId][PAS_MPESType].insert(mpesId);
+        m_ParentMap[mpesId][PAS_MirrorType].insert(mirrorId);
+    }
+    for (const auto &edgeId : m_DeviceIdentities.at(PAS_EdgeType)) {
+        // Add mirror as parent to all edges
+        Device::Identity mirrorId = getMirrorId(SCTMath::GetPanelsFromEdge(edgeId.eAddress, 1).at(0));
+        if (m_DeviceIdentities[PAS_MirrorType].find(mirrorId) == m_DeviceIdentities[PAS_MirrorType].end()) {
+            std::cout << "Configuration::addMissingParents(): Added Mirror " << mirrorId << " to Device List" << std::endl;
+            m_DeviceIdentities[PAS_MirrorType].insert(mirrorId);
+        }
+        m_ChildMap[mirrorId][PAS_EdgeType].insert(edgeId);
+        m_ParentMap[edgeId][PAS_MirrorType].insert(mirrorId);
     }
 
-    // Now, for each MPES, add the parent edges and panels as each others' parents
     for (const auto &mpesId : m_DeviceIdentities.at(PAS_MPESType)) {
-        for (const auto &panelParentId : m_ParentMap.at(mpesId).at(PAS_PanelType)) {
-            // Check if the mpes has edge parents (i.e. both panels are present)
-            if (m_ParentMap.at(mpesId).find(PAS_EdgeType) != m_ParentMap.at(mpesId).end()) {
-                for (const auto &edgeParentId : m_ParentMap.at(mpesId).at(PAS_EdgeType)) {
+        if (m_ParentMap.at(mpesId).find(PAS_EdgeType) != m_ParentMap.at(mpesId).end()) {
+            for (const auto &edgeParentId : m_ParentMap.at(mpesId).at(PAS_EdgeType)) {
+                //add the parent edges and panels as each others' parents
+                for (const auto &panelParentId : m_ParentMap.at(mpesId).at(PAS_PanelType)) {
                     m_ChildMap[edgeParentId][PAS_PanelType].insert(panelParentId);
                     m_ParentMap[panelParentId][PAS_EdgeType].insert(edgeParentId);
                     m_ChildMap[panelParentId][PAS_EdgeType].insert(edgeParentId);
