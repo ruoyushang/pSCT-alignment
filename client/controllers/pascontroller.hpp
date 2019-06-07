@@ -68,7 +68,7 @@ class PasCompositeController : public PasController
         // deviceType -> {position -> index in m_pChildren.at(deviceType) }
         // m_ChildrenPositionMap.at(deviceType) is oredered by the first index, position.
         // This makes it perfect for cycling through positions.
-        std::map<unsigned, std::map<unsigned, unsigned> > m_ChildrenPositionMap;
+        std::map<unsigned, std::map<int, unsigned> > m_ChildrenPositionMap;
         // almost a duplicate of the above, but not quite.
         // This guarantees that sensors along the 4-sensor edge are not discarded if their
         // positions are the same; this also provides a map for edges within a mirror

@@ -89,14 +89,15 @@ private:
 
     unsigned getPanelIndex(unsigned position);
     unsigned getMPESIndex(int serialNumber);
-    unsigned getEdgeIndex(std::string eAddress);
+
+    unsigned getEdgeIndex(const std::string &eAddress);
 
     // update current mirror coordinates
     UaStatus updateCoords(bool print=true);
     // a bunch of internal implementations
     UaStatus readPositionAll(bool print=true);
     // Align all edges fron need_alignment starting at start_idx and  moving in the direction dir
-    UaStatus alignSequential(std::string startEdge, std::string EndEdge, bool dir);
+    UaStatus alignSequential(const std::string &startEdge, const std::string &EndEdge, bool dir);
 
     UaStatus alignSector(double alignFrac = 0.25, bool execute = false);
 
@@ -139,7 +140,8 @@ private:
     // COORDINATE TRANSFORMATION HELPERS
     // reference frame tansformations:
     double __getAzOffset(unsigned pos);
-    Eigen::Matrix3d __rotMat(int axis, double a);
+
+    static Eigen::Matrix3d __rotMat(int axis, double a);
     // to panel reference frame (from telescope). Order of rotations -- z -> x-> y
     Eigen::Vector3d __toPanelRF(unsigned pos, const Eigen::Vector3d &in_coords);
     // to telescope reference frame (from panel)
