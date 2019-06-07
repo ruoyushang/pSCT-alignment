@@ -84,7 +84,7 @@ const std::map<OpcUa_UInt32, std::pair<std::string, std::vector<std::tuple<std::
                                                                              "Edge to start aligning from (eAddress)"),
                                                              std::make_tuple("Direction",
                                                                              UaNodeId(OpcUaId_UInt32),
-                                                                             "Direction to align edges in (0 for +z, 1 for -z)"),
+                                                                             "Direction to align edges in (0 for +z rotation, 1 for -z rotation)"),
                                                          }}},
     {PAS_MirrorType_AlignSector,     {"AlignSector",     {
                                                             std::make_tuple("Align Fraction",

@@ -363,16 +363,13 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
     else if (offset == PAS_MirrorType_AlignSector) {
         setState(Device::DeviceState::Busy);
 
-        std::set<unsigned> selectedPanels = getSelectedDeviceIndices(PAS_PanelType);
-        std::set<unsigned> selectedMPES = getSelectedDeviceIndices(PAS_MPESType);
-
         // make sure there are some selected sensors
-        if (selectedPanels.empty()) {
+        if (m_selectedPanels.empty()) {
             std::cout << "+++ ERROR +++ No panels selected! Nothing to do." << std::endl;
             return OpcUa_BadInvalidArgument;
         }
         // make sure there are some selected sensors
-        if (selectedMPES.empty()) {
+        if (m_selectedMPES.empty()) {
             std::cout << "+++ ERROR +++ No sensors selected! Nothing to do." << std::endl;
             return OpcUa_BadInvalidArgument;
         }
@@ -418,31 +415,21 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
         // to get an edge position and a direction. The type has
         // already been validated by the caller, but we need to
         // check the existence of such edge and direction:
-        Device::Identity startId;
         // first argument is the starting edge address
-        startId.eAddress = UaString(args[0].Value.String).toUtf8();
+        std::string startEdge = UaString(args[0].Value.String).toUtf8();
+        std::string endEdge = UaString(args[1].Value.String).toUtf8();
 
-        std::set<unsigned> selectedEdges = getSelectedDeviceIndices(PAS_EdgeType);
-
-        if (selectedEdges.empty()) {
-            std::cout << "No edges selected. Nothing to do..." << std::endl;
-            return OpcUa_Good;
+        if (m_childrenEaddressMap.at(PAS_EdgeType).find(startEdge) == m_childrenEaddressMap.at(PAS_EdgeType).end()) {
+            std::cout << "Could not find start edge " << startEdge << " in mirror. Aborted." << std::endl;
+            return OpcUa_Bad;
         }
 
-        // second argument is the direction
-        unsigned dir = args[1].Value.UInt32;
-        // check that these are valid;
-        if (dir != 0 && dir != 1)
-            return OpcUa_BadInvalidArgument;
-        unsigned idx;
-        try {
-            idx = m_ChildrenIdentityMap.at(PAS_EdgeType).at(startId);
-        }
-        catch (std::out_of_range &e) {
-            return OpcUa_BadInvalidArgument;
+        if (m_childrenEaddressMap.at(PAS_EdgeType).find(endEdge) == m_childrenEaddressMap.at(PAS_EdgeType).end()) {
+            std::cout << "Could not find end edge " << startEdge << " in mirror. Aborted." << std::endl;
+            return OpcUa_Bad;
         }
 
-        status = alignSequential(idx, selectedEdges, (bool) dir);
+        status = alignSequential(startEdge, endEdge, (bool) dir);
         updateCoords(false);
         setState(Device::DeviceState::On);
     }
@@ -452,14 +439,13 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
      * ********************************************************/
     else if (offset == PAS_MirrorType_ReadSensors) {
         setState(Device::DeviceState::Busy);
-        auto edgeIndices = getSelectedDeviceIndices(PAS_EdgeType);
-        if (edgeIndices.empty()) {
+        if (m_selectedEdges.empty()) {
             std::cout << "No edges selected in SelectedEdges! Nothing to do..." << std::endl;
         }
         else {
-            for (const auto &idx : edgeIndices) {
+            for (auto eAddress : m_selectedEdges) {
                 if (m_state == Device::DeviceState::Busy) {
-                    status = std::dynamic_pointer_cast<EdgeController>(m_pChildren.at(PAS_EdgeType).at(idx))->operate(
+                    status = std::dynamic_pointer_cast<EdgeController>(m_pChildren.at(PAS_EdgeType).at(getEdgeIndex(eAddress)))->operate(
                         PAS_EdgeType_Read);
                     if (!status.isGood()) { return status; }
                 }
@@ -560,18 +546,17 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
 UaStatus MirrorController::readPositionAll(bool print) {
     UaStatus status;
     
-    for (const auto &idx : getSelectedDeviceIndices(PAS_PanelType)) {
-        std::dynamic_pointer_cast<PanelController>(m_pChildren.at(PAS_PanelType).at(idx))->updateCoords(print);
-        auto pos = m_pChildren.at(PAS_PanelType).at(idx)->getId().position;
+    for (unsigned panelPos : m_selectedPanels) {
+        std::dynamic_pointer_cast<PanelController>(m_pChildren.at(PAS_PanelType).at(getPanelIndex(panelPos)))->updateCoords(print);
 
         auto padCoordsActs = std::dynamic_pointer_cast<PanelController>(
-            m_pChildren.at(PAS_PanelType).at(idx))->getPadCoords();
+            m_pChildren.at(PAS_PanelType).at(getPanelIndex(panelPos)))->getPadCoords();
         if (print) {
             std::cout << "Panel frame pad coordinates:\n" << padCoordsActs << std::endl;
             // and transform this to the telescope reference frame:
             // these are pad coordinates in TRF as computed from actuator lengths
             for (int i = 0; i < padCoordsActs.cols(); i++)
-                padCoordsActs.col(i) = __toTelRF(pos, padCoordsActs.col(i));
+                padCoordsActs.col(i) = __toTelRF(panelPos, padCoordsActs.col(i));
             std::cout << "Telescope frame pad coordinates:\n" << padCoordsActs << std::endl;
         }
     }
@@ -675,7 +660,7 @@ UaStatus MirrorController::moveToCoords(const Eigen::VectorXd &targetMirrorCoord
 }
 
 // Align all edges between start_idx and end_idx moving in the direction dir
-UaStatus MirrorController::alignSequential(unsigned startEdge, const std::set<unsigned> &selectedEdges, bool dir)
+UaStatus MirrorController::alignSequential(std::string startEdge, std::string endEdge, bool dir)
 {
     // we need to traverse the mirror in the correct order of edges.
     // dir = 0 decreases panel position (+z rotation);
@@ -693,17 +678,30 @@ UaStatus MirrorController::alignSequential(unsigned startEdge, const std::set<un
 
     UaStatus status;
 
-    std::deque<unsigned> already_aligned{}; // yes, deque, not vector!
+    std::string curEdge = startEdge;
+    std::set<std::string> selectedEdges = {curEdge};
+    // First collect and calculate all edges (in order) between start edge and end edge in direction
+    while (curEdge != endEdge) {
+        if (selectedEdges.find(SCTMath::GetEdgeNeighbor(curEdge, dir)) == selectedEdges.end()) {
+            selectedEdges.insert(SCTMath::GetEdgeNeighbor(curEdge, dir));
+            curEdge = SCTMath::GetEdgeNeighbor(curEdge, dir); 
+        }
+        else {
+            std::cout << "Error:: Went around full cycle from startEdge without reaching endEdge. Double-check that you chose valid edges (in the same ring)." << std::endl; 
+            return OpcUa_Bad;
+        }    
+    }
 
-    unsigned cur_idx = startEdge;
-    while (selectedEdges.find(cur_idx) != selectedEdges.end() && m_state != Device::DeviceState::Off) {
-        already_aligned.push_front(cur_idx);
+    std::deque<std::string> already_aligned{}; // yes, deque, not vector!
+
+    while (selectedEdges.find(curEdge) != selectedEdges.end() && m_state != Device::DeviceState::Off) {
+        already_aligned.push_front(curEdge);
         // align all the preceding panels
-        for (unsigned edge : already_aligned) {
+        for (std::string edgeEaddress : already_aligned) {
             // figure out which panel is "greater" and which one is "smaller" in the sense
             // of dir, assuming a two-panel edge for now.
             // get vector of panel positions:
-            auto curPanels = SCTMath::GetPanelsFromEdge(m_pChildren.at(PAS_EdgeType).at(edge)->getId().eAddress, dir);
+            auto curPanels = SCTMath::GetPanelsFromEdge(edgeEaddress, dir);
 
             // align this edge moving the "smaller" panel
             UaVariantArray args; 
@@ -760,13 +758,12 @@ UaStatus MirrorController::alignSequential(unsigned startEdge, const std::set<un
         }
 
         // get the next edge
-        Device::Identity id;
-        id.eAddress = SCTMath::GetEdgeNeighbor(m_pChildren.at(PAS_EdgeType).at(cur_idx)->getId().eAddress, dir);
+        std::string newEdge = SCTMath::GetEdgeNeighbor(curEdge, dir);
         try {
-            cur_idx = m_ChildrenIdentityMap.at(PAS_EdgeType).at(id);
+            curEdge = m_ChildrenIdentityMap.at(PA;
         }
         catch (std::out_of_range &e) {
-            cur_idx = -1; // max element of unsigned
+            
         }
     }
 
@@ -850,30 +847,16 @@ void MirrorController::parseAndSetSelection(const std::string &selectionString, 
     }
 }
 
-std::set<unsigned> MirrorController::getSelectedDeviceIndices(unsigned deviceType) {
+unsigned MirrorController::getPanelIndex(unsigned position) {
+    return m_ChildrenPositionMap.at(PAS_PanelType).at(position);
+}
 
-    std::set<unsigned> devices;
+unsigned MirrorController::getMPESIndex(int serialNumber) {
+    return m_ChildrenSerialMap.at(PAS_MPESType).at(serialNumber);
+}
 
-    // add all the items to the selected children set of indices
-    if (deviceType == PAS_PanelType) { // expect a list of panel positions
-        for (auto &pos : m_selectedPanels) {
-            devices.insert(m_ChildrenPositionMap.at(deviceType).at(pos));
-        }
-    } else if (deviceType == PAS_MPESType) { // expect a list of Sensor serials
-        Device::Identity curid;
-        for (auto &serial : m_selectedMPES) {
-            curid.serialNumber = serial;
-            devices.insert(m_ChildrenIdentityMap.at(deviceType).at(curid));
-        }
-    } else if (deviceType == PAS_EdgeType) { // expect a list of edge addresses
-        Device::Identity curid;
-        for (auto &eAddress : m_selectedEdges) {
-            curid.eAddress = eAddress;
-            devices.insert(m_ChildrenIdentityMap.at(deviceType).at(curid));
-        }
-    }
-
-    return devices;
+unsigned MirrorController::getEdgeIndex(std::string eAddress) {
+    return m_ChildrenEaddressMap.at(PAS_EdgeType).at(eAddress);
 }
 
 UaStatus MirrorController::updateCoords(bool print)
@@ -1008,11 +991,11 @@ UaStatus MirrorController::alignSector(double alignFrac, bool execute) {
         // grab all user specified panels to move and sensors to fit
         std::vector<std::shared_ptr<PanelController>> panelsToMove;
         std::vector<std::shared_ptr<MPESController>> alignMPES;
-        for (unsigned idx : getSelectedDeviceIndices(PAS_PanelType))
-            panelsToMove.push_back(std::dynamic_pointer_cast<PanelController>(m_pChildren.at(PAS_PanelType).at(idx)));
-        for (unsigned idx : getSelectedDeviceIndices(PAS_MPESType)) {
+        for (unsigned panelPos : m_selectedPanels)
+            panelsToMove.push_back(std::dynamic_pointer_cast<PanelController>(m_pChildren.at(PAS_PanelType).at(getPanelIndex(panelPos))));
+        for (int mpesSerial : m_selectedMPES) {
             std::shared_ptr<MPESController> mpes = std::dynamic_pointer_cast<MPESController>(
-                m_pChildren.at(PAS_MPESType).at(idx));
+                m_pChildren.at(PAS_MPESType).at(getMPESIndex(mpesSerial)));
             mpes->read(false);
             if (mpes->isVisible())
                 alignMPES.push_back(mpes);
@@ -1533,15 +1516,15 @@ double MirrorController::chiSq(const Eigen::VectorXd &telDelta)
 
     UaVariant val;
     // go over all panels
-    for (auto idx : getSelectedDeviceIndices(PAS_PanelType)) {
-        int pos = panels.at(idx)->getId().position;
+    for (unsigned panelPos : m_selectedPanels) {
+        int pos = (int)panelPos;
         int ring = SCTMath::Ring(pos);
 
         // go over all pads -- ChiSq is the squared difference between pad coordinates
         // as computed from actuator lengths and pad coordinates as computed from telescope
         // coordinates
         for (int pad = 0; pad < 3; pad++) {
-            padCoordsActs = std::dynamic_pointer_cast<PanelController>(panels.at(idx))->getPadCoords().col(
+            padCoordsActs = std::dynamic_pointer_cast<PanelController>(panels.at(getPanelIndex(panelPos)))->getPadCoords().col(
                 pad);
             // and transform this to the telescope reference frame:
             // these are pad coordinates in TRF as computed from actuator lengths
