@@ -97,11 +97,14 @@ const std::map<OpcUa_UInt32, std::pair<std::string, std::vector<std::tuple<std::
                                                                          UaNodeId(OpcUaId_Boolean),
                                                                          "Whether to actually execute the calculated motion."),
                                                          }}},
-    {PAS_MirrorType_GlobalAlign,     {"GlobalAlign",     {
+    {PAS_MirrorType_AlignRing,     {"AlignRing",     {
                                                              std::make_tuple("Fixed Panel",
                                                                              UaNodeId(OpcUaId_UInt32),
-                                                                             "Panel to fix when aligning (by position number)"),
-                                                            std::make_tuple("Execute",
+                                                                             "Panel to fix when aligning (position number)"),
+                                                            std::make_tuple("Align Fraction",
+                                                                         UaNodeId(OpcUaId_Double),
+                                                                         "Fraction of motion to carry out (between 0.0 and 1.0)"),
+                                                             std::make_tuple("Execute",
                                                                          UaNodeId(OpcUaId_Boolean),
                                                                          "Whether to actually execute the calculated motion."),
                                                          }}},

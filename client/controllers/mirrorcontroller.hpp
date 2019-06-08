@@ -101,7 +101,7 @@ private:
 
     UaStatus alignSector(double alignFrac = 0.25, bool execute = false);
 
-    UaStatus alignGlobal(int fixPanel, double alignFrac = 0.25, bool execute = false);
+    UaStatus alignRing(int fixPanel, double alignFrac = 0.25, bool execute = false);
 
     UaStatus moveToCoords(const Eigen::VectorXd &targetCoords, bool execute = false);
 

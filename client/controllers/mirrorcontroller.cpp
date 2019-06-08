@@ -363,17 +363,6 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
     else if (offset == PAS_MirrorType_AlignSector) {
         setState(Device::DeviceState::Busy);
 
-        // make sure there are some selected sensors
-        if (m_selectedPanels.empty()) {
-            std::cout << "+++ ERROR +++ No panels selected! Nothing to do." << std::endl;
-            return OpcUa_BadInvalidArgument;
-        }
-        // make sure there are some selected sensors
-        if (m_selectedMPES.empty()) {
-            std::cout << "+++ ERROR +++ No sensors selected! Nothing to do." << std::endl;
-            return OpcUa_BadInvalidArgument;
-        }
-
         double alignFrac = args[0].Value.Double;
         bool execute = args[1].Value.Boolean;
 
@@ -385,21 +374,14 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
     /**********************************************************************************************
      * Perform global alignment and compute the systematics vector keeping the input panel fixed  *
      * ********************************************************************************************/
-    else if (offset == PAS_MirrorType_GlobalAlign) {
+    else if (offset == PAS_MirrorType_AlignRing) {
         setState(Device::DeviceState::Busy);
         // get the position of the panel to keep fixed
         unsigned fixPanel = args[0].Value.UInt32;
-
-        if (m_ChildrenPositionMap.at(PAS_PanelType).find(fixPanel) == m_ChildrenPositionMap.at(PAS_PanelType).end()) {
-            std::cout
-                << "Error: The selected fixed panel is not found in the mirror. Please double check and try again."
-                << std::endl;
-            return OpcUa_BadInvalidArgument;
-        }
-
-        bool execute = args[1].Value.Boolean;
-        
-        status = alignGlobal(fixPanel, execute);
+        double alignFrac = args[1].Value.Double;
+        bool execute = args[2].Value.Boolean;
+     
+        status = alignRing(fixPanel, alignFrac, execute);
         updateCoords(false);
         setState(Device::DeviceState::On);
     }
@@ -418,16 +400,6 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
         std::string startEdge = UaString(args[0].Value.String).toUtf8();
         std::string endEdge = UaString(args[1].Value.String).toUtf8();
         OpcUa_Boolean dir = args[2].Value.Boolean;
-
-        if (m_ChildrenEaddressMap.at(PAS_EdgeType).find(startEdge) == m_ChildrenEaddressMap.at(PAS_EdgeType).end()) {
-            std::cout << "Could not find start edge " << startEdge << " in mirror. Aborted." << std::endl;
-            return OpcUa_Bad;
-        }
-
-        if (m_ChildrenEaddressMap.at(PAS_EdgeType).find(endEdge) == m_ChildrenEaddressMap.at(PAS_EdgeType).end()) {
-            std::cout << "Could not find end edge " << startEdge << " in mirror. Aborted." << std::endl;
-            return OpcUa_Bad;
-        }
 
         status = alignSequential(startEdge, endEdge, (bool) dir);
         updateCoords(false);
@@ -678,6 +650,16 @@ UaStatus MirrorController::alignSequential(const std::string &startEdge, const s
 
     UaStatus status;
 
+    if (m_ChildrenEaddressMap.at(PAS_EdgeType).find(startEdge) == m_ChildrenEaddressMap.at(PAS_EdgeType).end()) {
+        std::cout << "Could not find start edge " << startEdge << " in mirror. Aborted." << std::endl;
+        return OpcUa_Bad;
+    }
+
+    if (m_ChildrenEaddressMap.at(PAS_EdgeType).find(endEdge) == m_ChildrenEaddressMap.at(PAS_EdgeType).end()) {
+        std::cout << "Could not find end edge " << startEdge << " in mirror. Aborted." << std::endl;
+        return OpcUa_Bad;
+    }
+
     std::string curEdge = startEdge;
     std::vector<std::string> selectedEdges = {curEdge};
     // First collect and calculate all edges (in order) between start edge and end edge in direction
@@ -727,15 +709,22 @@ UaStatus MirrorController::alignSequential(const std::string &startEdge, const s
             auto movingPanel_idx = m_ChildrenPositionMap.at(PAS_PanelType).at(curPanels.at(0));
             // do this until the edge is aligned
             int alignIter = 1;
+            std::cout << "Doing alignment motion calculation..." << std::endl;
             status = m_pChildren.at(PAS_EdgeType).at(getEdgeIndex(edgeEaddress))->operate(PAS_EdgeType_Align, args);
-            if (!status.isGood()) { 
-                std::cout << "Error: Failed when calculating motion." << std::endl;
-                return status; 
+            Device::DeviceState curState;
+            m_pChildren.at(PAS_EdgeType).at(getEdgeIndex(edgeEaddress))->getState(curState);
+            while (curState == Device::DeviceState::Busy) {
+                usleep(500 * 1000); // microseconds
+                m_pChildren.at(PAS_EdgeType).at(getEdgeIndex(edgeEaddress))->getState(curState);
             }
-            sleep(30); // wait a little so that calculation can finish
             if (m_state == Device::DeviceState::Off) { break; }
             args[3].Value.Boolean = true; // this time, execute
+            std::cout << "Executing motion..." << std::endl;
             status = m_pChildren.at(PAS_EdgeType).at(getEdgeIndex(edgeEaddress))->operate(PAS_EdgeType_Align, args);
+            while (curState == Device::DeviceState::Busy) {
+                usleep(500 * 1000); // microseconds
+                m_pChildren.at(PAS_EdgeType).at(getEdgeIndex(edgeEaddress))->getState(curState);
+            }
             if (!status.isGood()) { 
                 std::cout << "Error: Failed when executing motion." << std::endl;
                 return status; 
@@ -755,18 +744,23 @@ UaStatus MirrorController::alignSequential(const std::string &startEdge, const s
                 }
                 alignIter++;
                 args[3].Value.Boolean = false;
-                sleep(30); // wait a little so that calculation can finish
+                std::cout << "Doing alignment motion calculation..." << std::endl;
                 status = m_pChildren.at(PAS_EdgeType).at(getEdgeIndex(edgeEaddress))->operate(PAS_EdgeType_Align, args);
-                if (!status.isGood()) { 
-                    std::cout << "Error: Failed when calculating motion." << std::endl;
-                    return status; 
+                while (curState == Device::DeviceState::Busy) {
+                    usleep(500 * 1000); // microseconds
+                    m_pChildren.at(PAS_EdgeType).at(getEdgeIndex(edgeEaddress))->getState(curState);
                 }
                 if (m_state == Device::DeviceState::Off) { break; }
                 args[3].Value.Boolean = true; // execute motion
+                std::cout << "Executing motion..." << std::endl;
                 status = m_pChildren.at(PAS_EdgeType).at(getEdgeIndex(edgeEaddress))->operate(PAS_EdgeType_Align, args);
                 if (!status.isGood()) { 
                     std::cout << "Error: Failed when executing motion." << std::endl;
                     return status; 
+                }
+                while (curState == Device::DeviceState::Busy) {
+                    usleep(500 * 1000); // microseconds
+                    m_pChildren.at(PAS_EdgeType).at(getEdgeIndex(edgeEaddress))->getState(curState);
                 }
                 if (m_state == Device::DeviceState::Off) { break; }
             }
@@ -984,6 +978,23 @@ UaStatus MirrorController::alignSector(double alignFrac, bool execute) {
 
     UaStatus status;
  
+    // make sure there are some selected sensors
+    if (m_selectedPanels.empty()) {
+        std::cout << "+++ ERROR +++ No panels selected! Nothing to do." << std::endl;
+        return OpcUa_BadInvalidArgument;
+    }
+    // make sure there are some selected sensors
+    if (m_selectedMPES.empty()) {
+        std::cout << "+++ ERROR +++ No sensors selected! Nothing to do." << std::endl;
+        return OpcUa_BadInvalidArgument;
+    }
+
+   
+    if (alignFrac > 1.0 || alignFrac <= 0.0) {
+        std::cout << "Invalid choice of alignFrac, should be between 0.0 and 1.0." << std::endl;
+        return OpcUa_BadInvalidArgument;
+    }
+
     if (!execute) {   
         // following the align method for an edge:
         Eigen::MatrixXd C; // constraint
@@ -1168,10 +1179,43 @@ UaStatus MirrorController::alignSector(double alignFrac, bool execute) {
 }
 
 
-UaStatus MirrorController::alignGlobal(int fixPanel, double alignFrac, bool execute)
+UaStatus MirrorController::alignRing(int fixPanel, double alignFrac, bool execute)
 {
     UaStatus status;
+
+    if (m_ChildrenPositionMap.at(PAS_PanelType).find(fixPanel) == m_ChildrenPositionMap.at(PAS_PanelType).end()) {
+        std::cout
+            << "Error: The selected fixed panel is not found in the mirror. Please double check and try again."
+            << std::endl;
+        return OpcUa_BadInvalidArgument;
+    }
+
+    if (alignFrac > 1.0 || alignFrac <= 0.0) {
+        std::cout << "Invalid choice of alignFrac, should be between 0.0 and 1.0." << std::endl;
+        return OpcUa_BadInvalidArgument;
+    }
+
     if (!execute) {
+        // First check that all panels in ring are present
+        std::cout << "Locating all panels in ring to align..." << std::endl;
+        int curPanel = fixPanel;
+        do {
+            int nextPanel = SCTMath::GetPanelNeighbor(curPanel, 0);
+            if (m_ChildrenPositionMap.at(PAS_PanelType).find(nextPanel) !=
+                    m_ChildrenPositionMap.at(PAS_PanelType).end()) {
+                std::cout << "Found next panel " << nextPanel << std::endl; 
+                continue;
+            }
+            else {
+                    std::cout << "Error:: Searched for next panel in ring (" << nextPanel
+                          << ") but is not present as child of mirror. Please double-check that all panels in ring are present in the mirror."
+                          << std::endl;
+                    return OpcUa_Bad;
+            }
+            curPanel = nextPanel;
+        } while (curPanel != fixPanel);
+
+        
         // we want to fit all sensors simultaneously while constraining the motion of 'fixPanel'
         // first, find which ring we are on:
         unsigned ring = SCTMath::Ring(fixPanel);
@@ -1202,7 +1246,7 @@ UaStatus MirrorController::alignGlobal(int fixPanel, double alignFrac, bool exec
         std::vector<std::shared_ptr<EdgeController>> edgesToFit; // we actually don't need to keep these in a vector,
                                       // but doing this for possible future needs
         std::vector<std::shared_ptr<PanelController>> panelsToMove;
-        int curPanel = fixPanel;
+        curPanel = fixPanel;
         int nextPanel, cursize = 0;
         Device::Identity id;
         // keep track of the position in the global response matrix
@@ -1232,6 +1276,7 @@ UaStatus MirrorController::alignGlobal(int fixPanel, double alignFrac, bool exec
                         m_pChildren.at(PAS_EdgeType).at(
                             getEdgeIndex(SCTMath::GetEdgeFromPanels({curPanel, nextPanel})))));
                 } else {
+                    curPanel = nextPanel;
                     continue;
                 }
 
@@ -1250,19 +1295,19 @@ UaStatus MirrorController::alignGlobal(int fixPanel, double alignFrac, bool exec
 
                 // get the response of this edge
                 localResponse = edgesToFit.back()->getResponseMatrix(curPanel);
-                std::cout << "Response matrix [" << curPanel << "][" << nextPanel << "]:\n"
-                          << localResponse << std::endl;
-                std::cout << "Placing this at location [" << blockRow << "x6]["
-                          << blockRow << "x6] of the global response matrix" << std::endl;
+                //std::cout << "Response matrix [" << curPanel << "][" << nextPanel << "]:\n"
+                //          << localResponse << std::endl;
+                //std::cout << "Placing this at location [" << blockRow << "x6]["
+                //          << blockRow << "x6] of the global response matrix" << std::endl;
                 globResponse.block(blockRow*6, blockRow*6,
                         localResponse.rows(), localResponse.cols()) = localResponse;
                 MCurNext = localResponse;
 
                 localResponse = edgesToFit.back()->getResponseMatrix(nextPanel);
-                std::cout << "\t\tResponse matrix [" << nextPanel << "][" << curPanel << "]:\n"
-                          << localResponse << std::endl;
-                std::cout << "+++ DEBUG +++ Placing this at location [" << blockRow << "x6]["
-                          << (blockRow + 1) % numPanels << "x6] of the global response matrix" << std::endl;
+                //std::cout << "\t\tResponse matrix [" << nextPanel << "][" << curPanel << "]:\n"
+                //          << localResponse << std::endl;
+                //std::cout << "+++ DEBUG +++ Placing this at location [" << blockRow << "x6]["
+                //          << (blockRow + 1) % numPanels << "x6] of the global response matrix" << std::endl;
                 globResponse.block(blockRow*6, ((blockRow + 1) % numPanels)*6,
                         localResponse.rows(), localResponse.cols()) = localResponse;
 
@@ -1281,11 +1326,12 @@ UaStatus MirrorController::alignGlobal(int fixPanel, double alignFrac, bool exec
 
             // nothing to do if on the first panel
             if (blockRow != 1) {
+                std::cout << "Taking into account systematic displacement for edge " << edgesToFit.back()->getId() << std::endl;
                 E = MCurNext*MCurPrev.inverse();
-                std::cout << "+++ SPECIAL DEBUG +++ ML = \n" << MCurPrev << std::endl;
-                std::cout << "+++ SPECIAL DEBUG +++ ML*ML.invserse() = \n" << MCurPrev * MCurPrev.inverse() << std::endl;
-                std::cout << "+++ SPECIAL DEBUG +++ MR = \n" << MCurNext << std::endl;
-                std::cout << "+++ SPECIAL DEBUG +++ Operator E = MR*ML.inverse() \n" << E << std::endl;
+                //std::cout << "+++ SPECIAL DEBUG +++ ML = \n" << MCurPrev << std::endl;
+                //std::cout << "+++ SPECIAL DEBUG +++ ML*ML.invserse() = \n" << MCurPrev * MCurPrev.inverse() << std::endl;
+                //std::cout << "+++ SPECIAL DEBUG +++ MR = \n" << MCurNext << std::endl;
+                //std::cout << "+++ SPECIAL DEBUG +++ Operator E = MR*ML.inverse() \n" << E << std::endl;
                 T = Eye - E*T;
             }
 
@@ -1293,11 +1339,13 @@ UaStatus MirrorController::alignGlobal(int fixPanel, double alignFrac, bool exec
 
         } while ( curPanel != fixPanel );
 
+        std::cout << "Size of global misalignment vector: " << globMisalignVec.size() << std::endl;
+        std::cout << "Shape of global response matrix: (" << globResponse.rows() << ", " << globResponse.cols() << ")" << std::endl;
 
-        std::cout << "+++ SPECIAL DEBUG +++ Operator T = \n" << T << std::endl;
-        std::cout << "+++ SPECIAL DEBUG +++ Operator -1*T.inverse() = \n" << -1 * T.inverse() << std::endl;
-        std::cout << "+++ SPECIAL DEBUG +++ Operator T*T.inverse() = \n" << T * T.inverse() << std::endl;
-        std::cout << "+++ SPECIAL DEBUG +++ You want to compute -1*T.inverse*misalignmentOfLastEdge..." << std::endl;
+        //std::cout << "+++ SPECIAL DEBUG +++ Operator T = \n" << T << std::endl;
+        //std::cout << "+++ SPECIAL DEBUG +++ Operator -1*T.inverse() = \n" << -1 * T.inverse() << std::endl;
+        //std::cout << "+++ SPECIAL DEBUG +++ Operator T*T.inverse() = \n" << T * T.inverse() << std::endl;
+        //std::cout << "+++ SPECIAL DEBUG +++ You want to compute -1*T.inverse*misalignmentOfLastEdge..." << std::endl;
 
         // check that we have enough sensor readings
         if (globMisalignVec.size() < globResponse.rows()) {
@@ -1307,13 +1355,13 @@ UaStatus MirrorController::alignGlobal(int fixPanel, double alignFrac, bool exec
             return OpcUa_Bad;
         }
 
-        std::cout << "+++ DEBUG +++ misalignment vector size is " << globMisalignVec.size() << std::endl;
-        std::cout << "+++ DEBUG +++ The first 12 entries:\n" << globMisalignVec.head(12) << std::endl;
-        std::cout << "+++ DEBUG +++ The last 12 entries:\n" << globMisalignVec.tail(12) << std::endl;
-        std::cout << "+++ DEBUG +++ The first 12x18 block of the global response matrix:\n"
-                  << globResponse.block(0, 0, 12, 18) << std::endl;
-        std::cout << "+++ DEBUG +++ The last 12x18 block of the global response matrix:\n"
-                  << globResponse.block(globResponse.rows() - 12, globResponse.cols() - 18, 12, 18) << std::endl;
+        //std::cout << "+++ DEBUG +++ misalignment vector size is " << globMisalignVec.size() << std::endl;
+        //std::cout << "+++ DEBUG +++ The first 12 entries:\n" << globMisalignVec.head(12) << std::endl;
+        //std::cout << "+++ DEBUG +++ The last 12 entries:\n" << globMisalignVec.tail(12) << std::endl;
+        //std::cout << "+++ DEBUG +++ The first 12x18 block of the global response matrix:\n"
+        //          << globResponse.block(0, 0, 12, 18) << std::endl;
+        //std::cout << "+++ DEBUG +++ The last 12x18 block of the global response matrix:\n"
+        //          << globResponse.block(globResponse.rows() - 12, globResponse.cols() - 18, 12, 18) << std::endl;
 
         panelsToMove.erase(panelsToMove.begin()); // Erase fixed panel (first panel) from panelsToMove
 
@@ -1327,8 +1375,8 @@ UaStatus MirrorController::alignGlobal(int fixPanel, double alignFrac, bool exec
         std::cout
                 << "+++ DEBUG +++ Checking that the found solution is correct: looking at (R*Solution - MisAlign): norm = "
                 << check.norm() << std::endl;
-        std::cout << "\t\t First 12 entries\n" << check.head(12) << std::endl;
-        std::cout << "\t\t Last 12 entries\n" << check.tail(12) << std::endl;
+        //std::cout << "\t\t First 12 entries\n" << check.head(12) << std::endl;
+        //std::cout << "\t\t Last 12 entries\n" << check.tail(12) << std::endl;
 
         m_sysOffsetsMPES = globDisplaceVec.head(6);
         // get the order of read sensors:
@@ -1377,11 +1425,11 @@ UaStatus MirrorController::alignGlobal(int fixPanel, double alignFrac, bool exec
         }
         m_Xcalculated = globDisplaceVec.tail(globDisplaceVec.size()-6);
         m_panelsToMove = panelsToMove;
-        m_previousCalculatedMethod = PAS_MirrorType_GlobalAlign;
+        m_previousCalculatedMethod = PAS_MirrorType_AlignRing;
     }
     else {
-        if (m_Xcalculated.isZero(0) || m_previousCalculatedMethod != PAS_MirrorType_GlobalAlign) {
-            std::cout << "No calculated motion found.  Call Mirror.GlobalAlign with execute=false once first to calculate the motion to execute." << std::endl;
+        if (m_Xcalculated.isZero(0) || m_previousCalculatedMethod != PAS_MirrorType_AlignRing) {
+            std::cout << "No calculated motion found.  Call Mirror.AlignRing with execute=false once first to calculate the motion to execute." << std::endl;
             return OpcUa_Bad;
         }
         else {        
@@ -1404,7 +1452,6 @@ UaStatus MirrorController::alignGlobal(int fixPanel, double alignFrac, bool exec
             m_previousCalculatedMethod = 0;
         }
     }
-
 
     return status;
 }

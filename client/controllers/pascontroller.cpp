@@ -30,7 +30,8 @@ void PasCompositeController::addChild(OpcUa_UInt32 deviceType, const std::shared
     // don't add the same device multiple times
     try {
         m_ChildrenPositionMap.at(deviceType).at(pos);
-        m_ChildrenIdentityMap.at(deviceType).at(id);
+        m_ChildrenSerialMap.at(deviceType).at(id.serialNumber);
+        m_ChildrenEaddressMap.at(deviceType).at(id.eAddress);
         return;
     }
     catch (std::out_of_range &e) {
@@ -40,7 +41,7 @@ void PasCompositeController::addChild(OpcUa_UInt32 deviceType, const std::shared
                       << m_ID.name << ": adding " << pController->getId() << std::endl;
             m_pChildren[deviceType].push_back(std::shared_ptr<PasController>(pController));
             m_ChildrenSerialMap[deviceType][id.serialNumber] = m_pChildren.at(deviceType).size() - 1;
-            m_ChildrenEAddressMap[deviceType][id.eAddress] = m_pChildren.at(deviceType).size() - 1;
+            m_ChildrenEaddressMap[deviceType][id.eAddress] = m_pChildren.at(deviceType).size() - 1;
             // this doesn't work for edges, since they don't have an assigned position
             m_ChildrenPositionMap[deviceType][pos] = m_pChildren.at(deviceType).size() - 1;
         }

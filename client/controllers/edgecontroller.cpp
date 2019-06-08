@@ -122,9 +122,8 @@ UaStatus EdgeController::operate(OpcUa_UInt32 offset, const UaVariantArray &args
                 }
             }
 
+            alignFrac = args[2].Value.Double;
             execute = args[3].Value.Boolean;
-
-            UaVariant(args[2]).toDouble(alignFrac);
 
             if (alignFrac > 1.0 || alignFrac <= 0.0) {
                 std::cout << "Invalid choice of alignFrac, should be between 0.0 and 1.0." << std::endl;

@@ -50,7 +50,7 @@
 #define PAS_MirrorType_MoveToCoords                  133
 #define PAS_MirrorType_AlignSequential               134
 #define PAS_MirrorType_AlignSector                   135
-#define PAS_MirrorType_GlobalAlign                   136
+#define PAS_MirrorType_AlignRing                     136
 #define PAS_MirrorType_SelectAll                     137
 #define PAS_MirrorType_Stop                          138
 
