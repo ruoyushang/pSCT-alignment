@@ -130,7 +130,24 @@ UaStatus PasCommunicationInterface::initialize() {
     identity.eAddress = std::to_string(0);
     identity.position = m_panelNum;
 
-    m_platform = std::make_shared<Platform>(identity, actuatorPorts, actuatorSerials, DbInfo);
+    std::array<Device::Identity, Platform::NUM_ACTS_PER_PLATFORM> actuatorIdentities;
+    for (int i = 0; i < Platform::NUM_ACTS_PER_PLATFORM; i++) {
+        Device::Identity id;
+        id.name = std::string("ACT_") + std::to_string(actuatorSerials.at(i));
+        id.serialNumber = actuatorSerials.at(i);
+        id.eAddress = std::to_string(actuatorPorts.at(i));
+        id.position = i + 1;
+        actuatorIdentities[i] = id;
+    }
+
+#if SIMMODE
+    m_platform = std::dynamic_pointer_cast<Platform>(std::make_shared<DummyPlatform>(identity, DbInfo));
+#else
+    m_platform = std::make_shared<Platform>(identity, DbInfo);
+#endif
+
+    m_platform->initialize();
+    m_platform->addActuators(actuatorIdentities);
 
     std::vector<int> mpesPositions;
     std::vector<int> actPositions;

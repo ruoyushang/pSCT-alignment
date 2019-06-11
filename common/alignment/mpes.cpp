@@ -34,9 +34,6 @@ const std::vector<Device::ErrorDefinition> MPES::ERROR_DEFINITIONS = {
     {"Intensity deviation from nominal value (more than 20%).",                                                    Device::ErrorState::OperableError},//error 7
 };
 
-MPES::MPES(std::shared_ptr<CBC> pCBC, Device::Identity identity) : Device::Device(std::move(pCBC), std::move(identity)),
-                                                                   m_Calibrate(false) {}
-
 MPES::~MPES() {
     turnOff();
 }
@@ -272,14 +269,33 @@ std::set<int> MPES::getVideoDevices() {
     return videoDevices;
 }
 
+void DummyMPES::turnOff() {
+    m_On = false;
+}
+
+bool DummyMPES::isOn() {
+    return m_On;
+}
+
 bool DummyMPES::__initialize() {
-    std::cout << m_Identity << " : calling DummyMPES::initialize()";
+    std::cout << m_Identity << " : DummyMPES::initialize(): Initializing...\n";
+
+    m_Errors.assign(getNumErrors(), false);
+
+    //std::cout << "MPES::initialize(): Detected new video device " << newVideoDeviceId << std::endl;
+    m_pDevice = nullptr;
+    m_pImageSet = nullptr;
+
+    m_On = true;
+
+    std::cout << m_Identity << " : DummyMPES::initialize() : Done.\n";
     return true;
 }
 
 int DummyMPES::__setExposure() {
-    std::cout << m_Identity << " : calling DummyMPES::setExposure()\n";
+    std::cout << m_Identity << " : DummyMPES::setExposure() : Setting exposure...\n";
     int intensity = MPES::NOMINAL_INTENSITY; // dummy value
+    std::cout << m_Identity << " : DummyMPES::setExposure() : Done.\n";
     return intensity;
 }
 

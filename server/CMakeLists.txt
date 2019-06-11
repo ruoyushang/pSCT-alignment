@@ -131,6 +131,10 @@ file(GLOB PASSERVER_SRC
     "${CMAKE_CURRENT_SOURCE_DIR}/objects/*.hpp"
     "${COMMON_CODE_DIR}/opcua/*.hpp"
     "${COMMON_CODE_DIR}/utilities/*.hpp"
+        "${COMMON_CODE_DIR}/utilities/spdlog/*.h"
+        "${COMMON_CODE_DIR}/utilities/spdlog/sinks/*.h"
+        "${COMMON_CODE_DIR}/utilities/spdlog/fmt/*.h"
+        "${COMMON_CODE_DIR}/utilities/spdlog/details/*.h"
     "${COMMON_CODE_DIR}/alignment/*.hpp"
     "${COMMON_CODE_DIR}/mpescode/*.h"
 )
@@ -161,7 +165,6 @@ if ( AMD64 )
     add_definitions(-D_AMD64)
     file(GLOB PASSERVER_SRC
         ${PASSERVER_SRC}
-        "${COMMON_CODE_DIR}/cbccode/dummycbc.cpp"
         )
 else ( AMD64 )
     file(GLOB PASSERVER_SRC
@@ -259,6 +262,7 @@ ENDIF (vxWorks)
 ####################################### Create executable ###################################
 
 add_executable(${PROJECT_NAME} ${PASSERVER_SRC})
+spdlog_enable_warnings(${PROJECT_NAME})
 
 IF ( UASTACK_WITH_OPENSSL )
     IF ( NOT TARGET uastack )
@@ -292,12 +296,12 @@ IF ( NOT TARGET uastack )
     TARGET_LINK_LIBRARIES(${PROJECT_NAME}       ${UAMODULE_LIBRARY}
                           ${UAMODELS_LIBRARY}  ${UACOREMODULE_LIBRARY}
                           ${UABASE_LIBRARY}    ${UASTACK_LIBRARY}
-                          ${PLATTFORM_LIBS} ${OpenCV_LIBRARIES} ${ROOT_LIBRARIES} ${MYSQLCONNECTORCPP_LIBRARIES} ${LIBUSB_LIBRARIES})
+            ${PLATTFORM_LIBS} ${OpenCV_LIBRARIES} ${ROOT_LIBRARIES} ${MYSQLCONNECTORCPP_LIBRARIES} ${LIBUSB_LIBRARIES} PRIVATE spdlog::spdlog)
 
 ELSE ()
     message(WARNING " OpenCV_LIBRARIES = ${OpenCV_LIBRARIES}")
     TARGET_LINK_LIBRARIES(${PROJECT_NAME} uamodule uamodels coremodule uabase
-        uastack ${PLATTFORM_LIBS} ${OpenCV_LIBRARIES} ${ROOT_LIBRARIES} ${MYSQLCONNECTORCPP_LIBRARIES} ${LIBUSB_LIBRARIES})
+            uastack ${PLATTFORM_LIBS} ${OpenCV_LIBRARIES} ${ROOT_LIBRARIES} ${MYSQLCONNECTORCPP_LIBRARIES} ${LIBUSB_LIBRARIES} PRIVATE spdlog::spdlog)
 ENDIF ()
 
 ####################################### configure debug postfix #############################

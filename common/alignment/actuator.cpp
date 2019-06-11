@@ -1,11 +1,3 @@
-#ifdef DEBUG
-#define DEBUG_MSG(str) do {std::cout << str << std::endl;} while (false)
-#else
-#define DEBUG_MSG(str) do {} while (false)
-#endif
-
-#define ERROR_MSG(str) do {std::cout << str << std::endl;} while (false)
-
 #include "common/alignment/actuator.hpp"
 
 #include <cmath>
@@ -47,7 +39,7 @@ const Actuator::ASFInfo Actuator::EMERGENCY_ASF_INFO = {"/.ASF/", ".ASF_Emergenc
 
 Actuator::Actuator(std::shared_ptr<CBC> pCBC, Device::Identity identity, Device::DBInfo DBInfo,
                    const ASFInfo &ASFFileInfo) : Device::Device(std::move(pCBC), std::move(identity)),
-                                                 m_ADCdata(CBC::ADC::adcData()) {
+                                                 m_keepStepping(true), m_ADCdata(CBC::ADC::adcData()) {
     m_Errors.assign(getNumErrors(), false);
     setError(0); // By default, home position not calibrated
     setError(1); // By default, DB info not set
@@ -55,28 +47,29 @@ Actuator::Actuator(std::shared_ptr<CBC> pCBC, Device::Identity identity, Device:
     if (getSerialNumber() == -1) {
         m_Identity.serialNumber = std::stoi(m_Identity.eAddress);
         setASFInfo(EMERGENCY_ASF_INFO);
-        DEBUG_MSG(
-            "Actuator::Actuator(): Port: " << getPortNumber() << ". No serial number passed, creating emergency ASF");
+        std::cout <<
+                  "Actuator::Actuator(): Port: " << getPortNumber()
+                  << ". No serial number passed, creating emergency ASF" << std::endl;
     } else {
         setASFInfo(ASFFileInfo);
-        DEBUG_MSG("Actuator::Actuator(): Port: " << getPortNumber() << ". Serial Num: " << getSerialNumber());
+        std::cout << "Actuator::Actuator(): Port: " << getPortNumber() << ". Serial Num: " << getSerialNumber()
+                  << std::endl;
     }
     if (!DBInfo.empty()) {
         setDBInfo(DBInfo);
     } else {
-        DEBUG_MSG("Actuator::Actuator(): No DB info provided...");
+        std::cout << "Actuator::Actuator(): No DB info provided..." << std::endl;
     }
 
     m_encoderScale.resize(StepsPerRevolution);
     for (int i = 0; i < StepsPerRevolution; i++) {
         m_encoderScale[i] = m_VMin + (i * dV);
     }
-
-    initialize();
 }
 
 bool Actuator::loadConfigurationAndCalibration() {
-    DEBUG_MSG("Reading Configuration and Calibration Information from DB for Actuator " << getSerialNumber());
+    std::cout << "Reading Configuration and Calibration Information from DB for Actuator " << getSerialNumber()
+              << std::endl;
     //check to make sure number of columns match what is expected.
     if (!m_Errors[1]) {
         try {
@@ -147,14 +140,14 @@ bool Actuator::loadConfigurationAndCalibration() {
             std::cout << " (MySQL error code: " << e.getErrorCode();
             std::cout << ", SQLState: " << e.getSQLState() << " )" << std::endl;
             std::cout << "Actuator Serial: " << getSerialNumber() << std::endl;
-            ERROR_MSG("Operable Error: SQL Exception caught for Actuator " << getSerialNumber()
-                                                                           << ". Did not successfully communicate with database.");
+            std::cout << "Operable Error: SQL Exception caught for Actuator " << getSerialNumber()
+                      << ". Did not successfully communicate with database." << std::endl;
             setError(2);//operable
             return false;
         }
     } else {
-        ERROR_MSG("Operable Error: DBInfo is not set for Actuator " << getSerialNumber()
-                                                                    << ". Cannot read Configuration and Calibration from DB.");
+        std::cout << "Operable Error: DBInfo is not set for Actuator " << getSerialNumber()
+                  << ". Cannot read Configuration and Calibration from DB." << std::endl;
         return false;
     }
     saveStatusToASF();
@@ -165,7 +158,7 @@ bool Actuator::loadConfigurationAndCalibration() {
 bool Actuator::readStatusFromDB(ActuatorStatus &RecordedPosition)
 {
     //check that the number of columns matches what is expected
-    DEBUG_MSG("Reading Status from DB for Actuator " << getSerialNumber());
+    std::cout << "Reading Status from DB for Actuator " << getSerialNumber() << std::endl;
     if (!m_Errors[1]) {
         try {
             sql::Driver *driver;
@@ -188,10 +181,10 @@ bool Actuator::readStatusFromDB(ActuatorStatus &RecordedPosition)
             resmeta = res->getMetaData();
             //check if number of results match what is expected. if not, set error(3)
             if (resmeta->getColumnCount() != NUM_DB_COLUMNS) {
-                ERROR_MSG("Fatal Error: DB Status number of arguments (" << resmeta->getColumnCount()
-                                                                         << ") did not equal the number expected ("
-                                                                         << NUM_DB_COLUMNS
-                                                                         << "). Either DB or this code appears to have an incorrect structure.");
+                std::cout << "Fatal Error: DB Status number of arguments (" << resmeta->getColumnCount()
+                          << ") did not equal the number expected ("
+                          << NUM_DB_COLUMNS
+                          << "). Either DB or this code appears to have an incorrect structure." << std::endl;
                 setError(3);//fatal
                 saveStatusToASF();
                 return false;
@@ -221,8 +214,8 @@ bool Actuator::readStatusFromDB(ActuatorStatus &RecordedPosition)
             std::cout << " (MySQL error code: " << e.getErrorCode();
             std::cout << ", SQLState: " << e.getSQLState() << " )" << std::endl;
             std::cout << "Actuator Serial: " << getSerialNumber() << std::endl;
-            ERROR_MSG("Operable Error: SQL Exception caught for Actuator " << getSerialNumber()
-                                                                           << ". Did not successfully communicate with database.");
+            std::cout << "Operable Error: SQL Exception caught for Actuator " << getSerialNumber()
+                      << ". Did not successfully communicate with database." << std::endl;
 
             //operable, If actuator status cannot be read, stil allow actuator to be moved. Local text file can still be used.
             setError(2);
@@ -231,8 +224,9 @@ bool Actuator::readStatusFromDB(ActuatorStatus &RecordedPosition)
         }
 
     } else {
-        ERROR_MSG(
-            "Operable Error: DBFlag is not set for Actuator " << getSerialNumber() << ". Cannot read Status from DB.");
+        std::cout <<
+                  "Operable Error: DBFlag is not set for Actuator " << getSerialNumber()
+                  << ". Cannot read Status from DB." << std::endl;
         setError(1);//operable
         return false;
     }
@@ -262,7 +256,7 @@ void Actuator::loadStatusFromDB() {
 
 void Actuator::saveStatusToDB()//record all error codes to DB. Adjust to new db table structure.
 {
-    DEBUG_MSG("Recording Status to DB for Actuator " << getSerialNumber());
+    std::cout << "Recording Status to DB for Actuator " << getSerialNumber() << std::endl;
     ActuatorStatus statusToSave;
     if (readStatusFromASF(statusToSave)) {
         if (m_Errors[1] == false) {
@@ -308,13 +302,13 @@ void Actuator::saveStatusToDB()//record all error codes to DB. Adjust to new db 
                 std::cout << " (MySQL error code: " << e.getErrorCode();
                 std::cout << ", SQLState: " << e.getSQLState() << " )" << std::endl;
                 std::cout << "Actuator Serial: " << getSerialNumber() << std::endl;
-                ERROR_MSG("Operable Error: SQL Exception caught for Actuator " << getSerialNumber()
-                                                                               << ". Did not successfully communicate with database.");
+                std::cout << "Operable Error: SQL Exception caught for Actuator " << getSerialNumber()
+                          << ". Did not successfully communicate with database." << std::endl;
                 setError(2);//operable, Local textfile can still be used.
             }
         } else {
-            ERROR_MSG("Operable Error: DBFlag is not set for Actuator " << getSerialNumber()
-                                                                        << ". Cannot record Status to DB.");
+            std::cout << "Operable Error: DBFlag is not set for Actuator " << getSerialNumber()
+                      << ". Cannot record Status to DB." << std::endl;
             setError(1);//operable
         }
     }
@@ -324,21 +318,21 @@ void Actuator::saveStatusToDB()//record all error codes to DB. Adjust to new db 
 //read all error codes from ASF. Check size of error codes to make sure version is consistent. Read whether Home is set or not.
 bool Actuator::readStatusFromASF(ActuatorStatus &RecordedPosition)
 {
-    DEBUG_MSG("Reading Status from ASF File with path " << m_ASFPath);
+    std::cout << "Reading Status from ASF File with path " << m_ASFPath << std::endl;
     std::ifstream ASF(m_ASFPath);
     //if(ASF.bad())//if file does not exist (or possibly other file issues not expected..)
     if (!ASF.good())//if file does not exist (or possibly other file issues not expected..)
     {
-        ERROR_MSG("ASF file was bad for Actuator " << getSerialNumber() << " with ASF path " << m_ASFPath
-                                                   << ". Assuming it did not exist and will create a default ASF file.");
+        std::cout << "ASF file was bad for Actuator " << getSerialNumber() << " with ASF path " << m_ASFPath
+                  << ". Assuming it did not exist and will create a default ASF file." << std::endl;
         ASF.close();
         createDefaultASF();
         ASF.open(m_ASFPath);
         //if(ASF.bad())//check if ASF is good again. If not, set fatal error.
         if (!ASF.good())//check if ASF is good again. If not, set fatal error.
         {
-            ERROR_MSG("Fatal Error: Creating ASF file for Actuator " << getSerialNumber()
-                                                                     << " did not resolve problem. File appears corrupt.");
+            std::cout << "Fatal Error: Creating ASF file for Actuator " << getSerialNumber()
+                      << " did not resolve problem. File appears corrupt." << std::endl;
             setError(4);//fatal
             return false;
         }
@@ -354,9 +348,9 @@ bool Actuator::readStatusFromASF(ActuatorStatus &RecordedPosition)
         ASFReadArray.push_back(word);
     }
     if ((int) ASFReadArray.size() != NUM_ASF_COLUMNS) {
-        ERROR_MSG("Fatal Error: ASF file (" << m_ASFPath << ") number of arguments (" << ASFReadArray.size()
-                                            << ") did not equal the number expected (" << NUM_ASF_COLUMNS
-                                            << "). ASF File appears to have an incorrect structure.");
+        std::cout << "Fatal Error: ASF file (" << m_ASFPath << ") number of arguments (" << ASFReadArray.size()
+                  << ") did not equal the number expected (" << NUM_ASF_COLUMNS
+                  << "). ASF File appears to have an incorrect structure." << std::endl;
         setError(5);//fatal
         return false;
     }
@@ -387,24 +381,25 @@ void Actuator::loadStatusFromASF()
         for (int i = 0; i < getNumErrors(); i++) {
             if (RecordedPosition.errorCodes[i]) {
                 setError(i);
-            }
-	    else {
+            } else {
                 unsetError(i);
-	    }
+            }
         }
     }
 }
 
 void Actuator::saveStatusToASF()//record all error codes to ASF.
 {
-    DEBUG_MSG("Recording Status for Actuator " << getSerialNumber() << " to ASF file with path " << m_ASFPath);
+    std::cout << "Recording Status for Actuator " << getSerialNumber() << " to ASF file with path " << m_ASFPath
+              << std::endl;
     copyFile(m_ASFPath, m_OldASFPath);
     std::ofstream ASF(m_NewASFPath);
 
     //if(ASF.bad())//or exist
     if (!ASF.good())//or exist
     {
-        ERROR_MSG("Fatal Error: Cannot write to ASF" << getSerialNumber() << ".log.new, cannot record Status to ASF.");
+        std::cout << "Fatal Error: Cannot write to ASF" << getSerialNumber() << ".log.new, cannot record Status to ASF."
+                  << std::endl;
         setError(4);//fatal
         return;
     }
@@ -443,10 +438,10 @@ float Actuator::__readVoltage() {
         MeasurementCount++;
     }
     if (m_ADCdata.stddev > m_StdDevMax) {
-        ERROR_MSG("Fatal Error: Actuator " << getSerialNumber() << " voltage measured (" << m_ADCdata.voltage
-                                           << ") has a standard deviation (" << m_ADCdata.stddev
-                                           << ") which is greater than the max std dev allowed of " << m_StdDevMax
-                                           << " volts");
+        std::cout << "Fatal Error: Actuator " << getSerialNumber() << " voltage measured (" << m_ADCdata.voltage
+                  << ") has a standard deviation (" << m_ADCdata.stddev
+                  << ") which is greater than the max std dev allowed of " << m_StdDevMax
+                  << " volts" << std::endl;
         setError(7);//fatal
         saveStatusToASF();
     }
@@ -553,7 +548,7 @@ int Actuator::step(int steps)//Positive Step is Extension of Motor
 }
 
 int Actuator::__step(int steps) {
-    DEBUG_MSG("Stepping Actuator " << getSerialNumber() << " " << steps << " steps");
+    std::cout << "Stepping Actuator " << getSerialNumber() << " " << steps << " steps" << std::endl;
 
     loadStatusFromASF();
     recoverPosition();
@@ -595,9 +590,10 @@ int Actuator::__step(int steps) {
         //if( (std::abs(MissedSteps)/float(std::abs(StepsToTake)))>TolerablePercentOfMissedSteps && std::abs(MissedSteps)>MinimumMissedStepsToFlagError)//if the actuator misses a certain percent of steps AND misses more than a threshold number of steps.
         if (std::abs(MissedSteps) >
             std::max(int(m_TolerablePercentOfMissedSteps * std::abs(StepsToTake)), m_MinimumMissedStepsToFlagError)) {
-            ERROR_MSG(
-                "Fatal Error: Actuator " << getSerialNumber() << " missed a large number of steps (" << MissedSteps
-                    << ").");
+            std::cout <<
+                      "Fatal Error: Actuator " << getSerialNumber() << " missed a large number of steps ("
+                      << MissedSteps
+                      << ")." << std::endl;
             setError(8);//fatal
             saveStatusToASF();
             return StepsRemaining;//quit, don't record or register steps attempted to be taken.
@@ -614,7 +610,7 @@ float Actuator::measureLength() {
     bool alreadyBusy = isBusy();
     if (!alreadyBusy) { setBusy(); }
 
-    DEBUG_MSG("Measuring Actuator Length for Actuator " << getSerialNumber());
+    std::cout << "Measuring Actuator Length for Actuator " << getSerialNumber() << std::endl;
     loadStatusFromASF();
     recoverPosition();
     int StepsFromHome = convertPositionToSteps(m_CurrentPosition);
@@ -666,7 +662,7 @@ Actuator::Position Actuator::predictNewPosition(Position position,
 int Actuator::performHysteresisMotion(int steps) {
     setBusy();
 
-    DEBUG_MSG("Performing Hysteresis Motion of " << steps << " for Actuator " << getSerialNumber());
+    std::cout << "Performing Hysteresis Motion of " << steps << " for Actuator " << getSerialNumber() << std::endl;
     int stepsRemaining = __step(steps - m_HysteresisSteps);
     stepsRemaining = __step(m_HysteresisSteps + stepsRemaining);
 
@@ -676,7 +672,7 @@ int Actuator::performHysteresisMotion(int steps) {
 
 //Port, Serial, ASFPath, and sometimes DB are loaded. The rest of the loading needs to be designed here. Set Current position
 bool Actuator::initialize() {
-    DEBUG_MSG("Initializing Actuator " << getSerialNumber());
+    std::cout << "Initializing Actuator " << getSerialNumber() << std::endl;
     loadStatusFromASF();
     loadConfigurationAndCalibration();
     recoverPosition();
@@ -688,7 +684,7 @@ bool Actuator::initialize() {
 void
 Actuator::recoverPosition()//consolidates current position and recovers position (if not too far away). This is typically ran after reading status from ASF.
 {
-    DEBUG_MSG("Actuator: Checking current position...");
+    std::cout << "Actuator: Checking current position..." << std::endl;
     int indexDeviation = checkAngleQuick(m_CurrentPosition);
     if (m_Errors[7])//check for voltage issue
     {
@@ -704,23 +700,24 @@ Actuator::recoverPosition()//consolidates current position and recovers position
     } else if (std::abs(indexDeviation) <
                m_MaxRecoverySteps)//If the difference between where we are and where we think we are is high, set an OperableError.
     {
-        ERROR_MSG("Operable Error: Actuator " << getSerialNumber() << " is " << indexDeviation
-                                              << " steps away from the last believed position. This number is large enough to warrant an error, but below the set maximum number of recoverable steps ("
-                                              << m_MaxRecoverySteps
-                                              << "). Software will recover the position, but this error should not happen under normal conditions.");
+        std::cout << "Operable Error: Actuator " << getSerialNumber() << " is " << indexDeviation
+                  << " steps away from the last believed position. This number is large enough to warrant an error, but below the set maximum number of recoverable steps ("
+                  << m_MaxRecoverySteps
+                  << "). Software will recover the position, but this error should not happen under normal conditions."
+                  << std::endl;
         setError(10);//operable
         setCurrentPosition(predictNewPosition(m_CurrentPosition, indexDeviation));
         saveStatusToASF();
         return;
     } else { //If the difference between where we are and where we think we are is extremely high, set a FatalError. position is lost. (Do we want to set fatal error?? maybe we just recover and set homeisset=false.
-        ERROR_MSG("Fatal Error: Actuator " << getSerialNumber() << " is " << indexDeviation
-                                           << " steps away from the last believed position. This number is above the set maximum number of recoverable steps ("
-                                           << m_MaxRecoverySteps
-                                           << "). Home position will likely need to be found again.");
-        DEBUG_MSG("CurrentPosition: (" << m_CurrentPosition.revolution << "," << m_CurrentPosition.angle
-                                       << "), Probable position: ("
-                                       << predictNewPosition(m_CurrentPosition, indexDeviation).revolution << ", "
-                                       << predictNewPosition(m_CurrentPosition, indexDeviation).angle << ")");
+        std::cout << "Fatal Error: Actuator " << getSerialNumber() << " is " << indexDeviation
+                  << " steps away from the last believed position. This number is above the set maximum number of recoverable steps ("
+                  << m_MaxRecoverySteps
+                  << "). Home position will likely need to be found again." << std::endl;
+        std::cout << "CurrentPosition: (" << m_CurrentPosition.revolution << "," << m_CurrentPosition.angle
+                  << "), Probable position: ("
+                  << predictNewPosition(m_CurrentPosition, indexDeviation).revolution << ", "
+                  << predictNewPosition(m_CurrentPosition, indexDeviation).angle << ")" << std::endl;
         setError(9);//fatal
         setError(0);
         saveStatusToASF();
@@ -729,7 +726,7 @@ Actuator::recoverPosition()//consolidates current position and recovers position
 }
 
 void Actuator::recoverStatusFromDB() {
-    DEBUG_MSG("Recovering the status of Actuator " << getSerialNumber() << " from DB");
+    std::cout << "Recovering the status of Actuator " << getSerialNumber() << " from DB" << std::endl;
     loadStatusFromDB();
     recoverPosition();
     saveStatusToASF();
@@ -760,7 +757,7 @@ int Actuator::convertPositionToSteps(Position position) {
 void Actuator::probeHome()//method used to define home.
 {
     setBusy();
-    DEBUG_MSG("Probing Home for Actuator " << getSerialNumber());
+    std::cout << "Probing Home for Actuator " << getSerialNumber() << std::endl;
     __probeEndStop(1);
 
     float MeasuredVoltage = __readVoltage();
@@ -770,12 +767,13 @@ void Actuator::probeHome()//method used to define home.
     float ExtendStopVoltageMax = m_VMax - (StepsPerRevolution / 4.0) * dV;
     float ExtendStopVoltageMin = m_VMin + (StepsPerRevolution / 4.0) * dV;
     if (MeasuredVoltage > ExtendStopVoltageMax || MeasuredVoltage < ExtendStopVoltageMin) {
-        ERROR_MSG(
-            "Operable Error: Actuator " << getSerialNumber() << " voltage at Extend Stop reads: " << MeasuredVoltage
-                                        << ". Encoder should have been set during assembly to have a voltage in the mid-range, between "
-                                        << ExtendStopVoltageMin << "-" << ExtendStopVoltageMax
-                                        << " volts. Can possibly cause " << StepsPerRevolution
-                                        << " step uncertainty in position.");
+        std::cout <<
+                  "Operable Error: Actuator " << getSerialNumber() << " voltage at Extend Stop reads: "
+                  << MeasuredVoltage
+                  << ". Encoder should have been set during assembly to have a voltage in the mid-range, between "
+                  << ExtendStopVoltageMin << "-" << ExtendStopVoltageMax
+                  << " volts. Can possibly cause " << StepsPerRevolution
+                  << " step uncertainty in position." << std::endl;
         setError(11);//operable
         saveStatusToASF();
     }
@@ -809,8 +807,9 @@ void Actuator::probeHome()//method used to define home.
                 CurrentCyclesFromExtendStop++;
             } else//error must have occured.. probably stuck
             {
-                ERROR_MSG("Fatal Error: Actuator " << getSerialNumber()
-                                                   << " appears to be stuck at the end stop. Actuator is stepping just a couple of steps backwards instead of forwards.");
+                std::cout << "Fatal Error: Actuator " << getSerialNumber()
+                          << " appears to be stuck at the end stop. Actuator is stepping just a couple of steps backwards instead of forwards."
+                          << std::endl;
                 setError(0);
                 //setError(14);
                 saveStatusToASF();
@@ -824,8 +823,8 @@ void Actuator::probeHome()//method used to define home.
     int RecordedStepsFromExtendStop = -1 * (convertPositionToSteps(m_ExtendStopPosition));
     int StepsDeviationFromExtendStop = RecordedStepsFromExtendStop - StepsFromExtendStop;
     if (std::abs(StepsDeviationFromExtendStop) > m_ExtendStopToHomeStepsDeviation) {
-        ERROR_MSG("Operable Error: Actuator " << getSerialNumber() << " is " << StepsDeviationFromExtendStop
-                                              << " steps away from Recorded Extend Stop position.");
+        std::cout << "Operable Error: Actuator " << getSerialNumber() << " is " << StepsDeviationFromExtendStop
+                  << " steps away from Recorded Extend Stop position." << std::endl;
         setError(
                 13);//operable. if home is ill defined, we should still be able to move the actuator. Also, if internal position "ExtendStop" is not correct, we should still be able to move actuator.
     }
@@ -852,7 +851,7 @@ void Actuator::findHomeFromEndStop(int direction)//use recorded extendstop and s
         targetPosition = m_RetractStopPosition;
     } else {
         std::cout << m_Identity << " :: Actuator::findHomeFromEndStop(): Invalid choice of direction " << direction
-                  << " (must be 1 for extend or -1 for retract.)\n";
+                  << " (must be 1 for extend or -1 for retract.)" << std::endl;
         return;
     }
 
@@ -861,10 +860,12 @@ void Actuator::findHomeFromEndStop(int direction)//use recorded extendstop and s
     int indexDeviation = checkAngleSlow(targetPosition);
     setCurrentPosition(predictNewPosition(targetPosition, indexDeviation));
     if (std::abs(indexDeviation) > m_EndStopRecoverySteps) {
-        ERROR_MSG(
-            "Operable Error: Actuator " << getSerialNumber() << " has End Stop which is " << indexDeviation << " (mod "
-                                        << StepsPerRevolution
-                                        << ") steps away from recorded End Stop position. Home position is possibly a cycle off! ProbeHome() needs to be called to more accurately calibrate Home position.");
+        std::cout <<
+                  "Operable Error: Actuator " << getSerialNumber() << " has End Stop which is " << indexDeviation
+                  << " (mod "
+                  << StepsPerRevolution
+                  << ") steps away from recorded End Stop position. Home position is possibly a cycle off! ProbeHome() needs to be called to more accurately calibrate Home position."
+                  << std::endl;
         setError(12);//operable, we still want to move the actuator.
         saveStatusToASF();
     } else {
@@ -874,7 +875,8 @@ void Actuator::findHomeFromEndStop(int direction)//use recorded extendstop and s
         int StepsRemaining = __step(-1 * direction * RecordingInterval);
         if (std::abs(StepsRemaining) > (RecordingInterval / 2))//If we miss more than half of the steps
         {
-            ERROR_MSG("Fatal Error: Actuator " << getSerialNumber() << " appears to be stuck at the end stop.");
+            std::cout << "Fatal Error: Actuator " << getSerialNumber() << " appears to be stuck at the end stop."
+                      << std::endl;
             setError(0);
             //setError(14);
             saveStatusToASF();
@@ -888,7 +890,7 @@ void Actuator::findHomeFromEndStop(int direction)//use recorded extendstop and s
 void Actuator::probeEndStop(int direction) {
     if (direction != 1 && direction != -1) {
         std::cout << m_Identity << " :: Actuator::probeEndStop(): Invalid choice of direction " << direction
-                  << " (must be 1 for extend or -1 for retract.)\n";
+                  << " (must be 1 for extend or -1 for retract.)" << std::endl;
         return;
     }
     setBusy();
@@ -932,7 +934,7 @@ int Actuator::stepDriver(int inputSteps) {
 
 void Actuator::createDefaultASF()//hardcoded structure of the ASF file (year,mo,day,hr,min,sec,rev,angle,errorcodes)
 {
-    DEBUG_MSG("Creating ASF File with location: " << m_ASFPath);
+    std::cout << "Creating ASF File with location: " << m_ASFPath << std::endl;
     copyFile(m_ASFPath, m_OldASFPath); // Create a copy of the current ASF file contents (the "old" ASF file)
 
     std::ofstream ASFfile(m_NewASFPath); // Write new default ASF file contents to a separate (the "new" ASF file)
@@ -956,7 +958,7 @@ void Actuator::clearErrors() {
 }
 
 bool Actuator::forceRecover() {
-    std::cout << m_Identity << " :: Force recovering actuator...\n";
+    std::cout << m_Identity << " :: Force recovering actuator..." << std::endl;
     int indexDeviation = checkAngleQuick(m_CurrentPosition);
     if (m_Errors[7])//check for voltage issue
     {
@@ -972,19 +974,19 @@ bool Actuator::isOn() {
 }
 
 void Actuator::turnOn() {
-    std::cout << m_Identity << " :: Turning on...\n";
+    std::cout << m_Identity << " :: Turning on..." << std::endl;
     m_pCBC->driver.enable(getPortNumber());    
     initialize();
 }
 
 void Actuator::turnOff() {
-    std::cout << m_Identity << " :: Turning off...\n";
+    std::cout << m_Identity << " :: Turning off..." << std::endl;
     saveStatusToASF();
     m_pCBC->driver.disable(getPortNumber());    
 }
 
 void Actuator::emergencyStop() {
-    std::cout << m_Identity << " :: Doing emergency stop...\n";
+    std::cout << m_Identity << " :: Doing emergency stop..." << std::endl;
     m_keepStepping = false;
 }
 
@@ -998,26 +1000,141 @@ void Actuator::copyFile(const std::string &srcFilePath, const std::string &destF
     destFile.close();
 }
 
-int DummyActuator::step(int steps)
+int DummyActuator::__step(int steps)
 {
     std::cout << "DummyActuator: Stepping Actuator " << getSerialNumber() << " " << steps << " steps" << std::endl;
     Position finalPosition = predictNewPosition(m_CurrentPosition, -steps);
-    setCurrentPosition(finalPosition); // Set current position to final position (simulate motion)
-    int stepsRemaining = -(convertPositionToSteps(finalPosition) - convertPositionToSteps(
+
+    int direction;
+
+    if (steps > 0) {
+        direction = 1;
+    } else {
+        direction = -1;
+    }
+
+    int numFullCycles = steps / 80;
+    int remainingSteps = steps % 80;
+
+    for (int i = 0; i < numFullCycles; i++) {
+        sleep(1);
+        m_CurrentPosition.angle += 80 * direction;
+        if (m_CurrentPosition.angle > 200) {
+            m_CurrentPosition.revolution += 1;
+            m_CurrentPosition.angle -= 200;
+        } else if (m_CurrentPosition.angle < 0) {
+            m_CurrentPosition.revolution -= 1;
+            m_CurrentPosition.angle += 200;
+        }
+    }
+
+    //step remaining steps
+    sleep(1);
+    m_CurrentPosition.angle += remainingSteps;
+    if (m_CurrentPosition.angle > 200) {
+        m_CurrentPosition.revolution += 1;
+        m_CurrentPosition.angle -= 200;
+    } else if (m_CurrentPosition.angle < 0) {
+        m_CurrentPosition.revolution -= 1;
+        m_CurrentPosition.angle += 200;
+    }
+
+    remainingSteps = -(convertPositionToSteps(finalPosition) - convertPositionToSteps(
             m_CurrentPosition));//negative because positive step is retraction, and (0,0) is defined as full extraction.
     std::cout << "DummyActuator:: New length = " << measureLength() << std::endl;
-    return stepsRemaining;
+    return remainingSteps;
 }
 
 float DummyActuator::measureLength() {
-    DEBUG_MSG("Measuring Actuator Length for Dummy Actuator " << getSerialNumber());
+    bool alreadyBusy = isBusy();
+    if (!alreadyBusy) { setBusy(); }
+
+    std::cout << "Measuring Actuator Length for Dummy Actuator " << getSerialNumber() << std::endl;
     int stepsFromHome = convertPositionToSteps(m_CurrentPosition);
     float distanceFromHome = stepsFromHome * mmPerStep;
     float currentLength = HomeLength - distanceFromHome;
+
+    if (!alreadyBusy) { unsetBusy(); }
     return currentLength;
 }
 
 bool DummyActuator::initialize() {
-    DEBUG_MSG("Initializing Dummy Actuator ...");
+    std::cout << "Initializing Dummy Actuator " << getSerialNumber() << std::endl;
+    getErrorState();
     return true;
+}
+
+void DummyActuator::probeHome()//method used to define home.
+{
+    setBusy();
+    std::cout << "Probing Home for Actuator " << getSerialNumber() << std::endl;
+    __probeEndStop(1);
+    Position HomePosition{};
+    HomePosition.revolution = 0;
+    HomePosition.angle = 0;
+    setCurrentPosition(HomePosition);
+    unsetError(0);
+
+    unsetBusy();
+}
+
+void DummyActuator::findHomeFromEndStop(int direction)//use recorded extendstop and set actuator to that.
+{
+    setBusy();
+
+    //if direction=1, probeextendstop then set current position to recorded extendstop. compare the number of steps away from the recorded value, and report error if this number is too high.
+    Position targetPosition{};
+    if (direction == 1) {
+        targetPosition = m_ExtendStopPosition;
+    } else if (direction == -1) {
+        targetPosition = m_RetractStopPosition;
+    } else {
+        std::cout << m_Identity << " :: DummyActuator::findHomeFromEndStop(): Invalid choice of direction " << direction
+                  << " (must be 1 for extend or -1 for retract.)" << std::endl;
+        return;
+    }
+
+    __probeEndStop(direction);
+    unsetBusy();
+}
+
+void DummyActuator::__probeEndStop(int direction) {
+    setError(0); // Set home position not found error until probe home is complete
+    std::cout << m_Identity << " :: Dummy actuator, probing end stop (no effect)..." << std::endl;
+    sleep(3);
+}
+
+int DummyActuator::stepDriver(int inputSteps) {
+    setBusy();
+    __step(inputSteps);
+    unsetBusy();
+}
+
+void DummyActuator::clearErrors() {
+    Device::clearErrors();
+}
+
+bool DummyActuator::forceRecover() {
+    std::cout << m_Identity << " :: Force recovering dummy actuator (no effect)..." << std::endl;
+    return true;
+}
+
+bool DummyActuator::isOn() {
+    return m_On;
+}
+
+void DummyActuator::turnOn() {
+    std::cout << m_Identity << " :: Turning on dummy actuator..." << std::endl;
+    initialize();
+    m_On = true;
+}
+
+void DummyActuator::turnOff() {
+    std::cout << m_Identity << " :: Turning off dummy actuator..." << std::endl;
+    m_On = false;
+}
+
+void DummyActuator::emergencyStop() {
+    std::cout << m_Identity << " :: Doing dummy actuator emergency stop..." << std::endl;
+    m_keepStepping = false;
 }

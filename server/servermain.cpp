@@ -18,6 +18,10 @@
 #include "uaserver/serverconfigxml.h"
 #include "uaserver/uaserverapplication.h"
 
+#include "common/utilities/spdlog/sinks/basic_file_sink.h"
+#include "common/utilities/spdlog/sinks/stdout_color_sinks.h"
+#include "common/utilities/spdlog/sinks/rotating_file_sink.h"
+
 #if SUPPORT_XML_PARSER
 #include "xmlparser/xmldocument.h"
 #endif
@@ -131,16 +135,18 @@ int WINAPI WinMain( HINSTANCE, HINSTANCE, LPWSTR, int)
 int main(int argc, char* argv[])
 #endif
 {
+    std::string usage = "<PANEL POSITION NUMBER> -c <CONFIG FILE PATH (optional)> -u <ENDPOINT URL (optional)> -l <LOGGER LEVEL (optional)>";
+
     if (argc == 1) {
-        std::cout << "Usage: " << argv[0]
-                  << " <PANEL POSITION NUMBER> -c <CONFIG FILE PATH (optional)> -u <ENDPOINT URL (optional)>" << std::endl;
+        std::cout << "Usage: " << argv[0] << " " << usage << std::endl;
         return -1;
     }
 
     int c;
     std::string panelNumber, configFilePath, endpointUrl;
+    std::string logLevel("info");
 
-    while ((c = getopt(argc, argv, "c:u:")) != -1) {
+    while ((c = getopt(argc, argv, "c:u:l:")) != -1) {
         switch(c)
         {
             case 'c':
@@ -149,11 +155,16 @@ int main(int argc, char* argv[])
             case 'u':
                 endpointUrl = optarg;
                 break;
+            case 'l':
+                logLevel = optarg;
+                break;
             case '?':
                 if (optopt == 'c')
                     std::cout << "Must provide a config file path with option c\n";
                 else if (optopt == 'u')
                     std::cout << "Must provide an endpoint URL with option u\n";
+                else if (optopt == 'l')
+                    std::cout << "Must provide a logger level with option u (trace, debug, info, warn, error)\n";
             default:
                 abort();
         }
@@ -163,11 +174,43 @@ int main(int argc, char* argv[])
         std::cout << "Invalid number of positional arguments: " << (argc - optind)
                   << ". Expected only 1 (panel number)." << std::endl;
         std::cout << "Usage: " << argv[0]
-                  << " <PANEL POSITION NUMBER> -c <CONFIG FILE PATH> -u <ENDPOINT URL (optional)>" << std::endl;
+                  << " " << usage << std::endl;
         return -1;
     } else {
         panelNumber = argv[optind];
     }
+
+    // Setup logging
+    auto console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>(); // log to console
+    if (logLevel == "trace") {
+        console_sink->set_level(spdlog::level::trace);
+    } else if (logLevel == "debug") {
+        console_sink->set_level(spdlog::level::debug);
+    } else if (logLevel == "info") {
+        console_sink->set_level(spdlog::level::info);
+    } else if (logLevel == "warn") {
+        console_sink->set_level(spdlog::level::warn);
+    } else if (logLevel == "error") {
+        console_sink->set_level(spdlog::level::err);
+    } else if (logLevel == "critical") {
+        console_sink->set_level(spdlog::level::critical);
+    } else {
+        std::cout << "Invalid logger level selected: " << logLevel
+                  << ". Valid choices are 'trace', 'debug', 'info', 'warn', 'error', 'critical'.";
+        return -1;
+    }
+
+    // Note that log directory must have been created beforehand
+    auto file_sink = make_shared<spdlog::sinks::rotating_file_sink_mt>("~/logs/passerver_logs", 1048576 * 5, 5,
+                                                                       false); // 5 rotating files with max size 5 MB
+    file_sink->set_level(spdlog::level::trace); // always save all logging levels
+
+    spdlog::logger logger("passerver", {console_sink, file_sink}); //register logger to both console and file
+    logger.set_level(spdlog::level::trace);
+    logger.flush_on(spdlog::level::info);
+
+    logger.warn("this should appear in both console and file");
+    logger.info("this message should not appear in the console, only in the file");
 
     // NOTE: This method returns a pointer to heap-allocated memory, must be freed manually
     char *pszAppPath = getAppPath(); // Extract application path

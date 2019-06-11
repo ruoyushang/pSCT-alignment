@@ -23,6 +23,10 @@
 #include "client/utilities/configuration.hpp"
 #include "client/utilities/paslogic.hpp"
 
+#include "common/utilities/spdlog/sinks/basic_file_sink.h"
+#include "common/utilities/spdlog/sinks/stdout_color_sinks.h"
+#include "common/utilities/spdlog/sinks/rotating_file_sink.h"
+
 
 #define CLIENT_CPP_SDK_ACTIVATE_MEMCHECK 0
 
@@ -223,6 +227,64 @@ int WINAPI WinMain( HINSTANCE, HINSTANCE, LPWSTR, int)
 int main(int argc, char* argv[])
 #endif
 {
+    std::string usage = "<PANEL POSITION NUMBERS> -l <LOGGER LEVEL (optional)>";
+
+    if (argc == 1) {
+        std::cout << "Usage: " << argv[0] << " " << usage << std::endl;
+        return -1;
+    }
+
+    int c;
+    std::string panelNumber, configFilePath, endpointUrl;
+    std::string logLevel("info");
+
+    while ((c = getopt(argc, argv, "l:")) != -1) {
+        switch (c) {
+            case 'l':
+                logLevel = optarg;
+                break;
+            case '?':
+                if (optopt == 'l')
+                    std::cout << "Must provide a logger level with option u (trace, debug, info, warn, error)\n";
+            default:
+                abort();
+        }
+    }
+
+    // Setup logging
+    auto console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>(); // log to console
+    if (logLevel == "trace") {
+        console_sink->set_level(spdlog::level::trace);
+    } else if (logLevel == "debug") {
+        console_sink->set_level(spdlog::level::debug);
+    } else if (logLevel == "info") {
+        console_sink->set_level(spdlog::level::info);
+    } else if (logLevel == "warn") {
+        console_sink->set_level(spdlog::level::warn);
+    } else if (logLevel == "error") {
+        console_sink->set_level(spdlog::level::err);
+    } else if (logLevel == "critical") {
+        console_sink->set_level(spdlog::level::critical);
+    } else {
+        std::cout << "Invalid logger level selected: " << logLevel
+                  << ". Valid choices are 'trace', 'debug', 'info', 'warn', 'error', 'critical'.";
+        return -1;
+    }
+
+    // Note that log directory must have been created beforehand
+    auto file_sink = std::make_shared<spdlog::sinks::rotating_file_sink_mt>("~/logs/p2pasclient_logs", 1048576 * 5, 5,
+                                                                            false); // 5 rotating files with max size 5 MB
+    file_sink->set_level(spdlog::level::trace); // always save all logging levels
+
+    spdlog::logger logger("p2pasclient", {console_sink, file_sink}); //register logger to both console and file
+    logger.set_level(spdlog::level::trace);
+    logger.flush_on(spdlog::level::info);
+
+    logger.warn("this should appear in both console and file");
+    logger.info("this message should not appear in the console, only in the file");
+
+
+
     if (argc < 2) {
         std::cout << "Usage: " << argv[0] << " <Positions of panels to connect to>" << std::endl;
         return 1;
@@ -239,7 +301,7 @@ int main(int argc, char* argv[])
 
     // Collect all passed panel position numbers into a vector
     std::vector<std::string> positionList;
-    for (int i = 1; i < argc; i++)
+    for (int i = optind; i < argc; i++)
         positionList.emplace_back(argv[i]);
 
     // Run main method

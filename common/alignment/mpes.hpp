@@ -40,20 +40,22 @@ public:
 
     std::vector<Device::ErrorDefinition> getErrorCodeDefinitions() override { return MPES::ERROR_DEFINITIONS; }
 
-    MPES(std::shared_ptr<CBC> pCBC, Device::Identity identity);
-    ~MPES();
+    MPES(std::shared_ptr<CBC> pCBC, Device::Identity identity) : Device::Device(std::move(pCBC), std::move(identity)),
+                                                                 m_Calibrate(false) {}
+
+    virtual ~MPES();
 
     int getPortNumber() const { return std::stoi(m_Identity.eAddress); };
-
     int getSerialNumber() const { return m_Identity.serialNumber; };
 
     bool initialize() override;
-    virtual int setExposure();
+
+    int setExposure();
 
     void setxNominalPosition(float x) { m_Position.xNominal = x; }
     void setyNominalPosition(float y) { m_Position.yNominal = y; }
 
-    virtual int updatePosition();
+    int updatePosition();
     MPES::Position getPosition() const { return m_Position; };
 
     // Hardcoded constants
@@ -64,10 +66,11 @@ public:
     static const int NOMINAL_INTENSITY;
     static const float NOMINAL_SPOT_WIDTH;
 
-    void turnOn() override;
-    void turnOff() override;
+    virtual void turnOn() override;
 
-    bool isOn() override;
+    virtual void turnOff() override;
+
+    virtual bool isOn() override;
 
 protected:
     bool m_Calibrate;
@@ -90,13 +93,20 @@ protected:
 class DummyMPES : public MPES
 {
 public:
-    DummyMPES(std::shared_ptr<CBC> pCBC, Device::Identity identity) : MPES(std::move(pCBC), std::move(identity)) {};
+    explicit DummyMPES(Device::Identity identity) : MPES(nullptr, std::move(identity)) {};
+
+    ~DummyMPES() override = default;
 
     bool __initialize() override;
-
     int __setExposure() override;
-
     int __updatePosition() override;
+
+    void turnOff() override;
+
+    bool isOn() override;
+
+private:
+    bool m_On = false;
 };
 
 #endif //ALIGNMENT_MPES_HPP

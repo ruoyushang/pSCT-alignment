@@ -3,7 +3,6 @@
 #include <array>
 #include <iostream>
 #include <memory>
-#include <random>
 
 #include "uabase/statuscode.h"
 #include "uabase/uabase.h"
@@ -38,26 +37,6 @@ UaStatus PanelController::setState(Device::DeviceState state) {
 /// when reading temperature values, dummy values are generated from a normal distribution.
 UaStatus PanelController::getData(OpcUa_UInt32 offset, UaVariant &value) {
     //UaMutexLocker lock(&m_mutex);
-
-#ifdef SIMMODE
-    std::random_device rd{};
-    std::mt19937 generator{rd()};
-
-    std::normal_distribution<double> internalTempDistribution(30.0, 2.0);
-    std::normal_distribution<double> externalTempDistribution(20.0, 2.0);
-
-    double newValue;
-    if (offset == PAS_PanelType_ExtTemperature) {
-        newValue = externalTempDistribution(generator);
-        value.setFloat(newValue);
-    } else if (offset == PAS_PanelType_IntTemperature) {
-        newValue = internalTempDistribution(generator);
-        value.setFloat(newValue);
-    } else {
-        return OpcUa_BadInvalidArgument;
-    }
-
-#else
     if (PanelObject::VARIABLES.find(offset) != PanelObject::VARIABLES.end()) {
         if (offset == PAS_PanelType_ExtTemperature) {
             value.setFloat(m_pPlatform->getExternalTemperature());
@@ -76,7 +55,6 @@ UaStatus PanelController::getData(OpcUa_UInt32 offset, UaVariant &value) {
     else {
         return OpcUa_BadInvalidArgument;
     }
-#endif
     return OpcUa_Good;
 }
 

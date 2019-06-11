@@ -59,11 +59,11 @@ public:
     float moveToLength(float targetLength);
     float moveDeltaLength(float lengthToMove);
 
-    void probeHome();
+    virtual void probeHome();
 
-    void findHomeFromEndStop(int direction);
+    virtual void findHomeFromEndStop(int direction);
 
-    bool forceRecover();
+    virtual bool forceRecover();
 
     void clearErrors() override;
 
@@ -97,7 +97,7 @@ public:
 
     bool initialize() override;
 
-    void emergencyStop();
+    virtual void emergencyStop();
 
 protected:
     bool m_keepStepping;
@@ -165,23 +165,47 @@ protected:
 
     void probeEndStop(int direction);
 
-    float __readVoltage();
+    virtual float __readVoltage();
 
-    int __step(int steps);
+    virtual int __step(int steps);
 
-    void __probeEndStop(int direction);
+    virtual void __probeEndStop(int direction);
 };
 
 class DummyActuator : public Actuator
 {
 public:
-    DummyActuator(std::shared_ptr<CBC> pCBC, Device::Identity identity,
-                  Device::DBInfo DBInfo = Device::DBInfo(), const ASFInfo &ASFFileInfo = Actuator::ASFInfo())
-        : Actuator(std::move(pCBC), std::move(identity), std::move(DBInfo), ASFFileInfo) {};
+    explicit DummyActuator(Device::Identity identity,
+                           Device::DBInfo DBInfo = Device::DBInfo(), const ASFInfo &ASFFileInfo = Actuator::ASFInfo())
+        : Actuator(nullptr, std::move(identity), std::move(DBInfo), ASFFileInfo), m_On(true) {};
 
     bool initialize() override;
-    int step(int steps) override;
     float measureLength() override;
+
+    void probeHome() override;
+
+    void findHomeFromEndStop(int direction) override;
+
+    bool forceRecover() override;
+
+    void clearErrors() override;
+
+    int stepDriver(int inputSteps) override;
+
+    bool isOn() override;
+
+    void turnOn() override;
+
+    void turnOff() override;
+
+    void emergencyStop() override;
+
+private:
+    bool m_On;
+
+    int __step(int steps) override;
+
+    void __probeEndStop(int direction) override;
 };
 
 #endif // ALIGNMENT_ACTUATOR_HPP
