@@ -430,17 +430,18 @@ bool Configuration::addMissingParents() {
         m_ChildMap[mirrorId][PAS_MPESType].insert(mpesId);
         m_ParentMap[mpesId][PAS_MirrorType].insert(mirrorId);
     }
-    for (const auto &edgeId : m_DeviceIdentities.at(PAS_EdgeType)) {
-        // Add mirror as parent to all edges
-        Device::Identity mirrorId = getMirrorId(SCTMath::GetPanelsFromEdge(edgeId.eAddress, 1).at(0));
-        if (m_DeviceIdentities[PAS_MirrorType].find(mirrorId) == m_DeviceIdentities[PAS_MirrorType].end()) {
-            std::cout << "Configuration::addMissingParents(): Added Mirror " << mirrorId << " to Device List" << std::endl;
-            m_DeviceIdentities[PAS_MirrorType].insert(mirrorId);
+    if (m_DeviceIdentities.find(PAS_EdgeType) != m_DeviceIdentities.end()) {
+        for (const auto &edgeId : m_DeviceIdentities.at(PAS_EdgeType)) {
+            // Add mirror as parent to all edges
+            Device::Identity mirrorId = getMirrorId(SCTMath::GetPanelsFromEdge(edgeId.eAddress, 1).at(0));
+            if (m_DeviceIdentities[PAS_MirrorType].find(mirrorId) == m_DeviceIdentities[PAS_MirrorType].end()) {
+                std::cout << "Configuration::addMissingParents(): Added Mirror " << mirrorId << " to Device List" << std::endl;
+                m_DeviceIdentities[PAS_MirrorType].insert(mirrorId);
+            }
+            m_ChildMap[mirrorId][PAS_EdgeType].insert(edgeId);
+            m_ParentMap[edgeId][PAS_MirrorType].insert(mirrorId);
         }
-        m_ChildMap[mirrorId][PAS_EdgeType].insert(edgeId);
-        m_ParentMap[edgeId][PAS_MirrorType].insert(mirrorId);
     }
-
     for (const auto &mpesId : m_DeviceIdentities.at(PAS_MPESType)) {
         if (m_ParentMap.at(mpesId).find(PAS_EdgeType) != m_ParentMap.at(mpesId).end()) {
             for (const auto &edgeParentId : m_ParentMap.at(mpesId).at(PAS_EdgeType)) {

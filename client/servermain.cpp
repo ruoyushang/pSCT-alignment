@@ -272,7 +272,7 @@ int main(int argc, char* argv[])
     }
 
     // Note that log directory must have been created beforehand
-    auto file_sink = std::make_shared<spdlog::sinks::rotating_file_sink_mt>("~/logs/p2pasclient_logs", 1048576 * 5, 5,
+    auto file_sink = std::make_shared<spdlog::sinks::rotating_file_sink_mt>("/home/user/logs/p2pasclient_logs", 1048576 * 5, 5,
                                                                             false); // 5 rotating files with max size 5 MB
     file_sink->set_level(spdlog::level::trace); // always save all logging levels
 
