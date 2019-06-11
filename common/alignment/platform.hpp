@@ -28,8 +28,7 @@ public:
     
     std::vector<Device::ErrorDefinition> getErrorCodeDefinitions() override { return Platform::ERROR_DEFINITIONS; }
 
-    Platform(Device::Identity identity, Device::DBInfo dbInfo,
-             const Actuator::ASFInfo &asfInfo);
+    Platform(Device::Identity identity, Device::DBInfo dbInfo, const Actuator::ASFInfo &asfInfo);
     ~Platform();
 
     virtual bool addActuators(std::array<Device::Identity, Platform::NUM_ACTS_PER_PLATFORM> actuatorIdentities,
@@ -146,7 +145,9 @@ protected:
     float m_ExternalTemperatureOffset = DEFAULT_EXTERNAL_TEMPERATURE_OFFSET;
 };
 
-class DummyPlatform : public Platform {
+class DummyPlatform : public Platform 
+{
+    public:
     // Initialization methods
     DummyPlatform(Device::Identity identity, Device::DBInfo dbInfo = Device::DBInfo(),
                   const Actuator::ASFInfo &asfInfo = Actuator::ASFInfo()) : Platform(identity, dbInfo,

@@ -627,12 +627,8 @@ bool Platform::addMPES(const Device::Identity &identity)
         return false;
     }
 
-    #ifndef SIMMODE
     std::unique_ptr<MPES> newMPES = std::unique_ptr<MPES>(new MPES(m_pCBC, identity));
-    #else
-    std::unique_ptr<MPES> newMPES = std::unique_ptr<MPES>(new DummyMPES(m_pCBC, identity));
-    #endif
-
+    
     if (newMPES->initialize()) {
         m_MPES.push_back(std::move(newMPES));
         m_MPESIdentityMap.insert(std::make_pair(identity, m_MPES.size() - 1));

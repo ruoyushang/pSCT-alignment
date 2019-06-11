@@ -20,7 +20,11 @@
 
 
 CCDController::CCDController(Device::Identity identity) : PasController(std::move(identity), nullptr, 1000) {
+#ifndef SIMMODE  
     m_pCCD = std::unique_ptr<GASCCD>(new GASCCD());
+#else 
+    m_pCCD = std::unique_ptr<GASCCD>(new DummyGASCCD());
+#endif
     m_pCCD->setConfig(m_ID.eAddress);
     m_pCCD->Initialize();
 

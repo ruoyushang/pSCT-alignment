@@ -19,6 +19,11 @@ FIND_PACKAGE(PkgConfig REQUIRED)
 
 SET(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_MODULE_PATH})
 FIND_PACKAGE( ROOT REQUIRED )
+
+if(NOT TARGET spdlog)
+    find_package(spdlog REQUIRED)
+endif()
+
 pkg_search_module( MYSQLCONNECTORCPP REQUIRED mysqlcppconn )
 if( MYSQLCONNECTORCPP_FOUND )
     link_directories(${MYSQLCONNECTORCPP_LIBRARY_DIRS})
@@ -50,8 +55,8 @@ SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH FALSE)
 # need libusb.so -- might not be on the system!!
 # brute force it for now
 #SET(LIBUSB_LIBRARIES "/home/root/opcua/pascommon/globalalignment/GlobalAlignment/libusb-1.0.so")
-SET(LIBUSB_LIBRARIES "/usr/local/lib/libusb-1.0.so.0")
-#SET(LIBUSB_LIBRARIES "/usr/lib64/libusb-1.0.so.0")
+#SET(LIBUSB_LIBRARIES "/usr/local/lib/libusb-1.0.so.0")
+SET(LIBUSB_LIBRARIES "/usr/lib64/libusb-1.0.so.0")
 #SET(LIBUSB_LIBRARIES "/lib/x86_64-linux-gnu/libusb-1.0.so.0")
 #SET(LIBUSB_LIBRARIES "${LD_LIBRARY_PATH}/libusb-1.0.so.0")
 
@@ -131,33 +136,29 @@ file(GLOB PASSERVER_SRC
     "${CMAKE_CURRENT_SOURCE_DIR}/objects/*.hpp"
     "${COMMON_CODE_DIR}/opcua/*.hpp"
     "${COMMON_CODE_DIR}/utilities/*.hpp"
-        "${COMMON_CODE_DIR}/utilities/spdlog/*.h"
-        "${COMMON_CODE_DIR}/utilities/spdlog/sinks/*.h"
-        "${COMMON_CODE_DIR}/utilities/spdlog/fmt/*.h"
-        "${COMMON_CODE_DIR}/utilities/spdlog/details/*.h"
     "${COMMON_CODE_DIR}/alignment/*.hpp"
     "${COMMON_CODE_DIR}/mpescode/*.h"
+    "${COMMON_CODE_DIR}/globalalignment/*.h"
+    "${COMMON_CODE_DIR}/globalalignment/*.cpp"
+    "${COMMON_CODE_DIR}/cbccode/*.cpp"
+    "${COMMON_CODE_DIR}/cbccode/*.hpp"
 )
 
 if ( SIMMODE )
     add_definitions(-D_AMD64)
     add_definitions(-DSIMMODE)
     file(GLOB PASSERVER_SRC
-            ${PASSERVER_SRC}
-            "${COMMON_CODE_DIR}/cbccode/*.cpp"
-            "${COMMON_CODE_DIR}/cbccode/*.hpp"
+        ${PASSERVER_SRC}
             )
 else ( SIMMODE )
     file(GLOB PASSERVER_SRC
         ${PASSERVER_SRC}
-        "${COMMON_CODE_DIR}/cbccode/*.cpp"
         "${COMMON_CODE_DIR}/globalalignment/psdclass.cpp"
         "${COMMON_CODE_DIR}/globalalignment/laserclass.cpp"
         "${COMMON_CODE_DIR}/globalalignment/libpiusb.cpp"
-            "${COMMON_CODE_DIR}/cbccode/*.hpp"
-            "${COMMON_CODE_DIR}/globalalignment/psdclass.h"
-            "${COMMON_CODE_DIR}/globalalignment/laserclass.h"
-            "${COMMON_CODE_DIR}/globalalignment/libpiusb.h"
+        "${COMMON_CODE_DIR}/globalalignment/psdclass.h"
+        "${COMMON_CODE_DIR}/globalalignment/laserclass.h"
+        "${COMMON_CODE_DIR}/globalalignment/libpiusb.h"
     )
 endif ( SIMMODE )
 
@@ -169,14 +170,12 @@ if ( AMD64 )
 else ( AMD64 )
     file(GLOB PASSERVER_SRC
         ${PASSERVER_SRC}
-        "${COMMON_CODE_DIR}/cbccode/*.cpp"
         "${COMMON_CODE_DIR}/globalalignment/psdclass.cpp"
         "${COMMON_CODE_DIR}/globalalignment/laserclass.cpp"
         "${COMMON_CODE_DIR}/globalalignment/libpiusb.cpp"
-            "${COMMON_CODE_DIR}/cbccode/*.hpp"
-            "${COMMON_CODE_DIR}/globalalignment/psdclass.h"
-            "${COMMON_CODE_DIR}/globalalignment/laserclass.h"
-            "${COMMON_CODE_DIR}/globalalignment/libpiusb.h"
+        "${COMMON_CODE_DIR}/globalalignment/psdclass.h"
+        "${COMMON_CODE_DIR}/globalalignment/laserclass.h"
+        "${COMMON_CODE_DIR}/globalalignment/libpiusb.h"
     )
 endif ( AMD64 )
 
@@ -206,6 +205,10 @@ include_directories(${COMMON_CODE_DIR}/opcua)
 include_directories(${COMMON_CODE_DIR}/alignment)
 include_directories(${COMMON_CODE_DIR}/globalalignment)
 include_directories(${COMMON_CODE_DIR}/utilities)
+include_directories(${COMMON_CODE_DIR}/utilities/spdlog)
+include_directories(${COMMON_CODE_DIR}/utilities/spdlog/sinks)
+include_directories(${COMMON_CODE_DIR}/utilities/spdlog/fmt)
+include_directories(${COMMON_CODE_DIR}/utilities/spdlog/details)
 include_directories(${COMMON_CODE_DIR}/utilities/linux)
 include_directories(${OpenCV_INCLUDE_DIR})
 include_directories(${ROOT_INCLUDE_DIRS})
@@ -239,7 +242,7 @@ IF (WIN32)
 ENDIF (WIN32)
 
 IF (UNIX)
-    ADD_DEFINITIONS(-Wall)
+    ADD_DEFINITIONS(-Wall -DSPDLOG_COMPILED_LIB)
     SET(PLATTFORM_LIBS pthread rt)
 ENDIF (UNIX)
 
@@ -262,7 +265,6 @@ ENDIF (vxWorks)
 ####################################### Create executable ###################################
 
 add_executable(${PROJECT_NAME} ${PASSERVER_SRC})
-spdlog_enable_warnings(${PROJECT_NAME})
 
 IF ( UASTACK_WITH_OPENSSL )
     IF ( NOT TARGET uastack )
@@ -296,13 +298,15 @@ IF ( NOT TARGET uastack )
     TARGET_LINK_LIBRARIES(${PROJECT_NAME}       ${UAMODULE_LIBRARY}
                           ${UAMODELS_LIBRARY}  ${UACOREMODULE_LIBRARY}
                           ${UABASE_LIBRARY}    ${UASTACK_LIBRARY}
-            ${PLATTFORM_LIBS} ${OpenCV_LIBRARIES} ${ROOT_LIBRARIES} ${MYSQLCONNECTORCPP_LIBRARIES} ${LIBUSB_LIBRARIES} PRIVATE spdlog::spdlog)
+            ${PLATTFORM_LIBS} ${OpenCV_LIBRARIES} ${ROOT_LIBRARIES} ${MYSQLCONNECTORCPP_LIBRARIES} ${LIBUSB_LIBRARIES})
 
 ELSE ()
     message(WARNING " OpenCV_LIBRARIES = ${OpenCV_LIBRARIES}")
     TARGET_LINK_LIBRARIES(${PROJECT_NAME} uamodule uamodels coremodule uabase
-            uastack ${PLATTFORM_LIBS} ${OpenCV_LIBRARIES} ${ROOT_LIBRARIES} ${MYSQLCONNECTORCPP_LIBRARIES} ${LIBUSB_LIBRARIES} PRIVATE spdlog::spdlog)
+            uastack ${PLATTFORM_LIBS} ${OpenCV_LIBRARIES} ${ROOT_LIBRARIES} ${MYSQLCONNECTORCPP_LIBRARIES} ${LIBUSB_LIBRARIES})
 ENDIF ()
+
+TARGET_LINK_LIBRARIES(${PROJECT_NAME} PRIVATE spdlog::spdlog_header_only)
 
 ####################################### configure debug postfix #############################
 

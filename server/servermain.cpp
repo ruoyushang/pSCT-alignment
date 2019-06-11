@@ -21,6 +21,7 @@
 #include "common/utilities/spdlog/sinks/basic_file_sink.h"
 #include "common/utilities/spdlog/sinks/stdout_color_sinks.h"
 #include "common/utilities/spdlog/sinks/rotating_file_sink.h"
+#include "common/utilities/spdlog/logger.h"
 
 #if SUPPORT_XML_PARSER
 #include "xmlparser/xmldocument.h"

@@ -28,7 +28,11 @@
 /// sets its port, and initializes. Sets its state to On.
 PSDController::PSDController(Device::Identity identity) : PasController(std::move(identity), 500)
 {
+#ifndef SIMMODE  
     m_pPSD = std::unique_ptr<GASPSD>(new GASPSD());
+#else 
+    m_pPSD = std::unique_ptr<GASPSD>(new DummyGASPSD());
+#endif
     m_pPSD->setPort();
     m_pPSD->Initialize();
 }
