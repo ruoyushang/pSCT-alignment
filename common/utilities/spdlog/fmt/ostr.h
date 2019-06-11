@@ -11,10 +11,8 @@
 #ifndef FMT_HEADER_ONLY
 #define FMT_HEADER_ONLY
 #endif
-
 #include "bundled/ostream.h"
 #include "fmt.h"
-
 #else
 #include <fmt/ostream.h>
 #endif

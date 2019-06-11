@@ -13,12 +13,12 @@
 #include <string>
 
 #include "common/alignment/device.hpp"
+#include "common/mpescode/MPESDevice.h"
+#include "common/mpescode/MPESImageSet.h"
+
 
 class CBC;
 class Platform;
-class MPESImageSet;
-class MPESDevice;
-
 
 class MPES : public Device
 {

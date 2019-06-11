@@ -16,64 +16,73 @@
 // is called
 
 namespace spdlog {
-    namespace sinks {
+namespace sinks {
 
-        template<typename Mutex>
-        class dist_sink : public base_sink<Mutex> {
-        public:
-            dist_sink() = default;
+template<typename Mutex>
+class dist_sink : public base_sink<Mutex>
+{
+public:
+    dist_sink() = default;
+    dist_sink(const dist_sink &) = delete;
+    dist_sink &operator=(const dist_sink &) = delete;
 
-            dist_sink(const dist_sink &) = delete;
+    void add_sink(std::shared_ptr<sink> sink)
+    {
+        std::lock_guard<Mutex> lock(base_sink<Mutex>::mutex_);
+        sinks_.push_back(sink);
+    }
 
-            dist_sink &operator=(const dist_sink &) = delete;
+    void remove_sink(std::shared_ptr<sink> sink)
+    {
+        std::lock_guard<Mutex> lock(base_sink<Mutex>::mutex_);
+        sinks_.erase(std::remove(sinks_.begin(), sinks_.end(), sink), sinks_.end());
+    }
 
-            void add_sink(std::shared_ptr<sink> sink) {
-                std::lock_guard<Mutex> lock(base_sink<Mutex>::mutex_);
-                sinks_.push_back(sink);
+    void set_sinks(std::vector<std::shared_ptr<sink>> sinks)
+    {
+        std::lock_guard<Mutex> lock(base_sink<Mutex>::mutex_);
+        sinks_ = std::move(sinks);
+    }
+
+protected:
+    void sink_it_(const details::log_msg &msg) override
+    {
+
+        for (auto &sink : sinks_)
+        {
+            if (sink->should_log(msg.level))
+            {
+                sink->log(msg);
             }
+        }
+    }
 
-            void remove_sink(std::shared_ptr<sink> sink) {
-                std::lock_guard<Mutex> lock(base_sink<Mutex>::mutex_);
-                sinks_.erase(std::remove(sinks_.begin(), sinks_.end(), sink), sinks_.end());
-            }
+    void flush_() override
+    {
+        for (auto &sink : sinks_)
+        {
+            sink->flush();
+        }
+    }
 
-            void set_sinks(std::vector<std::shared_ptr<sink>> sinks) {
-                std::lock_guard<Mutex> lock(base_sink<Mutex>::mutex_);
-                sinks_ = std::move(sinks);
-            }
+    void set_pattern_(const std::string &pattern) override
+    {
+        set_formatter_(details::make_unique<spdlog::pattern_formatter>(pattern));
+    }
 
-        protected:
-            void sink_it_(const details::log_msg &msg) override {
+    void set_formatter_(std::unique_ptr<spdlog::formatter> sink_formatter) override
+    {
+        base_sink<Mutex>::formatter_ = std::move(sink_formatter);
+        for (auto &sink : sinks_)
+        {
+            sink->set_formatter(base_sink<Mutex>::formatter_->clone());
+        }
+    }
+    std::vector<std::shared_ptr<sink>> sinks_;
+};
 
-                for (auto &sink : sinks_) {
-                    if (sink->should_log(msg.level)) {
-                        sink->log(msg);
-                    }
-                }
-            }
+using dist_sink_mt = dist_sink<std::mutex>;
+using dist_sink_st = dist_sink<details::null_mutex>;
 
-            void flush_() override {
-                for (auto &sink : sinks_) {
-                    sink->flush();
-                }
-            }
-
-            void set_pattern_(const std::string &pattern) override {
-                set_formatter_(details::make_unique<spdlog::pattern_formatter>(pattern));
-            }
-
-            void set_formatter_(std::unique_ptr<spdlog::formatter> sink_formatter) override {
-                base_sink<Mutex>::formatter_ = std::move(sink_formatter);
-                for (auto &sink : sinks_) {
-                    sink->set_formatter(base_sink<Mutex>::formatter_->clone());
-                }
-            }
-
-            std::vector<std::shared_ptr<sink>> sinks_;
-        };
-
-        using dist_sink_mt = dist_sink<std::mutex>;
-        using dist_sink_st = dist_sink<details::null_mutex>;
-
-    } // namespace sinks
+} // namespace sinks
 } // namespace spdlog

@@ -72,41 +72,41 @@
 
 namespace spdlog {
 
-    class formatter;
+class formatter;
 
-    namespace sinks {
-        class sink;
-    }
+namespace sinks {
+class sink;
+}
 
 #if defined(_WIN32) && defined(SPDLOG_WCHAR_FILENAMES)
-    using filename_t = std::wstring;
+using filename_t = std::wstring;
 #define SPDLOG_FILENAME_T(s) L##s
-    inline std::string filename_to_str(const filename_t &filename)
-    {
-        std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> c;
-        return c.to_bytes(filename);
-    }
+inline std::string filename_to_str(const filename_t &filename)
+{
+    std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> c;
+    return c.to_bytes(filename);
+}
 #else
-    using filename_t = std::string;
+using filename_t = std::string;
 #define SPDLOG_FILENAME_T(s) s
 #endif
 
-    using log_clock = std::chrono::system_clock;
-    using sink_ptr = std::shared_ptr<sinks::sink>;
-    using sinks_init_list = std::initializer_list<sink_ptr>;
-    using err_handler = std::function<void(const std::string &err_msg)>;
+using log_clock = std::chrono::system_clock;
+using sink_ptr = std::shared_ptr<sinks::sink>;
+using sinks_init_list = std::initializer_list<sink_ptr>;
+using err_handler = std::function<void(const std::string &err_msg)>;
 
 // string_view type - either std::string_view or fmt::string_view (pre c++17)
 #if defined(FMT_USE_STD_STRING_VIEW)
-    using string_view_t = std::string_view;
+using string_view_t = std::string_view;
 #else
-    using string_view_t = fmt::string_view;
+using string_view_t = fmt::string_view;
 #endif
 
 #if defined(SPDLOG_NO_ATOMIC_LEVELS)
-    using level_t = details::null_atomic_int;
+using level_t = details::null_atomic_int;
 #else
-    using level_t = std::atomic<int>;
+using level_t = std::atomic<int>;
 #endif
 
 #define SPDLOG_LEVEL_TRACE 0
@@ -122,16 +122,17 @@ namespace spdlog {
 #endif
 
 // Log level enum
-    namespace level {
-        enum level_enum {
-            trace = SPDLOG_LEVEL_TRACE,
-            debug = SPDLOG_LEVEL_DEBUG,
-            info = SPDLOG_LEVEL_INFO,
-            warn = SPDLOG_LEVEL_WARN,
-            err = SPDLOG_LEVEL_ERROR,
-            critical = SPDLOG_LEVEL_CRITICAL,
-            off = SPDLOG_LEVEL_OFF,
-        };
+namespace level {
+enum level_enum
+{
+    trace = SPDLOG_LEVEL_TRACE,
+    debug = SPDLOG_LEVEL_DEBUG,
+    info = SPDLOG_LEVEL_INFO,
+    warn = SPDLOG_LEVEL_WARN,
+    err = SPDLOG_LEVEL_ERROR,
+    critical = SPDLOG_LEVEL_CRITICAL,
+    off = SPDLOG_LEVEL_OFF,
+};
 
 #if !defined(SPDLOG_LEVEL_NAMES)
 #define SPDLOG_LEVEL_NAMES                                                                                                                 \
@@ -148,83 +149,82 @@ namespace spdlog {
     }
 #endif
 
-        string_view_t &to_string_view(spdlog::level::level_enum l) SPDLOG_NOEXCEPT;
+string_view_t &to_string_view(spdlog::level::level_enum l) SPDLOG_NOEXCEPT;
+const char *to_short_c_str(spdlog::level::level_enum l) SPDLOG_NOEXCEPT;
+spdlog::level::level_enum from_str(const std::string &name) SPDLOG_NOEXCEPT;
 
-        const char *to_short_c_str(spdlog::level::level_enum l) SPDLOG_NOEXCEPT;
-
-        spdlog::level::level_enum from_str(const std::string &name) SPDLOG_NOEXCEPT;
-
-        using level_hasher = std::hash<int>;
-    } // namespace level
+using level_hasher = std::hash<int>;
+} // namespace level
 
 //
 // Color mode used by sinks with color support.
 //
-    enum class color_mode {
-        always,
-        automatic,
-        never
-    };
+enum class color_mode
+{
+    always,
+    automatic,
+    never
+};
 
 //
 // Pattern time - specific time getting to use for pattern_formatter.
 // local time by default
 //
-    enum class pattern_time_type {
-        local, // log localtime
-        utc    // log utc
-    };
+enum class pattern_time_type
+{
+    local, // log localtime
+    utc    // log utc
+};
 
 //
 // Log exception
 //
-    class spdlog_ex : public std::exception {
-    public:
-        explicit spdlog_ex(std::string msg);
+class spdlog_ex : public std::exception
+{
+public:
+    explicit spdlog_ex(std::string msg);
+    spdlog_ex(const std::string &msg, int last_errno);
+    const char *what() const SPDLOG_NOEXCEPT override;
 
-        spdlog_ex(const std::string &msg, int last_errno);
+private:
+    std::string msg_;
+};
 
-        const char *what() const SPDLOG_NOEXCEPT override;
+struct source_loc
+{
+    SPDLOG_CONSTEXPR source_loc() = default;
+    SPDLOG_CONSTEXPR source_loc(const char *filename_in, int line_in, const char *funcname_in)
+        : filename{filename_in}
+        , line{line_in}
+        , funcname{funcname_in}
+    {}
 
-    private:
-        std::string msg_;
-    };
+    SPDLOG_CONSTEXPR bool empty() const SPDLOG_NOEXCEPT
+    {
+        return line == 0;
+    }
+    const char *filename{nullptr};
+    int line{0};
+    const char *funcname{nullptr};
+};
 
-    struct source_loc {
-        SPDLOG_CONSTEXPR source_loc() = default;
-
-        SPDLOG_CONSTEXPR source_loc(const char *filename_in, int line_in, const char *funcname_in)
-            : filename{filename_in}, line{line_in}, funcname{funcname_in} {}
-
-        SPDLOG_CONSTEXPR bool empty() const SPDLOG_NOEXCEPT {
-            return line == 0;
-        }
-
-        const char *filename{nullptr};
-        int line{0};
-        const char *funcname{nullptr};
-    };
-
-    namespace details {
+namespace details {
 // make_unique support for pre c++14
 
 #if __cplusplus >= 201402L // C++14 and beyond
-        using std::make_unique;
+using std::make_unique;
 #else
-
-        template<typename T, typename... Args>
-        std::unique_ptr<T> make_unique(Args &&... args) {
-            static_assert(!std::is_array<T>::value, "arrays not supported");
-            return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
-        }
-
+template<typename T, typename... Args>
+std::unique_ptr<T> make_unique(Args &&... args)
+{
+    static_assert(!std::is_array<T>::value, "arrays not supported");
+    return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
+}
 #endif
-    } // namespace details
+} // namespace details
 
 } // namespace spdlog
 
 #ifdef SPDLOG_HEADER_ONLY
-
 #include "common-inl.h"
-
 #endif

@@ -7,33 +7,36 @@
 // null, no cost dummy "mutex" and dummy "atomic" int
 
 namespace spdlog {
-    namespace details {
-        struct null_mutex {
-            void lock() {}
+namespace details {
+struct null_mutex
+{
+    void lock() {}
+    void unlock() {}
+    bool try_lock()
+    {
+        return true;
+    }
+};
 
-            void unlock() {}
+struct null_atomic_int
+{
+    int value;
+    null_atomic_int() = default;
 
-            bool try_lock() {
-                return true;
-            }
-        };
+    explicit null_atomic_int(int val)
+        : value(val)
+    {}
 
-        struct null_atomic_int {
-            int value;
+    int load(std::memory_order) const
+    {
+        return value;
+    }
 
-            null_atomic_int() = default;
+    void store(int val)
+    {
+        value = val;
+    }
+};
 
-            explicit null_atomic_int(int val)
-                : value(val) {}
-
-            int load(std::memory_order) const {
-                return value;
-            }
-
-            void store(int val) {
-                value = val;
-            }
-        };
-
-    } // namespace details
+} // namespace details
 } // namespace spdlog
