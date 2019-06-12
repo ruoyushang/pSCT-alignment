@@ -18,7 +18,7 @@
 #include "common/alignment/actuator.hpp"
 
 // Hardcoded
-const std::vector<Device::ErrorDefinition> Platform::ERROR_DEFINITIONS = {
+const std::vector<Device::ErrorDefinition> PlatformBase::ERROR_DEFINITIONS = {
     {"Actuator 1 Operable Error",             Device::ErrorState::OperableError},
     {"Actuator 1 Fatal Error",                Device::ErrorState::FatalError},
     {"Actuator 2 Operable Error",             Device::ErrorState::OperableError},
@@ -37,10 +37,10 @@ const std::vector<Device::ErrorDefinition> Platform::ERROR_DEFINITIONS = {
 };
 
 // Default calibration constants
-const float Platform::DEFAULT_INTERNAL_TEMPERATURE_SLOPE = 100.0;
-const float Platform::DEFAULT_INTERNAL_TEMPERATURE_OFFSET = -50.0;
-const float Platform::DEFAULT_EXTERNAL_TEMPERATURE_SLOPE = 44.444;
-const float Platform::DEFAULT_EXTERNAL_TEMPERATURE_OFFSET = -61.111;
+const float PlatformBase::DEFAULT_INTERNAL_TEMPERATURE_SLOPE = 100.0;
+const float PlatformBase::DEFAULT_INTERNAL_TEMPERATURE_OFFSET = -50.0;
+const float PlatformBase::DEFAULT_EXTERNAL_TEMPERATURE_SLOPE = 44.444;
+const float PlatformBase::DEFAULT_EXTERNAL_TEMPERATURE_OFFSET = -61.111;
 
 Platform::Platform(Device::Identity identity, Device::DBInfo dbInfo,
                    const Actuator::ASFInfo &asfInfo) : Device::Device(std::make_shared<CBC>(), std::move(identity)),

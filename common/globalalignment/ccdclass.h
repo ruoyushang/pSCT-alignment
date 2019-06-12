@@ -8,31 +8,66 @@
 #include "common/globalalignment/ccd/LEDinputs.h"
 #include "common/globalalignment/ccd/LEDoutputs.h"
 
+#include "common/alignment/device.hpp"
+
+#include <memory>
 #include <string>
 
 class GASCCD
 {
     public:
-        GASCCD();
-        ~GASCCD();
-        bool Initialize(bool isSim = false);
-        void setConfig(string config);
-        const double *getOutput() {return &(pfLEDsOut->SPACE[0]); };
-        void setNominalValues(int offset, double value);
-        const char *getName() const {return fLEDsIn.CCDNAME.c_str(); };
-        int getSerial() const {return atoi(pfCamera->getID().c_str()); };
-        const char *getAddress() const { return fAddress.c_str(); };
-        bool Update();
+    GASCCD() :
+        pfLEDsOut(nullptr),
+        pfCamThread(nullptr),
+        pfCamera(nullptr),
+        fConfigFile("") {}
 
-    private:
-        void simulate(bool hasCamera = true); // simulates camera
-        LEDoutputs *pfLEDsOut;
+    ~GASCCD() = default;
+
+    virtual bool initialize();
+
+    virtual void setConfig(string config);
+
+    virtual const double *getOutput() { return &(pfLEDsOut->SPACE[0]); };
+        void setNominalValues(int offset, double value);
+
+    virtual std::string getName() const { return fLEDsIn.CCDNAME; };
+
+    virtual int getSerial() const { return std::strtol(pfCamera->getID().c_str(), nullptr, 10); };
+
+    std::string getAddress() const { return fAddress; };
+
+    virtual bool update();
+
+protected:
+    std::unique_ptr<LEDoutputs> pfLEDsOut;
         LEDinputs fLEDsIn;
-        CamOutThread *pfCamThread;
-        AravisCamera *pfCamera;
+    std::unique_ptr<CamOutThread> pfCamThread;
+    std::unique_ptr<AravisCamera> pfCamera;
         std::string fAddress;
         std::string fConfigFile;
-        bool fIsSim; // set if this is a simulation;
+};
+
+class DummyGASCCD : public GASCCD {
+public:
+    DummyGASCCD() : GASCCD(), m_Data() {}
+
+    ~DummyGASCCD() = default;
+
+    bool initialize() override;
+
+    void setConfig(string config) override;
+
+    const double *getOutput() override;
+
+    std::string getName() const override;
+
+    int getSerial() const override;
+
+    bool update() override;
+
+private:
+    double m_Data[6];
 };
 
 #endif

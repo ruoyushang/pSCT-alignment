@@ -7,6 +7,7 @@
 #include <iostream>
 #include <memory>
 #include <string>
+#include <vector>
 #include <sys/statvfs.h>
 
 #include "uabase/uadatetime.h"
@@ -22,6 +23,8 @@
 #include "common/utilities/spdlog/sinks/stdout_color_sinks.h"
 #include "common/utilities/spdlog/sinks/rotating_file_sink.h"
 #include "common/utilities/spdlog/logger.h"
+#include "common/utilities/spdlog/spdlog.h"
+#include "common/utilities/spdlog/common.h"
 
 #if SUPPORT_XML_PARSER
 #include "xmlparser/xmldocument.h"
@@ -205,13 +208,13 @@ int main(int argc, char* argv[])
     auto file_sink = make_shared<spdlog::sinks::rotating_file_sink_mt>("~/logs/passerver_logs", 1048576 * 5, 5,
                                                                        false); // 5 rotating files with max size 5 MB
     file_sink->set_level(spdlog::level::trace); // always save all logging levels
+    file_sink->set_pattern("[%c] [%n] [%l] [%s:%!:%#] ");
 
-    spdlog::logger logger("passerver", {console_sink, file_sink}); //register logger to both console and file
-    logger.set_level(spdlog::level::trace);
-    logger.flush_on(spdlog::level::info);
-
-    logger.warn("this should appear in both console and file");
-    logger.info("this message should not appear in the console, only in the file");
+    std::vector<spdlog::sink_ptr> sinks{file_sink, console_sink};
+    auto logger = std::make_shared<spdlog::logger>("passerver", sinks);
+    logger->set_level(spdlog::level::info);
+    logger->flush_on(spdlog::level::info);
+    spdlog::set_default_logger(logger);
 
     // NOTE: This method returns a pointer to heap-allocated memory, must be freed manually
     char *pszAppPath = getAppPath(); // Extract application path
@@ -223,7 +226,7 @@ int main(int argc, char* argv[])
 #endif
 
     if (configFilePath.empty()) {
-        std::cout << "No config file path passed, using default.\n";
+        logger->warn("No config file path passed, using default.");
         configFilePath = std::string(pszAppPath) + sConfigFileName;
     }
 

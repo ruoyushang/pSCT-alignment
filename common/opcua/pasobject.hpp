@@ -66,6 +66,8 @@ public:
     virtual const std::map<OpcUa_UInt32, std::pair<std::string, std::vector<std::tuple<std::string, UaNodeId, std::string>>>>
     getMethodDefs() = 0;
 
+    Device::Identity getIdentity() { return m_Identity; }
+
 protected: 
     // a function that's used very often
     OpcUa::DataItemType* addVariable(PasNodeManagerCommon *pNodeManager, OpcUa_UInt32 ParentType, OpcUa_UInt32 VarType, OpcUa_Boolean isState = OpcUa_False, OpcUa_Boolean addReference = OpcUa_True);

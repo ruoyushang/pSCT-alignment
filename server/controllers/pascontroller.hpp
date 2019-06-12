@@ -19,6 +19,7 @@
 #include "common/opcua/pascontrollercommon.hpp"
 #include "common/alignment/device.hpp"
 
+
 class Platform;
 
 /// @brief Class representing a generic device controller.

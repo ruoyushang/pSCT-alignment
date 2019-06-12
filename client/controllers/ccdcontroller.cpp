@@ -26,7 +26,7 @@ CCDController::CCDController(Device::Identity identity) : PasController(std::mov
     m_pCCD = std::unique_ptr<GASCCD>(new DummyGASCCD());
 #endif
     m_pCCD->setConfig(m_ID.eAddress);
-    m_pCCD->Initialize();
+    m_pCCD->initialize();
 
     m_lastUpdateTime = TIME::now() - std::chrono::duration<int, std::ratio<1, 1000>>(m_kUpdateInterval_ms);
 }
@@ -155,7 +155,7 @@ UaStatus CCDController::read(bool print) {
 
     if (m_state == Device::DeviceState::On) {
         std::cout << "Reading CCD " << m_ID.name.c_str() << std::endl;
-        m_pCCD->Update();
+        m_pCCD->update();
         m_updated = true;
 
         if (print) {

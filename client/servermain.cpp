@@ -272,18 +272,16 @@ int main(int argc, char* argv[])
     }
 
     // Note that log directory must have been created beforehand
-    auto file_sink = std::make_shared<spdlog::sinks::rotating_file_sink_mt>("/home/user/logs/p2pasclient_logs", 1048576 * 5, 5,
-                                                                            false); // 5 rotating files with max size 5 MB
+    auto file_sink = make_shared<spdlog::sinks::rotating_file_sink_mt>("~/logs/passerver_logs", 1048576 * 5, 5,
+                                                                       false); // 5 rotating files with max size 5 MB
     file_sink->set_level(spdlog::level::trace); // always save all logging levels
+    file_sink->set_pattern("[%c] [%n] [%l] [%s:%!:%#] ");
 
-    spdlog::logger logger("p2pasclient", {console_sink, file_sink}); //register logger to both console and file
-    logger.set_level(spdlog::level::trace);
-    logger.flush_on(spdlog::level::info);
-
-    logger.warn("this should appear in both console and file");
-    logger.info("this message should not appear in the console, only in the file");
-
-
+    std::vector<spdlog::sink_ptr> sinks{file_sink, console_sink};
+    auto logger = std::make_shared<spdlog::logger>("p2pasclient", sinks);
+    logger->set_level(spdlog::level::info);
+    logger->flush_on(spdlog::level::info);
+    spdlog::set_default_logger(logger);
 
     if (argc < 2) {
         std::cout << "Usage: " << argv[0] << " <Positions of panels to connect to>" << std::endl;

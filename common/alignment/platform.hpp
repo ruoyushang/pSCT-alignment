@@ -145,7 +145,7 @@ protected:
     float m_ExternalTemperatureOffset = DEFAULT_EXTERNAL_TEMPERATURE_OFFSET;
 };
 
-class DummyPlatform : public Platform 
+class DummyPlatform : public Platform
 {
     public:
     // Initialization methods

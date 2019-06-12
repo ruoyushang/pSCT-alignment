@@ -5,9 +5,6 @@
 # NOTE: Requires the existence of a ServerConfig_template.xml file in the executable directory.
 # NOTE: Defaults to an executable directory of /home/root/pSCT-alignment/sdk/bin if not provided
 
-today=`date '+%Y-%m-%d__%H_%M_%S'`
-logfile=$HOME/logs/passerver_operations_${today}.log
-
 if [[ "$#" -ne 1 ]]; then
     echo "Usage: `basename $0` <PANEL NUMBER> <SDK DIRECTORY PATH (optional)>"
     exit 1;
@@ -29,9 +26,6 @@ EXECDIR=${2-"/home/root/pSCT-alignment/sdk/bin"}
 configtmplt=${EXECDIR}"/ServerConfig_template.xml"
 configfile=${configtmplt/_template/}
 cp ${configtmplt} ${configfile}
-
 sed -i -e "s/__IP_ADDRESS__/${IP}/" ${configfile}
 
-# this clears the log from the previous time
-echo `date` > ${logfile}
-${EXECDIR}/passerver ${PANEL_NUM} |& tee -a ${logfile}
+${EXECDIR}/passerver ${PANEL_NUM}

@@ -23,24 +23,27 @@
 #include "common/opcua/passervertypeids.hpp"
 
 #include "common/alignment/device.hpp"
+#include "common/utilities/spdlog/spdlog.h"
 
 /// @details By default, sets the update interval to 500 ms. Creates a new GASPSD object,
 /// sets its port, and initializes. Sets its state to On.
 PSDController::PSDController(Device::Identity identity) : PasController(std::move(identity), 500)
 {
-#ifndef SIMMODE  
-    m_pPSD = std::unique_ptr<GASPSD>(new GASPSD());
-#else 
-    m_pPSD = std::unique_ptr<GASPSD>(new DummyGASPSD());
+    spdlog::trace("{} : Creating PSD hardware interface... ", m_ID);
+#ifndef SIMMODE
+    m_pPSD = std::unique_ptr<GASPSD>(new GASPSD(identity));
+#else
+    m_pPSD = std::unique_ptr<GASPSD>(new DummyGASPSD(identity));
 #endif
-    m_pPSD->setPort();
-    m_pPSD->Initialize();
+    spdlog::trace("{} : Initializing PSD hardware interface... ", m_ID);
+    m_pPSD->initialize();
 }
 
 /// @details Locks the shared mutex while retrieving the state.
 UaStatus PSDController::getState(Device::DeviceState &state) {
     UaMutexLocker lock(&m_mutex);
     state = _getDeviceState();
+    spdlog::trace("{} : Getting device state => ({})", m_ID, Device::deviceStateNames.at(state));
     return OpcUa_Good;
 }
 
@@ -68,6 +71,7 @@ UaStatus PSDController::getData(OpcUa_UInt32 offset, UaVariant &value)
 
     value.setDouble(m_pPSD->getOutput(offset));
 
+    spdlog::trace("{} : Getting data... offset=> {} value => ({})", m_ID, offset, value[0].Value);
     return status;
 }
 
@@ -84,9 +88,11 @@ UaStatus PSDController::operate(OpcUa_UInt32 offset, const UaVariantArray &args)
 
     UaStatus status;
     if ( offset == PAS_PSDType_Read) {
+        spdlog::trace("{} : PSD controller calling read()", m_ID);
         status = read();
     }
     else {
+        spdlog::error("{} : Invalid method call with offset {}", m_ID, offset);
         status = OpcUa_BadInvalidArgument;
     }
 
@@ -100,12 +106,13 @@ UaStatus PSDController::read()
 
     if (_getErrorState() == Device::ErrorState::Nominal || _getErrorState() == Device::ErrorState::OperableError)
     {
-        std::cout << "\nReading PSD " <<  m_ID << std::endl;
-        m_pPSD->Update();
+        spdlog::trace("{} : Updating PSD data and lastUpdateTime... ", m_ID);
+        m_pPSD->update();
         m_lastUpdateTime = std::chrono::system_clock::now();
         return OpcUa_Good;
     }
     else {
-        return OpcUa_BadOutOfService;
+        spdlog::error("{} : Device is in fatal error state, cannot read. ", m_ID);
+        return OpcUa_BadInvalidState;
     }
 }

@@ -1,8 +1,3 @@
-/******************************************************************************
-** Project: pSCT Alignment system
-**
-** Description: implementation of Positioner.
-******************************************************************************/
 #include "client/controllers/positionercontroller.hpp"
 
 #include <cmath>
@@ -191,6 +186,127 @@ UaStatus PositionerController::operate(OpcUa_UInt32 offset, const UaVariantArray
 
     return status;
 }
+
+UaStatus DummyPositionerController::getState(Device::DeviceState &state) {
+    UaStatus status;
+    //UaMutexLocker lock(&m_mutex);
+
+    state = m_state;
+
+    return status;
+}
+
 /* ----------------------------------------------------------------------------
-    End Class    PositionerController
-==============================================================================*/
+    Class        PositionerController
+    Method       setState
+    Description  Set Controller status.
+-----------------------------------------------------------------------------*/
+UaStatus DummyPositionerController::setState(Device::DeviceState state) {
+    return OpcUa_BadInvalidArgument;
+}
+
+/* ----------------------------------------------------------------------------
+    Class        PositionerController
+    Method       getData
+    Description  Get Controller data.
+-----------------------------------------------------------------------------*/
+UaStatus DummyPositionerController::getData(OpcUa_UInt32 offset, UaVariant &value) {
+    UaStatus status;
+
+    switch (offset) {
+        case GLOB_PositionerType_isMoving:
+            value.toBool(m_Data.isMoving);
+            break;
+        case GLOB_PositionerType_curAz:
+            value.toFloat(m_Data.curAz);
+            break;
+        case GLOB_PositionerType_curEl:
+            value.toFloat(m_Data.curEl);
+            break;
+        case GLOB_PositionerType_inAz:
+            value.toFloat(m_Data.inAz);
+            break;
+        case GLOB_PositionerType_inEl:
+            value.toFloat(m_Data.inEl);
+            break;
+        case GLOB_PositionerType_EnergyLevel:
+            value.toInt16(m_Data.energyLevel);
+            break;
+        default:
+            return OpcUa_BadInvalidArgument;
+    }
+
+    return status;
+}
+
+/* ----------------------------------------------------------------------------
+    Class        PositionerController
+    Method       setData
+    Description  Set Controller data.
+-----------------------------------------------------------------------------*/
+UaStatus DummyPositionerController::setData(
+    OpcUa_UInt32 offset,
+    UaVariant value) {
+    UaStatus status;
+    std::string varToWrite;
+
+    switch (offset) {
+        case GLOB_PositionerType_inAz:
+            value.setFloat(m_Data.inAz);
+            break;
+        case GLOB_PositionerType_inEl:
+            value.setFloat(m_Data.inEl);
+            break;
+        default:
+            return OpcUa_BadInvalidArgument;
+    }
+
+    return status;
+}
+
+/* ----------------------------------------------------------------------------
+    Class        PositionerController
+    Method       Operate
+    Description  run a method on the sensor
+-----------------------------------------------------------------------------*/
+UaStatus DummyPositionerController::operate(OpcUa_UInt32 offset, const UaVariantArray &args) {
+    //UaMutexLocker lock(&m_mutex);
+    UaStatus status;
+
+    switch (offset) {
+        case GLOB_PositionerType_SetEnergy:
+            // get current energy level and input toggled value before calling setEnergy level
+            std::cout << "DummyPositionerController :: Calling SetEnergy()" << std::endl;
+            if (m_Data.energyLevel == 0) {
+                m_Data.energyLevel = 1;
+            } else if (m_Data.energyLevel == 1) {
+                m_Data.energyLevel = 0;
+            }
+            break;
+        case GLOB_PositionerType_Initialize:
+            std::cout << "DummyPositionerController :: Calling Initialize() (no effect)" << std::endl;
+            break;
+        case GLOB_PositionerType_Move:
+            std::cout << "DummyPositionerController :: Calling Move()" << std::endl;
+            m_state = Device::DeviceState::Busy;
+            m_Data.isMoving = true;
+            sleep(5);
+            m_Data.curAz = m_Data.inAz;
+            m_Data.curEl = m_Data.inEl;
+            m_Data.isMoving = false;
+            m_state = Device::DeviceState::On;
+            break;
+        case GLOB_PositionerType_Stop:
+            std::cout << "DummyPositionerController :: Calling Initialize() (no effect)" << std::endl;
+            m_state = Device::DeviceState::On;
+            break;
+        default:
+            status = OpcUa_BadInvalidArgument;
+    }
+
+    if (offset == GLOB_PositionerType_SetEnergy) {
+        usleep(100000); // Wait for completion (hardcoded)
+    }
+
+    return status;
+}

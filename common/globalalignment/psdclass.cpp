@@ -8,48 +8,38 @@
 #include <iostream>
 #include <sys/ioctl.h>
 #include <limits>
+#include <random>
+#include <chrono>
 
 GASPSD::~GASPSD()
 {
-    if (m_fdOut) {
-        fclose(m_fdOut);
-        m_fdOut = nullptr;
-    }
+    m_logOutputStream.close();
 }
 
-
-void GASPSD::setPort(std::string port)
+int GASPSD::initialize()
 {
-    m_Portname = port;
-}
-
-int GASPSD::Initialize(bool isSim)
-{
-    if ( (m_isSim = isSim) ) return 0;
-
     // set the calibration constants
-    set_calibration(); 
+    setCalibration();
 
-    m_fd = open(m_Portname.c_str(), O_RDWR | O_NOCTTY | O_SYNC);
+    m_fd = open(getPort().c_str(), O_RDWR | O_NOCTTY | O_SYNC);
     if (m_fd < 0) {
-        printf ("error %d opening %s: %s", errno, m_Portname.c_str(), strerror (errno));
+        printf("error %d opening %s: %s", errno, getPort().c_str(), strerror(errno));
         return -1;
     }
 
-    set_interface_attribs (m_fd, B115200, 0);  // set speed to 115,200 bps, 8n1 (no parity)
-    set_blocking (m_fd, 0);                    // set no blocking
+    setInterfaceAttribs(m_fd, B115200, 0);  // set speed to 115,200 bps, 8n1 (no parity)
+    setBlocking(m_fd, 0);                    // set no blocking
     write(m_fd, "d", 1); // debug
     // write(m_fd, "s", 1); // std dev output enabled by default
     write(m_fd, "m", 1); // psd readings
 
-    m_fdOut = fopen(m_fOut.c_str(), "w");
+    m_logOutputStream.open(m_logFilename);
 
     return 0;
 }
 
-void GASPSD::Update()
-{
-    if (!m_isSim && (m_fd >= 0) ) {
+void GASPSD::update() {
+    if (m_fd >= 0) {
         char buf[110];
         char tmp = '\0';
         int n = 0;
@@ -91,43 +81,22 @@ void GASPSD::Update()
 	}
 
         // log locally
-        for (int i = 0; i < 8; i++)
-           fprintf(m_fdOut,"%9.5f ", m_data[i]);
-        fprintf(m_fdOut, "%5.2f\n", m_data[8]);
-    }
-
-    else
-        simulate(true);
-        //simulate(m_fd >= 0);
-}
-
-void GASPSD::simulate(bool hasPSD)
-{
-
-    if (hasPSD)
-    {
-        for (int pos = 0; pos < 4; pos++)
-            m_data[pos] = static_cast<double>(rand() % 10000) / 100.;
-        for (int pos = 4; pos < 8; pos++)
-            m_data[pos] = static_cast<double>(rand() % 100) / 100.;
-        m_data[9] = 10. + static_cast<double>(rand() % 20);
-    }
-    else
-    {
-        for (int pos = 0; pos < 9; pos++)
-            m_data[pos] = std::numeric_limits<int>::min();
+        for (int i = 0; i < 8; i++) {
+            m_logOutputStream.precision(5);
+            m_logOutputStream << m_data[i] << " ";
+        }
+        m_logOutputStream.precision(2);
+        m_logOutputStream << m_data[8] << std::endl;
     }
 }
 
 void GASPSD::setNominalValues(int offset, double value)
 {
-
-    return;
+    // Currently no effect
 }
 
-int GASPSD::set_interface_attribs (int fd, int speed, int parity)
-{
-    struct termios tty;
+int GASPSD::setInterfaceAttribs(int fd, int speed, int parity) {
+    struct termios tty{};
     memset (&tty, 0, sizeof tty);
     if (tcgetattr (fd, &tty) != 0)
     {
@@ -174,9 +143,8 @@ int GASPSD::set_interface_attribs (int fd, int speed, int parity)
     return 0;
 }
 
-void GASPSD::set_blocking (int fd, int should_block)
-{
-    struct termios tty;
+void GASPSD::setBlocking(int fd, int should_block) {
+    struct termios tty{};
     memset (&tty, 0, sizeof tty);
     if (tcgetattr (fd, &tty) != 0)
     {
@@ -191,43 +159,48 @@ void GASPSD::set_blocking (int fd, int should_block)
         printf ("error %d setting term attributes", errno);
 }
 
-void GASPSD::set_calibration()
-{   /*
-    m_AlphaNeg[0] = -9.909807;
-    m_AlphaNeg[1] = 10.103729;
-    m_AlphaNeg[2] = -9.794860;
-    m_AlphaNeg[3] = 10.016967;
-
-    m_AlphaPos[0] = -9.906882;
-    m_AlphaPos[1] = 10.142797;
-    m_AlphaPos[2] = -9.771347;
-    m_AlphaPos[3] = 9.933996;
-
-    m_Beta[0] = 0.007212;
-    m_Beta[1] = 0.100659;
-    m_Beta[2] = 0.021057;
-    m_Beta[3] = 0.098714;
-
-    m_Theta[0] = 0.;
-    m_Theta[1] = 0.;
-    */
-
-    m_AlphaNeg[0] = -9.710132;
-    m_AlphaNeg[1] = 9.871400;
-    m_AlphaNeg[2] = -9.604298;
-    m_AlphaNeg[3] = 10.071177;
-
-    m_AlphaPos[0] = -9.618614;
-    m_AlphaPos[1] = 9.658531;
-    m_AlphaPos[2] = -9.382091;
-    m_AlphaPos[3] = 9.934893;
-
-    m_Beta[0] = 0.011341;
-    m_Beta[1] = 0.118089;
-    m_Beta[2] = 0.023689;
-    m_Beta[3] = 0.116461;
-
-    m_Theta[0] = 0.;
-    m_Theta[1] = 0.;
-
+void GASPSD::setCalibration() {
+    // Current unused
 }
+
+int DummyGASPSD::initialize() {
+    // set the calibration constants
+    setCalibration();
+
+    m_logOutputStream.open(m_logFilename);
+
+    return 0;
+}
+
+void DummyGASPSD::update() {
+    std::uniform_real_distribution<double> coordDistribution(0, 100);
+    std::uniform_real_distribution<double> stddevDistribution(0, 1);
+    std::normal_distribution<double> tempDistribution(20.0, 2.0);
+    std::default_random_engine re(std::chrono::system_clock::now().time_since_epoch().count());
+
+    for (int pos = 0; pos < 4; pos++)
+        m_data[pos] = coordDistribution(re);
+    for (int pos = 4; pos < 8; pos++)
+        m_data[pos] = stddevDistribution(re);
+    m_data[8] = tempDistribution(re);
+
+    // log locally
+    for (int i = 0; i < 8; i++) {
+        m_logOutputStream.precision(5);
+        m_logOutputStream << m_data[i] << " ";
+    }
+    m_logOutputStream.precision(2);
+    m_logOutputStream << m_data[8] << std::endl;
+}
+
+int DummyGASPSD::setInterfaceAttribs(int fd, int speed, int parity) {
+    std::cout << "DummyGASPSD :: setInterfaceAttribs() - No effect." << std::endl;
+    usleep(200000);
+    return 0;
+}
+
+void DummyGASPSD::setBlocking(int fd, int should_block) {
+    std::cout << "DummyGASPSD :: SetBlocking() - No effect." << std::endl;
+}
+
+

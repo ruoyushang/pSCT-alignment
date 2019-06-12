@@ -34,7 +34,7 @@ public:
     PasCommunicationInterface() : m_panelNum(-1), m_cbcID(-1) {};
 
     /// @brief Destroy a communication interface object.
-    ~PasCommunicationInterface() override { std::cout << "Closed and cleaned up Communication Interface\n"; }
+    ~PasCommunicationInterface() override;
 
     /// @brief Initialize all device controllers using information from the database.
     /// @return OPC UA status code indicating success/failure.

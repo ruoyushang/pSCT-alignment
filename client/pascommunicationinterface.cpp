@@ -65,7 +65,8 @@ UaStatus PasCommunicationInterface::initialize()
 
     // currently, only GAS CCDs need to be intialized.
     // find what's on the network and compare it to what's expected
-    //arv_update_device_list();
+
+    // arv_update_device_list();
     unsigned n_ccds = 0; // arv_get_n_devices();
 
     std::string serial;
@@ -142,8 +143,13 @@ PasCommunicationInterface::addDevice(Client *pClient, OpcUa_UInt32 deviceType,
             pController = std::make_shared<CCDController>(identity);
         else if (deviceType == PAS_PSDType)
             pController = std::make_shared<PSDController>(identity, pClient);
-        else if (deviceType == GLOB_PositionerType)
+        else if (deviceType == GLOB_PositionerType) {
+#if SIMMODE
+            pController = std::dynamic_pointer_cast<PositionerController>(std::make_shared<DummyPositionerController>(identity));
+#else
             pController = std::make_shared<PositionerController>(identity, pClient);
+#endif
+        }
         else {
             return identity;
         }

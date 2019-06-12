@@ -10,35 +10,6 @@
 // timing for troubleshooting
 #include <chrono>
 
-// save some typing with sin/endl/cout
-using namespace std;
-
-GASCCD::GASCCD() :
-    pfLEDsOut(nullptr),
-    pfCamThread(nullptr),
-    pfCamera(nullptr),
-    fConfigFile(""),
-    fIsSim(false)
-{
-}
-
-GASCCD::~GASCCD()
-{
-    // if anything still exists, delete it and clean up
-    if (pfCamera) {
-        delete pfCamera;
-        pfCamera = nullptr;
-    }
-    if (pfCamThread) {
-        delete pfCamThread;
-        pfCamThread = nullptr;
-    }
-    if (pfLEDsOut) {
-        delete pfLEDsOut;
-        pfLEDsOut = nullptr;
-    }
-}
-
 
 void GASCCD::setConfig(string config)
 {
@@ -111,15 +82,15 @@ void GASCCD::setConfig(string config)
             } // end else find LEDLB	
             else if (line.find("LED") != string::npos) {
                 for(int i = 1; i<=MAXLED; i++) {
-                    if(line.find("LED"+to_string(i)+"CCDX") != string::npos)
+                    if (line.find("LED" + std::to_string(i) + "CCDX") != string::npos)
                         sin >> fLEDsIn.LEDCCD[i-1][0];
-                    if(line.find("LED"+to_string(i)+"CCDY") != string::npos)
+                    if (line.find("LED" + std::to_string(i) + "CCDY") != string::npos)
                         sin >> fLEDsIn.LEDCCD[i-1][1];
-                    if(line.find("LED"+to_string(i)+"X") != string::npos)
+                    if (line.find("LED" + std::to_string(i) + "X") != string::npos)
                         sin >> fLEDsIn.LED[i-1][0];
-                    if(line.find("LED"+to_string(i)+"Y") != string::npos)
+                    if (line.find("LED" + std::to_string(i) + "Y") != string::npos)
                         sin >> fLEDsIn.LED[i-1][1];
-                    if(line.find("LED"+to_string(i)+"Z") != string::npos)
+                    if (line.find("LED" + std::to_string(i) + "Z") != string::npos)
                         sin >> fLEDsIn.LED[i-1][2];
                 } // end for LED counts 1-8
             } // end else find LED								
@@ -136,11 +107,8 @@ void GASCCD::setConfig(string config)
     fin.close();
 }
 
-bool GASCCD::Initialize(bool isSim)
+bool GASCCD::initialize()
 {
-
-    fIsSim = isSim;
-
     // Print out all the params if needed
     std::ofstream logout;
     if (fLEDsIn.VERBOSE) {
@@ -161,7 +129,7 @@ bool GASCCD::Initialize(bool isSim)
     while (!pfCamera || !pfCamera->isReady()) {
         //attempt to initialize camera
         std::this_thread::sleep_for(std::chrono::milliseconds(200));
-        pfCamera = new AravisCamera(char_camera_name);
+        pfCamera = std::unique_ptr<AravisCamera>(new AravisCamera(char_camera_name));
         if (!pfCamera->isReady()) {
             std::string strout =
                     "GASCCD::initialize(): Camera [" + fLEDsIn.CCDNAME + "] reports not ready. Trying again...\n";
@@ -201,10 +169,10 @@ bool GASCCD::Initialize(bool isSim)
     }
 
     // Create output object
-    pfLEDsOut = new LEDoutputs(&fLEDsIn);
+    pfLEDsOut = std::unique_ptr<LEDoutputs>(new LEDoutputs(&fLEDsIn));
     // Create camera working thread 
     // threading necessary for adaptation for multicamera input
-    pfCamThread = new CamOutThread(pfCamera, &fLEDsIn);
+    pfCamThread = std::unique_ptr<CamOutThread>(new CamOutThread(pfCamera.get(), &fLEDsIn));
 
     if (fLEDsIn.VERBOSE) {
         std::string strout = "GASCCD::initialize(): Set up a new camera working thread.\n";
@@ -221,32 +189,48 @@ bool GASCCD::Initialize(bool isSim)
     return true;
 }
 
-bool GASCCD::Update()
-{
-//    if (!fIsSim && pfCamera->isReady())
-    return pfCamThread->cycle(pfLEDsOut);
-//    else
-//        pfLEDsOut = simulate(pfCamera->isReady());
-}
-
-void GASCCD::simulate(bool hasCamera)
-{
-/*
-    if (hasCamera)
-    {
-        for (int pos = 0; pos < 6; pos++)
-            pfLEDsOut->SPACE[pos] = static_cast<double>(rand() % 100000) / 100.;
+bool GASCCD::update() {
+    if (pfCamera->isReady()) {
+        return pfCamThread->cycle(pfLEDsOut.get());
+    } else {
+        return false;
     }
-    else
-    {
-        for (int pos = 0; pos < 6; pos++)
-            pfLEDsOut->SPACE[pos] = std::numeric_limits<int>::min();
-    }
-*/
 }
 
 void GASCCD::setNominalValues(int offset, double value)
 {
-
-    return;
+    // Does nothing at the moment
 }
+
+void DummyGASCCD::setConfig(string config) {
+    std::cout << "DummyGASCCD :: setConfig() - should do nothing" << std::endl;
+    fConfigFile = config;
+}
+
+bool DummyGASCCD::initialize() {
+    std::cout << "DummyGASCCD :: initialize() - should do nothing" << std::endl;
+    return true;
+}
+
+bool DummyGASCCD::update() {
+    std::uniform_real_distribution<double> coordDistribution(0, 1000);
+    std::default_random_engine re(std::chrono::system_clock::now().time_since_epoch().count());
+
+    for (int i = 0; i < 6; i++)
+        m_Data[i] = coordDistribution(re);
+
+    return true;
+}
+
+const double *DummyGASCCD::getOutput() {
+    return &m_Data[0];
+}
+
+std::string DummyGASCCD::getName() const {
+    return "DummyGASCCD";
+}
+
+int DummyGASCCD::getSerial() const {
+    return 0;
+}
+
