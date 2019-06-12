@@ -13,6 +13,7 @@
 #endif
 
 #include <iostream>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -23,6 +24,7 @@
 #include "client/utilities/configuration.hpp"
 #include "client/utilities/paslogic.hpp"
 
+#include "common/utilities/spdlog/spdlog.h"
 #include "common/utilities/spdlog/sinks/basic_file_sink.h"
 #include "common/utilities/spdlog/sinks/stdout_color_sinks.h"
 #include "common/utilities/spdlog/sinks/rotating_file_sink.h"
@@ -272,13 +274,13 @@ int main(int argc, char* argv[])
     }
 
     // Note that log directory must have been created beforehand
-    auto file_sink = make_shared<spdlog::sinks::rotating_file_sink_mt>("~/logs/passerver_logs", 1048576 * 5, 5,
+    auto file_sink = std::make_shared<spdlog::sinks::rotating_file_sink_mt>(std::string(getenv("HOME")) + std::string("/logs/p2pasclient_logs"), 1048576 * 5, 5,
                                                                        false); // 5 rotating files with max size 5 MB
     file_sink->set_level(spdlog::level::trace); // always save all logging levels
     file_sink->set_pattern("[%c] [%n] [%l] [%s:%!:%#] ");
 
     std::vector<spdlog::sink_ptr> sinks{file_sink, console_sink};
-    auto logger = std::make_shared<spdlog::logger>("p2pasclient", sinks);
+    auto logger = std::make_shared<spdlog::logger>("p2pasclient", sinks.begin(), sinks.end());
     logger->set_level(spdlog::level::info);
     logger->flush_on(spdlog::level::info);
     spdlog::set_default_logger(logger);
