@@ -42,8 +42,7 @@ const float Platform::DEFAULT_INTERNAL_TEMPERATURE_OFFSET = -50.0;
 const float Platform::DEFAULT_EXTERNAL_TEMPERATURE_SLOPE = 44.444;
 const float Platform::DEFAULT_EXTERNAL_TEMPERATURE_OFFSET = -61.111;
 
-Platform::Platform(Device::Identity identity, Device::DBInfo dbInfo,
-                   const Actuator::ASFInfo &asfInfo) : Device::Device(std::make_shared<CBC>(), std::move(identity)),
+Platform::Platform(Device::Identity identity, Device::DBInfo dbInfo) : Device::Device(std::make_shared<CBC>(), std::move(identity)),
                                                        m_On(true)
 {
     std::cout << "Creating Platform Object..." << std::endl;
