@@ -138,8 +138,6 @@ file(GLOB PASSERVER_SRC
     "${COMMON_CODE_DIR}/utilities/*.hpp"
     "${COMMON_CODE_DIR}/alignment/*.hpp"
     "${COMMON_CODE_DIR}/mpescode/*.h"
-    "${COMMON_CODE_DIR}/globalalignment/*.h"
-    "${COMMON_CODE_DIR}/globalalignment/*.cpp"
     "${COMMON_CODE_DIR}/cbccode/*.cpp"
     "${COMMON_CODE_DIR}/cbccode/*.hpp"
 )
