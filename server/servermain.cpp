@@ -19,12 +19,12 @@
 #include "uaserver/serverconfigxml.h"
 #include "uaserver/uaserverapplication.h"
 
+#include "common/utilities/spdlog/spdlog.h"
 #include "common/utilities/spdlog/sinks/basic_file_sink.h"
 #include "common/utilities/spdlog/sinks/stdout_color_sinks.h"
 #include "common/utilities/spdlog/sinks/rotating_file_sink.h"
 #include "common/utilities/spdlog/logger.h"
-#include "common/utilities/spdlog/spdlog.h"
-#include "common/utilities/spdlog/common.h"
+#include "common/utilities/spdlog/fmt/ostr.h"
 
 #if SUPPORT_XML_PARSER
 #include "xmlparser/xmldocument.h"
@@ -210,8 +210,8 @@ int main(int argc, char* argv[])
     file_sink->set_level(spdlog::level::trace); // always save all logging levels
     file_sink->set_pattern("[%c] [%n] [%l] [%s:%!:%#] ");
 
-    std::vector<spdlog::sink_ptr> sinks{file_sink, console_sink};
-    auto logger = std::make_shared<spdlog::logger>("passerver", sinks);
+    std::vector<spdlog::sink_ptr> sinks = {file_sink, console_sink};
+    auto logger = std::make_shared<spdlog::logger>(std::string("passerver"), sinks.begin(), sinks.end());
     logger->set_level(spdlog::level::info);
     logger->flush_on(spdlog::level::info);
     spdlog::set_default_logger(logger);

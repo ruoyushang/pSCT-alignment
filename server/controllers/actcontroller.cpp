@@ -14,7 +14,7 @@
 #include "common/opcua/passervertypeids.hpp"
 
 #include "common/utilities/spdlog/spdlog.h"
-
+#include "common/utilities/spdlog/fmt/ostr.h"
 
 /// @details Calls update state before returning the current state.
 UaStatus ActController::getState(Device::DeviceState &state) {

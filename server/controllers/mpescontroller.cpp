@@ -28,6 +28,7 @@
 #include "cppconn/statement.h"
 
 #include "common/utilities/spdlog/spdlog.h"
+#include "common/utilities/spdlog/fmt/ostr.h"
 
 
 MPESController::MPESController(Device::Identity identity, std::shared_ptr<Platform> pPlatform)

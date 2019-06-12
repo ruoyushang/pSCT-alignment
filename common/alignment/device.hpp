@@ -108,11 +108,10 @@ protected:
     virtual bool isOn() = 0;
 };
 
-inline std::ostream &operator<<(std::ostream &out, const Device::Identity &id) {
-    out << "("
+inline std::ostream& operator<<(std::ostream& out, const Device::Identity& id) {
+    return out << "("
         << id.serialNumber << ", " << id.eAddress << ", " << id.name << ", " << id.position
         << ")";
-    return out;
 }
 
 #endif //ALIGNMENT_DEVICE_HPP

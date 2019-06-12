@@ -24,6 +24,7 @@
 
 #include "common/alignment/device.hpp"
 #include "common/utilities/spdlog/spdlog.h"
+#include "common/utilities/spdlog/fmt/ostr.h"
 
 /// @details By default, sets the update interval to 500 ms. Creates a new GASPSD object,
 /// sets its port, and initializes. Sets its state to On.
@@ -71,7 +72,7 @@ UaStatus PSDController::getData(OpcUa_UInt32 offset, UaVariant &value)
 
     value.setDouble(m_pPSD->getOutput(offset));
 
-    spdlog::trace("{} : Getting data... offset=> {} value => ({})", m_ID, offset, value[0].Value);
+    spdlog::trace("{} : Getting data... offset=> {} value => ({})", m_ID, offset, value[0].Value.Double);
     return status;
 }
 

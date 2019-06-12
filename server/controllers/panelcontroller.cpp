@@ -20,6 +20,7 @@
 #include "server/controllers/mpescontroller.hpp"
 
 #include "common/utilities/spdlog/spdlog.h"
+#include "common/utilities/spdlog/fmt/ostr.h"
 
 /// @details Locks the shared mutex while retrieving the state.
 UaStatus PanelController::getState(Device::DeviceState &state) {

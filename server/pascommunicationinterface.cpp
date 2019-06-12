@@ -28,6 +28,7 @@
 #include "uabase/uadatetime.h"
 
 #include "common/utilities/spdlog/spdlog.h"
+#include "common/utilities/spdlog/fmt/ostr.h"
 
 // MySQL C++ Connector includes
 #include "mysql_driver.h"
@@ -258,8 +259,7 @@ UaStatus PasCommunicationInterface::initialize() {
 
     spdlog::info("Adding actuator and mpes controllers as children of the panel controller...");
     if (m_pControllers[PAS_PanelType].size() != 1) {
-        spdlog::error("{} panel(s) found. There should be exactly 1 per server.", m_pControllers[PAS_PanelType].size()
-        _;
+        spdlog::error("{} panel(s) found. There should be exactly 1 per server.", m_pControllers[PAS_PanelType].size());
         return OpcUa_Bad;
     }
     std::shared_ptr<PanelController> pPanel = std::dynamic_pointer_cast<PanelController>(

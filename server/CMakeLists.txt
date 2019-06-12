@@ -147,7 +147,9 @@ if ( SIMMODE )
     add_definitions(-DSIMMODE)
     file(GLOB PASSERVER_SRC
         ${PASSERVER_SRC}
-            )
+        "${COMMON_CODE_DIR}/globalalignment/psdclass.cpp"
+        "${COMMON_CODE_DIR}/globalalignment/psdclass.h"
+        )
 else ( SIMMODE )
     file(GLOB PASSERVER_SRC
         ${PASSERVER_SRC}
@@ -164,6 +166,8 @@ if ( AMD64 )
     add_definitions(-D_AMD64)
     file(GLOB PASSERVER_SRC
         ${PASSERVER_SRC}
+        "${COMMON_CODE_DIR}/globalalignment/psdclass.cpp"
+        "${COMMON_CODE_DIR}/globalalignment/psdclass.h"
         )
 else ( AMD64 )
     file(GLOB PASSERVER_SRC

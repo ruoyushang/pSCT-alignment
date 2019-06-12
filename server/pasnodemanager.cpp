@@ -30,6 +30,8 @@
 #include "server/pascommunicationinterface.hpp"
 
 #include "common/utilities/spdlog/spdlog.h"
+#include "common/utilities/spdlog/fmt/ostr.h"
+
 
 PasNodeManager::PasNodeManager() : PasNodeManagerCommon() {
     spdlog::debug("Created Node manager with NameSpaceIndex = {}", getNameSpaceIndex());
