@@ -150,8 +150,8 @@ protected:
 
 class Platform : public PlatformBase {
 public:
-    Platform(std::shared_ptr<CBC> pCBC, Device::Identity identity, Device::DBInfo dbInfo) : PlatformBase(
-        std::move(identity), std::move(dbInfo)), m_pCBC(std::move(pCBC)) {}
+    Platform(Device::Identity identity, Device::DBInfo dbInfo) : PlatformBase(
+        std::move(identity), std::move(dbInfo)), m_pCBC(std::make_shared<CBC>()) {}
 
     ~Platform() override { turnOff(); }
 
