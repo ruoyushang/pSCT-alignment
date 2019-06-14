@@ -11,19 +11,16 @@
 #include <unistd.h>
 
 #include "common/alignment/platform.hpp"
-#include "common/cbccode/cbc.hpp"
-#include "common/mpescode/MPESImage.h"
-#include "common/mpescode/MPESImageSet.h"
-#include "common/mpescode/MPESDevice.h"
 
-const int MPES::DEFAULT_IMAGES_TO_CAPTURE = 9;
-const std::string MPES::MATRIX_CONSTANTS_DIR_PATH = "/home/root/mpesCalibration/";
-const std::string MPES::CAL2D_CONSTANTS_DIR_PATH = "/home/root/mpesCalibration/";
 
-const int MPES::NOMINAL_INTENSITY = 150000;
-const float MPES::NOMINAL_SPOT_WIDTH = 10.0;
+const int MPESBase::DEFAULT_IMAGES_TO_CAPTURE = 9;
+const std::string MPESBase::MATRIX_CONSTANTS_DIR_PATH = "/home/root/mpesCalibration/";
+const std::string MPESBase::CAL2D_CONSTANTS_DIR_PATH = "/home/root/mpesCalibration/";
 
-const std::vector<Device::ErrorDefinition> MPES::ERROR_DEFINITIONS = {
+const int MPESBase::NOMINAL_INTENSITY = 150000;
+const float MPESBase::NOMINAL_SPOT_WIDTH = 10.0;
+
+const std::vector<Device::ErrorDefinition> MPESBase::ERROR_DEFINITIONS = {
     {"Bad connection. No device found",                                                                            Device::ErrorState::FatalError},//error 0
     {"Intermittent connection, possible select timeout or other error.",                                           Device::ErrorState::FatalError},//error 1
     {"Cannot find laser spot (totally dark). Laser dead or not in FoV.",                                           Device::ErrorState::FatalError},//error 2
@@ -34,9 +31,58 @@ const std::vector<Device::ErrorDefinition> MPES::ERROR_DEFINITIONS = {
     {"Intensity deviation from nominal value (more than 20%).",                                                    Device::ErrorState::OperableError},//error 7
 };
 
-MPES::~MPES() {
-    turnOff();
+bool MPESBase::initialize() {
+    if (isBusy()) {
+        std::cout << m_Identity << " : MPES::initialize() : Busy, cannot initialize.\n";
+        return false;
+    }
+
+    bool status;
+    setBusy();
+    status = __initialize();
+    unsetBusy();
+    return status;
 }
+
+// find and set optimal exposure -- assume I(e) is linear
+// returns measured intensity -- check this value to see if things work fine
+int MPESBase::setExposure() {
+    if (isBusy()) {
+        std::cout << m_Identity << " : MPES::setExposure() : Busy, cannot set exposure.\n";
+        return -1;
+    }
+
+    int intensity;
+    setBusy();
+    intensity = __setExposure();
+    unsetBusy();
+    return intensity;
+}
+
+// returns intensity of the beam -- 0 if no beam/device.
+// -1 if busy
+// so check the return value to know if things work fine
+int MPESBase::updatePosition() {
+    if (isBusy()) {
+        std::cout << m_Identity << " : MPES::updatePosition() : Busy, cannot read.\n";
+        return -1;
+    }
+
+    std::cout << m_Identity << " : MPES::updatePosition() : Reading...\n";
+    int intensity;
+    setBusy();
+    intensity = __updatePosition();
+    unsetBusy();
+    std::cout << m_Identity << " : MPES::updatePosition() : Done.\n";
+    return intensity;
+}
+
+#ifndef SIMMODE
+
+#include "common/cbccode/cbc.hpp"
+#include "common/mpescode/MPESImage.h"
+#include "common/mpescode/MPESImageSet.h"
+#include "common/mpescode/MPESDevice.h"
 
 void MPES::turnOn() {
     if (isBusy()) {
@@ -61,19 +107,6 @@ void MPES::turnOff() {
 
 bool MPES::isOn() {
     return m_pCBC->usb.isEnabled(getPortNumber());
-}
-
-bool MPES::initialize() {
-    if (isBusy()) {
-        std::cout << m_Identity << " : MPES::initialize() : Busy, cannot initialize.\n";
-        return false;
-    }
-
-    bool status;
-    setBusy();
-    status = __initialize();
-    unsetBusy();
-    return status;
 }
 
 // returns intensity of the sensor image.
@@ -141,21 +174,6 @@ bool MPES::__initialize() {
     return true;
 }
 
-// find and set optimal exposure -- assume I(e) is linear
-// returns measured intensity -- check this value to see if things work fine
-int MPES::setExposure() {
-    if (isBusy()) {
-        std::cout << m_Identity << " : MPES::setExposure() : Busy, cannot set exposure.\n";
-        return -1;
-    }
-
-    int intensity;
-    setBusy();
-    intensity = __setExposure();
-    unsetBusy();
-    return intensity;
-}
-
 int MPES::__setExposure() {
     std::cout << m_Identity << " : MPES::setExposure() : Setting exposure...\n";
     int intensity;
@@ -175,24 +193,6 @@ int MPES::__setExposure() {
     }
 
     std::cout << m_Identity << " : MPES::setExposure() : Done.\n";
-    return intensity;
-}
-
-// returns intensity of the beam -- 0 if no beam/device.
-// -1 if busy
-// so check the return value to know if things work fine
-int MPES::updatePosition() {
-    if (isBusy()) {
-        std::cout << m_Identity << " : MPES::updatePosition() : Busy, cannot read.\n";
-        return -1;
-    }
-
-    std::cout << m_Identity << " : MPES::updatePosition() : Reading...\n";
-    int intensity;
-    setBusy();
-    intensity = __updatePosition();
-    unsetBusy();
-    std::cout << m_Identity << " : MPES::updatePosition() : Done.\n";
     return intensity;
 }
 
@@ -269,6 +269,8 @@ std::set<int> MPES::getVideoDevices() {
     return videoDevices;
 }
 
+#endif
+
 void DummyMPES::turnOff() {
     m_On = false;
 }
@@ -282,11 +284,29 @@ bool DummyMPES::__initialize() {
 
     m_Errors.assign(getNumErrors(), false);
 
-    //std::cout << "MPES::initialize(): Detected new video device " << newVideoDeviceId << std::endl;
-    m_pDevice = nullptr;
-    m_pImageSet = nullptr;
-
     m_On = true;
+
+    std::ostringstream oss;
+    oss << std::setfill('0') << std::setw(6) << getSerialNumber(); // pad serial number to 6 digits with zeros
+    std::string MPES_IDstring = oss.str();
+
+    std::string matFileFullPath = MATRIX_CONSTANTS_DIR_PATH + MPES_IDstring + "_MatConstants.txt";
+    //std::cout << "Trying to access " << matFileFullPath << " for Matrix File" << std::endl;
+    std::string calFileFullPath = CAL2D_CONSTANTS_DIR_PATH + MPES_IDstring + "_2D_Constants.txt";
+    //std::cout << "Trying to access " << calFileFullPath << " for Cal2D File" << std::endl;
+
+    std::ifstream matFile(matFileFullPath);
+    std::ifstream calFile(calFileFullPath);
+
+    if (matFile.good() && calFile.good()) { // Check if files exist and can be read
+        matFile.close();
+        calFile.close();
+
+        //std::cout << "Read calibration data OK -- using calibrated values\n";
+        m_Calibrate = true;
+    } else {
+        //std::cout << "Did not read calibration data -- using raw values\n";
+    }
 
     std::cout << m_Identity << " : DummyMPES::initialize() : Done.\n";
     return true;

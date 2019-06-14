@@ -26,8 +26,9 @@ public:
     /// @brief Instantiate an actuator device controller object.
     /// @param ID The integer index of the device within its type.
     /// @param pPlatform Pointer to platform object used to interface directly with hardware.
-    ActController(Device::Identity identity, std::shared_ptr<Platform> pPlatform) : PasController(std::move(identity),
-                                                                                                  std::move(
+    ActController(Device::Identity identity, std::shared_ptr<PlatformBase> pPlatform) : PasController(
+        std::move(identity),
+        std::move(
                                                                                                       pPlatform)) {}
 
     /// @brief Get the internal state of the actuator device.
@@ -77,8 +78,6 @@ private:
     Device::ErrorState _getErrorState() { return m_pPlatform->getActuatorbyIdentity(m_ID)->getErrorState(); }
 
     Device::DeviceState _getDeviceState() { return m_pPlatform->getActuatorbyIdentity(m_ID)->getDeviceState(); }
-    /// @brief The distance between the current actuator length and the target length.
-    OpcUa_Float m_DeltaL;
     /// @brief The remaining distance between the current actuator length and the target length.
     OpcUa_Float m_DeltaLength;
     /// @brief The last requested target length.

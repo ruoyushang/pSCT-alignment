@@ -13,14 +13,10 @@
 #include <string>
 
 #include "common/alignment/device.hpp"
-#include "common/mpescode/MPESDevice.h"
-#include "common/mpescode/MPESImageSet.h"
 
-
-class CBC;
 class Platform;
 
-class MPES : public Device
+class MPESBase : public Device
 {
 public:
     struct Position {
@@ -38,12 +34,12 @@ public:
 
     static const std::vector<Device::ErrorDefinition> ERROR_DEFINITIONS;
 
-    std::vector<Device::ErrorDefinition> getErrorCodeDefinitions() override { return MPES::ERROR_DEFINITIONS; }
+    std::vector<Device::ErrorDefinition> getErrorCodeDefinitions() override { return MPESBase::ERROR_DEFINITIONS; }
 
-    MPES(std::shared_ptr<CBC> pCBC, Device::Identity identity) : Device::Device(std::move(pCBC), std::move(identity)),
-                                                                 m_Calibrate(false) {}
+    explicit MPESBase(Device::Identity identity) : Device::Device(std::move(identity)),
+                                                   m_Calibrate(false) {}
 
-    virtual ~MPES();
+    virtual ~MPESBase() = default;
 
     int getPortNumber() const { return std::stoi(m_Identity.eAddress); };
     int getSerialNumber() const { return m_Identity.serialNumber; };
@@ -56,7 +52,8 @@ public:
     void setyNominalPosition(float y) { m_Position.yNominal = y; }
 
     int updatePosition();
-    MPES::Position getPosition() const { return m_Position; };
+
+    MPESBase::Position getPosition() const { return m_Position; };
 
     // Hardcoded constants
     static const int DEFAULT_IMAGES_TO_CAPTURE;
@@ -66,22 +63,52 @@ public:
     static const int NOMINAL_INTENSITY;
     static const float NOMINAL_SPOT_WIDTH;
 
-    virtual void turnOn() override;
+    void turnOn();
 
-    virtual void turnOff() override;
+    virtual void turnOff() override = 0;
 
-    virtual bool isOn() override;
+    virtual bool isOn() override = 0;
 
 protected:
     bool m_Calibrate;
 
     Position m_Position = Position(); // MPES Reading
 
-    virtual bool __initialize();
+    virtual bool __initialize() = 0;
 
-    virtual int __updatePosition();
+    virtual int __updatePosition() = 0;
 
-    virtual int __setExposure();
+    virtual int __setExposure() = 0;
+};
+
+#ifndef SIMMODE
+
+#include "common/cbccode/cbc.hpp"
+#include "common/mpescode/MPESDevice.h"
+#include "common/mpescode/MPESImageSet.h"
+
+class MPES : public MPESBase {
+public:
+    explicit MPES(std::shared_ptr<CBC> pCBC, Device::Identity identity) : MPESBase::MPESBase(std::move(identity)),
+                                                                          m_pCBC(std::move(pCBC)), m_pImageSet(nullptr),
+                                                                          m_pDevice(nullptr) {}
+
+    ~MPES() override { turnOff(); };
+
+    void turnOn() override;
+
+    void turnOff() override;
+
+    bool isOn() override;
+
+protected:
+    std::shared_ptr<CBC> m_pCBC;
+
+    bool __initialize() override;
+
+    int __updatePosition() override;
+
+    int __setExposure() override;
 
     // helpers
     std::shared_ptr<MPESImageSet> m_pImageSet;
@@ -90,10 +117,12 @@ protected:
     static std::set<int> getVideoDevices();
 };
 
-class DummyMPES : public MPES
+#endif
+
+class DummyMPES : public MPESBase
 {
 public:
-    explicit DummyMPES(Device::Identity identity) : MPES(nullptr, std::move(identity)) {};
+    explicit DummyMPES(Device::Identity identity) : MPESBase(std::move(identity)) {};
 
     ~DummyMPES() override = default;
 

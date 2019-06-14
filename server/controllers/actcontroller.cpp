@@ -197,7 +197,7 @@ UaStatus ActController::moveDelta(float deltaLength) {
 
     deltaLengths = m_pPlatform->moveDeltaLengths(deltaLengths);
     spdlog::trace("{} : Setting remaining length (deltaLength) to {}", m_ID, deltaLengths[m_ID.position]);
-    m_DeltaL = deltaLengths[m_ID.position];
+    m_DeltaLength = deltaLengths[m_ID.position];
 
     return OpcUa_Good;
 }
@@ -214,7 +214,7 @@ UaStatus ActController::moveToLength(float targetLength) {
 
     spdlog::trace("{} : Setting remaining length (deltaLength) to {}", m_ID,
                   targetLength - finalLengths[m_ID.position]);
-    m_DeltaL = targetLength - finalLengths[m_ID.position];
+    m_DeltaLength = targetLength - finalLengths[m_ID.position];
 
     return status;
 }

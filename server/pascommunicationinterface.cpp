@@ -140,18 +140,18 @@ UaStatus PasCommunicationInterface::initialize() {
     identity.eAddress = std::to_string(0);
     identity.position = m_panelNum;
 
-#if SIMMODE
+#ifdef SIMMODE
     spdlog::info("SIMMODE: Creating DummyPlatform object with identity {}...", identity);
-    m_platform = std::dynamic_pointer_cast<Platform>(std::make_shared<DummyPlatform>(identity, DbInfo));
+    m_platform = std::dynamic_pointer_cast<PlatformBase>(std::make_shared<DummyPlatform>(identity, DbInfo));
 #else
     spdlog::info("Creating Platform hardware interface with identity {}...", identity);
-    m_platform = std::make_shared<Platform>(identity, DbInfo);
+    m_platform = std::dynamic_pointer_cast<PlatformBase>(std::make_shared<Platform>(identity, DbInfo));
 #endif
 
     m_platform->initialize();
 
-    std::array<Device::Identity, Platform::NUM_ACTS_PER_PLATFORM> actuatorIdentities;
-    for (int i = 0; i < Platform::NUM_ACTS_PER_PLATFORM; i++) {
+    std::array<Device::Identity, PlatformBase::NUM_ACTS_PER_PLATFORM> actuatorIdentities;
+    for (int i = 0; i < PlatformBase::NUM_ACTS_PER_PLATFORM; i++) {
         Device::Identity id;
         id.name = std::string("ACT_") + std::to_string(actuatorSerials.at(i));
         id.serialNumber = actuatorSerials.at(i);

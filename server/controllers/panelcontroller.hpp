@@ -34,8 +34,9 @@ public:
     /// @brief Instantiate a panel device controller object.
     /// @param ID The integer index of the device within its type.
     /// @param pPlatform Pointer to platform object used to interface directly with hardware.
-    PanelController(Device::Identity identity, std::shared_ptr<Platform> pPlatform) : PasController(std::move(identity),
-                                                                                                    std::move(
+    PanelController(Device::Identity identity, std::shared_ptr<PlatformBase> pPlatform) : PasController(
+        std::move(identity),
+        std::move(
                                                                                                         pPlatform)) {}
 
     /// @brief Get the device's state.

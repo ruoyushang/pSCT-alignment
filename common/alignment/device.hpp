@@ -71,7 +71,7 @@ public:
         bool operator!=(const Identity &r) const;
     };
 
-    Device(std::shared_ptr<CBC> pCBC, Identity identity);
+    Device(Identity identity);
     ~Device() = default;
 
     virtual std::vector <Device::ErrorDefinition> getErrorCodeDefinitions() = 0;
@@ -93,7 +93,6 @@ public:
     virtual void turnOff() = 0;
 
 protected:
-    std::shared_ptr<CBC> m_pCBC;
     Device::Identity m_Identity;
 
     std::vector<bool> m_Errors;

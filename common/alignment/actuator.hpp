@@ -7,12 +7,10 @@
 #include <vector>
 
 #include "common/alignment/device.hpp"
-#include "common/cbccode/cbc.hpp"
 
 class Platform;
 
-
-class Actuator : public Device
+class ActuatorBase : public Device
 {
 public:
 
@@ -41,12 +39,12 @@ public:
 
     static const std::vector<Device::ErrorDefinition> ERROR_DEFINITIONS;
 
-    std::vector<Device::ErrorDefinition> getErrorCodeDefinitions() override { return Actuator::ERROR_DEFINITIONS; }
+    std::vector<Device::ErrorDefinition> getErrorCodeDefinitions() override { return ActuatorBase::ERROR_DEFINITIONS; }
 
-    Actuator(std::shared_ptr<CBC> pCBC, Device::Identity identity,
-             Device::DBInfo DBInfo = Device::DBInfo(), const ASFInfo &ASFFileInfo = Actuator::ASFInfo());
+    explicit ActuatorBase(Device::Identity identity, Device::DBInfo DBInfo = Device::DBInfo(),
+                          const ASFInfo &ASFFileInfo = ASFInfo());
 
-    ~Actuator() = default;
+    ~ActuatorBase() = default;
 
     int getPortNumber() const { return std::stoi(m_Identity.eAddress); }
     int getSerialNumber() const { return (int) m_Identity.serialNumber; }
@@ -55,15 +53,18 @@ public:
     int readAngle();
     const Position &getCurrentPosition() { return m_CurrentPosition; }
 
-    virtual float measureLength();
+    float measureLength();
+
     float moveToLength(float targetLength);
     float moveDeltaLength(float lengthToMove);
 
-    virtual void probeHome();
+    virtual void probeHome() = 0;
 
-    virtual void findHomeFromEndStop(int direction);
+    void probeEndStop(int direction);
 
-    virtual bool forceRecover();
+    void findHomeFromEndStop(int direction);
+
+    bool forceRecover();
 
     void clearErrors() override;
 
@@ -78,29 +79,30 @@ public:
 
     int convertPositionToSteps(Position position);
 
-    virtual int step(int inputSteps);
-
-    virtual int stepDriver(int inputSteps);
+    int step(int inputSteps);
 
     int performHysteresisMotion(int steps);
+    Position predictNewPosition(Position position, int steps);
 
     void recoverPosition();
 
-    Position predictNewPosition(Position position, int steps);
-
     void loadStatusFromASF();
 
-    bool isOn() override;
+    virtual int stepDriver(int inputSteps) = 0;
 
-    void turnOn() override;
-    void turnOff() override;
+    virtual void turnOn() override = 0;
+
+    virtual void turnOff() override = 0;
 
     bool initialize() override;
 
     virtual void emergencyStop();
 
 protected:
-    bool m_keepStepping;
+    virtual bool isOn() override = 0;
+
+    // Constants
+    static const ASFInfo EMERGENCY_ASF_INFO;
 
     static constexpr const int NUM_ASF_HEADER_COLUMNS = 8;//yr,mo,day,hr,min,sec,rev,angle
     int NUM_ASF_COLUMNS{NUM_ASF_HEADER_COLUMNS + getNumErrors()};
@@ -109,17 +111,13 @@ protected:
     unsigned NUM_DB_COLUMNS{NUM_DB_HEADER_COLUMNS + getNumErrors()};
 
     Device::DBInfo m_DBInfo;
+    bool m_keepStepping;
 
     static void copyFile(const std::string &srcFilePath, const std::string &destFilePath);
-
-    // Constants
-    static const ASFInfo EMERGENCY_ASF_INFO;
 
     std::string m_ASFPath;
     std::string m_OldASFPath;
     std::string m_NewASFPath;
-
-    CBC::ADC::adcData m_ADCdata;
 
     // Calibration Parameters (defaults)
     float m_CalibrationTemperature = 22.0;
@@ -151,44 +149,44 @@ protected:
     void setDBInfo(Device::DBInfo DBInfo);
     void unsetDBInfo();
 
-    bool readStatusFromDB(ActuatorStatus &status);
-    bool readStatusFromASF(ActuatorStatus &status);
-    void loadStatusFromDB();
-    void saveStatusToDB();
-    void saveStatusToASF();
-    void recoverStatusFromDB();
+    virtual bool readStatusFromDB(ActuatorStatus &status) = 0;
 
-    int checkAngleQuick(Position expectedPosition);
-    int checkAngleSlow(Position expectedPosition);
+    virtual void loadStatusFromDB() = 0;
+
+    virtual void saveStatusToDB() = 0;
+
+    void recoverStatusFromDB();
+    bool readStatusFromASF(ActuatorStatus &status);
+    void saveStatusToASF();
+
+    virtual int checkAngleQuick(Position expectedPosition);
+
+    virtual int checkAngleSlow(Position expectedPosition);
 
     void setCurrentPosition(Position position) { m_CurrentPosition = position; }
 
-    void probeEndStop(int direction);
+    float __measureLength();
 
-    virtual float __readVoltage();
+    virtual float __readVoltage() = 0;
 
-    virtual int __step(int steps);
+    virtual int __step(int steps) = 0;
 
-    virtual void __probeEndStop(int direction);
+    virtual void __probeEndStop(int direction) = 0;
+
+    virtual void __findHomeFromEndStop(int direction) = 0;
 };
 
-class DummyActuator : public Actuator
-{
+#ifndef SIMMODE
+
+#include "common/cbccode/cbc.hpp"
+
+class Actuator : public ActuatorBase {
 public:
-    explicit DummyActuator(Device::Identity identity,
-                           Device::DBInfo DBInfo = Device::DBInfo(), const ASFInfo &ASFFileInfo = Actuator::ASFInfo())
-        : Actuator(nullptr, std::move(identity), std::move(DBInfo), ASFFileInfo), m_On(true) {};
+    Actuator(std::shared_ptr<CBC> pCBC, Device::Identity identity,
+             Device::DBInfo DBInfo = Device::DBInfo(), const ASFInfo &ASFFileInfo = Actuator::ASFInfo()) : ActuatorBase(
+        std::move(identity), std::move(DBInfo), ASFFileInfo), m_pCBC(std::move(pCBC)), m_ADCdata() {}
 
-    bool initialize() override;
-    float measureLength() override;
-
-    void probeHome() override;
-
-    void findHomeFromEndStop(int direction) override;
-
-    bool forceRecover() override;
-
-    void clearErrors() override;
+    ~Actuator() = default;
 
     int stepDriver(int inputSteps) override;
 
@@ -198,14 +196,61 @@ public:
 
     void turnOff() override;
 
-    void emergencyStop() override;
+    void probeHome() override;
 
-private:
-    bool m_On;
+protected:
+    std::shared_ptr<CBC> m_pCBC;
+    CBC::ADC::adcData m_ADCdata;
+
+    bool readStatusFromDB(ActuatorStatus &status) override;
+
+    void loadStatusFromDB() override;
+
+    void saveStatusToDB() override;
+
+    float __readVoltage() override;
 
     int __step(int steps) override;
 
     void __probeEndStop(int direction) override;
+
+    void __findHomeFromEndStop(int direction) override;
+};
+
+#endif
+
+class DummyActuator : public ActuatorBase
+{
+public:
+    explicit DummyActuator(Device::Identity identity,
+                           Device::DBInfo DBInfo = Device::DBInfo(), const ASFInfo &ASFFileInfo = Actuator::ASFInfo())
+        : ActuatorBase(std::move(identity), std::move(DBInfo), ASFFileInfo), m_On(true) {};
+
+    int stepDriver(int inputSteps) override;
+
+    bool isOn() override;
+    void turnOn() override;
+    void turnOff() override;
+
+    void probeHome() override;
+
+protected:
+    bool m_On;
+
+    // Do not write to DB when using simmode (to avoid risk of overwriting real data)
+    bool readStatusFromDB(ActuatorStatus &status) override { return readStatusFromASF(status); };
+
+    void loadStatusFromDB() override { return loadStatusFromASF(); };
+
+    void saveStatusToDB() override { return saveStatusToASF(); };
+
+    float __readVoltage() override;
+
+    int __step(int steps) override;
+
+    void __probeEndStop(int direction) override;
+
+    void __findHomeFromEndStop(int direction) override;
 };
 
 #endif // ALIGNMENT_ACTUATOR_HPP

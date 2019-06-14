@@ -31,7 +31,7 @@ public:
     /// @param pPlatform Pointer to the platform object used to interface with the hardware.
     /// @param updateInterval Update interval in milliseconds.
     explicit PasController(Device::Identity identity,
-                           std::shared_ptr<Platform> pPlatform = std::shared_ptr<Platform>(nullptr),
+                           std::shared_ptr<PlatformBase> pPlatform = std::shared_ptr<PlatformBase>(nullptr),
                            int updateInterval = 0) : PasControllerCommon(std::move(identity), updateInterval),
                                                      m_pPlatform(std::move(pPlatform)) {}
 
@@ -39,12 +39,12 @@ public:
     /// @param ID The device index within its type.
     /// @param updateInterval Update interval in milliseconds.
     PasController(Device::Identity identity, int updateInterval) : PasController(std::move(identity),
-                                                                                 std::shared_ptr<Platform>(nullptr),
+                                                                                 std::shared_ptr<PlatformBase>(nullptr),
                                                                                  updateInterval) {}
 
 protected:
     /// @brief Pointer to the Platform object used to interface with hardware.
-    std::shared_ptr<Platform> m_pPlatform;
+    std::shared_ptr<PlatformBase> m_pPlatform;
 };
 
 #endif //SERVER_PASCONTROLLER_HPP

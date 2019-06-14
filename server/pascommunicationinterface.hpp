@@ -22,7 +22,7 @@
 #include <string>
 #include <vector>
 
-class Platform;
+class PlatformBase;
 class PasController;
 
 /// @brief Server communication interface to organize and interact with device controllers.
@@ -120,7 +120,7 @@ private:
     int m_cbcID;
 
     /// @brief Pointer to the platform object used by all devices to interface with the hardware.
-    std::shared_ptr<Platform> m_platform;
+    std::shared_ptr<PlatformBase> m_platform;
 };
 
 #endif //SERVER_PASCOMMUNICATIONINTERFACE_HPP

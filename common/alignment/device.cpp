@@ -58,8 +58,7 @@ bool Device::Identity::operator==(const Device::Identity &r) const {
 
 bool Device::Identity::operator!=(const Device::Identity &r) const { return !(*this == r); }
 
-Device::Device(std::shared_ptr<CBC> pCBC, Device::Identity identity) : m_pCBC(std::move(pCBC)),
-                                                                       m_Identity(std::move(identity)), m_Busy(false) {}
+Device::Device(Device::Identity identity) : m_Identity(std::move(identity)), m_Busy(false) {}
 
 void Device::setError(int errorCode) {
     if (!m_Errors.at(errorCode)) {
