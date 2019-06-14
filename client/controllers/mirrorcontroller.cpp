@@ -430,7 +430,7 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
     } else if (offset == PAS_MirrorType_ReadSensorsParallel) {
         setState(Device::DeviceState::Busy);
         bool stopped = false;
-        std::map<Device::Identity, MPES::Position> readings;
+        std::map<Device::Identity, MPESBase::Position> readings;
         if (m_selectedMPES.empty()) {
             std::cout << "No MPES selected in SelectedMPES! Nothing to do..." << std::endl;
         } 

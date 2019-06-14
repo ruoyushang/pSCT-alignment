@@ -77,14 +77,7 @@ int MPESBase::updatePosition() {
     return intensity;
 }
 
-#ifndef SIMMODE
-
-#include "common/cbccode/cbc.hpp"
-#include "common/mpescode/MPESImage.h"
-#include "common/mpescode/MPESImageSet.h"
-#include "common/mpescode/MPESDevice.h"
-
-void MPES::turnOn() {
+void MPESBase::turnOn() {
     if (isBusy()) {
         std::cout << m_Identity << " : MPES::turnOn() : Busy, cannot turn on.\n";
         return;
@@ -94,6 +87,13 @@ void MPES::turnOn() {
     __setExposure();
     unsetBusy();
 }
+
+#ifndef SIMMODE
+
+#include "common/cbccode/cbc.hpp"
+#include "common/mpescode/MPESImage.h"
+#include "common/mpescode/MPESImageSet.h"
+#include "common/mpescode/MPESDevice.h"
 
 void MPES::turnOff() {
     if (isBusy()) {
@@ -220,7 +220,7 @@ int MPES::__updatePosition() {
         m_Position.cleanedIntensity = m_pImageSet->SetData.CleanedIntensity;
     }
 
-    if (std::abs(m_Position.cleanedIntensity - MPES::NOMINAL_INTENSITY) >= MPES::NOMINAL_INTENSITY * 0.2) {
+    if (std::abs(m_Position.cleanedIntensity - MPESBase::NOMINAL_INTENSITY) >= MPESBase::NOMINAL_INTENSITY * 0.2) {
         setError(7);
     } else if (m_Position.cleanedIntensity > 5e5 && m_Position.cleanedIntensity < 1e6) {
         setError(4);
@@ -314,7 +314,7 @@ bool DummyMPES::__initialize() {
 
 int DummyMPES::__setExposure() {
     std::cout << m_Identity << " : DummyMPES::setExposure() : Setting exposure...\n";
-    int intensity = MPES::NOMINAL_INTENSITY; // dummy value
+    int intensity = MPESBase::NOMINAL_INTENSITY; // dummy value
     std::cout << m_Identity << " : DummyMPES::setExposure() : Done.\n";
     return intensity;
 }
@@ -324,9 +324,9 @@ int DummyMPES::__updatePosition() {
     // Set internal position variable to dummy values
     m_Position.xCentroid = 160.;
     m_Position.yCentroid = 120.;
-    m_Position.xSpotWidth = MPES::NOMINAL_SPOT_WIDTH;
-    m_Position.ySpotWidth = MPES::NOMINAL_SPOT_WIDTH;
-    m_Position.cleanedIntensity = MPES::NOMINAL_INTENSITY;
+    m_Position.xSpotWidth = MPESBase::NOMINAL_SPOT_WIDTH;
+    m_Position.ySpotWidth = MPESBase::NOMINAL_SPOT_WIDTH;
+    m_Position.cleanedIntensity = MPESBase::NOMINAL_INTENSITY;
 
     return static_cast<int>(m_Position.cleanedIntensity);
 }

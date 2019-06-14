@@ -227,7 +227,7 @@ void PlatformBase::clearPlatformErrors() {
     }
 }
 
-MPES::Position PlatformBase::readMPES(int idx) {
+MPESBase::Position PlatformBase::readMPES(int idx) {
     std::cout << "Reading MPES." << std::endl;
     m_MPES.at(idx)->updatePosition();
     return m_MPES.at(idx)->getPosition();
@@ -238,7 +238,7 @@ MPES::Position PlatformBase::readMPES(int idx) {
 #include "common/cbccode/cbc.hpp"
 
 bool Platform::addActuators(std::array<Device::Identity, PlatformBase::NUM_ACTS_PER_PLATFORM> actuatorIdentities,
-                            const Actuator::ASFInfo &asfInfo) {
+                            const ActuatorBase::ASFInfo &asfInfo) {
     for (int i = 0; i < PlatformBase::NUM_ACTS_PER_PLATFORM; i++) {
         m_Actuators[i] = std::unique_ptr<ActuatorBase>(new Actuator(m_pCBC, actuatorIdentities[i], m_DBInfo, asfInfo));
         m_ActuatorIdentityMap.insert(std::make_pair(actuatorIdentities[i], i));
@@ -368,7 +368,7 @@ Platform::__step(std::array<int, PlatformBase::NUM_ACTS_PER_PLATFORM> inputSteps
               << inputSteps[3] << ", " << inputSteps[4] << ", " << inputSteps[5] << ")" << std::endl;
     std::array<int, PlatformBase::NUM_ACTS_PER_PLATFORM> StepsRemaining{};
     std::array<int, PlatformBase::NUM_ACTS_PER_PLATFORM> ActuatorIterations = {0, 0, 0, 0, 0, 0};
-    std::array<Actuator::Position, PlatformBase::NUM_ACTS_PER_PLATFORM> FinalPosition{};
+    std::array<ActuatorBase::Position, PlatformBase::NUM_ACTS_PER_PLATFORM> FinalPosition{};
 
     for (int i = 0; i < PlatformBase::NUM_ACTS_PER_PLATFORM; i++) {
         m_Actuators[i]->loadStatusFromASF();
@@ -640,7 +640,7 @@ DummyPlatform::__step(std::array<int, PlatformBase::NUM_ACTS_PER_PLATFORM> input
               << inputSteps[3] << ", " << inputSteps[4] << ", " << inputSteps[5] << ")" << std::endl;
     std::array<int, PlatformBase::NUM_ACTS_PER_PLATFORM> StepsRemaining{};
     std::array<int, PlatformBase::NUM_ACTS_PER_PLATFORM> ActuatorIterations = {0, 0, 0, 0, 0, 0};
-    std::array<Actuator::Position, PlatformBase::NUM_ACTS_PER_PLATFORM> FinalPosition{};
+    std::array<ActuatorBase::Position, PlatformBase::NUM_ACTS_PER_PLATFORM> FinalPosition{};
 
     for (int i = 0; i < PlatformBase::NUM_ACTS_PER_PLATFORM; i++) {
         FinalPosition[i] = m_Actuators[i]->predictNewPosition(m_Actuators[i]->getCurrentPosition(),
@@ -852,7 +852,7 @@ void DummyPlatform::turnOff() {
 }
 
 bool DummyPlatform::addActuators(std::array<Device::Identity, PlatformBase::NUM_ACTS_PER_PLATFORM> actuatorIdentities,
-                                 const Actuator::ASFInfo &asfInfo) {
+                                 const ActuatorBase::ASFInfo &asfInfo) {
     for (int i = 0; i < PlatformBase::NUM_ACTS_PER_PLATFORM; i++) {
         m_Actuators[i] = std::unique_ptr<ActuatorBase>(new DummyActuator(actuatorIdentities[i], m_DBInfo, asfInfo));
         m_ActuatorIdentityMap.insert(std::make_pair(actuatorIdentities[i], i));

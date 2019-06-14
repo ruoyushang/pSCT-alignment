@@ -183,7 +183,7 @@ protected:
 class Actuator : public ActuatorBase {
 public:
     Actuator(std::shared_ptr<CBC> pCBC, Device::Identity identity,
-             Device::DBInfo DBInfo = Device::DBInfo(), const ASFInfo &ASFFileInfo = Actuator::ASFInfo()) : ActuatorBase(
+             Device::DBInfo DBInfo = Device::DBInfo(), const ASFInfo &ASFFileInfo = ActuatorBase::ASFInfo()) : ActuatorBase(
         std::move(identity), std::move(DBInfo), ASFFileInfo), m_pCBC(std::move(pCBC)), m_ADCdata() {}
 
     ~Actuator() = default;
@@ -223,7 +223,7 @@ class DummyActuator : public ActuatorBase
 {
 public:
     explicit DummyActuator(Device::Identity identity,
-                           Device::DBInfo DBInfo = Device::DBInfo(), const ASFInfo &ASFFileInfo = Actuator::ASFInfo())
+                           Device::DBInfo DBInfo = Device::DBInfo(), const ASFInfo &ASFFileInfo = ActuatorBase::ASFInfo())
         : ActuatorBase(std::move(identity), std::move(DBInfo), ASFFileInfo), m_On(true) {};
 
     int stepDriver(int inputSteps) override;

@@ -66,7 +66,6 @@ public:
     void turnOn();
 
     virtual void turnOff() override = 0;
-
     virtual bool isOn() override = 0;
 
 protected:
@@ -94,8 +93,6 @@ public:
                                                                           m_pDevice(nullptr) {}
 
     ~MPES() override { turnOff(); };
-
-    void turnOn() override;
 
     void turnOff() override;
 

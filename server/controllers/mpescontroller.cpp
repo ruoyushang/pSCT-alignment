@@ -31,7 +31,7 @@
 #include "common/utilities/spdlog/fmt/ostr.h"
 
 
-MPESController::MPESController(Device::Identity identity, std::shared_ptr<Platform> pPlatform)
+MPESController::MPESController(Device::Identity identity, std::shared_ptr<PlatformBase> pPlatform)
     : PasController::PasController(std::move(identity), std::move(pPlatform), 5000) {
     try {
         // get the nominal aligned readings and response matrices from DB
@@ -129,7 +129,7 @@ UaStatus MPESController::getData(OpcUa_UInt32 offset, UaVariant &value) {
                 return status;
             }
         }
-        const MPES::Position &position = m_pPlatform->getMPESbyIdentity(m_ID)->getPosition();
+        const MPESBase::Position &position = m_pPlatform->getMPESbyIdentity(m_ID)->getPosition();
         switch (offset) {
             case PAS_MPESType_xCentroidAvg:
                 spdlog::trace("{} : Getting xCentroid value => ({})", m_ID, position.xCentroid);

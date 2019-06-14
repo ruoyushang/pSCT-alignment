@@ -31,7 +31,7 @@ public:
     virtual ~PlatformBase() = default;
 
     virtual bool addActuators(std::array<Device::Identity, PlatformBase::NUM_ACTS_PER_PLATFORM> actuatorIdentities,
-                              const Actuator::ASFInfo &asfInfo = Actuator::ASFInfo()) = 0;
+                              const ActuatorBase::ASFInfo &asfInfo = ActuatorBase::ASFInfo()) = 0;
 
     bool initialize() override;
 
@@ -99,7 +99,7 @@ public:
      In the Sim mode, MPES are added regardlessly.
      */
     virtual bool addMPES(const Device::Identity &identity) = 0;
-    MPES::Position readMPES(int idx);
+    MPESBase::Position readMPES(int idx);
 
     virtual void emergencyStop();
 
@@ -156,7 +156,7 @@ public:
     ~Platform() override { turnOff(); }
 
     bool addActuators(std::array<Device::Identity, PlatformBase::NUM_ACTS_PER_PLATFORM> actuatorIdentities,
-                      const Actuator::ASFInfo &asfInfo = Actuator::ASFInfo()) override;
+                      const ActuatorBase::ASFInfo &asfInfo = ActuatorBase::ASFInfo()) override;
 
     bool loadCBCParameters() override;
 
@@ -205,8 +205,8 @@ public:
     explicit DummyPlatform(Device::Identity identity, Device::DBInfo dbInfo = Device::DBInfo()) : PlatformBase(
         std::move(identity), std::move(dbInfo)) {}
 
-    bool addActuators(std::array<Device::Identity, Platform::NUM_ACTS_PER_PLATFORM> actuatorIdentities,
-                      const Actuator::ASFInfo &asfInfo) override;
+    bool addActuators(std::array<Device::Identity, PlatformBase::NUM_ACTS_PER_PLATFORM> actuatorIdentities,
+                      const ActuatorBase::ASFInfo &asfInfo) override;
 
     bool loadCBCParameters() override;
 

@@ -49,7 +49,7 @@ public:
 
     Eigen::Vector2d getAlignedReadings();
     const Eigen::Vector2d &getSystematicOffsets() const { return m_SystematicOffsets; }
-    MPES::Position getPosition() { return m_data; }
+    MPESBase::Position getPosition() { return m_data; }
 
 private:
     static float kNominalIntensity;
@@ -58,7 +58,7 @@ private:
 
     int m_numAttempts;
 
-    MPES::Position m_data;
+    MPESBase::Position m_data;
 
     // a read that performs such checks and exposure correction
     UaStatus read(bool print = true);

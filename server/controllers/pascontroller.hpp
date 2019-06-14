@@ -20,7 +20,7 @@
 #include "common/alignment/device.hpp"
 
 
-class Platform;
+class PlatformBase;
 
 /// @brief Class representing a generic device controller.
 class PasController : public PasControllerCommon {
