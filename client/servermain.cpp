@@ -21,6 +21,7 @@
 
 #include "client/pascommunicationinterface.hpp"
 #include "client/pasnodemanager.hpp"
+#include "client/utilities/callback.hpp"
 #include "client/utilities/configuration.hpp"
 #include "client/utilities/paslogic.hpp"
 
@@ -141,6 +142,7 @@ int OpcMain(const char *szAppPath, const std::vector<std::string> &serverlist)
 
         auto pServer = new OpcServer();
         pServer->setServerConfig(sServConfigFile, szAppPath);
+        pServer->setCallback(pServer->pCallback);
 
         // Load configuration.
         auto pClientConfiguration = std::make_shared<Configuration>();

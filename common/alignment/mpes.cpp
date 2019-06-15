@@ -6,6 +6,7 @@
 #include <fstream>
 #include <iomanip>
 #include <iostream>
+#include <random>
 #include <sstream>
 #include <string>
 #include <unistd.h>
@@ -321,9 +322,18 @@ int DummyMPES::__setExposure() {
 
 int DummyMPES::__updatePosition() {
     std::cout << m_Identity << " : calling DummyMPES::updatePosition()\n";
+
+    std::random_device rd{};
+    std::mt19937 generator{rd()};
+
+    std::normal_distribution<double> xDistribution(160.0, 0.5);
+    std::normal_distribution<double> yDistribution(120.0, 0.5);
+
+    sleep(15);
+
     // Set internal position variable to dummy values
-    m_Position.xCentroid = 160.;
-    m_Position.yCentroid = 120.;
+    m_Position.xCentroid = xDistribution(generator);
+    m_Position.yCentroid = yDistribution(generator);
     m_Position.xSpotWidth = MPESBase::NOMINAL_SPOT_WIDTH;
     m_Position.ySpotWidth = MPESBase::NOMINAL_SPOT_WIDTH;
     m_Position.cleanedIntensity = MPESBase::NOMINAL_INTENSITY;

@@ -50,3 +50,6 @@ sdk/bin
 # DB files
 *.sql
 !init.sql
+
+# virtualenv files
+venv
