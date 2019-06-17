@@ -253,8 +253,8 @@ UaStatus PasCommunicationInterface::initialize() {
                 failed++;
             }
             m_pControllers[devCount.first].insert(std::make_pair(identity, pController));
-            spdlog::info("Successfully initialized {}/{} {} controllers.", devCount.second - failed, devCount.second, deviceTypes.at(devCount.first));
         }
+        spdlog::info("Successfully initialized {}/{} {} controllers.", devCount.second - failed, devCount.second, deviceTypes.at(devCount.first));
     }
 
     spdlog::info("Adding actuator and mpes controllers as children of the panel controller...");
