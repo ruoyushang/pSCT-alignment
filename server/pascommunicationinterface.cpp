@@ -253,7 +253,7 @@ UaStatus PasCommunicationInterface::initialize() {
                 failed++;
             }
             m_pControllers[devCount.first].insert(std::make_pair(identity, pController));
-            spdlog::info("Successfully initialized {}/{} {} controllers.", devCount.second - failed, devCount.second);
+            spdlog::info("Successfully initialized {}/{} {} controllers.", devCount.second - failed, devCount.second, deviceTypes.at(devCount.first));
         }
     }
 
