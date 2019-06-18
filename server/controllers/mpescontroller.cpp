@@ -101,16 +101,8 @@ UaStatus MPESController::setState(Device::DeviceState state) {
 /// @details Sets exposure for this MPES.
 bool MPESController::initialize() {
     spdlog::info("{} : Initializing MPES...", m_ID);
-    if (_getDeviceState() != Device::DeviceState::On) {
-        spdlog::error("{} : Failed to initialize MPES controller because MPES not on.", m_ID);
-        return false;
-    } else if (_getErrorState() != Device::ErrorState::FatalError) {
-        spdlog::error("{} : Failed to initialize MPES controller because MPES in fatal error state.", m_ID);
-        return false;
-    } else {
-        m_pPlatform->getMPESbyIdentity(m_ID)->setExposure();
-        return true;
-    }
+    m_pPlatform->getMPESbyIdentity(m_ID)->setExposure();
+    return true;
 }
 
 /// @details If the MPES has not been read yet, calls read before retrieving data. Locks the shared mutex while reading data.
@@ -244,7 +236,6 @@ UaStatus MPESController::operate(OpcUa_UInt32 offset, const UaVariantArray &args
             } else {
                 spdlog::trace("{} : Device is already on, nothing to do...", m_ID);
             }
-            initialize();
             break;
         case PAS_MPESType_TurnOff:
             spdlog::info("{} : MPES controller calling turnOff()", m_ID);

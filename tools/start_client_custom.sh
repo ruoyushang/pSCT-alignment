@@ -11,4 +11,4 @@ done
 
 printf "Starting client...\n"
 
-../sdk/bin/p2pasclient `cat ../tools/panel_lists/$list_name` | tee "$HOME/logs/p2pasclient_log_`date +%Y%m%d%H%M%S`.txt"
+./start_client.sh `cat ../tools/panel_lists/$list_name` 

@@ -36,5 +36,17 @@ fi
 count=$((${#PANELS[@]}))
 
 printf "Starting client...\n"
+screen_name=client
 
-../sdk/bin/p2pasclient "${PANELS[@]}" | tee "$HOME/logs/p2pasclient_log_`date +%Y%m%d%H%M%S`.txt"
+if ! screen -ls | grep -q $screen_name; then
+    # -A for adaptive sizing
+    # -dm for start in detached mode
+    # -S to name the session
+    screen -c helper/pas_serv_screen.config -AdmS $screen_name
+fi
+
+# start the commands we need in the newly created/named screen window; \n to simulate keypress
+#screen -S $screen_name -X ls
+screen -S $screen_name -X stuff $"../sdk/bin/p2pasclient \"${PANELS[@]}\" | tee \"$HOME/logs/p2pasclient_log_`date +%Y%m%d%H%M%S`.txt\"i\n"
+
+
