@@ -3,8 +3,6 @@
 #include <vector>
 #include "uagenericunionvalue.h"
 
-using namespace UaClientSdk;
-
 UaSession *g_pUaSession;
 
 bool WaitForKeypress(int &action);

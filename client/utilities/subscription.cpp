@@ -8,10 +8,9 @@
 #include "subscription.hpp"
 #include "uaclient/uasubscription.h"
 #include "uaclient/uasession.h"
+#include "uaclient/uaclientsdk.h"
 
 class Configuration;
-
-using namespace UaClientSdk;
 
 /// @details The constructor nitializes the internal Configuration pointer,
 /// but leaves the internal Session and Subscription pointers as NULL.
