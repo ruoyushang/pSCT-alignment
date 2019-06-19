@@ -1,0 +1,6 @@
+#!/bin/bash
+
+for panel in `cat panel_lists/all`; do
+        ./sim_server.start $panel
+        echo ./sim_server.start $panel
+done

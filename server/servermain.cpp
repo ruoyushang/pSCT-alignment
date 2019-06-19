@@ -206,8 +206,11 @@ int main(int argc, char* argv[])
     }
 
     // Note that log directory must have been created beforehand
-    auto file_sink = make_shared<spdlog::sinks::rotating_file_sink_mt>(std::string(getenv("HOME")) + std::string("/logs/passerver_logs"), 1048576 * 5, 5,
-                                                                       false); // 5 rotating files with max size 5 MB
+#ifndef SIMMODE 
+    auto file_sink = make_shared<spdlog::sinks::rotating_file_sink_mt>(std::string(getenv("HOME")) + std::string("/logs/passerver_logs"), 1048576 * 5, 5, false); // 5 rotating files with max size 5 MB
+#else 
+    auto file_sink = make_shared<spdlog::sinks::rotating_file_sink_mt>(std::string(getenv("HOME")) + std::string("/logs/passerver_") + panelNumber + "_logs", 1048576 * 5, 5, false); // 5 rotating files with max size 5 MB
+#endif
     file_sink->set_level(spdlog::level::trace); // always save all logging levels
     file_sink->set_pattern("[%c] [%n] [%l] [%s:%!:%#] ");
 
