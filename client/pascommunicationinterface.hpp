@@ -44,6 +44,12 @@ public:
     const Device::Identity
     addDevice(Client *pClient, OpcUa_UInt32 deviceType, const Device::Identity &identity);
 
+    void addMirrorControllers();
+
+    void addEdgeControllers();
+
+    void addParentChildRelations();
+
     /* Get device status and data */
     UaStatus getDeviceState(
         OpcUa_UInt32 type,

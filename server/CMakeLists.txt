@@ -138,8 +138,6 @@ file(GLOB PASSERVER_SRC
     "${COMMON_CODE_DIR}/utilities/*.hpp"
     "${COMMON_CODE_DIR}/alignment/*.hpp"
     "${COMMON_CODE_DIR}/mpescode/*.h"
-    "${COMMON_CODE_DIR}/cbccode/*.cpp"
-    "${COMMON_CODE_DIR}/cbccode/*.hpp"
 )
 
 if ( SIMMODE )
@@ -159,6 +157,8 @@ else ( SIMMODE )
         "${COMMON_CODE_DIR}/globalalignment/psdclass.h"
         "${COMMON_CODE_DIR}/globalalignment/laserclass.h"
         "${COMMON_CODE_DIR}/globalalignment/libpiusb.h"
+            "${COMMON_CODE_DIR}/cbccode/*.cpp"
+            "${COMMON_CODE_DIR}/cbccode/*.hpp"
     )
 endif ( SIMMODE )
 

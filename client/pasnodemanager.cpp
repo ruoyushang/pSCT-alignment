@@ -92,9 +92,10 @@ UaStatus PasNodeManager::afterStartUp()
         m_pClients.at(client)->setAddress(UaString(panelId.eAddress.c_str()));
         ret = m_pClients.at(client)->connect();
         if (ret.isGood()) {
+            // Create controller for the single panel in each server
             dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->addDevice(m_pClients.at(client), PAS_PanelType,
                                                                                   panelId);
-            // add the nodes that are the result of browsing
+            // add controllers for other devices in each server (this will only include ACT, MPES, and PSD controllers)
             ret = m_pClients.at(client)->browseAndAddDevices();
             std::cout << "PasNodeManager::afterStartUp(): Successfully connected to Panel " << panelId << " and created controller.\n";
         } else
@@ -102,6 +103,17 @@ UaStatus PasNodeManager::afterStartUp()
 
         ++client;
     }
+    // Create all relevant edge controllers
+    std::cout << "\nPasNodeManager::afterStartUp(): Creating all required edge controllers...\n";
+    dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->addEdgeControllers();
+
+    // Create all relevant mirror controllers
+    std::cout << "\nPasNodeManager::afterStartUp(): Creating all required mirror controllers...\n";
+    dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->addMirrorControllers();
+
+    // Finish controller initialization by adding parent-child relationships for all controllers
+    std::cout << "\nPasNodeManager::afterStartUp(): Finalizing all controller parent-child relationships...\n";
+    dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->addParentChildRelations();
 
     std::cout << "\nPasNodeManager::afterStartUp(): Now creating all OPC UA objects and folders...\n";
 

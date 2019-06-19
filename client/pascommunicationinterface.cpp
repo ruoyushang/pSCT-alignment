@@ -165,19 +165,76 @@ PasCommunicationInterface::addDevice(Client *pClient, OpcUa_UInt32 deviceType,
         std::cout << "PasCommunicationInterface::addDevice() Added "
                   << PasCommunicationInterface::deviceTypeNames[deviceType] << " with identity " << identity << std::endl;
 
-        // get the device's parents and create them.
-        for (const auto &pair : m_pConfiguration->getParents(identity)) {
-            OpcUa_UInt32 parentDeviceType = pair.first;
-            std::set<Device::Identity> parents = pair.second;
-            for (const auto &parentId : parents) {
-                if (!parentId.eAddress.empty()) {
-                    addDevice(pClient, parentDeviceType, parentId);
-                    std::dynamic_pointer_cast<PasCompositeController>(
-                        m_pControllers.at(parentDeviceType).at(parentId))->addChild(deviceType, pController);
+
+        return identity;
+    }
+}
+
+void PasCommunicationInterface::addEdgeControllers() {
+    for (const auto &edgeId : m_pConfiguration->getDevices(PAS_EdgeType)) {
+        bool addEdge = true;
+        // Check if all panels in edge exist
+        for (const auto &panelChildId : m_pConfiguration->getParents(edgeId).at(PAS_PanelType)) {
+            if (m_pControllers.at(PAS_PanelType).find(panelChildId) ==
+                m_pControllers.at(PAS_PanelType).end()) {
+                // Child panel not found
+                std::cout << "Could not find panel " << panelChildId << " as child of Edge " << edgeId
+                          << " (likely server failed to connect). Edge controller not created..." << std::endl;
+                addEdge = false;
+                break;
+            }
+        }
+
+        if (addEdge) {
+            addDevice(nullptr, PAS_EdgeType, edgeId);
+        }
+    }
+}
+
+void PasCommunicationInterface::addMirrorControllers() {
+    for (const auto &mirrorId : m_pConfiguration->getDevices(PAS_MirrorType)) {
+        bool addMirror = false;
+        // Check if at least one panel in the mirror exists
+        for (const auto &panelChildId : m_pConfiguration->getParents(mirrorId).at(PAS_PanelType)) {
+            if (m_pControllers.at(PAS_PanelType).find(panelChildId) !=
+                m_pControllers.at(PAS_PanelType).end()) {
+                // Child panel found
+                addMirror = true;
+                break;
+            }
+        }
+
+        if (addMirror) {
+            addDevice(nullptr, PAS_MirrorType, mirrorId);
+        } else {
+            std::cout << "Could not find any panel children of Mirror " << mirrorId
+                      << " (likely server failed to connect). Mirror controller not created..." << std::endl;
+        }
+    }
+}
+
+void PasCommunicationInterface::addParentChildRelations() {
+    for (const auto &type : m_pControllers) {
+        OpcUa_UInt32 childDeviceType = type.first;
+        std::map<Device::Identity, std::shared_ptr<PasControllerCommon>> devices = type.second;
+        for (const auto &device : m_pControllers.at(childDeviceType)) {
+            Device::Identity childIdentity = device.first;
+            std::shared_ptr<PasControllerCommon> childController = device.second;
+            for (const auto &pair : m_pConfiguration->getParents(childIdentity)) {
+                OpcUa_UInt32 parentDeviceType = pair.first;
+                std::set<Device::Identity> parents = pair.second;
+                for (const auto &parentId : parents) {
+                    // If found controller for the desired parent, add it as a parent
+                    if (m_pControllers.at(parentDeviceType).find(parentId) !=
+                        m_pControllers.at(parentDeviceType).end()) {
+                        std::dynamic_pointer_cast<PasCompositeController>(
+                            m_pControllers.at(parentDeviceType).at(parentId))->addChild(childDeviceType,
+                                                                                        std::dynamic_pointer_cast<PasController>(
+                                                                                            childController));
+                    }
                 }
             }
         }
-        return identity;
     }
 }
 
