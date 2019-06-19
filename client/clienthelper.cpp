@@ -4,6 +4,7 @@
 #include <memory>
 
 #include "uaclient/uasession.h"
+#include "uaclient/uaclientsdk.h"
 
 #include "common/alignment/device.hpp"
 #include "common/opcua/pasobject.hpp"
@@ -16,8 +17,6 @@
 #include "client/utilities/subscription.hpp"
 
 #define _DEBUG_ 0
-
-using namespace UaClientSdk;
 
 Client::Client(PasNodeManager *pNodeManager) : m_pNodeManager(pNodeManager),
                                                m_pConfiguration(nullptr),
