@@ -370,7 +370,6 @@ UaStatus Client::recurseAddressSpace(const UaNodeId& nodeToBrowse, OpcUa_UInt32 
     UaStatus result;
 
     ServiceSettings serviceSettings;
-    UaClientSdk::BrowseContext browseContext;
     UaByteString continuationPoint;
     UaReferenceDescriptions referenceDescriptions;
 
