@@ -3,7 +3,7 @@
 #include <vector>
 #include "uagenericunionvalue.h"
 
-UaSession *g_pUaSession;
+UaClientSdk::UaSession *g_pUaSession;
 
 bool WaitForKeypress(int &action);
 
@@ -247,8 +247,8 @@ void printExtensionObjects(const UaVariant &value, const UaString &text) {
 }
 
 class Callback :
-    public UaSessionCallback,
-    public UaSubscriptionCallback {
+    public UaClientSdk::UaSessionCallback,
+    public UaClientSdk::UaSubscriptionCallback {
 public:
     Callback() {};
 
@@ -257,25 +257,25 @@ public:
     /** Status of the server connection. */
     virtual void connectionStatusChanged(
         OpcUa_UInt32 clientConnectionId,
-        UaClient::ServerStatus serverStatus) {
+        UaClientSdk::UaClient::ServerStatus serverStatus) {
         UaString sStatus;
         switch (serverStatus) {
-            case UaClient::Disconnected:
+            case UaClientSdk::UaClient::Disconnected:
                 sStatus = "Disconnected";
                 break;
-            case UaClient::Connected:
+            case UaClientSdk::UaClient::Connected:
                 sStatus = "Connected";
                 break;
-            case UaClient::ConnectionWarningWatchdogTimeout:
+            case UaClientSdk::UaClient::ConnectionWarningWatchdogTimeout:
                 sStatus = "ConnectionWarningWatchdogTimeout";
                 break;
-            case UaClient::ConnectionErrorApiReconnect:
+            case UaClientSdk::UaClient::ConnectionErrorApiReconnect:
                 sStatus = "ConnectionErrorApiReconnect";
                 break;
-            case UaClient::ServerShutdown:
+            case UaClientSdk::UaClient::ServerShutdown:
                 sStatus = "ServerShutdown";
                 break;
-            case UaClient::NewSessionCreated:
+            case UaClientSdk::UaClient::NewSessionCreated:
                 sStatus = "NewSessionCreated";
                 break;
         }
@@ -288,22 +288,22 @@ public:
     /** Connect errors. */
     bool connectError(
         OpcUa_UInt32 clientConnectionId, //!< [in] Client defined handle of the affected session
-        UaClient::ConnectServiceType serviceType, //!< [in] The failing connect step
+        UaClientSdk::UaClient::ConnectServiceType serviceType, //!< [in] The failing connect step
         const UaStatus &error,       //!< [in] Status code for the error situation
         bool clientSideError) //!< [in] Flag indicating if the bad status was created in the Client SDK
     {
         UaString sServiceType;
         switch (serviceType) {
-            case UaClient::CertificateValidation:
+            case UaClientSdk::UaClient::CertificateValidation:
                 sServiceType = "Certificate validation steps";
                 break;
-            case UaClient::OpenSecureChannel:
+            case UaClientSdk::UaClient::OpenSecureChannel:
                 sServiceType = "Processing of Service OpenSecureChannel";
                 break;
-            case UaClient::CreateSession:
+            case UaClientSdk::UaClient::CreateSession:
                 sServiceType = "Processing of Service CreateSession";
                 break;
-            case UaClient::ActivateSession:
+            case UaClientSdk::UaClient::ActivateSession:
                 sServiceType = "Processing of Service CreateSession";
                 break;
         }
@@ -468,7 +468,7 @@ public:
 };
 
 class CallbackAlarms :
-    public UaSubscriptionCallback {
+    public UaClientSdk::UaSubscriptionCallback {
 public:
     CallbackAlarms() {
         m_bTableChanged = false;

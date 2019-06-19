@@ -20,42 +20,42 @@
 
 Client::Client(PasNodeManager *pNodeManager) : m_pNodeManager(pNodeManager),
                                                m_pConfiguration(nullptr),
-                                               m_serverStatus(UaClient::ServerStatus::Disconnected),
+                                               m_serverStatus(UaClientSdk::UaClient::ServerStatus::Disconnected),
                                                m_TransactionId(0) {
-    m_pSession = std::unique_ptr<UaSession>(new UaSession());
+    m_pSession = std::unique_ptr<UaClientSdk::UaSession>(new UaClientSdk::UaSession());
     m_pSubscription = std::unique_ptr<Subscription>(new Subscription(m_pConfiguration));
     m_pDatabase = std::unique_ptr<Database>(new Database());
 }
 
 void Client::connectionStatusChanged(
     OpcUa_UInt32             clientConnectionId,
-    UaClient::ServerStatus   serverStatus)
+    UaClientSdk::UaClient::ServerStatus   serverStatus)
 {
     OpcUa_ReferenceParameter(clientConnectionId);
 
     printf("-------------------------------------------------------------\n");
     switch (serverStatus)
     {
-      case UaClient::Disconnected:
+      case UaClientSdk::UaClient::Disconnected:
           printf("Connection status changed to Disconnected\n");
           break;
-      case UaClient::Connected:
+      case UaClientSdk::UaClient::Connected:
           printf("Connection status changed to Connected\n");
-          if (m_serverStatus != UaClient::NewSessionCreated)
+          if (m_serverStatus != UaClientSdk::UaClient::NewSessionCreated)
           {
             m_pConfiguration->updateNamespaceIndexes(m_pSession->getNamespaceTable());
           }
           break;
-      case UaClient::ConnectionWarningWatchdogTimeout:
+      case UaClientSdk::UaClient::ConnectionWarningWatchdogTimeout:
           printf("Connection status changed to ConnectionWarningWatchdogTimeout\n");
           break;
-      case UaClient::ConnectionErrorApiReconnect:
+      case UaClientSdk::UaClient::ConnectionErrorApiReconnect:
           printf("Connection status changed to ConnectionErrorApiReconnect\n");
           break;
-      case UaClient::ServerShutdown:
+      case UaClientSdk::UaClient::ServerShutdown:
           printf("Connection status changed to ServerShutdown\n");
           break;
-      case UaClient::NewSessionCreated:
+      case UaClientSdk::UaClient::NewSessionCreated:
           printf("Connection status changed to NewSessionCreated\n");
           m_pConfiguration->updateNamespaceIndexes(m_pSession->getNamespaceTable());
           break; 
@@ -81,17 +81,17 @@ void Client::setConfiguration(std::shared_ptr<Configuration> pConfiguration)
 UaStatus Client::connect()
 {
     // Security settings are not initialized - we connect without security for now
-    SessionSecurityInfo sessionSecurityInfo;
+    UaClientSdk::SessionSecurityInfo sessionSecurityInfo;
 
     return _connect(m_Address, sessionSecurityInfo);
 }
 
-UaStatus Client::_connect(const UaString& serverUrl, SessionSecurityInfo& sessionSecurityInfo)
+UaStatus Client::_connect(const UaString& serverUrl, UaClientSdk::SessionSecurityInfo& sessionSecurityInfo)
 {
     UaStatus result;
 
     // Provide information about the client
-    SessionConnectInfo sessionConnectInfo;
+    UaClientSdk::SessionConnectInfo sessionConnectInfo;
     UaString sNodeName("unknown_host");
     char szHostName[256];
     if (0 == UA_GetHostname(szHostName, 256))
@@ -135,7 +135,7 @@ UaStatus Client::disconnect()
     UaStatus result;
 
     // Default settings like timeout
-    ServiceSettings serviceSettings;
+    UaClientSdk::ServiceSettings serviceSettings;
 
     printf("\nDisconnecting ...\n");
     result = m_pSession->disconnect(serviceSettings, OpcUa_True);
@@ -157,7 +157,7 @@ UaStatus Client::read(std::vector<std::string> sNodeNames, UaVariant *data)
     UaStatus          result;
 
     UaDataValues      values;
-    ServiceSettings   serviceSettings;
+    UaClientSdk::ServiceSettings   serviceSettings;
     UaReadValueIds    nodesToRead;
     UaDiagnosticInfos diagnosticInfos;
 
@@ -211,7 +211,7 @@ UaStatus Client::write(std::vector<std::string> sNodeNames, const UaVariant *val
     UaWriteValues     nodesToWrite;
     UaStatusCodeArray results;
     UaDiagnosticInfos diagnosticInfos;
-    ServiceSettings   serviceSettings;
+    UaClientSdk::ServiceSettings   serviceSettings;
     UaNodeIdArray nodes;
     
     OpcUa_UInt32 size = sNodeNames.size();
@@ -262,9 +262,9 @@ UaStatus Client::write(std::vector<std::string> sNodeNames, const UaVariant *val
 UaStatus Client::callMethod(const std::string &sNodeName, const UaString &sMethod, const UaVariantArray &args)
 {
     UaStatus          status;
-    CallIn            callRequest;
-    CallOut           callResult;
-    ServiceSettings   serviceSettings;
+    UaClientSdk::CallIn            callRequest;
+    UaClientSdk::CallOut           callResult;
+    UaClientSdk::ServiceSettings   serviceSettings;
     UaNodeIdArray nodes;
 
     OpcUa_UInt32 size = 1;
@@ -304,8 +304,8 @@ UaStatus Client::callMethod(const std::string &sNodeName, const UaString &sMetho
 UaStatus Client::callMethodAsync(const std::string &sNodeName, const UaString &sMethod, const UaVariantArray &args)
 {
     UaStatus          status;
-    CallIn            callRequest;
-    ServiceSettings   serviceSettings;
+    UaClientSdk::CallIn            callRequest;
+    UaClientSdk::ServiceSettings   serviceSettings;
     UaNodeIdArray nodes;
 
     OpcUa_UInt32 size = 1;
@@ -343,7 +343,7 @@ UaStatus Client::callMethodAsync(const std::string &sNodeName, const UaString &s
     return status;
 }
 
-void Client::callComplete(OpcUa_UInt32 transactionId, const UaStatus &result, const CallOut &callResponse)
+void Client::callComplete(OpcUa_UInt32 transactionId, const UaStatus &result, const UaClientSdk::CallOut &callResponse)
 {
         //printf("-- Event callComplete --------------------------------\n");
         //printf("\ttransactionId %d \n", transactionId);
@@ -368,7 +368,7 @@ UaStatus Client::recurseAddressSpace(const UaNodeId& nodeToBrowse, OpcUa_UInt32 
 {
     UaStatus result;
 
-    ServiceSettings serviceSettings;
+    UaClientSdk::ServiceSettings serviceSettings;
     UaByteString continuationPoint;
     UaReferenceDescriptions referenceDescriptions;
 
