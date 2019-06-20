@@ -11,8 +11,6 @@
 #include "uabase/uabase.h"
 #include "uaclient/uaclientsdk.h"
 #include "client/utilities/configuration.hpp"
-#include "client/utilities/callback.hpp"
-#include <unistd.h>
 
 #include <memory>
 
@@ -101,25 +99,4 @@ private:
     std::shared_ptr<Configuration> m_pConfiguration;
 };
 
-UaObjectArray<UaNodeId> g_HistoryDataNodeIds;
-UaNodeId g_HistoryEventNodeId;
-UaObjectArray<UaNodeId> g_EventTriggerObjects;
-UaObjectArray<UaNodeId> g_EventTriggerMethods;
-UaByteStringArray g_EventIds;
-
-void historyReadDataRaw();
-
-void historyReadDataProcessed();
-
-void historyReadDataAtTime();
-
-void historyUpdateData();
-
-void historyDeleteData();
-
-void historyReadEvents();
-
-void historyUpdateEvents();
-
-void historyDeleteEvents();
 #endif // SUBSCRIPTION_H

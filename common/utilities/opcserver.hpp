@@ -54,8 +54,6 @@ public:
 
     OpcUa_DateTime getBuildDate() const override;
 
-    UaServerApplicationCallback *pCallback;
-
 protected:
     Session *createDefaultSession(OpcUa_Int32 sessionID, const UaNodeId &authenticationToken) override;
 

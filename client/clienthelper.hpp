@@ -72,7 +72,6 @@ private:
     std::shared_ptr<Configuration> m_pConfiguration;
     UaClientSdk::UaClient::ServerStatus m_serverStatus;
     std::unique_ptr<Database> m_pDatabase;
-    UaClientSdk::BrowseContext browseContext;
 
     // keep track of asynchronous calls
     OpcUa_UInt32 m_TransactionId;
