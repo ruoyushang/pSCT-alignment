@@ -90,7 +90,7 @@ void Subscription::newEvents(
 /// creates one with a fixed publishing interval of 100 ms in the provided
 /// UaSession. Else, returns an error. Prints a success/failure
 /// message on exit.
-UaStatus Subscription::createSubscription(UaSession* pSession)
+UaStatus Subscription::createSubscription(UaClientSdk::UaSession* pSession)
 {
     if ( m_pSubscription )
     {
@@ -102,8 +102,8 @@ UaStatus Subscription::createSubscription(UaSession* pSession)
 
     UaStatus result;
 
-    ServiceSettings serviceSettings;
-    SubscriptionSettings subscriptionSettings;
+    UaClientSdk::ServiceSettings serviceSettings;
+    UaClientSdk::SubscriptionSettings subscriptionSettings;
     subscriptionSettings.publishingInterval = 100;
 
     printf("\nCreating subscription ...\n");
@@ -140,7 +140,7 @@ UaStatus Subscription::deleteSubscription()
     }
 
     UaStatus result;
-    ServiceSettings serviceSettings;
+    UaClientSdk::ServiceSettings serviceSettings;
 
     // let the SDK cleanup the resources for the existing subscription
     printf("\nDeleting subscription ...\n");
@@ -176,7 +176,7 @@ UaStatus Subscription::createMonitoredItems()
 
     UaStatus result;
     OpcUa_UInt32 size, i;
-    ServiceSettings serviceSettings;
+    UaClientSdk::ServiceSettings serviceSettings;
     UaMonitoredItemCreateRequests itemsToCreate;
     UaMonitoredItemCreateResults createResults;
 

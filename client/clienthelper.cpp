@@ -372,6 +372,8 @@ UaStatus Client::recurseAddressSpace(const UaNodeId& nodeToBrowse, OpcUa_UInt32 
     UaByteString continuationPoint;
     UaReferenceDescriptions referenceDescriptions;
 
+    UaClientSdk::BrowseContext browseContext;
+
     // configure browseContext
     browseContext.browseDirection = OpcUa_BrowseDirection_Forward;
     browseContext.referenceTypeId = OpcUaId_HierarchicalReferences;
