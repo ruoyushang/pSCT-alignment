@@ -13,13 +13,11 @@
 
 #define _DEBUG_ 0
 
-using namespace UaClientSdk;
-
-Client::Client(PasNodeManager *pNodeManager) : m_pNodeManager(pNodeManager), m_TransactionId(0),
+Client::Client(PasNodeManager *pNodeManager) : m_pNodeManager(pNodeManager),
                                                m_pConfiguration(nullptr),
-                                               m_serverStatus(UaClient::ServerStatus::Disconnected)
+                                               m_serverStatus(UaClientSdk::UaClient::ServerStatus::Disconnected)
 {
-    m_pSession = new UaSession();
+    m_pSession = new UaClientSdk::UaSession();
     m_pSubscription = new Subscription(m_pConfiguration);
     m_pDatabase = new Database();
 }
@@ -48,7 +46,7 @@ Client::~Client()
         // disconnect if we're still connected
         if (m_pSession->isConnected() != OpcUa_False)
         {
-            ServiceSettings serviceSettings;
+            UaClientSdk::ServiceSettings serviceSettings;
             m_pSession->disconnect(serviceSettings, OpcUa_True);
         }
         delete m_pSession;
@@ -58,33 +56,33 @@ Client::~Client()
 
 void Client::connectionStatusChanged(
     OpcUa_UInt32             clientConnectionId,
-    UaClient::ServerStatus   serverStatus)
+    UaClientSdk::UaClient::ServerStatus   serverStatus)
 {
     OpcUa_ReferenceParameter(clientConnectionId);
 
     printf("-------------------------------------------------------------\n");
     switch (serverStatus)
     {
-      case UaClient::Disconnected:
+      case UaClientSdk::UaClient::Disconnected:
           printf("Connection status changed to Disconnected\n");
           break;
-      case UaClient::Connected:
+      case UaClientSdk::UaClient::Connected:
           printf("Connection status changed to Connected\n");
-          if (m_serverStatus != UaClient::NewSessionCreated)
+          if (m_serverStatus != UaClientSdk::UaClient::NewSessionCreated)
           {
             m_pConfiguration->updateNamespaceIndexes(m_pSession->getNamespaceTable());
           }
           break;
-      case UaClient::ConnectionWarningWatchdogTimeout:
+      case UaClientSdk::UaClient::ConnectionWarningWatchdogTimeout:
           printf("Connection status changed to ConnectionWarningWatchdogTimeout\n");
           break;
-      case UaClient::ConnectionErrorApiReconnect:
+      case UaClientSdk::UaClient::ConnectionErrorApiReconnect:
           printf("Connection status changed to ConnectionErrorApiReconnect\n");
           break;
-      case UaClient::ServerShutdown:
+      case UaClientSdk::UaClient::ServerShutdown:
           printf("Connection status changed to ServerShutdown\n");
           break;
-      case UaClient::NewSessionCreated:
+      case UaClientSdk::UaClient::NewSessionCreated:
           printf("Connection status changed to NewSessionCreated\n");
           m_pConfiguration->updateNamespaceIndexes(m_pSession->getNamespaceTable());
           break; 
@@ -110,17 +108,17 @@ void Client::setConfiguration(Configuration* pConfiguration)
 UaStatus Client::connect()
 {
     // Security settings are not initialized - we connect without security for now
-    SessionSecurityInfo sessionSecurityInfo;
+    UaClientSdk::SessionSecurityInfo sessionSecurityInfo;
 
     return _connect(m_Address, sessionSecurityInfo);
 }
 
-UaStatus Client::_connect(const UaString& serverUrl, SessionSecurityInfo& sessionSecurityInfo)
+UaStatus Client::_connect(const UaString& serverUrl, UaClientSdk::SessionSecurityInfo& sessionSecurityInfo)
 {
     UaStatus result;
 
     // Provide information about the client
-    SessionConnectInfo sessionConnectInfo;
+    UaClientSdk::SessionConnectInfo sessionConnectInfo;
     UaString sNodeName("unknown_host");
     char szHostName[256];
     if (0 == UA_GetHostname(szHostName, 256))
@@ -142,7 +140,7 @@ UaStatus Client::_connect(const UaString& serverUrl, SessionSecurityInfo& sessio
     result = m_pSession->connect(serverUrl, // Url of the endpoint to connect to
             sessionConnectInfo, // General settings for the connection
             sessionSecurityInfo,// Security Settings
-            this);              // the callback -- the client ingerits from UaSessionCallback!
+            this);              // the callback -- the client inherits from UaSessionCallback!
 
     if (result.isGood())
     {
@@ -164,7 +162,7 @@ UaStatus Client::disconnect()
     UaStatus result;
 
     // Default settings like timeout
-    ServiceSettings serviceSettings;
+    UaClientSdk::ServiceSettings serviceSettings;
 
     printf("\nDisconnecting ...\n");
     result = m_pSession->disconnect(serviceSettings, OpcUa_True);
@@ -186,7 +184,7 @@ UaStatus Client::read(std::vector<std::string> sNodeNames, UaVariant *data)
     UaStatus          result;
 
     UaDataValues      values;
-    ServiceSettings   serviceSettings;
+    UaClientSdk::ServiceSettings   serviceSettings;
     UaReadValueIds    nodesToRead;
     UaDiagnosticInfos diagnosticInfos;
 
@@ -239,7 +237,7 @@ UaStatus Client::write(std::vector<std::string> sNodeNames, const UaVariant *val
     UaWriteValues     nodesToWrite;
     UaStatusCodeArray results;
     UaDiagnosticInfos diagnosticInfos;
-    ServiceSettings   serviceSettings;
+    UaClientSdk::ServiceSettings   serviceSettings;
     UaNodeIdArray nodes;
     
     OpcUa_UInt32 size = sNodeNames.size();
@@ -290,9 +288,9 @@ UaStatus Client::write(std::vector<std::string> sNodeNames, const UaVariant *val
 UaStatus Client::callMethod(const std::string &sNodeName, const UaString &sMethod, const UaVariantArray &args)
 {
     UaStatus          status;
-    CallIn            callRequest;
-    CallOut           callResult;
-    ServiceSettings   serviceSettings;
+    UaClientSdk::CallIn            callRequest;
+    UaClientSdk::CallOut           callResult;
+    UaClientSdk::ServiceSettings   serviceSettings;
     UaNodeIdArray nodes;
 
     OpcUa_UInt32 size = 1;
@@ -332,8 +330,8 @@ UaStatus Client::callMethod(const std::string &sNodeName, const UaString &sMetho
 UaStatus Client::callMethodAsync(const std::string &sNodeName, const UaString &sMethod, const UaVariantArray &args)
 {
     UaStatus          status;
-    CallIn            callRequest;
-    ServiceSettings   serviceSettings;
+    UaClientSdk::CallIn            callRequest;
+    UaClientSdk::ServiceSettings   serviceSettings;
     UaNodeIdArray nodes;
 
     OpcUa_UInt32 size = 1;
@@ -371,10 +369,10 @@ UaStatus Client::callMethodAsync(const std::string &sNodeName, const UaString &s
     return status;
 }
 
-void Client::callComplete(OpcUa_UInt32 transactionId, const UaStatus &result, const CallOut &callResponse)
+void Client::callComplete(OpcUa_UInt32 m_TransactionId, const UaStatus &result, const UaClientSdk::CallOut &callResponse)
 {
         printf("-- Event callComplete --------------------------------\n");
-        printf("\ttransactionId %d \n", transactionId);
+        printf("\ttransactionId %d \n", m_TransactionId);
         printf("\tresultStatus %s \n", result.toString().toUtf8());
         // this should duplicate the behavior of the synchronous callMethod() after the method
         // call succeeds. But we're not doing anything there for now, so this too is empty
@@ -396,19 +394,19 @@ UaStatus Client::recurseAddressSpace(const UaNodeId& nodeToBrowse, OpcUa_UInt32 
 {
     UaStatus result;
 
-    ServiceSettings serviceSettings;
-    UaClientSdk::BrowseContext browseContext;
+    UaClientSdk::ServiceSettings serviceSettings;
     UaByteString continuationPoint;
     UaReferenceDescriptions referenceDescriptions;
 
-    // configure browseContext
-    browseContext.browseDirection = OpcUa_BrowseDirection_Forward;
-    browseContext.referenceTypeId = OpcUaId_HierarchicalReferences;
-    browseContext.includeSubtype = OpcUa_True;
-    browseContext.maxReferencesToReturn = maxReferencesToReturn;
+    // configure browseContextClient
+    UaClientSdk::BrowseContext browseContextClient;
+    browseContextClient.browseDirection = OpcUa_BrowseDirection_Forward;
+    browseContextClient.referenceTypeId = OpcUaId_HierarchicalReferences;
+    browseContextClient.includeSubtype = OpcUa_True;
+    browseContextClient.maxReferencesToReturn = maxReferencesToReturn;
 
-    //printf("\nBrowsing from Node %s...\n", nodeToBrowse.toXmlString().toUtf8());
-    result = m_pSession->browse(serviceSettings, nodeToBrowse, browseContext,
+//    printf("\nBrowsing from Node %s...\n", nodeToBrowse.toXmlString().toUtf8());
+    result = m_pSession->browse(serviceSettings, nodeToBrowse, browseContextClient,
             continuationPoint, referenceDescriptions);
 
     if (result.isGood())

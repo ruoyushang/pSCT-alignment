@@ -8,10 +8,9 @@
 #include "subscription.hpp"
 #include "uaclient/uasubscription.h"
 #include "uaclient/uasession.h"
+#include "clienthelper.hpp"
 
 class Configuration;
-
-using namespace UaClientSdk;
 
 /// @details The constructor nitializes the internal Configuration pointer,
 /// but leaves the internal Session and Subscription pointers as NULL.
@@ -91,7 +90,7 @@ void Subscription::newEvents(
 /// creates one with a fixed publishing interval of 100 ms in the provided
 /// UaSession. Else, returns an error. Prints a success/failure
 /// message on exit.
-UaStatus Subscription::createSubscription(UaSession* pSession)
+UaStatus Subscription::createSubscription(UaClientSdk::UaSession* pSession)
 {
     if ( m_pSubscription )
     {
@@ -103,8 +102,8 @@ UaStatus Subscription::createSubscription(UaSession* pSession)
 
     UaStatus result;
 
-    ServiceSettings serviceSettings;
-    SubscriptionSettings subscriptionSettings;
+    UaClientSdk::ServiceSettings serviceSettings;
+    UaClientSdk::SubscriptionSettings subscriptionSettings;
     subscriptionSettings.publishingInterval = 100;
 
     printf("\nCreating subscription ...\n");
@@ -141,7 +140,7 @@ UaStatus Subscription::deleteSubscription()
     }
 
     UaStatus result;
-    ServiceSettings serviceSettings;
+    UaClientSdk::ServiceSettings serviceSettings;
 
     // let the SDK cleanup the resources for the existing subscription
     printf("\nDeleting subscription ...\n");
@@ -176,8 +175,9 @@ UaStatus Subscription::createMonitoredItems()
     }
 
     UaStatus result;
-    OpcUa_UInt32 size, i;
-    ServiceSettings serviceSettings;
+    OpcUa_UInt32 size;
+    OpcUa_UInt32 i;
+    UaClientSdk::ServiceSettings serviceSettings;
     UaMonitoredItemCreateRequests itemsToCreate;
     UaMonitoredItemCreateResults createResults;
 
@@ -277,11 +277,11 @@ UaStatus Subscription::recoverSubscription()
 /*============================================================================
  * historyReadDataRaw - read raw data history
  *===========================================================================*/
-void historyReadDataRaw()
+void Subscription::historyReadDataRaw()
 {
     printf("\n\n****************************************************************\n");
     printf("** Try to read raw data history\n");
-    if ( g_pUaSession == NULL )
+    if ( m_pSession == nullptr )
     {
         printf("** Error: Server not connected\n");
         printf("****************************************************************\n");
@@ -295,10 +295,10 @@ void historyReadDataRaw()
     }
 
     UaStatus                      status;
-    ServiceSettings               serviceSettings;
-    HistoryReadRawModifiedContext historyReadRawModifiedContext;
+    UaClientSdk::ServiceSettings               serviceSettings;
+    UaClientSdk::HistoryReadRawModifiedContext historyReadRawModifiedContext;
     UaHistoryReadValueIds         nodesToRead;
-    HistoryReadDataResults        results;
+    UaClientSdk::HistoryReadDataResults        results;
     UaDiagnosticInfos             diagnosticInfos;
 
     UaNodeId nodeToRead(g_HistoryDataNodeIds[0]);
@@ -318,7 +318,7 @@ void historyReadDataRaw()
     /*********************************************************************
      Update the history of events at an event notifier object
     **********************************************************************/
-    status = g_pUaSession->historyReadRawModified(
+    status = m_pSession->historyReadRawModified(
             serviceSettings,
             historyReadRawModifiedContext,
             nodesToRead,
@@ -372,25 +372,25 @@ void historyReadDataRaw()
             int action;
             /******************************************************************************/
             /* Wait for user command. */
-            bool waitForInput = true;
-            while (waitForInput)
-            {
-                if ( WaitForKeypress(action) )
-                {
-                    // x -> Release continuation point
-                    historyReadRawModifiedContext.bReleaseContinuationPoints = OpcUa_True;
-                    waitForInput = false;
-                }
-                    // Continue
-                else if ( action == 12 ) waitForInput = false;
-                    // Wait
-                else usleep(100);
-            }
+//            bool waitForInput = true;
+//            while (waitForInput)
+//            {
+//                if ( WaitForKeypress(action) )
+//                {
+//                    // x -> Release continuation point
+//                    historyReadRawModifiedContext.bReleaseContinuationPoints = OpcUa_True;
+//                    waitForInput = false;
+//                }
+//                    // Continue
+//                else if ( action == 12 ) waitForInput = false;
+//                    // Wait
+//                else usleep(100);
+//            }
             /******************************************************************************/
 
             OpcUa_ByteString_Clear(&nodesToRead[0].ContinuationPoint);
             results[0].m_continuationPoint.copyTo(&nodesToRead[0].ContinuationPoint);
-            status = g_pUaSession->historyReadRawModified(
+            status = m_pSession->historyReadRawModified(
                     serviceSettings,
                     historyReadRawModifiedContext,
                     nodesToRead,
@@ -438,11 +438,11 @@ void historyReadDataRaw()
 /*============================================================================
  * historyReadDataProcessed - read processed data history
  *===========================================================================*/
-void historyReadDataProcessed()
+void Subscription::historyReadDataProcessed()
 {
     printf("\n\n****************************************************************\n");
     printf("** Try to read processed data history\n");
-    if ( g_pUaSession == NULL )
+    if ( m_pSession == nullptr )
     {
         printf("** Error: Server not connected\n");
         printf("****************************************************************\n");
@@ -456,10 +456,10 @@ void historyReadDataProcessed()
     }
 
     UaStatus                    status;
-    ServiceSettings             serviceSettings;
-    HistoryReadProcessedContext historyReadProcessedContext;
+    UaClientSdk::ServiceSettings             serviceSettings;
+    UaClientSdk::HistoryReadProcessedContext historyReadProcessedContext;
     UaHistoryReadValueIds       nodesToRead;
-    HistoryReadDataResults      results;
+    UaClientSdk::HistoryReadDataResults      results;
     UaDiagnosticInfos           diagnosticInfos;
 
     UaNodeId nodeToRead(g_HistoryDataNodeIds[0]);
@@ -489,7 +489,7 @@ void historyReadDataProcessed()
     /*********************************************************************
      Update the history of events at an event notifier object
     **********************************************************************/
-    status = g_pUaSession->historyReadProcessed(
+    status = m_pSession->historyReadProcessed(
             serviceSettings,
             historyReadProcessedContext,
             nodesToRead,
@@ -541,11 +541,11 @@ void historyReadDataProcessed()
 /*============================================================================
  * historyReadDataAtTime - read data history at timestamps
  *===========================================================================*/
-void historyReadDataAtTime()
+void Subscription::historyReadDataAtTime()
 {
     printf("\n\n****************************************************************\n");
     printf("** Try to read data history at timestamps \n");
-    if ( g_pUaSession == NULL )
+    if ( m_pSession == nullptr )
     {
         printf("** Error: Server not connected\n");
         printf("****************************************************************\n");
@@ -559,10 +559,10 @@ void historyReadDataAtTime()
     }
 
     UaStatus                    status;
-    ServiceSettings             serviceSettings;
-    HistoryReadAtTimeContext    historyReadAtTimeContext;
+    UaClientSdk::ServiceSettings             serviceSettings;
+    UaClientSdk::HistoryReadAtTimeContext    historyReadAtTimeContext;
     UaHistoryReadValueIds       nodesToRead;
-    HistoryReadDataResults      results;
+    UaClientSdk::HistoryReadDataResults      results;
     UaDiagnosticInfos           diagnosticInfos;
     OpcUa_UInt32 i, j, count;
 
@@ -587,7 +587,7 @@ void historyReadDataAtTime()
     /*********************************************************************
      Update the history of events at an event notifier object
     **********************************************************************/
-    status = g_pUaSession->historyReadAtTime(
+    status = m_pSession->historyReadAtTime(
             serviceSettings,
             historyReadAtTimeContext,
             nodesToRead,
@@ -639,11 +639,11 @@ void historyReadDataAtTime()
 /*============================================================================
  * historyUpdateData - update data history
  *===========================================================================*/
-void historyUpdateData()
+void Subscription::historyUpdateData()
 {
     printf("\n\n****************************************************************\n");
     printf("** Try to update data history \n");
-    if ( g_pUaSession == NULL )
+    if ( m_pSession == nullptr )
     {
         printf("** Error: Server not connected\n");
         printf("****************************************************************\n");
@@ -658,8 +658,8 @@ void historyUpdateData()
     }
 
     UaStatus                    status;
-    ServiceSettings             serviceSettings;
-    UpdateDataDetails           updateDataDetails;
+    UaClientSdk::ServiceSettings             serviceSettings;
+    UaClientSdk::UpdateDataDetails           updateDataDetails;
     UaHistoryUpdateResults      results;
     UaDiagnosticInfos           diagnosticInfos;
     UaVariant                   value;
@@ -686,7 +686,7 @@ void historyUpdateData()
     /*********************************************************************
      Update the history of events at an event notifier object
     **********************************************************************/
-    status = g_pUaSession->historyUpdateData(
+    status = m_pSession->historyUpdateData(
             serviceSettings,
             updateDataDetails,
             results,
@@ -723,11 +723,11 @@ void historyUpdateData()
 /*============================================================================
  * historyDeleteData - delete data history
  *===========================================================================*/
-void historyDeleteData()
+void Subscription::historyDeleteData()
 {
     printf("\n\n****************************************************************\n");
     printf("** Try to delete data history \n");
-    if ( g_pUaSession == NULL )
+    if ( m_pSession == nullptr )
     {
         printf("** Error: Server not connected\n");
         printf("****************************************************************\n");
@@ -736,8 +736,8 @@ void historyDeleteData()
 
     // delete the last 30 seoncdes of the history
     UaStatus                    status;
-    ServiceSettings             serviceSettings;
-    DeleteRawModifiedDetails    deleteDetails;
+    UaClientSdk::ServiceSettings             serviceSettings;
+    UaClientSdk::DeleteRawModifiedDetails    deleteDetails;
     UaHistoryUpdateResults      results;
     UaDiagnosticInfos           diagnosticInfos;
 
@@ -751,7 +751,7 @@ void historyDeleteData()
     /*********************************************************************
      Delete part of the history
     **********************************************************************/
-    status = g_pUaSession->historyDeleteRawModified(
+    status = m_pSession->historyDeleteRawModified(
             serviceSettings, // Use default settings
             deleteDetails,
             results,
@@ -787,11 +787,11 @@ void historyDeleteData()
 /*============================================================================
  * historyReadEvents - read event history
  *===========================================================================*/
-void historyReadEvents()
+void Subscription::historyReadEvents()
 {
     printf("\n\n****************************************************************\n");
     printf("** Try to read event history \n");
-    if ( g_pUaSession == NULL )
+    if ( m_pSession == nullptr )
     {
         printf("** Error: Server not connected\n");
         printf("****************************************************************\n");
@@ -800,16 +800,16 @@ void historyReadEvents()
 
     // call methods to generate events
     UaStatus           status;
-    ServiceSettings    serviceSettings;
-    CallIn             callRequest;
-    CallOut            callResult;
+    UaClientSdk::ServiceSettings    serviceSettings;
+    UaClientSdk::CallIn             callRequest;
+    UaClientSdk::CallOut            callResult;
 
     if (g_EventIds.length() < 3)
     {
         // Call Methods to generate events
         callRequest.objectId = g_EventTriggerObjects[0];
         callRequest.methodId = g_EventTriggerMethods[0];
-        status = g_pUaSession->call(
+        status = m_pSession->call(
                 serviceSettings,    // Use default settings
                 callRequest,        // In parameters and settings for the method call
                 callResult);        // Out parameters and results returned from the method call
@@ -820,7 +820,7 @@ void historyReadEvents()
         // Call Methods to generate events
         callRequest.objectId = g_EventTriggerObjects[1];
         callRequest.methodId = g_EventTriggerMethods[1];
-        status = g_pUaSession->call(
+        status = m_pSession->call(
                 serviceSettings,    // Use default settings
                 callRequest,        // In parameters and settings for the method call
                 callResult);        // Out parameters and results returned from the method call
@@ -830,9 +830,9 @@ void historyReadEvents()
         }
     }
 
-    HistoryReadEventContext  historyReadEventContext;
+    UaClientSdk::HistoryReadEventContext  historyReadEventContext;
     UaHistoryReadValueIds    nodesToRead;
-    HistoryReadEventResults  results;
+    UaClientSdk::HistoryReadEventResults  results;
     UaDiagnosticInfos        diagnosticInfos;
     UaSimpleAttributeOperand selectElement;
 
@@ -858,7 +858,7 @@ void historyReadEvents()
     /*********************************************************************
      Read the history of events from an event notifier object
     **********************************************************************/
-    status = g_pUaSession->historyReadEvent(
+    status = m_pSession->historyReadEvent(
             serviceSettings,
             historyReadEventContext,
             nodesToRead,
@@ -922,24 +922,24 @@ void historyReadEvents()
             /******************************************************************************/
             /* Wait for user command. */
             bool waitForInput = true;
-            while (waitForInput)
-            {
-                if ( WaitForKeypress(action) )
-                {
-                    // x -> Release continuation point
-                    historyReadEventContext.bReleaseContinuationPoints = OpcUa_True;
-                    waitForInput = false;
-                }
-                    // Continue
-                else if ( action == 12 ) waitForInput = false;
-                    // Wait
-                else usleep(100);
-            }
+//            while (waitForInput)
+//            {
+//                if ( WaitForKeypress(action) )
+//                {
+//                    // x -> Release continuation point
+//                    historyReadEventContext.bReleaseContinuationPoints = OpcUa_True;
+//                    waitForInput = false;
+//                }
+//                    // Continue
+//                else if ( action == 12 ) waitForInput = false;
+//                    // Wait
+//                else usleep(100);
+//            }
             /******************************************************************************/
 
             OpcUa_ByteString_Clear(&nodesToRead[0].ContinuationPoint);
             results[0].m_continuationPoint.copyTo(&nodesToRead[0].ContinuationPoint);
-            status = g_pUaSession->historyReadEvent(
+            status = m_pSession->historyReadEvent(
                     serviceSettings,
                     historyReadEventContext,
                     nodesToRead,
@@ -992,11 +992,11 @@ void historyReadEvents()
 /*============================================================================
  * historyUpdateEvents - update event history
  *===========================================================================*/
-void historyUpdateEvents()
+void Subscription::historyUpdateEvents()
 {
     printf("\n\n****************************************************************\n");
     printf("** Try to update event history \n");
-    if ( g_pUaSession == NULL )
+    if ( m_pSession == nullptr )
     {
         printf("** Error: Server not connected\n");
         printf("****************************************************************\n");
@@ -1004,8 +1004,8 @@ void historyUpdateEvents()
     }
 
     UaStatus                    status;
-    ServiceSettings             serviceSettings;
-    UpdateEventDetails          updateEventDetails;
+    UaClientSdk::ServiceSettings             serviceSettings;
+    UaClientSdk::UpdateEventDetails          updateEventDetails;
     UaHistoryUpdateResults      results;
     UaDiagnosticInfos           diagnosticInfos;
     UaSimpleAttributeOperand    selectElement;
@@ -1057,7 +1057,7 @@ void historyUpdateEvents()
     /*********************************************************************
      Update the history of events at an event notifier object
     **********************************************************************/
-    status = g_pUaSession->historyUpdateEvents(
+    status = m_pSession->historyUpdateEvents(
             serviceSettings, // Use default settings
             updateEventDetails,
             results,
@@ -1092,11 +1092,11 @@ void historyUpdateEvents()
 /*============================================================================
  * historyDeleteEvents - delete event history
  *===========================================================================*/
-void historyDeleteEvents()
+void Subscription::historyDeleteEvents()
 {
     printf("\n\n****************************************************************\n");
     printf("** Try to delete event history \n");
-    if ( g_pUaSession == NULL )
+    if ( m_pSession == nullptr )
     {
         printf("** Error: Server not connected\n");
         printf("****************************************************************\n");
@@ -1119,8 +1119,8 @@ void historyDeleteEvents()
 
     // delete first 2 entries in the event history
     UaStatus                status;
-    ServiceSettings         serviceSettings;
-    DeleteEventDetails      deleteDetails;
+    UaClientSdk::ServiceSettings         serviceSettings;
+    UaClientSdk::DeleteEventDetails      deleteDetails;
     UaHistoryUpdateResults  results;
     UaDiagnosticInfos       diagnosticInfos;
 
@@ -1141,7 +1141,7 @@ void historyDeleteEvents()
     /*********************************************************************
      Delete part of the event history
     **********************************************************************/
-    status = g_pUaSession->historyDeleteEvents(
+    status = m_pSession->historyDeleteEvents(
             serviceSettings, // Use default settings
             deleteDetails,
             results,

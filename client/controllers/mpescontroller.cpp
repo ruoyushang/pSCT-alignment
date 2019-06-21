@@ -282,7 +282,7 @@ UaStatus MPESController::__readRequest() {
     UaStatus status;
 
     // read the values on the server first
-    status = m_pClient->callMethod(m_ID.eAddress, UaString("Read"));
+    status = m_pClient->callMethodAsync(m_ID.eAddress, UaString("Read"));
     if (!status.isGood()) return status;
     // get the updated values from the server
 
@@ -298,12 +298,15 @@ UaStatus MPESController::__readRequest() {
     std::transform(varstoread.begin(), varstoread.end(), varstoread.begin(),
                    [this](std::string &str) { return m_ID.eAddress + "." + str; });
     UaVariant valstoread[7];
+    UaDataValues values;
 
     status = m_pClient->read(varstoread, &valstoread[0]);
     if (status.isGood()) m_updated = true;
 
-    for (unsigned i = 0; i < varstoread.size(); i++)
+    for (unsigned i = 0; i < varstoread.size(); i++) {
         valstoread[i].toDouble(*(reinterpret_cast<OpcUa_Double *>(&m_Data) + i));
+    }
+//    m_pClient->readComplete(status, values);
 
     return status;
 }

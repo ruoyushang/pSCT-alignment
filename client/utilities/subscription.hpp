@@ -82,35 +82,36 @@ public:
     /// Subscription.
     void setConfiguration(Configuration* pConfiguration);
 
+    UaObjectArray<UaNodeId>                 g_HistoryDataNodeIds;
+    UaNodeId                                g_HistoryEventNodeId;
+    UaObjectArray<UaNodeId>                 g_EventTriggerObjects;
+    UaObjectArray<UaNodeId>                 g_EventTriggerMethods;
+    UaByteStringArray                       g_EventIds;
 private:
+
     /// @brief Method to delete the existing UaSubscription, re-create it,
     /// and re-create monitored items if it becomes invalid/fails.
     /// @return An OPC UA status code.
     UaStatus recoverSubscription();
-
     /// @brief Pointer to an OPC UA session object, used to
     /// create an OPC UA subscription object.
     UaClientSdk::UaSession* m_pSession;
     /// @brief Pointer to an OPC UA subscription object, used to create
     /// monitored items (nodes).
     UaClientSdk::UaSubscription* m_pSubscription;
+
     /// @brief Pointer to a Configuration object, used to retrieve a list
     /// of OPC UA nodes to monitor via subscription.
     Configuration* m_pConfiguration;
+
+    void historyReadDataRaw();
+    void historyReadDataProcessed();
+    void historyReadDataAtTime();
+    void historyUpdateData();
+    void historyDeleteData();
+    void historyReadEvents();
+    void historyUpdateEvents();
+    void historyDeleteEvents();
 };
 
-UaObjectArray<UaNodeId>                 g_HistoryDataNodeIds;
-UaNodeId                                g_HistoryEventNodeId;
-UaObjectArray<UaNodeId>                 g_EventTriggerObjects;
-UaObjectArray<UaNodeId>                 g_EventTriggerMethods;
-UaByteStringArray                       g_EventIds;
-
-void historyReadDataRaw();
-void historyReadDataProcessed();
-void historyReadDataAtTime();
-void historyUpdateData();
-void historyDeleteData();
-void historyReadEvents();
-void historyUpdateEvents();
-void historyDeleteEvents();
 #endif // SUBSCRIPTION_H

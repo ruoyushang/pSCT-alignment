@@ -1,325 +1,34 @@
+#ifndef __CALLBACK_H__
+#define __CALLBACK_H__
+
 #include "uaclient/uaclientsdk.h"
 #include "uaclient/uasession.h"
 #include <vector>
 #include "uagenericunionvalue.h"
-using namespace UaClientSdk;
 
-UaSession* g_pUaSession;
-bool WaitForKeypress(int& action);
-void printGenericUnionValue(const UaGenericUnionValue &value, int level);
-void printGenericStructureValue(const UaGenericStructureValue &value, int level)
-{
-    UaStructureDefinition definition = value.definition();
-    for (int i=0; i<definition.childrenCount(); i++)
-    {
-        int lIdx;
-        UaStructureField field = definition.child(i);
-        UaString sFieldName = field.name().toUtf8();
-        if (value.value(i).type() == OpcUaType_ExtensionObject)
-        {
-            UaStructureDefinition definitionChild = field.structureDefinition();
-            for (lIdx=0;lIdx<level;lIdx++) printf("  ");
-            // Get structure field ExtensionObject
-            if (field.arrayType() == UaStructureField::ArrayType_Scalar)
-            {
-                if (!definitionChild.isUnion())
-                {
-                    //structure
-                    if (!field.isOptional() || value.isFieldSet(i))
-                    {
-                        printf("    %s%s = structure value:\n",
-                               sFieldName.toUtf8(),
-                               field.isOptional() ? " [optional]" : "");
-                        printGenericStructureValue(value.genericStructure(i), level+1);
-                    }
-                }
-                else
-                {
-                    //union
-                    if (!field.isOptional() || value.isFieldSet(i))
-                    {
-                        printf("    %s%s = union value:\n",
-                               sFieldName.toUtf8(),
-                               field.isOptional() ? " [optional]" : "");
-                        printGenericUnionValue(value.genericUnion(i), level+1);
-                    }
-                }
-            }
-            else
-            {
-                if (!definitionChild.isUnion())
-                {
-                    if (!field.isOptional() || value.isFieldSet(i))
-                    {
-                        UaGenericStructureArray childValues = value.genericStructureArray(i);
-                        printf("    %s%s\n",
-                               sFieldName.toUtf8(),
-                               field.isOptional() ? " [optional]" : "");
-                        for (OpcUa_UInt32 u=0; u<childValues.length(); u++)
-                        {
-                            for (lIdx=0;lIdx<level+1;lIdx++) printf("  ");
-                            printf("    %s\n", field.structureDefinition().name().toUtf8());
-                            printGenericStructureValue(childValues[u], level+2);
-                        }
-                    }
-                }
-                else if (!field.isOptional() || value.isFieldSet(i))
-                {
-                    //union
-                    UaGenericUnionArray childValues = value.genericUnionArray(i);
-                    printf("    %s%s\n",
-                            sFieldName.toUtf8(),
-                            field.isOptional() ? " [optional]" : "");
-                    for (OpcUa_UInt32 u=0; u<childValues.length(); u++)
-                    {
-                        for (lIdx=0;lIdx<level+1;lIdx++) printf("  ");
-                        printf("    %s\n", field.structureDefinition().name().toUtf8());
-                        printGenericUnionValue(childValues[u], level+2);
-                    }
-                }
-            }
-        }
-        else if (!field.isOptional() || value.isFieldSet(i))
-        {
-            for (lIdx=0;lIdx<level;lIdx++) printf("  ");
-            // Get field value
-            UaVariant vFieldValue = value.value(i);
-            printf("    %s %s= %s\n",
-                sFieldName.toUtf8(),
-                field.isOptional() ? "[Optional] " : "",
-                vFieldValue.toString().toUtf8());
-        }
-    }
-}
 
-void printGenericUnionValue(const UaGenericUnionValue &value, int level)
-{
-    UaStructureDefinition definition = value.definition();
-    int lIdx;
-    int switchValue = value.switchValue();
-    if (0 == switchValue)
-    {
-        for (lIdx=0;lIdx<level;lIdx++) printf("  ");
-        printf("    union value not set\n");
-    }
-    else
-    {
-        UaStructureField field = definition.child(switchValue-1);
-        UaString sFieldName = field.name().toUtf8();
-        if (value.value().type() == OpcUaType_ExtensionObject)
-        {
-            UaStructureDefinition definitionChild = field.structureDefinition();
-            for (lIdx=0;lIdx<level;lIdx++) printf("  ");
-            // Get structure field ExtensionObject
-            if (field.arrayType() == UaStructureField::ArrayType_Scalar)
-            {
-                if (!definitionChild.isUnion())
-                {
-                    //structure
-                    printf("    %s (union) = structure value:\n",
-                            sFieldName.toUtf8());
-                    printGenericStructureValue(value.genericStructure(), level+1);
-                }
-                else
-                {
-                    printf("    %s (union) = union value:\n",
-                            sFieldName.toUtf8());
-                    printGenericUnionValue(value.genericUnion(), level+1);
-                }
-            }
-            else
-            {
-                if (!definitionChild.isUnion())
-                {
-                    UaGenericStructureArray childValues = value.genericStructureArray(0);
-                    printf("    %s (union)\n",
-                            sFieldName.toUtf8());
-                    for (OpcUa_UInt32 u=0; u<childValues.length(); u++)
-                    {
-                        for (lIdx=0;lIdx<level+1;lIdx++) printf("  ");
-                        printf("    %s\n", field.structureDefinition().name().toUtf8());
-                        printGenericStructureValue(childValues[u], level+2);
-                    }
-                }
-                else
-                {
-                    //union
-                    UaGenericUnionArray childValues = value.genericUnionArray(0);
-                    printf("    %s (union)\n",
-                            sFieldName.toUtf8());
-                    for (OpcUa_UInt32 u=0; u<childValues.length(); u++)
-                    {
-                        for (lIdx=0;lIdx<level+1;lIdx++) printf("  ");
-                        printf("    %s\n", field.structureDefinition().name().toUtf8());
-                        printGenericUnionValue(childValues[u], level+2);
-                    }
-                }
-            }
-        }
-        else
-        {
-            for (lIdx=0;lIdx<level;lIdx++) printf("  ");
-            // Get field value
-            UaVariant vFieldValue = value.value();
-            printf("    %s (union) = %s\n", sFieldName.toUtf8(), vFieldValue.toString().toUtf8());
-        }
-    }
-}
-
-extern OpcUa_UInt16 g_nsIndex2;
-
-///** Returns true if the structured DataType used for extensionObject is registered to the stack
-//    an known by the client. */
-//bool isStructuredDataTypeKnown(const UaExtensionObject &extensionObject)
-//{
-//    if (extensionObject.encoding() != UaExtensionObject::EncodeableObject)
-//    {
-//        return false;
-//    }
-//    UaNodeId dataTypeId = extensionObject.dataTypeId();
-//    return (dataTypeId == UaNodeId(DemoId_Vector, g_nsIndex2)
-//        || dataTypeId == UaNodeId(DemoId_UnionTest, g_nsIndex2));
-//}
-//
-//void printExtensionObjectKnownType(const UaExtensionObject &extensionObject)
-//{
-//    if (extensionObject.dataTypeId() == UaNodeId(DemoId_Vector, g_nsIndex2))
-//    {
-//        //Try to convert Vector.
-//        Demo::Vector vector;
-//        OpcUa_StatusCode status = vector.setVector(extensionObject);
-//        if (OpcUa_IsGood(status))
-//        {
-//            printf("    X: %f\n", vector.getX());
-//            printf("    Y: %f\n", vector.getY());
-//            printf("    Z: %f\n", vector.getZ());
-//            return;
-//        }
-//    }
-//
-//    if (extensionObject.dataTypeId() == UaNodeId(DemoId_UnionTest, g_nsIndex2))
-//    {
-//        //Try to convert Union.
-//        Demo::UnionTest unionTest;
-//        OpcUa_StatusCode status = unionTest.setUnionTest(extensionObject);
-//        if (OpcUa_IsGood(status))
-//        {
-//            switch (unionTest.type())
-//            {
-//                case Demo_UnionTest_Null:
-//                    break;
-//                case Demo_UnionTest_Int32:
-//                    printf("    Int32 (union) %d\n", unionTest.getInt32());
-//                    break;
-//                case Demo_UnionTest_String:
-//                    printf("    String (union) %s\n", unionTest.getString().toUtf8());
-//                    break;
-//            }
-//            return;
-//        }
-//    }
-//}
-
-void printExtensionObjectGeneric(const UaExtensionObject &extensionObject)
-{
-    // Try to get the structure definition from the dictionary
-    UaStructureDefinition definition = g_pUaSession->structureDefinition(extensionObject.encodingTypeId());
-    if (!definition.isNull())
-    {
-        if (!definition.isUnion())
-        {
-            // Decode the ExtensionObject to a UaGenericValue to provide access to the structure fields
-            UaGenericStructureValue genericValue;
-            genericValue.setGenericValue(extensionObject, definition);
-            printGenericStructureValue(genericValue, 0);
-        }
-        else
-        {
-            // union
-            // Decode the ExtensionObject to a UaGenericUnionValue to provide access to the structure fields
-            UaGenericUnionValue genericValue;
-            genericValue.setGenericUnion(extensionObject, definition);
-            printGenericUnionValue(genericValue, 0);
-        }
-    }
-    else
-    {
-        printf("  Cannot get a structure definition - check access to type dictionary\n");
-    }
-}
-
-void printExtensionObject(UaExtensionObject &extensionObject)
-{
-//    if (isStructuredDataTypeKnown(extensionObject))
-//    {
-//        printExtensionObjectKnownType(extensionObject);
-//    }
-//    else
-//    {
-        if (extensionObject.encoding() != UaExtensionObject::Binary)
-        {
-            // Try to convert back to Binary since this helper is only able to print binary encoded structures
-            // This is not very efficient and not recommended for real world client applications
-            // If the structure is already decoded, it is a known structure
-            // Known structures should be handled different like Vector in this example
-            extensionObject.changeEncoding(UaExtensionObject::Binary);
-        }
-        if (extensionObject.encoding() == UaExtensionObject::Binary)
-        {
-            printExtensionObjectGeneric(extensionObject);
-        }
-        else
-        {
-            printf("  The ExtensionObject does not contain a binary encoded value\n");
-        }
-//    }
-}
-
-void printExtensionObjects(const UaVariant &value, const UaString &text)
-{
-    if (value.arrayType() == OpcUa_VariantArrayType_Scalar)
-    {
-        printf("  %s with structure value:\n", text.toUtf8());
-        UaExtensionObject extensionObject;
-        value.toExtensionObject(extensionObject);
-        printExtensionObject(extensionObject);
-    }
-    else if (value.arrayType() == OpcUa_VariantArrayType_Array)
-    {
-        printf("  %s with array of structured values:\n", text.toUtf8());
-        UaExtensionObjectArray extensionObjectArray;
-        value.toExtensionObjectArray(extensionObjectArray);
-        for (OpcUa_UInt32 u=0; u<extensionObjectArray.length(); u++)
-        {
-            printf("  [%u]\n", u);
-            UaExtensionObject e = extensionObjectArray[u];
-            printExtensionObject(e);
-        }
-    }
-}
-
-class Callback:
-    public UaSessionCallback,
-    public UaSubscriptionCallback
+class callback:
+    public UaClientSdk::UaSessionCallback,
+    public UaClientSdk::UaSubscriptionCallback
 {
 public:
-    Callback(){};
-    virtual ~Callback(){};
+    callback(){};
+    virtual ~callback(){};
 
     /** Status of the server connection. */
     virtual void connectionStatusChanged(
         OpcUa_UInt32              clientConnectionId,
-        UaClient::ServerStatus serverStatus)
+        UaClientSdk::UaClient::ServerStatus serverStatus)
     {
         UaString sStatus;
         switch ( serverStatus )
         {
-            case UaClient::Disconnected: sStatus="Disconnected"; break;
-            case UaClient::Connected: sStatus="Connected"; break;
-            case UaClient::ConnectionWarningWatchdogTimeout: sStatus="ConnectionWarningWatchdogTimeout"; break;
-            case UaClient::ConnectionErrorApiReconnect: sStatus="ConnectionErrorApiReconnect"; break;
-            case UaClient::ServerShutdown: sStatus="ServerShutdown"; break;
-            case UaClient::NewSessionCreated: sStatus="NewSessionCreated"; break;
+            case UaClientSdk::UaClient::Disconnected: sStatus="Disconnected"; break;
+            case UaClientSdk::UaClient::Connected: sStatus="Connected"; break;
+            case UaClientSdk::UaClient::ConnectionWarningWatchdogTimeout: sStatus="ConnectionWarningWatchdogTimeout"; break;
+            case UaClientSdk::UaClient::ConnectionErrorApiReconnect: sStatus="ConnectionErrorApiReconnect"; break;
+            case UaClientSdk::UaClient::ServerShutdown: sStatus="ServerShutdown"; break;
+            case UaClientSdk::UaClient::NewSessionCreated: sStatus="NewSessionCreated"; break;
         }
         printf("-- Event connectionStatusChanged ----------------------\n");
         printf("clientConnectionId %d \n", clientConnectionId);
@@ -330,17 +39,17 @@ public:
     /** Connect errors. */
     bool connectError(
         OpcUa_UInt32                    clientConnectionId, //!< [in] Client defined handle of the affected session
-        UaClient::ConnectServiceType    serviceType, //!< [in] The failing connect step
+        UaClientSdk::UaClient::ConnectServiceType    serviceType, //!< [in] The failing connect step
         const UaStatus&                 error,       //!< [in] Status code for the error situation
         bool                            clientSideError) //!< [in] Flag indicating if the bad status was created in the Client SDK
     {
         UaString sServiceType;
         switch ( serviceType )
         {
-            case UaClient::CertificateValidation: sServiceType="Certificate validation steps"; break;
-            case UaClient::OpenSecureChannel: sServiceType="Processing of Service OpenSecureChannel"; break;
-            case UaClient::CreateSession: sServiceType="Processing of Service CreateSession"; break;
-            case UaClient::ActivateSession: sServiceType="Processing of Service CreateSession"; break;
+            case UaClientSdk::UaClient::CertificateValidation: sServiceType="Certificate validation steps"; break;
+            case UaClientSdk::UaClient::OpenSecureChannel: sServiceType="Processing of Service OpenSecureChannel"; break;
+            case UaClientSdk::UaClient::CreateSession: sServiceType="Processing of Service CreateSession"; break;
+            case UaClientSdk::UaClient::ActivateSession: sServiceType="Processing of Service CreateSession"; break;
         }
         printf("-- Event connectError ---------------------------------\n");
         printf("clientConnectionId %d \n", clientConnectionId);
@@ -348,24 +57,24 @@ public:
         printf("Status %s \n", error.toString().toUtf8());
         printf("-------------------------------------------------------\n");
 
-        if ( clientSideError )
-        {
-            printf("Press 1 to stop connect\n");
-            printf("Press 2 to overwrite the error and continue\n");
-            printf("-------------------------------------------------------\n");
-            int action;
-            while (!WaitForKeypress(action))
-            {
-                if ( action == 1 )
-                {
-                    return false;
-                }
-                if ( action == 2 )
-                {
-                    return true;
-                }
-            }
-        }
+//        if ( clientSideError )
+//        {
+//            printf("Press 1 to stop connect\n");
+//            printf("Press 2 to overwrite the error and continue\n");
+//            printf("-------------------------------------------------------\n");
+//            int action;
+//            while (!WaitForKeypress(action))
+//            {
+//                if ( action == 1 )
+//                {
+//                    return false;
+//                }
+//                if ( action == 2 )
+//                {
+//                    return true;
+//                }
+//            }
+//        }
         return false;
     }
 
@@ -383,14 +92,9 @@ public:
             if ( OpcUa_IsGood(dataNotifications[i].Value.StatusCode) )
             {
                 UaVariant tempValue = dataNotifications[i].Value.Value;
-                if (tempValue.type() == OpcUaType_ExtensionObject)
-                {
-                    printExtensionObjects(tempValue, UaString("Variable %1").arg((unsigned int) dataNotifications[i].ClientHandle));
-                }
-                else
-                {
+
                     printf("  Variable %d value = %s\n", dataNotifications[i].ClientHandle, tempValue.toString().toUtf8());
-                }
+
             }
             else
             {
@@ -437,11 +141,11 @@ public:
                     printf("  More event fields delivered than requested\n");
                 }
                 UaVariant tempValue = eventFieldList[i].EventFields[j];
-                if (tempValue.type() == OpcUaType_ExtensionObject)
-                {
-                    printExtensionObjects(tempValue, UaString(m_eventFields[j-1]));
-                }
-                else if (tempValue.type() == OpcUaType_Null)
+//                if (tempValue.type() == OpcUaType_ExtensionObject)
+//                {
+//                    printExtensionObjects(tempValue, UaString(m_eventFields[j-1]));
+//                }
+                if (tempValue.type() == OpcUaType_Null)
                 {
                     // Special handling for NULL values
                     printf("  %s = NULL\n", UaString(m_eventFields[j-1]).toUtf8());
@@ -457,27 +161,20 @@ public:
 
     /** Send read results. */
     virtual void readComplete(
-        OpcUa_UInt32             transactionId,
         const UaStatus&          result,
-        const UaDataValues&      values,
-        const UaDiagnosticInfos& /*diagnosticInfos*/)
+        const UaDataValues&      values /*,
+        const UaDiagnosticInfos& diagnosticInfos*/)
     {
         printf("-- Event readComplete ---------------------------------\n");
-        printf("transactionId %d \n", transactionId);
+        printf("transactionId %d \n", m_TransactionId);
         printf("resultStatus %s \n", result.toString().toUtf8());
         for ( OpcUa_UInt32 i=0; i<values.length(); i++ )
         {
             if ( OpcUa_IsGood(values[i].StatusCode) )
             {
                 UaVariant tempValue = values[i].Value;
-                if (tempValue.type() == OpcUaType_ExtensionObject)
-                {
-                    printExtensionObjects(tempValue, UaString("Variable %1").arg((unsigned int) i));
-                }
-                else
-                {
+
                     printf("  Variable %d value = %s\n", i, tempValue.toString().toUtf8());
-                }
             }
             else
             {
@@ -489,13 +186,12 @@ public:
 
     /** Send write results. */
     virtual void writeComplete(
-        OpcUa_UInt32             transactionId,
         const UaStatus&          result,
-        const UaStatusCodeArray& results,
-        const UaDiagnosticInfos& /*diagnosticInfos*/)
+        const UaStatusCodeArray& results/*,
+        const UaDiagnosticInfos& diagnosticInfos*/)
     {
         printf("-- Event writeComplete --------------------------------\n");
-        printf("transactionId %d \n", transactionId);
+        printf("transactionId %d \n", m_TransactionId);
         printf("resultStatus %s \n", result.toString().toUtf8());
         for ( OpcUa_UInt32 i=0; i<results.length(); i++ )
         {
@@ -512,6 +208,9 @@ public:
     }
 
     UaStringArray m_eventFields;
+protected:
+    // keep track of asynchronous calls
+    OpcUa_UInt32 m_TransactionId;
 };
 
 class EventObject
@@ -537,7 +236,7 @@ public:
 };
 
 class CallbackAlarms:
-    public UaSubscriptionCallback
+    public UaClientSdk::UaSubscriptionCallback
 {
 public:
     CallbackAlarms()
@@ -734,4 +433,4 @@ private:
     bool m_bTableChanged;
 };
 
-
+#endif // CALLBACK_H

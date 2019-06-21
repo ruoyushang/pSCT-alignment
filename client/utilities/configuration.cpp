@@ -12,8 +12,6 @@
 #include "cppconn/statement.h"
 #include "DBConfig.hpp"
 
-using namespace UaClientSdk;
-
 Configuration::Configuration() : m_bAutomaticReconnect(OpcUa_True), m_bRetryInitialConnect(OpcUa_True)
 {
 }
@@ -217,7 +215,7 @@ UaStatus Configuration::loadDeviceConfiguration(const std::vector<std::string> &
 }
 
 
-UaStatus Configuration::setupSecurity(SessionSecurityInfo& sessionSecurityInfo)
+UaStatus Configuration::setupSecurity(UaClientSdk::SessionSecurityInfo& sessionSecurityInfo)
 {
     UaStatus result;
 

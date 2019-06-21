@@ -3,14 +3,16 @@
 
 #include "uabase.h"
 #include "uaclient/uaclientsdk.h"
+#include "subscription.hpp"
+#include "callback.h"
 #include <string>
 
-class Subscription;
 class Configuration;
 class Database;
 class PasNodeManager;
 
-class Client : public UaClientSdk::UaSessionCallback
+
+class Client : public callback
 {
     UA_DISABLE_COPY(Client);
 public:
@@ -38,7 +40,7 @@ public:
     // synchronous call
     UaStatus
     callMethod(const std::string &sNodeName, const UaString &sMethod, const UaVariantArray &args = UaVariantArray());
-    // asynchronous call -- needs a callComplete for the callback as welcl
+    // asynchronous call -- needs a callComplete for the callback as well
     UaStatus callMethodAsync(const std::string &sNodeName, const UaString &sMethod,
                              const UaVariantArray &args = UaVariantArray());
     // UaSessionCallback implementation
@@ -56,7 +58,7 @@ private:
     UaStatus recurseAddressSpace(const UaNodeId& nodeToBrowse, OpcUa_UInt32 maxReferencesToReturn);
 
     static void printBrowseResults(const OpcUa_ReferenceDescription &referenceDescription);
-    void addDevices(const OpcUa_ReferenceDescription& eferenceDescription);
+    void addDevices(const OpcUa_ReferenceDescription& referenceDescription);
 
     // variables
     PasNodeManager*                     m_pNodeManager;
@@ -65,10 +67,7 @@ private:
     Configuration*                      m_pConfiguration;
     UaClientSdk::UaClient::ServerStatus m_serverStatus;
     Database*                           m_pDatabase;
-    UaClientSdk::BrowseContext          browseContext;
 
-    // keep track of asynchronous calls
-    OpcUa_UInt32 m_TransactionId;
 };
 
 #endif
