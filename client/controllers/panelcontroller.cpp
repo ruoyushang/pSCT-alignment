@@ -21,7 +21,7 @@ PanelController::PanelController(Device::Identity identity, Client *pClient, boo
     // make sure things update on the first boot up
     // duration takes seconds -- hence the conversion with the 1/1000 ratio
     m_lastUpdateTime = TIME::now() - std::chrono::duration<int, std::ratio<1, 1000>>
-        (m_kUpdateInterval_ms)
+        (m_kUpdateInterval_ms);
 }
 
 unsigned PanelController::getActuatorCount() {
@@ -65,7 +65,7 @@ UaStatus PanelController::getData(OpcUa_UInt32 offset, UaVariant &value) {
         return getError(offset, value);
     } else if (offset >= PAS_PanelType_x && offset <= PAS_PanelType_zRot) {
         // update current coordinates
-        if (__expired()) {
+        if (__expired() && !m_isSubclient) {
             status = updateCoords();
             if (status.isBad()) {
                 std::cout << m_ID << " :: PanelController::operate() : Failed to update coordinates." << std::endl;
@@ -235,7 +235,7 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
          * **********************************************/
     else if (offset == PAS_PanelType_Stop) {
         std::cout << m_ID << "::Operate() : Attempting to gracefully stop the motion." << std::endl;
-        status = m_pClient->callMethodAsync(std::string(m_pClient->getDeviceNodeId(m_ID), UaString("Stop"));
+        status = m_pClient->callMethodAsync(m_pClient->getDeviceNodeId(m_ID), UaString("Stop"));
     } else if (offset == PAS_PanelType_TurnOn) {
         std::cout << m_ID << "::Operate() : Turning on..." << std::endl;
         status = m_pClient->callMethod(m_pClient->getDeviceNodeId(m_ID), UaString("TurnOn"));
