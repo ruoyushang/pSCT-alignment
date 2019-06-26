@@ -21,7 +21,6 @@
 
 #include "client/pascommunicationinterface.hpp"
 #include "client/pasnodemanager.hpp"
-#include "client/utilities/callback.hpp"
 #include "client/utilities/configuration.hpp"
 #include "client/utilities/paslogic.hpp"
 
