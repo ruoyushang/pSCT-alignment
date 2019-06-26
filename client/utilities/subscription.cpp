@@ -10,11 +10,13 @@
 #include "uaclient/uasession.h"
 #include "clienthelper.hpp"
 
+#include <memory>
+
 class Configuration;
 
 /// @details The constructor nitializes the internal Configuration pointer,
 /// but leaves the internal Session and Subscription pointers as NULL.
-Subscription::Subscription(Configuration* pConfiguration)
+Subscription::Subscription(std::shared_ptr<Configuration> pConfiguration)
     : m_pSession(nullptr),
       m_pSubscription(nullptr),
       m_pConfiguration(pConfiguration)
@@ -233,7 +235,7 @@ UaStatus Subscription::createMonitoredItems()
 
 /// @details Sets the internal Configuration object pointer to the provided
 /// Configuration object pointer.
-void Subscription::setConfiguration(Configuration* pConfiguration)
+void Subscription::setConfiguration(std::shared_ptr<Configuration> pConfiguration)
 {
     m_pConfiguration = pConfiguration;
 }

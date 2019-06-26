@@ -59,6 +59,14 @@ PasCommunicationInterface::~PasCommunicationInterface()
     std::cout << "Closed and cleaned up PasCommunicationInterface\n";
 }
 
+UaStatus PasCommunicationInterface::initialize()
+{
+    initializeCCDs();
+    return OpcUa_Good;
+}
+
+
+
 UaStatus PasCommunicationInterface::initializeCCDs()
 {
     // initialize devices communicating directly with the Alignment server (p2pasclient)
