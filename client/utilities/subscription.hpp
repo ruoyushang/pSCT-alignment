@@ -11,10 +11,7 @@
 #include "uabase/uabase.h"
 #include "uaclient/uaclientsdk.h"
 #include "client/utilities/configuration.hpp"
-#include "client/utilities/callback.hpp"
 #include <unistd.h>
-
-#include <memory>
 
 /// @brief Class to manage subscriptions to OPC UA nodes. Wraps the standard
 /// UaSubscription and UaSubscriptionCallback classes and takes a configuration
@@ -26,7 +23,7 @@ public:
     /// @brief Constructor for a Subscription object.
     /// @param pConfiguration Pointer to a Configuration
     /// object, used to get a list of OPC UA nodes to monitor.
-    explicit Subscription(std::shared_ptr<Configuration> pConfiguration);
+    explicit Subscription(Configuration *pConfiguration);
     /// @brief Destructor for a Subscription object.
     ~Subscription() override;
 
@@ -82,44 +79,38 @@ public:
     /// @brief Set a new instance as the internal Configuration object.
     /// @param pConfiguration A Configuration object to attach to the
     /// Subscription.
-    void setConfiguration(std::shared_ptr<Configuration> pConfiguration);
+    void setConfiguration(Configuration* pConfiguration);
 
+    UaObjectArray<UaNodeId>                 g_HistoryDataNodeIds;
+    UaNodeId                                g_HistoryEventNodeId;
+    UaObjectArray<UaNodeId>                 g_EventTriggerObjects;
+    UaObjectArray<UaNodeId>                 g_EventTriggerMethods;
+    UaByteStringArray                       g_EventIds;
 private:
+
     /// @brief Method to delete the existing UaSubscription, re-create it,
     /// and re-create monitored items if it becomes invalid/fails.
     /// @return An OPC UA status code.
     UaStatus recoverSubscription();
-
     /// @brief Pointer to an OPC UA session object, used to
     /// create an OPC UA subscription object.
-    UaClientSdk::UaSession *m_pSession;
+    UaClientSdk::UaSession* m_pSession;
     /// @brief Pointer to an OPC UA subscription object, used to create
     /// monitored items (nodes).
-    UaClientSdk::UaSubscription *m_pSubscription;
+    UaClientSdk::UaSubscription* m_pSubscription;
+
     /// @brief Pointer to a Configuration object, used to retrieve a list
     /// of OPC UA nodes to monitor via subscription.
-    std::shared_ptr<Configuration> m_pConfiguration;
+    Configuration* m_pConfiguration;
+
+    void historyReadDataRaw();
+    void historyReadDataProcessed();
+    void historyReadDataAtTime();
+    void historyUpdateData();
+    void historyDeleteData();
+    void historyReadEvents();
+    void historyUpdateEvents();
+    void historyDeleteEvents();
 };
 
-UaObjectArray<UaNodeId> g_HistoryDataNodeIds;
-UaNodeId g_HistoryEventNodeId;
-UaObjectArray<UaNodeId> g_EventTriggerObjects;
-UaObjectArray<UaNodeId> g_EventTriggerMethods;
-UaByteStringArray g_EventIds;
-
-void historyReadDataRaw();
-
-void historyReadDataProcessed();
-
-void historyReadDataAtTime();
-
-void historyUpdateData();
-
-void historyDeleteData();
-
-void historyReadEvents();
-
-void historyUpdateEvents();
-
-void historyDeleteEvents();
 #endif // SUBSCRIPTION_H

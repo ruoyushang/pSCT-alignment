@@ -8,16 +8,16 @@
 #include "subscription.hpp"
 #include "uaclient/uasubscription.h"
 #include "uaclient/uasession.h"
-#include "uaclient/uaclientsdk.h"
+#include "clienthelper.hpp"
 
 class Configuration;
 
 /// @details The constructor nitializes the internal Configuration pointer,
 /// but leaves the internal Session and Subscription pointers as NULL.
-Subscription::Subscription(std::shared_ptr<Configuration> pConfiguration)
+Subscription::Subscription(Configuration* pConfiguration)
     : m_pSession(nullptr),
       m_pSubscription(nullptr),
-      m_pConfiguration(std::move(pConfiguration))
+      m_pConfiguration(pConfiguration)
 {
 }
 
@@ -90,7 +90,7 @@ void Subscription::newEvents(
 /// creates one with a fixed publishing interval of 100 ms in the provided
 /// UaSession. Else, returns an error. Prints a success/failure
 /// message on exit.
-UaStatus Subscription::createSubscription(UaSession* pSession)
+UaStatus Subscription::createSubscription(UaClientSdk::UaSession* pSession)
 {
     if ( m_pSubscription )
     {
@@ -102,8 +102,8 @@ UaStatus Subscription::createSubscription(UaSession* pSession)
 
     UaStatus result;
 
-    ServiceSettings serviceSettings;
-    SubscriptionSettings subscriptionSettings;
+    UaClientSdk::ServiceSettings serviceSettings;
+    UaClientSdk::SubscriptionSettings subscriptionSettings;
     subscriptionSettings.publishingInterval = 100;
 
     printf("\nCreating subscription ...\n");
@@ -140,7 +140,7 @@ UaStatus Subscription::deleteSubscription()
     }
 
     UaStatus result;
-    ServiceSettings serviceSettings;
+    UaClientSdk::ServiceSettings serviceSettings;
 
     // let the SDK cleanup the resources for the existing subscription
     printf("\nDeleting subscription ...\n");
@@ -175,8 +175,9 @@ UaStatus Subscription::createMonitoredItems()
     }
 
     UaStatus result;
-    OpcUa_UInt32 size, i;
-    ServiceSettings serviceSettings;
+    OpcUa_UInt32 size;
+    OpcUa_UInt32 i;
+    UaClientSdk::ServiceSettings serviceSettings;
     UaMonitoredItemCreateRequests itemsToCreate;
     UaMonitoredItemCreateResults createResults;
 
@@ -232,9 +233,9 @@ UaStatus Subscription::createMonitoredItems()
 
 /// @details Sets the internal Configuration object pointer to the provided
 /// Configuration object pointer.
-void Subscription::setConfiguration(std::shared_ptr<Configuration> pConfiguration)
+void Subscription::setConfiguration(Configuration* pConfiguration)
 {
-    m_pConfiguration = std::move(pConfiguration);
+    m_pConfiguration = pConfiguration;
 }
 
 /// @details If the object has an internal UaSubscription, deletes it using
@@ -273,30 +274,32 @@ UaStatus Subscription::recoverSubscription()
 
     return result;
 }
-
 /*============================================================================
  * historyReadDataRaw - read raw data history
  *===========================================================================*/
-void historyReadDataRaw() {
+void Subscription::historyReadDataRaw()
+{
     printf("\n\n****************************************************************\n");
     printf("** Try to read raw data history\n");
-    if (g_pUaSession == NULL) {
+    if ( m_pSession == nullptr )
+    {
         printf("** Error: Server not connected\n");
         printf("****************************************************************\n");
         return;
     }
-    if (g_HistoryDataNodeIds.length() < 1) {
+    if ( g_HistoryDataNodeIds.length() < 1 )
+    {
         printf("** Error: No history node configured\n");
         printf("****************************************************************\n");
         return;
     }
 
-    UaStatus status;
-    ServiceSettings serviceSettings;
-    HistoryReadRawModifiedContext historyReadRawModifiedContext;
-    UaHistoryReadValueIds nodesToRead;
-    HistoryReadDataResults results;
-    UaDiagnosticInfos diagnosticInfos;
+    UaStatus                      status;
+    UaClientSdk::ServiceSettings               serviceSettings;
+    UaClientSdk::HistoryReadRawModifiedContext historyReadRawModifiedContext;
+    UaHistoryReadValueIds         nodesToRead;
+    UaClientSdk::HistoryReadDataResults        results;
+    UaDiagnosticInfos             diagnosticInfos;
 
     UaNodeId nodeToRead(g_HistoryDataNodeIds[0]);
 
@@ -315,34 +318,41 @@ void historyReadDataRaw() {
     /*********************************************************************
      Update the history of events at an event notifier object
     **********************************************************************/
-    status = g_pUaSession->historyReadRawModified(
-        serviceSettings,
-        historyReadRawModifiedContext,
-        nodesToRead,
-        results,
-        diagnosticInfos);
+    status = m_pSession->historyReadRawModified(
+            serviceSettings,
+            historyReadRawModifiedContext,
+            nodesToRead,
+            results,
+            diagnosticInfos);
     /*********************************************************************/
-    if (status.isBad()) {
+    if ( status.isBad() )
+    {
         printf("** Error: UaSession::historyReadProcessed failed [ret=%s]\n", status.toString().toUtf8());
         return;
-    } else {
+    }
+    else
+    {
         OpcUa_UInt32 i, j;
-        for (i = 0; i < results.length(); i++) {
+        for ( i=0; i<results.length(); i++ )
+        {
             UaStatus nodeResult(results[i].m_status);
-            printf("** Results %d Node=%s status=%s\n", i, nodeToRead.toXmlString().toUtf8(),
-                   nodeResult.toString().toUtf8());
+            printf("** Results %d Node=%s status=%s\n", i, nodeToRead.toXmlString().toUtf8(), nodeResult.toString().toUtf8());
 
-            for (j = 0; j < results[i].m_dataValues.length(); j++) {
+            for ( j=0; j<results[i].m_dataValues.length(); j++ )
+            {
                 UaStatus statusOPLevel(results[i].m_dataValues[j].StatusCode);
                 UaDateTime sourceTS(results[i].m_dataValues[j].SourceTimestamp);
-                if (OpcUa_IsGood(results[i].m_dataValues[j].StatusCode)) {
+                if ( OpcUa_IsGood(results[i].m_dataValues[j].StatusCode) )
+                {
                     UaVariant tempValue = results[i].m_dataValues[j].Value;
                     printf("**    [%d] value %s ts %s status %s\n",
                            j,
                            tempValue.toString().toUtf8(),
                            sourceTS.toTimeString().toUtf8(),
                            statusOPLevel.toString().toUtf8());
-                } else {
+                }
+                else
+                {
                     printf("**    [%d] status %s ts %s\n",
                            j,
                            statusOPLevel.toString().toUtf8(),
@@ -352,7 +362,8 @@ void historyReadDataRaw() {
         }
         printf("****************************************************************\n\n");
 
-        while (results[0].m_continuationPoint.length() > 0) {
+        while ( results[0].m_continuationPoint.length() > 0 )
+        {
             printf("\n*******************************************************\n");
             printf("** More data available                          *******\n");
             printf("**        Press x to stop read                  *******\n");
@@ -361,49 +372,57 @@ void historyReadDataRaw() {
             int action;
             /******************************************************************************/
             /* Wait for user command. */
-            bool waitForInput = true;
-            while (waitForInput) {
-                if (WaitForKeypress(action)) {
-                    // x -> Release continuation point
-                    historyReadRawModifiedContext.bReleaseContinuationPoints = OpcUa_True;
-                    waitForInput = false;
-                }
-                    // Continue
-                else if (action == 12) waitForInput = false;
-                    // Wait
-                else usleep(100);
-            }
+//            bool waitForInput = true;
+//            while (waitForInput)
+//            {
+//                if ( WaitForKeypress(action) )
+//                {
+//                    // x -> Release continuation point
+//                    historyReadRawModifiedContext.bReleaseContinuationPoints = OpcUa_True;
+//                    waitForInput = false;
+//                }
+//                    // Continue
+//                else if ( action == 12 ) waitForInput = false;
+//                    // Wait
+//                else usleep(100);
+//            }
             /******************************************************************************/
 
             OpcUa_ByteString_Clear(&nodesToRead[0].ContinuationPoint);
             results[0].m_continuationPoint.copyTo(&nodesToRead[0].ContinuationPoint);
-            status = g_pUaSession->historyReadRawModified(
-                serviceSettings,
-                historyReadRawModifiedContext,
-                nodesToRead,
-                results,
-                diagnosticInfos);
-            if (status.isBad()) {
-                printf("** Error: UaSession::historyReadProcessed with CP failed [ret=%s]\n",
-                       status.toString().toUtf8());
+            status = m_pSession->historyReadRawModified(
+                    serviceSettings,
+                    historyReadRawModifiedContext,
+                    nodesToRead,
+                    results,
+                    diagnosticInfos);
+            if ( status.isBad() )
+            {
+                printf("** Error: UaSession::historyReadProcessed with CP failed [ret=%s]\n", status.toString().toUtf8());
                 return;
-            } else {
-                for (i = 0; i < results.length(); i++) {
+            }
+            else
+            {
+                for ( i=0; i<results.length(); i++ )
+                {
                     UaStatus nodeResult(results[i].m_status);
-                    printf("** Results %d Node=%s status=%s\n", i, nodeToRead.toXmlString().toUtf8(),
-                           nodeResult.toString().toUtf8());
+                    printf("** Results %d Node=%s status=%s\n", i, nodeToRead.toXmlString().toUtf8(), nodeResult.toString().toUtf8());
 
-                    for (j = 0; j < results[i].m_dataValues.length(); j++) {
+                    for ( j=0; j<results[i].m_dataValues.length(); j++ )
+                    {
                         UaStatus statusOPLevel(results[i].m_dataValues[j].StatusCode);
                         UaDateTime sourceTS(results[i].m_dataValues[j].SourceTimestamp);
-                        if (OpcUa_IsGood(results[i].m_dataValues[j].StatusCode)) {
+                        if ( OpcUa_IsGood(results[i].m_dataValues[j].StatusCode) )
+                        {
                             UaVariant tempValue = results[i].m_dataValues[j].Value;
                             printf("**    [%d] value %s ts %s status %s\n",
                                    j,
                                    tempValue.toString().toUtf8(),
                                    sourceTS.toTimeString().toUtf8(),
                                    statusOPLevel.toString().toUtf8());
-                        } else {
+                        }
+                        else
+                        {
                             printf("**    [%d] status %s ts %s\n",
                                    j,
                                    statusOPLevel.toString().toUtf8(),
@@ -419,26 +438,29 @@ void historyReadDataRaw() {
 /*============================================================================
  * historyReadDataProcessed - read processed data history
  *===========================================================================*/
-void historyReadDataProcessed() {
+void Subscription::historyReadDataProcessed()
+{
     printf("\n\n****************************************************************\n");
     printf("** Try to read processed data history\n");
-    if (g_pUaSession == NULL) {
+    if ( m_pSession == nullptr )
+    {
         printf("** Error: Server not connected\n");
         printf("****************************************************************\n");
         return;
     }
-    if (g_HistoryDataNodeIds.length() < 1) {
+    if ( g_HistoryDataNodeIds.length() < 1 )
+    {
         printf("** Error: No history node configured\n");
         printf("****************************************************************\n");
         return;
     }
 
-    UaStatus status;
-    ServiceSettings serviceSettings;
-    HistoryReadProcessedContext historyReadProcessedContext;
-    UaHistoryReadValueIds nodesToRead;
-    HistoryReadDataResults results;
-    UaDiagnosticInfos diagnosticInfos;
+    UaStatus                    status;
+    UaClientSdk::ServiceSettings             serviceSettings;
+    UaClientSdk::HistoryReadProcessedContext historyReadProcessedContext;
+    UaHistoryReadValueIds       nodesToRead;
+    UaClientSdk::HistoryReadDataResults      results;
+    UaDiagnosticInfos           diagnosticInfos;
 
     UaNodeId nodeToRead(g_HistoryDataNodeIds[0]);
 
@@ -467,45 +489,45 @@ void historyReadDataProcessed() {
     /*********************************************************************
      Update the history of events at an event notifier object
     **********************************************************************/
-    status = g_pUaSession->historyReadProcessed(
-        serviceSettings,
-        historyReadProcessedContext,
-        nodesToRead,
-        results,
-        diagnosticInfos);
+    status = m_pSession->historyReadProcessed(
+            serviceSettings,
+            historyReadProcessedContext,
+            nodesToRead,
+            results,
+            diagnosticInfos);
     /*********************************************************************/
-    if (status.isBad()) {
+    if ( status.isBad() )
+    {
         printf("** Error: UaSession::historyReadProcessed failed [ret=%s]\n", status.toString().toUtf8());
         return;
-    } else {
+    }
+    else
+    {
         OpcUa_UInt32 i, j;
-        for (i = 0; i < results.length(); i++) {
+        for ( i=0; i<results.length(); i++ )
+        {
             UaStatus nodeResult(results[i].m_status);
-            if (i == 0)
-                printf("** Results %d Node=%s Aggregate=Count status=%s\n", i, nodeToRead.toXmlString().toUtf8(),
-                       nodeResult.toString().toUtf8());
-            else if (i == 1)
-                printf("** Results %d Node=%s Aggregate=Minimum status=%s\n", i, nodeToRead.toXmlString().toUtf8(),
-                       nodeResult.toString().toUtf8());
-            else if (i == 2)
-                printf("** Results %d Node=%s Aggregate=Maximum status=%s\n", i, nodeToRead.toXmlString().toUtf8(),
-                       nodeResult.toString().toUtf8());
-            else if (i == 3)
-                printf("** Results %d Node=%s Aggregate=Average status=%s\n", i, nodeToRead.toXmlString().toUtf8(),
-                       nodeResult.toString().toUtf8());
-            else printf("** Unexpected Results %d\n", i);
+            if ( i==0 )      printf("** Results %d Node=%s Aggregate=Count status=%s\n", i, nodeToRead.toXmlString().toUtf8(), nodeResult.toString().toUtf8());
+            else if ( i==1 ) printf("** Results %d Node=%s Aggregate=Minimum status=%s\n", i, nodeToRead.toXmlString().toUtf8(), nodeResult.toString().toUtf8());
+            else if ( i==2 ) printf("** Results %d Node=%s Aggregate=Maximum status=%s\n", i, nodeToRead.toXmlString().toUtf8(), nodeResult.toString().toUtf8());
+            else if ( i==3 ) printf("** Results %d Node=%s Aggregate=Average status=%s\n", i, nodeToRead.toXmlString().toUtf8(), nodeResult.toString().toUtf8());
+            else             printf("** Unexpected Results %d\n", i);
 
-            for (j = 0; j < results[i].m_dataValues.length(); j++) {
+            for ( j=0; j<results[i].m_dataValues.length(); j++ )
+            {
                 UaStatus statusOPLevel(results[i].m_dataValues[j].StatusCode);
                 UaDateTime sourceTS(results[i].m_dataValues[j].SourceTimestamp);
-                if (OpcUa_IsGood(results[i].m_dataValues[j].StatusCode)) {
+                if ( OpcUa_IsGood(results[i].m_dataValues[j].StatusCode) )
+                {
                     UaVariant tempValue = results[i].m_dataValues[j].Value;
                     printf("**    [%d] value %s ts %s status %s\n",
                            j,
                            tempValue.toString().toUtf8(),
                            sourceTS.toTimeString().toUtf8(),
                            statusOPLevel.toString().toUtf8());
-                } else {
+                }
+                else
+                {
                     printf("**    [%d] status %s ts %s\n",
                            j,
                            statusOPLevel.toString().toUtf8(),
@@ -519,26 +541,29 @@ void historyReadDataProcessed() {
 /*============================================================================
  * historyReadDataAtTime - read data history at timestamps
  *===========================================================================*/
-void historyReadDataAtTime() {
+void Subscription::historyReadDataAtTime()
+{
     printf("\n\n****************************************************************\n");
     printf("** Try to read data history at timestamps \n");
-    if (g_pUaSession == NULL) {
+    if ( m_pSession == nullptr )
+    {
         printf("** Error: Server not connected\n");
         printf("****************************************************************\n");
         return;
     }
-    if (g_HistoryDataNodeIds.length() < 1) {
+    if ( g_HistoryDataNodeIds.length() < 1 )
+    {
         printf("** Error: No history node configured\n");
         printf("****************************************************************\n");
         return;
     }
 
-    UaStatus status;
-    ServiceSettings serviceSettings;
-    HistoryReadAtTimeContext historyReadAtTimeContext;
-    UaHistoryReadValueIds nodesToRead;
-    HistoryReadDataResults results;
-    UaDiagnosticInfos diagnosticInfos;
+    UaStatus                    status;
+    UaClientSdk::ServiceSettings             serviceSettings;
+    UaClientSdk::HistoryReadAtTimeContext    historyReadAtTimeContext;
+    UaHistoryReadValueIds       nodesToRead;
+    UaClientSdk::HistoryReadDataResults      results;
+    UaDiagnosticInfos           diagnosticInfos;
     OpcUa_UInt32 i, j, count;
 
     UaNodeId nodeToRead(g_HistoryDataNodeIds[0]);
@@ -549,7 +574,8 @@ void historyReadDataAtTime() {
     historyReadAtTimeContext.useSimpleBounds = OpcUa_True;
     historyReadAtTimeContext.requestedTimes.create(count);
     UaDateTime timeSetting = UaDateTime::now();
-    for (i = 0; i < count; i++) {
+    for ( i=0; i<count; i++ )
+    {
         timeSetting.addMilliSecs(-1000);
         timeSetting.copyTo(&historyReadAtTimeContext.requestedTimes[i]);
     }
@@ -561,24 +587,29 @@ void historyReadDataAtTime() {
     /*********************************************************************
      Update the history of events at an event notifier object
     **********************************************************************/
-    status = g_pUaSession->historyReadAtTime(
-        serviceSettings,
-        historyReadAtTimeContext,
-        nodesToRead,
-        results,
-        diagnosticInfos);
+    status = m_pSession->historyReadAtTime(
+            serviceSettings,
+            historyReadAtTimeContext,
+            nodesToRead,
+            results,
+            diagnosticInfos);
     /*********************************************************************/
-    if (status.isBad()) {
+    if ( status.isBad() )
+    {
         printf("** Error: UaSession::historyReadAtTime failed [ret=%s]\n", status.toString().toUtf8());
         return;
-    } else {
-        for (i = 0; i < results.length(); i++) {
+    }
+    else
+    {
+        for ( i=0; i<results.length(); i++ )
+        {
             UaStatus nodeResult(results[i].m_status);
-            printf("** Results %d Node=%s status=%s\n", i, nodeToRead.toXmlString().toUtf8(),
-                   nodeResult.toString().toUtf8());
+            printf("** Results %d Node=%s status=%s\n", i, nodeToRead.toXmlString().toUtf8(), nodeResult.toString().toUtf8());
 
-            for (j = 0; j < results[i].m_dataValues.length(); j++) {
-                if (j >= count) {
+            for ( j=0; j<results[i].m_dataValues.length(); j++ )
+            {
+                if ( j >= count )
+                {
                     printf("**    More results returned than the %d requested\n", count);
                     break;
                 }
@@ -586,13 +617,16 @@ void historyReadDataAtTime() {
                 printf("**    [%d] Requested TS %s\n", j, requTS.toTimeString().toUtf8());
                 UaStatus statusOPLevel(results[i].m_dataValues[j].StatusCode);
                 UaDateTime sourceTS(results[i].m_dataValues[j].SourceTimestamp);
-                if (OpcUa_IsGood(results[i].m_dataValues[j].StatusCode)) {
+                if ( OpcUa_IsGood(results[i].m_dataValues[j].StatusCode) )
+                {
                     UaVariant tempValue = results[i].m_dataValues[j].Value;
                     printf("**         value %s ts %s status %s\n",
                            tempValue.toString().toUtf8(),
                            sourceTS.toTimeString().toUtf8(),
                            statusOPLevel.toString().toUtf8());
-                } else {
+                }
+                else
+                {
                     printf("**         status %s ts %s\n",
                            statusOPLevel.toString().toUtf8(),
                            sourceTS.toTimeString().toUtf8());
@@ -605,28 +639,31 @@ void historyReadDataAtTime() {
 /*============================================================================
  * historyUpdateData - update data history
  *===========================================================================*/
-void historyUpdateData() {
+void Subscription::historyUpdateData()
+{
     printf("\n\n****************************************************************\n");
     printf("** Try to update data history \n");
-    if (g_pUaSession == NULL) {
+    if ( m_pSession == nullptr )
+    {
         printf("** Error: Server not connected\n");
         printf("****************************************************************\n");
         return;
     }
 
-    if (g_HistoryDataNodeIds.length() < 1) {
+    if ( g_HistoryDataNodeIds.length() < 1 )
+    {
         printf("** Error: No history node configured\n");
         printf("****************************************************************\n");
         return;
     }
 
-    UaStatus status;
-    ServiceSettings serviceSettings;
-    UpdateDataDetails updateDataDetails;
-    UaHistoryUpdateResults results;
-    UaDiagnosticInfos diagnosticInfos;
-    UaVariant value;
-    UaDateTime dtNow;
+    UaStatus                    status;
+    UaClientSdk::ServiceSettings             serviceSettings;
+    UaClientSdk::UpdateDataDetails           updateDataDetails;
+    UaHistoryUpdateResults      results;
+    UaDiagnosticInfos           diagnosticInfos;
+    UaVariant                   value;
+    UaDateTime                  dtNow;
 
     // setup data to write into history
     updateDataDetails.create(1);
@@ -637,8 +674,9 @@ void historyUpdateData() {
     dtNow.addSecs(-20);
 
     // fill values to write into history
-    for (int i = 0; i < 10; i++) {
-        value.setDouble(i * i);
+    for (int i = 0; i < 10; i++)
+    {
+        value.setDouble(i*i);
         value.copyTo(&updateDataDetails[0].m_dataValues[i].Value);
         updateDataDetails[0].m_dataValues[i].SourceTimestamp = dtNow;
         updateDataDetails[0].m_dataValues[i].ServerTimestamp = dtNow;
@@ -648,29 +686,35 @@ void historyUpdateData() {
     /*********************************************************************
      Update the history of events at an event notifier object
     **********************************************************************/
-    status = g_pUaSession->historyUpdateData(
-        serviceSettings,
-        updateDataDetails,
-        results,
-        diagnosticInfos);
+    status = m_pSession->historyUpdateData(
+            serviceSettings,
+            updateDataDetails,
+            results,
+            diagnosticInfos);
     /*********************************************************************/
-    if (status.isBad()) {
+    if ( status.isBad() )
+    {
         printf("** Error: UaSession::historyReadProcessed failed [ret=%s]\n", status.toString().toUtf8());
         return;
-    } else {
+    }
+    else
+    {
         OpcUa_Int32 i;
 
-        if (OpcUa_IsGood(results[0].StatusCode)) {
+        if ( OpcUa_IsGood(results[0].StatusCode) )
+        {
             printf("historyUpdateData returned:\n");
-        } else {
-            printf("historyUpdateData operation returned status = %s:\n",
-                   UaStatus(results[0].StatusCode).toString().toUtf8());
+        }
+        else
+        {
+            printf("historyUpdateData operation returned status = %s:\n", UaStatus(results[0].StatusCode).toString().toUtf8());
         }
 
-        for (i = 0; i < results[0].NoOfOperationResults; i++) {
-            if (OpcUa_IsNotGood(results[0].OperationResults[i])) {
-                printf("historyUpdateData operation[%d] failed with status = %s:\n", i,
-                       UaStatus(results[0].OperationResults[i]).toString().toUtf8());
+        for ( i=0; i<results[0].NoOfOperationResults; i++ )
+        {
+            if ( OpcUa_IsNotGood(results[0].OperationResults[i]) )
+            {
+                printf("historyUpdateData operation[%d] failed with status = %s:\n", i, UaStatus(results[0].OperationResults[i]).toString().toUtf8());
             }
         }
     }
@@ -679,21 +723,23 @@ void historyUpdateData() {
 /*============================================================================
  * historyDeleteData - delete data history
  *===========================================================================*/
-void historyDeleteData() {
+void Subscription::historyDeleteData()
+{
     printf("\n\n****************************************************************\n");
     printf("** Try to delete data history \n");
-    if (g_pUaSession == NULL) {
+    if ( m_pSession == nullptr )
+    {
         printf("** Error: Server not connected\n");
         printf("****************************************************************\n");
         return;
     }
 
     // delete the last 30 seoncdes of the history
-    UaStatus status;
-    ServiceSettings serviceSettings;
-    DeleteRawModifiedDetails deleteDetails;
-    UaHistoryUpdateResults results;
-    UaDiagnosticInfos diagnosticInfos;
+    UaStatus                    status;
+    UaClientSdk::ServiceSettings             serviceSettings;
+    UaClientSdk::DeleteRawModifiedDetails    deleteDetails;
+    UaHistoryUpdateResults      results;
+    UaDiagnosticInfos           diagnosticInfos;
 
     deleteDetails.create(1);
     deleteDetails[0].m_startTime = UaDateTime::now();
@@ -705,28 +751,34 @@ void historyDeleteData() {
     /*********************************************************************
      Delete part of the history
     **********************************************************************/
-    status = g_pUaSession->historyDeleteRawModified(
-        serviceSettings, // Use default settings
-        deleteDetails,
-        results,
-        diagnosticInfos);
+    status = m_pSession->historyDeleteRawModified(
+            serviceSettings, // Use default settings
+            deleteDetails,
+            results,
+            diagnosticInfos);
     /*********************************************************************/
-    if (status.isBad()) {
+    if ( status.isBad() )
+    {
         printf("** Error: UaSession::historyDeleteRawModified failed [ret=%s]\n", status.toString().toUtf8());
         return;
-    } else {
-        if (OpcUa_IsGood(results[0].StatusCode)) {
+    }
+    else
+    {
+        if ( OpcUa_IsGood(results[0].StatusCode) )
+        {
             printf("historyDeleteRawModified succeeeded.\n");
-        } else {
-            printf("historyDeleteRawModified operation returned status = %s:\n",
-                   UaStatus(results[0].StatusCode).toString().toUtf8());
+        }
+        else
+        {
+            printf("historyDeleteRawModified operation returned status = %s:\n", UaStatus(results[0].StatusCode).toString().toUtf8());
         }
 
         OpcUa_Int32 i;
-        for (i = 0; i < results[0].NoOfOperationResults; i++) {
-            if (OpcUa_IsNotGood(results[0].OperationResults[i])) {
-                printf("historyDeleteRawModified operation[%d] failed with status = %s:\n", i,
-                       UaStatus(results[0].OperationResults[i]).toString().toUtf8());
+        for ( i=0; i<results[0].NoOfOperationResults; i++ )
+        {
+            if ( OpcUa_IsNotGood(results[0].OperationResults[i]) )
+            {
+                printf("historyDeleteRawModified operation[%d] failed with status = %s:\n", i, UaStatus(results[0].OperationResults[i]).toString().toUtf8());
             }
         }
     }
@@ -735,48 +787,53 @@ void historyDeleteData() {
 /*============================================================================
  * historyReadEvents - read event history
  *===========================================================================*/
-void historyReadEvents() {
+void Subscription::historyReadEvents()
+{
     printf("\n\n****************************************************************\n");
     printf("** Try to read event history \n");
-    if (g_pUaSession == NULL) {
+    if ( m_pSession == nullptr )
+    {
         printf("** Error: Server not connected\n");
         printf("****************************************************************\n");
         return;
     }
 
     // call methods to generate events
-    UaStatus status;
-    ServiceSettings serviceSettings;
-    CallIn callRequest;
-    CallOut callResult;
+    UaStatus           status;
+    UaClientSdk::ServiceSettings    serviceSettings;
+    UaClientSdk::CallIn             callRequest;
+    UaClientSdk::CallOut            callResult;
 
-    if (g_EventIds.length() < 3) {
+    if (g_EventIds.length() < 3)
+    {
         // Call Methods to generate events
         callRequest.objectId = g_EventTriggerObjects[0];
         callRequest.methodId = g_EventTriggerMethods[0];
-        status = g_pUaSession->call(
-            serviceSettings,    // Use default settings
-            callRequest,        // In parameters and settings for the method call
-            callResult);        // Out parameters and results returned from the method call
-        if (status.isBad()) {
+        status = m_pSession->call(
+                serviceSettings,    // Use default settings
+                callRequest,        // In parameters and settings for the method call
+                callResult);        // Out parameters and results returned from the method call
+        if ( status.isBad() )
+        {
             printf("** Error: UaSession::call failed [ret=%s]\n", status.toString().toUtf8());
         }
         // Call Methods to generate events
         callRequest.objectId = g_EventTriggerObjects[1];
         callRequest.methodId = g_EventTriggerMethods[1];
-        status = g_pUaSession->call(
-            serviceSettings,    // Use default settings
-            callRequest,        // In parameters and settings for the method call
-            callResult);        // Out parameters and results returned from the method call
-        if (status.isBad()) {
+        status = m_pSession->call(
+                serviceSettings,    // Use default settings
+                callRequest,        // In parameters and settings for the method call
+                callResult);        // Out parameters and results returned from the method call
+        if ( status.isBad() )
+        {
             printf("** Error: UaSession::call failed [ret=%s]\n", status.toString().toUtf8());
         }
     }
 
-    HistoryReadEventContext historyReadEventContext;
-    UaHistoryReadValueIds nodesToRead;
-    HistoryReadEventResults results;
-    UaDiagnosticInfos diagnosticInfos;
+    UaClientSdk::HistoryReadEventContext  historyReadEventContext;
+    UaHistoryReadValueIds    nodesToRead;
+    UaClientSdk::HistoryReadEventResults  results;
+    UaDiagnosticInfos        diagnosticInfos;
     UaSimpleAttributeOperand selectElement;
 
     nodesToRead.create(1);
@@ -801,50 +858,61 @@ void historyReadEvents() {
     /*********************************************************************
      Read the history of events from an event notifier object
     **********************************************************************/
-    status = g_pUaSession->historyReadEvent(
-        serviceSettings,
-        historyReadEventContext,
-        nodesToRead,
-        results,
-        diagnosticInfos);
+    status = m_pSession->historyReadEvent(
+            serviceSettings,
+            historyReadEventContext,
+            nodesToRead,
+            results,
+            diagnosticInfos);
     /*********************************************************************/
-    if (status.isBad()) {
+    if ( status.isBad() )
+    {
         printf("** Error: UaSession::historyReadEvent failed [ret=%s]\n", status.toString().toUtf8());
         return;
-    } else {
+    }
+    else
+    {
         // save the eventIds for later use in historyDeleteEvents
         g_EventIds.clear();
         g_EventIds.create(results[0].m_events.length());
         OpcUa_UInt32 i;
         OpcUa_UInt32 j;
 
-        if (results[0].m_status.isGood()) {
+        if ( results[0].m_status.isGood() )
+        {
             printf("HistoryReadEvent returned:\n");
-        } else {
+        }
+        else
+        {
             printf("HistoryReadEvent operation returned status = %s:\n", results[0].m_status.toString().toUtf8());
         }
         j = 0;
-        for (i = 0; i < results[0].m_events.length(); i++) {
-            if (results[0].m_events[i].NoOfEventFields == 4) {
+        for ( i=0; i<results[0].m_events.length(); i++ )
+        {
+            if ( results[0].m_events[i].NoOfEventFields == 4 )
+            {
                 UaVariant uvTime(results[0].m_events[i].EventFields[0]);
                 UaVariant uvMessage(results[0].m_events[i].EventFields[1]);
                 UaVariant uvSource(results[0].m_events[i].EventFields[2]);
-                printf("%s %s %s \n", uvTime.toString().toUtf8(), uvSource.toString().toUtf8(),
-                       uvMessage.toString().toUtf8());
+                printf("%s %s %s \n", uvTime.toString().toUtf8(), uvSource.toString().toUtf8(), uvMessage.toString().toUtf8());
 
                 UaVariant uvEventId(results[0].m_events[i].EventFields[3]);
                 UaByteString bsEventId;
-                if (OpcUa_IsGood(uvEventId.toByteString(bsEventId))) {
+                if (OpcUa_IsGood(uvEventId.toByteString(bsEventId)))
+                {
                     bsEventId.copyTo(&g_EventIds[j]);
                     j++;
                 }
-            } else {
+            }
+            else
+            {
                 printf("Invalid event\n");
             }
         }
         g_EventIds.resize(j);
 
-        while (results[0].m_continuationPoint.length() > 0) {
+        while ( results[0].m_continuationPoint.length() > 0 )
+        {
             printf("\n*******************************************************\n");
             printf("** More data available                          *******\n");
             printf("**        Press x to stop read                  *******\n");
@@ -854,53 +922,64 @@ void historyReadEvents() {
             /******************************************************************************/
             /* Wait for user command. */
             bool waitForInput = true;
-            while (waitForInput) {
-                if (WaitForKeypress(action)) {
-                    // x -> Release continuation point
-                    historyReadEventContext.bReleaseContinuationPoints = OpcUa_True;
-                    waitForInput = false;
-                }
-                    // Continue
-                else if (action == 12) waitForInput = false;
-                    // Wait
-                else usleep(100);
-            }
+//            while (waitForInput)
+//            {
+//                if ( WaitForKeypress(action) )
+//                {
+//                    // x -> Release continuation point
+//                    historyReadEventContext.bReleaseContinuationPoints = OpcUa_True;
+//                    waitForInput = false;
+//                }
+//                    // Continue
+//                else if ( action == 12 ) waitForInput = false;
+//                    // Wait
+//                else usleep(100);
+//            }
             /******************************************************************************/
 
             OpcUa_ByteString_Clear(&nodesToRead[0].ContinuationPoint);
             results[0].m_continuationPoint.copyTo(&nodesToRead[0].ContinuationPoint);
-            status = g_pUaSession->historyReadEvent(
-                serviceSettings,
-                historyReadEventContext,
-                nodesToRead,
-                results,
-                diagnosticInfos);
-            if (status.isBad()) {
+            status = m_pSession->historyReadEvent(
+                    serviceSettings,
+                    historyReadEventContext,
+                    nodesToRead,
+                    results,
+                    diagnosticInfos);
+            if ( status.isBad() )
+            {
                 printf("** Error: UaSession::historyReadEvent with CP failed [ret=%s]\n", status.toString().toUtf8());
                 return;
-            } else {
+            }
+            else
+            {
                 g_EventIds.resize(results[0].m_events.length() + g_EventIds.length());
-                if (results[0].m_status.isGood()) {
+                if ( results[0].m_status.isGood() )
+                {
                     printf("HistoryReadEvent returned:\n");
-                } else {
-                    printf("HistoryReadEvent operation returned status = %s:\n",
-                           results[0].m_status.toString().toUtf8());
                 }
-                for (i = 0; i < results[0].m_events.length(); i++) {
-                    if (results[0].m_events[i].NoOfEventFields == 4) {
+                else
+                {
+                    printf("HistoryReadEvent operation returned status = %s:\n", results[0].m_status.toString().toUtf8());
+                }
+                for ( i=0; i<results[0].m_events.length(); i++ )
+                {
+                    if ( results[0].m_events[i].NoOfEventFields == 4 )
+                    {
                         UaVariant uvTime(results[0].m_events[i].EventFields[0]);
                         UaVariant uvMessage(results[0].m_events[i].EventFields[1]);
                         UaVariant uvSource(results[0].m_events[i].EventFields[2]);
-                        printf("%s %s %s \n", uvTime.toString().toUtf8(), uvSource.toString().toUtf8(),
-                               uvMessage.toString().toUtf8());
+                        printf("%s %s %s \n", uvTime.toString().toUtf8(), uvSource.toString().toUtf8(), uvMessage.toString().toUtf8());
 
                         UaVariant uvEventId(results[0].m_events[i].EventFields[3]);
                         UaByteString bsEventId;
-                        if (OpcUa_IsGood(uvEventId.toByteString(bsEventId))) {
+                        if (OpcUa_IsGood(uvEventId.toByteString(bsEventId)))
+                        {
                             bsEventId.copyTo(&g_EventIds[j]);
                             j++;
                         }
-                    } else {
+                    }
+                    else
+                    {
                         printf("Invalid event\n");
                     }
                 }
@@ -913,22 +992,24 @@ void historyReadEvents() {
 /*============================================================================
  * historyUpdateEvents - update event history
  *===========================================================================*/
-void historyUpdateEvents() {
+void Subscription::historyUpdateEvents()
+{
     printf("\n\n****************************************************************\n");
     printf("** Try to update event history \n");
-    if (g_pUaSession == NULL) {
+    if ( m_pSession == nullptr )
+    {
         printf("** Error: Server not connected\n");
         printf("****************************************************************\n");
         return;
     }
 
-    UaStatus status;
-    ServiceSettings serviceSettings;
-    UpdateEventDetails updateEventDetails;
-    UaHistoryUpdateResults results;
-    UaDiagnosticInfos diagnosticInfos;
-    UaSimpleAttributeOperand selectElement;
-    OpcUa_Int32 i;
+    UaStatus                    status;
+    UaClientSdk::ServiceSettings             serviceSettings;
+    UaClientSdk::UpdateEventDetails          updateEventDetails;
+    UaHistoryUpdateResults      results;
+    UaDiagnosticInfos           diagnosticInfos;
+    UaSimpleAttributeOperand    selectElement;
+    OpcUa_Int32                 i;
 
     updateEventDetails.create(1);
     updateEventDetails[0].m_PerformInsertReplace = OpcUa_PerformUpdateType_Update;
@@ -953,16 +1034,17 @@ void historyUpdateEvents() {
     UaHistoryEventFieldList eventFieldList;
     dateTime.addSecs(-10);
 
-    for (i = 0; i < 3; i++) {
+    for ( i=0; i<3; i++ )
+    {
         // set time
         dateTime.addSecs(1);
         value.setDateTime(dateTime);
         value.copyTo(&eventFields[0]);
         // set messsage
-        value.setLocalizedText(UaLocalizedText("en", UaString("UpdateMessage_%1").arg(i + 1)));
+        value.setLocalizedText(UaLocalizedText("en",UaString("UpdateMessage_%1").arg(i+1)));
         value.copyTo(&eventFields[1]);
         // set source name
-        value.setString(UaString("AirConditioner_%1").arg(i + 1));
+        value.setString(UaString("AirConditioner_%1").arg(i+1));
         value.copyTo(&eventFields[2]);
         // set event type - we use base event type here
         value.setNodeId(UaNodeId(OpcUaId_BaseEventType, 0));
@@ -975,28 +1057,34 @@ void historyUpdateEvents() {
     /*********************************************************************
      Update the history of events at an event notifier object
     **********************************************************************/
-    status = g_pUaSession->historyUpdateEvents(
-        serviceSettings, // Use default settings
-        updateEventDetails,
-        results,
-        diagnosticInfos);
+    status = m_pSession->historyUpdateEvents(
+            serviceSettings, // Use default settings
+            updateEventDetails,
+            results,
+            diagnosticInfos);
     /*********************************************************************/
-    if (status.isBad()) {
+    if ( status.isBad() )
+    {
         printf("** Error: UaSession::historyUpdateEvents failed [ret=%s]\n", status.toString().toUtf8());
         return;
-    } else {
-        if (OpcUa_IsGood(results[0].StatusCode)) {
+    }
+    else
+    {
+        if ( OpcUa_IsGood(results[0].StatusCode) )
+        {
             printf("historyUpdateEvents succeeded\n");
 
-            for (i = 0; i < results[0].NoOfOperationResults; i++) {
-                if (OpcUa_IsNotGood(results[0].OperationResults[i])) {
-                    printf("OperationResults[%d] = %s:\n", i,
-                           UaStatus(results[0].OperationResults[i]).toString().toUtf8());
+            for ( i=0; i<results[0].NoOfOperationResults; i++)
+            {
+                if ( OpcUa_IsNotGood(results[0].OperationResults[i]) )
+                {
+                    printf("OperationResults[%d] = %s:\n", i, UaStatus(results[0].OperationResults[i]).toString().toUtf8());
                 }
             }
-        } else {
-            printf("historyUpdateEvents operation returned status = %s:\n",
-                   UaStatus(results[0].StatusCode).toString().toUtf8());
+        }
+        else
+        {
+            printf("historyUpdateEvents operation returned status = %s:\n", UaStatus(results[0].StatusCode).toString().toUtf8());
         }
     }
 }
@@ -1004,21 +1092,25 @@ void historyUpdateEvents() {
 /*============================================================================
  * historyDeleteEvents - delete event history
  *===========================================================================*/
-void historyDeleteEvents() {
+void Subscription::historyDeleteEvents()
+{
     printf("\n\n****************************************************************\n");
     printf("** Try to delete event history \n");
-    if (g_pUaSession == NULL) {
+    if ( m_pSession == nullptr )
+    {
         printf("** Error: Server not connected\n");
         printf("****************************************************************\n");
         return;
     }
 
     // we need some data to delete - the eventIds are filled in void historyReadEvents
-    if (g_EventIds.length() < 3) {
+    if (g_EventIds.length() < 3)
+    {
         historyReadEvents();
     }
 
-    if (g_EventIds.length() < 3) {
+    if (g_EventIds.length() < 3)
+    {
         printf("\n\n****************************************************************\n");
         printf("** Error: Not enough event history available - need at least 3 events\n");
         printf("****************************************************************\n");
@@ -1026,11 +1118,11 @@ void historyDeleteEvents() {
     }
 
     // delete first 2 entries in the event history
-    UaStatus status;
-    ServiceSettings serviceSettings;
-    DeleteEventDetails deleteDetails;
-    UaHistoryUpdateResults results;
-    UaDiagnosticInfos diagnosticInfos;
+    UaStatus                status;
+    UaClientSdk::ServiceSettings         serviceSettings;
+    UaClientSdk::DeleteEventDetails      deleteDetails;
+    UaHistoryUpdateResults  results;
+    UaDiagnosticInfos       diagnosticInfos;
 
     deleteDetails.create(1);
     deleteDetails[0].m_eventIds.create(2);
@@ -1039,38 +1131,45 @@ void historyDeleteEvents() {
     UaByteString::cloneTo(g_EventIds[1], deleteDetails[0].m_eventIds[1]);
     UaByteStringArray bsTmpArray = g_EventIds;
     g_EventIds.clear();
-    g_EventIds.resize(bsTmpArray.length() - 2);
-    for (OpcUa_UInt32 i = 2; i < bsTmpArray.length(); i++) {
-        g_EventIds[i - 2] = bsTmpArray[i];
+    g_EventIds.resize(bsTmpArray.length()-2);
+    for (OpcUa_UInt32 i = 2; i < bsTmpArray.length(); i++)
+    {
+        g_EventIds[i-2] = bsTmpArray[i];
     }
     bsTmpArray.detach();
 
     /*********************************************************************
      Delete part of the event history
     **********************************************************************/
-    status = g_pUaSession->historyDeleteEvents(
-        serviceSettings, // Use default settings
-        deleteDetails,
-        results,
-        diagnosticInfos);
+    status = m_pSession->historyDeleteEvents(
+            serviceSettings, // Use default settings
+            deleteDetails,
+            results,
+            diagnosticInfos);
     /*********************************************************************/
-    if (status.isBad()) {
+    if ( status.isBad() )
+    {
         printf("** Error: UaSession::historyDeleteEvents failed [ret=%s]\n", status.toString().toUtf8());
         return;
-    } else {
+    }
+    else
+    {
         OpcUa_Int32 i;
 
-        if (OpcUa_IsGood(results[0].StatusCode)) {
+        if ( OpcUa_IsGood(results[0].StatusCode) )
+        {
             printf("historyDeleteEvents returned:\n");
-        } else {
-            printf("historyDeleteEvents operation returned status = %s:\n",
-                   UaStatus(results[0].StatusCode).toString().toUtf8());
+        }
+        else
+        {
+            printf("historyDeleteEvents operation returned status = %s:\n", UaStatus(results[0].StatusCode).toString().toUtf8());
         }
 
-        for (i = 0; i < results[0].NoOfOperationResults; i++) {
-            if (OpcUa_IsNotGood(results[0].OperationResults[i])) {
-                printf("historyDeleteEvents operation[%d] failed with status = %s:\n", i,
-                       UaStatus(results[0].OperationResults[i]).toString().toUtf8());
+        for ( i=0; i<results[0].NoOfOperationResults; i++ )
+        {
+            if ( OpcUa_IsNotGood(results[0].OperationResults[i]) )
+            {
+                printf("historyDeleteEvents operation[%d] failed with status = %s:\n", i, UaStatus(results[0].OperationResults[i]).toString().toUtf8());
             }
         }
     }
