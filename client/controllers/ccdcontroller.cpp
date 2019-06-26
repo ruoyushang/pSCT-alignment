@@ -63,7 +63,7 @@ UaStatus CCDController::getData(OpcUa_UInt32 offset, UaVariant &value) {
     if (dataoffset >= 6)
         return OpcUa_BadInvalidArgument;
 
-    if (!__expired())
+    if (__expired())
         status = read(false);
 
     if (!m_updated)

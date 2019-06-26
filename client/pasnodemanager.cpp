@@ -21,16 +21,37 @@
 #include "client/utilities/configuration.hpp"
 
 
-PasNodeManager::PasNodeManager()
-: PasNodeManagerCommon()
+PasNodeManager::PasNodeManager(std::shared_ptr<Configuration> pConfiguration, std::string mode)
+    : PasNodeManagerCommon(), m_Mode(std::move(mode)), m_pConfiguration(pConfiguration)
 {
     std::cout << "PasNodeManager:: Creating new Node Manager...\n";
     m_pPositioner = new Client(this);
+    m_pPositioner->setConfiguration(m_pConfiguration);
+
+    createClients();
 }
 
 PasNodeManager::~PasNodeManager()
 {
     std::cout << "PasNodeManager:: Cleaning up...\n";
+}
+
+void PasNodeManager::createClients() {
+    unsigned numServers = 0;
+
+    // Create as many clients as needed (the number of servers)
+    if (m_Mode == "client") {
+        numServers = 0;
+    } else if (m_Mode == "subclient") {
+        numServers = m_pConfiguration->getDevices(PAS_PanelType).size();
+    }
+
+    std::cout << "PasNodeManager:: Creating servers interface...\n";
+    std::cout << "PasNodeManager:: Attempting to create " << numServers << " clients\n\n";
+    for (OpcUa_UInt32 i = 0; i < numServers; i++) {
+        m_pClients.push_back(new Client(this));
+        m_pClients.back()->setConfiguration(m_pConfiguration);
+    }
 }
 
 void PasNodeManager::setCommunicationInterface(std::shared_ptr<PasCommunicationInterface> &pCommIf)
@@ -44,13 +65,7 @@ void PasNodeManager::setConfiguration(std::shared_ptr<Configuration> pConfigurat
     std::cout << "PasNodeManager:: Setting configuration...\n";
     m_pConfiguration = std::move(pConfiguration);
 
-    m_pPositioner->setConfiguration(m_pConfiguration);
 
-    std::cout << "PasNodeManager:: Attempting to create " << m_pConfiguration->getServers() << " clients\n\n";
-    for (OpcUa_UInt32 i = 0; i < m_pConfiguration->getServers(); i++) {
-        m_pClients.push_back(new Client(this));
-        m_pClients.back()->setConfiguration(m_pConfiguration);
-    }
 }
 
 UaStatus PasNodeManager::afterStartUp()
@@ -62,54 +77,53 @@ UaStatus PasNodeManager::afterStartUp()
     ret = amendTypeNodes();
     UA_ASSERT(ret.isGood());
 
-    // connect to positioner:
-    std::cout << "PasNodeManager::afterStartUp(): Attempting to create controller for positioner...\n";
-    Device::Device::Identity id;
-    UaString positioner_address = m_pConfiguration->getPositionerUrl();
-    m_pPositioner->setAddress(positioner_address);
-    ret = m_pPositioner->connect();
-    if (ret.isGood()) {
-        id.eAddress = positioner_address.toUtf8();
-        id.name = "Positioner";
-        // add the positioner to the comm interface
-        dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->addDevice(m_pPositioner, GLOB_PositionerType, id);
-        std::cout << "PasNodeManager::afterStartUp(): Connected to positioner and added corresponding controller.\n";
-    } else {
-        std::cout << "PasNodeManager::afterStartUp(): Failed to connect to positioner at " << m_pConfiguration->getPositionerUrl().toUtf8()
-            << ". Moving on..." << std::endl;
-    }
-
-    // connecting each client to its server -- loop through all panels!
-    // this will add each panel to the communication interface; it will also browse the panels
-    // and add the devices on them, such as MPES/ACT/PSD;
-    // in the process, it will construct the edges out of the corresponding panels and sensors,
-    // as well as the whole mirror(s). WOW
-    // number of clients is the same as the number of servers/panels by our set up
-    std::cout << "\nPasNodeManager::afterStartUp(): Connecting to all panel servers...\n";
+    // connect to each server
+    std::cout << "\nPasNodeManager::afterStartUp(): Connecting to all servers...\n";
     unsigned client = 0;
-    for (const auto &panelId : m_pConfiguration->getDevices(PAS_PanelType)) {
-        // set the address of the panel as the client helper address and connect to the server
-        m_pClients.at(client)->setAddress(UaString(panelId.eAddress.c_str()));
+    for (const auto &address : m_pConfiguration->getServerAddresses()) {
+        m_pClients.at(client)->setAddress(address);
         ret = m_pClients.at(client)->connect();
         if (ret.isGood()) {
-            // Create controller for the single panel in each server
-            dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->addDevice(m_pClients.at(client), PAS_PanelType,
-                                                                                  panelId);
             // add controllers for other devices in each server (this will only include ACT, MPES, and PSD controllers)
             ret = m_pClients.at(client)->browseAndAddDevices();
-            std::cout << "PasNodeManager::afterStartUp(): Successfully connected to Panel " << panelId << " and created controller.\n";
+            std::cout << "PasNodeManager::afterStartUp(): Successfully connected to server at" << address
+                      << " and created all controllers.\n";
         } else
-            std::cout << "PasNodeManager::afterStartUp(): Failed to connect to Panel " << panelId << ". Moving on..." << std::endl;
+            std::cout << "PasNodeManager::afterStartUp(): Failed to connect to server at" << address << ". Moving on..."
+                      << std::endl;
 
         ++client;
     }
-    // Create all relevant edge controllers
-    std::cout << "\nPasNodeManager::afterStartUp(): Creating all required edge controllers...\n";
-    dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->addEdgeControllers();
 
-    // Create all relevant mirror controllers
-    std::cout << "\nPasNodeManager::afterStartUp(): Creating all required mirror controllers...\n";
-    dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->addMirrorControllers();
+    if (m_Mode == "client") {
+        // connect to positioner
+        std::cout << "PasNodeManager::afterStartUp(): Attempting to create controller for positioner...\n";
+        Device::Device::Identity id;
+        UaString positioner_address = m_pConfiguration->getPositionerUrl();
+        m_pPositioner->setAddress(positioner_address);
+        ret = m_pPositioner->connect();
+        if (ret.isGood()) {
+            id.eAddress = positioner_address.toUtf8();
+            id.name = "Positioner";
+            // add the positioner to the comm interface
+            dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->addDevice(m_pPositioner, GLOB_PositionerType,
+                                                                                  id);
+            std::cout
+                << "PasNodeManager::afterStartUp(): Connected to positioner and added corresponding controller.\n";
+        } else {
+            std::cout << "PasNodeManager::afterStartUp(): Failed to connect to positioner at "
+                      << m_pConfiguration->getPositionerUrl().toUtf8()
+                      << ". Moving on..." << std::endl;
+        }
+
+        // Create all relevant edge controllers
+        std::cout << "\nPasNodeManager::afterStartUp(): Creating all required edge controllers...\n";
+        dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->addEdgeControllers();
+
+        // Create all relevant mirror controllers
+        std::cout << "\nPasNodeManager::afterStartUp(): Creating all required mirror controllers...\n";
+        dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->addMirrorControllers();
+    }
 
     // Finish controller initialization by adding parent-child relationships for all controllers
     std::cout << "\nPasNodeManager::afterStartUp(): Finalizing all controller parent-child relationships...\n";

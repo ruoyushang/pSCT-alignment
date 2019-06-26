@@ -59,7 +59,7 @@ PasCommunicationInterface::~PasCommunicationInterface()
     std::cout << "Closed and cleaned up PasCommunicationInterface\n";
 }
 
-UaStatus PasCommunicationInterface::initialize()
+UaStatus PasCommunicationInterface::initializeCCDs()
 {
     // initialize devices communicating directly with the Alignment server (p2pasclient)
 
@@ -164,7 +164,6 @@ PasCommunicationInterface::addDevice(Client *pClient, OpcUa_UInt32 deviceType,
         
         std::cout << "PasCommunicationInterface::addDevice() Added "
                   << PasCommunicationInterface::deviceTypeNames[deviceType] << " with identity " << identity << std::endl;
-
 
         return identity;
     }
