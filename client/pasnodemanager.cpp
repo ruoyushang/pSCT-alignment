@@ -59,12 +59,6 @@ void PasNodeManager::setCommunicationInterface(std::shared_ptr<PasCommunicationI
     m_pCommIf = pCommIf;
 }
 
-void PasNodeManager::setConfiguration(std::shared_ptr<Configuration> pConfiguration)
-{
-    std::cout << "PasNodeManager:: Setting configuration...\n";
-    m_pConfiguration = std::move(pConfiguration);
-}
-
 UaStatus PasNodeManager::afterStartUp()
 {
     UaStatus ret;

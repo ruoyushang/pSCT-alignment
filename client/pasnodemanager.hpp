@@ -36,9 +36,6 @@ public:
 
     void createClients();
 
-    /// @brief Setter method to set the Configuration object.
-    /// @param pConfiguration Pointer to a new Configuration object.
-    void setConfiguration(std::shared_ptr<Configuration> pConfiguration);
     /// @brief Setter method to set the PasCommunicationInterface object.
     /// @param pCommIf Pointer to a new PasCommunicationInterface object.
     void setCommunicationInterface(std::shared_ptr<PasCommunicationInterface> &pCommIf);

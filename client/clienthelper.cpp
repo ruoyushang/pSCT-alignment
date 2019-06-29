@@ -454,8 +454,8 @@ void Client::addDevices(const OpcUa_ReferenceDescription& referenceDescription)
                 Device::Identity deviceId = m_pConfiguration->getDeviceByName(
                     UaString(referenceDescription.BrowseName.Name).toUtf8());
                 ((PasCommunicationInterface *) m_pNodeManager->getComInterface().get())->addDevice(
-                    this, type, identity);
-                m_DeviceNodeIdMap[identity] = std::string(sTemp);
+                    this, type, deviceId);
+                m_DeviceNodeIdMap[deviceId] = std::string(sTemp);
             }
             catch (std::out_of_range &e) {
                 std::cout << "Could not find device ID matching node with name "

@@ -125,16 +125,18 @@ int OpcMain(const char *szAppPath, const std::vector<std::string> &serverList, c
  
     UaStatus status;
 
+    std::string sClientConfigFilename = std::string(szAppPath) + "/PasClientConfig.ini";
+
     if ( ret == 0 )
     {
-        // Set configuration file names
-        UaString sServConfigFile(szAppPath);
-        UaString sClientConfigFile(configFilePath.c_str());
+        // Set configuration file name
+        UaString sClientConfigFile(sClientConfigFilename.c_str());
+        UaString sServerConfigFile(configFilePath.c_str());
 
         //PasLogic *pLogic = nullptr;
 
         auto pServer = new OpcServer();
-        pServer->setServerConfig(sServConfigFile, szAppPath);
+        pServer->setServerConfig(sServerConfigFile, szAppPath);
         pServer->setCallback(pServer->pCallback);
 
         // Load configuration.
@@ -311,13 +313,13 @@ int main(int argc, char* argv[])
     char *pszAppPath = getAppPath(); // Extract application path
 
 #if SUPPORT_XML_PARSER
-    std::string sConfigFileName = "/PasServerConfig.xml";
+    std::string sServConfigFilename = "/PasServerConfig.xml";
 #else
-    std::string sConfigFileName = "/PasServerConfig.ini";
+    std::string sServConfigFilename = "/PasServerConfig.ini";
 #endif
 
     if (configFilePath.empty()) {
-        configFilePath = std::string(pszAppPath) + sConfigFileName;
+        configFilePath = std::string(pszAppPath) + sServConfigFilename;
         logger->warn("No config file path passed, using default file {}.", configFilePath);
     }
 
