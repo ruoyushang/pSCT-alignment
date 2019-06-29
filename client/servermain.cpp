@@ -164,9 +164,11 @@ int OpcMain(const char *szAppPath, const std::vector<std::string> &serverList, c
         pNodeManagerClient->setCommunicationInterface(pCommIf);
 
         // add the node manager
+        std::cout << "Adding node manager...\n";
         pServer->addNodeManager(pNodeManagerClient);
 
         // Start server object
+        std::cout << "Starting server...\n";
         ret = pServer->start();
         if ( ret == 0 )
         {
@@ -241,7 +243,7 @@ int main(int argc, char* argv[])
     std::string mode("subclient");
     std::string logLevel("info");
 
-    while ((c = getopt(argc, argv, "l:")) != -1) {
+    while ((c = getopt(argc, argv, "l:c:m:")) != -1) {
         switch (c) {
             case 'c':
                 configFilePath = optarg;
@@ -315,8 +317,8 @@ int main(int argc, char* argv[])
 #endif
 
     if (configFilePath.empty()) {
-        logger->warn("No config file path passed, using default.");
         configFilePath = std::string(pszAppPath) + sConfigFileName;
+        logger->warn("No config file path passed, using default file {}.", configFilePath);
     }
 
     // Collect all passed servers (panel position numbers or subclient names) into a vector

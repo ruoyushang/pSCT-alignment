@@ -18,15 +18,16 @@ done
 
 shift $((OPTIND-1))
 
+if [[ -z $MYSQL_USER || -z $MYSQL_PASSWORD || -z $MYSQL_DATABASE || -z $MYSQL_HOST || -z $MYSQL_PORT ]]; then
+    echo "Database credentials not set - check $MYSQL_USER, $MYSQL_PASSWORD, $MYSQL_DATABASE, $MYSQL_HOST, $MYSQL_PORT"
+    exit 1
+fi
+
 if $all ; then
 
 printf "Reading from database...\n"
 
     PANELS=()
-    if [[ -z $MYSQL_USER || -z $MYSQL_PASSWORD || -z $MYSQL_DATABASE || -z $MYSQL_HOST || -z $MYSQL_PORT ]]; then
-        echo "Database credentials not set - check $MYSQL_USER, $MYSQL_PASSWORD, $MYSQL_DATABASE, $MYSQL_HOST, $MYSQL_PORT"
-        exit 1
-    fi
     while read -r position;
     do
          PANELS+=($position)
@@ -39,11 +40,6 @@ printf "Received %d panel addresses.\n" "$((${#PANELS[@]}))"
 
 printf "Reading from database...\n"
 
-if [[ -z $MYSQL_USER || -z $MYSQL_PASSWORD || -z $MYSQL_DATABASE || -z $MYSQL_HOST || -z $MYSQL_PORT ]]; then
-    echo "Database credentials not set - check $MYSQL_USER, $MYSQL_PASSWORD, $MYSQL_DATABASE, $MYSQL_HOST, $MYSQL_PORT"
-    exit 1
-fi
-
 # Sort panels/servers into 4 groups (Secondary, Primary upper, Primary lower, Other)
 PRIMARY_UPPER=()
 PRIMARY_LOWER=()
@@ -52,7 +48,7 @@ OTHER=()
 
 while read -r position;
 do
-     if [[ mysql --user=${MYSQL_USER} --password=${MYSQL_PASSWORD} --database=${MYSQL_DATABASE} --host=${MYSQL_HOST} --port=${MYSQL_PORT}-ss -e "SELECT count(1) FROM Opt_MPMMapping where position='" + position +"'" ]]; then
+     if [[! mysql --user=${MYSQL_USER} --password=${MYSQL_PASSWORD} --database=${MYSQL_DATABASE} --host=${MYSQL_HOST} --port=${MYSQL_PORT}-ss -e "SELECT count(1) FROM Opt_MPMMapping where position='" + position +"'" ]]; then
          echo "No panel found with position $position"
          continue
      fi
@@ -84,6 +80,9 @@ for i in {0..3}; do
     config_filename="${client_name}${extension}"
     endpoint_addr="opc.tcp://127.0.0.1:$port"
     eval panel_list=\$$subclient_array_names[i]
+
+    printf "Received %d %s panel addresses.\n" "$((${#panel_list[@]}))" "$client_name"
+
     if [[ ${#panel_list[@]} -neq 0 ]]; then
         config_filename="${client_name}${extension}"
         endpoint_addr="opc.tcp://127.0.0.1:$port"
@@ -92,7 +91,7 @@ for i in {0..3}; do
         screen -S ${screen_name} -p ${client_name} -X stuff "sed -i s@URL_LOCATION@$endpoint_addr@g ${config_filename}\n"
         printf "Starting %s client at address %s.\n" "${client_name}" "${endpoint_addr}"
         abspath=$(realpath ${config_filename})
-        screen -S ${screen_name} -p ${client_name} -X stuff $"../sdk/bin/p2pasclient ${panel_list[*]}"
+        screen -S ${screen_name} -p ${client_name} -X stuff $"../sdk/bin/p2pasclient ${panel_list[*]} -m subclient"
     else
         printf "No %s panels found. No subclient started. \n" "${client_name}"
     fi

@@ -41,13 +41,12 @@ void PasNodeManager::createClients() {
 
     // Create as many clients as needed (the number of servers)
     if (m_Mode == "client") {
-        numServers = 0;
+        numServers = 4;
     } else if (m_Mode == "subclient") {
         numServers = m_pConfiguration->getDevices(PAS_PanelType).size();
     }
 
-    std::cout << "PasNodeManager:: Creating servers interface...\n";
-    std::cout << "PasNodeManager:: Attempting to create " << numServers << " clients\n\n";
+    std::cout << "PasNodeManager:: Attempting to create " << numServers << " clients\n";
     for (OpcUa_UInt32 i = 0; i < numServers; i++) {
         m_pClients.push_back(new Client(this));
         m_pClients.back()->setConfiguration(m_pConfiguration);
@@ -64,8 +63,6 @@ void PasNodeManager::setConfiguration(std::shared_ptr<Configuration> pConfigurat
 {
     std::cout << "PasNodeManager:: Setting configuration...\n";
     m_pConfiguration = std::move(pConfiguration);
-
-
 }
 
 UaStatus PasNodeManager::afterStartUp()
@@ -78,7 +75,7 @@ UaStatus PasNodeManager::afterStartUp()
     UA_ASSERT(ret.isGood());
 
     // connect to each server
-    std::cout << "\nPasNodeManager::afterStartUp(): Connecting to all servers...\n";
+    std::cout << "\nPasNodeManager::afterStartUp(): Connecting to all servers..." << std::endl;
     unsigned client = 0;
     for (const auto &address : m_pConfiguration->getServerAddresses()) {
         m_pClients.at(client)->setAddress(address);
