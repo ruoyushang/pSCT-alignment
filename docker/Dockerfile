@@ -77,7 +77,7 @@ WORKDIR /software
 RUN wget --directory-prefix=tarballs https://root.cern.ch/download/root_v6.10.04.Linux-centos7-x86_64-gcc4.8.tar.gz \
     && tar -zxf tarballs/root_v6.10.04.Linux-centos7-x86_64-gcc4.8.tar.gz
 
-# Initialize ROOT environment variables
+# initialize ROOT environment variables
 #ENV ROOTSYS "/software/ROOT_build"
 ENV ROOTSYS "/software/root"
 ENV PATH "${PATH}:${ROOTSYS}/bin"

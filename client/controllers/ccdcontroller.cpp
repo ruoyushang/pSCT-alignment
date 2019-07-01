@@ -13,25 +13,22 @@
 #include "common/opcua/pascominterfacecommon.hpp"
 #include "common/opcua/pasobject.hpp"
 #include "common/opcua/passervertypeids.hpp"
+#include "common/alignment/device.hpp"
 
 #include "client/clienthelper.hpp"
 #include "client/controllers/pascontroller.hpp"
 
 
-CCDController::CCDController(Identity identity) : PasController(std::move(identity), nullptr) {
-    m_pCCD = new GASCCD();
+CCDController::CCDController(Device::Identity identity) : PasController(std::move(identity), nullptr, 1000) {
+#ifndef SIMMODE  
+    m_pCCD = std::unique_ptr<GASCCD>(new GASCCD());
+#else 
+    m_pCCD = std::unique_ptr<GASCCD>(new DummyGASCCD());
+#endif
     m_pCCD->setConfig(m_ID.eAddress);
-    m_pCCD->Initialize();
+    m_pCCD->initialize();
 
-    m_ID.serialNumber = m_pCCD->getSerial();
-    m_ID.eAddress = m_pCCD->getAddress();
-    m_ID.name = m_pCCD->getName();
-
-    m_state = PASState::On;
-}
-
-CCDController::~CCDController() {
-    m_state = PASState::Off;
+    m_lastUpdateTime = TIME::now() - std::chrono::duration<int, std::ratio<1, 1000>>(m_kUpdateInterval_ms);
 }
 
 /* ----------------------------------------------------------------------------
@@ -39,7 +36,7 @@ CCDController::~CCDController() {
     Method       getState
     Description  Get Controller status.
 -----------------------------------------------------------------------------*/
-UaStatus CCDController::getState(PASState &state) {
+UaStatus CCDController::getState(Device::DeviceState &state) {
     //UaMutexLocker lock(&m_mutex);
     state = m_state;
     return OpcUa_Good;
@@ -50,17 +47,8 @@ UaStatus CCDController::getState(PASState &state) {
     Method       setState
     Description  Set Controller status.
 -----------------------------------------------------------------------------*/
-UaStatus CCDController::setState(PASState state) {
-    if (state == PASState::OperableError || state == PASState::FatalError) {
-        return OpcUa_BadInvalidArgument;
-    }
-    if (state == m_state) {
-        return OpcUa_BadInvalidState;
-    }
-    //UaMutexLocker lock(&m_mutex);
-
-    m_state = state;
-    return OpcUa_Good;
+UaStatus CCDController::setState(Device::DeviceState state) {
+    return OpcUa_BadNotWritable;
 }
 
 /* ----------------------------------------------------------------------------
@@ -75,29 +63,8 @@ UaStatus CCDController::getData(OpcUa_UInt32 offset, UaVariant &value) {
     if (dataoffset >= 6)
         return OpcUa_BadInvalidArgument;
 
-    switch (offset) {
-        case PAS_CCDType_xFromLED:
-            status = read();
-            break;
-        case PAS_CCDType_yFromLED:
-            status = read();
-            break;
-        case PAS_CCDType_zFromLED:
-            status = read();
-            break;
-        case PAS_CCDType_thetaFromLED:
-            status = read();
-            break;
-        case PAS_CCDType_phiFromLED:
-            status = read();
-            break;
-        case PAS_CCDType_psiFromLED:
-            status = read();
-            break;
-        default:
-            status = OpcUa_BadInvalidArgument;
-    }
-
+    if (__expired())
+        status = read(false);
 
     if (!m_updated)
         value.setDouble(0.);
@@ -113,12 +80,41 @@ UaStatus CCDController::getData(OpcUa_UInt32 offset, UaVariant &value) {
     Description  Set Controller data.
 -----------------------------------------------------------------------------*/
 UaStatus CCDController::setData(OpcUa_UInt32 offset, UaVariant value) {
-    if ((offset > PAS_CCDType_xNominal) && (offset < PAS_CCDType_phiNominal)) {
-        double val;
-        value.toDouble(val);
-        m_pCCD->setNominalValues(offset - PAS_CCDType_xNominal, val);
-        return OpcUa_Good;
+    UaStatus status;
+
+    double val;
+    int nominalOffset;
+
+    switch (offset) {
+        case PAS_CCDType_xNominal:
+            value.toDouble(val);
+            nominalOffset = 0;
+            break;
+        case PAS_CCDType_yNominal:
+            value.toDouble(val);
+            nominalOffset = 1;
+            break;
+        case PAS_CCDType_zNominal:
+            value.toDouble(val);
+            nominalOffset = 2;
+            break;
+        case PAS_CCDType_thetaNominal:
+            value.toDouble(val);
+            nominalOffset = 3;
+            break;
+        case PAS_CCDType_phiNominal:
+            value.toDouble(val);
+            nominalOffset = 4;
+            break;
+        case PAS_CCDType_psiNominal:
+            value.toDouble(val);
+            nominalOffset = 5;
+            break;
+        default:
+            status = OpcUa_BadNotWritable;
     }
+
+    m_pCCD->setNominalValues(nominalOffset, val);
 
     return OpcUa_BadNotWritable;
 }
@@ -137,10 +133,10 @@ UaStatus CCDController::operate(OpcUa_UInt32 offset, const UaVariantArray &args)
             status = read();
             break;
         case PAS_CCDType_Start:
-            status = setState(PASState::On);
+            status = OpcUa_BadInvalidArgument;
             break;
         case PAS_CCDType_Stop:
-            status = setState(PASState::Off);
+            status = OpcUa_BadInvalidArgument;
             break;
         default:
             status = OpcUa_BadInvalidArgument;
@@ -154,13 +150,30 @@ UaStatus CCDController::operate(OpcUa_UInt32 offset, const UaVariantArray &args)
     Method       read
     Description  Read Controller data.
 -----------------------------------------------------------------------------*/
-UaStatus CCDController::read() {
+UaStatus CCDController::read(bool print) {
     //UaMutexLocker lock(&m_mutex);
 
-    if (m_state == PASState::On) {
+    if (m_state == Device::DeviceState::On) {
         std::cout << "Reading CCD " << m_ID.name.c_str() << std::endl;
-        m_pCCD->Update();
+        m_pCCD->update();
         m_updated = true;
+
+        if (print) {
+            std::cout << "Reading CCD " << m_ID << ":" << std::endl;
+            std::cout << "x (nominal): " << *m_pCCD->getOutput() << " (" << *(m_pCCD->getOutput() + 6) << ")"
+                      << std::endl;
+            std::cout << "y (nominal): " << *(m_pCCD->getOutput() + 1) << " (" << *(m_pCCD->getOutput() + 7) << ")"
+                      << std::endl;
+            std::cout << "z (nominal): " << *(m_pCCD->getOutput() + 2) << " (" << *(m_pCCD->getOutput() + 8) << ")"
+                      << std::endl;
+            std::cout << "psi (nominal): " << *(m_pCCD->getOutput() + 3) << " (" << *(m_pCCD->getOutput() + 9) << ")"
+                      << std::endl;
+            std::cout << "theta (nominal): " << *(m_pCCD->getOutput() + 4) << " (" << *(m_pCCD->getOutput() + 10) << ")"
+                      << std::endl;
+            std::cout << "phi (nominal): " << *(m_pCCD->getOutput() + 5) << " (" << *(m_pCCD->getOutput() + 11) << ")"
+                      << std::endl;
+        }
+
         return OpcUa_Good;
     } else {
         m_updated = false;

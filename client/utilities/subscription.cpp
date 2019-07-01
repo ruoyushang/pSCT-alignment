@@ -8,14 +8,15 @@
 #include "subscription.hpp"
 #include "uaclient/uasubscription.h"
 #include "uaclient/uasession.h"
+#include "clienthelper.hpp"
+
+#include <memory>
 
 class Configuration;
 
-using namespace UaClientSdk;
-
 /// @details The constructor nitializes the internal Configuration pointer,
 /// but leaves the internal Session and Subscription pointers as NULL.
-Subscription::Subscription(Configuration* pConfiguration)
+Subscription::Subscription(std::shared_ptr<Configuration> pConfiguration)
     : m_pSession(nullptr),
       m_pSubscription(nullptr),
       m_pConfiguration(pConfiguration)
@@ -91,7 +92,7 @@ void Subscription::newEvents(
 /// creates one with a fixed publishing interval of 100 ms in the provided
 /// UaSession. Else, returns an error. Prints a success/failure
 /// message on exit.
-UaStatus Subscription::createSubscription(UaSession* pSession)
+UaStatus Subscription::createSubscription(UaClientSdk::UaSession* pSession)
 {
     if ( m_pSubscription )
     {
@@ -103,8 +104,8 @@ UaStatus Subscription::createSubscription(UaSession* pSession)
 
     UaStatus result;
 
-    ServiceSettings serviceSettings;
-    SubscriptionSettings subscriptionSettings;
+    UaClientSdk::ServiceSettings serviceSettings;
+    UaClientSdk::SubscriptionSettings subscriptionSettings;
     subscriptionSettings.publishingInterval = 100;
 
     printf("\nCreating subscription ...\n");
@@ -141,7 +142,7 @@ UaStatus Subscription::deleteSubscription()
     }
 
     UaStatus result;
-    ServiceSettings serviceSettings;
+    UaClientSdk::ServiceSettings serviceSettings;
 
     // let the SDK cleanup the resources for the existing subscription
     printf("\nDeleting subscription ...\n");
@@ -176,8 +177,9 @@ UaStatus Subscription::createMonitoredItems()
     }
 
     UaStatus result;
-    OpcUa_UInt32 size, i;
-    ServiceSettings serviceSettings;
+    OpcUa_UInt32 size;
+    OpcUa_UInt32 i;
+    UaClientSdk::ServiceSettings serviceSettings;
     UaMonitoredItemCreateRequests itemsToCreate;
     UaMonitoredItemCreateResults createResults;
 
@@ -233,7 +235,7 @@ UaStatus Subscription::createMonitoredItems()
 
 /// @details Sets the internal Configuration object pointer to the provided
 /// Configuration object pointer.
-void Subscription::setConfiguration(Configuration* pConfiguration)
+void Subscription::setConfiguration(std::shared_ptr<Configuration> pConfiguration)
 {
     m_pConfiguration = pConfiguration;
 }

@@ -1,8 +1,8 @@
 #ifndef __PASOBJECTFACTORY_H__
 #define __PASOBJECTFACTORY_H__
 
-#include "components.hpp"
-#include "pasobject.hpp"
+#include "common/alignment/device.hpp"
+#include "common/opcua/pasobject.hpp"
 
 class PasObjectFactory
 {
@@ -12,13 +12,13 @@ class PasObjectFactory
     ~PasObjectFactory() = default;
 
     static PasObject *Create(
-                unsigned deviceType,
-                const UaString& name,
-                const UaNodeId& newNodeId,
-                const UaString& defaultLocaleId,
-                PasNodeManager *pNodeManager,
-                Identity identity,
-                PasCommunicationInterface *pCommIf);
+        unsigned deviceType,
+        const UaString& name,
+        const UaNodeId& newNodeId,
+        const UaString& defaultLocaleId,
+        PasNodeManager *pNodeManager,
+        const Device::Identity &identity,
+        PasCommunicationInterface *pCommIf);
 };
 
 #endif

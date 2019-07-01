@@ -43,19 +43,23 @@
 #define PAS_MirrorType_sysOffsetsMPES_y2             123
 #define PAS_MirrorType_sysOffsetsMPES_x3             124
 #define PAS_MirrorType_sysOffsetsMPES_y3             125
+#define PAS_MirrorType_Position                      126
 #define PAS_MirrorType_ReadPosition                  130
 #define PAS_MirrorType_ReadSensors                   131
-#define PAS_MirrorType_MoveToCoords                  132
-#define PAS_MirrorType_AlignSequential               133
-#define PAS_MirrorType_AlignSector                   134
-#define PAS_MirrorType_GlobalAlign                   135
-#define PAS_MirrorType_Stop                          136
+#define PAS_MirrorType_ReadSensorsParallel           132
+#define PAS_MirrorType_MoveToCoords                  133
+#define PAS_MirrorType_AlignSequential               134
+#define PAS_MirrorType_AlignSector                   135
+#define PAS_MirrorType_AlignRing                     136
+#define PAS_MirrorType_SelectAll                     137
+#define PAS_MirrorType_Stop                          138
 
 //----------------------------------------------------------//
 // Edge Type
 #define PAS_EdgeType                                1000
 // Instance declaration
 #define PAS_EdgeType_State                          1001
+#define PAS_EdgeType_Position                       1002
 #define PAS_EdgeType_FindMatrix                     1011
 #define PAS_EdgeType_Align                          1012
 #define PAS_EdgeType_Read                           1013
@@ -72,11 +76,25 @@
 #define PAS_MPESType_CleanedIntensity               1106
 #define PAS_MPESType_xCentroidNominal               1107
 #define PAS_MPESType_yCentroidNominal               1108
-#define PAS_MPESType_Start                          1111
-#define PAS_MPESType_Stop                           1112
-#define PAS_MPESType_Read                           1113
-#define PAS_MPESType_SetExposure                    1114
-#define PAS_MPESType_StateCondition                 1121
+#define PAS_MPESType_Position                       1109
+#define PAS_MPESType_Serial                         1110
+#define PAS_MPESType_ErrorState                     1111
+#define PAS_MPESType_TurnOn                         1151
+#define PAS_MPESType_TurnOff                        1152
+#define PAS_MPESType_Read                           1153
+#define PAS_MPESType_SetExposure                    1154
+#define PAS_MPESType_ClearError                     1155
+#define PAS_MPESType_ClearAllErrors                 1156
+#define PAS_MPESType_StateCondition                 1161
+// Error variable declarations
+#define PAS_MPESType_Error0                          1191
+#define PAS_MPESType_Error1                          1192
+#define PAS_MPESType_Error2                          1193
+#define PAS_MPESType_Error3                          1194
+#define PAS_MPESType_Error4                          1195
+#define PAS_MPESType_Error5                          1196
+#define PAS_MPESType_Error6                          1197
+#define PAS_MPESType_Error7                          1198
 //----------------------------------------------------------//
 //
 // Panel Type
@@ -92,11 +110,38 @@
 #define PAS_PanelType_IntTemperature                2008
 #define PAS_PanelType_ExtTemperature                2009
 #define PAS_PanelType_SafetyRadius                  2010
+#define PAS_PanelType_Position                      2011
+#define PAS_PanelType_Serial                        2012
+#define PAS_PanelType_ErrorState                    2013
 #define PAS_PanelType_MoveDeltaLengths              2020
 #define PAS_PanelType_MoveToLengths                 2021
 #define PAS_PanelType_MoveToCoords                  2022
-#define PAS_PanelType_ReadAll                       2023
+#define PAS_PanelType_ReadPosition                  2023
 #define PAS_PanelType_Stop                          2024
+#define PAS_PanelType_FindHome                      2025
+#define PAS_PanelType_ClearError                    2026
+#define PAS_PanelType_ClearAllErrors                2027
+#define PAS_PanelType_ClearActuatorErrors           2028
+#define PAS_PanelType_ClearPlatformErrors           2029
+#define PAS_PanelType_TurnOn                        2030
+#define PAS_PanelType_TurnOff                       2031
+
+// Error variable declarations
+#define PAS_PanelType_Error0                          2800
+#define PAS_PanelType_Error1                          2801
+#define PAS_PanelType_Error2                          2802
+#define PAS_PanelType_Error3                          2803
+#define PAS_PanelType_Error4                          2804
+#define PAS_PanelType_Error5                          2805
+#define PAS_PanelType_Error6                          2806
+#define PAS_PanelType_Error7                          2807
+#define PAS_PanelType_Error8                          2808
+#define PAS_PanelType_Error9                          2809
+#define PAS_PanelType_Error10                         2810
+#define PAS_PanelType_Error11                         2811
+#define PAS_PanelType_Error12                         2812
+#define PAS_PanelType_Error13                         2813
+#define PAS_PanelType_Error14                         2814
 //----------------------------------------------------------//
 // Actuator Type
 #define PAS_ACTType                                 2100
@@ -105,10 +150,17 @@
 #define PAS_ACTType_CurrentLength                   2102
 #define PAS_ACTType_TargetLength                    2103
 #define PAS_ACTType_DeltaLength                     2104
-#define PAS_ACTType_Start                           2111
-#define PAS_ACTType_Stop                            2112
+#define PAS_ACTType_Position                        2105
+#define PAS_ACTType_Serial                          2106
+#define PAS_ACTType_ErrorState                      2107
+#define PAS_ACTType_TurnOn                          2111
+#define PAS_ACTType_TurnOff                         2112
 #define PAS_ACTType_MoveDeltaLength                 2113
 #define PAS_ACTType_MoveToLength                    2114
+#define PAS_ACTType_ForceRecover                    2115
+#define PAS_ACTType_ClearError                      2116
+#define PAS_ACTType_ClearAllErrors                  2117
+#define PAS_ACTType_Stop                            2118
 // Error variable declarations
 #define PAS_ACTType_Error0                          2900
 #define PAS_ACTType_Error1                          2901
@@ -151,6 +203,7 @@
 #define PAS_CCDType_psiNominal                      3111
 #define PAS_CCDType_thetaNominal                    3112
 #define PAS_CCDType_phiNominal                      3113
+#define PAS_CCDType_ErrorState                      3101
 #define PAS_CCDType_Start                           3121
 #define PAS_CCDType_Stop                            3122
 #define PAS_CCDType_Read                            3123
@@ -168,6 +221,7 @@
 #define PAS_PSDType_dx2                             3208
 #define PAS_PSDType_dy2                             3209
 #define PAS_PSDType_Temp                            3210
+#define PAS_PSDType_ErrorState                      3211
 #define PAS_PSDType_Read                            3220
 //----------------------------------------------------------//
 

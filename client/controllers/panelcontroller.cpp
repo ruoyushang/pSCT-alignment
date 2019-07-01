@@ -1,17 +1,18 @@
 #include "client/controllers/panelcontroller.hpp"
 
-#include <string>
 #include <chrono>
+#include <string>
 
 #include <Eigen/Dense>
 
+#include "common/alignment/device.hpp"
+
 #include "client/clienthelper.hpp"
+#include "client/objects/panelobject.hpp"
 
 
-PanelController::PanelController(Identity identity, Client *pClient) :
-        PasCompositeController(std::move(identity), pClient, 1000) {
-    m_ID.name = std::string("Panel_") + std::to_string(m_ID.position);
-    m_state = PASState::On;
+PanelController::PanelController(Device::Identity identity, Client *pClient, bool isSubclient) :
+    PasCompositeController(std::move(identity), pClient, 5000), m_isSubclient(isSubclient) {
     m_SP.SetPanelType(StewartPlatform::PanelType::OPT);
 
     // define possible children types
@@ -20,17 +21,7 @@ PanelController::PanelController(Identity identity, Client *pClient) :
     // make sure things update on the first boot up
     // duration takes seconds -- hence the conversion with the 1/1000 ratio
     m_lastUpdateTime = TIME::now() - std::chrono::duration<int, std::ratio<1, 1000>>
-            (m_kUpdateInterval_ms);
-}
-
-PanelController::~PanelController() {
-    m_pClient = nullptr;
-
-    for (auto &devVector : m_pChildren)
-        for (auto &dev : devVector.second)
-            dev = nullptr;
-
-    m_state = PASState::Off;
+        (m_kUpdateInterval_ms);
 }
 
 unsigned PanelController::getActuatorCount() {
@@ -42,53 +33,23 @@ unsigned PanelController::getActuatorCount() {
     }
 }
 
-UaStatus PanelController::getState(PASState &state) {
+UaStatus PanelController::getState(Device::DeviceState &state) {
     //UaMutexLocker lock(&m_mutex);
     UaStatus status;
+    UaVariant value;
+    int v;
 
-    UaVariant val;
-    unsigned intState;
+    std::vector<std::string> vec_curread{m_pClient->getDeviceNodeId(m_ID) + ".State"};
+    status = m_pClient->read(vec_curread, &value);
+    value.toInt32(v);
 
-    std::vector<std::string> vec_curread{"ns=2;s=Panel_0.State"};
-    status = m_pClient->read(vec_curread, &val);
-    if (!status.isGood())
-        return status;
-
-    val.toUInt32(intState);
-    switch (intState) {
-        case static_cast<unsigned>(PASState::On) :
-            m_state = PASState::On;
-            break;
-        case static_cast<unsigned>(PASState::Off) :
-            m_state = PASState::Off;
-            break;
-        case static_cast<unsigned>(PASState::Busy) :
-            m_state = PASState::Busy;
-            break;
-        case static_cast<unsigned>(PASState::OperableError) :
-            m_state = PASState::OperableError;
-            break;
-        case static_cast<unsigned>(PASState::FatalError) :
-            m_state = PASState::FatalError;
-            break;
-        default:
-            return OpcUa_BadInvalidState;
-    }
-
-    state = m_state;
+    state = static_cast<Device::DeviceState>(v);
 
     return status;
-
 }
 
-UaStatus PanelController::setState(PASState state) {
-    if (state == PASState::OperableError || state == PASState::FatalError) {
-        return OpcUa_BadInvalidArgument;
-    }
-
-    //UaMutexLocker lock(&m_mutex);
-    m_state = state;
-    return OpcUa_Good;
+UaStatus PanelController::setState(Device::DeviceState state) {
+    return OpcUa_BadNotWritable;
 }
 
 UaStatus PanelController::getData(OpcUa_UInt32 offset, UaVariant &value) {
@@ -96,26 +57,58 @@ UaStatus PanelController::getData(OpcUa_UInt32 offset, UaVariant &value) {
     UaStatus status;
 
     if (getActuatorCount() == 0) {
-        std::cout << m_ID << "::getData() : no actuators, data undefined." << std::endl;
+        std::cout << m_ID << " :: PanelController::getData() : no actuators, data undefined." << std::endl;
         return OpcUa_Good;
     }
 
-    if (offset >= PAS_PanelType_x && offset <= PAS_PanelType_zRot) {
+    if (PanelObject::ERRORS.count(offset) > 0) {
+        return getError(offset, value);
+    } else if (offset >= PAS_PanelType_x && offset <= PAS_PanelType_zRot) {
         // update current coordinates
-        if (__expired())
-            updateCoords();
-
+        if (__expired() && !m_isSubclient) {
+            status = updateCoords();
+            if (status.isBad()) {
+                std::cout << m_ID << " :: PanelController::operate() : Failed to update coordinates." << std::endl;
+                return status;
+            }
+        }
         int dataOffset = offset - PAS_PanelType_x;
         value.setDouble(m_curCoords[dataOffset]);
     } else if (offset == PAS_PanelType_IntTemperature)
-        status = m_pClient->read({"ns=2;s=Panel_0.InternalTemperature"}, &value);
+        status = m_pClient->read({m_pClient->getDeviceNodeId(m_ID) + ".InternalTemperature"}, &value);
     else if (offset == PAS_PanelType_ExtTemperature)
-        status = m_pClient->read({"ns=2;s=Panel_0.ExternalTemperature"}, &value);
+        status = m_pClient->read({m_pClient->getDeviceNodeId(m_ID) + ".ExternalTemperature"}, &value);
     else if (offset == PAS_PanelType_SafetyRadius) {
         value.setDouble(m_safetyRadius);
-    } else
+    } else if (offset == PAS_PanelType_Position) {
+        status = m_pClient->read({m_pClient->getDeviceNodeId(m_ID) + ".Position"}, &value);
+    } else if (offset == PAS_PanelType_Serial) {
+        status = m_pClient->read({m_pClient->getDeviceNodeId(m_ID) + ".Serial"}, &value);
+    } else if (offset == PAS_PanelType_ErrorState) {
+        status = m_pClient->read({m_pClient->getDeviceNodeId(m_ID) + ".ErrorState"}, &value);
+    }
+    else
         status = OpcUa_BadInvalidArgument;
 
+    if (status == OpcUa_BadInvalidState) {
+        std::cout << m_ID << " :: PanelController::operate() : Device is in a bad state (busy, off, error) and "
+                             "could not execute command. Check state and try again. \n";
+    }
+
+    return status;
+}
+
+UaStatus PanelController::getError(OpcUa_UInt32 offset, UaVariant &value) {
+    //UaMutexLocker lock(&m_mutex);
+    UaStatus status;
+
+    if (PanelObject::ERRORS.count(offset) > 0) {
+        std::string varName = std::get<0>(PanelObject::ERRORS.at(offset));
+        std::vector<std::string> varsToRead = {m_pClient->getDeviceNodeId(m_ID) + varName};
+        status = m_pClient->read(varsToRead, &value);
+    } else {
+        status = OpcUa_BadInvalidArgument;
+    }
     return status;
 }
 
@@ -139,20 +132,15 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
         return OpcUa_Good;
     }
 
-    // update the state
-    PASState dummy;
-    getState(dummy);
-
-    if (offset != PAS_PanelType_Stop) {
-        if (m_state == PASState::FatalError)
-            std::cout << m_ID << "::Operate() : Current state is 'FatalError'! This won't do anything." << std::endl;
-        if (m_state == PASState::Busy)
-            std::cout << m_ID << "::Operate() : Current state is 'Busy'! This won't do anything." << std::endl;
+    if (offset == PAS_PanelType_MoveToLengths || offset == PAS_PanelType_MoveToCoords || offset == PAS_PanelType_MoveDeltaLengths) {
+        if (__getErrorState() == Device::ErrorState::FatalError || __getDeviceState() != Device::DeviceState::On) {
+            std::cout << m_ID << " :: PanelController::operate() : Device is in a bad state (busy, off, error) and "
+                                 "could not execute command. Check state and try again. \n";
+            return OpcUa_BadInvalidState;
+        }
         // Update coordinates before doing any calculations
-        updateCoords();
+        status = updateCoords();
     }
-
-    auto &pACT = m_pChildren.at(PAS_ACTType);
 
     /************************************************
      * move actuators to the preset lengths         *
@@ -161,35 +149,34 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
     float targetLength;
     Eigen::VectorXd deltaLengths(6);
     Eigen::VectorXd targetLengths(6);
-    Eigen::VectorXd currentLengths = getActuatorLengths();
+    
     if (offset == PAS_PanelType_MoveDeltaLengths) {
         for (int i = 0; i < 6; i++) {
             UaVariant(args[i]).toFloat(deltaLength);
-            deltaLengths(i) = deltaLength;
+            deltaLengths(i) = (double)deltaLength;
         }
         std::cout << "Calling Panel::MoveDeltaLengths() with delta lengths: \n";
         std::cout << deltaLengths << std::endl << std::endl;
         if (checkForCollision(deltaLengths)) {
-            std::cout << "Error: Sensors may go out of range! Motion cancelled." << std::endl;
             return OpcUa_Bad;
         }
         else {
-            status = moveDeltaLengths(args);
+            status = m_pClient->callMethodAsync(m_pClient->getDeviceNodeId(m_ID), UaString("MoveDeltaLengths"), args);
         }
     } else if (offset == PAS_PanelType_MoveToLengths) {
         for (int i = 0; i < 6; i++) {
             UaVariant(args[i]).toFloat(targetLength);
-            targetLengths(i) = targetLength;
+            targetLengths(i) = (double)targetLength;
         }
         std::cout << "Calling Panel::MoveToLengths() with target lengths: \n";
         std::cout << targetLengths << std::endl << std::endl;
+        Eigen::VectorXd currentLengths = getActuatorLengths();
         deltaLengths = targetLengths - currentLengths;
         if (checkForCollision(deltaLengths)) {
-            std::cout << "Error: Sensors may go out of range! Motion cancelled." << std::endl;
             return OpcUa_Bad;
         }
         else {
-            status = moveToLengths(args);
+            status = m_pClient->callMethodAsync(m_pClient->getDeviceNodeId(m_ID), UaString("MoveToLengths"), args);
         }
     } else if (offset == PAS_PanelType_MoveToCoords) {
         std::cout << "\tCurrent panel coordinates (x, y ,z xRot, yRot, zRot):\n\t\t";
@@ -221,16 +208,18 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
             val.copyTo(&lengthArgs[i]);
             std::cout << lengthArgs[i].Value.Float << std::endl;
         }
-
+        
+        Eigen::VectorXd currentLengths = getActuatorLengths();
         deltaLengths = targetLengths - currentLengths;
         if (checkForCollision(deltaLengths)) {
-            std::cout << "Error: Sensors may go out of range! Motion cancelled." << std::endl;
             return OpcUa_Bad;
         }
         else {
-            status = moveToLengths(lengthArgs);
+            status = m_pClient->callMethodAsync(m_pClient->getDeviceNodeId(m_ID), UaString("MoveToLengths"),
+                                                lengthArgs);
         }
-    } else if (offset == PAS_PanelType_ReadAll) {
+    } else if (offset == PAS_PanelType_ReadPosition) {
+        status = updateCoords(false);
         std::cout << std::endl << m_ID << " :" << std::endl;
         std::cout << "\tCurrent coordinates (x, y ,z xRot, yRot, zRot):\n\t\t";
         for (auto coord : m_curCoords) {
@@ -246,22 +235,34 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
          * **********************************************/
     else if (offset == PAS_PanelType_Stop) {
         std::cout << m_ID << "::Operate() : Attempting to gracefully stop the motion." << std::endl;
-        status = m_pClient->callMethod(std::string("ns=2;s=Panel_0"), UaString("Stop"));
-        std::cout << m_ID << "::Motion stopped.";
-    } 
-    else {
+        status = m_pClient->callMethodAsync(m_pClient->getDeviceNodeId(m_ID), UaString("Stop"));
+    } else if (offset == PAS_PanelType_TurnOn) {
+        std::cout << m_ID << "::Operate() : Turning on..." << std::endl;
+        status = m_pClient->callMethod(m_pClient->getDeviceNodeId(m_ID), UaString("TurnOn"));
+    } else if (offset == PAS_PanelType_TurnOff) {
+        std::cout << m_ID << "::Operate() : Turning off..." << std::endl;
+        status = m_pClient->callMethod(m_pClient->getDeviceNodeId(m_ID), UaString("TurnOff"));
+    } else if (offset == PAS_PanelType_FindHome) {
+        if (__getDeviceState() != Device::DeviceState::On) {
+            std::cout << m_ID << " :: PanelController::operate() : Device is in a bad state (busy, off) and "
+                                 "could not execute command. Check state and try again. \n";
+            return OpcUa_BadInvalidState;
+        }
+        std::cout << m_ID << "::Operate() : Finding home position." << std::endl;
+        status = m_pClient->callMethodAsync(m_pClient->getDeviceNodeId(m_ID), UaString("FindHome"), args);
+    } else if (offset == PAS_PanelType_ClearError) {
+        status = m_pClient->callMethod(m_pClient->getDeviceNodeId(m_ID), UaString("ClearError"), args);
+    } else if (offset == PAS_PanelType_ClearAllErrors) {
+        status = m_pClient->callMethod(m_pClient->getDeviceNodeId(m_ID), UaString("ClearAllErrors"));
+    } else if (offset == PAS_PanelType_ClearActuatorErrors) {
+        status = m_pClient->callMethod(m_pClient->getDeviceNodeId(m_ID), UaString("ClearActuatorErrors"));
+    } else if (offset == PAS_PanelType_ClearPlatformErrors) {
+        status = m_pClient->callMethod(m_pClient->getDeviceNodeId(m_ID), UaString("ClearPlatformErrors"));
+    } else {
         status = OpcUa_BadInvalidArgument;
     }
 
     return status;
-}
-
-UaStatus PanelController::moveToLengths(const UaVariantArray &args) {
-    return m_pClient->callMethodAsync(std::string("ns=2;s=Panel_0"), UaString("MoveToLengths"), args);
-}
-
-UaStatus PanelController::moveDeltaLengths(const UaVariantArray &args) {
-    return m_pClient->callMethodAsync(std::string("ns=2;s=Panel_0"), UaString("MoveDeltaLengths"), args);
 }
 
 bool PanelController::checkForCollision(const Eigen::VectorXd &deltaLengths) {
@@ -275,49 +276,67 @@ bool PanelController::checkForCollision(const Eigen::VectorXd &deltaLengths) {
     Eigen::VectorXd Sen_delta; // sensor delta
     Eigen::VectorXd Sen_new; // sensor new position = Sen_delta + current sensor reading
     Eigen::VectorXd Sen_center(6); // center of sensor camera
-    Sen_center << 160.0, 120.0, 160.0, 120.0, 160.0, 120.0;
+    Sen_center << 160.0, 120.0, 160.0, 120.0, 160.0, 120.0; // Hardcoded
     Eigen::VectorXd Sen_deviation; // deviated sensor reading
 
     Eigen::VectorXd currentLengths = getActuatorLengths();
 
-    std::cout << "Current Act lengths are: \n" << currentLengths << std::endl;
-    std::cout << "Delta Act lengths are: \n" << deltaLengths << std::endl;
-    std::cout << "New Act lengths are: \n" << currentLengths + deltaLengths << std::endl;
+    std::cout << "Current length (Delta length) => Target length\n" << std::endl;
+    for (int i=0; i<6; i++) {
+        std::cout << currentLengths(i) << " (" << deltaLengths(i) << ") => " << currentLengths(i) + deltaLengths(i) << std::endl;
+    }
 
     bool collision = false;
     if (m_pChildren.count(PAS_EdgeType) > 0) {
-        std::cout << m_pChildren.count(PAS_EdgeType) << " edges found." << std::endl;
-        for (auto e : m_pChildren.at(PAS_EdgeType)) {
-            auto *edge = dynamic_cast<EdgeController *>(e);
+        std::cout << "\n" << m_pChildren.count(PAS_EdgeType) << " edges found." << std::endl;
+        for (const auto &e : m_pChildren.at(PAS_EdgeType)) {     
+            std::shared_ptr<EdgeController> edge = std::dynamic_pointer_cast<EdgeController>(e);
             M_response = edge->getResponseMatrix(m_ID.position);
-            Sen_current = edge->getCurrentReadings();
+            Sen_current = edge->getCurrentReadings().first;
             std::cout << "Looking at edge " << edge->getId() << std::endl;
+            if (Sen_current.size() == 0) {
+                std::cout << "No MPES found for edge " << edge->getId() << ", skipping..." << std::endl;
+                continue;
+            }
             std::cout << "\nCurrent MPES readings:\n" << Sen_current << std::endl << std::endl;
-            std::cout << "\nActuator response matrix for this edge:\n" << M_response << std::endl;
+            std::cout << "Actuator response matrix for this edge:\n" << M_response << std::endl;
             Sen_delta = M_response * deltaLengths;
             Sen_new = Sen_delta + Sen_current;
-            std::cout << "The new sensor coordinates (x, y) will be:\n" << Sen_new << std::endl;
-            Sen_deviation = Sen_new - Sen_center;
-            std::cout << "\n will deviate from the center position by\n" << Sen_deviation << std::endl;
-            std::cout << "The absolute distance from the center for each sensor is: \n";
+            Sen_deviation = Sen_new - Sen_center; 
+            std::cout << "\nNew sensor readings (pixels off from center)\n"; 
+            for (int i=0; i<6; i++) {
+                std::cout << Sen_new(i) << " (" << Sen_deviation(i) << ")\n";;
+            }
+            std::cout << "\nOffset of laser dot from camera center by sensor (px) [safety limit]: \n";
             double deviation;
             for (unsigned i = 0; i < Sen_deviation.size() / 2; i++) {
                 deviation = pow(pow(Sen_deviation(2 * i), 2) + pow(Sen_deviation(2 * i + 1), 2), 0.5);
-                std::cout << deviation;
+                std::cout << deviation << " [" << m_safetyRadius << "]";
                 if (deviation > m_safetyRadius) {
-                    std::cout << " [WARNING: Deviation is greater than safety radius (" << m_safetyRadius << " px)";
+                    std::cout << " (WARNING: Deviation is greater than safety radius)";
                     collision = true;
                 }
                 std::cout << std::endl;
             }
         }
     }
+    if (collision) {
+        std::cout << "Error: Sensors may go out of range! Motion cancelled." << std::endl;
+    }
+    else {
+        std::cout << "Collision check passed: all sensors will stay in the safety radius." << std::endl;
+    }
     return collision;
 }
 
-void PanelController::updateCoords(bool printout) {
-    // do nothing if values haven't expired
-    Eigen::VectorXd currentLengths = getActuatorLengths();
+UaStatus PanelController::updateCoords(bool printout) {
+    Eigen::VectorXd currentLengths(6);
+
+    UaStatus status = __getActuatorLengths(currentLengths);
+    if (status.isBad()) {
+        std::cout << m_ID << " :: PanelController::updateCoords() : Failed to get actuator lengths." << std::endl;
+        return status;
+    }
 
     if (printout) {
         std::cout << m_ID << ": " << std::endl;
@@ -340,6 +359,8 @@ void PanelController::updateCoords(bool printout) {
 }
 
 Eigen::VectorXd PanelController::getActuatorLengths() {
+    UaStatus status;
+
     UaVariant val;
     auto &actuatorPositionMap = m_ChildrenPositionMap.at(PAS_ACTType);
     auto &pACT = m_pChildren.at(PAS_ACTType);
@@ -348,10 +369,47 @@ Eigen::VectorXd PanelController::getActuatorLengths() {
 
     Eigen::VectorXd actuatorLengths(6);
     for (const auto &i : actuatorPositionMap) {
-        pACT.at(i.second)->getData(PAS_ACTType_CurrentLength, val);
+        status = pACT.at(i.second)->getData(PAS_ACTType_CurrentLength, val);
         val.toDouble(l);
         actuatorLengths(i.first - 1) = l;
     }
 
     return actuatorLengths;
+}
+
+UaStatus PanelController::__getActuatorLengths(Eigen::VectorXd &lengths) {
+    UaStatus status;
+
+    UaVariant val;
+    auto &actuatorPositionMap = m_ChildrenPositionMap.at(PAS_ACTType);
+    auto &pACT = m_pChildren.at(PAS_ACTType);
+
+    double l;
+
+    lengths.resize(6);
+    for (const auto &i : actuatorPositionMap) {
+        status = pACT.at(i.second)->getData(PAS_ACTType_CurrentLength, val);
+        if (status.isBad()) {
+            return status;
+        }
+        val.toDouble(l);
+        lengths(i.first - 1) = l;
+    }
+
+    return status;
+}
+
+Device::DeviceState PanelController::__getDeviceState() {
+    Device::DeviceState state;
+    getState(state);
+
+    return state;
+}
+
+Device::ErrorState PanelController::__getErrorState() {
+    UaVariant var;
+    int err;
+    getData(PAS_ACTType_ErrorState, var);
+    var.toInt32(err);
+    return static_cast<Device::ErrorState>(err);
 }

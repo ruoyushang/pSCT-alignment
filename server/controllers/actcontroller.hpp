@@ -6,7 +6,6 @@
 #ifndef SERVER_ACTCONTROLLER_HPP
 #define SERVER_ACTCONTROLLER_HPP
 
-#include "server/controllers/pascontroller.hpp"
 
 #include <memory>
 
@@ -15,10 +14,10 @@
 #include "uabase/uamutex.h"
 #include "uabase/uastring.h"
 
+#include "common/alignment/device.hpp"
 #include "common/alignment/platform.hpp"
-#include "common/opcua/pascominterfacecommon.hpp"
+#include "server/controllers/pascontroller.hpp"
 
-#include "common/opcua/components.hpp"
 
 /// @brief Class representing an actuator device controller.
 class ActController : public PasController {
@@ -27,19 +26,20 @@ public:
     /// @brief Instantiate an actuator device controller object.
     /// @param ID The integer index of the device within its type.
     /// @param pPlatform Pointer to platform object used to interface directly with hardware.
-    ActController(Identity identity, std::shared_ptr<Platform> pPlatform);
-
-    /// @brief Destroy an actuator device controller object.
-    ~ActController() override;
-
-    /// @brief Update the controller's internal state to match the underlying Actuator object's state.
-    /// @return OPC UA status code indicating success or failure.
-    UaStatus updateState();
+    ActController(Device::Identity identity, std::shared_ptr<PlatformBase> pPlatform) : PasController(
+        std::move(identity),
+        std::move(
+                                                                                                      pPlatform)) {}
 
     /// @brief Get the internal state of the actuator device.
     /// @param state Variable to store the retrieved state value.
     /// @return OPC UA status code indicating success or failure.
-    UaStatus getState(PASState &state) override;
+    UaStatus getState(Device::DeviceState &state) override;
+
+    /// @brief Set the internal state of the actuator device.
+    /// @param state State value to set the state to.
+    /// @return OPC UA status code indicating success or failure.
+    UaStatus setState(Device::DeviceState state) override;
 
     /// @brief Get the value of an actuator data variable.
     /// @param offset A number used to uniquely identify the data variable to access.
@@ -75,8 +75,9 @@ public:
     void setTargetLength(float targetLength) { m_TargetLength = targetLength; }
 
 private:
-    /// @brief The internal device state.
-    PASState m_state = PASState::Off;
+    Device::ErrorState _getErrorState() { return m_pPlatform->getActuatorbyIdentity(m_ID)->getErrorState(); }
+
+    Device::DeviceState _getDeviceState() { return m_pPlatform->getActuatorbyIdentity(m_ID)->getDeviceState(); }
     /// @brief The remaining distance between the current actuator length and the target length.
     OpcUa_Float m_DeltaLength;
     /// @brief The last requested target length.
@@ -84,11 +85,11 @@ private:
 
     /// @brief Change the actuator length by a desired amount
     /// @param args Array of method arguments as UaVariants.
-    UaStatus moveDelta(const UaVariantArray &args);
+    UaStatus moveDelta(float deltaLength);
 
     /// @brief Move the actuator to a desired length
     /// @param args Array of method arguments as UaVariants.
-    UaStatus moveToLength(const UaVariantArray &args);
+    UaStatus moveToLength(float targetLength);
 };
 
 #endif //SERVER_ACTCONTROLLER_HPP

@@ -441,7 +441,7 @@ java/util/HashMap$EntrySet
 java/util/HashMap$EntryIterator
 java/util/HashMap$HashIterator
 sun/util/logging/LoggingSupport$2
-java/util/Date
+java/util/date
 sun/util/calendar/CalendarSystem
 sun/util/calendar/Gregorian
 sun/util/calendar/BaseCalendar
@@ -1547,8 +1547,8 @@ sun/util/resources/LocaleNamesBundle
 sun/util/resources/OpenListResourceBundle
 sun/util/resources/en/CalendarData_en
 sun/util/locale/provider/LocaleResources$ResourceReference
-sun/util/calendar/Gregorian$Date
-sun/util/calendar/BaseCalendar$Date
+sun/util/calendar/Gregorian$date
+sun/util/calendar/BaseCalendar$date
 sun/util/calendar/CalendarDate
 sun/util/calendar/CalendarUtils
 java/text/DateFormatSymbols
@@ -1725,7 +1725,7 @@ javax/swing/plaf/basic/BasicTextUI$TextTransferHandler
 javax/swing/TransferHandler
 javax/swing/TransferHandler$TransferAction
 sun/swing/UIAction
-javax/swing/text/Position$Bias
+javax/swing/text/position$Bias
 javax/swing/plaf/basic/BasicTextUI$RootView
 javax/swing/text/View
 javax/swing/plaf/basic/BasicTextUI$UpdateHandler
@@ -1805,7 +1805,7 @@ javax/swing/text/AbstractDocument$1
 javax/swing/text/AbstractDocument$BidiElement
 javax/swing/text/AbstractDocument$LeafElement
 javax/swing/text/GapContent$StickyPosition
-javax/swing/text/Position
+javax/swing/text/position
 javax/swing/text/StyleContext$KeyEnumeration
 javax/swing/text/FieldView
 javax/swing/text/PlainView

@@ -6,8 +6,10 @@
 #ifndef __PASNODEMANAGER_H__
 #define __PASNODEMANAGER_H__
 
-#include "pasnodemanagercommon.hpp"
 #include <vector>
+
+#include "common/opcua/pasnodemanagercommon.hpp"
+
 
 class PasCommunicationInterface;
 class Configuration;
@@ -19,7 +21,7 @@ class PasNodeManager : public PasNodeManagerCommon
     UA_DISABLE_COPY(PasNodeManager);
 public:
     /// @brief Constructor for a PasNodeManager object.
-    PasNodeManager();
+    explicit PasNodeManager(std::shared_ptr<Configuration> pConfiguration, std::string mode = "subclient");
     /// @brief Destructor for a PasNodeManager object.
     ~PasNodeManager() override;
 
@@ -32,16 +34,15 @@ public:
     /// @return An OPC UA status code.
     UaStatus beforeShutDown() override;
 
-    /// @brief Setter method to set the Configuration object.
-    /// @param pConfiguration Pointer to a new Configuration object.
-    void setConfiguration(Configuration *pConfiguration);
+    void createClients();
+
     /// @brief Setter method to set the PasCommunicationInterface object.
     /// @param pCommIf Pointer to a new PasCommunicationInterface object.
-    void setCommunicationInterface(PasCommunicationInterface *pCommIf);
+    void setCommunicationInterface(std::shared_ptr<PasCommunicationInterface> &pCommIf);
 
     /// @brief Method to get locale ID indicating the region/language.
     /// @return A locale ID string indicating the region/language.
-    UaString getDefaultLocaleId() {return m_defaultLocaleId;};
+    UaString getDefaultLocaleId() { return m_defaultLocaleId; };
 
     /// @brief Emergency method to test all actuator devices by toggling their
     /// state variable.
@@ -49,14 +50,15 @@ public:
     OpcUa_Int32 Panic();
 
 private:
+    std::string m_Mode;
     /// @brief Adds all custom type nodes for device object types.
     /// @return An OPC UA status code.
     UaStatus amendTypeNodes();
     /// @brief Configuration object used to
-    Configuration *m_pConfiguration = nullptr;
+    std::shared_ptr<Configuration> m_pConfiguration = nullptr;
     /// @brief Pointers to all OPC UA clients (controller boards) connected to
   	/// the master alignment client.
-    std::vector<Client *> m_pClient;
+    std::vector<Client *> m_pClients;
     /// @brief Pointer to telescope positioner OPC UA client.
     Client *m_pPositioner;
 

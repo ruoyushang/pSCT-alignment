@@ -1,13 +1,17 @@
-#include "edgeobject.hpp"
-#include "pasnodemanager.hpp"
-#include "passervertypeids.hpp"
-#include "pascommunicationinterface.hpp"
+#include "client/objects/edgeobject.hpp"
+
 #include "uaserver/methodhandleuanode.h"
 #include "uaserver/opcua_analogitemtype.h"
 
+#include "common/opcua/passervertypeids.hpp"
+
+#include "client/pascommunicationinterface.hpp"
+#include "client/pasnodemanager.hpp"
+
 
 const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, OpcUa_Byte>> EdgeObject::VARIABLES = {
-        {PAS_EdgeType_State, std::make_tuple("State", UaVariant(0), OpcUa_True, Ua_AccessLevel_CurrentRead)}
+    {PAS_EdgeType_State,    std::make_tuple("State", UaVariant(0), OpcUa_True, Ua_AccessLevel_CurrentRead)},
+    {PAS_EdgeType_Position, std::make_tuple("Position", UaVariant(0), OpcUa_False, Ua_AccessLevel_CurrentRead)},
 };
 
 const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean>> EdgeObject::ERRORS = {
@@ -35,8 +39,3 @@ const std::map<OpcUa_UInt32, std::pair<std::string, std::vector<std::tuple<std::
         {PAS_EdgeType_Read,       {"Read",       {}}},
         {PAS_EdgeType_Stop,       {"Stop",       {}}}
 };
-
-UaNodeId EdgeObject::typeDefinitionId() const {
-    UaNodeId ret(PAS_EdgeType, browseName().namespaceIndex());
-    return ret;
-}

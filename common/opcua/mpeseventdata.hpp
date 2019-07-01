@@ -1,5 +1,5 @@
-#ifndef MPESEVENTDATA_H
-#define MPESEVENTDATA_H
+#ifndef COMMON_OPCUA_MPESEVENTDATA_HPP
+#define COMMON_OPCUA_MPESEVENTDATA_HPP
 
 #include "uaserver/uaeventdata.h"
 
@@ -9,13 +9,12 @@ class MPESEventTypeData: public BaseEventTypeData
 {
     UA_DISABLE_COPY(MPESEventTypeData);
 public:
-    MPESEventTypeData(OpcUa_Int16 nsIdx);
-    virtual ~MPESEventTypeData();
+    explicit MPESEventTypeData(OpcUa_Int16 nsIdx);
 
     /** Registers all event type fields with the EventManagerUaNode. */
     void registerEventFields();
     /** Get the field value for the passed index. */
-    virtual void getFieldData(OpcUa_UInt32 index, Session* pSession, OpcUa_Variant& data);
+    void getFieldData(OpcUa_UInt32 index, Session* pSession, OpcUa_Variant& data) override;
     /** set the field value for the passed index. **/
     // virtual void setFieldData(OpcUa_UInt32 index, OpcUa_Variant& data);
     
@@ -38,4 +37,4 @@ private:
     static std::map<OpcUa_UInt32, OpcUa_UInt32> s_MPESEventTypeDataFields;
 };
 
-#endif // MPESEVENTDATA_H
+#endif //COMMON_OPCUA_MPESEVENTDATA_HPP

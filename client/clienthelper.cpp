@@ -1,90 +1,62 @@
-#include "clienthelper.hpp"
-#include "subscription.hpp"
-#include "database.hpp"
-#include "configuration.hpp"
-#include "pasobject.hpp"
-#include "passervertypeids.hpp"
-#include "pasnodemanager.hpp"
-#include "pascommunicationinterface.hpp"
-#include "components.hpp"
-#include "uaclient/uasession.h"
+#include "client/clienthelper.hpp"
 
 #include <map>
+#include <memory>
+
+#include "uaclient/uasession.h"
+#include "uaclient/uaclientsdk.h"
+
+#include "common/alignment/device.hpp"
+#include "common/opcua/pasobject.hpp"
+#include "common/opcua/passervertypeids.hpp"
+
+#include "client/pascommunicationinterface.hpp"
+#include "client/pasnodemanager.hpp"
+#include "client/utilities/configuration.hpp"
+#include "client/utilities/database.hpp"
+#include "client/utilities/subscription.hpp"
 
 #define _DEBUG_ 0
 
-using namespace UaClientSdk;
-
-Client::Client(PasNodeManager *pNodeManager) : m_pNodeManager(pNodeManager), m_TransactionId(0),
-                                               m_pConfiguration(nullptr),
-                                               m_serverStatus(UaClient::ServerStatus::Disconnected)
-{
-    m_pSession = new UaSession();
-    m_pSubscription = new Subscription(m_pConfiguration);
-    m_pDatabase = new Database();
-}
-
-Client::~Client()
-{
-    m_pNodeManager = nullptr;
-    m_pConfiguration = nullptr;
-
-    if (m_pSubscription)
-    {
-        // delete local subscription object
-        delete m_pSubscription;
-        m_pSubscription = nullptr;
-    }
-
-    if (m_pDatabase)
-    {
-        // delete local database object
-        delete m_pDatabase;
-        m_pDatabase = nullptr;
-    }
-
-    if (m_pSession)
-    {
-        // disconnect if we're still connected
-        if (m_pSession->isConnected() != OpcUa_False)
-        {
-            ServiceSettings serviceSettings;
-            m_pSession->disconnect(serviceSettings, OpcUa_True);
-        }
-        delete m_pSession;
-        m_pSession = nullptr;
-    }
+Client::Client(PasNodeManager *pNodeManager, std::string mode) : m_mode(std::move(mode)),
+                                                                 m_pNodeManager(pNodeManager),
+                                                                 m_pConfiguration(nullptr),
+                                                                 m_serverStatus(UaClientSdk::UaClient::ServerStatus::Disconnected),
+                                                                 m_TransactionId(0) {
+    m_pSession = std::unique_ptr<UaClientSdk::UaSession>(new UaClientSdk::UaSession());
+    m_pSubscription = std::unique_ptr<Subscription>(new Subscription(m_pConfiguration));
+    m_pDatabase = std::unique_ptr<Database>(new Database());
 }
 
 void Client::connectionStatusChanged(
     OpcUa_UInt32             clientConnectionId,
-    UaClient::ServerStatus   serverStatus)
+    UaClientSdk::UaClient::ServerStatus   serverStatus)
 {
     OpcUa_ReferenceParameter(clientConnectionId);
 
     printf("-------------------------------------------------------------\n");
     switch (serverStatus)
     {
-      case UaClient::Disconnected:
+      case UaClientSdk::UaClient::Disconnected:
           printf("Connection status changed to Disconnected\n");
           break;
-      case UaClient::Connected:
+      case UaClientSdk::UaClient::Connected:
           printf("Connection status changed to Connected\n");
-          if (m_serverStatus != UaClient::NewSessionCreated)
+          if (m_serverStatus != UaClientSdk::UaClient::NewSessionCreated)
           {
             m_pConfiguration->updateNamespaceIndexes(m_pSession->getNamespaceTable());
           }
           break;
-      case UaClient::ConnectionWarningWatchdogTimeout:
+      case UaClientSdk::UaClient::ConnectionWarningWatchdogTimeout:
           printf("Connection status changed to ConnectionWarningWatchdogTimeout\n");
           break;
-      case UaClient::ConnectionErrorApiReconnect:
+      case UaClientSdk::UaClient::ConnectionErrorApiReconnect:
           printf("Connection status changed to ConnectionErrorApiReconnect\n");
           break;
-      case UaClient::ServerShutdown:
+      case UaClientSdk::UaClient::ServerShutdown:
           printf("Connection status changed to ServerShutdown\n");
           break;
-      case UaClient::NewSessionCreated:
+      case UaClientSdk::UaClient::NewSessionCreated:
           printf("Connection status changed to NewSessionCreated\n");
           m_pConfiguration->updateNamespaceIndexes(m_pSession->getNamespaceTable());
           break; 
@@ -94,7 +66,7 @@ void Client::connectionStatusChanged(
     m_serverStatus = serverStatus; 
 }
 
-void Client::setConfiguration(Configuration* pConfiguration) 
+void Client::setConfiguration(std::shared_ptr<Configuration> pConfiguration)
 { 
     if (m_pSubscription) 
     {
@@ -104,23 +76,23 @@ void Client::setConfiguration(Configuration* pConfiguration)
     {
         m_pDatabase->setConfiguration(pConfiguration);
     }
-    m_pConfiguration = pConfiguration;
+    m_pConfiguration = std::move(pConfiguration);
 }
 
 UaStatus Client::connect()
 {
     // Security settings are not initialized - we connect without security for now
-    SessionSecurityInfo sessionSecurityInfo;
+    UaClientSdk::SessionSecurityInfo sessionSecurityInfo;
 
     return _connect(m_Address, sessionSecurityInfo);
 }
 
-UaStatus Client::_connect(const UaString& serverUrl, SessionSecurityInfo& sessionSecurityInfo)
+UaStatus Client::_connect(const UaString& serverUrl, UaClientSdk::SessionSecurityInfo& sessionSecurityInfo)
 {
     UaStatus result;
 
     // Provide information about the client
-    SessionConnectInfo sessionConnectInfo;
+    UaClientSdk::SessionConnectInfo sessionConnectInfo;
     UaString sNodeName("unknown_host");
     char szHostName[256];
     if (0 == UA_GetHostname(szHostName, 256))
@@ -164,7 +136,7 @@ UaStatus Client::disconnect()
     UaStatus result;
 
     // Default settings like timeout
-    ServiceSettings serviceSettings;
+    UaClientSdk::ServiceSettings serviceSettings;
 
     printf("\nDisconnecting ...\n");
     result = m_pSession->disconnect(serviceSettings, OpcUa_True);
@@ -186,7 +158,7 @@ UaStatus Client::read(std::vector<std::string> sNodeNames, UaVariant *data)
     UaStatus          result;
 
     UaDataValues      values;
-    ServiceSettings   serviceSettings;
+    UaClientSdk::ServiceSettings   serviceSettings;
     UaReadValueIds    nodesToRead;
     UaDiagnosticInfos diagnosticInfos;
 
@@ -221,7 +193,8 @@ UaStatus Client::read(std::vector<std::string> sNodeNames, UaVariant *data)
                 data[i] = UaVariant(values[i].Value);
             }
             else {
-                printf("Read failed for item[%d] with status %s\n", i, UaStatus(values[i].StatusCode).toString().toUtf8());
+                return UaStatus(values[i].StatusCode);
+                //printf("Read failed for item[%d] with status %s\n", i, UaStatus(values[i].StatusCode).toString().toUtf8());
             }
         }
     }
@@ -239,7 +212,7 @@ UaStatus Client::write(std::vector<std::string> sNodeNames, const UaVariant *val
     UaWriteValues     nodesToWrite;
     UaStatusCodeArray results;
     UaDiagnosticInfos diagnosticInfos;
-    ServiceSettings   serviceSettings;
+    UaClientSdk::ServiceSettings   serviceSettings;
     UaNodeIdArray nodes;
     
     OpcUa_UInt32 size = sNodeNames.size();
@@ -290,9 +263,9 @@ UaStatus Client::write(std::vector<std::string> sNodeNames, const UaVariant *val
 UaStatus Client::callMethod(const std::string &sNodeName, const UaString &sMethod, const UaVariantArray &args)
 {
     UaStatus          status;
-    CallIn            callRequest;
-    CallOut           callResult;
-    ServiceSettings   serviceSettings;
+    UaClientSdk::CallIn            callRequest;
+    UaClientSdk::CallOut           callResult;
+    UaClientSdk::ServiceSettings   serviceSettings;
     UaNodeIdArray nodes;
 
     OpcUa_UInt32 size = 1;
@@ -332,8 +305,8 @@ UaStatus Client::callMethod(const std::string &sNodeName, const UaString &sMetho
 UaStatus Client::callMethodAsync(const std::string &sNodeName, const UaString &sMethod, const UaVariantArray &args)
 {
     UaStatus          status;
-    CallIn            callRequest;
-    ServiceSettings   serviceSettings;
+    UaClientSdk::CallIn            callRequest;
+    UaClientSdk::ServiceSettings   serviceSettings;
     UaNodeIdArray nodes;
 
     OpcUa_UInt32 size = 1;
@@ -371,11 +344,11 @@ UaStatus Client::callMethodAsync(const std::string &sNodeName, const UaString &s
     return status;
 }
 
-void Client::callComplete(OpcUa_UInt32 transactionId, const UaStatus &result, const CallOut &callResponse)
+void Client::callComplete(OpcUa_UInt32 transactionId, const UaStatus &result, const UaClientSdk::CallOut &callResponse)
 {
-        printf("-- Event callComplete --------------------------------\n");
-        printf("\ttransactionId %d \n", transactionId);
-        printf("\tresultStatus %s \n", result.toString().toUtf8());
+        //printf("-- Event callComplete --------------------------------\n");
+        //printf("\ttransactionId %d \n", transactionId);
+        //printf("\tresultStatus %s \n", result.toString().toUtf8());
         // this should duplicate the behavior of the synchronous callMethod() after the method
         // call succeeds. But we're not doing anything there for now, so this too is empty
 }
@@ -396,10 +369,11 @@ UaStatus Client::recurseAddressSpace(const UaNodeId& nodeToBrowse, OpcUa_UInt32 
 {
     UaStatus result;
 
-    ServiceSettings serviceSettings;
-    UaClientSdk::BrowseContext browseContext;
+    UaClientSdk::ServiceSettings serviceSettings;
     UaByteString continuationPoint;
     UaReferenceDescriptions referenceDescriptions;
+
+    UaClientSdk::BrowseContext browseContext;
 
     // configure browseContext
     browseContext.browseDirection = OpcUa_BrowseDirection_Forward;
@@ -425,7 +399,7 @@ UaStatus Client::recurseAddressSpace(const UaNodeId& nodeToBrowse, OpcUa_UInt32 
         // continue browsing
         while (continuationPoint.length() > 0)
         {
-            printf("\nContinuationPoint is set. BrowseNext...\n");
+            //printf("\nContinuationPoint is set. BrowseNext...\n");
             // browse next
             result = m_pSession->browseNext(serviceSettings, OpcUa_False, continuationPoint, referenceDescriptions);
 
@@ -454,10 +428,13 @@ UaStatus Client::recurseAddressSpace(const UaNodeId& nodeToBrowse, OpcUa_UInt32 
 void Client::addDevices(const OpcUa_ReferenceDescription& referenceDescription)
 {
     UaStatus ret;
-    Identity identity;
+    Device::Identity identity;
     char sTemp[100];
 
-    std::map<OpcUa_UInt32, std::string> typeNamesMap = {{PAS_MPESType, "MPES"}, {PAS_ACTType, "ACT"}, {PAS_PSDType, "PSD"}};
+    std::map<OpcUa_UInt32, std::string> typeNamesMap = {{PAS_MPESType,  "MPES"},
+                                                        {PAS_ACTType,   "ACT"},
+                                                        {PAS_PSDType,   "PSD"},
+                                                        {PAS_PanelType, "Panel"}};
 
     OpcUa_UInt32 type;
     std::string name;
@@ -473,19 +450,20 @@ void Client::addDevices(const OpcUa_ReferenceDescription& referenceDescription)
             sprintf(sTemp, "ns=%d;s=%s",
                     referenceDescription.BrowseName.NamespaceIndex,
                     UaString(referenceDescription.BrowseName.Name).toUtf8());
-            // get the USB number -- this is the last character of the node name
-            std::string sUSB = std::string(UaString(sTemp).toUtf8()).substr(strlen(sTemp)-1, 1);
-            // set the identity of the device we're about to add
-            identity.eAddress = std::string(sTemp);
-            identity.serialNumber = m_pConfiguration->getDeviceSerial(m_Address, type, UaString(sUSB.c_str()));
-            sprintf(sTemp, "%s_%03d", name.c_str(), identity.serialNumber);
-            identity.name = std::string(sTemp);
-            identity.position = m_pConfiguration->getDevicePosition(type, identity.serialNumber);
 
-            printf("=====================================\n");
-            printBrowseResults(referenceDescription);
-            printf("will add %s %d as %s\n", name.c_str(), identity.serialNumber, identity.eAddress.c_str());
-            ((PasCommunicationInterface *) m_pNodeManager->getComInterface().get())->addDevice(this, type, identity);
+            // Check whether the found node exists in the configuration
+            try {
+                Device::Identity deviceId = m_pConfiguration->getDeviceByName(
+                    UaString(referenceDescription.BrowseName.Name).toUtf8());
+                ((PasCommunicationInterface *) m_pNodeManager->getComInterface().get())->addDevice(
+                    this, type, deviceId);
+                m_DeviceNodeIdMap[deviceId] = std::string(sTemp);
+            }
+            catch (std::out_of_range &e) {
+                std::cout << "Could not find device ID matching node with name "
+                          << UaString(referenceDescription.BrowseName.Name).toUtf8() << " and type " << name
+                          << std::endl;
+            }
         }
     }
 }
@@ -497,7 +475,7 @@ void Client::printBrowseResults(const OpcUa_ReferenceDescription& referenceDescr
     printf("[Ref=%s] ", referenceTypeId.toString().toUtf8() );
     UaQualifiedName browseName(referenceDescription.BrowseName);
     printf("%s ( ", browseName.toString().toUtf8() );
-    if (referenceDescription.NodeClass & OpcUa_NodeClass_Object) 
+    if (referenceDescription.NodeClass & OpcUa_NodeClass_Object)
         printf("Object ");
     if (referenceDescription.NodeClass & OpcUa_NodeClass_Variable) 
         printf("Variable ");
@@ -524,7 +502,7 @@ UaStatus Client::subscribe()
 {
     UaStatus result;
 
-    result = m_pSubscription->createSubscription(m_pSession);
+    result = m_pSubscription->createSubscription(m_pSession.get());
     if ( result.isGood() )
     {
         result = m_pSubscription->createMonitoredItems();

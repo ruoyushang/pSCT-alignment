@@ -1,7 +1,8 @@
-#ifndef CBC_H
-#define CBC_H
+#ifndef CBCCODE_CBC_HPP
+#define CBCCODE_CBC_HPP
 
 #include <vector>
+#include <climits>
 
 /*!
  * The CBC class is responsible for the control of all mirror control board functions.
@@ -87,12 +88,11 @@ class CBC
             {}
         };
 
-        static struct Config config_default;
+    virtual void configure(struct Config config);
 
-        void configure(struct Config config);
+    explicit CBC(struct Config config = CBC::Config());
 
-        CBC(struct Config config=CBC::config_default);
-        ~CBC();
+    ~CBC() = default;
 
         /*! Power down CBC
          *
@@ -149,7 +149,7 @@ class CBC
             void enableEthernet();
             ///@}
 
-            USB(CBC *cbc);
+            explicit USB(CBC *cbc);
             private:
             CBC *cbc;
 
@@ -286,14 +286,14 @@ class CBC
                  * having to specify each time you perform stepping.
                  */
                 /*! @brief Returns global stepping frequency */
-                int  getSteppingFrequency();
+                int getSteppingFrequency() { return m_steppingFrequency; }
                 /*! @brief Sets global stepping frequency
                  *  @param frequency Stepping frequency, in macrosteps/second
                  */
                 void setSteppingFrequency(int frequency);
                 //@}
 
-                Driver(CBC *cbc);
+            explicit Driver(CBC *cbc);
             private:
                 CBC *cbc;
                 /*!
@@ -310,7 +310,7 @@ class CBC
                  * Right now it is just set to a very large range, but hopefully some sane limits
                  * would be chosen in the future.
                  */
-                static const int  maximumSteppingFrequency = 0x1 << 16;
+                static const int maximumSteppingFrequency = INT_MAX;
                 static const int  minimumSteppingFrequency = 0;
                 ///@}
         } driver;
@@ -331,7 +331,7 @@ class CBC
             bool isEnabled();
             ///@}
 
-            Encoder(CBC *cbc);
+            explicit Encoder(CBC *cbc);
             private:
             CBC *cbc;
         } encoder;
@@ -386,7 +386,7 @@ class CBC
                  *  @param adc Select ADC 0 or 1
                  *  @param channel Select ADC channel 0-11
                  */
-                adcData measure(int adc, int channel);
+                adcData measure(int adc_num, int channel) { return measure(adc_num, channel, m_defaultSamples); }
                 /*! @brief Measure from ADC channel with a specified number of samples
                  *  @param adc Select ADC 0 or 1
                  *  @param channel Measure from ADC channel 0-11
@@ -479,7 +479,7 @@ class CBC
                  *  @param nsamples Number of ADC Samples to average. */
                 void setDefaultSamples(int nsamples);
                 /*! @brief Returns the current default number of samples. */
-                int  getDefaultSamples();
+                int getDefaultSamples() { return m_defaultSamples; }
                 ///@}
 
                 float getEncoderTemperatureSlope  ( int iencoder ) ;
@@ -495,7 +495,7 @@ class CBC
                 void  setEncoderVoltageOffset     ( int iencoder, float offset ) ;
 
 
-                ADC(CBC *cbc);
+            explicit ADC(CBC *cbc);
 
             private:
                 CBC *cbc;
@@ -526,7 +526,7 @@ class CBC
                 /*! Returns status of power to auxillary sensors */
                 bool isEnabled();
 
-                AUXsensor(CBC *cbc);
+            explicit AUXsensor(CBC *cbc);
             private:
                 CBC *cbc;
         } auxSensor;
@@ -535,8 +535,9 @@ class CBC
         /* delay inserted after enabling, before stepping, before
          * disabling, before reading encoders */
         int m_delay; // in milliseconds
-        void setDelayTime(int delay);
-        int getDelayTime();
+    virtual void setDelayTime(int delay);
+
+    virtual int getDelayTime();
 };
 
-#endif
+#endif //CBCCODE_CBC_HPP

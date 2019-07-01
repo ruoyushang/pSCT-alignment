@@ -5,12 +5,13 @@
 #include "uabase/uabase.h"
 #include "uabase/uavariant.h"
 
+#include "common/alignment/device.hpp"
+
 #include "client/controllers/pascontroller.hpp"
 #include "client/controllers/panelcontroller.hpp"
 
-class Client;
 
-enum class PASState;
+class Client;
 
 class ActController : public PasController {
     UA_DISABLE_COPY(ActController);
@@ -19,19 +20,17 @@ public:
     friend PanelController;
 
     // construction / destruction
-    ActController(Identity identity, Client *pClient);
-
-    ~ActController() override;
+    ActController(Device::Identity identity, Client *pClient);
 
     // Get Controller status and data
-    UaStatus getState(PASState &state) override;
+    UaStatus getState(Device::DeviceState &state) override;
 
     UaStatus getData(OpcUa_UInt32 offset, UaVariant &value) override;
 
     UaStatus getError(OpcUa_UInt32 offset, UaVariant &value);
 
     // set Controller status and data
-    UaStatus setState(PASState state) override;
+    UaStatus setState(Device::DeviceState state) override;
 
     UaStatus setData(OpcUa_UInt32 offset, UaVariant value) override;
 

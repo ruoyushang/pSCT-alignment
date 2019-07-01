@@ -9,6 +9,7 @@
 #include "uaarraytemplates.h"
 
 #include "common/opcua/pascominterfacecommon.hpp"
+#include "common/alignment/device.hpp"
 
 /// @details Returns -1 on invalid device type ID.
 std::size_t PasComInterfaceCommon::getDeviceCount(OpcUa_UInt32 deviceType) {
@@ -16,15 +17,20 @@ std::size_t PasComInterfaceCommon::getDeviceCount(OpcUa_UInt32 deviceType) {
         return m_pControllers.at(deviceType).size();
     }
     catch (std::out_of_range &e) {
-        return -1;
+        return 0;
     }
 }
 
-std::vector<Identity> PasComInterfaceCommon::getValidDeviceIdentities(OpcUa_UInt32 deviceType) {
-    std::vector <Identity> validIdentities;
-    for (auto &it : m_pControllers.at(deviceType)) {
-        validIdentities.push_back(it.first);
+std::vector<Device::Identity> PasComInterfaceCommon::getValidDeviceIdentities(OpcUa_UInt32 deviceType) {
+    std::vector<Device::Identity> validIdentities;
+    try {
+        auto devices = m_pControllers.at(deviceType);
+        for (auto &it : m_pControllers.at(deviceType)) {
+            validIdentities.push_back(it.first);
+        }
+        return validIdentities;
     }
-
-    return validIdentities;
+    catch (std::out_of_range &e) {
+        return validIdentities;
+    }
 }

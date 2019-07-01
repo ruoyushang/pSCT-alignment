@@ -3,9 +3,12 @@
 
 #include <Eigen/Dense>
 
-#include "client/controllers/pascontroller.hpp"
-#include "client/controllers/mirrorcontroller.hpp"
+#include "common/alignment/device.hpp"
+
 #include "client/controllers/edgecontroller.hpp"
+#include "client/controllers/mirrorcontroller.hpp"
+#include "client/controllers/pascontroller.hpp"
+
 
 class PanelController : public PasCompositeController {
     UA_DISABLE_COPY(PanelController);
@@ -15,35 +18,33 @@ public:
     friend EdgeController; // access internal methods for compute
 
     // construction / destruction
-    PanelController(Identity identity, Client *pClient);
-
-    virtual ~PanelController();
+    PanelController(Device::Identity identity, Client *pClient, bool isSubclient = true);
 
     // Get Controller status and data
-    UaStatus getState(PASState &state);
+    UaStatus getState(Device::DeviceState &state) override;
 
-    UaStatus getData(OpcUa_UInt32 offset, UaVariant &value);
+    UaStatus getData(OpcUa_UInt32 offset, UaVariant &value) override;
+
+    UaStatus getError(OpcUa_UInt32 offset, UaVariant &value);
 
     // set Controller status and data
-    UaStatus setState(PASState state);
+    UaStatus setState(Device::DeviceState state) override;
 
-    UaStatus setData(OpcUa_UInt32 offset, UaVariant value);
+    UaStatus setData(OpcUa_UInt32 offset, UaVariant value) override;
 
-    UaStatus operate(OpcUa_UInt32 offset, const UaVariantArray &args = UaVariantArray());
+    UaStatus operate(OpcUa_UInt32 offset, const UaVariantArray &args = UaVariantArray()) override;
 
     unsigned getActuatorCount();
 
-    UaStatus moveToLengths(const UaVariantArray &args);
-    UaStatus moveDeltaLengths(const UaVariantArray &args);
-
     Eigen::VectorXd getActuatorLengths();
+
     bool checkForCollision(const Eigen::VectorXd &deltaLengths);
 
     // helper
-    void updateCoords(bool printout = false);
+    UaStatus updateCoords(bool printout = false);
 
 private:
-    int m_kUpdateInterval = 1000;
+    bool m_isSubclient;
 
     // x, y, z, xRot, yRot, zRot
     double m_curCoords[6] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
@@ -57,6 +58,20 @@ private:
 
     // pad coords -- column per pad
     Eigen::Matrix3d m_PadCoords;
+
+    UaStatus __getActuatorLengths(Eigen::VectorXd &lengths);
+
+    Device::ErrorState __getErrorState();
+
+    Device::DeviceState __getDeviceState();
+
+    UaStatus __moveToLengths(const UaVariantArray &args) {
+        return m_pClient->callMethodAsync(std::string("ns=2;s=Panel_0"), UaString("MoveToLengths"), args);
+    }
+
+    UaStatus __moveDeltaLengths(const UaVariantArray &args) {
+        return m_pClient->callMethodAsync(std::string("ns=2;s=Panel_0"), UaString("MoveDeltaLengths"), args);
+    }
 };
 
 #endif //CLIENT_PANELCONTROLLER_HPP

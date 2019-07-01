@@ -1553,7 +1553,7 @@ non-exclusive license:
     for sale, have made, import, and otherwise transfer either its
     Contributions or its Contributor Version.
 
-2.2. Effective Date
+2.2. Effective date
 
 The licenses granted in Section 2.1 with respect to any Contribution
 become effective for each Contribution on the date the Contributor first

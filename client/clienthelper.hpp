@@ -1,22 +1,27 @@
 #ifndef PASCLIENT_H
 #define PASCLIENT_H
 
-#include "uabase.h"
-#include "uaclient/uaclientsdk.h"
+#include <memory>
 #include <string>
 
-class Subscription;
+#include "uabase/uabase.h"
+
+#include "uaclient/uaclientsdk.h"
+#include "uaclient/uasession.h"
+
+#include "client/utilities/database.hpp"
+#include "client/utilities/subscription.hpp"
+
 class Configuration;
-class Database;
 class PasNodeManager;
 
 class Client : public UaClientSdk::UaSessionCallback
 {
     UA_DISABLE_COPY(Client);
 public:
-    explicit Client(PasNodeManager *pNodeManager);
+    explicit Client(PasNodeManager *pNodeManager, std::string mode = "subclient");
 
-    ~Client() override;
+    ~Client() override = default;
 
     // UaSessionCallback implementation ----------------------------------------------------
     void
@@ -24,7 +29,7 @@ public:
     // UaSessionCallback implementation ------------------------------------------------------
 
     // set a configuration object we use to get connection parameters and NodeIds
-    void setConfiguration(Configuration* pConfiguration);
+    void setConfiguration(std::shared_ptr<Configuration> pConfiguration);
     void setAddress(const UaString& address) { m_Address = address; };
 
     // OPC UA service calls
@@ -49,7 +54,11 @@ public:
     UaStatus unsubscribe();
     void connectDatabase();
 
+    std::string getDeviceNodeId(const Device::Identity &identity) { return m_DeviceNodeIdMap.at(identity); }
+
 private:
+    std::string m_mode;
+
     UaString m_Address;
     // helper methods
     UaStatus _connect(const UaString& serverUrl, UaClientSdk::SessionSecurityInfo& sessionSecurityInfo);
@@ -59,15 +68,17 @@ private:
     void addDevices(const OpcUa_ReferenceDescription& eferenceDescription);
 
     // variables
-    PasNodeManager*                     m_pNodeManager;
-    UaClientSdk::UaSession*             m_pSession;
-    Subscription*                       m_pSubscription;
-    Configuration*                      m_pConfiguration;
+    std::shared_ptr<PasNodeManager> m_pNodeManager;
+    std::unique_ptr<UaClientSdk::UaSession> m_pSession;
+    std::unique_ptr<Subscription> m_pSubscription;
+    std::shared_ptr<Configuration> m_pConfiguration;
     UaClientSdk::UaClient::ServerStatus m_serverStatus;
-    Database*                           m_pDatabase;
+    std::unique_ptr<Database> m_pDatabase;
 
     // keep track of asynchronous calls
     OpcUa_UInt32 m_TransactionId;
+
+    std::map<Device::Identity, std::string> m_DeviceNodeIdMap;
 };
 
 #endif

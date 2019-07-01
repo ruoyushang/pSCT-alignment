@@ -21,6 +21,10 @@ SET(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_MODULE_PATH})
 FIND_PACKAGE( Eigen3 REQUIRED )
 FIND_PACKAGE( ROOT REQUIRED COMPONENTS Minuit)
 
+if(NOT TARGET spdlog)
+    find_package(spdlog REQUIRED)
+endif()
+
 SET(CMAKE_SKIP_BUILD_RPATH FALSE)
 SET(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
 #SET(CMAKE_INSTALL_RPATH ${CMAKE_CURRENT_SOURCE_DIR}/../sdk/lib64 ${CMAKE_CURRENT_SOURCE_DIR}/../../lib ${CMAKE_CURRENT_SOURCE_DIR}/../../lib64)
@@ -100,27 +104,28 @@ endif (BUILD_SHARED_LIBS)
 
 FILE(GLOB P2PAS_SRC
     "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/controllers/*.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/objects/*.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/utilities/*.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/controllers/*.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/objects/*.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/utilities/*.cpp"
     "${COMMON_CODE_DIR}/opcua/*.cpp"
     "${COMMON_CODE_DIR}/simulatestewart/stewartplatform.cpp"
     "${COMMON_CODE_DIR}/simulatestewart/mathtools.cpp"
     "${COMMON_CODE_DIR}/globalalignment/ccdclass.cpp"
     "${COMMON_CODE_DIR}/globalalignment/ccd/*.cpp"
     "${COMMON_CODE_DIR}/utilities/*.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/*.hpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/controllers/*.hpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/objects/*.hpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/utilities/*.hpp"
-        "${COMMON_CODE_DIR}/opcua/*.hpp"
-        "${COMMON_CODE_DIR}/simulatestewart/stewartplatform.h"
-        "${COMMON_CODE_DIR}/simulatestewart/mathtools.h"
-        "${COMMON_CODE_DIR}/globalalignment/ccdclass.h"
-        "${COMMON_CODE_DIR}/globalalignment/ccd/*.h"
-        "${COMMON_CODE_DIR}/utilities/*.cpp"
-
-  )
+    "${COMMON_CODE_DIR}/alignment/device.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/*.hpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/controllers/*.hpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/objects/*.hpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/utilities/*.hpp"
+    "${COMMON_CODE_DIR}/opcua/*.hpp"
+    "${COMMON_CODE_DIR}/simulatestewart/stewartplatform.h"
+    "${COMMON_CODE_DIR}/simulatestewart/mathtools.h"
+    "${COMMON_CODE_DIR}/globalalignment/ccdclass.h"
+    "${COMMON_CODE_DIR}/globalalignment/ccd/*.h"
+    "${COMMON_CODE_DIR}/utilities/*.cpp"
+    "${COMMON_CODE_DIR}/alignment/device.hpp"
+    )
 
 if ( SIMMODE )
     message("SIMMODE!")
@@ -145,6 +150,10 @@ include_directories(${COMMON_CODE_DIR}/opcua)
 include_directories(${COMMON_CODE_DIR}/simulatestewart)
 include_directories(${COMMON_CODE_DIR}/globalalignment)
 include_directories(${COMMON_CODE_DIR}/utilities)
+include_directories(${COMMON_CODE_DIR}/utilities/spdlog)
+include_directories(${COMMON_CODE_DIR}/utilities/spdlog/sinks)
+include_directories(${COMMON_CODE_DIR}/utilities/spdlog/fmt)
+include_directories(${COMMON_CODE_DIR}/utilities/spdlog/details)
 include_directories(${COMMON_CODE_DIR}/utilities/linux)
 #include_directories(${COMMON_CODE_DIR}/globalalignment/ccd)
 include_directories(${ARAVIS_INCLUDE_DIRS})
@@ -183,7 +192,7 @@ IF (WIN32)
 ENDIF (WIN32)
 
 IF (UNIX)
-    ADD_DEFINITIONS(-Wall)
+    ADD_DEFINITIONS(-Wall -DSPDLOG_COMPILED_LIB)
     SET(PLATTFORM_LIBS pthread rt)
 ENDIF (UNIX)
 
@@ -237,11 +246,13 @@ SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11" )
 IF ( NOT TARGET uastack )
     TARGET_LINK_LIBRARIES(${PROJECT_NAME} ${UAMODULE_LIBRARY}
         ${UAMODELS_LIBRARY} ${UACOREMODULE_LIBRARY} ${UACLIENT_LIBRARY} ${UABASE_LIBRARY} ${UASTACK_LIBRARY} ${PLATTFORM_LIBS} ${MYSQLCONNECTORCPP_LIBRARIES} ${ROOT_LIBRARIES}
-        ${ARAVIS_LIBRARIES} ${ROBAST_LIBRARIES} ${CCFITS_LIBRARIES} ${NLOPT_LIBRARIES})
+            ${ARAVIS_LIBRARIES} ${ROBAST_LIBRARIES} ${CCFITS_LIBRARIES} ${NLOPT_LIBRARIES})
 ELSE ()
     TARGET_LINK_LIBRARIES(${PROJECT_NAME} uamodelue uamodels codemodule uaclient uabase uastack ${PLATTFORM_LIBS} ${MYSQLCONNECTORCPP_LIBRARIES}
-        ${ARAVIS_LIBRARIES} ${ROBAST_LIBRARIES} ${CCFITS_LIBRARIES} ${NLOPT_LIBRARIES} ${ROOT_LIBRARIES})
+            ${ARAVIS_LIBRARIES} ${ROBAST_LIBRARIES} ${CCFITS_LIBRARIES} ${NLOPT_LIBRARIES} ${ROOT_LIBRARIES})
 ENDIF ()
+
+TARGET_LINK_LIBRARIES(${PROJECT_NAME} PRIVATE spdlog::spdlog)
 
 ####################################### configure debug postfix #############################
 

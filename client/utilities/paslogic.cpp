@@ -1,5 +1,6 @@
 #include "paslogic.hpp"
 #include "passervertypeids.hpp"
+#include "client/pascommunicationinterface.hpp"
 #include <uastring.h>
 #include <uavariant.h>
 #include <statuscode.h>
@@ -7,24 +8,27 @@
 
 #define TIME __timeStamp()
 
-PasLogic::PasLogic(PasCommunicationInterface *pCommIf) : m_pCommIf {pCommIf}, m_terminate {false},
-                                                         m_aligned(false),
-                                                         m_kPSDDistance{514.61},
-                                                         m_kMisalignmentCriterion{0.3},
-                                                         m_kAngularScale{StewartPlatform::kMirrorDistance,
+PasLogic::PasLogic(std::shared_ptr<PasCommunicationInterface> pCommIf) : m_pCommIf{std::move(pCommIf)},
+                                                                         m_terminate{false},
+                                                                         m_aligned(false),
+                                                                         m_kPSDDistance{514.61},
+                                                                         m_kMisalignmentCriterion{0.3},
+                                                                         m_kAngularScale{StewartPlatform::kMirrorDistance,
                                                                          m_kPSDDistance},
-                                                         m_nominalPSDReadings{0., 0., 0., 0.},
-                                                         m_secondaryAligned{false},
-                                                         m_kInitTime{std::chrono::system_clock::now()},
-                                                         m_logstream{"paslogic.log", std::ofstream::app},
-                                                         tee{m_logstream}
+                                                                         m_nominalPSDReadings{0., 0., 0., 0.},
+                                                                         m_secondaryAligned{false},
+                                                                         m_kInitTime{std::chrono::system_clock::now()},
+                                                                         m_logstream{"paslogic.log", std::ofstream::app},
+                                                                         tee{m_logstream}
 {
     // doing just OPT
     m_SP.SetPanelType(StewartPlatform::PanelType::OPT);
 
-    UaString sName; 
-    m_pCommIf->getDeviceConfig(GLOB_PositionerType, 0, sName, m_positionerId);
-    m_pCommIf->getDeviceConfig(PAS_PSDType, 0, sName, m_psdId);
+    UaString sName;
+    m_positionerId = m_pCommIf->getValidDeviceIdentities(GLOB_PositionerType).at(0);
+    m_pCommIf->getDeviceFromId(GLOB_PositionerType, m_positionerId);
+    m_psdId = m_pCommIf->getValidDeviceIdentities(PAS_PSDType).at(0);
+    m_pCommIf->getDeviceFromId(PAS_PSDType, m_psdId);
     m_optId[0].position = 1001; // primary OPT
     m_optId[1].position = 2001; // secondary OPT
 }

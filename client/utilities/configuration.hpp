@@ -4,9 +4,10 @@
 #include "uabase.h"
 #include "uaclient/uaclientsdk.h"
 #include "passervertypeids.hpp"
-#include "components.hpp"
+#include "common/alignment/device.hpp"
 #include <vector>
 #include <string>
+#include <set>
 #include <map>
 #include <utility> // pair
 
@@ -17,12 +18,11 @@ class Configuration
 {
     UA_DISABLE_COPY(Configuration);
 public:
-    Configuration();
+    explicit Configuration(std::string mode = "subclient");
 
     virtual ~Configuration() = default;
 
     // get connection and session parameters
-    OpcUa_UInt32 getServers() const;
 
     UaString getDiscoveryUrl() const { return m_discoveryUrl; }
 
@@ -55,20 +55,39 @@ public:
     std::vector<UaStringArray> getDatabaseEntries() const { return m_databaseEntries; }
 
     // get device mappings
-    OpcUa_Int32 getDeviceSerial(const UaString& address, OpcUa_UInt32 deviceType, const UaString& sPort);
-    OpcUa_Int32 getDevicePosition(OpcUa_UInt32 deviceType, OpcUa_UInt32 serial);
+    Device::Identity getDeviceBySerial(OpcUa_UInt32 deviceType, int serial) {
+        return m_DeviceSerialMap.at(deviceType).at(serial);
+    }
     // {serial->Address} map of all devices of the requested type
-    const std::vector<Identity>& getDeviceList(OpcUa_UInt32 deviceType) {return m_DeviceList.at(deviceType);};
+    const std::set<Device::Identity> &getDevices(OpcUa_UInt32 deviceType) { return m_DeviceIdentities.at(deviceType); };
     // get list of all parents of a given device.
     // this is a vector of pairs {parentType, parentIdentity}
     // need to pass around the whole object!
     // can't return this by reference, since we're creating the objects in place.
-    std::vector< std::pair<OpcUa_UInt32, Identity> > getParents(OpcUa_UInt32 deviceType, const Identity& id);
+    std::map<OpcUa_UInt32, std::set<Device::Identity>> getParents(const Device::Identity &id) {
+        try {
+            return m_ParentMap.at(id);
+        }
+        catch (std::out_of_range &e) {
+            return std::map<OpcUa_UInt32, std::set<Device::Identity>>();
+        }
+    }
+
+    std::map<OpcUa_UInt32, std::set<Device::Identity>> getChildren(const Device::Identity &id) {
+        return m_ChildMap.at(id);
+    }
+
+    Device::Identity getDeviceByName(const std::string &browseName) { return m_DeviceNameMap.at(browseName); }
+
+    std::vector<UaString> getServerAddresses();
 
     // load configuration from file to fill connection parameters, NamespaceArray and NodeIds
     UaStatus loadConnectionConfiguration(const UaString& sConfigurationFile);
     // load configuration from DB to fill in device mappings
-    UaStatus loadDeviceConfiguration(const std::vector<std::string> &positionList);
+    UaStatus loadDeviceConfiguration(const std::vector<std::string> &positionList = std::vector<std::string>());
+
+    // load configuration from DB to fill in device mappings
+    UaStatus loadSubclientConfiguration(const std::vector<std::string> &subclientList = std::vector<std::string>());
 
     // create the folder structure to handle certificates and load or create a client certificate.
     UaStatus setupSecurity(UaClientSdk::SessionSecurityInfo& sessionSecurityInfo);
@@ -78,6 +97,10 @@ public:
 
 
 private:
+    static const std::map<std::string, std::string> SUBCLIENTS;
+
+    std::string m_Mode;
+
     // connection and session configuration
     UaString        m_applicationName;
     UaString        m_discoveryUrl;
@@ -107,22 +130,33 @@ private:
     UaStringArray          m_databaseName;
     std::vector<UaStringArray>  m_databaseEntries;
 
-    // maps device type -> { serial -> immediate parent position } to be able to get parents
-    std::map< OpcUa_UInt32, std::map<OpcUa_UInt32, std::string> > m_ParentMap;
+    bool addMissingParents();
 
-    // maps device type -> { serial -> address } to be able to retrieve list of all devices
-    std::map< OpcUa_UInt32, std::vector<Identity> > m_DeviceList;
+    Device::Identity getMirrorId(int mirrorNum);
 
-    // maps to be able to set device serial and position:
-    //
-    // completely insane map for device type -> {its panel address -> { Port->Serial } mappings
-    // this one has to map to a map because different panels have different port mappings
-    std::map< OpcUa_UInt32, std::map<UaString, std::map<UaString, OpcUa_Int32> > > m_DeviceSerialMap;
-    // ridiculous map for device type -> { serial->Position } mappings
-    std::map< OpcUa_UInt32, std::map<OpcUa_UInt32, OpcUa_UInt32> > m_DevicePositionMap;
-    // simple map from panel position to its address.
-    // so with the above, this also gives us serial to address.
-    std::map<OpcUa_UInt32, std::string> m_PanelAddressMap;
+    int getThirdPanelPosition(int wPanelPosition, int lPanelPosition);
+
+    std::map<std::string, std::string> m_Subclients;
+
+    std::map<OpcUa_UInt32, std::set<Device::Identity>> m_DeviceIdentities;
+
+    // maps device id -> device type -> identities
+    std::map<Device::Identity, std::map<OpcUa_UInt32, std::set<Device::Identity>>> m_ParentMap;
+
+    // maps device id -> device type -> identities
+    std::map<Device::Identity, std::map<OpcUa_UInt32, std::set<Device::Identity>>> m_ChildMap;
+
+    // maps mpes id -> "w", "l" -> panelId
+    std::map<Device::Identity, std::map<std::string, Device::Identity>> m_MPES_SideMap;
+
+    // maps devicetype -> serial -> identity
+    std::map<OpcUa_UInt32, std::map<int, Device::Identity>> m_DeviceSerialMap;
+
+    // maps panel position -> identity
+    std::map<int, Device::Identity> m_PanelPositionMap;
+
+    // maps device name -> identity
+    std::map<std::string, Device::Identity> m_DeviceNameMap;
 };
 
 #endif // CONFIGURATION_H

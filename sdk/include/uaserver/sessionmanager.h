@@ -55,7 +55,7 @@ public:
     /* destruction */
     virtual ~SessionManager();
 
-    /*  Initialize method for session manager.*/
+    /*  initialize method for session manager.*/
     UaStatus startUp(ServerConfig* pServerConfig, NodeManagerRoot* pNodeManagerRoot);
 
     /*  Shut down session manager. */

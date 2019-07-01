@@ -1,4 +1,4 @@
-#include "stewartplatform.h"
+#include "stewartplatform.hpp"
 
 #include "TVector.h"
 #include "TMatrixD.h"

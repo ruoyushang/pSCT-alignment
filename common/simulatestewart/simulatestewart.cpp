@@ -1,4 +1,4 @@
-#include "stewartplatform.h"
+#include "stewartplatform.hpp"
 
 #include <iostream>
 #include <iomanip>

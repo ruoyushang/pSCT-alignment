@@ -385,7 +385,7 @@ protected:
     OpcUa_UInt32          m_minSizeSubscriptionManager;
     OpcUa_UInt32          m_maxSizeSubscriptionManager;
 
-    /* Directory to store rejected certificates in */
+    /* directory to store rejected certificates in */
     UaString              m_sRejectedCertificatesDirectory;
     OpcUa_UInt32          m_nRejectedCertificatesCount;
     /* Array of UA endpoint descriptions */
@@ -399,7 +399,7 @@ protected:
     UaString              m_sUserIdentityTokenSecurityPolicy;
     /* Certificate store for user certificates*/
     CertificateStoreConfiguration* m_pCertificateStoreUser;
-    /* Directory to store rejected user certificates*/
+    /* directory to store rejected user certificates*/
     UaString              m_sRejectedUserCertificatesDirectory;
     OpcUa_UInt32          m_nRejectedUserCertificatesCount;
 

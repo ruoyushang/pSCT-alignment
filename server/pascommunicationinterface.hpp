@@ -12,16 +12,17 @@
 #include "uabase/statuscode.h"
 #include "uabase/uaarraytemplates.h"
 
-#include "common/opcua/components.hpp"
+#include "common/alignment/device.hpp"
 #include "common/opcua/pascominterfacecommon.hpp"
 #include "common/opcua/passervertypeids.hpp"
+#include "common/utilities/DBConfig.hpp"
 
 #include <map>
 #include <memory>
 #include <string>
 #include <vector>
 
-class Platform;
+class PlatformBase;
 class PasController;
 
 /// @brief Server communication interface to organize and interact with device controllers.
@@ -30,10 +31,10 @@ class PasCommunicationInterface : public PasComInterfaceCommon {
 public:
 
     /// @brief Instantiate a communication interface object.
-    PasCommunicationInterface() = default;
+    PasCommunicationInterface() : m_panelNum(-1), m_cbcID(-1) {};
 
     /// @brief Destroy a communication interface object.
-    ~PasCommunicationInterface() override { std::cout << "Closed and cleaned up Communication Interface\n"; }
+    ~PasCommunicationInterface() override;
 
     /// @brief Initialize all device controllers using information from the database.
     /// @return OPC UA status code indicating success/failure.
@@ -41,14 +42,15 @@ public:
 
     /// @brief Set the panel number used when retreiving information from the database.
     /// @param panelNumber Position number of the panel for this server.
-    void setPanelNumber(const std::string &panelNumber) { m_panelNum = panelNumber; }
+    void setPanelNumber(int panelNumber) { m_panelNum = panelNumber; }
 
     /// @brief Get the a pointer to the device controller for a specific device.
     /// @param deviceType OPC UA type ID for the desired device object type.
     /// @param identity The unique identity of the device.
     /// @return Pointer to the device controller.
-    std::shared_ptr<PasControllerCommon>
-    getDevice(OpcUa_UInt32 deviceType, const Identity &identity) { return m_pControllers.at(deviceType).at(identity); }
+    std::shared_ptr<PasControllerCommon> getDevice(OpcUa_UInt32 deviceType, const Device::Identity &identity) {
+        return m_pControllers.at(deviceType).at(identity);
+    }
 
     /// @brief Get a device's state through its controller.
     /// @param deviceType OPC UA type ID for the desired device object type.
@@ -57,8 +59,8 @@ public:
     /// @return OPC UA status code indicating success/failure.
     UaStatus getDeviceState(
         OpcUa_UInt32 deviceType,
-        const Identity &identity,
-        PASState &state) override;
+        const Device::Identity &identity,
+        Device::DeviceState &state) override;
 
     /// @brief Get a device's data through its controller.
     /// @param deviceType OPC UA type ID for the desired device object type.
@@ -68,7 +70,7 @@ public:
     /// @return OPC UA status code indicating success/failure.
     UaStatus getDeviceData(
         OpcUa_UInt32 deviceType,
-        const Identity &identity,
+        const Device::Identity &identity,
         OpcUa_UInt32 offset,
         UaVariant &value) override;
 
@@ -79,8 +81,8 @@ public:
     /// @return OPC UA status code indicating success/failure.
     UaStatus setDeviceState(
         OpcUa_UInt32 deviceType,
-        const Identity &identity,
-        PASState state) override;
+        const Device::Identity &identity,
+        Device::DeviceState state) override;
 
     /// @brief Set a device's data through its controller.
     /// @param deviceType OPC UA type ID for the desired device object type.
@@ -90,7 +92,7 @@ public:
     /// @return OPC UA status code indicating success/failure.
     UaStatus setDeviceData(
         OpcUa_UInt32 deviceType,
-        const Identity &identity,
+        const Device::Identity &identity,
         OpcUa_UInt32 offset,
         UaVariant value) override;
 
@@ -102,7 +104,7 @@ public:
     /// @return OPC UA status code indicating success/failure.
     UaStatus operateDevice(
         OpcUa_UInt32 deviceType,
-        const Identity &identity,
+        const Device::Identity &identity,
         OpcUa_UInt32 offset,
         const UaVariantArray &args) override;
 
@@ -110,11 +112,15 @@ public:
     static const std::map<OpcUa_UInt32, std::string> deviceTypes;
 
 private:
+
     /// @brief Position number of the panel. Used for device database lookup.
-    std::string m_panelNum;
+    int m_panelNum;
+
+    /// @brief Controller board ID of the panel.
+    int m_cbcID;
 
     /// @brief Pointer to the platform object used by all devices to interface with the hardware.
-    std::shared_ptr<Platform> m_platform;
+    std::shared_ptr<PlatformBase> m_platform;
 };
 
 #endif //SERVER_PASCOMMUNICATIONINTERFACE_HPP

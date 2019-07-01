@@ -11,22 +11,31 @@
 #include "uabase/statuscode.h"
 #include "uaserver/uaobjecttypes.h"
 
+#include "common/alignment/device.hpp"
+#include "common/globalalignment/psdclass.h"
+
 #include "server/controllers/pascontroller.hpp"
 
-class GASPSD;
 
 /// @brief Class representing a device controller for a Position Sensitive Device.
-class PSDController : public PasController 
+class PSDController : public PasController
 {
     UA_DISABLE_COPY(PSDController);
 
 public:
     /// @brief Instantiate a position sensitive device controller.
     /// @param ID The device ID (index) used to identify it within its parent panel/platform.
-    explicit PSDController(Identity identity);
+    explicit PSDController(Device::Identity identity);
 
-    /// @brief Destroy a position sensitive device controller.
-    ~PSDController() override;
+    /// @brief Get the device's state.
+    /// @param state Variable to store the retrieved state value.
+    /// @return OPC UA status code indicating success or failure.
+    UaStatus getState(Device::DeviceState &state) override;
+
+    /// @brief Set the device's state.
+    /// @param state Value to set the device state to.
+    /// @return OPC UA status code indicating success or failure.
+    UaStatus setState(Device::DeviceState state) override;
 
     /// @brief Get the value of a PSD data variable.
     /// @param offset A number used to uniquely identify the data variable to access.
@@ -47,8 +56,9 @@ public:
     UaStatus operate(OpcUa_UInt32 offset, const UaVariantArray &args) override;
 
 private:
-    /// @brief The internal device state.
-    PASState m_state = PASState::Off;
+    Device::ErrorState _getErrorState() { return Device::ErrorState::Nominal; }
+
+    Device::DeviceState _getDeviceState() { return Device::DeviceState::On; }
     /// @brief Pointer to the GASPSD object interfacing directly with thee PSD hardware.
     std::unique_ptr<GASPSD> m_pPSD;
 

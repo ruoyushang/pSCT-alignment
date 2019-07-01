@@ -1,7 +1,8 @@
 #!/usr/bin/env python
-import pymysql
 import argparse
 import os
+
+import pymysql
 
 
 def print_query_db_MPESes(panels, KNOWN_BAD_SENSORS=[], verbose=True):

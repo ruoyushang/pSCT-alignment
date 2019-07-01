@@ -3,6 +3,7 @@
  * @brief Source file for Database wrapper class.
  */
 
+#include <memory>
 #include <string>
 #include "database.hpp"
 #include "configuration.hpp"
@@ -26,9 +27,9 @@ Database::~Database()
  }
 
 /// @details Assigns provided Configuration pointer to object.
-void Database::setConfiguration(const Configuration *pConfiguration)
+void Database::setConfiguration(std::shared_ptr<Configuration> pConfiguration)
 {
-    m_pConfiguration = pConfiguration;
+    m_pConfiguration = std::move(pConfiguration);
 }
 
 /// @details Gets list of databases from the Configuration, creates drivers,

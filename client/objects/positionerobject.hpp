@@ -7,7 +7,7 @@
 #define __POSITIONER_H__
 
 #include "uaserver/methodmanager.h"
-#include "components.hpp"
+#include "common/alignment/device.hpp"
 #include "pasobject.hpp"
 
 #include "common/opcua/pascominterfacecommon.hpp"
@@ -36,20 +36,20 @@ public:
     /// @param pCommIf Pointer to a PasCommunicationInterface which controls
     /// device operation/reading.
     PositionerObject(
-            const UaString &name,
-            const UaNodeId &newNodeId,
-            const UaString &defaultLocaleId,
-            PasNodeManager *pNodeManager,
-            Identity identity,
-            PasCommunicationInterface *pCommIf) : PasObject(name, newNodeId, defaultLocaleId,
-                                                            dynamic_cast<PasNodeManagerCommon *>(pNodeManager),
-                                                            std::move(identity),
-                                                            dynamic_cast<PasComInterfaceCommon *>(pCommIf)) { initialize(); }
+        const UaString &name,
+        const UaNodeId &newNodeId,
+        const UaString &defaultLocaleId,
+        PasNodeManager *pNodeManager,
+        Device::Identity identity,
+        PasCommunicationInterface *pCommIf) : PasObject(name, newNodeId, defaultLocaleId,
+                                                        dynamic_cast<PasNodeManagerCommon *>(pNodeManager),
+                                                        std::move(identity),
+                                                        dynamic_cast<PasComInterfaceCommon *>(pCommIf)) { initialize(); }
 
     /// @brief Method returning the UaNodeId for the Positioner object type
     /// definition node.
     /// @return A UaNodeId uniquely identifying the Positioner object type node.
-    UaNodeId typeDefinitionId() const override;
+    UaNodeId typeDefinitionId() const override { return UaNodeId(GLOB_PositionerType, browseName().namespaceIndex()); }
 
     const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, OpcUa_Byte>>
     getVariableDefs() override { return PositionerObject::VARIABLES; }

@@ -1,5 +1,5 @@
-#include "mathtools.h"
-#include "mirrordefinitions.h"
+#include "mathtools.hpp"
+#include "mirrordefinitions.hpp"
 #include <algorithm>
 #include <numeric> // accumulate
 #include <string>
@@ -34,7 +34,7 @@ namespace SCTMath {
     }
 
     // get the address of the edge given panels
-    string GetEdgeFromPanels(const vector<unsigned>& panelPos)
+    string GetEdgeFromPanels(const vector<int> &panelPos)
     {
         auto panel_positions = panelPos;
         // order the panels in _regular_ ascending order to name the edge

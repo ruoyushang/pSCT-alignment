@@ -2,7 +2,7 @@
 #define __PASMIRROR_H__
 
 #include "uaserver/methodmanager.h"
-#include "components.hpp"
+#include "common/alignment/device.hpp"
 #include "pasobject.hpp"
 
 #include "common/opcua/pascominterfacecommon.hpp"
@@ -24,13 +24,13 @@ public:
         const UaNodeId& newNodeId,
         const UaString& defaultLocaleId,
         PasNodeManager* pNodeManager,
-        Identity identity,
+        Device::Identity identity,
         PasCommunicationInterface *pCommIf) : PasObject(name, newNodeId, defaultLocaleId,
                                                         dynamic_cast<PasNodeManagerCommon *>(pNodeManager),
                                                         std::move(identity),
                                                         dynamic_cast<PasComInterfaceCommon *>(pCommIf)) { initialize(); }
 
-    UaNodeId typeDefinitionId() const override;
+    UaNodeId typeDefinitionId() const override { return UaNodeId(PAS_MirrorType, browseName().namespaceIndex()); }
 
     const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, OpcUa_Byte>>
     getVariableDefs() override { return MirrorObject::VARIABLES; }

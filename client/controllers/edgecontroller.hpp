@@ -13,54 +13,43 @@ public:
     friend MirrorController;
 
     // construction / destruction
-    EdgeController(Identity identity);
-
-    ~EdgeController() override;
+    explicit EdgeController(Device::Identity identity);
 
     // Get Controller status and data
-    UaStatus getState(PASState &state) override;
+    UaStatus getState(Device::DeviceState &state) override;
 
     UaStatus getData(OpcUa_UInt32 offset, UaVariant &value) override;
 
     // set Controller status and data
-    UaStatus setState(PASState state) override;
+    UaStatus setState(Device::DeviceState state) override;
 
     UaStatus setData(OpcUa_UInt32 offset, UaVariant value) override;
 
     UaStatus operate(OpcUa_UInt32 offset, const UaVariantArray &args = UaVariantArray()) override;
 
-    const Eigen::MatrixXd &getResponseMatrix(unsigned panelpos);
+    Eigen::MatrixXd getResponseMatrix(unsigned panelpos);
 
-    const Eigen::VectorXd &getAlignedReadings();
+    std::pair<Eigen::VectorXd, Eigen::VectorXd> getCurrentReadings();
 
-    const Eigen::VectorXd &getSystematicOffsets();
+    Eigen::VectorXd getAlignedReadings();
 
-    const Eigen::VectorXd &getCurrentReadings();
+    Eigen::VectorXd getSystematicOffsets();
 
     bool isAligned() { return m_isAligned; }
-
 private:
-
-    // methods
     UaStatus align(unsigned panel_pos, double alignFrac = 0.25, bool moveit = true, bool execute = false);
 
-    UaStatus findMatrix(UaVariantArray args);
+    UaStatus alignSinglePanel(unsigned panelpos, double alignFrac, bool moveit = true, bool execute = false);
 
-    // helpers for the above
+    UaStatus findMatrix(UaVariantArray args);
     UaStatus findSingleMatrix(unsigned panelIdx, double stepSize = 0.5);
 
-    UaStatus alignSinglePanel(unsigned panelpos, double alignFrac, bool moveit = true, bool execute = false);
+    std::pair<Eigen::VectorXd, Eigen::VectorXd> __getCurrentReadings();
 
     // temporarily hold calculated alignment motion
     Eigen::VectorXd m_Xcalculated;
 
-    // maps panel position to its response matrix
-    std::map<unsigned, Eigen::MatrixXd> m_ResponseMatMap;
-    Eigen::VectorXd m_AlignedReadings;
-    Eigen::VectorXd m_systematicOffsets;
-    Eigen::VectorXd m_CurrentReadings;
-    Eigen::VectorXd m_CurrentReadingsSpotWidth;
-
+    // indicates whether edge is aligned
     bool m_isAligned;
 };
 

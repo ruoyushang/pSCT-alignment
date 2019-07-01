@@ -41,7 +41,7 @@ OPCUA_BEGIN_EXTERN_C
  *
  * Data       - The memory buffer that stores the stream data.
  * Size       - The size of the memory buffer.
- * Position   - The current position in the memory buffer.
+ * position   - The current position in the memory buffer.
  * EndOfData  - The position just after the last piece of data in the buffer.
  * BlockSize  - The size of block that should be added to the buffer when required.
  * MaxSize    - The maximum size of the buffer.

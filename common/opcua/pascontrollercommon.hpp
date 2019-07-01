@@ -2,8 +2,7 @@
 #define COMMON_PASCONTROLLERCOMMON_HPP
 
 #include "passervertypeids.hpp"
-#include "common/simulatestewart/stewartplatform.h"
-#include "components.hpp"
+#include "common/simulatestewart/stewartplatform.hpp"
 
 #include "uabase/statuscode.h"
 #include "uabase/uabase.h"
@@ -17,17 +16,8 @@
 #include <chrono>
 #include <iostream>
 
-#include "common/opcua/components.hpp"
+#include "common/alignment/device.hpp"
 
-enum class PASState {
-    On = 0,
-    Off = 1,
-    Busy = 2,
-    FatalError = 3,
-    OperableError = 4,
-    GLOB_Positioner_Moving = 10,
-    GLOB_Positioner_notMoving = 11
-    };
 
 class PasControllerCommon
 {
@@ -35,22 +25,22 @@ class PasControllerCommon
 public:
 
     /* construction / destruction */
-    explicit PasControllerCommon(Identity identity, int updateInterval = 0) :
-            m_state(PASState::On),
-            m_ID(std::move(identity)),
-            m_kUpdateInterval_ms(updateInterval) {};
+    explicit PasControllerCommon(Device::Identity identity, int updateInterval = 0) :
+        m_state(Device::DeviceState::On),
+        m_ID(std::move(identity)),
+        m_kUpdateInterval_ms(updateInterval) {};
 
     virtual ~PasControllerCommon() = default;
 
-    const Identity& getId() const {return m_ID;}
+    const Device::Identity &getId() const { return m_ID; }
 
     /* Get Controller status and data */
-    virtual UaStatus getState(PASState &state);
+    virtual UaStatus getState(Device::DeviceState &state);
 
     virtual UaStatus getData(OpcUa_UInt32 offset, UaVariant &value) = 0;
 
     /* set Controller status and data */
-    virtual UaStatus setState(PASState state);
+    virtual UaStatus setState(Device::DeviceState state);
 
     virtual UaStatus setData(OpcUa_UInt32 offset, UaVariant value) = 0;
 
@@ -60,8 +50,8 @@ public:
 
 protected:
     UaMutex m_mutex;
-    PASState m_state;
-    Identity m_ID;
+    Device::DeviceState m_state;
+    Device::Identity m_ID;
     
     // update interval in milliseconds
     const int m_kUpdateInterval_ms;

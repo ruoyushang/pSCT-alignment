@@ -83,7 +83,7 @@ void signal_handler(int signo)
 void RegisterSignalHandler()
 {
     /* register signal handlers. */
-    struct sigaction new_action, old_action;
+    struct sigaction new_action{}, old_action{};
 
     /* Set up the structure to specify the new action. */
     new_action.sa_handler = signal_handler;
@@ -91,16 +91,16 @@ void RegisterSignalHandler()
     new_action.sa_flags = 0;
 
     /* install new signal handler for SIGINT */
-    sigaction(SIGINT, NULL, &old_action);
+    sigaction(SIGINT, nullptr, &old_action);
     if (old_action.sa_handler != SIG_IGN)
     {
-        sigaction(SIGINT, &new_action, NULL);
+        sigaction(SIGINT, &new_action, nullptr);
     }
     /* install new signal handler for SIGTERM */
-    sigaction(SIGTERM, NULL, &old_action);
+    sigaction(SIGTERM, nullptr, &old_action);
     if (old_action.sa_handler != SIG_IGN)
     {
-        sigaction(SIGTERM, &new_action, NULL);
+        sigaction(SIGTERM, &new_action, nullptr);
     }
 
     /* Set up the structure to prevent program termination on interrupted connections. */
@@ -109,10 +109,10 @@ void RegisterSignalHandler()
     new_action.sa_flags = 0;
 
     /* install new signal handler for SIGPIPE*/
-    sigaction(SIGPIPE, NULL, &old_action);
+    sigaction(SIGPIPE, nullptr, &old_action);
     if (old_action.sa_handler != SIG_IGN)
     {
-        sigaction(SIGPIPE, &new_action, NULL);
+        sigaction(SIGPIPE, &new_action, nullptr);
     }
 }
 #elif defined(_WIN32)
@@ -156,21 +156,21 @@ void RegisterSignalHandler()
 
 char* getAppPath()
 {
-    char* pszAppPath = NULL;
-    char* pszFind    = NULL;
+    char *pszAppPath = nullptr;
+    char *pszFind = nullptr;
     int   maxPath    = 0;
 #ifdef _WIN32
 #ifdef _WIN32_WCE
     TCHAR result[MAX_PATH];
     char  szAppPath[MAX_PATH];
     maxPath = MAX_PATH;
-    GetModuleFileName(NULL, result, MAX_PATH);
+    GetModuleFileName(nullptr, result, MAX_PATH);
     for ( int i=0; i<MAX_PATH; i++ ) szAppPath[i] = (char)result[i];
     pszFind = strrchr(szAppPath, '\\');
 #else // #ifdef _WIN32_WCE
     char szAppPath[MAX_PATH];
     maxPath = MAX_PATH;
-    GetModuleFileNameA(NULL, szAppPath, MAX_PATH);
+    GetModuleFileNameA(nullptr, szAppPath, MAX_PATH);
     szAppPath[MAX_PATH-1] = 0;
     pszFind = strrchr(szAppPath, '\\');
 #endif // #ifdef _WIN32_WCE
@@ -182,7 +182,7 @@ char* getAppPath()
     strncpy(szAppPath, "ide0:/ESystem/opcua/dummy.exe", sizeof(szAppPath)-1);
 #else //defined (VXWORKS)
     ssize_t len = readlink("/proc/self/exe", szAppPath, sizeof(szAppPath)-1);
-    if (len < 0 || len == sizeof(szAppPath) - 1) return NULL;
+    if (len < 0 || len == sizeof(szAppPath) - 1) return nullptr;
 #endif //defined (VXWORKS)
     pszFind = strrchr(szAppPath, '/');
 #endif // #ifdef _WIN32

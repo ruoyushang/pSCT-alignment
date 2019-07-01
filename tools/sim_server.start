@@ -1,0 +1,35 @@
+#!/bin/bash
+
+panel_num=$1
+extension=".ini"
+screen_name=pas_serv
+config_filename="$panel_num$extension"
+
+if [[ -n ${LOCALIP} ]]; then
+    IP=${LOCALIP}
+else
+    IP="127.0.0.1"
+fi
+
+endpoint_addr="opc.tcp://${IP}:${panel_num}"
+
+# only create a new screen session if one with current name doesn't exist yet
+if ! screen -ls | grep -q $screen_name; then
+    # -A for adaptive sizing
+    # -dm for start in detached mode
+    # -S to name the session
+    screen -c helper/pas_serv_screen.config -AdmS $screen_name
+fi
+
+# open a new window in the screen session named $screen_name, and title this window by the panel's position;
+# ssh into the panel right away
+screen -S $screen_name -X screen -t $panel_num
+
+screen -S $screen_name -p $panel_num -X stuff $"cp ../server/TemplateServerConfig${extension} $config_filename\n"
+screen -S $screen_name -p $panel_num -X stuff "sed -i s@URL_LOCATION@$endpoint_addr@g $config_filename\n"
+
+#printf "Starting server for panel %d at address %s.\n" "$panel_num" "$endpoint_addr"
+
+abspath=$(realpath ${config_filename})
+
+screen -S $screen_name -p $panel_num -X stuff $"../sdk/bin/passerver ${panel_num} -c ${abspath}\n"

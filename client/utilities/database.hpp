@@ -9,6 +9,7 @@
 #include "uabase.h"
 #include "mysql_connection.h"
 #include "mysql_driver.h"
+#include <memory>
 #include <vector>
 
 class Configuration;
@@ -25,7 +26,7 @@ public:
 
 	/// @brief Setter method to set internal Configuration object.
 	/// @param Pointer to new Configuration object.
-    void setConfiguration(const Configuration *pConfiguration);
+    void setConfiguration(std::shared_ptr<Configuration> pConfiguration);
 
 	/// @warning Logic to setup statements and connections is
 	/// currently commented out.
@@ -44,16 +45,16 @@ public:
 
 private:
 	/// @brief Pointer to Configuration object.
-    const Configuration *m_pConfiguration;
+    std::shared_ptr<Configuration> m_pConfiguration;
 	/// @brief Vector of MySQL Driver objects to create connections
 	/// to the MySQL server.
     std::vector<sql::Driver*> m_pDriver;
 	/// @brief Vector of MySQL Connection objects.
 	/// @warning Currently unused.
-    std::vector<sql::Connection*> m_pConnection;
+    std::vector<std::unique_ptr<sql::Connection>> m_pConnection;
 	/// @brief Vector of MySQL query statement objects.
 	/// @warning Currently unused.
-    std::vector<sql::PreparedStatement*> m_pStmt;
+    std::vector<std::unique_ptr<sql::PreparedStatement>> m_pStmt;
 };
 
 #endif

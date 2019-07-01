@@ -9,6 +9,9 @@ if ! screen -ls | grep -q $screen_name; then
     exit 0;
 fi
 
+#Kill get_panel_current.sh monitoring
+for pid in $(ps -ef | awk '/get_panel_current.sh/ {print $2}'); do kill -9 $pid; done
+
 while (( `screen -ls | grep -c $screen_name` && `screen -S $screen_name -Q windows | wc -w` > 0 )); do
     windows=`screen -S $screen_name -Q windows | rev`
     field=1

@@ -3,27 +3,31 @@
 **
 ** Description: Communication interface to access the devices.
 ******************************************************************************/
-#include "pascommunicationinterface.hpp"
-#include "configuration.hpp"
-#include "passervertypeids.hpp"
-#include "client/controllers/pascontroller.hpp"
-#include "client/controllers/mirrorcontroller.hpp"
-#include "client/controllers/positionercontroller.hpp"
-#include "client/controllers/panelcontroller.hpp"
-#include "client/controllers/edgecontroller.hpp"
-#include "client/controllers/mpescontroller.hpp"
-#include "client/controllers/ccdcontroller.hpp"
-#include "client/controllers/psdcontroller.hpp"
-#include "client/controllers/actcontroller.hpp"
-#include "uadatetime.h"
+#include "client/pascommunicationinterface.hpp"
+
 #include <dirent.h>
-#include <string>
-#include <stdlib.h>
-#include <stdio.h>
 #include <iostream>
 #include <stdexcept>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string>
 
-// to discover Aravis devices
+#include "uabase/uadatetime.h"
+
+#include "common/opcua/passervertypeids.hpp"
+
+#include "client/controllers/actcontroller.hpp"
+#include "client/controllers/ccdcontroller.hpp"
+#include "client/controllers/edgecontroller.hpp"
+#include "client/controllers/mirrorcontroller.hpp"
+#include "client/controllers/mpescontroller.hpp"
+#include "client/controllers/positionercontroller.hpp"
+#include "client/controllers/panelcontroller.hpp"
+#include "client/controllers/pascontroller.hpp"
+#include "client/controllers/psdcontroller.hpp"
+
+#include "client/utilities/configuration.hpp"
+
 #include <arv.h>
 
 /* ----------------------------------------------------------------------------
@@ -52,27 +56,23 @@ PasCommunicationInterface::PasCommunicationInterface() :
 PasCommunicationInterface::~PasCommunicationInterface()
 {
     m_stop = OpcUa_True; // Signal Thread to stop
-
-    // Free all allocated memory
-    for (auto& controllers : m_pControllers)
-    {
-        while (!controllers.second.empty())
-        {
-            delete controllers.second.back();
-            controllers.second.pop_back();
-        }
-    }
-
     std::cout << "Closed and cleaned up PasCommunicationInterface\n";
 }
 
 UaStatus PasCommunicationInterface::initialize()
 {
-    // Initialize devices communicating directly with the Alignment server (p2pasclient)
+    initializeCCDs();
+    return OpcUa_Good;
+}
+
+UaStatus PasCommunicationInterface::initializeCCDs()
+{
+    // initialize devices communicating directly with the Alignment server (p2pasclient)
 
     // currently, only GAS CCDs need to be intialized.
     // find what's on the network and compare it to what's expected
-    //arv_update_device_list();
+
+    // arv_update_device_list();
     unsigned n_ccds = 0; // arv_get_n_devices();
 
     std::string serial;
@@ -85,20 +85,20 @@ UaStatus PasCommunicationInterface::initialize()
     }
 
     try {
-        for (const auto& CCD : m_pConfiguration->getDeviceList(PAS_CCDType)) {
+        for (const auto &identity : m_pConfiguration->getDevices(PAS_CCDType)) {
             try {
-                if (serial2ip.at(std::to_string(CCD.serialNumber)) != CCD.eAddress) {
+                if (serial2ip.at(std::to_string(identity.serialNumber)) != identity.eAddress) {
                     std::cout << " +++ WARNING +++ PasCommunicationInterface::Initialize(): "
                                  "mismatch in recorded config and actual IP assignment:" << std::endl;
-                    std::cout << "        " << CCD.serialNumber << " is assigned "
-                              << CCD.eAddress << ", but actually obtained "
-                              << serial2ip[std::to_string(CCD.serialNumber)] << std::endl;
+                    std::cout << "        " << identity.serialNumber << " is assigned "
+                              << identity.eAddress << ", but actually obtained "
+                              << serial2ip[std::to_string(identity.serialNumber)] << std::endl;
                 }
-                addDevice(nullptr, PAS_CCDType, CCD);
+                addDevice(nullptr, PAS_CCDType, identity);
             }
             catch (std::out_of_range &e) {
                 std::cout << " +++ WARNING +++ PasCommunicationInterface::Initialize(): CCD "
-                          << CCD.serialNumber << " with assigned IP " << CCD.eAddress
+                          << identity.serialNumber << " with assigned IP " << identity.eAddress
                           << " isn't found on the network. Check your connection and restart."
                           << " Skipping..." << std::endl;
             }
@@ -117,202 +117,141 @@ UaStatus PasCommunicationInterface::initialize()
     Method       addDevice
     Description  add a device of specified type
 -----------------------------------------------------------------------------*/
-const Identity PasCommunicationInterface::addDevice(Client *pClient, OpcUa_UInt32 deviceType, const Identity& identity)
+const Device::Identity
+PasCommunicationInterface::addDevice(Client *pClient, OpcUa_UInt32 deviceType,
+                                     const Device::Identity &identity)
 {
     // check if object already exists -- this way, passing the same object multiple times won't
     // actually add it multiple times
+    Device::Identity id;
 
-    std::cout << "Attempting to create controller for device with type " << deviceType << " and with Identity "
-              << identity << std::endl;
-
-    Identity addedId;
-
-    PasController *pController = nullptr;
-    // up-casting is implicit
-    if (deviceType == PAS_MPESType)
-        pController = new MPESController(identity, pClient);
-    else if (deviceType == PAS_ACTType)
-        pController = new ActController(identity, pClient);
-    else if (deviceType == PAS_PanelType)
-        pController = new PanelController(identity, pClient);
-    else if (deviceType == PAS_EdgeType)
-        pController = new EdgeController(identity);
-    else if (deviceType == PAS_MirrorType)
-        pController = new MirrorController(identity);
-    else if (deviceType == PAS_CCDType)
-        pController = new CCDController(identity);
-    else if (deviceType == PAS_PSDType)
-        pController = new PSDController(identity, pClient);
-    else if (deviceType == GLOB_PositionerType)
-        pController = new PositionerController(identity, pClient);
+    // Found existing copy of device
+    if (m_pControllers.count(deviceType) > 0 && m_pControllers.at(deviceType).count(identity) > 0) {
+        //std::cout << "PasCommunicationInterface::addDevice() : Device " << identity << " already exists. Moving on..."
+        //          << std::endl;
+        return identity;
+    }
+        // Didn't find existing copy, create new one
     else {
-        return addedId;
+        std::shared_ptr<PasController> pController;
+        // up-casting is implicit
+        if (deviceType == PAS_MPESType)
+            pController = std::make_shared<MPESController>(identity, pClient);
+        else if (deviceType == PAS_ACTType)
+            pController = std::make_shared<ActController>(identity, pClient);
+        else if (deviceType == PAS_PanelType)
+            pController = std::make_shared<PanelController>(identity, pClient);
+        else if (deviceType == PAS_EdgeType)
+            pController = std::make_shared<EdgeController>(identity);
+        else if (deviceType == PAS_MirrorType)
+            pController = std::make_shared<MirrorController>(identity);
+        else if (deviceType == PAS_CCDType)
+            pController = std::make_shared<CCDController>(identity);
+        else if (deviceType == PAS_PSDType)
+            pController = std::make_shared<PSDController>(identity, pClient);
+        else if (deviceType == GLOB_PositionerType) {
+#if SIMMODE
+            pController = std::dynamic_pointer_cast<PositionerController>(std::make_shared<DummyPositionerController>(identity));
+#else
+            pController = std::make_shared<PositionerController>(identity, pClient);
+#endif
+        }
+        else {
+            return identity;
+        }
+
+        // Initialize this controller or return if unable to do so for whatever reason
+        if (!pController->initialize()) {
+            std::cout << "Device " << identity << ": failed to initialize." << std::endl;
+            return identity;
+        }
+
+        m_pControllers[deviceType][identity] = pController;
+        
+        std::cout << "PasCommunicationInterface::addDevice() Added "
+                  << PasCommunicationInterface::deviceTypeNames[deviceType] << " with identity " << identity << std::endl;
+
+        return identity;
     }
+}
 
-    // get the complete id before testing whether it already exists
-    addedId = pController->getId();
-
-    std::cout << " --- PasCommunicationInterface::addDevice() adding " << addedId;
-    try {
-        int index = m_DeviceIdentityMap.at(deviceType).at(addedId);
-        Identity id = m_pControllers.at(deviceType).at(index)->getId();
-
-        std::cout << ": already exists as "
-                  << PasCommunicationInterface::deviceTypeNames.at(deviceType) << "[" << index << "]. Moving on..."
-                  << std::endl;
-
-        // already added -- clean up and return
-        delete pController;
-        return addedId;
-    }
-    catch (std::out_of_range &e)
-    {
-        // do nothing -- simply continue to add the device
-    }
-
-    // Initialize this controller or return if unable to do so for whatever reason
-    if (!pController->initialize()) {
-        std::cout << " failed" << std::endl;
-        delete pController;
-        return addedId;
-    }
-
-    m_pControllers[deviceType].push_back(pController);
-    unsigned curindex = m_pControllers.at(deviceType).size() - 1;
-    m_DeviceIdentityMap[deviceType][addedId] = curindex;
-
-    std::cout << " as " << PasCommunicationInterface::deviceTypeNames[deviceType] << "["
-              << curindex << "] with identity " << addedId << std::endl;
-
-    // get the device's parents and create them.
-    // if added device is MPES, its parents are the w-side panel and the edge;
-    // if added device is ACT, its parent is the panel;
-    // if added device is Panel or Edge, its parent is the mirror.
-    auto parentList = m_pConfiguration->getParents(deviceType, identity);
-    if (!parentList.empty()) {
-        // check the list of parents and print a warning if it's not what's expected
-        if (parentList.size() != 1 && parentList.size() != 2)
-            std::cout << std::endl << " +++ WARNING +++ PasCommunicationInterface::addDevice():"
-                      << "more than 2 parents!" << std::endl;
-
-        // for each parent, create it, complete the ID and add the current device as its child,
-        // and add the other co-parents to it -- this guarantees that panels get added to their edges
-        for (auto parent : parentList) {
-            // parent.first is type; parent.second is id
-            if (!parent.second.eAddress.empty()) {
-                Identity parentId = addDevice(pClient, parent.first, parent.second);
-                // update this parent with the full ID
-                parent = std::make_pair(parent.first, parentId);
-
-                // this is not necessarily the last element in the vector of controllers --
-                // need to find its real index
-                try {
-                    int index = m_DeviceIdentityMap.at(parent.first).at(parentId);
-                    // add the current controller
-                    dynamic_cast<PasCompositeController *>(m_pControllers.at(parent.first).at(index))->addChild(
-                        deviceType, pController);
-                }
-                catch (std::out_of_range &e) { /* no such device for whatever reason -- ignore */ }
+void PasCommunicationInterface::addEdgeControllers() {
+    for (const auto &edgeId : m_pConfiguration->getDevices(PAS_EdgeType)) {
+        bool addEdge = true;
+        // Check if all panels in edge exist
+        for (const auto &panelChildId : m_pConfiguration->getChildren(edgeId).at(PAS_PanelType)) {
+            if (m_pControllers.at(PAS_PanelType).find(panelChildId) ==
+                m_pControllers.at(PAS_PanelType).end()) {
+                // Child panel not found
+                //std::cout << "Could not find panel " << panelChildId << " as child of Edge " << edgeId
+                //          << " (likely server failed to connect). Edge controller not created..." << std::endl;
+                addEdge = false;
+                break;
             }
         }
-        // added all parents -- now add co-parents as each other's children.
-        // Note that only addition of panels to edges or the mirror proceeds; other additions get ignored
-        for (unsigned i = 0; i < parentList.size(); i++) {
-           const auto& parent = parentList.at(i);
-           int parentIdx;
-           try {
-               parentIdx = m_DeviceIdentityMap.at(parent.first).at(parent.second);
-               for (unsigned j = 0; j < parentList.size(); j++) {
-                   if (j != i) {
-                       const auto& coparent = parentList.at(j);
-                       int coparentIdx;
-                       coparentIdx = m_DeviceIdentityMap.at(coparent.first).at(coparent.second);
-                       PasController *parentC = m_pControllers.at(parent.first).at(parentIdx);
-                       PasController *coparentC = m_pControllers.at(coparent.first).at(coparentIdx);
-                       dynamic_cast<PasCompositeController *>(parentC)->addChild(coparent.first, coparentC);
-                   }
-               }
-           }
-           catch (std::out_of_range &e) {/*ignore*/}
+
+        if (addEdge) {
+            addDevice(nullptr, PAS_EdgeType, edgeId);
         }
-    } // if (deviceType == PAS_ACTType || deviceType == PAS_MPESType)
-
-    return addedId;
-}
-/* ----------------------------------------------------------------------------
-    Class        PasCommunicationInterface
-    Method       getDevices
-    Description  Get available devices of requested type
------------------------------------------------------------------------------*/
-OpcUa_Int32 PasCommunicationInterface::getDevices(OpcUa_UInt32 deviceType)
-{
-    OpcUa_Int32 count;
-    try {
-        count = m_pControllers.at(deviceType).size();
     }
-    catch (std::out_of_range &e)
-    {
-        count = 0;
-    }
-
-    return count;
 }
 
-/* ----------------------------------------------------------------------------
-    Class        PasCommunicationInterface
-    Method       getDeviceConfig
-    Description  Get configuration of a sensor.
------------------------------------------------------------------------------*/
-UaStatus PasCommunicationInterface::getDeviceConfig(
-        OpcUa_UInt32 type,
-        OpcUa_UInt32 deviceIndex,
-        UaString &sName,
-        Identity &identity)
-{
-
-    OpcUa_UInt32 devCount = getDevices(type);
-
-    if ( deviceIndex < devCount )
-    {
-        try {
-            identity = m_pControllers.at(type).at(deviceIndex)->getId();
+void PasCommunicationInterface::addMirrorControllers() {
+    for (const auto &mirrorId : m_pConfiguration->getDevices(PAS_MirrorType)) {
+        bool addMirror = false;
+        // Check if at least one panel in the mirror exists
+        for (const auto &panelChildId : m_pConfiguration->getChildren(mirrorId).at(PAS_PanelType)) {
+            if (m_pControllers.at(PAS_PanelType).find(panelChildId) !=
+                m_pControllers.at(PAS_PanelType).end()) {
+                // Child panel found
+                addMirror = true;
+                break;
+            }
         }
-        catch (std::out_of_range &e)
-        {
-            return OpcUa_BadInvalidArgument;
-        }
-        sName = UaString(identity.name.c_str());
-    }
-    else
-        return OpcUa_BadInvalidArgument;
 
-    return OpcUa_Good;
+        if (addMirror) {
+            addDevice(nullptr, PAS_MirrorType, mirrorId);
+        } else {
+            std::cout << "Could not find any panel children of Mirror " << mirrorId
+                      << " (likely server failed to connect). Mirror controller not created..." << std::endl;
+        }
+    }
 }
-/* ----------------------------------------------------------------------------
-    Class        PasCommunicationInterface
-    Method       getDeviceConfig
-    Description  Get configuration of a sensor -- overloaded.
------------------------------------------------------------------------------*/
-UaStatus PasCommunicationInterface::getDeviceConfig(
-    OpcUa_UInt32 type,
-    OpcUa_UInt32 deviceIndex,
-    Identity& identity)
-{
-    UaString sDiscard;
-    return getDeviceConfig(type, deviceIndex, sDiscard, identity);
+
+void PasCommunicationInterface::addParentChildRelations() {
+    for (const auto &t : m_pControllers) {
+        for (const auto &device : m_pControllers.at(t.first)) {
+            Device::Identity childIdentity = device.first;
+            std::shared_ptr<PasControllerCommon> childController = device.second;
+            for (const auto &pair : m_pConfiguration->getParents(childIdentity)) {
+                OpcUa_UInt32 parentDeviceType = pair.first;
+                std::set<Device::Identity> parents = pair.second;
+                for (const auto &parentId : parents) {
+                    // If found controller for the desired parent, add it as a parent
+                    if (m_pControllers[parentDeviceType].find(parentId) !=
+                        m_pControllers[parentDeviceType].end()) {
+                        std::dynamic_pointer_cast<PasCompositeController>(
+                            m_pControllers.at(parentDeviceType).at(parentId))->addChild(t.first,
+                                                                                        std::dynamic_pointer_cast<PasController>(
+                                                                                            childController));
+                    }
+                }
+            }
+        }
+    }
 }
+
 /* ----------------------------------------------------------------------------
     Class        PasCommunicationInterface
     Method       getDeviceState
     Description  Get Device status.
 -----------------------------------------------------------------------------*/
 UaStatus PasCommunicationInterface::getDeviceState(
-        OpcUa_UInt32 type,
-        const Identity &identity,
-        PASState &state)
-{
-    if (getDeviceFromId(type, identity) != nullptr)
-        return getDeviceFromId(type, identity)->getState(state);
+    OpcUa_UInt32 deviceType,
+    const Device::Identity &identity,
+    Device::DeviceState &state) {
+    if (getDeviceFromId(deviceType, identity) != nullptr)
+        return getDeviceFromId(deviceType, identity)->getState(state);
 
     return OpcUa_BadInvalidArgument;
 }
@@ -322,12 +261,11 @@ UaStatus PasCommunicationInterface::getDeviceState(
     Description  Set Sensor status.
 -----------------------------------------------------------------------------*/
 UaStatus PasCommunicationInterface::setDeviceState(
-        OpcUa_UInt32 type,
-        const Identity &identity,
-        PASState state)
-{
-    if (getDeviceFromId(type, identity) != nullptr)
-        return getDeviceFromId(type, identity)->setState(state);
+    OpcUa_UInt32 deviceType,
+    const Device::Identity &identity,
+    Device::DeviceState state) {
+    if (getDeviceFromId(deviceType, identity) != nullptr)
+        return getDeviceFromId(deviceType, identity)->setState(state);
 
     return OpcUa_BadInvalidArgument;
 }
@@ -337,13 +275,12 @@ UaStatus PasCommunicationInterface::setDeviceState(
     Description  Get Sensor data.
 -----------------------------------------------------------------------------*/
 UaStatus PasCommunicationInterface::getDeviceData(
-        OpcUa_UInt32 type,
-        const Identity &identity,
+        OpcUa_UInt32 deviceType,
+        const Device::Identity &identity,
         OpcUa_UInt32 offset,
-        UaVariant &value)
-{
-    if (getDeviceFromId(type, identity) != nullptr)
-        return getDeviceFromId(type, identity)->getData(offset, value);
+        UaVariant &value) {
+    if (getDeviceFromId(deviceType, identity) != nullptr)
+        return getDeviceFromId(deviceType, identity)->getData(offset, value);
 
     return OpcUa_BadInvalidArgument;
 }
@@ -354,7 +291,7 @@ UaStatus PasCommunicationInterface::getDeviceData(
 -----------------------------------------------------------------------------*/
 UaStatus PasCommunicationInterface::setDeviceData(
         OpcUa_UInt32 type,
-        const Identity &identity,
+        const Device::Identity &identity,
         OpcUa_UInt32 offset,
         UaVariant value)
 {
@@ -374,8 +311,8 @@ UaStatus PasCommunicationInterface::setDeviceData(
     Description  Run a method on a device.
 -----------------------------------------------------------------------------*/
 UaStatus PasCommunicationInterface::operateDevice(
-    OpcUa_UInt32 type, const Identity& identity,
-    OpcUa_UInt32 offset, const UaVariantArray& args)
+        OpcUa_UInt32 type, const Device::Identity &identity,
+        OpcUa_UInt32 offset, const UaVariantArray &args)
 {
     if (getDeviceFromId(type, identity) != nullptr)
         return getDeviceFromId(type, identity)->operate(offset, args);
@@ -387,29 +324,16 @@ UaStatus PasCommunicationInterface::operateDevice(
     Method       getDeviceFromId
     Description  Return a device with the specified id.
 -----------------------------------------------------------------------------*/
-PasController* PasCommunicationInterface::getDeviceFromId(OpcUa_UInt32 type,
-    const Identity& identity)
+std::shared_ptr<PasController> PasCommunicationInterface::getDeviceFromId(OpcUa_UInt32 type,
+                                                                          const Device::Identity &identity)
 {
-    int index;
-    // try accessing the map for this type
     try {
-        m_DeviceIdentityMap.at(type);
+        return std::dynamic_pointer_cast<PasController>(m_pControllers.at(type).at(identity));
     }
     catch (std::out_of_range &e)
     {
         return nullptr;
     }
-
-    // try getting the device with this identity
-    try {
-        index = m_DeviceIdentityMap.at(type).at(identity);
-    }
-    catch (std::out_of_range &e)
-    {
-        return nullptr;
-    }
-
-    return m_pControllers.at(type).at(index);
 }
 /* ----------------------------------------------------------------------------
     End Class     PasCommunicationInterface

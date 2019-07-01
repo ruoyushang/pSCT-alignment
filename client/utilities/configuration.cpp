@@ -1,5 +1,6 @@
 #include "configuration.hpp"
-#include "mathtools.h"
+#include "common/simulatestewart/mathtools.hpp"
+#include "uaclient/uaclientsdk.h"
 #include "uasettings.h"
 #include "uadir.h"
 #include "uapkicertificate.h"
@@ -12,21 +13,17 @@
 #include "cppconn/statement.h"
 #include "DBConfig.hpp"
 
-using namespace UaClientSdk;
+const std::map<std::string, std::string> Configuration::SUBCLIENTS = {
+    {"primary_upper", "opc.tcp://127.0.0.1:48011"},
+    {"primary_lower", "opc.tcp://127.0.0.1:48012"},
+    {"secondary",     "opc.tcp://127.0.0.1:48013"},
+    {"other",         "opc.tcp://127.0.0.1:48014"}
+};
 
-Configuration::Configuration() : m_bAutomaticReconnect(OpcUa_True), m_bRetryInitialConnect(OpcUa_True)
-{
-}
 
-OpcUa_UInt32 Configuration::getServers() const
+Configuration::Configuration(std::string mode) : m_Mode(std::move(mode)), m_bAutomaticReconnect(OpcUa_True),
+                                                 m_bRetryInitialConnect(OpcUa_True)
 {
-    try {
-        return m_DeviceList.at(PAS_PanelType).size();
-    }
-    catch (std::out_of_range &e)
-    {
-        return 0;
-    }
 }
 
 UaStatus Configuration::loadConnectionConfiguration(const UaString& sConfigurationFile)
@@ -67,7 +64,7 @@ UaStatus Configuration::loadConnectionConfiguration(const UaString& sConfigurati
     const char *local_ip = getenv("LOCALIP");
     value = pSettings->value("DiscoveryURL", UaString("opc.tcp://%s:48010").arg(local_ip));
 #else
-    value = pSettings->value("DiscoveryURL", UaString("opc.tcp://172.17.0.201.:48010"));
+    value = pSettings->value("DiscoveryURL", UaString("opc.tcp://172.17.0.201:48010"));
 #endif
     m_discoveryUrl = value.toString();
     value = pSettings->value("PositionerURL", UaString("opc.tcp://127.0.0.1:4840"));
@@ -108,7 +105,7 @@ UaStatus Configuration::loadDeviceConfiguration(const std::vector<std::string> &
     std::string db_name = myConfig.getDatabase();
     std::string db_address = "tcp://" + db_ip + ":" + db_port;
 
-    m_DeviceList[PAS_PanelType] = {}; // initialize the list of panels to an empty one -- other devices don't need this
+    m_DeviceIdentities[PAS_PanelType] = {}; // initialize the list of panels to an empty one -- other devices don't need this
 
     try {
         sql::Driver *sql_driver = get_driver_instance();
@@ -118,9 +115,28 @@ UaStatus Configuration::loadDeviceConfiguration(const std::vector<std::string> &
         sql::ResultSet *sql_results;
         std::string query;
 
+        std::vector<std::string> positions;
+
+        // If empty list of panels passed, assume all panels.
+        if (positionList.empty()) {
+            query = "SELECT position FROM Opt_MPMMapping WHERE substring(position,1,1) != '3'";
+            sql_stmt->execute(query);
+            sql_results = sql_stmt->getResultSet();
+            // should only be one result FOR NOW -- IN THE FUTURE, NEED TO FIX THIS, SORTING BY DATE
+            while (sql_results->next()) {
+                positions.push_back(sql_results->getString(1));
+            }
+        } else {
+            positions = positionList;
+        }
+
+        for (auto const& p : positions) {
+            std::cout << p << " ";
+        }
+
         // get panel IP and serial from position
-        for (const auto &position : positionList) {
-            Identity panelId;
+        for (const auto &position : positions) {
+            Device::Identity panelId;
             panelId.position = std::stoi(position);
 
             query = "SELECT serial_number, mpcb_ip_address FROM Opt_MPMMapping WHERE position='" + position + "'";
@@ -130,20 +146,21 @@ UaStatus Configuration::loadDeviceConfiguration(const std::vector<std::string> &
             while (sql_results->next()) {
 #if SIMMODE
                 const char* local_ip = getenv("LOCALIP");
-                panelId.eAddress = "opc.tcp://"+std::string(local_ip)+":"+std::string(position.c_str());
+                panelId.eAddress = "opc.tcp://"+std::string(local_ip)+":" + position;
 #else
                 panelId.eAddress = "opc.tcp://" + sql_results->getString(2) + ":4840";
 #endif
                 panelId.serialNumber = sql_results->getInt(1);
+                panelId.name = std::string("Panel_") + std::to_string(panelId.position);
 
                 // add to the list of devices
-                m_DeviceList[PAS_PanelType].push_back(panelId);
-                std::cout << " +++ Configuration: added Panel " << panelId << " to Device List" << std::endl;
+                m_DeviceIdentities[PAS_PanelType].insert(panelId);
+                std::cout << "    Configuration::loadDeviceConfiguration(): added Panel " << panelId << " to Device List" << std::endl;
 
-                // add to the position map {type -> {serial -> position}}
-                m_DevicePositionMap[PAS_PanelType][panelId.serialNumber] = panelId.position;
-                // add to the address map
-                m_PanelAddressMap[panelId.position] = panelId.eAddress;
+                // add to other maps
+                m_DeviceSerialMap[PAS_PanelType][panelId.serialNumber] = panelId;
+                m_PanelPositionMap[panelId.position] = panelId;
+                m_DeviceNameMap[panelId.name] = panelId;
             }
 
             // get the panel's actuators and add them to all the needed maps
@@ -151,25 +168,23 @@ UaStatus Configuration::loadDeviceConfiguration(const std::vector<std::string> &
             sql_stmt->execute(query);
             sql_results = sql_stmt->getResultSet();
             while (sql_results->next()) {
-                Identity actId;
+                Device::Identity actId;
                 actId.serialNumber = sql_results->getInt(1);
                 actId.position = sql_results->getInt(2);
                 std::string port = std::to_string(sql_results->getInt(3));
+                actId.eAddress = port;
+                actId.name = std::string("ACT_") + std::to_string(actId.serialNumber);
 
-                // add to the list of devices
-                m_DeviceList[PAS_ACTType].push_back(actId);
-                std::cout << " +++ Configuration: added Actuator " << actId << " to Device List" << std::endl;
+                m_DeviceIdentities[PAS_ACTType].insert(actId);
+                std::cout << "    Configuration::loadDeviceConfiguration(): added Actuator " << actId << " to Device List" << std::endl;
 
-                // m_deviceSerialMap at (deviceType) at (panel address) at (port number)
-                m_DeviceSerialMap[PAS_ACTType][UaString(panelId.eAddress.c_str())]
-                                        [UaString(port.c_str())] = actId.serialNumber;
-
-                // add to the position map {type -> {serial -> position}}
-                m_DevicePositionMap[PAS_ACTType][actId.serialNumber] = actId.position;
+                m_DeviceSerialMap[PAS_ACTType][actId.serialNumber] = actId;
+                m_DeviceNameMap[actId.name] = actId;
 
                 // add the actuator and this panel to the parents map
-                m_ParentMap[PAS_ACTType][actId.serialNumber] = std::to_string(panelId.position);
-                std::cout << " +++ Configuration: added Panel " << panelId.position << " as parent of Actuator "
+                m_ChildMap[panelId][PAS_ACTType].insert(actId);
+                m_ParentMap[actId][PAS_PanelType].insert(panelId);
+                std::cout << "    Configuration::loaDeviceConfiguration(): added Panel " << panelId.position << " as parent of Actuator "
                           << actId.serialNumber << std::endl;
             }
 
@@ -178,29 +193,49 @@ UaStatus Configuration::loadDeviceConfiguration(const std::vector<std::string> &
             sql_stmt->execute(query);
             sql_results = sql_stmt->getResultSet();
             while (sql_results->next()) {
-                Identity mpesId;
+                Device::Identity mpesId;
                 mpesId.serialNumber = sql_results->getInt(1);
                 mpesId.position = sql_results->getInt(2);
+                mpesId.eAddress = std::to_string(sql_results->getInt(3));
+                mpesId.name = std::string("MPES_") + std::to_string(mpesId.serialNumber);
                 std::string port = std::to_string(sql_results->getInt(3));
                 std::string l_panelPos = std::to_string(sql_results->getInt(4));
 
                 // add to the list of devices
-                m_DeviceList[PAS_MPESType].push_back(mpesId);
-                std::cout << " +++ Configuration: added MPES " << mpesId << " to Device List" << std::endl;
+                m_DeviceIdentities[PAS_MPESType].insert(mpesId);
+                std::cout << "    Configuration::loadDeviceConfiguration(): added MPES " << mpesId << " to Device List" << std::endl;
 
-                // m_deviceSerialMap at (deviceType) at (panel address) at (port number)
-                m_DeviceSerialMap[PAS_MPESType][UaString(panelId.eAddress.c_str())]
-                                        [UaString(port.c_str())] = mpesId.serialNumber;
-
-                // add to the position map {type -> {serial -> position}}
-                m_DevicePositionMap[PAS_MPESType][mpesId.serialNumber] = mpesId.position;
+                m_DeviceSerialMap[PAS_MPESType][mpesId.serialNumber] = mpesId;
+                m_DeviceNameMap[mpesId.name] = mpesId;
 
                 // add the sensor and its panels to the parents map
-                m_ParentMap[PAS_MPESType][mpesId.serialNumber] =
-                        "w" + std::to_string(panelId.position) + "l" + l_panelPos;
-                std::cout << " +++ Configuration: added Panels " << m_ParentMap.at(PAS_MPESType).at(mpesId.serialNumber)
-                          << " as parents of MPES " << mpesId.serialNumber << std::endl;
+                m_ChildMap[panelId][PAS_MPESType].insert(mpesId);
+                m_ParentMap[mpesId][PAS_PanelType].insert(panelId);
+                m_MPES_SideMap[mpesId]["w"] = panelId;
+                std::cout << "    Configuration::loadDeviceConfiguration(): added Panel " << panelId
+                          << " as w parent of MPES " << mpesId << std::endl;
             }
+        }
+        //Get laser-side panel for all MPES
+        for (const auto &mpesId : m_DeviceIdentities.at(PAS_MPESType)) {
+            query = "SELECT l_panel FROM Opt_MPESMapping WHERE end_date is NULL and serial_number=" + std::to_string(mpesId.serialNumber);
+            sql_stmt->execute(query);
+            sql_results = sql_stmt->getResultSet();
+            while (sql_results->next()) {
+                int lPanelPosition = sql_results->getInt(1);
+
+                // get corresponding laser-side panel if it exists
+                if (m_PanelPositionMap.find(lPanelPosition) != m_PanelPositionMap.end()) {
+                    Device::Identity lPanelId = m_PanelPositionMap.at(lPanelPosition);
+
+                    m_MPES_SideMap[mpesId]["l"] = lPanelId;
+                    // Could optionally add laser-side panel as a parent here.
+                }
+                else {
+                    continue;
+                }
+            }
+
         }
     }
     catch (sql::SQLException &e) {
@@ -213,11 +248,44 @@ UaStatus Configuration::loadDeviceConfiguration(const std::vector<std::string> &
         return OpcUa_Bad;
     }
 
+    std::cout << "Configuration::loadDeviceConfiguration(): Adding missing parents..." << std::endl;
+    bool result = addMissingParents();
+    if (!result) {
+        return OpcUa_Bad;
+    }
+
     return OpcUa_Good;
 }
 
+UaStatus Configuration::loadSubclientConfiguration(const std::vector<std::string> &subclientList) {
+    for (const auto &subclientName : subclientList) {
+        if (SUBCLIENTS.find(subclientName) != SUBCLIENTS.end()) {
+            std::cout << "Added subclient with name " << subclientName << std::endl;
+            m_Subclients[subclientName] = SUBCLIENTS.at(subclientName);
+        } else {
+            std::cout << "Subclient with name " << subclientName << " not found. Skipping..." << std::endl;
+        }
+    }
 
-UaStatus Configuration::setupSecurity(SessionSecurityInfo& sessionSecurityInfo)
+    return OpcUa_Good;
+}
+
+std::vector<UaString> Configuration::getServerAddresses() {
+    std::vector<UaString> serverAddresses;
+    if (m_Mode == "subclient") {
+        for (const auto &panelId : getDevices(PAS_PanelType)) {
+            serverAddresses.emplace_back(UaString(panelId.eAddress.c_str()));
+        }
+    } else if (m_Mode == "client") {
+        for (const auto &subclient : m_Subclients) {
+            serverAddresses.emplace_back(UaString(subclient.second.c_str()));
+        }
+    }
+
+    return serverAddresses;
+}
+
+UaStatus Configuration::setupSecurity(UaClientSdk::SessionSecurityInfo &sessionSecurityInfo)
 {
     UaStatus result;
 
@@ -356,143 +424,120 @@ UaStatus Configuration::updateNamespaceIndexes(const UaStringArray& namespaceArr
     return result;
 }
 
-
-OpcUa_Int32 Configuration::getDeviceSerial(const UaString& address, OpcUa_UInt32 deviceType, const UaString& sPort)
-{
-    OpcUa_Int32 serial;
-    try
-    {
-        serial = m_DeviceSerialMap.at(deviceType).at(address).at(sPort);
-    }
-    catch (std::out_of_range &e)
-    {
-        serial = -1;
-    }
-
-    return serial;
-}
-
-OpcUa_Int32 Configuration::getDevicePosition(OpcUa_UInt32 deviceType, OpcUa_UInt32 serial)
-{
-    int pos;
-    try
-    {
-        pos = m_DevicePositionMap.at(deviceType).at(serial);
-    }
-    catch (std::out_of_range &e)
-    {
-        pos = -1;
-    }
-
-    return pos;
-}
-
-// need to pass around the whole object!
-// can't return this by reference, since we're creating the objects right here
-std::vector< std::pair<OpcUa_UInt32, Identity> > Configuration::getParents(OpcUa_UInt32 deviceType, const Identity& id)
-{
-    // for actuators, the parent is the ACT's panel. ACT's parent's address in the map
-    // is the panel position. so pretty straighforward.
-    if (deviceType == PAS_ACTType) {
-        Identity parentId;
-        parentId.position = std::stoi(m_ParentMap.at(deviceType).at(id.serialNumber));
-        // need to fill in the address of the parent as well!
-        parentId.eAddress = m_PanelAddressMap.at(parentId.position);
-        return {{PAS_PanelType, parentId}};
-    }
-    // for the MPES, the parent is the MPES's w-panel and the edge.
-    // the edge is the alphabetic concatenation of the panels, "panel1+panel2[+panel3]"
-    // the MPES's parent address in the map is "w"+"panel1"+"l"+"panel2",
-    // so also pretty straighforward
-    else if (deviceType == PAS_MPESType) {
-        unsigned w_pos, l_pos;
-        Identity w_panelId, edgeId;
-        std::string parentAddress = m_ParentMap.at(deviceType).at(id.serialNumber);
-
-        // w panel should be first in the address, but let's be safe in case someone forgets
-        // and changes that convention;
-        // assume that both of the id's are present though -- the program will throw an exception
-        // if that's not the case
-        auto w_idx = parentAddress.find('w');
-        auto l_idx = parentAddress.find('l');
-        if (w_idx < l_idx) { // w first
-            w_pos = stoi(parentAddress.substr(w_idx + 1, l_idx - w_idx));
-            l_pos = stoi(parentAddress.substr(l_idx + 1));
+bool Configuration::addMissingParents() {
+    for (const auto &panelId : m_DeviceIdentities.at(PAS_PanelType)) {
+        // Add mirror as parent to all panels
+        Device::Identity mirrorId = getMirrorId(panelId.position);
+        if (m_DeviceIdentities[PAS_MirrorType].find(mirrorId) == m_DeviceIdentities[PAS_MirrorType].end()) {
+            std::cout << "Configuration::addMissingParents(): Added Mirror " << mirrorId << " to Device List" << std::endl;
+            m_DeviceIdentities[PAS_MirrorType].insert(mirrorId);
         }
-        else { // l first
-            l_pos = stoi(parentAddress.substr(l_idx + 1, w_idx - l_idx));
-            w_pos = stoi(parentAddress.substr(w_idx + 1));
+        m_ChildMap[mirrorId][PAS_PanelType].insert(panelId);
+        m_ParentMap[panelId][PAS_MirrorType].insert(mirrorId);
+    }
+    for (const auto &mpesId : m_DeviceIdentities.at(PAS_MPESType)) {
+        if (m_ParentMap.at(mpesId).at(PAS_PanelType).size() != 1) {
+            std::cout << " ERROR:: Configuration::createMissingParents(): MPES " << mpesId << " has "
+                      << m_ParentMap.at(mpesId).at(PAS_PanelType).size()
+                      << " parent panels (should only have 1). Aborting...\n";
+            return false;
         }
+        Device::Identity w_panelId = *m_ParentMap.at(mpesId).at(PAS_PanelType).begin();
 
-        w_panelId.position = w_pos;
-        w_panelId.eAddress = m_PanelAddressMap.at(w_pos);
+        // add the edge as a parent only if the l_panel (and possibly third panel) are actually present
+        if (m_MPES_SideMap.at(mpesId).find("l") != m_MPES_SideMap.at(mpesId).end()) {
+            Device::Identity l_panelId = m_MPES_SideMap.at(mpesId).at("l");
+            Device::Identity edgeId;
+            std::vector<int> panelPositions{w_panelId.position, l_panelId.position};
+            int thirdPanelPosition = getThirdPanelPosition(w_panelId.position, l_panelId.position);
 
-        // return the edge only if the l_panel is actually present; otherwise, only the w_panel
-        try {
-            std::string l_panel_address = m_PanelAddressMap.at(l_pos);
-        }
-        catch (std::out_of_range &e) {
-            return {{PAS_PanelType, w_panelId}};
-        }
-
-        // special treatment of the P1-P2/S1-S2 edge, as this edge is defined by 3 panels.
-        // this edge is characterized by the fact that the last two digits of the outer ring
-        // position  are exactly 2*<inner> or 2*<inner> - 1, where <inner> are the last two
-        // digits of the inner ring position
-        unsigned third_pos = 0;
-        unsigned larger = std::max(w_pos, l_pos);
-        unsigned smaller = std::min(w_pos, l_pos);
-        if ( (larger % 100) == 2*(smaller % 100) || (larger % 100) == 2*(smaller % 100) - 1) {
-            // get the third panel -- it's the neighbor of the panel with the larger position:
-            // if this value is even, the third panel is one less;
-            // if this value is odd, the third panel is one more:
-            third_pos = larger;
-            third_pos += (larger % 2) ? 1 : -1;
-
-            // check that this panel is actually present
-            try {
-                std::string third_panel_address = m_PanelAddressMap.at(third_pos);
+            if (thirdPanelPosition > 0 &&
+                m_PanelPositionMap.find(thirdPanelPosition) != m_PanelPositionMap.end()) {
+                panelPositions.push_back(thirdPanelPosition);
             }
-            catch (std::out_of_range &e) {
-                third_pos = 0;
+            edgeId.eAddress = SCTMath::GetEdgeFromPanels(panelPositions);
+            edgeId.name = std::string("Edge_") + edgeId.eAddress;
+
+            if (m_DeviceIdentities[PAS_EdgeType].find(edgeId) == m_DeviceIdentities[PAS_EdgeType].end()) {
+                std::cout << "Configuration::addMissingParents(): Added Edge " << edgeId << " to Device List" << std::endl;
+                m_DeviceIdentities[PAS_EdgeType].insert(edgeId);
+            }
+            m_ChildMap[edgeId][PAS_MPESType].insert(mpesId);
+            m_ParentMap[mpesId][PAS_EdgeType].insert(edgeId);
+        }
+
+        // Add mirror as parent to all MPES
+        Device::Identity mirrorId = getMirrorId(w_panelId.position);
+        if (m_DeviceIdentities[PAS_MirrorType].find(mirrorId) == m_DeviceIdentities[PAS_MirrorType].end()) {
+            std::cout << "Configuration::addMissingParents(): Added Mirror " << mirrorId << " to Device List" << std::endl;
+            m_DeviceIdentities[PAS_MirrorType].insert(mirrorId);
+        }
+        m_ChildMap[mirrorId][PAS_MPESType].insert(mpesId);
+        m_ParentMap[mpesId][PAS_MirrorType].insert(mirrorId);
+    }
+    if (m_DeviceIdentities.find(PAS_EdgeType) != m_DeviceIdentities.end()) {
+        for (const auto &edgeId : m_DeviceIdentities.at(PAS_EdgeType)) {
+            // Add mirror as parent to all edges
+            Device::Identity mirrorId = getMirrorId(SCTMath::GetPanelsFromEdge(edgeId.eAddress, 1).at(0));
+            if (m_DeviceIdentities[PAS_MirrorType].find(mirrorId) == m_DeviceIdentities[PAS_MirrorType].end()) {
+                std::cout << "Configuration::addMissingParents(): Added Mirror " << mirrorId << " to Device List" << std::endl;
+                m_DeviceIdentities[PAS_MirrorType].insert(mirrorId);
+            }
+            m_ChildMap[mirrorId][PAS_EdgeType].insert(edgeId);
+            m_ParentMap[edgeId][PAS_MirrorType].insert(mirrorId);
+        }
+    }
+    for (const auto &mpesId : m_DeviceIdentities.at(PAS_MPESType)) {
+        if (m_ParentMap.at(mpesId).find(PAS_EdgeType) != m_ParentMap.at(mpesId).end()) {
+            for (const auto &edgeParentId : m_ParentMap.at(mpesId).at(PAS_EdgeType)) {
+                //add the parent edges and panels as each others' parents
+                for (const auto &panelParentId : m_ParentMap.at(mpesId).at(PAS_PanelType)) {
+                    m_ChildMap[edgeParentId][PAS_PanelType].insert(panelParentId);
+                    m_ParentMap[panelParentId][PAS_EdgeType].insert(edgeParentId);
+                    m_ChildMap[panelParentId][PAS_EdgeType].insert(edgeParentId);
+                    m_ParentMap[edgeParentId][PAS_PanelType].insert(panelParentId);
+                }
             }
         }
-
-        // find the mirror this sensor is on
-        Identity mirrorId;
-        mirrorId.position = SCTMath::Mirror(w_pos);
-        // the mirror has no Address or serial, so we set these to be equal to the position
-        mirrorId.serialNumber = mirrorId.position;
-        mirrorId.eAddress = std::to_string(mirrorId.position);
-
-        std::vector<unsigned> panel_positions {w_pos, l_pos};
-        if (third_pos) panel_positions.push_back(third_pos);
-        edgeId.eAddress = SCTMath::GetEdgeFromPanels(panel_positions);
-
-        return {{PAS_PanelType, w_panelId}, {PAS_EdgeType, edgeId}, {PAS_MirrorType, mirrorId}};
     }
-    // For a panel, the parent is the mirror it's on
-    else if (deviceType == PAS_PanelType) {
-        Identity mirrorId;
-        // the position is the first digit of the panel's position
-        mirrorId.position = SCTMath::Mirror(id.position);
-        // the mirror has no Address or serial, so we set these to be equal to the position
-        mirrorId.serialNumber = mirrorId.position;
-        mirrorId.eAddress = std::to_string(mirrorId.position);
+}
 
-        return {{PAS_MirrorType, mirrorId}};
-    }
-    // For an edge, the parent is the mirror it's on
-    else if (deviceType == PAS_EdgeType) {
-        Identity mirrorId;
-        // the position is the first digit of the position of either of the panels of the edge;
-        // the mirror has no Address or serial, so we set these to be equal to the position
-        mirrorId.position = SCTMath::Mirror(SCTMath::GetPanelsFromEdge(id.eAddress, 1).at(0));
-        mirrorId.serialNumber = mirrorId.position;
-        mirrorId.eAddress = std::to_string(mirrorId.position);
+Device::Identity Configuration::getMirrorId(int mirrorNum) {
+    Device::Identity mirrorId;
+    mirrorId.position = SCTMath::Mirror(mirrorNum);
+    mirrorId.serialNumber = mirrorId.position;
+    mirrorId.eAddress = std::to_string(mirrorId.position);
 
-        return {{PAS_MirrorType, mirrorId}};
+    if (mirrorId.position == 1) {
+        mirrorId.name = "PrimaryMirror";
+    } else if (mirrorId.position == 2) {
+        mirrorId.name = "SecondaryMirror";
+    } else if (mirrorId.position == 3) {
+        mirrorId.name = "TestMirror";
+    } else {
+        mirrorId.name = "UnknownMirror";
     }
 
-    return {{}};
+    return mirrorId;
+}
+
+int Configuration::getThirdPanelPosition(int wPanelPosition, int lPanelPosition) {
+    // special treatment of the P1-P2/S1-S2 edge, as this edge is defined by 3 panels.
+    // this edge is characterized by the fact that the last two digits of the outer ring
+    // position  are exactly 2*<inner> or 2*<inner> - 1, where <inner> are the last two
+    // digits of the inner ring position
+    int third_pos = 0;
+    int larger = std::max(wPanelPosition, lPanelPosition);
+    int smaller = std::min(wPanelPosition, lPanelPosition);
+    if ((larger % 100) == 2 * (smaller % 100) || (larger % 100) == 2 * (smaller % 100) - 1) {
+        // get the third panel -- it's the neighbor of the panel with the larger position:
+        // if this value is even, the third panel is one less;
+        // if this value is odd, the third panel is one more:
+        third_pos = larger;
+        third_pos += (larger % 2) ? 1 : -1;
+
+        return third_pos;
+    } else {
+        return -1;
+    }
 }

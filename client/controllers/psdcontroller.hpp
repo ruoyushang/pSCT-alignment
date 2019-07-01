@@ -1,8 +1,9 @@
 #ifndef ALIGNMENT_PSDCONTROLLER_HPP
 #define ALIGNMENT_PSDCONTROLLER_HPP
 
-#include "client/controllers/pascontroller.hpp"
 #include "client/controllers/mirrorcontroller.hpp"
+#include "client/controllers/pascontroller.hpp"
+
 
 class PSDController : public PasController {
     UA_DISABLE_COPY(PSDController);
@@ -11,24 +12,19 @@ public:
     friend MirrorController;
 
     // construction / destruction
-    PSDController(Identity identity, Client *pClient);
-
-    virtual ~PSDController();
+    PSDController(Device::Identity identity, Client *pClient);
 
     // Get Controller status and data
-    UaStatus getState(PASState &state);
+    UaStatus getState(Device::DeviceState &state) override;
 
-    UaStatus getData(OpcUa_UInt32 offset, UaVariant &value);
+    UaStatus getData(OpcUa_UInt32 offset, UaVariant &value) override;
 
     // set Controller status and data
-    UaStatus setState(PASState state);
+    UaStatus setState(Device::DeviceState state) override;
 
-    UaStatus setData(OpcUa_UInt32 offset, UaVariant value);
+    UaStatus setData(OpcUa_UInt32 offset, UaVariant value) override;
 
-    UaStatus operate(OpcUa_UInt32 offset, const UaVariantArray &args);
-
-    // update interval in ms
-    static int kUpdateInterval;
+    UaStatus operate(OpcUa_UInt32 offset, const UaVariantArray &args) override;
 
 private:
     struct PSDData {
@@ -41,7 +37,9 @@ private:
         OpcUa_Double dx2;
         OpcUa_Double dy2;
         OpcUa_Double Temperature;
-    } m_Data;
+
+        PSDData() : x1(0.0), y1(0.0), x2(0.0), y2(0.0), dx1(0.0), dy1(0.0), dx2(0.0), dy2(0.0), Temperature(0.0) {}
+    } m_data;
 
     UaStatus read();
 };

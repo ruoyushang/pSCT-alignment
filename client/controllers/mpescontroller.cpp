@@ -1,21 +1,23 @@
 #include "client/controllers/mpescontroller.hpp"
 
+#include <fstream>
+
+#include "common/opcua/pasobject.hpp"
 #include "common/utilities/DBConfig.hpp"
+
 #include "client/clienthelper.hpp"
 
 #include "mysql_driver.h"
 #include "cppconn/statement.h"
 
-#include <fstream>
 
 float MPESController::kNominalIntensity = 150000.;
-float MPESController::kNominalCentroidSD = 20.;
+float MPESController::kNominalSpotWidth = 10.;
+int MPESController::kMaxAttempts = 1;
 
-MPESController::MPESController(Identity identity, Client *pClient) : PasController(std::move(identity), pClient),
-                                                                     m_updated(false), m_isVisible(false) {
-    m_state = PASState::On;
-    m_Data = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-
+MPESController::MPESController(Device::Identity identity, Client *pClient) : PasController(
+    std::move(identity), pClient),
+                                                                             m_numAttempts(0) {
     // get the nominal aligned readings and response matrices from DB
     /* BEGIN DATABASE HACK */
     //std::string db_ip="172.17.10.10"; // internal ip
@@ -27,7 +29,7 @@ MPESController::MPESController(Identity identity, Client *pClient) : PasControll
     std::string db_name = myConfig.getDatabase();
     std::string db_address = "tcp://" + db_ip + ":" + db_port;
 
-    std::cout << "Initializing MPES " << m_ID.serialNumber << std::endl;
+    //std::cout << "Initializing MPES " << m_ID.serialNumber << std::endl;
     try {
         sql::Driver *sql_driver = get_driver_instance();
         sql::Connection *sql_conn = sql_driver->connect(db_address, db_user, db_password);
@@ -52,7 +54,7 @@ MPESController::MPESController(Identity identity, Client *pClient) : PasControll
         for (const auto &panel : panelType)
             for (int act = 1; act <= 6; act++)
                 query += ", " + std::string(1, panel) + "_response_actuator" + to_string(act);
-        query = "SELECT coord, nominal_reading" + query +
+        query = "SELECT coord" + query +
                 " FROM Opt_MPESConfigurationAndCalibration WHERE end_date is NULL and serial_number=" +
                 to_string(m_ID.serialNumber);
         sql_stmt->execute(query);
@@ -60,26 +62,12 @@ MPESController::MPESController(Identity identity, Client *pClient) : PasControll
 
         while (sql_results->next()) {
             char coord = sql_results->getString(1)[0];
-            m_AlignedReadings(int(coord - 'x')) = sql_results->getDouble(2);
             for (int panel = 0; panel < 2; panel++) {
                 for (int act = 1; act <= 6; act++)
                     m_ResponseMatMap[panelType[panel]](int(coord - 'x'), act - 1) =
-                            sql_results->getDouble(2 + panel * 6 + act);
+                        sql_results->getDouble(1 + panel * 6 + act);
             }
         }
-
-        // print out the loaded values
-        std::cout << "\t Aligned readings:\n" << m_AlignedReadings << std::endl;
-        for (const auto &matrixPair : m_ResponseMatMap)
-            std::cout << "\t " << matrixPair.first << "-side response matrix:\n"
-                      << matrixPair.second << std::endl;
-
-        // pass the aligned readings on to the server
-        UaVariant value;
-        value.setDouble(m_AlignedReadings(0));
-        setData(PAS_MPESType_xCentroidNominal, value);
-        value.setDouble(m_AlignedReadings(1));
-        setData(PAS_MPESType_yCentroidNominal, value);
 
         // close the connection!
         sql_conn->close();
@@ -92,18 +80,10 @@ MPESController::MPESController(Identity identity, Client *pClient) : PasControll
         std::cout << "# ERR: " << e.what();
         std::cout << " (MySQL error code: " << e.getErrorCode();
         std::cout << ", SQLState: " << e.getSQLState() << " )" << std::endl;
-
-        // set state to error
-        m_state = PASState::FatalError;
     }
     /* END DATABASE HACK */
 
-    SystematicOffsets = Eigen::Vector2d::Zero();
-}
-
-MPESController::~MPESController() {
-    m_pClient = nullptr;
-    m_state = PASState::Off;
+    m_SystematicOffsets = Eigen::Vector2d::Zero();
 }
 
 /* ----------------------------------------------------------------------------
@@ -111,10 +91,18 @@ MPESController::~MPESController() {
     Method       getState
     Description  Get Controller status.
 -----------------------------------------------------------------------------*/
-UaStatus MPESController::getState(PASState &state) {
-    //UaMutexLocker lock(&m_mutex);
-    state = m_state;
-    return OpcUa_Good;
+UaStatus MPESController::getState(Device::DeviceState &state) {
+    //UaMutexLocker lock(&m_mutex);    
+    UaStatus status;
+    UaVariant value;
+    int v;
+
+    m_pClient->read({m_pClient->getDeviceNodeId(m_ID) + "." + "State"}, &value);
+    value.toInt32(v);
+
+    state = static_cast<Device::DeviceState>(v);
+
+    return status;
 }
 
 /* ----------------------------------------------------------------------------
@@ -122,23 +110,8 @@ UaStatus MPESController::getState(PASState &state) {
     Method       setState
     Description  Set Controller status.
 -----------------------------------------------------------------------------*/
-UaStatus MPESController::setState(PASState state) {
-    UaStatus status;
-
-    if (state == m_state) {
-        return OpcUa_BadInvalidState;
-    }
-    //UaMutexLocker lock(&m_mutex);
-
-    m_state = state;
-    if (state == PASState::Off)
-        status = m_pClient->callMethod(m_ID.eAddress, UaString("Stop"));
-    else if (state == PASState::On)
-        status = m_pClient->callMethod(m_ID.eAddress, UaString("Start"));
-    else
-        status = OpcUa_BadInvalidArgument;
-
-    return status;
+UaStatus MPESController::setState(Device::DeviceState state) {
+    return OpcUa_BadNotWritable;
 }
 
 /* ----------------------------------------------------------------------------
@@ -150,17 +123,72 @@ UaStatus MPESController::getData(OpcUa_UInt32 offset, UaVariant &value) {
     UaStatus status;
     //UaMutexLocker lock(&m_mutex);
 
-    int dataoffset = offset - PAS_MPESType_xCentroidAvg;
-    if ((dataoffset >= 7) || (dataoffset < 0))
-        return OpcUa_BadInvalidArgument;
-
-    if (!m_updated)
-        status = read();
-
-    // cast struct to double through reinterpret_cast!
-    value.setDouble(*(reinterpret_cast<OpcUa_Double *>(&m_Data) + dataoffset));
+    if (MPESObject::ERRORS.count(offset) > 0) {
+        return getError(offset, value);
+    } else {
+        if (offset == PAS_MPESType_xCentroidAvg || offset == PAS_MPESType_yCentroidAvg ||
+            offset == PAS_MPESType_xCentroidSpotWidth ||
+            offset == PAS_MPESType_yCentroidSpotWidth || 
+            offset == PAS_MPESType_CleanedIntensity) {
+            status = read(false);
+            if (status.isBad()) {
+                //std::cout << m_ID << " :: MPESController::getData() : Device is in a bad state (busy, off, error) and "
+                //                     "could not read data. Check state and try again. \n";
+                return status;
+            }
+        }
+        switch (offset) {
+            case PAS_MPESType_xCentroidAvg:
+                value.setFloat(m_data.xCentroid);
+                break;
+            case PAS_MPESType_yCentroidAvg:
+                value.setFloat(m_data.yCentroid);
+                break;
+            case PAS_MPESType_xCentroidSpotWidth:
+                value.setFloat(m_data.xSpotWidth);
+                break;
+            case PAS_MPESType_yCentroidSpotWidth:
+                value.setFloat(m_data.ySpotWidth);
+                break;
+            case PAS_MPESType_CleanedIntensity:
+                value.setFloat(m_data.cleanedIntensity);
+                break;
+            case PAS_MPESType_xCentroidNominal:
+                value.setFloat(m_data.xNominal);
+                break;
+            case PAS_MPESType_yCentroidNominal:
+                value.setFloat(m_data.yNominal);
+                break;
+            case PAS_MPESType_Position:
+                value.setInt32(m_ID.position);
+                break;
+            case PAS_MPESType_Serial:
+                value.setInt32(m_ID.serialNumber);
+                break;
+            case PAS_MPESType_ErrorState:
+                status = m_pClient->read({m_pClient->getDeviceNodeId(m_ID) + "." + "ErrorState"}, &value);
+                break;
+            default:
+                status = OpcUa_BadInvalidArgument;
+                break;
+        }
+    }
 
     return OpcUa_Good;
+}
+
+UaStatus MPESController::getError(OpcUa_UInt32 offset, UaVariant &value) {
+    //UaMutexLocker lock(&m_mutex);
+    UaStatus status;
+
+    if (MPESObject::ERRORS.count(offset) > 0) {
+        std::string varName = std::get<0>(MPESObject::ERRORS.at(offset));
+        std::vector<std::string> varsToRead = {m_pClient->getDeviceNodeId(m_ID) + "." + varName};
+        status = m_pClient->read(varsToRead, &value);
+    } else {
+        status = OpcUa_BadInvalidArgument;
+    }
+    return status;
 }
 
 /* ----------------------------------------------------------------------------
@@ -169,21 +197,7 @@ UaStatus MPESController::getData(OpcUa_UInt32 offset, UaVariant &value) {
     Description  Set Controller data.
 -----------------------------------------------------------------------------*/
 UaStatus MPESController::setData(OpcUa_UInt32 offset, UaVariant value) {
-    UaStatus status;
-
-    int dataoffset = offset - PAS_MPESType_xCentroidAvg;
-    if ((dataoffset > 6) | (dataoffset < 5))
-        return OpcUa_BadNotWritable;
-
-    std::string varstowrite[2]{".xCentroidNominal", ".yCentroidNominal"};
-    vector<std::string> vec_curwrite{m_ID.eAddress + varstowrite[dataoffset - 5]};
-
-    // set local variable
-    value.toDouble(*(reinterpret_cast<OpcUa_Double *>(&m_Data) + dataoffset));
-    // and write it to the server
-    status = m_pClient->write(vec_curwrite, &value);
-
-    return status;
+    return OpcUa_BadNotWritable;
 }
 
 /* ----------------------------------------------------------------------------
@@ -195,18 +209,31 @@ UaStatus MPESController::operate(OpcUa_UInt32 offset, const UaVariantArray &args
     //UaMutexLocker lock(&m_mutex);
     UaStatus status;
 
-    if (offset == PAS_MPESType_Read)
-    {
-        status = read();
-        return status;
+    std::cout << m_ID << " :: MPESController::operate() : Calling method " << MPESObject::METHODS.at(offset).first
+              << std::endl;
+
+    if (offset == PAS_MPESType_Read) {
+        status = read(true);
+    } else if (offset == PAS_MPESType_SetExposure) {
+        status = m_pClient->callMethod(m_pClient->getDeviceNodeId(m_ID), UaString("SetExposure"), args);
+    } else if (offset == PAS_MPESType_ClearError) {
+        status = m_pClient->callMethod(m_pClient->getDeviceNodeId(m_ID), UaString("ClearError"), args);
+    } else if (offset == PAS_MPESType_ClearAllErrors) {
+        status = m_pClient->callMethod(m_pClient->getDeviceNodeId(m_ID), UaString("ClearAllErrors"));
+    } else if (offset == PAS_MPESType_TurnOn) {
+        status = m_pClient->callMethod(m_pClient->getDeviceNodeId(m_ID), UaString("TurnOn"));
+    } else if (offset == PAS_MPESType_TurnOff) {
+        status = m_pClient->callMethod(m_pClient->getDeviceNodeId(m_ID), UaString("TurnOff"));
+    } else {
+        status = OpcUa_BadInvalidArgument;
     }
-    else if (offset == PAS_MPESType_SetExposure) {
-        std::cout << "+++ Adjusting exposure for " << m_ID << std::endl;
-        status = m_pClient->callMethod(m_ID.eAddress, UaString("SetExposure"));
-        std::cout << "Done." << std::endl;
-        return status;
-    } else
-        return OpcUa_BadInvalidArgument;
+
+    if (status == OpcUa_BadInvalidState) {
+        std::cout << m_ID << " :: MPESController::operate() : Device is in a bad state (busy, off, error) and "
+                             "could not execute command. Check state and try again. \n";
+    }
+
+    return status;
 
 }
 
@@ -215,95 +242,86 @@ UaStatus MPESController::operate(OpcUa_UInt32 offset, const UaVariantArray &args
     Method       read
     Description  Read Controller data.
 -----------------------------------------------------------------------------*/
-UaStatus MPESController::read(bool print) {
+UaStatus MPESController::read(bool print) {  
     //UaMutexLocker lock(&m_mutex);
     UaStatus status;
 
-    m_updated = false;
+    status = m_pClient->callMethod(m_pClient->getDeviceNodeId(m_ID), UaString("Read"), UaVariantArray());
 
-    std::cout << "calling read() on " << m_ID << std::endl;
-    if (m_state == PASState::On) {
-        // read the values on the server first
-        status = __readRequest();
+    if (!status.isGood()) {
+        return status;
+    }
 
-        m_isVisible = true;
-        if (m_Data.xCentroidAvg < 0.1) m_isVisible = false;
-        if (m_isVisible) {
-            if (m_Data.xCentroidSpotWidth > kNominalCentroidSD) {
-                std::cout << "+++ WARNING +++ The width of the image along the X axis for " << m_ID.name
-                          << " is greater than 20px. Consider fixing things." << std::endl;
-            }
-            if (m_Data.yCentroidSpotWidth > kNominalCentroidSD) {
-                std::cout << "+++ WARNING +++ The width of the image along the Y axis for " << m_ID.name
-                          << " is greater than 20px. Consider fixing things." << std::endl;
-            }
+    std::vector<std::string> varstoread{
+        "xCentroidAvg",
+        "yCentroidAvg",
+        "xCentroidSpotWidth",
+        "yCentroidSpotWidth",
+        "CleanedIntensity",
+        "xCentroidNominal",
+        "yCentroidNominal"
+    };
+    std::transform(varstoread.begin(), varstoread.end(), varstoread.begin(),
+                   [this](std::string &str) { return m_pClient->getDeviceNodeId(m_ID) + "." + str; });
+    UaVariant valstoread[7];
 
-            if (fabs(m_Data.CleanedIntensity - kNominalIntensity) / kNominalIntensity > 0.2) {
+    status = m_pClient->read(varstoread, &valstoread[0]);
+    m_numAttempts = 1;
+
+    if (!status.isGood()) {
+        return status;
+    }
+
+    for (unsigned i = 0; i < varstoread.size(); i++)
+        valstoread[i].toFloat(*(reinterpret_cast<float *>(&m_data) + i));
+
+    if (print) {
+        std::cout << "Reading MPES " << m_ID << ":" << std::endl;
+        std::cout << "x: " << m_data.xCentroid << std::endl;
+        std::cout << "xNominal: " << m_data.xNominal << std::endl;
+        std::cout << "y: " << m_data.yCentroid << std::endl;
+        std::cout << "yNominal: " << m_data.yNominal << std::endl;
+        std::cout << "xSpotWidth: " << m_data.xSpotWidth << std::endl;
+        std::cout << "ySpotWidth: " << m_data.ySpotWidth << std::endl;
+        std::cout << "Cleaned Intensity: " << m_data.cleanedIntensity << std::endl;
+    }
+
+    if (isVisible()) {
+        if (m_data.xSpotWidth > kNominalSpotWidth) {
+            std::cout << "+++ WARNING +++ The width of the image along the X axis for " << m_ID.name
+                      << " is greater than 20px. Consider fixing things." << std::endl;
+        }
+        if (m_data.ySpotWidth > kNominalSpotWidth) {
+            std::cout << "+++ WARNING +++ The width of the image along the Y axis for " << m_ID.name
+                      << " is greater than 20px. Consider fixing things." << std::endl;
+        }
+        if (fabs(m_data.cleanedIntensity - kNominalIntensity) / kNominalIntensity > 0.2) {
+            if (m_numAttempts <= kMaxAttempts) {
                 std::cout << "+++ WARNING +++ The intensity of " << m_ID.name
                           << " differs from the magic value by more than 20%\n"
                           << "+++ WARNING +++ Will readjust the exposure now!" << std::endl;
                 operate(PAS_MPESType_SetExposure);
+                m_numAttempts++;
                 // read the sensor again
-                status = __readRequest();
+                status = read(print);
+            } else {
+                m_numAttempts = 0;
             }
         }
-
-        if (print) {
-            std::cout << "MPES reading:" << std::endl;
-            std::cout << "x: " << m_Data.xCentroidAvg << std::endl;
-            std::cout << "xNominal: " << m_Data.xNominal << std::endl;
-            std::cout << "y: " << m_Data.yCentroidAvg << std::endl;
-            std::cout << "yNominal: " << m_Data.yNominal << std::endl;
-            std::cout << "xSpotWidth: " << m_Data.xCentroidSpotWidth << std::endl;
-            std::cout << "ySpotWidth: " << m_Data.yCentroidSpotWidth << std::endl;
-            std::cout << "Cleaned Intensity: " << m_Data.CleanedIntensity << std::endl;
-        }
-
-        time_t now = time(nullptr);
-        struct tm tstruct{};
-        char buf[80];
-        tstruct = *localtime(&now);
-        strftime(buf, sizeof(buf), "%Y-%m-%d %X", &tstruct);
-
-        UaString sql_stmt = UaString(
-                "INSERT INTO Opt_MPESReadings (date, serial_number, xcoord, ycoord, x_SpotWidth, y_SpotWidth, intensity) VALUES  ('%1', '%2', '%3', '%4', '%5', '%6', '%7' );\n").arg(
-            buf).arg(m_ID.serialNumber).arg(m_Data.xCentroidAvg).arg(m_Data.yCentroidAvg).arg(
-            m_Data.xCentroidSpotWidth).arg(m_Data.yCentroidSpotWidth).arg(m_Data.CleanedIntensity);
-        std::ofstream sql_file("MPES_readings.sql", std::ios_base::app);
-        sql_file << sql_stmt.toUtf8();
     }
 
-    return status;
-}
+    time_t now = time(nullptr);
+    struct tm tstruct{};
+    char buf[80];
+    tstruct = *localtime(&now);
+    strftime(buf, sizeof(buf), "%Y-%m-%d %X", &tstruct);
 
-// a helper for the above that simply requests data from the server without performing any checks
-UaStatus MPESController::__readRequest() {
-    //UaMutexLocker lock(&m_mutex);
-    UaStatus status;
-
-    // read the values on the server first
-    status = m_pClient->callMethod(m_ID.eAddress, UaString("Read"));
-    if (!status.isGood()) return status;
-    // get the updated values from the server
-
-    // get all the updated values from the server
-    std::vector<std::string> varstoread{
-            "xCentroidAvg",
-            "yCentroidAvg",
-            "xCentroidSpotWidth",
-            "yCentroidSpotWidth",
-            "CleanedIntensity",
-            "xCentroidNominal",
-            "yCentroidNominal"};
-    std::transform(varstoread.begin(), varstoread.end(), varstoread.begin(),
-                   [this](std::string &str) { return m_ID.eAddress + "." + str; });
-    UaVariant valstoread[7];
-
-    status = m_pClient->read(varstoread, &valstoread[0]);
-    if (status.isGood()) m_updated = true;
-
-    for (unsigned i = 0; i < varstoread.size(); i++)
-        valstoread[i].toDouble(*(reinterpret_cast<OpcUa_Double *>(&m_Data) + i));
+    UaString sql_stmt = UaString(
+        "INSERT INTO Opt_MPESReadings (date, serial_number, xcoord, ycoord, x_SpotWidth, y_SpotWidth, intensity) VALUES  ('%1', '%2', '%3', '%4', '%5', '%6', '%7' );\n").arg(
+        buf).arg(m_ID.serialNumber).arg(m_data.xCentroid).arg(m_data.yCentroid).arg(
+        m_data.xSpotWidth).arg(m_data.ySpotWidth).arg(m_data.cleanedIntensity);
+    std::ofstream sql_file("MPES_readings.sql", std::ios_base::app);
+    sql_file << sql_stmt.toUtf8();
 
     return status;
 }
@@ -319,4 +337,22 @@ char MPESController::getPanelSide(unsigned panelpos) {
 
     return panelside;
 }
+
+bool MPESController::isVisible() {
+    UaVariant temp;
+    OpcUa_Boolean missingLaserError;
+    getError(PAS_MPESType_Error2, temp);
+    temp.toBool(missingLaserError);
+
+    return !missingLaserError;
+}
+
+Eigen::Vector2d MPESController::getAlignedReadings() {
+    Eigen::Vector2d alignedReadings;
+
+    alignedReadings(0) = m_data.xNominal;
+    alignedReadings(1) = m_data.yNominal;
+
+    return alignedReadings;
+};
 

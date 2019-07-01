@@ -1,22 +1,25 @@
 #include "common/opcua/pasobject.hpp"
-#include "common/opcua/pasnodemanagercommon.hpp"
-#include "common/opcua/passervertypeids.hpp"
-#include "common/opcua/pascominterfacecommon.hpp"
-#include "mpeseventdata.hpp"
-#include "uaserver/methodhandleuanode.h"
 
 #include <iostream>
 
 #include "uabase/uamutex.h"
+#include "uaserver/methodhandleuanode.h"
+
+#include "common/alignment/device.hpp"
+
+#include "common/opcua/mpeseventdata.hpp"
+#include "common/opcua/pascominterfacecommon.hpp"
+#include "common/opcua/pasnodemanagercommon.hpp"
+#include "common/opcua/passervertypeids.hpp"
 
 // ----------------------------------------------------------------
 // PasObject implementation
 PasObject::PasObject(const UaString& name,
-        const UaNodeId& newNodeId,
-        const UaString& defaultLocaleId,
-        PasNodeManagerCommon *pNodeManager,
-        Identity identity,
-        PasComInterfaceCommon *pCommIf) :
+                     const UaNodeId& newNodeId,
+                     const UaString& defaultLocaleId,
+                     PasNodeManagerCommon *pNodeManager,
+                     Device::Identity identity,
+                     PasComInterfaceCommon *pCommIf) :
     BaseObjectType(newNodeId, name, pNodeManager->getNameSpaceIndex(),
                          pNodeManager->getNodeManagerConfig()),
     m_defaultLocaleId(defaultLocaleId),
@@ -38,17 +41,17 @@ void PasObject::initialize() {
 
     std::cout << "PasObject::Initialize(): initializing object w/ identity " << m_Identity << "...\n";
 
-    std::cout << "Creating variables...\n";
+    //std::cout << "Creating variables...\n";
     // Add all child variable nodes
     for (auto &kv : getVariableDefs()) {
         addVariable(m_pNodeManager, typeDefinitionId().identifierNumeric(), kv.first, std::get<2>(kv.second));
     }
 
 
-    std::cout << "Creating error variables...\n";
+    //std::cout << "Creating error variables...\n";
     //Create the folder for the Errors
     UaFolder *pErrorFolder = new UaFolder("Errors", UaNodeId(
-            (std::to_string(typeDefinitionId().identifierNumeric()) + "_" + m_Identity.eAddress + "_errors").c_str(),
+            (std::to_string(typeDefinitionId().identifierNumeric()) + "_" + std::to_string(m_Identity.serialNumber) + "_errors").c_str(),
             nsIdx),
                                           m_defaultLocaleId);
     addStatus = m_pNodeManager->addNodeAndReference(this, pErrorFolder, OpcUaId_Organizes);
@@ -56,11 +59,12 @@ void PasObject::initialize() {
 
     // Add all error variable nodes
     for (const auto &v : getErrorDefs()) {
-        pDataItem = addVariable(m_pNodeManager, typeDefinitionId().identifierNumeric(), v.first, OpcUa_False, false);
+        pDataItem = addVariable(m_pNodeManager, typeDefinitionId().identifierNumeric(), v.first, OpcUa_False, OpcUa_False);
         addStatus = m_pNodeManager->addUaReference(pErrorFolder->nodeId(), pDataItem->nodeId(), OpcUaId_Organizes);
     }
 
     // Add all child method nodes
+    //std::cout << "Creating method nodes...\n";
     for (auto &m : getMethodDefs()) {
         sName = UaString(m.second.first.c_str());
         sNodeId = UaString("%1.%2").arg(m_newNodeId.toString()).arg(sName);
@@ -208,80 +212,102 @@ OpcUa::DataItemType* PasObject::addVariable(PasNodeManagerCommon *pNodeManager, 
 
 
 const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, OpcUa_Byte>> MPESObject::VARIABLES = {
-        {PAS_MPESType_State,            std::make_tuple("State", UaVariant(0), OpcUa_True, Ua_AccessLevel_CurrentRead)},
-        {PAS_MPESType_xCentroidAvg,     std::make_tuple("xCentroidAvg", UaVariant(0.0), OpcUa_False,
+    {PAS_MPESType_State,              std::make_tuple("State", UaVariant(0), OpcUa_True, Ua_AccessLevel_CurrentRead)},
+    {PAS_MPESType_Position,           std::make_tuple("Position", UaVariant(0), OpcUa_False,
+                                                      Ua_AccessLevel_CurrentRead)},
+    {PAS_MPESType_Serial,             std::make_tuple("Serial", UaVariant(0), OpcUa_False, Ua_AccessLevel_CurrentRead)},
+    {PAS_MPESType_xCentroidAvg,       std::make_tuple("xCentroidAvg", UaVariant(0.0), OpcUa_False,
                                                         Ua_AccessLevel_CurrentRead)},
-        {PAS_MPESType_yCentroidAvg,     std::make_tuple("yCentroidAvg", UaVariant(0.0), OpcUa_False,
+    {PAS_MPESType_yCentroidAvg,       std::make_tuple("yCentroidAvg", UaVariant(0.0), OpcUa_False,
                                                        Ua_AccessLevel_CurrentRead)},
-        {PAS_MPESType_xCentroidSpotWidth,      std::make_tuple("xCentroidSpotWidth", UaVariant(0.0), OpcUa_False,
+    {PAS_MPESType_xCentroidSpotWidth, std::make_tuple("xCentroidSpotWidth", UaVariant(0.0), OpcUa_False,
                                                         Ua_AccessLevel_CurrentRead)},
-        {PAS_MPESType_yCentroidSpotWidth,      std::make_tuple("yCentroidSpotWidth", UaVariant(0.0), OpcUa_False,
+    {PAS_MPESType_yCentroidSpotWidth,      std::make_tuple("yCentroidSpotWidth", UaVariant(0.0), OpcUa_False,
                                                         Ua_AccessLevel_CurrentRead)},
-        {PAS_MPESType_CleanedIntensity, std::make_tuple("CleanedIntensity", UaVariant(0.0), OpcUa_False,
+    {PAS_MPESType_CleanedIntensity, std::make_tuple("CleanedIntensity", UaVariant(0.0), OpcUa_False,
                                                         Ua_AccessLevel_CurrentRead)},
-        {PAS_MPESType_xCentroidNominal, std::make_tuple("xCentroidNominal", UaVariant(0.0), OpcUa_False,
+    {PAS_MPESType_xCentroidNominal, std::make_tuple("xCentroidNominal", UaVariant(0.0), OpcUa_False,
                                                         Ua_AccessLevel_CurrentRead)},
-        {PAS_MPESType_yCentroidNominal, std::make_tuple("yCentroidNominal", UaVariant(0.0), OpcUa_False,
+    {PAS_MPESType_yCentroidNominal, std::make_tuple("yCentroidNominal", UaVariant(0.0), OpcUa_False,
+                                                        Ua_AccessLevel_CurrentRead)},
+    {PAS_MPESType_ErrorState, std::make_tuple("ErrorState", UaVariant(0), OpcUa_False,
                                                         Ua_AccessLevel_CurrentRead)},
 };
 
 const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean>> MPESObject::ERRORS = {
+    {PAS_MPESType_Error0, std::make_tuple("[0] Bad connection. No device found", UaVariant(false), OpcUa_False)},
+    {PAS_MPESType_Error1, std::make_tuple("[1] Intermittent connection, possible select timeout or other error.",
+                                          UaVariant(false), OpcUa_False)},
+    {PAS_MPESType_Error2, std::make_tuple("[2] Cannot find laser spot", UaVariant(false), OpcUa_False)},
+    {PAS_MPESType_Error3, std::make_tuple("[3] Too bright (missing tube)", UaVariant(false), OpcUa_False)},
+    {PAS_MPESType_Error4, std::make_tuple("[4] Too bright", UaVariant(false), OpcUa_False)},
+    {PAS_MPESType_Error5, std::make_tuple("[5] Very uneven spot, likely near edge", UaVariant(false), OpcUa_False)},
+    {PAS_MPESType_Error6, std::make_tuple("[6] Uneven spot", UaVariant(false), OpcUa_False)},
+    {PAS_MPESType_Error7, std::make_tuple("[7] Large intensity deviation", UaVariant(false), OpcUa_False)},
 };
 
 const std::map<OpcUa_UInt32, std::pair<std::string, std::vector<std::tuple<std::string, UaNodeId, std::string>>>> MPESObject::METHODS = {
-        {PAS_MPESType_Start,       {"Start",       {}}},
-        {PAS_MPESType_Stop,        {"Stop",        {}}},
-        {PAS_MPESType_Read,        {"Read",        {}}},
-        {PAS_MPESType_SetExposure, {"SetExposure", {}}}
+    {PAS_MPESType_TurnOn,         {"TurnOn",         {}}},
+    {PAS_MPESType_TurnOff,        {"TurnOff",        {}}},
+    {PAS_MPESType_Read,           {"Read",           {}}},
+    {PAS_MPESType_SetExposure,    {"SetExposure",    {}}},
+    {PAS_MPESType_ClearError,     {"ClearError",     {std::make_tuple("ErrorNum", UaNodeId(OpcUaId_Int32),
+                                                                      "Number of error to clear")}}},
+    {PAS_MPESType_ClearAllErrors, {"ClearAllErrors", {}}}
 };
 
-UaNodeId MPESObject::typeDefinitionId() const
-{
-    UaNodeId ret(PAS_MPESType, browseName().namespaceIndex());
-    return ret;
-}
-
 const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, OpcUa_Byte>> ACTObject::VARIABLES = {
-        {PAS_ACTType_State,         std::make_tuple("State", UaVariant(0), OpcUa_True, Ua_AccessLevel_CurrentRead)},
-        {PAS_ACTType_DeltaLength,   std::make_tuple("DeltaLength", UaVariant(0.0), OpcUa_False,
+    {PAS_ACTType_State,         std::make_tuple("State", UaVariant(0), OpcUa_True, Ua_AccessLevel_CurrentRead)},
+    {PAS_ACTType_Position,      std::make_tuple("Position", UaVariant(0), OpcUa_False, Ua_AccessLevel_CurrentRead)},
+    {PAS_ACTType_Serial,        std::make_tuple("Serial", UaVariant(0), OpcUa_False, Ua_AccessLevel_CurrentRead)},
+    {PAS_ACTType_DeltaLength,   std::make_tuple("DeltaLength", UaVariant(0.0), OpcUa_False,
                                                     Ua_AccessLevel_CurrentRead)},
-        {PAS_ACTType_TargetLength,  std::make_tuple("TargetLength", UaVariant(0.0), OpcUa_False,
+    {PAS_ACTType_TargetLength,  std::make_tuple("TargetLength", UaVariant(0.0), OpcUa_False,
                                                     Ua_AccessLevel_CurrentRead)},
-        {PAS_ACTType_CurrentLength, std::make_tuple("CurrentLength", UaVariant(0.0), OpcUa_False,
+    {PAS_ACTType_CurrentLength, std::make_tuple("CurrentLength", UaVariant(0.0), OpcUa_False,
+                                                   Ua_AccessLevel_CurrentRead)},
+    {PAS_ACTType_ErrorState, std::make_tuple("ErrorState", UaVariant(0), OpcUa_False,
                                                    Ua_AccessLevel_CurrentRead)}
+
 };
 
 const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean>> ACTObject::ERRORS = {
-        {PAS_ACTType_Error0,  std::make_tuple("Error0", UaVariant(false), OpcUa_False)},
-        {PAS_ACTType_Error1,  std::make_tuple("Error1", UaVariant(false), OpcUa_False)},
-        {PAS_ACTType_Error2,  std::make_tuple("Error2", UaVariant(false), OpcUa_False)},
-        {PAS_ACTType_Error3,  std::make_tuple("Error3", UaVariant(false), OpcUa_False)},
-        {PAS_ACTType_Error4,  std::make_tuple("Error4", UaVariant(false), OpcUa_False)},
-        {PAS_ACTType_Error5,  std::make_tuple("Error5", UaVariant(false), OpcUa_False)},
-        {PAS_ACTType_Error6,  std::make_tuple("Error6", UaVariant(false), OpcUa_False)},
-        {PAS_ACTType_Error7,  std::make_tuple("Error7", UaVariant(false), OpcUa_False)},
-        {PAS_ACTType_Error8,  std::make_tuple("Error8", UaVariant(false), OpcUa_False)},
-        {PAS_ACTType_Error9,  std::make_tuple("Error9", UaVariant(false), OpcUa_False)},
-        {PAS_ACTType_Error10, std::make_tuple("Error10", UaVariant(false), OpcUa_False)},
-        {PAS_ACTType_Error11, std::make_tuple("Error11", UaVariant(false), OpcUa_False)},
-        {PAS_ACTType_Error12, std::make_tuple("Error12", UaVariant(false), OpcUa_False)},
-        {PAS_ACTType_Error13, std::make_tuple("Error13", UaVariant(false), OpcUa_False)}
+    {PAS_ACTType_Error0,  std::make_tuple("[0] Home position not calibrated", UaVariant(false), OpcUa_False)},
+    {PAS_ACTType_Error1,  std::make_tuple("[1] DBInfo not set", UaVariant(false), OpcUa_False)},
+    {PAS_ACTType_Error2,  std::make_tuple("[2] MySQL Communication Error", UaVariant(false), OpcUa_False)},
+    {PAS_ACTType_Error3,  std::make_tuple("[3] DB Columns does not match what is expected", UaVariant(false),
+                                          OpcUa_False)},
+    {PAS_ACTType_Error4,  std::make_tuple("[4] Bad ASF file", UaVariant(false), OpcUa_False)},
+    {PAS_ACTType_Error5,  std::make_tuple("[5] ASF File entry mismatch", UaVariant(false), OpcUa_False)},
+    {PAS_ACTType_Error6,  std::make_tuple("[6] DB recording more recent than ASF and has mismatch with measured angle",
+                                          UaVariant(false), OpcUa_False)},
+    {PAS_ACTType_Error7,  std::make_tuple("[7] High voltage StdDev", UaVariant(false), OpcUa_False)},
+    {PAS_ACTType_Error8,  std::make_tuple("[8] Actuator missed steps", UaVariant(false), OpcUa_False)},
+    {PAS_ACTType_Error9,  std::make_tuple("[9] Actuator position missed, far away to recover safely", UaVariant(false),
+                                          OpcUa_False)},
+    {PAS_ACTType_Error10, std::make_tuple("[10] Missed steps but recovered automatically", UaVariant(false),
+                                          OpcUa_False)},
+    {PAS_ACTType_Error11, std::make_tuple("[11] Extend Stop Voltage too close to discontinuity", UaVariant(false),
+                                          OpcUa_False)},
+    {PAS_ACTType_Error12, std::make_tuple("[12] End stop differs from expected location", UaVariant(false),
+                                          OpcUa_False)},
+    {PAS_ACTType_Error13, std::make_tuple("[13] Probe home distance differs from expected", UaVariant(false),
+                                          OpcUa_False)}
 };
 
 const std::map<OpcUa_UInt32, std::pair<std::string, std::vector<std::tuple<std::string, UaNodeId, std::string>>>> ACTObject::METHODS = {
-        {PAS_ACTType_Start,           {"Start", {}}},
-        {PAS_ACTType_Stop,            {"Stop",  {}}},
-        {PAS_ACTType_MoveDeltaLength, {"MoveDeltaLength", {std::make_tuple("DeltaLength", UaNodeId(OpcUaId_Double),
+    {PAS_ACTType_TurnOn,          {"TurnOn",          {}}},
+    {PAS_ACTType_TurnOff,         {"TurnOff",         {}}},
+    {PAS_ACTType_MoveDeltaLength, {"MoveDeltaLength", {std::make_tuple("DeltaLength", UaNodeId(OpcUaId_Double),
                                                                            "Desired change in length for the actuator (in mm).")}}},
-        {PAS_ACTType_MoveToLength, {"MoveToLength", {std::make_tuple("TargetLength", UaNodeId(OpcUaId_Double),
-                                                                     "Target length for the actuator to move to (in mm).")}}}
+    {PAS_ACTType_MoveToLength,   {"MoveToLength",   {std::make_tuple("TargetLength", UaNodeId(OpcUaId_Double),
+                                                                     "Target length for the actuator to move to (in mm).")}}},
+    {PAS_ACTType_ForceRecover,   {"ForceRecover",   {}}},
+    {PAS_ACTType_ClearError,     {"ClearError",     {     std::make_tuple("ErrorNum", UaNodeId(OpcUaId_Int32),
+                                                                           "Number of error to clear")}}},
+    {PAS_ACTType_ClearAllErrors, {"ClearAllErrors", {}}},
+    {PAS_ACTType_Stop,           {"Stop",           {}}}
 };
-
-UaNodeId ACTObject::typeDefinitionId() const
-{
-    UaNodeId ret(PAS_ACTType, browseName().namespaceIndex());
-    return ret;
-}
 
 const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, OpcUa_Byte>> PSDObject::VARIABLES = {
         {PAS_PSDType_State, std::make_tuple("State", UaVariant(0), OpcUa_True, Ua_AccessLevel_CurrentRead)},
@@ -311,9 +337,3 @@ const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean>> 
 const std::map<OpcUa_UInt32, std::pair<std::string, std::vector<std::tuple<std::string, UaNodeId, std::string>>>> PSDObject::METHODS = {
         {PAS_PSDType_Read, {"Read", {}}}
 };
-
-UaNodeId PSDObject::typeDefinitionId() const
-{
-    UaNodeId ret(PAS_PSDType, browseName().namespaceIndex());
-    return ret;
-}

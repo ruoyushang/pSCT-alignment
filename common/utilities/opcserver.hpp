@@ -31,6 +31,9 @@
 #define MAIN_OPCSERVER_H
 
 #include "uaserver/uaserverapplication.h"
+#include "uaserver/uamodule.h"
+
+#include <memory>
 
 class OpcServerPrivate;
 class UaServer;
@@ -46,20 +49,34 @@ class OpcServer: public UaServerApplication
 public:
     // construction / destruction
     OpcServer();
-    virtual ~OpcServer();
 
-    virtual OpcUa_DateTime getBuildDate() const;
+    ~OpcServer() override;
+
+    OpcUa_DateTime getBuildDate() const override;
 
 protected:
-    virtual Session* createDefaultSession(OpcUa_Int32 sessionID, const UaNodeId &authenticationToken);
-    virtual UaStatus afterInitialize();
-    virtual UaStatus afterStartUp();
-    virtual UaStatus beforeShutdown();
+    Session *createDefaultSession(OpcUa_Int32 sessionID, const UaNodeId &authenticationToken) override;
+
+    UaStatus afterInitialize() override;
+
+    UaStatus afterStartUp() override;
+
+    UaStatus beforeShutdown() override;
 
 private:
-    OpcServerPrivate* d;
+    std::unique_ptr<OpcServerPrivate> m_OpcServerPrivate;
 };
 
+/** Class containing the private members for the OpcServer class. */
+class OpcServerPrivate {
+public:
+    OpcServerPrivate()
+        : m_pUaModule(nullptr) {}
+
+    ~OpcServerPrivate() = default;
+
+    std::unique_ptr<UaModule> m_pUaModule;
+};
 
 #endif // MAIN_OPCSERVER_H
 

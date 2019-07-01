@@ -7,7 +7,6 @@
 #define SERVER_PASNODEMANAGER_HPP
 
 #include <memory>
-
 #include "uabase/statuscode.h"
 
 #include "common/opcua/pasnodemanagercommon.hpp"
@@ -30,8 +29,8 @@ public:
     UaStatus beforeShutDown() override;
 
     /// @brief Set the communication interface to use for operating/reading devices.
-    /// @param pCommIf Pointer to the communication interface for the node manager.
-    void setCommunicationInterface(std::unique_ptr<PasCommunicationInterface> &pCommIf);
+    /// @param pCommIf Pointer to the communication interface.
+    UaStatus setCommunicationInterface(std::unique_ptr<PasCommunicationInterface> &pCommIf);
 
 private:
     /// @brief Add a custom type definition node for the Panel type.

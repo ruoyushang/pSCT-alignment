@@ -29,3 +29,7 @@ services:
       - mysql.docker
 #    command: ["screen"]
     command: ["/usr/sbin/sshd", "-D"]
+    security_opt:
+      - seccomp:unconfined
+    cap_add:
+      - SYS_PTRACE

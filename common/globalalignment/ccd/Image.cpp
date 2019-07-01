@@ -54,7 +54,7 @@ void Image::saveFITSImage() {
 
     valarray<unsigned char>* rawImage;
     rawImage = new valarray<unsigned char>(imgWidth*imgHeight);
-    //pFits->pHDU().addKey("OBSDATE", strTime, "Date and time when image was taken (UTC)");
+    //pFits->pHDU().addKey("OBSDATE", strTime, "date and time when image was taken (UTC)");
     for(int i = 0; i < imgWidth*imgHeight; i++){
         (*rawImage)[i] = pixel_array[i];
     }
@@ -66,6 +66,7 @@ void Image::saveFITSImage() {
         delete rawImage;
 
 }
+
 /*
 void Image::saveFITSImage(const LEDinputs* li) {
 
@@ -90,7 +91,7 @@ void Image::saveFITSImage(const LEDinputs* li) {
 
     valarray<unsigned char>* rawImage;
     rawImage = new valarray<unsigned char>(imgWidth*imgHeight);
-    //pFits->pHDU().addKey("OBSDATE", strTime, "Date and time when image was taken (UTC)");
+    //pFits->pHDU().addKey("OBSDATE", strTime, "date and time when image was taken (UTC)");
     for(int i = 0; i < imgWidth*imgHeight; i++){
         (*rawImage)[i] = pixel_array[i];
     }
@@ -129,7 +130,7 @@ void Image::saveFITSImage(const LEDinputs* li, const char strTime[16]) {
 
     valarray<unsigned char>* rawImage;
     rawImage = new valarray<unsigned char>(imgWidth*imgHeight);
-    //pFits->pHDU().addKey("OBSDATE", strTime, "Date and time when image was taken (UTC)");
+    //pFits->pHDU().addKey("OBSDATE", strTime, "date and time when image was taken (UTC)");
     for(int i = 0; i < imgWidth*imgHeight; i++){
         (*rawImage)[i] = pixel_array[i];
     }
@@ -173,7 +174,7 @@ void Image::savefilteredFITSImage() {
 
     valarray<unsigned char>* rawImage;
     rawImage = new valarray<unsigned char>(imgWidth*imgHeight);
-    //pFits->pHDU().addKey("OBSDATE", strTime, "Date and time when image was taken (UTC)");
+    //pFits->pHDU().addKey("OBSDATE", strTime, "date and time when image was taken (UTC)");
     for(int i = 0; i < imgWidth*imgHeight; i++){
         (*rawImage)[i] = pixel_array[i];
     }
@@ -203,7 +204,7 @@ void Image::savefilteredFITSImage(const LEDoutputs* lo, const char strTime[16]) 
 
     valarray<unsigned char>* rawImage;
     rawImage = new valarray<unsigned char>(imgWidth*imgHeight);
-    //pFits->pHDU().addKey("OBSDATE", strTime, "Date and time when image was taken (UTC)");
+    //pFits->pHDU().addKey("OBSDATE", strTime, "date and time when image was taken (UTC)");
     for(int i = 0; i < imgWidth*imgHeight; i++){
         (*rawImage)[i] = pixel_array[i];
     }

@@ -12,15 +12,23 @@
   #include "xmldocument.h"
 #endif
 
-#include "pasnodemanager.hpp"
-#include "configuration.hpp"
-#include "pascommunicationinterface.hpp"
-#include "paslogic.hpp"
-#include "shutdown.hpp"
-
-#include <vector>
-#include <string>
 #include <iostream>
+#include <memory>
+#include <string>
+#include <vector>
+
+#include "common/utilities/shutdown.hpp"
+
+#include "client/pascommunicationinterface.hpp"
+#include "client/pasnodemanager.hpp"
+#include "client/utilities/configuration.hpp"
+#include "client/utilities/paslogic.hpp"
+
+#include "common/utilities/spdlog/spdlog.h"
+#include "common/utilities/spdlog/sinks/basic_file_sink.h"
+#include "common/utilities/spdlog/sinks/stdout_color_sinks.h"
+#include "common/utilities/spdlog/sinks/rotating_file_sink.h"
+#include "common/utilities/spdlog/logger.h"
 
 #define CLIENT_CPP_SDK_ACTIVATE_MEMCHECK 0
 
@@ -105,67 +113,71 @@ bool WaitForKeypress(int& action)
 }
 
 //===================================================================
-int OpcMain(const char *szAppPath, const std::vector<std::string> &serverlist)
+int OpcMain(const char *szAppPath, const std::vector<std::string> &serverList, const std::string &configFilePath,
+            const std::string &mode)
 {
     int ret = 0;
 
 #if SUPPORT_XML_PARSER
-    UaXmlDocument::initParser(); // Initialize the XML Parser
+    UaXmlDocument::initParser(); // initialize the XML Parser
 #endif
-    ret = UaPlatformLayer::init(); // Initialize the UA Stack platform layer
+    ret = UaPlatformLayer::init(); // initialize the UA Stack platform layer
  
     UaStatus status;
 
+    std::string sClientConfigFilename = std::string(szAppPath) + "/PasClientConfig.xml";
+
     if ( ret == 0 )
     {
-        // Set configuration file names
-        UaString sServConfigFile(szAppPath);
-        UaString sClientConfigFile(szAppPath);
-
-#if SUPPORT_XML_PARSER
-        sServConfigFile += "/PasServerConfig.xml";
-#else
-        sServConfigFile += "/PasServerConfig.ini";
-#endif
-        sClientConfigFile += "/PasClientConfig.ini";
+        // Set configuration file name
+        UaString sClientConfigFile(sClientConfigFilename.c_str());
+        UaString sServerConfigFile(configFilePath.c_str());
 
         //PasLogic *pLogic = nullptr;
 
         auto pServer = new OpcServer();
-        pServer->setServerConfig(sServConfigFile, szAppPath);
+        pServer->setServerConfig(sServerConfigFile, szAppPath);
+        //pServer->setCallback(pServer->pCallback);
 
         // Load configuration.
-        auto pClientConfiguration = new Configuration();
-        std::cout << "  ---- Loading Configuration ----\n";
+        auto pClientConfiguration = std::make_shared<Configuration>(mode);
+        std::cout << "Loading Configuration...\n";
         status = pClientConfiguration->loadConnectionConfiguration(sClientConfigFile);
-        status = pClientConfiguration->loadDeviceConfiguration(serverlist);
-        std::cout << "  -- Done Loading Configuration --\n";
+        if (mode == "subclient") {
+            status = pClientConfiguration->loadDeviceConfiguration(serverList);
+        } else if (mode == "client") {
+            status = pClientConfiguration->loadDeviceConfiguration();
+            pClientConfiguration->loadSubclientConfiguration(serverList);
+        }
+
+        std::cout << "Finished loading Configuration...\n";
 
         // Create and initialize communication interface.
-        PasCommunicationInterface *pCommIf = new PasCommunicationInterface();
+        std::shared_ptr<PasCommunicationInterface> pCommIf = std::make_shared<PasCommunicationInterface>();
         pCommIf->setConfiguration(pClientConfiguration);
-        // this initializes the communication interface, including all devices that talk
-        // directly to it, like Aravis cameras
-        status = pCommIf->initialize();
-        UA_ASSERT(status.isGood());
+        // this initializes the CCD controllers (which only exist in the top-level client)
+        if (mode == "client") {
+            status = pCommIf->initializeCCDs();
+            UA_ASSERT(status.isGood());
+        }
 
         // Create instance of the node manager that invokes client calls
-        auto pNodeManagerClient = new PasNodeManager();
-        // set its configuration and communication interface
-        pNodeManagerClient->setConfiguration(pClientConfiguration);
+        auto pNodeManagerClient = new PasNodeManager(pClientConfiguration, mode);
         pNodeManagerClient->setCommunicationInterface(pCommIf);
 
         // add the node manager
+        std::cout << "Adding node manager...\n";
         pServer->addNodeManager(pNodeManagerClient);
 
         // Start server object
+        std::cout << "Starting server...\n";
         ret = pServer->start();
         if ( ret == 0 )
         {
             std::cout << "************************************\n";
             std::cout << "  ---- SERVER/CLIENT STARTED ----\n";
             std::cout << "    Press x to shut down server\n";
-            std::cout << "************************************\n";
+            std::cout << "************************************" << std::endl;
             
             //pLogic = new PasLogic(pCommIf);
             //pLogic->start();
@@ -189,7 +201,7 @@ int OpcMain(const char *szAppPath, const std::vector<std::string> &serverlist)
 
             std::cout << "*************************************\n";
             std::cout << " Shutting down server/client\n";
-            std::cout << "*************************************\n";
+            std::cout << "*************************************" << std::endl;
 
             // Stop the utilities thread;
             //pLogic->stop();
@@ -201,10 +213,9 @@ int OpcMain(const char *szAppPath, const std::vector<std::string> &serverlist)
             std::cout << "*******************************************\n";
             std::cout << "  ---- FAILED TO START SERVER/CLIENT ----\n";
             std::cout << "             Shutting down\n";
-            std::cout << "*******************************************\n";
+            std::cout << "*******************************************" << std::endl;
         }
 
-        delete pClientConfiguration;
         delete pServer;
     }
 
@@ -222,8 +233,73 @@ int WINAPI WinMain( HINSTANCE, HINSTANCE, LPWSTR, int)
 int main(int argc, char* argv[])
 #endif
 {
+    std::string usage = "<PANEL POSITION NUMBERS OR SUBCLIENT NAMES> -c <CONFIGURATION FILE PATH (optional)> -l <LOGGER LEVEL (optional)> -m <MODE, 'subclient' or 'client' (optional)>";
+
+    if (argc == 1) {
+        std::cout << "Usage: " << argv[0] << " " << usage << std::endl;
+        return -1;
+    }
+
+    int c;
+    std::string panelNumber, configFilePath;
+    std::string mode("subclient");
+    std::string logLevel("info");
+
+    while ((c = getopt(argc, argv, "l:c:m:")) != -1) {
+        switch (c) {
+            case 'c':
+                configFilePath = optarg;
+                break;
+            case 'l':
+                logLevel = optarg;
+                break;
+            case 'm':
+                mode = optarg;
+                break;
+            case '?':
+                if (optopt == 'l')
+                    std::cout << "Must provide a logger level with option u (trace, debug, info, warn, error)\n";
+            default:
+                abort();
+        }
+    }
+
+    std::cout << "Running in " << mode << " mode...\n";
+
+    // Setup logging
+    auto console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>(); // log to console
+    if (logLevel == "trace") {
+        console_sink->set_level(spdlog::level::trace);
+    } else if (logLevel == "debug") {
+        console_sink->set_level(spdlog::level::debug);
+    } else if (logLevel == "info") {
+        console_sink->set_level(spdlog::level::info);
+    } else if (logLevel == "warn") {
+        console_sink->set_level(spdlog::level::warn);
+    } else if (logLevel == "error") {
+        console_sink->set_level(spdlog::level::err);
+    } else if (logLevel == "critical") {
+        console_sink->set_level(spdlog::level::critical);
+    } else {
+        std::cout << "Invalid logger level selected: " << logLevel
+                  << ". Valid choices are 'trace', 'debug', 'info', 'warn', 'error', 'critical'.";
+        return -1;
+    }
+
+    // Note that log directory must have been created beforehand
+    auto file_sink = std::make_shared<spdlog::sinks::rotating_file_sink_mt>(std::string(getenv("HOME")) + std::string("/logs/p2pasclient_logs"), 1048576 * 5, 5,
+                                                                       false); // 5 rotating files with max size 5 MB
+    file_sink->set_level(spdlog::level::trace); // always save all logging levels
+    file_sink->set_pattern("[%c] [%n] [%l] [%s:%!:%#] ");
+
+    std::vector<spdlog::sink_ptr> sinks{file_sink, console_sink};
+    auto logger = std::make_shared<spdlog::logger>("p2pasclient", sinks.begin(), sinks.end());
+    logger->set_level(spdlog::level::info);
+    logger->flush_on(spdlog::level::info);
+    spdlog::set_default_logger(logger);
+
     if (argc < 2) {
-        std::cout << "Usage: " << argv[0] << " <Positions of panels to connect to>\n";
+        std::cout << "Usage: " << argv[0] << " <Positions of panels to connect to>" << std::endl;
         return 1;
     }
 
@@ -233,16 +309,27 @@ int main(int argc, char* argv[])
 
     int ret = 0;
 
-    // Extract application path
-    char* pszAppPath = getAppPath();
+    // NOTE: This method returns a pointer to heap-allocated memory, must be freed manually
+    char *pszAppPath = getAppPath(); // Extract application path
 
-    // Collect all passed panel position numbers into a vector
-    std::vector<std::string> positionList;
-    for (int i = 1; i < argc; i++)
-        positionList.emplace_back(argv[i]);
+#if SUPPORT_XML_PARSER
+    std::string sServConfigFilename = "/PasServerConfig.xml";
+#else
+    std::string sServConfigFilename = "/PasServerConfig.ini";
+#endif
+
+    if (configFilePath.empty()) {
+        configFilePath = std::string(pszAppPath) + sServConfigFilename;
+        logger->warn("No config file path passed, using default file {}.", configFilePath);
+    }
+
+    // Collect all passed servers (panel position numbers or subclient names) into a vector
+    std::vector<std::string> serverList;
+    for (int i = optind; i < argc; i++)
+        serverList.emplace_back(argv[i]);
 
     // Run main method
-    ret = OpcMain(pszAppPath, positionList);
+    ret = OpcMain(pszAppPath, serverList, configFilePath, mode);
 
     delete[] pszAppPath;
 

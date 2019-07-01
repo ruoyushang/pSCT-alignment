@@ -60,7 +60,7 @@ UaStatus PasNodeManagerCommon::readValues(const UaVariableArray &arrUaVariables,
                 {
                     // Read of a state variable
                     // We need to get the state of the sensor
-                    PASState state;
+                    Device::DeviceState state;
 
                     // Get the data for the sensor from the communication interface
                     ret = m_pCommIf->getDeviceState(pUserData->DeviceType(), pUserData->DeviceId(),
@@ -126,15 +126,15 @@ UaStatus PasNodeManagerCommon::writeValues(const UaVariableArray &arrUaVariables
                 else
                 {
                     UaVariant vTemp(arrpDataValues[i]->Value);
-                    UaStatusCode status;
+                    UaStatus status;
 
                     if ( status.isGood() )
                     {
                         unsigned stateInt;
                         vTemp.toUInt32(stateInt);
                         // Get the data for the controller from the communication interface
-                        ret = m_pCommIf->setDeviceState(pUserData->DeviceType(), pUserData->DeviceId(),
-                                                        static_cast<PASState>(stateInt));
+                        status = m_pCommIf->setDeviceState(pUserData->DeviceType(), pUserData->DeviceId(),
+                                                           static_cast<Device::DeviceState>(stateInt));
                     }
                     arrStatusCodes[i] = status.statusCode();
                 }
@@ -220,149 +220,53 @@ UaStatus PasNodeManagerCommon::createTypeNodes()
     /***************************************************************
      * Create the MPES Type Instance declaration
      ***************************************************************/
-    // Add Variable "State" as BaseDataVariable
-    defaultValue.setUInt32(0);
-    pDataItem = new OpcUa::DataItemType(
-        UaNodeId(PAS_MPESType_State, getNameSpaceIndex()), // NodeId of the Variable
-        "State",                // Name of the Variable
-        getNameSpaceIndex(),    // Namespace index of the browse name (same like NodeId)
-        defaultValue,           // Initial value
-        Ua_AccessLevel_CurrentRead, // Access level
-        this);                  // Node manager for this variable
-    // Set Modelling Rule to Mandatory
-    pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
-    addStatus = addNodeAndReference(pMPESType, pDataItem, OpcUaId_HasComponent);
-    UA_ASSERT(addStatus.isGood());
+    // Register all variables
+    for (auto v : MPESObject::VARIABLES) {
+        pDataItem = new OpcUa::DataItemType(UaNodeId(v.first, getNameSpaceIndex()),
+                                            std::get<0>(v.second).c_str(), getNameSpaceIndex(), std::get<1>(v.second),
+                                            std::get<3>(v.second), this);
+        pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
+        addStatus = addNodeAndReference(pMPESType, pDataItem, OpcUaId_HasComponent);
+        UA_ASSERT(addStatus.isGood());
+    }
 
-    // Add state alarm condition "StateCondition" as component to the object type
-    OpcUa::OffNormalAlarmType* pOffNormalAlarm = new OpcUa::OffNormalAlarmType(
-        UaNodeId(PAS_MPESType_StateCondition, getNameSpaceIndex()), // NodeId of the node
-        "StateCondition",      // Name of the node used for browse name and display name
-        getNameSpaceIndex(),   // Namespace index of the browse name
-        this,                  // Node manager responsible for this node
-        pMPESType->nodeId(),             // NodeId of the source node
-        pMPESType->browseName().name()); // Name of the source node
-    pOffNormalAlarm->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
-    addStatus = addNodeAndReference(pMPESType, pOffNormalAlarm, OpcUaId_HasComponent);
-    UA_ASSERT(addStatus.isGood());
+    // Register all error variables
+    for (auto v : MPESObject::ERRORS) {
+        pDataItem = new OpcUa::DataItemType(UaNodeId(v.first, getNameSpaceIndex()),
+                                            std::get<0>(v.second).c_str(), getNameSpaceIndex(), std::get<1>(v.second),
+                                            Ua_AccessLevel_CurrentRead, this);
+        //pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Optional);
+        addStatus = addNodeAndReference(pMPESType, pDataItem, OpcUaId_HasComponent);
+        UA_ASSERT(addStatus.isGood());
+    }
 
-    // Add Variable "xCentroidAvg" as DataItem
-    defaultValue.setDouble(0);
-    pDataItem = new OpcUa::DataItemType(
-        UaNodeId(PAS_MPESType_xCentroidAvg, getNameSpaceIndex()),
-        "xCentroidAvg",
-        getNameSpaceIndex(),
-        defaultValue,
-        Ua_AccessLevel_CurrentRead,
-        this);
-    pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
-    addStatus = addNodeAndReference(pMPESType, pDataItem, OpcUaId_HasComponent);
-    UA_ASSERT(addStatus.isGood());
+    // Register all methods
+    for (auto m : MPESObject::METHODS) {
+        pMethod = new OpcUa::BaseMethod(UaNodeId(m.first, getNameSpaceIndex()), m.second.first.c_str(),
+                                        getNameSpaceIndex());
+        pMethod->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
+        addStatus = addNodeAndReference(pMPESType, pMethod, OpcUaId_HasComponent);
+        UA_ASSERT(addStatus.isGood());
 
-    // Add Variable "yCentroidAvg" as DataItem
-    defaultValue.setDouble(0);
-    pDataItem = new OpcUa::DataItemType(
-        UaNodeId(PAS_MPESType_yCentroidAvg, getNameSpaceIndex()),
-        "yCentroidAvg",
-        getNameSpaceIndex(),
-        defaultValue,
-        Ua_AccessLevel_CurrentRead,
-        this);
-    pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
-    addStatus = addNodeAndReference(pMPESType, pDataItem, OpcUaId_HasComponent);
-    UA_ASSERT(addStatus.isGood());
-
-    // Add Variable "xCentroidSpotWidth" as DataItem
-    defaultValue.setDouble(0);
-    pDataItem = new OpcUa::DataItemType(
-        UaNodeId(PAS_MPESType_xCentroidSpotWidth, getNameSpaceIndex()),
-        "xCentroidSpotWidth",
-        getNameSpaceIndex(),
-        defaultValue,
-        Ua_AccessLevel_CurrentRead,
-        this);
-    pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
-    addStatus = addNodeAndReference(pMPESType, pDataItem, OpcUaId_HasComponent);
-    UA_ASSERT(addStatus.isGood());
-
-    // Add Variable "yCentroidSpotWidth" as DataItem
-    defaultValue.setDouble(0);
-    pDataItem = new OpcUa::DataItemType(
-        UaNodeId(PAS_MPESType_yCentroidSpotWidth, getNameSpaceIndex()),
-        "yCentroidSpotWidth",
-        getNameSpaceIndex(),
-        defaultValue,
-        Ua_AccessLevel_CurrentRead,
-        this);
-    pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
-    addStatus = addNodeAndReference(pMPESType, pDataItem, OpcUaId_HasComponent);
-    UA_ASSERT(addStatus.isGood());
-
-    // Add Variable "CleanedIntensity" as DataItem
-    defaultValue.setDouble(0);
-    pDataItem = new OpcUa::DataItemType(
-        UaNodeId(PAS_MPESType_CleanedIntensity, getNameSpaceIndex()),
-        "CleanedIntensity",
-        getNameSpaceIndex(),
-        defaultValue,
-        Ua_AccessLevel_CurrentRead,
-        this);
-    pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
-    addStatus = addNodeAndReference(pMPESType, pDataItem, OpcUaId_HasComponent);
-    UA_ASSERT(addStatus.isGood());
-
-
-    // Add Variable "xCentroidNominal" as DataItem
-    defaultValue.setDouble(0);
-    pDataItem = new OpcUa::DataItemType(
-        UaNodeId(PAS_MPESType_xCentroidNominal, getNameSpaceIndex()),
-        "xCentroidNominal",
-        getNameSpaceIndex(),
-        defaultValue,
-        Ua_AccessLevel_CurrentRead | Ua_AccessLevel_CurrentWrite,
-        this);
-    pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
-    addStatus = addNodeAndReference(pMPESType, pDataItem, OpcUaId_HasComponent);
-    UA_ASSERT(addStatus.isGood());
-
-    // Add Variable "yCentroidNominal" as DataItem
-    defaultValue.setDouble(0);
-    pDataItem = new OpcUa::DataItemType(
-        UaNodeId(PAS_MPESType_yCentroidNominal, getNameSpaceIndex()),
-        "yCentroidNominal",
-        getNameSpaceIndex(),
-        defaultValue,
-        Ua_AccessLevel_CurrentRead | Ua_AccessLevel_CurrentWrite,
-        this);
-    pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
-    addStatus = addNodeAndReference(pMPESType, pDataItem, OpcUaId_HasComponent);
-    UA_ASSERT(addStatus.isGood());
-
-
-    // Add Method "Start"
-    pMethod = new OpcUa::BaseMethod(UaNodeId(PAS_MPESType_Start, getNameSpaceIndex()), "Start", getNameSpaceIndex());
-    pMethod->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
-    addStatus = addNodeAndReference(pMPESType, pMethod, OpcUaId_HasComponent);
-    UA_ASSERT(addStatus.isGood());
-
-    // Add Method "Stop"
-    pMethod = new OpcUa::BaseMethod(UaNodeId(PAS_MPESType_Stop, getNameSpaceIndex()), "Stop", getNameSpaceIndex());
-    pMethod->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
-    addStatus = addNodeAndReference(pMPESType, pMethod, OpcUaId_HasComponent);
-    UA_ASSERT(addStatus.isGood());
-
-    // Add Method "Read"
-    pMethod = new OpcUa::BaseMethod(UaNodeId(PAS_MPESType_Read, getNameSpaceIndex()), "Read", getNameSpaceIndex());
-    pMethod->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
-    addStatus = addNodeAndReference(pMPESType, pMethod, OpcUaId_HasComponent);
-    UA_ASSERT(addStatus.isGood());
-
-    // Add Method "setExposure"
-    pMethod = new OpcUa::BaseMethod(UaNodeId(PAS_MPESType_SetExposure, getNameSpaceIndex()), "SetExposure", getNameSpaceIndex());
-    pMethod->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
-    addStatus = addNodeAndReference(pMPESType, pMethod, OpcUaId_HasComponent);
-    UA_ASSERT(addStatus.isGood());
-
+        // Add arguments
+        pPropertyArg = new UaPropertyMethodArgument(
+            UaNodeId((std::to_string(m.first) + "_" + m.second.first + "_args").c_str(),
+                     getNameSpaceIndex()), // NodeId of the property
+            Ua_AccessLevel_CurrentRead,             // Access level of the property
+            m.second.second.size(),                                      // Number of arguments
+            UaPropertyMethodArgument::INARGUMENTS); // IN arguments
+        for (size_t i = 0; i < m.second.second.size(); i++) {
+            pPropertyArg->setArgument(
+                (OpcUa_UInt32) i,                       // Index of the argument
+                std::get<0>(m.second.second[i]).c_str(),   // Name of the argument
+                std::get<1>(m.second.second[i]),// Data type of the argument
+                -1,                      // Array rank of the argument
+                nullarray,               // Array dimensions of the argument
+                UaLocalizedText("en", (std::get<2>(m.second.second[i])).c_str())); // Description
+        }
+        addStatus = addNodeAndReference(pMethod, pPropertyArg, OpcUaId_HasProperty);
+        UA_ASSERT(addStatus.isGood());
+    }
 
     /**************************************************************
      * Create the MPESEventType and its event field properties

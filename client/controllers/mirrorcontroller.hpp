@@ -1,14 +1,16 @@
 #ifndef __PASMIRROR_H__
 #define __PASMIRROR_H__
 
-#include "client/controllers/pascontroller.hpp"
-#include "TObject.h" // to be able to use ROOT's MINUIT implementation
-// these are included in pascontroller.h, but we add them just in case something changes there
-#include "stewartplatform.h"
-
 #include <set>
-// Eigen3 for linear algebra needs
-#include <Eigen/Dense>
+
+#include "TObject.h" // to be able to use ROOT's MINUIT implementation
+
+#include <Eigen/Dense> // Eigen3 for linear algebra needs
+
+#include "common/alignment/device.hpp"
+#include "common/simulatestewart/stewartplatform.hpp"
+
+#include "client/controllers/pascontroller.hpp"
 
 class AGeoAsphericDisk;
 
@@ -48,26 +50,24 @@ public:
 class MirrorController : public PasCompositeController {
     UA_DISABLE_COPY(MirrorController);
 public:
-    explicit MirrorController(Identity identity);
-
-    ~MirrorController() override;
+    explicit MirrorController(Device::Identity identity);
 
     // initialize and precompute everything
     bool initialize() override;
 
     // same as before -- get/set status/data and Operate:
-    UaStatus getState(PASState &state) override;
+    UaStatus getState(Device::DeviceState &state) override;
 
     UaStatus getData(OpcUa_UInt32 offset, UaVariant &value) override;
 
-    UaStatus setState(PASState state) override;
+    UaStatus setState(Device::DeviceState state) override;
 
     UaStatus setData(OpcUa_UInt32 offset, UaVariant value) override;
 
     UaStatus operate(OpcUa_UInt32 offset, const UaVariantArray &args) override;
 
     // own implementation
-    void addChild(OpcUa_UInt32 deviceType, PasController *pController) override;
+    void addChild(OpcUa_UInt32 deviceType, const std::shared_ptr<PasController> &pController) override;
 
     // let MirrorControllerCompute access the internal chiSq function
     friend void MirrorControllerCompute::chiSqFCN(int &npar, double *gin, double &f, double *par, int iflag);
@@ -77,7 +77,6 @@ protected:
     virtual double chiSq(const Eigen::VectorXd &telDelta);
 
 private:
-    int m_kUpdateInterval = 10000;
     double m_safetyRadius = 60.0;
 
     std::set<unsigned> m_selectedPanels;
@@ -88,20 +87,23 @@ private:
     // of vector indices
     void parseAndSetSelection(const std::string &selectionString, unsigned deviceType);
 
-    std::set<unsigned> getSelectedDeviceIndices(unsigned deviceType);
+    unsigned getPanelIndex(unsigned position);
+    unsigned getMPESIndex(int serialNumber);
+
+    unsigned getEdgeIndex(const std::string &eAddress);
+
     // update current mirror coordinates
     UaStatus updateCoords(bool print=true);
     // a bunch of internal implementations
     UaStatus readPositionAll(bool print=true);
     // Align all edges fron need_alignment starting at start_idx and  moving in the direction dir
-    UaStatus alignSequential(unsigned startEdge, const std::set<unsigned> &selectedEdges, bool dir);
+    UaStatus alignSequential(const std::string &startEdge, const std::string &EndEdge, bool dir);
 
-    UaStatus alignSector(const std::set<unsigned> &selectedPanels, const std::set<unsigned> &selectedMPES,
-                     double alignFrac = 0.25, bool execute=false);
+    UaStatus alignSector(double alignFrac = 0.25, bool execute = false);
 
-    UaStatus alignGlobal(unsigned fixPanel, double alignFrac = 0.25, bool execute=false);
+    UaStatus alignRing(int fixPanel, double alignFrac = 0.25, bool execute = false);
 
-    UaStatus moveToCoords(Eigen::VectorXd targetCoords, bool execute=false);
+    UaStatus moveToCoords(const Eigen::VectorXd &targetCoords, bool execute = false);
 
     // mirror coords -- x/y/z, xRot, yRot, zRot
     Eigen::VectorXd m_curCoords, m_curCoordsErr, m_sysOffsetsMPES;
@@ -119,7 +121,7 @@ private:
 
     // precomputed ideal panel origin in the telescope frame -- both the inner and outer rings
     // ring->{location vector}
-    // currently setting to zeros and populating in Initialize()
+    // currently setting to zeros and populating in initialize()
     std::map<unsigned, Eigen::Vector3d> m_PanelOriginTelFrame;
 
     // pad positions in the telescope frame for both rings -
@@ -129,7 +131,7 @@ private:
     // precomputed ideal panel reference frame (basis vectors) in the telescope frame,
     // both the inner and outer rings. This to facilitate coordinate transformations
     // ring->{Column Matrix}
-    // Populated in Initialize()
+    // Populated in initialize()
     std::map<unsigned, Eigen::Matrix3d> m_PanelFrame;
 
     // the direction of the norm of the whole mirror: +1 for Primary, -1 for secondary
@@ -138,7 +140,8 @@ private:
     // COORDINATE TRANSFORMATION HELPERS
     // reference frame tansformations:
     double __getAzOffset(unsigned pos);
-    Eigen::Matrix3d __rotMat(int axis, double a);
+
+    static Eigen::Matrix3d __rotMat(int axis, double a);
     // to panel reference frame (from telescope). Order of rotations -- z -> x-> y
     Eigen::Vector3d __toPanelRF(unsigned pos, const Eigen::Vector3d &in_coords);
     // to telescope reference frame (from panel)
@@ -155,12 +158,12 @@ private:
 
     /**** SIMULATED OBJECTS WE RELY ON FOR COMPUTE *****/
     // A simulated surface of this mirror
-    AGeoAsphericDisk *m_pSurface;
+    std::shared_ptr<AGeoAsphericDisk> m_pSurface;
     // A simulated stewart platform
-    StewartPlatform m_SP;
+    std::shared_ptr<StewartPlatform> m_pStewartPlatform;
 
     Eigen::VectorXd m_Xcalculated;
-    std::vector<PanelController*> m_panelsToMove;
+    std::vector<std::shared_ptr<PanelController>> m_panelsToMove;
     unsigned m_previousCalculatedMethod;
 };
 

@@ -1,143 +1,253 @@
-#ifndef PLATFORM_H
-#define PLATFORM_H
+/**
+ * @file platform.hpp
+ * @brief Header file for the platform/controller board hardware interface class.
+ */
 
-#ifdef _AMD64
+#ifndef ALIGNMENT_PLATFORM_HPP
+#define ALIGNMENT_PLATFORM_HPP
 
-#include "common/cbccode/dummycbc.hpp"
-    #warning "Compiling for AMD64 -- setting CBC to DummyCBC"
-    #define CBC DummyCBC
-#else
-#include "common/cbccode/cbc.hpp"
-#endif
-
-#include "actuator.hpp"
-#include "mpesclass.hpp"
-#include <vector>
-#include <string>
 #include <array>
 #include <map>
+#include <memory>
+#include <string>
+#include <vector>
 
+#include "common/alignment/device.hpp"
+#include "common/alignment/mpes.hpp"
+#include "common/alignment/actuator.hpp"
 
-// hack to be able to stop mid motion
-/**
- * @brief This is the platform class.
-*/
-enum class PlatformState {
-    On = 0,
-    Off = 1,
-    Busy = 2,
-    OperableError = 3,
-    FatalError = 4
-};
-
-class Platform
+class PlatformBase : public Device
 {
 public:
+    // Public constants
+    static constexpr const int NUM_ACTS_PER_PLATFORM = 6;
 
-    Actuator::StatusModes ErrorStatus{Actuator::StatusModes::Healthy};
+    static const std::vector<Device::ErrorDefinition> ERROR_DEFINITIONS;
 
-bool DisallowMovement{false};
-CBC cbc;
-std::array<Actuator *,6> actuator;
-bool DBFlag{false};
-float InternalTemperatureSlope{100.0};
-float InternalTemperatureOffset{-50.0};
-float ExternalTemperatureSlope{44.444};
-float ExternalTemperatureOffset{-61.111};
-bool HighCurrent{false};
-bool SynchronousRectification{true};
-int CBCSerialNumber{0};
-Actuator::DBStruct DBInfo;
+    std::vector<Device::ErrorDefinition> getErrorCodeDefinitions() override { return PlatformBase::ERROR_DEFINITIONS; }
 
-std::vector<Actuator::ErrorInfo> PlatformErrors{
-        {false, "Actuator 0 Operable Error",             Actuator::StatusModes::OperableError},
-        {false, "Actuator 0 Fatal Error",                Actuator::StatusModes::FatalError},
-        {false, "Actuator 1 Operable Error",             Actuator::StatusModes::OperableError},
-        {false, "Actuator 1 Fatal Error",                Actuator::StatusModes::FatalError},
-        {false, "Actuator 2 Operable Error",             Actuator::StatusModes::OperableError},
-        {false, "Actuator 2 Fatal Error",                Actuator::StatusModes::FatalError},
-        {false, "Actuator 3 Operable Error",             Actuator::StatusModes::OperableError},
-        {false, "Actuator 3 Fatal Error",                Actuator::StatusModes::FatalError},
-        {false, "Actuator 4 Operable Error",             Actuator::StatusModes::OperableError},
-        {false, "Actuator 4 Fatal Error",                Actuator::StatusModes::FatalError},
-        {false, "Actuator 5 Operable Error",             Actuator::StatusModes::OperableError},
-        {false, "Actuator 5 Fatal Error",                Actuator::StatusModes::FatalError},
-        {false, "Attempt to move out of Software Range", Actuator::StatusModes::OperableError},//error 12
-        {false, "DBFlagNotSet",                          Actuator::StatusModes::OperableError},//error 13
-        {false, "MySQL Communication Error",             Actuator::StatusModes::OperableError}//error 14
+    PlatformBase(Device::Identity identity, Device::DBInfo dbInfo);
+
+    virtual ~PlatformBase() = default;
+
+    virtual bool addActuators(std::array<Device::Identity, PlatformBase::NUM_ACTS_PER_PLATFORM> actuatorIdentities,
+                              const ActuatorBase::ASFInfo &asfInfo = ActuatorBase::ASFInfo()) = 0;
+
+    bool initialize() override;
+
+    void setDBInfo(Device::DBInfo DBInfo);
+    void unsetDBInfo();
+
+    int getSerialNumber() { return m_Identity.serialNumber; }
+
+    virtual bool loadCBCParameters() = 0;
+
+    // Platform settings and readings
+    virtual void enableHighCurrent() = 0;
+
+    virtual void disableHighCurrent() = 0;
+
+    virtual void enableSynchronousRectification() = 0;
+
+    virtual void disableSynchronousRectification() = 0;
+
+    virtual float getInternalTemperature() = 0;
+
+    virtual float getExternalTemperature() = 0;
+
+    // General device methods
+
+    int getActuatorCount() const { return m_Actuators.size(); }
+
+    std::unique_ptr<ActuatorBase> &getActuator(int idx) { return m_Actuators.at(idx); }
+
+    std::unique_ptr<ActuatorBase> &getActuatorbyIdentity(const Device::Identity &identity) {
+        return m_Actuators.at(m_ActuatorIdentityMap.at(identity));
+    }
+
+    int getMPESCount() const { return m_MPES.size(); }
+
+    std::unique_ptr<MPESBase> &getMPES(int idx) { return m_MPES.at(idx); }
+
+    std::unique_ptr<MPESBase> &getMPESbyIdentity(const Device::Identity &identity) {
+        return m_MPES.at(m_MPESIdentityMap.at(identity));
+    }
+
+    // Actuator-related methods
+    void probeEndStopAll(int direction);
+
+    virtual void findHomeFromEndStopAll(int direction) = 0;
+
+    virtual bool probeHomeAll() = 0;
+
+    std::array<int, NUM_ACTS_PER_PLATFORM> step(std::array<int, NUM_ACTS_PER_PLATFORM> inputSteps);
+    std::array<float, NUM_ACTS_PER_PLATFORM> measureLengths();
+    std::array<float, NUM_ACTS_PER_PLATFORM> moveToLengths(std::array<float, NUM_ACTS_PER_PLATFORM> targetLengths);
+    std::array<float, NUM_ACTS_PER_PLATFORM> moveDeltaLengths(std::array<float, NUM_ACTS_PER_PLATFORM> lengthsToMove);
+
+    // Error functionality
+    void unsetError(int errorCode) override;
+    void clearActuatorErrors();
+    void clearPlatformErrors();
+
+    Device::ErrorState getErrorState() override;
+
+    // MPES functionality
+
+    /**
+     * @brief This function adds MPES if they can be initialized at USB ports.
+     In the Sim mode, MPES are added regardlessly.
+     */
+    virtual bool addMPES(const Device::Identity &identity) = 0;
+    MPESBase::Position readMPES(int idx);
+
+    virtual void emergencyStop();
+
+    bool isOn() override;
+
+    virtual void turnOn() override = 0;
+
+    virtual void turnOff() override = 0;
+
+protected:
+    static const float DEFAULT_INTERNAL_TEMPERATURE_SLOPE;
+    static const float DEFAULT_INTERNAL_TEMPERATURE_OFFSET;
+    static const float DEFAULT_EXTERNAL_TEMPERATURE_SLOPE;
+    static const float DEFAULT_EXTERNAL_TEMPERATURE_OFFSET;
+
+    Device::DBInfo m_DBInfo;
+
+    bool m_On;
+
+    void checkActuatorStatus(int actuatorIdx);
+
+    virtual std::array<int, NUM_ACTS_PER_PLATFORM> __step(std::array<int, NUM_ACTS_PER_PLATFORM> inputSteps) = 0;
+
+    std::array<float, NUM_ACTS_PER_PLATFORM> __measureLengths();
+
+    virtual void __probeEndStopAll(int direction) = 0;
+
+    bool m_HighCurrent = false;
+    bool m_SynchronousRectification = true;
+
+    float m_CalibrationTemperature = 0.0;
+
+    std::vector<std::unique_ptr<MPESBase>> m_MPES;
+    std::array<std::unique_ptr<ActuatorBase>, NUM_ACTS_PER_PLATFORM> m_Actuators;
+
+    std::map<Device::Identity, int> m_MPESIdentityMap;
+    std::map<Device::Identity, int> m_ActuatorIdentityMap;
+
+    float m_InternalTemperatureSlope = DEFAULT_INTERNAL_TEMPERATURE_SLOPE;
+    float m_InternalTemperatureOffset = DEFAULT_INTERNAL_TEMPERATURE_OFFSET;
+    float m_ExternalTemperatureSlope = DEFAULT_EXTERNAL_TEMPERATURE_SLOPE;
+    float m_ExternalTemperatureOffset = DEFAULT_EXTERNAL_TEMPERATURE_OFFSET;
 };
 
-int NumberOfErrorCodes{(int) PlatformErrors.size()};
+#ifndef SIMMODE
 
-Platform();
-~Platform();
-Platform(std::array<int,6> ActuatorPorts, std::array<int,6> ActuatorSerials);
-Platform(int CBCSerial, std::array<int,6> ActuatorPorts, std::array<int,6> ActuatorSerials, Actuator::DBStruct InputDBInfo);
-Platform(int CBCSerial, std::array<int,6> ActuatorPorts, std::array<int,6> ActuatorSerials, Actuator::DBStruct InputDBInfo, Actuator::ASFStruct InputASFInfo);
+#include "common/cbccode/cbc.hpp"
 
-void LoadCBCParameters();
-void SetDB(Actuator::DBStruct InputDBInfo);
-void UnsetDB();
+class Platform : public PlatformBase {
+public:
+    Platform(Device::Identity identity, Device::DBInfo dbInfo) : PlatformBase(
+        std::move(identity), std::move(dbInfo)), m_pCBC(std::make_shared<CBC>()) {}
 
-float ReadInternalTemperature();
-float ReadExternalTemperature();
+    ~Platform() override { turnOff(); }
 
-std::array<int,6> Step(std::array<int,6> InputSteps);
-bool GetActuatorStatus(int ActuatorIndex, Actuator::StatusStruct & ActuatorStatus);
-void CheckActuatorErrorStatus(int ActuatorIndex);
-void ProbeEndStopAll(int Direction);
-void ProbeExtendStopAll();
-void ProbeRetractStopAll();
-void FindHomeFromEndStopAll(int Direction);
-void FindHomeFromExtendStopAll();
-void FindHomeFromRetractStopAll();
-void ProbeHomeAll();
-std::array<float,6> MeasureLengths();
-std::array<float,6> MoveToLengths(std::array<float,6> TargetLengths);
-std::array<float,6> MoveDeltaLengths(std::array<float,6> LengthsToMove);
-void SetError(int CodeNumber);
-void UnsetError(int CodeNumber);
-void SetStatus(Actuator::StatusModes InputStatus);
-void SetHighCurrent();
-void UnsetHighCurrent();
-void SetSynchronousRectification();
-void UnsetSynchronousRectification();
-void Initialize();
-void RecoverActuatorStatusFromDB(int ActuatorIndex);
-//void RecoverActuatorStatusFromDBAndASF(int ActuatorIndex);
-void SetCBCSerialNumber(int InputSerial);
-void ClearActuatorAllErrors(int ActuatorIndex);
-void ClearActuatorSingleError(int ActuatorIndex, int CodeNumber);
-void ClearPlatformAllErrors();
-void CheckErrorStatus();
-void FindHomeFromEndStop(int Direction, int ActuatorIndex);
-void FindHomeFromExtendStop(int ActuatorIndex);
-void FindHomeFromRetractStop(int ActuatorIndex);
-void ProbeHome(int ActuatorIndex);
+    bool addActuators(std::array<Device::Identity, PlatformBase::NUM_ACTS_PER_PLATFORM> actuatorIdentities,
+                      const ActuatorBase::ASFInfo &asfInfo = ActuatorBase::ASFInfo()) override;
 
-// additional interface needs
-PlatformState getState() const { return m_State; };
-void setState(PlatformState state) { m_State = state; };
-int getActuatorCount() const {return actuator.size(); }
-Actuator* getActuatorAt(int port);
+    bool loadCBCParameters() override;
 
-// MPES functionality
-int getMPESCount() {return m_vMPES.size(); }
-std::vector<int> getMPESPorts();
-MPES* getMPESAt(int port);
+    // Platform settings and readings
+    void enableHighCurrent() override;
 
+    void disableHighCurrent() override;
 
-/**
- * @brief This function adds MPES if they can be initialized at USB ports.
-    In the Sim mode, MPES are added regardlessly.
-*/
-bool addMPES(int USB, int serial);
+    void enableSynchronousRectification() override;
 
-const MPES::Position& ReadMPES(int port);
+    void disableSynchronousRectification() override;
+
+    float getInternalTemperature() override;
+
+    float getExternalTemperature() override;
+
+    void findHomeFromEndStopAll(int direction) override;
+
+    bool probeHomeAll() override;
+
+    // MPES functionality
+
+    /**
+     * @brief This function adds MPES if they can be initialized at USB ports.
+     In the Sim mode, MPES are added regardlessly.
+     */
+    bool addMPES(const Device::Identity &identity) override;
+
+    void turnOn() override;
+
+    void turnOff() override;
+
 private:
-    std::map<int, MPES *> m_vMPES;
+    std::shared_ptr<CBC> m_pCBC;
 
-    // internal state
-    PlatformState m_State;
+    std::array<int, NUM_ACTS_PER_PLATFORM> __step(std::array<int, NUM_ACTS_PER_PLATFORM> inputSteps) override;
+
+    void __probeEndStopAll(int direction) override;
 };
+
 #endif
+
+class DummyPlatform : public PlatformBase {
+public:
+    // Initialization methods
+    explicit DummyPlatform(Device::Identity identity, Device::DBInfo dbInfo = Device::DBInfo()) : PlatformBase(
+        std::move(identity), std::move(dbInfo)) {}
+
+    bool addActuators(std::array<Device::Identity, PlatformBase::NUM_ACTS_PER_PLATFORM> actuatorIdentities,
+                      const ActuatorBase::ASFInfo &asfInfo) override;
+
+    bool loadCBCParameters() override;
+
+    // Platform settings and readings
+    void enableHighCurrent() override;
+
+    void disableHighCurrent() override;
+
+    void enableSynchronousRectification() override;
+
+    void disableSynchronousRectification() override;
+
+    float getInternalTemperature() override;
+
+    float getExternalTemperature() override;
+
+    // General device methods
+
+    // Actuator-related methods
+    void findHomeFromEndStopAll(int direction) override;
+
+    bool probeHomeAll() override;
+
+    // MPES functionality
+
+    /**
+     * @brief This function adds MPES if they can be initialized at USB ports.
+     In the Sim mode, MPES are added regardlessly.
+     */
+    bool addMPES(const Device::Identity &identity) override;
+
+    void emergencyStop() override;
+
+    void turnOn() override;
+
+    void turnOff() override;
+
+private:
+    std::array<int, NUM_ACTS_PER_PLATFORM> __step(std::array<int, NUM_ACTS_PER_PLATFORM> inputSteps) override;
+
+    void __probeEndStopAll(int direction) override;
+};
+
+#endif // ALIGNMENT_PLATFORM_HPP

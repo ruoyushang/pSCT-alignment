@@ -18,7 +18,7 @@ cd ./sdk/
 ./buildServer.sh -cSIMMODE
 ./buildClient.sh -cSIMMODE
 ```
-If using another environment, check the help menu for each build script. This will install binaries to `./sdk/bin`, and you can set up SIMMODE instances by creating servers in `./server/start_sim_servers.sh -a` and `./client/start_sim_client.sh`. Make sure to set environment variable `LOCALIP` to the ip address of the local SIMMODE instance - if using docker, this is the ip discovered below in the docker section, but otherwise usually set to `127.0.0.1`. 
+If using another environment, check the help menu for each build script. This will install binaries to `./sdk/bin`, and you can set up SIMMODE instances by creating servers in `./server/start_sim_servers.sh -a` and `./client/start_sim_client.sh`. Make sure to set environment variable `LOCALIP` to the host address of the local SIMMODE instance - if using docker, this is the host discovered below in the docker section, but otherwise usually set to `127.0.0.1`.
 
 
 # Docker
@@ -39,7 +39,7 @@ ssh -p 3022 root@0.0.0.0
 ```
 This will log you into the container. The password is defined inside the Dockerfile image = `pass`. From here, you can compile the alignment git repository from `/app/pSCT-alignment/sdk` with the build shell scripts.
 
-Before building the binaries inside the container (after `docker-compose up -d`, but before `./buildClient.sh -cSIMMODE`), check that the ip address is correct for docker's internet container network:
+Before building the binaries inside the container (after `docker-compose up -d`, but before `./buildClient.sh -cSIMMODE`), check that the host address is correct for docker's internet container network:
 
 ```bash
 docker inspect -f '{{.Name}} - {{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $(docker ps -aq)
