@@ -98,6 +98,9 @@ for i in {0..3}; do
 done
 
 # Now start high-level client connecting to all lower-level panels
+printf "Sleeping to give subclients time to start...\n"
+
+sleep 30
 
 printf "Starting top-level client...\n"
 
