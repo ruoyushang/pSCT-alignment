@@ -38,30 +38,29 @@ fi
 
 printf "Received %d panel addresses.\n" "$((${#PANELS[@]}))"
 
-printf "Reading from database...\n"
-
 # Sort panels/servers into 4 groups (Secondary, Primary upper, Primary lower, Other)
 PRIMARY_UPPER=()
 PRIMARY_LOWER=()
 SECONDARY=()
 OTHER=()
 
-while read -r position;
+for position in ${PANELS[@]}; 
 do
-     if [[! mysql --user=${MYSQL_USER} --password=${MYSQL_PASSWORD} --database=${MYSQL_DATABASE} --host=${MYSQL_HOST} --port=${MYSQL_PORT}-ss -e "SELECT count(1) FROM Opt_MPMMapping where position='" + position +"'" ]]; then
+    count=`mysql --user=${MYSQL_USER} --password=${MYSQL_PASSWORD} --database=${MYSQL_DATABASE} --host=${MYSQL_HOST} --port=${MYSQL_PORT} -ss -e "SELECT EXISTS(SELECT 1 FROM Opt_MPMMapping where position=$position)"`
+    if [[ "$count" -eq "0" ]]; then
          echo "No panel found with position $position"
          continue
      fi
-     if [[ ${position:1:1} = "0" ]] || [[ ${position:0:1} = "3" ]]; then
+     if [[ "${position:1:1}" -eq "0" ]] || [[ "${position:0:1}" -eq "3" ]]; then
         OTHER+=($position)
-     elif [[ ${position:0:1} = "1" ]] && [[ ${position:0:1} = "1" || ${position:0:1} = "2" ]]; then
+     elif [[ "${position:0:1}" -eq "1" ]] && [[ "${position:1:1}" -eq "1" || "${position:1:1}" -eq "2" ]]; then
         PRIMARY_UPPER+=($position)
-     elif [[ ${position:0:1} = "1" ]] && [[ ${position:0:1} = "3" || ${position:0:1} = "4" ]]; then
+     elif [[ "${position:0:1}" -eq "1" ]] && [[ "${position:1:1}" -eq "3" || "${position:1:1}" -eq "4" ]]; then
         PRIMARY_LOWER+=($position)
-     elif [[ ${position:0:1} = "2" ]]; then
+     elif [[ "${position:0:1}" -eq "2" ]]; then
         SECONDARY+=($position)
      fi
-done < <(PANELS)
+ done
 
 # Start 4 separate subclients at 4 local addresses for the groups of panels
 
@@ -75,15 +74,16 @@ if ! screen -ls | grep -q ${screen_name}; then
 fi
 
 for i in {0..3}; do
-    client_name=subclient_names[i]
-    port=subclient_ports[i]
+    client_name=${subclient_names[i]}
+    port=${subclient_ports[i]}
     config_filename="${client_name}${extension}"
     endpoint_addr="opc.tcp://127.0.0.1:$port"
-    eval panel_list=\$$subclient_array_names[i]
+    subclient_array_name=${subclient_array_names[i]}[@]
+    panel_list=("${!subclient_array_name}")
+   
+    printf "Received %d %s panel addresses.\n" "${#panel_list[@]}" "$client_name"
 
-    printf "Received %d %s panel addresses.\n" "$((${#panel_list[@]}))" "$client_name"
-
-    if [[ ${#panel_list[@]} -neq 0 ]]; then
+    if [[ "${#panel_list[@]}" -ne "0" ]]; then
         config_filename="${client_name}${extension}"
         endpoint_addr="opc.tcp://127.0.0.1:$port"
         screen -S ${screen_name} -X screen -t ${client_name}
@@ -91,7 +91,7 @@ for i in {0..3}; do
         screen -S ${screen_name} -p ${client_name} -X stuff "sed -i s@URL_LOCATION@$endpoint_addr@g ${config_filename}\n"
         printf "Starting %s client at address %s.\n" "${client_name}" "${endpoint_addr}"
         abspath=$(realpath ${config_filename})
-        screen -S ${screen_name} -p ${client_name} -X stuff $"../sdk/bin/p2pasclient ${panel_list[*]} -m subclient"
+        screen -S ${screen_name} -p ${client_name} -X stuff $"../sdk/bin/p2pasclient ${panel_list[*]} -m subclient -c $abspath \n"
     else
         printf "No %s panels found. No subclient started. \n" "${client_name}"
     fi
@@ -106,10 +106,11 @@ port="48010"
 config_filename="${client_name}${extension}"
 endpoint_addr="opc.tcp://127.0.0.1:$port"
 
+screen -S ${screen_name} -X screen -t ${client_name}
 screen -S ${screen_name} -p ${client_name} -X stuff $"cp ../client/TemplateClientConfig${extension} ${config_filename}\n"
 screen -S ${screen_name} -p ${client_name} -X stuff "sed -i s@URL_LOCATION@$endpoint_addr@g ${config_filename}\n"
 printf "Starting %s client at address %s.\n" "${client_name}" "${endpoint_addr}"
 abspath=$(realpath ${config_filename})
-screen -S $screen_name -X stuff $"../sdk/bin/p2pasclient --top_level | tee ${HOME}/logs/p2pasclient_log_`date +%Y%m%d%H%M%S`.txt\n"
+screen -S ${screen_name} -X stuff $"../sdk/bin/p2pasclient primary_upper primary_lower secondary other -m client -c $abspath | tee ${HOME}/logs/p2pasclient_log_`date +%Y%m%d%H%M%S`.txt\n"
 
 

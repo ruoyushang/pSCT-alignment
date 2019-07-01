@@ -14,10 +14,10 @@
 #include "DBConfig.hpp"
 
 const std::map<std::string, std::string> Configuration::SUBCLIENTS = {
-    {"primary_upper", "opc.tcp://127.0.0.1:48010"},
-    {"primary_lower", "opc.tcp://127.0.0.1:48010"},
-    {"secondary",     "opc.tcp://127.0.0.1:48010"},
-    {"other",         "opc.tcp://127.0.0.1:48010"}
+    {"primary_upper", "opc.tcp://127.0.0.1:48011"},
+    {"primary_lower", "opc.tcp://127.0.0.1:48012"},
+    {"secondary",     "opc.tcp://127.0.0.1:48013"},
+    {"other",         "opc.tcp://127.0.0.1:48014"}
 };
 
 
@@ -115,10 +115,11 @@ UaStatus Configuration::loadDeviceConfiguration(const std::vector<std::string> &
         sql::ResultSet *sql_results;
         std::string query;
 
+        std::vector<std::string> positions;
+
         // If empty list of panels passed, assume all panels.
         if (positionList.empty()) {
-            std::vector<std::string> positions;
-            query = "SELECT position FROM Opt_MPMMapping WHERE substring(position,0,1 )!='3'";
+            query = "SELECT position FROM Opt_MPMMapping WHERE substring(position,1,1) != '3'";
             sql_stmt->execute(query);
             sql_results = sql_stmt->getResultSet();
             // should only be one result FOR NOW -- IN THE FUTURE, NEED TO FIX THIS, SORTING BY DATE
@@ -126,11 +127,15 @@ UaStatus Configuration::loadDeviceConfiguration(const std::vector<std::string> &
                 positions.push_back(sql_results->getString(1));
             }
         } else {
-            std::vector<std::string> positions = positionList;
+            positions = positionList;
+        }
+
+        for (auto const& p : positions) {
+            std::cout << p << " ";
         }
 
         // get panel IP and serial from position
-        for (const auto &position : positionList) {
+        for (const auto &position : positions) {
             Device::Identity panelId;
             panelId.position = std::stoi(position);
 
@@ -255,11 +260,14 @@ UaStatus Configuration::loadDeviceConfiguration(const std::vector<std::string> &
 UaStatus Configuration::loadSubclientConfiguration(const std::vector<std::string> &subclientList) {
     for (const auto &subclientName : subclientList) {
         if (SUBCLIENTS.find(subclientName) != SUBCLIENTS.end()) {
+            std::cout << "Added subclient with name " << subclientName << std::endl;
             m_Subclients[subclientName] = SUBCLIENTS.at(subclientName);
         } else {
             std::cout << "Subclient with name " << subclientName << " not found. Skipping..." << std::endl;
         }
     }
+
+    return OpcUa_Good;
 }
 
 std::vector<UaString> Configuration::getServerAddresses() {

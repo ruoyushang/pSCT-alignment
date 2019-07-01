@@ -183,8 +183,8 @@ void PasCommunicationInterface::addEdgeControllers() {
             if (m_pControllers.at(PAS_PanelType).find(panelChildId) ==
                 m_pControllers.at(PAS_PanelType).end()) {
                 // Child panel not found
-                std::cout << "Could not find panel " << panelChildId << " as child of Edge " << edgeId
-                          << " (likely server failed to connect). Edge controller not created..." << std::endl;
+                //std::cout << "Could not find panel " << panelChildId << " as child of Edge " << edgeId
+                //          << " (likely server failed to connect). Edge controller not created..." << std::endl;
                 addEdge = false;
                 break;
             }
@@ -200,7 +200,7 @@ void PasCommunicationInterface::addMirrorControllers() {
     for (const auto &mirrorId : m_pConfiguration->getDevices(PAS_MirrorType)) {
         bool addMirror = false;
         // Check if at least one panel in the mirror exists
-        for (const auto &panelChildId : m_pConfiguration->getParents(mirrorId).at(PAS_PanelType)) {
+        for (const auto &panelChildId : m_pConfiguration->getChildren(mirrorId).at(PAS_PanelType)) {
             if (m_pControllers.at(PAS_PanelType).find(panelChildId) !=
                 m_pControllers.at(PAS_PanelType).end()) {
                 // Child panel found
