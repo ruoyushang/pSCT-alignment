@@ -8,7 +8,9 @@
 #include "subscription.hpp"
 #include "uaclient/uasubscription.h"
 #include "uaclient/uasession.h"
-#include "uaclient/uaclientsdk.h"
+#include "clienthelper.hpp"
+
+#include <memory>
 
 class Configuration;
 
@@ -17,7 +19,7 @@ class Configuration;
 Subscription::Subscription(std::shared_ptr<Configuration> pConfiguration)
     : m_pSession(nullptr),
       m_pSubscription(nullptr),
-      m_pConfiguration(std::move(pConfiguration))
+      m_pConfiguration(pConfiguration)
 {
 }
 
@@ -175,7 +177,8 @@ UaStatus Subscription::createMonitoredItems()
     }
 
     UaStatus result;
-    OpcUa_UInt32 size, i;
+    OpcUa_UInt32 size;
+    OpcUa_UInt32 i;
     UaClientSdk::ServiceSettings serviceSettings;
     UaMonitoredItemCreateRequests itemsToCreate;
     UaMonitoredItemCreateResults createResults;
@@ -234,7 +237,7 @@ UaStatus Subscription::createMonitoredItems()
 /// Configuration object pointer.
 void Subscription::setConfiguration(std::shared_ptr<Configuration> pConfiguration)
 {
-    m_pConfiguration = std::move(pConfiguration);
+    m_pConfiguration = pConfiguration;
 }
 
 /// @details If the object has an internal UaSubscription, deletes it using

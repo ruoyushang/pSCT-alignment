@@ -37,6 +37,8 @@ public:
 
     UaStatus initialize() override;
 
+    UaStatus initializeCCDs();
+
     void setConfiguration(std::shared_ptr<Configuration> pConfiguration) {
         m_pConfiguration = std::move(pConfiguration);
     }

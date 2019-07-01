@@ -61,6 +61,12 @@ PasCommunicationInterface::~PasCommunicationInterface()
 
 UaStatus PasCommunicationInterface::initialize()
 {
+    initializeCCDs();
+    return OpcUa_Good;
+}
+
+UaStatus PasCommunicationInterface::initializeCCDs()
+{
     // initialize devices communicating directly with the Alignment server (p2pasclient)
 
     // currently, only GAS CCDs need to be intialized.
@@ -165,7 +171,6 @@ PasCommunicationInterface::addDevice(Client *pClient, OpcUa_UInt32 deviceType,
         std::cout << "PasCommunicationInterface::addDevice() Added "
                   << PasCommunicationInterface::deviceTypeNames[deviceType] << " with identity " << identity << std::endl;
 
-
         return identity;
     }
 }
@@ -178,8 +183,8 @@ void PasCommunicationInterface::addEdgeControllers() {
             if (m_pControllers.at(PAS_PanelType).find(panelChildId) ==
                 m_pControllers.at(PAS_PanelType).end()) {
                 // Child panel not found
-                std::cout << "Could not find panel " << panelChildId << " as child of Edge " << edgeId
-                          << " (likely server failed to connect). Edge controller not created..." << std::endl;
+                //std::cout << "Could not find panel " << panelChildId << " as child of Edge " << edgeId
+                //          << " (likely server failed to connect). Edge controller not created..." << std::endl;
                 addEdge = false;
                 break;
             }
@@ -214,10 +219,8 @@ void PasCommunicationInterface::addMirrorControllers() {
 }
 
 void PasCommunicationInterface::addParentChildRelations() {
-    for (const auto &type : m_pControllers) {
-        OpcUa_UInt32 childDeviceType = type.first;
-        std::map<Device::Identity, std::shared_ptr<PasControllerCommon>> devices = type.second;
-        for (const auto &device : m_pControllers.at(childDeviceType)) {
+    for (const auto &t : m_pControllers) {
+        for (const auto &device : m_pControllers.at(t.first)) {
             Device::Identity childIdentity = device.first;
             std::shared_ptr<PasControllerCommon> childController = device.second;
             for (const auto &pair : m_pConfiguration->getParents(childIdentity)) {
@@ -225,10 +228,10 @@ void PasCommunicationInterface::addParentChildRelations() {
                 std::set<Device::Identity> parents = pair.second;
                 for (const auto &parentId : parents) {
                     // If found controller for the desired parent, add it as a parent
-                    if (m_pControllers.at(parentDeviceType).find(parentId) !=
-                        m_pControllers.at(parentDeviceType).end()) {
+                    if (m_pControllers[parentDeviceType].find(parentId) !=
+                        m_pControllers[parentDeviceType].end()) {
                         std::dynamic_pointer_cast<PasCompositeController>(
-                            m_pControllers.at(parentDeviceType).at(parentId))->addChild(childDeviceType,
+                            m_pControllers.at(parentDeviceType).at(parentId))->addChild(t.first,
                                                                                         std::dynamic_pointer_cast<PasController>(
                                                                                             childController));
                     }

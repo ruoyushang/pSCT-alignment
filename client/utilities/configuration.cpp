@@ -13,20 +13,17 @@
 #include "cppconn/statement.h"
 #include "DBConfig.hpp"
 
+const std::map<std::string, std::string> Configuration::SUBCLIENTS = {
+    {"primary_upper", "opc.tcp://127.0.0.1:48011"},
+    {"primary_lower", "opc.tcp://127.0.0.1:48012"},
+    {"secondary",     "opc.tcp://127.0.0.1:48013"},
+    {"other",         "opc.tcp://127.0.0.1:48014"}
+};
 
-Configuration::Configuration() : m_bAutomaticReconnect(OpcUa_True), m_bRetryInitialConnect(OpcUa_True)
-{
-}
 
-OpcUa_UInt32 Configuration::getServers() const
+Configuration::Configuration(std::string mode) : m_Mode(std::move(mode)), m_bAutomaticReconnect(OpcUa_True),
+                                                 m_bRetryInitialConnect(OpcUa_True)
 {
-    try {
-        return m_DeviceIdentities.at(PAS_PanelType).size();
-    }
-    catch (std::out_of_range &e)
-    {
-        return 0;
-    }
 }
 
 UaStatus Configuration::loadConnectionConfiguration(const UaString& sConfigurationFile)
@@ -118,8 +115,27 @@ UaStatus Configuration::loadDeviceConfiguration(const std::vector<std::string> &
         sql::ResultSet *sql_results;
         std::string query;
 
+        std::vector<std::string> positions;
+
+        // If empty list of panels passed, assume all panels.
+        if (positionList.empty()) {
+            query = "SELECT position FROM Opt_MPMMapping WHERE substring(position,1,1) != '3'";
+            sql_stmt->execute(query);
+            sql_results = sql_stmt->getResultSet();
+            // should only be one result FOR NOW -- IN THE FUTURE, NEED TO FIX THIS, SORTING BY DATE
+            while (sql_results->next()) {
+                positions.push_back(sql_results->getString(1));
+            }
+        } else {
+            positions = positionList;
+        }
+
+        for (auto const& p : positions) {
+            std::cout << p << " ";
+        }
+
         // get panel IP and serial from position
-        for (const auto &position : positionList) {
+        for (const auto &position : positions) {
             Device::Identity panelId;
             panelId.position = std::stoi(position);
 
@@ -144,7 +160,7 @@ UaStatus Configuration::loadDeviceConfiguration(const std::vector<std::string> &
                 // add to other maps
                 m_DeviceSerialMap[PAS_PanelType][panelId.serialNumber] = panelId;
                 m_PanelPositionMap[panelId.position] = panelId;
-                m_PanelAddressMap[panelId.eAddress] = panelId;
+                m_DeviceNameMap[panelId.name] = panelId;
             }
 
             // get the panel's actuators and add them to all the needed maps
@@ -163,6 +179,7 @@ UaStatus Configuration::loadDeviceConfiguration(const std::vector<std::string> &
                 std::cout << "    Configuration::loadDeviceConfiguration(): added Actuator " << actId << " to Device List" << std::endl;
 
                 m_DeviceSerialMap[PAS_ACTType][actId.serialNumber] = actId;
+                m_DeviceNameMap[actId.name] = actId;
 
                 // add the actuator and this panel to the parents map
                 m_ChildMap[panelId][PAS_ACTType].insert(actId);
@@ -189,6 +206,7 @@ UaStatus Configuration::loadDeviceConfiguration(const std::vector<std::string> &
                 std::cout << "    Configuration::loadDeviceConfiguration(): added MPES " << mpesId << " to Device List" << std::endl;
 
                 m_DeviceSerialMap[PAS_MPESType][mpesId.serialNumber] = mpesId;
+                m_DeviceNameMap[mpesId.name] = mpesId;
 
                 // add the sensor and its panels to the parents map
                 m_ChildMap[panelId][PAS_MPESType].insert(mpesId);
@@ -239,6 +257,33 @@ UaStatus Configuration::loadDeviceConfiguration(const std::vector<std::string> &
     return OpcUa_Good;
 }
 
+UaStatus Configuration::loadSubclientConfiguration(const std::vector<std::string> &subclientList) {
+    for (const auto &subclientName : subclientList) {
+        if (SUBCLIENTS.find(subclientName) != SUBCLIENTS.end()) {
+            std::cout << "Added subclient with name " << subclientName << std::endl;
+            m_Subclients[subclientName] = SUBCLIENTS.at(subclientName);
+        } else {
+            std::cout << "Subclient with name " << subclientName << " not found. Skipping..." << std::endl;
+        }
+    }
+
+    return OpcUa_Good;
+}
+
+std::vector<UaString> Configuration::getServerAddresses() {
+    std::vector<UaString> serverAddresses;
+    if (m_Mode == "subclient") {
+        for (const auto &panelId : getDevices(PAS_PanelType)) {
+            serverAddresses.emplace_back(UaString(panelId.eAddress.c_str()));
+        }
+    } else if (m_Mode == "client") {
+        for (const auto &subclient : m_Subclients) {
+            serverAddresses.emplace_back(UaString(subclient.second.c_str()));
+        }
+    }
+
+    return serverAddresses;
+}
 
 UaStatus Configuration::setupSecurity(UaClientSdk::SessionSecurityInfo &sessionSecurityInfo)
 {

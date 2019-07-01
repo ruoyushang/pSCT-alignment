@@ -18,12 +18,11 @@ class Configuration
 {
     UA_DISABLE_COPY(Configuration);
 public:
-    Configuration();
+    explicit Configuration(std::string mode = "subclient");
 
     virtual ~Configuration() = default;
 
     // get connection and session parameters
-    OpcUa_UInt32 getServers() const;
 
     UaString getDiscoveryUrl() const { return m_discoveryUrl; }
 
@@ -78,12 +77,17 @@ public:
         return m_ChildMap.at(id);
     }
 
-    Device::Identity getPanelFromAddress(const std::string &eAddress) { return m_PanelAddressMap.at(eAddress); }
+    Device::Identity getDeviceByName(const std::string &browseName) { return m_DeviceNameMap.at(browseName); }
+
+    std::vector<UaString> getServerAddresses();
 
     // load configuration from file to fill connection parameters, NamespaceArray and NodeIds
     UaStatus loadConnectionConfiguration(const UaString& sConfigurationFile);
     // load configuration from DB to fill in device mappings
-    UaStatus loadDeviceConfiguration(const std::vector<std::string> &positionList);
+    UaStatus loadDeviceConfiguration(const std::vector<std::string> &positionList = std::vector<std::string>());
+
+    // load configuration from DB to fill in device mappings
+    UaStatus loadSubclientConfiguration(const std::vector<std::string> &subclientList = std::vector<std::string>());
 
     // create the folder structure to handle certificates and load or create a client certificate.
     UaStatus setupSecurity(UaClientSdk::SessionSecurityInfo& sessionSecurityInfo);
@@ -93,6 +97,10 @@ public:
 
 
 private:
+    static const std::map<std::string, std::string> SUBCLIENTS;
+
+    std::string m_Mode;
+
     // connection and session configuration
     UaString        m_applicationName;
     UaString        m_discoveryUrl;
@@ -128,6 +136,8 @@ private:
 
     int getThirdPanelPosition(int wPanelPosition, int lPanelPosition);
 
+    std::map<std::string, std::string> m_Subclients;
+
     std::map<OpcUa_UInt32, std::set<Device::Identity>> m_DeviceIdentities;
 
     // maps device id -> device type -> identities
@@ -145,8 +155,8 @@ private:
     // maps panel position -> identity
     std::map<int, Device::Identity> m_PanelPositionMap;
 
-    // maps panel eAddress -> identity
-    std::map<std::string, Device::Identity> m_PanelAddressMap;
+    // maps device name -> identity
+    std::map<std::string, Device::Identity> m_DeviceNameMap;
 };
 
 #endif // CONFIGURATION_H

@@ -18,10 +18,11 @@
 
 #define _DEBUG_ 0
 
-Client::Client(PasNodeManager *pNodeManager) : m_pNodeManager(pNodeManager),
-                                               m_pConfiguration(nullptr),
-                                               m_serverStatus(UaClientSdk::UaClient::ServerStatus::Disconnected),
-                                               m_TransactionId(0) {
+Client::Client(PasNodeManager *pNodeManager, std::string mode) : m_mode(std::move(mode)),
+                                                                 m_pNodeManager(pNodeManager),
+                                                                 m_pConfiguration(nullptr),
+                                                                 m_serverStatus(UaClientSdk::UaClient::ServerStatus::Disconnected),
+                                                                 m_TransactionId(0) {
     m_pSession = std::unique_ptr<UaClientSdk::UaSession>(new UaClientSdk::UaSession());
     m_pSubscription = std::unique_ptr<Subscription>(new Subscription(m_pConfiguration));
     m_pDatabase = std::unique_ptr<Database>(new Database());
@@ -430,7 +431,10 @@ void Client::addDevices(const OpcUa_ReferenceDescription& referenceDescription)
     Device::Identity identity;
     char sTemp[100];
 
-    std::map<OpcUa_UInt32, std::string> typeNamesMap = {{PAS_MPESType, "MPES"}, {PAS_ACTType, "ACT"}, {PAS_PSDType, "PSD"}};
+    std::map<OpcUa_UInt32, std::string> typeNamesMap = {{PAS_MPESType,  "MPES"},
+                                                        {PAS_ACTType,   "ACT"},
+                                                        {PAS_PSDType,   "PSD"},
+                                                        {PAS_PanelType, "Panel"}};
 
     OpcUa_UInt32 type;
     std::string name;
@@ -446,29 +450,19 @@ void Client::addDevices(const OpcUa_ReferenceDescription& referenceDescription)
             sprintf(sTemp, "ns=%d;s=%s",
                     referenceDescription.BrowseName.NamespaceIndex,
                     UaString(referenceDescription.BrowseName.Name).toUtf8());
-            // get the USB number -- this is the last character of the node name
-            Device::Identity panelId = m_pConfiguration->getPanelFromAddress(std::string(m_Address.toUtf8()));
 
-            std::string eAddress = std::string(UaString(sTemp).toUtf8()).substr(strlen(sTemp) - 1, 1);
-
-            // find child device of the right type with that eAddress
-            std::set<Device::Identity> children = m_pConfiguration->getChildren(panelId).at(type);
-            auto it = std::find_if(children.begin(), children.end(),
-                                   [eAddress](const Device::Identity &id) -> bool { return id.eAddress == eAddress; });
-
-            if (it != children.end()) {
-                // set the identity of the device we're about to add
-                identity = *it;
-                //printf("=====================================\n");
-                //printBrowseResults(referenceDescription);
-                //printf("will add %s %d as %s\n", name.c_str(), identity.serialNumber, identity.eAddress.c_str());
+            // Check whether the found node exists in the configuration
+            try {
+                Device::Identity deviceId = m_pConfiguration->getDeviceByName(
+                    UaString(referenceDescription.BrowseName.Name).toUtf8());
                 ((PasCommunicationInterface *) m_pNodeManager->getComInterface().get())->addDevice(
-                    this, type, identity);
-                m_DeviceNodeIdMap[identity] = std::string(sTemp);
-            } else {
-                std::cout << "Client::addDevices(): Couldn't find child of Panel " << panelId << " of type " << name
-                          << " with eAddress " << eAddress << ". Skipping...\n";
-                return;
+                    this, type, deviceId);
+                m_DeviceNodeIdMap[deviceId] = std::string(sTemp);
+            }
+            catch (std::out_of_range &e) {
+                std::cout << "Could not find device ID matching node with name "
+                          << UaString(referenceDescription.BrowseName.Name).toUtf8() << " and type " << name
+                          << std::endl;
             }
         }
     }

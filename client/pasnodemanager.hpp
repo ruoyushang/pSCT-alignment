@@ -21,7 +21,7 @@ class PasNodeManager : public PasNodeManagerCommon
     UA_DISABLE_COPY(PasNodeManager);
 public:
     /// @brief Constructor for a PasNodeManager object.
-    PasNodeManager();
+    explicit PasNodeManager(std::shared_ptr<Configuration> pConfiguration, std::string mode = "subclient");
     /// @brief Destructor for a PasNodeManager object.
     ~PasNodeManager() override;
 
@@ -34,9 +34,8 @@ public:
     /// @return An OPC UA status code.
     UaStatus beforeShutDown() override;
 
-    /// @brief Setter method to set the Configuration object.
-    /// @param pConfiguration Pointer to a new Configuration object.
-    void setConfiguration(std::shared_ptr<Configuration> pConfiguration);
+    void createClients();
+
     /// @brief Setter method to set the PasCommunicationInterface object.
     /// @param pCommIf Pointer to a new PasCommunicationInterface object.
     void setCommunicationInterface(std::shared_ptr<PasCommunicationInterface> &pCommIf);
@@ -51,6 +50,7 @@ public:
     OpcUa_Int32 Panic();
 
 private:
+    std::string m_Mode;
     /// @brief Adds all custom type nodes for device object types.
     /// @return An OPC UA status code.
     UaStatus amendTypeNodes();

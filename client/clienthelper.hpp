@@ -19,7 +19,7 @@ class Client : public UaClientSdk::UaSessionCallback
 {
     UA_DISABLE_COPY(Client);
 public:
-    explicit Client(PasNodeManager *pNodeManager);
+    explicit Client(PasNodeManager *pNodeManager, std::string mode = "subclient");
 
     ~Client() override = default;
 
@@ -57,6 +57,8 @@ public:
     std::string getDeviceNodeId(const Device::Identity &identity) { return m_DeviceNodeIdMap.at(identity); }
 
 private:
+    std::string m_mode;
+
     UaString m_Address;
     // helper methods
     UaStatus _connect(const UaString& serverUrl, UaClientSdk::SessionSecurityInfo& sessionSecurityInfo);

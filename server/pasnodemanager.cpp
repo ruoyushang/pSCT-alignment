@@ -101,7 +101,6 @@ UaStatus PasNodeManager::afterStartUp()
                 deviceType);
 
         for (const auto &identity : validDeviceIdentities) {
-            deviceName = UaString(deviceTypeName.c_str()) + "_" + identity.eAddress.c_str();
             //If folder doesn't already exist, create a folder for each object type and add the folder to the DevicesByType folder
             if (pDeviceTypeFolders.find(deviceType) == pDeviceTypeFolders.end()) {
                 spdlog::debug("No folder found for device type {}. Creating...", deviceTypeName);
@@ -115,18 +114,22 @@ UaStatus PasNodeManager::afterStartUp()
             // Create OPC UA device object
             // Types hardcoded for now, in future consider creating a common factory class
             if (deviceType == PAS_ACTType) {
+                deviceName = UaString((deviceTypeName + "_" + std::to_string(identity.serialNumber)).c_str());
                 spdlog::debug("Creating OPC UA actuator object with identity {}...", identity);
                 pObject = new ACTObject(deviceName, UaNodeId(deviceName, getNameSpaceIndex()), m_defaultLocaleId,
                                         dynamic_cast<PasNodeManagerCommon *>(this), identity, m_pCommIf.get());
             } else if (deviceType == PAS_MPESType) {
+                deviceName = UaString((deviceTypeName + "_" + std::to_string(identity.serialNumber)).c_str());
                 spdlog::debug("Creating OPC UA MPES object with identity {}...", identity);
                 pObject = new MPESObject(deviceName, UaNodeId(deviceName, getNameSpaceIndex()), m_defaultLocaleId,
                                          dynamic_cast<PasNodeManagerCommon *>(this), identity, m_pCommIf.get());
             } else if (deviceType == PAS_PanelType) {
+                deviceName = UaString((deviceTypeName + "_" + std::to_string(identity.position)).c_str());
                 spdlog::debug("Creating OPC UA panel object with identity {}...", identity);
                 pObject = new PanelObject(deviceName, UaNodeId(deviceName, getNameSpaceIndex()), m_defaultLocaleId,
                                           this, identity, dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get()));
             } else if (deviceType == PAS_PSDType) {
+                deviceName = UaString((deviceTypeName + "_" + std::to_string(identity.serialNumber)).c_str());
                 spdlog::debug("Creating OPC UA PSD object with identity {}...", identity);
                 pObject = new PSDObject(deviceName, UaNodeId(deviceName, getNameSpaceIndex()), m_defaultLocaleId,
                                         dynamic_cast<PasNodeManagerCommon *>(this), identity, m_pCommIf.get());

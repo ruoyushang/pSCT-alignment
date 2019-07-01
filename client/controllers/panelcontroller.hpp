@@ -18,7 +18,7 @@ public:
     friend EdgeController; // access internal methods for compute
 
     // construction / destruction
-    PanelController(Device::Identity identity, Client *pClient);
+    PanelController(Device::Identity identity, Client *pClient, bool isSubclient = true);
 
     // Get Controller status and data
     UaStatus getState(Device::DeviceState &state) override;
@@ -44,6 +44,8 @@ public:
     UaStatus updateCoords(bool printout = false);
 
 private:
+    bool m_isSubclient;
+
     // x, y, z, xRot, yRot, zRot
     double m_curCoords[6] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
 

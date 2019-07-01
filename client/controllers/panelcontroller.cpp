@@ -11,9 +11,8 @@
 #include "client/objects/panelobject.hpp"
 
 
-PanelController::PanelController(Device::Identity identity, Client *pClient) :
-    PasCompositeController(std::move(identity), pClient, 5000) {
-    m_ID.name = std::string("Panel_") + std::to_string(m_ID.position);
+PanelController::PanelController(Device::Identity identity, Client *pClient, bool isSubclient) :
+    PasCompositeController(std::move(identity), pClient, 5000), m_isSubclient(isSubclient) {
     m_SP.SetPanelType(StewartPlatform::PanelType::OPT);
 
     // define possible children types
@@ -22,7 +21,7 @@ PanelController::PanelController(Device::Identity identity, Client *pClient) :
     // make sure things update on the first boot up
     // duration takes seconds -- hence the conversion with the 1/1000 ratio
     m_lastUpdateTime = TIME::now() - std::chrono::duration<int, std::ratio<1, 1000>>
-            (m_kUpdateInterval_ms);
+        (m_kUpdateInterval_ms);
 }
 
 unsigned PanelController::getActuatorCount() {
@@ -39,8 +38,8 @@ UaStatus PanelController::getState(Device::DeviceState &state) {
     UaStatus status;
     UaVariant value;
     int v;
-    
-    std::vector<std::string> vec_curread{"ns=2;s=Panel_0.State"};
+
+    std::vector<std::string> vec_curread{m_pClient->getDeviceNodeId(m_ID) + ".State"};
     status = m_pClient->read(vec_curread, &value);
     value.toInt32(v);
 
@@ -66,7 +65,7 @@ UaStatus PanelController::getData(OpcUa_UInt32 offset, UaVariant &value) {
         return getError(offset, value);
     } else if (offset >= PAS_PanelType_x && offset <= PAS_PanelType_zRot) {
         // update current coordinates
-        if (__expired()) {
+        if (__expired() && !m_isSubclient) {
             status = updateCoords();
             if (status.isBad()) {
                 std::cout << m_ID << " :: PanelController::operate() : Failed to update coordinates." << std::endl;
@@ -76,17 +75,17 @@ UaStatus PanelController::getData(OpcUa_UInt32 offset, UaVariant &value) {
         int dataOffset = offset - PAS_PanelType_x;
         value.setDouble(m_curCoords[dataOffset]);
     } else if (offset == PAS_PanelType_IntTemperature)
-        status = m_pClient->read({"ns=2;s=Panel_0.InternalTemperature"}, &value);
+        status = m_pClient->read({m_pClient->getDeviceNodeId(m_ID) + ".InternalTemperature"}, &value);
     else if (offset == PAS_PanelType_ExtTemperature)
-        status = m_pClient->read({"ns=2;s=Panel_0.ExternalTemperature"}, &value);
+        status = m_pClient->read({m_pClient->getDeviceNodeId(m_ID) + ".ExternalTemperature"}, &value);
     else if (offset == PAS_PanelType_SafetyRadius) {
         value.setDouble(m_safetyRadius);
     } else if (offset == PAS_PanelType_Position) {
-        status = m_pClient->read({"ns=2;s=Panel_0.Position"}, &value);
+        status = m_pClient->read({m_pClient->getDeviceNodeId(m_ID) + ".Position"}, &value);
     } else if (offset == PAS_PanelType_Serial) {
-        status = m_pClient->read({"ns=2;s=Panel_0.Serial"}, &value); 
+        status = m_pClient->read({m_pClient->getDeviceNodeId(m_ID) + ".Serial"}, &value);
     } else if (offset == PAS_PanelType_ErrorState) {
-        status = m_pClient->read({"ns=2;s=Panel_0.ErrorState"}, &value);
+        status = m_pClient->read({m_pClient->getDeviceNodeId(m_ID) + ".ErrorState"}, &value);
     }
     else
         status = OpcUa_BadInvalidArgument;
@@ -105,7 +104,7 @@ UaStatus PanelController::getError(OpcUa_UInt32 offset, UaVariant &value) {
 
     if (PanelObject::ERRORS.count(offset) > 0) {
         std::string varName = std::get<0>(PanelObject::ERRORS.at(offset));
-        std::vector<std::string> varsToRead = {std::string("ns=2;s=Panel_0.") + varName};
+        std::vector<std::string> varsToRead = {m_pClient->getDeviceNodeId(m_ID) + varName};
         status = m_pClient->read(varsToRead, &value);
     } else {
         status = OpcUa_BadInvalidArgument;
@@ -162,7 +161,7 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
             return OpcUa_Bad;
         }
         else {
-            status = m_pClient->callMethodAsync(std::string("ns=2;s=Panel_0"), UaString("MoveDeltaLengths"), args);
+            status = m_pClient->callMethodAsync(m_pClient->getDeviceNodeId(m_ID), UaString("MoveDeltaLengths"), args);
         }
     } else if (offset == PAS_PanelType_MoveToLengths) {
         for (int i = 0; i < 6; i++) {
@@ -177,7 +176,7 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
             return OpcUa_Bad;
         }
         else {
-            status = m_pClient->callMethodAsync(std::string("ns=2;s=Panel_0"), UaString("MoveToLengths"), args);
+            status = m_pClient->callMethodAsync(m_pClient->getDeviceNodeId(m_ID), UaString("MoveToLengths"), args);
         }
     } else if (offset == PAS_PanelType_MoveToCoords) {
         std::cout << "\tCurrent panel coordinates (x, y ,z xRot, yRot, zRot):\n\t\t";
@@ -216,7 +215,8 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
             return OpcUa_Bad;
         }
         else {
-            status = m_pClient->callMethodAsync(std::string("ns=2;s=Panel_0"), UaString("MoveToLengths"), lengthArgs);
+            status = m_pClient->callMethodAsync(m_pClient->getDeviceNodeId(m_ID), UaString("MoveToLengths"),
+                                                lengthArgs);
         }
     } else if (offset == PAS_PanelType_ReadPosition) {
         status = updateCoords(false);
@@ -235,13 +235,13 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
          * **********************************************/
     else if (offset == PAS_PanelType_Stop) {
         std::cout << m_ID << "::Operate() : Attempting to gracefully stop the motion." << std::endl;
-        status = m_pClient->callMethodAsync(std::string("ns=2;s=Panel_0"), UaString("Stop"));
+        status = m_pClient->callMethodAsync(m_pClient->getDeviceNodeId(m_ID), UaString("Stop"));
     } else if (offset == PAS_PanelType_TurnOn) {
         std::cout << m_ID << "::Operate() : Turning on..." << std::endl;
-        status = m_pClient->callMethod(std::string("ns=2;s=Panel_0"), UaString("TurnOn"));
+        status = m_pClient->callMethod(m_pClient->getDeviceNodeId(m_ID), UaString("TurnOn"));
     } else if (offset == PAS_PanelType_TurnOff) {
         std::cout << m_ID << "::Operate() : Turning off..." << std::endl;
-        status = m_pClient->callMethod(std::string("ns=2;s=Panel_0"), UaString("TurnOff"));
+        status = m_pClient->callMethod(m_pClient->getDeviceNodeId(m_ID), UaString("TurnOff"));
     } else if (offset == PAS_PanelType_FindHome) {
         if (__getDeviceState() != Device::DeviceState::On) {
             std::cout << m_ID << " :: PanelController::operate() : Device is in a bad state (busy, off) and "
@@ -249,15 +249,15 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
             return OpcUa_BadInvalidState;
         }
         std::cout << m_ID << "::Operate() : Finding home position." << std::endl;
-        status = m_pClient->callMethodAsync(std::string("ns=2;s=Panel_0"), UaString("FindHome"), args);
+        status = m_pClient->callMethodAsync(m_pClient->getDeviceNodeId(m_ID), UaString("FindHome"), args);
     } else if (offset == PAS_PanelType_ClearError) {
-        status = m_pClient->callMethod(std::string("ns=2;s=Panel_0"), UaString("ClearError"), args);
+        status = m_pClient->callMethod(m_pClient->getDeviceNodeId(m_ID), UaString("ClearError"), args);
     } else if (offset == PAS_PanelType_ClearAllErrors) {
-        status = m_pClient->callMethod(std::string("ns=2;s=Panel_0"), UaString("ClearAllErrors"));
+        status = m_pClient->callMethod(m_pClient->getDeviceNodeId(m_ID), UaString("ClearAllErrors"));
     } else if (offset == PAS_PanelType_ClearActuatorErrors) {
-        status = m_pClient->callMethod(std::string("ns=2;s=Panel_0"), UaString("ClearActuatorErrors"));
+        status = m_pClient->callMethod(m_pClient->getDeviceNodeId(m_ID), UaString("ClearActuatorErrors"));
     } else if (offset == PAS_PanelType_ClearPlatformErrors) {
-        status = m_pClient->callMethod(std::string("ns=2;s=Panel_0"), UaString("ClearPlatformErrors"));
+        status = m_pClient->callMethod(m_pClient->getDeviceNodeId(m_ID), UaString("ClearPlatformErrors"));
     } else {
         status = OpcUa_BadInvalidArgument;
     }
