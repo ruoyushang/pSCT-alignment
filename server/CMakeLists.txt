@@ -308,7 +308,7 @@ ELSE ()
             uastack ${PLATTFORM_LIBS} ${OpenCV_LIBRARIES} ${ROOT_LIBRARIES} ${MYSQLCONNECTORCPP_LIBRARIES} ${LIBUSB_LIBRARIES})
 ENDIF ()
 
-TARGET_LINK_LIBRARIES(${PROJECT_NAME} PRIVATE spdlog::spdlog_header_only)
+#TARGET_LINK_LIBRARIES(${PROJECT_NAME} PRIVATE spdlog::spdlog_header_only)
 
 ####################################### configure debug postfix #############################
 

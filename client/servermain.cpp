@@ -125,7 +125,7 @@ int OpcMain(const char *szAppPath, const std::vector<std::string> &serverList, c
  
     UaStatus status;
 
-    std::string sClientConfigFilename = std::string(szAppPath) + "/PasClientConfig.ini";
+    std::string sClientConfigFilename = std::string(szAppPath) + "/PasClientConfig.xml";
 
     if ( ret == 0 )
     {
@@ -137,7 +137,7 @@ int OpcMain(const char *szAppPath, const std::vector<std::string> &serverList, c
 
         auto pServer = new OpcServer();
         pServer->setServerConfig(sServerConfigFile, szAppPath);
-        pServer->setCallback(pServer->pCallback);
+        //pServer->setCallback(pServer->pCallback);
 
         // Load configuration.
         auto pClientConfiguration = std::make_shared<Configuration>(mode);
