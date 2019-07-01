@@ -127,8 +127,8 @@ PasCommunicationInterface::addDevice(Client *pClient, OpcUa_UInt32 deviceType,
 
     // Found existing copy of device
     if (m_pControllers.count(deviceType) > 0 && m_pControllers.at(deviceType).count(identity) > 0) {
-        std::cout << "PasCommunicationInterface::addDevice() : Device " << identity << " already exists. Moving on..."
-                  << std::endl;
+        //std::cout << "PasCommunicationInterface::addDevice() : Device " << identity << " already exists. Moving on..."
+        //          << std::endl;
         return identity;
     }
         // Didn't find existing copy, create new one
@@ -179,7 +179,7 @@ void PasCommunicationInterface::addEdgeControllers() {
     for (const auto &edgeId : m_pConfiguration->getDevices(PAS_EdgeType)) {
         bool addEdge = true;
         // Check if all panels in edge exist
-        for (const auto &panelChildId : m_pConfiguration->getParents(edgeId).at(PAS_PanelType)) {
+        for (const auto &panelChildId : m_pConfiguration->getChildren(edgeId).at(PAS_PanelType)) {
             if (m_pControllers.at(PAS_PanelType).find(panelChildId) ==
                 m_pControllers.at(PAS_PanelType).end()) {
                 // Child panel not found

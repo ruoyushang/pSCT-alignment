@@ -13,7 +13,7 @@
 #include "uabase/uabase.h"
 #include "uaclient/uaclientsdk.h"
 #include "client/utilities/configuration.hpp"
-#include <unistd.h>
+
 
 /// @brief Class to manage subscriptions to OPC UA nodes. Wraps the standard
 /// UaSubscription and UaSubscriptionCallback classes and takes a configuration
@@ -104,15 +104,3 @@ private:
     /// @brief Pointer to a Configuration object, used to retrieve a list
     /// of OPC UA nodes to monitor via subscription.
     std::shared_ptr<Configuration> m_pConfiguration;
-
-    void historyReadDataRaw();
-    void historyReadDataProcessed();
-    void historyReadDataAtTime();
-    void historyUpdateData();
-    void historyDeleteData();
-    void historyReadEvents();
-    void historyUpdateEvents();
-    void historyDeleteEvents();
-};
-
-#endif // SUBSCRIPTION_H
