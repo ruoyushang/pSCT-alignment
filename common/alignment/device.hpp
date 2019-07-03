@@ -92,6 +92,8 @@ public:
     virtual void turnOn() = 0;
     virtual void turnOff() = 0;
 
+    Device::Identity getIdentity() { return m_Identity; }
+
 protected:
     Device::Identity m_Identity;
 

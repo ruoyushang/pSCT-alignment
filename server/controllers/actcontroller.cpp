@@ -178,7 +178,6 @@ UaStatus ActController::operate(OpcUa_UInt32 offset, const UaVariantArray &args)
             m_pPlatform->getActuatorbyIdentity(m_ID)->emergencyStop();
             break;
         default:
-            spdlog::error("{} : Invalid method call with offset {}", m_ID, offset);
             status = OpcUa_BadInvalidArgument;
     }
 

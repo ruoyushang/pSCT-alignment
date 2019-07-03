@@ -11,6 +11,8 @@
 #include <random>
 #include <chrono>
 
+#include "common/utilities/spdlog/spdlog.h"
+
 GASPSD::~GASPSD()
 {
     m_logOutputStream.close();
@@ -194,13 +196,14 @@ void DummyGASPSD::update() {
 }
 
 int DummyGASPSD::setInterfaceAttribs(int fd, int speed, int parity) {
-    std::cout << "DummyGASPSD :: setInterfaceAttribs() - No effect." << std::endl;
+
+    spdlog::debug("DummyGASPSD :: setInterfaceAttribs() - No effect.");
     usleep(200000);
     return 0;
 }
 
 void DummyGASPSD::setBlocking(int fd, int should_block) {
-    std::cout << "DummyGASPSD :: SetBlocking() - No effect." << std::endl;
+    spdlog::debug("DummyGASPSD :: SetBlocking() - No effect.");
 }
 
 

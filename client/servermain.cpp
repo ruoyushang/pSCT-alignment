@@ -141,7 +141,7 @@ int OpcMain(const char *szAppPath, const std::vector<std::string> &serverList, c
 
         // Load configuration.
         auto pClientConfiguration = std::make_shared<Configuration>(mode);
-        std::cout << "Loading Configuration...\n";
+        spdlog::info("Loading Configuration...");
         status = pClientConfiguration->loadConnectionConfiguration(sClientConfigFile);
         if (mode == "subclient") {
             status = pClientConfiguration->loadDeviceConfiguration(serverList);
@@ -150,7 +150,7 @@ int OpcMain(const char *szAppPath, const std::vector<std::string> &serverList, c
             pClientConfiguration->loadSubclientConfiguration(serverList);
         }
 
-        std::cout << "Finished loading Configuration...\n";
+        spdlog::info("Finished loading Configuration...");
 
         // Create and initialize communication interface.
         std::shared_ptr<PasCommunicationInterface> pCommIf = std::make_shared<PasCommunicationInterface>();
@@ -166,18 +166,18 @@ int OpcMain(const char *szAppPath, const std::vector<std::string> &serverList, c
         pNodeManagerClient->setCommunicationInterface(pCommIf);
 
         // add the node manager
-        std::cout << "Adding node manager...\n";
+        spdlog::info("Adding node manager...");
         pServer->addNodeManager(pNodeManagerClient);
 
         // Start server object
-        std::cout << "Starting server...\n";
+        spdlog::info("Starting server...");
         ret = pServer->start();
         if ( ret == 0 )
         {
-            std::cout << "************************************\n";
-            std::cout << "  ---- SERVER/CLIENT STARTED ----\n";
-            std::cout << "    Press x to shut down server\n";
-            std::cout << "************************************" << std::endl;
+            spdlog::info("************************************\n"
+                         "  ---- SERVER/CLIENT STARTED ----\n"
+                         "    Press x to shut down server\n"
+                         "************************************");
             
             //pLogic = new PasLogic(pCommIf);
             //pLogic->start();
@@ -199,9 +199,9 @@ int OpcMain(const char *szAppPath, const std::vector<std::string> &serverList, c
                 }
             }
 
-            std::cout << "*************************************\n";
-            std::cout << " Shutting down server/client\n";
-            std::cout << "*************************************" << std::endl;
+            spdlog::info("*************************************\n"
+                         " Shutting down server/client\n"
+                         "*************************************");
 
             // Stop the utilities thread;
             //pLogic->stop();
@@ -210,10 +210,10 @@ int OpcMain(const char *szAppPath, const std::vector<std::string> &serverList, c
             // to allow them to disconnect after they received the shutdown signal
             pServer->stop(3, UaLocalizedText("", "User shutdown"));
         } else {
-            std::cout << "*******************************************\n";
-            std::cout << "  ---- FAILED TO START SERVER/CLIENT ----\n";
-            std::cout << "             Shutting down\n";
-            std::cout << "*******************************************" << std::endl;
+            spdlog::error("*******************************************\n"
+                          "  ---- FAILED TO START SERVER/CLIENT ----\n"
+                          "             Shutting down\n"
+                          "*******************************************");
         }
 
         delete pServer;
@@ -290,18 +290,13 @@ int main(int argc, char* argv[])
     auto file_sink = std::make_shared<spdlog::sinks::rotating_file_sink_mt>(std::string(getenv("HOME")) + std::string("/logs/p2pasclient_logs"), 1048576 * 5, 5,
                                                                        false); // 5 rotating files with max size 5 MB
     file_sink->set_level(spdlog::level::trace); // always save all logging levels
-    file_sink->set_pattern("[%c] [%n] [%l] [%s:%!:%#] ");
+    file_sink->set_pattern("[%c] [%n] [%l] [%s:%!:%#] %v");
 
     std::vector<spdlog::sink_ptr> sinks{file_sink, console_sink};
     auto logger = std::make_shared<spdlog::logger>("p2pasclient", sinks.begin(), sinks.end());
     logger->set_level(spdlog::level::info);
     logger->flush_on(spdlog::level::info);
     spdlog::set_default_logger(logger);
-
-    if (argc < 2) {
-        std::cout << "Usage: " << argv[0] << " <Positions of panels to connect to>" << std::endl;
-        return 1;
-    }
 
 #ifndef WIN32
     init_keyboard();

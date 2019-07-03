@@ -32,6 +32,7 @@
 #include "uaserver/uasession.h"
 
 #include <iostream>
+#include "common/utilities/spdlog/spdlog.h"
 
 #ifndef UA_BUILD_DATE_ZONE
 #define UA_BUILD_DATE_ZONE 1 // Must match UTC offset and daylight saving time at build date
@@ -96,15 +97,16 @@ UaStatus OpcServer::afterStartUp()
         uaEndpointArray);
     if ( uaEndpointArray.length() > 0 )
     {
-        std::cout << "***************************************************\n";
-        std::cout << " Server opened endpoints for following URLs:\n";
+        spdlog::info("***************************************************\n"
+                     " Server opened endpoints for following URLs:\n"
+        );
         OpcUa_UInt32 idx;
         bool bError = false;
         for ( idx=0; idx<uaEndpointArray.length(); idx++ )
         {
             if ( uaEndpointArray[idx]->isOpened() )
             {
-                std::cout << "     " << uaEndpointArray[idx]->sEndpointUrl().toUtf8() << std::endl;
+                spdlog::info("     {}", uaEndpointArray[idx]->sEndpointUrl().toUtf8());
             }
             else
             {
@@ -113,18 +115,19 @@ UaStatus OpcServer::afterStartUp()
         }
         if ( bError )
         {
-            std::cout << "\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n";
-            std::cout << "!!!! The following endpoints URLs failed:\n";
+            spdlog::error("\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n"
+                          "!!!! The following endpoints URLs failed:\n"
+            );
             for ( idx=0; idx<uaEndpointArray.length(); idx++ )
             {
                 if (!uaEndpointArray[idx]->isOpened())
                 {
-                    std::cout << "!!!! " << uaEndpointArray[idx]->sEndpointUrl().toUtf8() << std::endl;
+                    spdlog::error("!!!! {}", uaEndpointArray[idx]->sEndpointUrl().toUtf8());
                 }
             }
-            std::cout << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n\n";
+            spdlog::error("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n\n");
         }
-        std::cout << "***************************************************\n";
+        spdlog::info("***************************************************\n");
     }
 
     return status;

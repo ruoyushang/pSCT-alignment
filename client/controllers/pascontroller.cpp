@@ -16,6 +16,8 @@
 
 #include "client/clienthelper.hpp"
 
+#include "common/utilities/spdlog/spdlog.h"
+
 // MySQL C++ Connector includes
 #include "mysql_driver.h"
 #include "cppconn/statement.h"
@@ -37,8 +39,7 @@ void PasCompositeController::addChild(OpcUa_UInt32 deviceType, const std::shared
     catch (std::out_of_range &e) {
         // only add if this is a possible child
         if (m_ChildrenTypes.count(deviceType)) {
-            std::cout << " --- " << m_ID.name << "::addChild(): "
-                      << m_ID.name << ": adding " << pController->getId() << std::endl;
+            spdlog::info("Device controller {} added child {}.", m_ID, pController->getId());
             m_pChildren[deviceType].push_back(std::shared_ptr<PasController>(pController));
             m_ChildrenSerialMap[deviceType][id.serialNumber] = m_pChildren.at(deviceType).size() - 1;
             m_ChildrenEaddressMap[deviceType][id.eAddress] = m_pChildren.at(deviceType).size() - 1;

@@ -13,6 +13,8 @@
 #include "cppconn/statement.h"
 #include "DBConfig.hpp"
 
+#include "common/utilities/spdlog/spdlog.h"
+
 const std::map<std::string, std::string> Configuration::SUBCLIENTS = {
     {"primary_upper", "opc.tcp://127.0.0.1:48011"},
     {"primary_lower", "opc.tcp://127.0.0.1:48012"},
@@ -130,10 +132,6 @@ UaStatus Configuration::loadDeviceConfiguration(const std::vector<std::string> &
             positions = positionList;
         }
 
-        for (auto const& p : positions) {
-            std::cout << p << " ";
-        }
-
         // get panel IP and serial from position
         for (const auto &position : positions) {
             Device::Identity panelId;
@@ -155,7 +153,7 @@ UaStatus Configuration::loadDeviceConfiguration(const std::vector<std::string> &
 
                 // add to the list of devices
                 m_DeviceIdentities[PAS_PanelType].insert(panelId);
-                std::cout << "    Configuration::loadDeviceConfiguration(): added Panel " << panelId << " to Device List" << std::endl;
+                spdlog::info("Configuration::loadDeviceConfiguration(): added Panel {} to device list.", panelId);
 
                 // add to other maps
                 m_DeviceSerialMap[PAS_PanelType][panelId.serialNumber] = panelId;
@@ -176,7 +174,7 @@ UaStatus Configuration::loadDeviceConfiguration(const std::vector<std::string> &
                 actId.name = std::string("ACT_") + std::to_string(actId.serialNumber);
 
                 m_DeviceIdentities[PAS_ACTType].insert(actId);
-                std::cout << "    Configuration::loadDeviceConfiguration(): added Actuator " << actId << " to Device List" << std::endl;
+                spdlog::info("Configuration::loadDeviceConfiguration(): added Actuator {} to device list.", actId);
 
                 m_DeviceSerialMap[PAS_ACTType][actId.serialNumber] = actId;
                 m_DeviceNameMap[actId.name] = actId;
@@ -184,8 +182,8 @@ UaStatus Configuration::loadDeviceConfiguration(const std::vector<std::string> &
                 // add the actuator and this panel to the parents map
                 m_ChildMap[panelId][PAS_ACTType].insert(actId);
                 m_ParentMap[actId][PAS_PanelType].insert(panelId);
-                std::cout << "    Configuration::loaDeviceConfiguration(): added Panel " << panelId.position << " as parent of Actuator "
-                          << actId.serialNumber << std::endl;
+                spdlog::info("Configuration::loaDeviceConfiguration(): added Panel {} as parent of Actuator {}.",
+                             panelId.position, actId.serialNumber);
             }
 
             // get the panel's mpes and add them to all the needed maps
@@ -203,7 +201,7 @@ UaStatus Configuration::loadDeviceConfiguration(const std::vector<std::string> &
 
                 // add to the list of devices
                 m_DeviceIdentities[PAS_MPESType].insert(mpesId);
-                std::cout << "    Configuration::loadDeviceConfiguration(): added MPES " << mpesId << " to Device List" << std::endl;
+                spdlog::info("Configuration::loadDeviceConfiguration(): added MPES {} to device list.", mpesId);
 
                 m_DeviceSerialMap[PAS_MPESType][mpesId.serialNumber] = mpesId;
                 m_DeviceNameMap[mpesId.name] = mpesId;
@@ -212,8 +210,8 @@ UaStatus Configuration::loadDeviceConfiguration(const std::vector<std::string> &
                 m_ChildMap[panelId][PAS_MPESType].insert(mpesId);
                 m_ParentMap[mpesId][PAS_PanelType].insert(panelId);
                 m_MPES_SideMap[mpesId]["w"] = panelId;
-                std::cout << "    Configuration::loadDeviceConfiguration(): added Panel " << panelId
-                          << " as w parent of MPES " << mpesId << std::endl;
+                spdlog::info("Configuration::loadDeviceConfiguration(): added Panel {} as w parent of MPES {}.",
+                             panelId, mpesId);
             }
         }
         //Get laser-side panel for all MPES
@@ -239,16 +237,15 @@ UaStatus Configuration::loadDeviceConfiguration(const std::vector<std::string> &
         }
     }
     catch (sql::SQLException &e) {
-        std::cout << "# ERR: SQLException in " << __FILE__;
-        std::cout << "(" << __FUNCTION__ << ") on line " << __LINE__ << std::endl;
-        std::cout << "# ERR: " << e.what();
-        std::cout << " (MySQL error code: " << e.getErrorCode();
-        std::cout << ", SQLState: " << e.getSQLState() << " )" << std::endl;
-
+        spdlog::error("# ERR: SQLException in {}"
+                      "({}) on line {}\n"
+                      "# ERR: {}"
+                      " (MySQL error code: {}"
+                      ", SQLState: {})", __FILE__, __FUNCTION__, __LINE__, e.what(), e.getErrorCode(), e.getSQLState());
         return OpcUa_Bad;
     }
 
-    std::cout << "Configuration::loadDeviceConfiguration(): Adding missing parents..." << std::endl;
+    spdlog::info("Configuration::loadDeviceConfiguration(): Adding missing parents...");
     bool result = addMissingParents();
     if (!result) {
         return OpcUa_Bad;
@@ -260,10 +257,10 @@ UaStatus Configuration::loadDeviceConfiguration(const std::vector<std::string> &
 UaStatus Configuration::loadSubclientConfiguration(const std::vector<std::string> &subclientList) {
     for (const auto &subclientName : subclientList) {
         if (SUBCLIENTS.find(subclientName) != SUBCLIENTS.end()) {
-            std::cout << "Added subclient with name " << subclientName << std::endl;
+            spdlog::info("Added subclient with name {}.", subclientName);
             m_Subclients[subclientName] = SUBCLIENTS.at(subclientName);
         } else {
-            std::cout << "Subclient with name " << subclientName << " not found. Skipping..." << std::endl;
+            spdlog::error("Subclient with name {} not found. Skipping...", subclientName);
         }
     }
 
@@ -429,7 +426,7 @@ bool Configuration::addMissingParents() {
         // Add mirror as parent to all panels
         Device::Identity mirrorId = getMirrorId(panelId.position);
         if (m_DeviceIdentities[PAS_MirrorType].find(mirrorId) == m_DeviceIdentities[PAS_MirrorType].end()) {
-            std::cout << "Configuration::addMissingParents(): Added Mirror " << mirrorId << " to Device List" << std::endl;
+            spdlog::info("Configuration::addMissingParents(): Added Mirror {} to device list.", mirrorId);
             m_DeviceIdentities[PAS_MirrorType].insert(mirrorId);
         }
         m_ChildMap[mirrorId][PAS_PanelType].insert(panelId);
@@ -437,9 +434,9 @@ bool Configuration::addMissingParents() {
     }
     for (const auto &mpesId : m_DeviceIdentities.at(PAS_MPESType)) {
         if (m_ParentMap.at(mpesId).at(PAS_PanelType).size() != 1) {
-            std::cout << " ERROR:: Configuration::createMissingParents(): MPES " << mpesId << " has "
-                      << m_ParentMap.at(mpesId).at(PAS_PanelType).size()
-                      << " parent panels (should only have 1). Aborting...\n";
+            spdlog::error(
+                "Configuration::createMissingParents(): MPES {} has {} parent panels (should only have 1). Aborting...",
+                mpesId, m_ParentMap.at(mpesId).at(PAS_PanelType).size());
             return false;
         }
         Device::Identity w_panelId = *m_ParentMap.at(mpesId).at(PAS_PanelType).begin();
@@ -459,7 +456,7 @@ bool Configuration::addMissingParents() {
             edgeId.name = std::string("Edge_") + edgeId.eAddress;
 
             if (m_DeviceIdentities[PAS_EdgeType].find(edgeId) == m_DeviceIdentities[PAS_EdgeType].end()) {
-                std::cout << "Configuration::addMissingParents(): Added Edge " << edgeId << " to Device List" << std::endl;
+                spdlog::info("Configuration::addMissingParents(): Added Edge {} to device list.", edgeId);
                 m_DeviceIdentities[PAS_EdgeType].insert(edgeId);
             }
             m_ChildMap[edgeId][PAS_MPESType].insert(mpesId);
@@ -469,7 +466,7 @@ bool Configuration::addMissingParents() {
         // Add mirror as parent to all MPES
         Device::Identity mirrorId = getMirrorId(w_panelId.position);
         if (m_DeviceIdentities[PAS_MirrorType].find(mirrorId) == m_DeviceIdentities[PAS_MirrorType].end()) {
-            std::cout << "Configuration::addMissingParents(): Added Mirror " << mirrorId << " to Device List" << std::endl;
+            spdlog::info("Configuration::addMissingParents(): Added Mirror {} to device list.", mirrorId);
             m_DeviceIdentities[PAS_MirrorType].insert(mirrorId);
         }
         m_ChildMap[mirrorId][PAS_MPESType].insert(mpesId);
@@ -480,7 +477,7 @@ bool Configuration::addMissingParents() {
             // Add mirror as parent to all edges
             Device::Identity mirrorId = getMirrorId(SCTMath::GetPanelsFromEdge(edgeId.eAddress, 1).at(0));
             if (m_DeviceIdentities[PAS_MirrorType].find(mirrorId) == m_DeviceIdentities[PAS_MirrorType].end()) {
-                std::cout << "Configuration::addMissingParents(): Added Mirror " << mirrorId << " to Device List" << std::endl;
+                spdlog::info("Configuration::addMissingParents(): Added Mirror {} to device list.", mirrorId);
                 m_DeviceIdentities[PAS_MirrorType].insert(mirrorId);
             }
             m_ChildMap[mirrorId][PAS_EdgeType].insert(edgeId);

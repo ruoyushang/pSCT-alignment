@@ -1,6 +1,6 @@
 #include "common/opcua/pasobject.hpp"
 
-#include <iostream>
+#include "common/utilities/spdlog/spdlog.h"
 
 #include "uabase/uamutex.h"
 #include "uaserver/methodhandleuanode.h"
@@ -39,16 +39,16 @@ void PasObject::initialize() {
     OpcUa_Int16 nsIdx = m_pNodeManager->getNameSpaceIndex();
     OpcUa::DataItemType *pDataItem;
 
-    std::cout << "PasObject::Initialize(): initializing object w/ identity " << m_Identity << "...\n";
+    spdlog::info("PasObject::Initialize(): initializing object w/ identity {}...", m_Identity);
 
-    //std::cout << "Creating variables...\n";
+    //spdlog::debug("Creating variables...");
     // Add all child variable nodes
     for (auto &kv : getVariableDefs()) {
         addVariable(m_pNodeManager, typeDefinitionId().identifierNumeric(), kv.first, std::get<2>(kv.second));
     }
 
 
-    //std::cout << "Creating error variables...\n";
+    //spdlog::debug("Creating error variables...");
     //Create the folder for the Errors
     UaFolder *pErrorFolder = new UaFolder("Errors", UaNodeId(
             (std::to_string(typeDefinitionId().identifierNumeric()) + "_" + std::to_string(m_Identity.serialNumber) + "_errors").c_str(),
@@ -64,7 +64,7 @@ void PasObject::initialize() {
     }
 
     // Add all child method nodes
-    //std::cout << "Creating method nodes...\n";
+    //spdlog::debug("Creating method nodes...");
     for (auto &m : getMethodDefs()) {
         sName = UaString(m.second.first.c_str());
         sNodeId = UaString("%1.%2").arg(m_newNodeId.toString()).arg(sName);

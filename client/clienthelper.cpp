@@ -16,6 +16,8 @@
 #include "client/utilities/database.hpp"
 #include "client/utilities/subscription.hpp"
 
+#include "common/utilities/spdlog/spdlog.h"
+
 #define _DEBUG_ 0
 
 Client::Client(PasNodeManager *pNodeManager, std::string mode) : m_mode(std::move(mode)),
@@ -460,9 +462,8 @@ void Client::addDevices(const OpcUa_ReferenceDescription& referenceDescription)
                 m_DeviceNodeIdMap[deviceId] = std::string(sTemp);
             }
             catch (std::out_of_range &e) {
-                std::cout << "Could not find device ID matching node with name "
-                          << UaString(referenceDescription.BrowseName.Name).toUtf8() << " and type " << name
-                          << std::endl;
+                spdlog::warn("Could not find device ID matching node with name {} and type {}",
+                             UaString(referenceDescription.BrowseName.Name).toUtf8(), name);
             }
         }
     }

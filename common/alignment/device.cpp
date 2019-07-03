@@ -3,6 +3,8 @@
 
 #include "common/cbccode/cbc.hpp"
 
+#include "common/utilities/spdlog/spdlog.h"
+
 const std::map<Device::ErrorState, std::string> Device::errorStateNames = {
     {Device::ErrorState::Nominal,       "Nominal"},
     {Device::ErrorState::OperableError, "OperableError"},
@@ -62,18 +64,16 @@ Device::Device(Device::Identity identity) : m_Identity(std::move(identity)), m_B
 
 void Device::setError(int errorCode) {
     if (!m_Errors.at(errorCode)) {
-        std::cout << m_Identity << " :: Setting Error " << errorCode << " ("
-                  << getErrorCodeDefinitions()[errorCode].description
-                  << ")\n";
+        spdlog::info("{} : Setting Error {} ({})", m_Identity, errorCode,
+                     getErrorCodeDefinitions()[errorCode].description);
         m_Errors[errorCode] = true;
     }
 }
 
 void Device::unsetError(int errorCode) {
     if (m_Errors.at(errorCode)) {
-        std::cout << m_Identity << " :: Unsetting Error " << errorCode << " ("
-                  << getErrorCodeDefinitions()[errorCode].description
-                  << ")\n";
+        spdlog::info("{} : Unsetting Error {} ({})", m_Identity, errorCode,
+                     getErrorCodeDefinitions()[errorCode].description);
         m_Errors[errorCode] = false;
     }
 }
@@ -104,7 +104,7 @@ Device::ErrorState Device::getErrorState() {
 }
 
 void Device::clearErrors() {
-    std::cout << m_Identity << " :: Clearing All Errors... \n";
+    spdlog::info("{} : Clearing All Errors...", m_Identity);
     for (int i = 0; i < getNumErrors(); i++) {
         m_Errors[i] = false;
     }
@@ -112,14 +112,14 @@ void Device::clearErrors() {
 
 void Device::setBusy() {
     if (!isBusy()) {
-        //std::cout << m_Identity << " :: Blocking task started.\n";
+        spdlog::trace("{} : Blocking task started.", m_Identity);
         m_Busy = true;
     }
 }
 
 void Device::unsetBusy() {
     if (isBusy()) {
-        //std::cout << m_Identity << " :: Blocking task completed.\n";
+        spdlog::trace("{} : Blocking task completed.", m_Identity);
         m_Busy = false;
     }
 }

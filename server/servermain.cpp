@@ -70,7 +70,7 @@ int OpcServerMain(const std::string &szAppPath, const std::string &configFilePat
         UaString sAppPath(szAppPath.c_str());
         UaString sConfigFileName(configFilePath.c_str());
 
-        std::cout << "Creating OpcServer object..." << std::endl;
+        spdlog::info("Creating OpcServer object...");
         // initialize and configure server object
         std::unique_ptr<OpcServer> pServer = std::unique_ptr<OpcServer>(
             new OpcServer());
@@ -83,35 +83,37 @@ int OpcServerMain(const std::string &szAppPath, const std::string &configFilePat
             ServerConfig *pConfig = pServer->getServerConfig();
             pConfig->loadConfiguration();
             pConfig->getEndpointConfiguration(sAppPath, rejected_certificates_count, endpoints);
-            std::cout << "Setting endpoint address to: " << sEndpointUrl.toUtf8() << std::endl;
+            spdlog::info("Setting endpoint address to: {}", sEndpointUrl.toUtf8());
             endpoints[0]->setEndpointUrl(sEndpointUrl, false);
         }
 
-        std::cout << "Creating Communication Interface..." << std::endl;
+        spdlog::info("Creating Communication Interface...");
         std::unique_ptr<PasCommunicationInterface> pCommIf = std::unique_ptr<PasCommunicationInterface>(
                 new PasCommunicationInterface()); // Initialize communication interface
         pCommIf->setPanelNumber(std::stoi(panelNumber));
         status = pCommIf->initialize();
         UA_ASSERT(status.isGood());
 
-        std::cout << "Creating Node Manager..." << std::endl;
+        spdlog::info("Creating Node Manager...");
         std::unique_ptr<PasNodeManager> pNodeManager = std::unique_ptr<PasNodeManager>(
                 new PasNodeManager()); // Create Node Manager for the server
         status = pNodeManager->setCommunicationInterface(pCommIf); // set its communication interface
         pServer->addNodeManager(pNodeManager.release()); // Add node manager to server
 
         if (pServer->start() == 0) {
-            std::cout << "***************************************************\n";
-            std::cout << " Press " << SHUTDOWN_SEQUENCE << " to shut down server\n";
-            std::cout << "***************************************************" << std::endl;
+            spdlog::info(
+                "***************************************************\n"
+                " Press {} to shut down server\n"
+                "***************************************************", SHUTDOWN_SEQUENCE);
 
             while (ShutDownFlag() == 0) {
                 UaThread::msleep(1000); // Wait for user command to terminate the server.
             }
 
-            std::cout << "***************************************************\n";
-            std::cout << " Shutting down server\n";
-            std::cout << "***************************************************" << std::endl;
+            spdlog::info(
+                "***************************************************\n"
+                " Shutting down server\n"
+                "***************************************************");
 
             // Stop the server and wait three seconds if clients are connected
             // to allow them to disconnect after they received the shutdown signal
@@ -212,7 +214,7 @@ int main(int argc, char* argv[])
     auto file_sink = make_shared<spdlog::sinks::rotating_file_sink_mt>(std::string(getenv("HOME")) + std::string("/logs/passerver_") + panelNumber + "_logs", 1048576 * 5, 5, false); // 5 rotating files with max size 5 MB
 #endif
     file_sink->set_level(spdlog::level::trace); // always save all logging levels
-    file_sink->set_pattern("[%c] [%n] [%l] [%s:%!:%#] ");
+    file_sink->set_pattern("[%c] [%n] [%l] [%s:%!:%#] %v");
 
     std::vector<spdlog::sink_ptr> sinks = {file_sink, console_sink};
     auto logger = std::make_shared<spdlog::logger>(std::string("passerver"), sinks.begin(), sinks.end());
@@ -235,14 +237,16 @@ int main(int argc, char* argv[])
     }
 
     double sysFree;
-    std::cout << "********************SYSTEM INFO********************\n";
+    std::string temp;
+    temp += "********************SYSTEM INFO********************\n";
     if (!checkSystem(sysFree)) // check available disk space
-        std::cout << " Free disk space: " << sysFree << "GB\n";
+        temp += " Free disk space: " + std::to_string(sysFree) + "GB\n";
     else {
-        std::cout << " Failed to stat \"/\": terminating\n";
+        spdlog::error(" Failed to stat \"/\": terminating\n");
         return -1;
     }
-    std::cout << "***************************************************" << std::endl;
+    temp += "***************************************************\n";
+    spdlog::info(temp);
     RegisterSignalHandler();
 
     int ret = OpcServerMain(pszAppPath, configFilePath, panelNumber, endpointUrl);

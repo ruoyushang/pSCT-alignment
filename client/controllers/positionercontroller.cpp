@@ -14,6 +14,8 @@
 
 #include "client/clienthelper.hpp"
 
+#include "common/utilities/spdlog/spdlog.h"
+
 
 UaStatus PositionerController::getState(Device::DeviceState &state)
 {
@@ -31,6 +33,8 @@ UaStatus PositionerController::getState(Device::DeviceState &state)
         else
             state = Device::DeviceState::On;
     }
+
+    spdlog::trace("{} : Getting device state => ({})", m_ID, Device::deviceStateNames.at(state));
 
     return status;
 }
@@ -83,19 +87,28 @@ UaStatus PositionerController::getData(OpcUa_UInt32 offset, UaVariant &value)
 
     status = m_pClient->read(vec_curread, &value);
     if (status.isGood()) {
-        if (offset == GLOB_PositionerType_isMoving)
+        if (offset == GLOB_PositionerType_isMoving) {
             value.toBool(m_Data.isMoving);
-        else if (offset == GLOB_PositionerType_curAz)
+            spdlog::trace("{} : Getting isMoving value => ({})", m_ID, m_Data.isMoving);
+        } else if (offset == GLOB_PositionerType_curAz) {
             value.toFloat(m_Data.curAz);
-        else if (offset == GLOB_PositionerType_curEl)
+            spdlog::trace("{} : Getting curAz value => ({})", m_ID, m_Data.curAz);
+        } else if (offset == GLOB_PositionerType_curEl) {
             value.toFloat(m_Data.curEl);
-        else if (offset == GLOB_PositionerType_inAz)
+            spdlog::trace("{} : Getting curEl value => ({})", m_ID, m_Data.curEl);
+        } else if (offset == GLOB_PositionerType_inAz) {
             value.toFloat(m_Data.inAz);
-        else if (offset == GLOB_PositionerType_inEl)
+            spdlog::trace("{} : Getting inAz value => ({})", m_ID, m_Data.inAz);
+        } else if (offset == GLOB_PositionerType_inEl) {
             value.toFloat(m_Data.inEl);
-        else if (offset == GLOB_PositionerType_EnergyLevel)
+            spdlog::trace("{} : Getting inEl value => ({})", m_ID, m_Data.inEl);
+        } else if (offset == GLOB_PositionerType_EnergyLevel) {
             value.toInt16(m_Data.energyLevel);
+            spdlog::trace("{} : Getting EnergyLevel value => ({})", m_ID, m_Data.energyLevel);
+        }
     }
+
+
 
     return status;
 }
@@ -125,10 +138,13 @@ UaStatus PositionerController::setData(
 
     std::vector<std::string> varstowrite{"ns=2;s=Application.USERVARGLOBAL_OPCUA." + varToWrite};
 
-    if (offset == GLOB_PositionerType_inAz)
+    if (offset == GLOB_PositionerType_inAz) {
         value.setFloat(m_Data.inAz);
-    else if (offset == GLOB_PositionerType_inEl)
+        spdlog::trace("{} : Setting inAz value => ({})", m_ID, m_Data.inAz);
+    } else if (offset == GLOB_PositionerType_inEl) {
         value.setFloat(m_Data.inEl);
+        spdlog::trace("{} : Setting inEl value => ({})", m_ID, m_Data.inEl);
+    }
 
     status = m_pClient->write(varstowrite, &value);
 
@@ -153,6 +169,7 @@ UaStatus PositionerController::operate(OpcUa_UInt32 offset, const UaVariantArray
     switch ( offset )
     {
         case GLOB_PositionerType_SetEnergy:
+            spdlog::info("{} : Positioner controller calling setEnergy()", m_ID);
             // get current energy level and input toggled value before calling setEnergy level
             getData(GLOB_PositionerType_EnergyLevel, var);
 
@@ -165,12 +182,15 @@ UaStatus PositionerController::operate(OpcUa_UInt32 offset, const UaVariantArray
             valstowrite = UaVariant(OpcUa_Int16(7));
             break;
         case GLOB_PositionerType_Initialize:
+            spdlog::info("{} : Positioner controller calling initialize()", m_ID);
             valstowrite = UaVariant(OpcUa_Int16(8));
             break;
         case GLOB_PositionerType_Move:
+            spdlog::info("{} : Positioner controller calling move()", m_ID);
             valstowrite = UaVariant(OpcUa_Int16(13));
             break;
         case GLOB_PositionerType_Stop:
+            spdlog::info("{} : Positioner controller calling stop()", m_ID);
             valstowrite = UaVariant(OpcUa_Int16(14));
             break;
         default:
@@ -181,6 +201,7 @@ UaStatus PositionerController::operate(OpcUa_UInt32 offset, const UaVariantArray
     UA_ASSERT(status.isGood());
 
     if (offset == GLOB_PositionerType_SetEnergy) {
+        spdlog::info("{} : Positioner controller waiting for energy to be set...", m_ID);
         usleep(100000); // ???
     }
 
@@ -192,6 +213,7 @@ UaStatus DummyPositionerController::getState(Device::DeviceState &state) {
     //UaMutexLocker lock(&m_mutex);
 
     state = m_state;
+    spdlog::trace("{} : Getting dummy positioner state => ({})", m_ID, Device::deviceStateNames.at(state));
 
     return status;
 }
@@ -216,21 +238,27 @@ UaStatus DummyPositionerController::getData(OpcUa_UInt32 offset, UaVariant &valu
     switch (offset) {
         case GLOB_PositionerType_isMoving:
             value.toBool(m_Data.isMoving);
+            spdlog::trace("{} : DummyPositioner getting isMoving value => ({})", m_ID, m_Data.isMoving);
             break;
         case GLOB_PositionerType_curAz:
             value.toFloat(m_Data.curAz);
+            spdlog::trace("{} : DummyPositioner getting curAz value => ({})", m_ID, m_Data.curAz);
             break;
         case GLOB_PositionerType_curEl:
             value.toFloat(m_Data.curEl);
+            spdlog::trace("{} : DummyPositioner getting curEl value => ({})", m_ID, m_Data.curEl);
             break;
         case GLOB_PositionerType_inAz:
             value.toFloat(m_Data.inAz);
+            spdlog::trace("{} : DummyPositioner getting inAz value => ({})", m_ID, m_Data.inAz);
             break;
         case GLOB_PositionerType_inEl:
             value.toFloat(m_Data.inEl);
+            spdlog::trace("{} : DummyPositioner getting inEl value => ({})", m_ID, m_Data.inEl);
             break;
         case GLOB_PositionerType_EnergyLevel:
             value.toInt16(m_Data.energyLevel);
+            spdlog::trace("{} : DummyPositioner getting EnergyLevel value => ({})", m_ID, m_Data.energyLevel);
             break;
         default:
             return OpcUa_BadInvalidArgument;
@@ -253,9 +281,11 @@ UaStatus DummyPositionerController::setData(
     switch (offset) {
         case GLOB_PositionerType_inAz:
             value.setFloat(m_Data.inAz);
+            spdlog::trace("{} : DummyPositioner setting inAz value => ({})", m_ID, m_Data.inAz);
             break;
         case GLOB_PositionerType_inEl:
             value.setFloat(m_Data.inEl);
+            spdlog::trace("{} : DummyPositioner setting inEl value => ({})", m_ID, m_Data.inEl);
             break;
         default:
             return OpcUa_BadInvalidArgument;
@@ -276,7 +306,7 @@ UaStatus DummyPositionerController::operate(OpcUa_UInt32 offset, const UaVariant
     switch (offset) {
         case GLOB_PositionerType_SetEnergy:
             // get current energy level and input toggled value before calling setEnergy level
-            std::cout << "DummyPositionerController :: Calling SetEnergy()" << std::endl;
+            spdlog::info("{} : DummyPositioner controller calling setEnergy()", m_ID);
             if (m_Data.energyLevel == 0) {
                 m_Data.energyLevel = 1;
             } else if (m_Data.energyLevel == 1) {
@@ -284,10 +314,10 @@ UaStatus DummyPositionerController::operate(OpcUa_UInt32 offset, const UaVariant
             }
             break;
         case GLOB_PositionerType_Initialize:
-            std::cout << "DummyPositionerController :: Calling Initialize() (no effect)" << std::endl;
+            spdlog::info("{} : DummyPositioner controller calling initialize()", m_ID);
             break;
         case GLOB_PositionerType_Move:
-            std::cout << "DummyPositionerController :: Calling Move()" << std::endl;
+            spdlog::info("{} : DummyPositioner controller calling move()", m_ID);
             m_state = Device::DeviceState::Busy;
             m_Data.isMoving = true;
             sleep(5);
@@ -297,7 +327,7 @@ UaStatus DummyPositionerController::operate(OpcUa_UInt32 offset, const UaVariant
             m_state = Device::DeviceState::On;
             break;
         case GLOB_PositionerType_Stop:
-            std::cout << "DummyPositionerController :: Calling Initialize() (no effect)" << std::endl;
+            spdlog::info("{} : DummyPositioner controller calling stop()", m_ID);
             m_state = Device::DeviceState::On;
             break;
         default:
@@ -305,6 +335,7 @@ UaStatus DummyPositionerController::operate(OpcUa_UInt32 offset, const UaVariant
     }
 
     if (offset == GLOB_PositionerType_SetEnergy) {
+        spdlog::info("{} : DummyPositioner controller waiting for energy to be set", m_ID);
         usleep(100000); // Wait for completion (hardcoded)
     }
 

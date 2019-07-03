@@ -10,6 +10,8 @@
 #include "mysql_driver.h"
 #include "cppconn/statement.h"
 
+#include "common/utilities/spdlog/spdlog.h"
+
 
 float MPESController::kNominalIntensity = 150000.;
 float MPESController::kNominalSpotWidth = 10.;
@@ -29,7 +31,7 @@ MPESController::MPESController(Device::Identity identity, Client *pClient) : Pas
     std::string db_name = myConfig.getDatabase();
     std::string db_address = "tcp://" + db_ip + ":" + db_port;
 
-    //std::cout << "Initializing MPES " << m_ID.serialNumber << std::endl;
+    spdlog::debug("{} : Initializing MPES Controller... (connecting to DB)", m_ID);
     try {
         sql::Driver *sql_driver = get_driver_instance();
         sql::Connection *sql_conn = sql_driver->connect(db_address, db_user, db_password);
@@ -75,15 +77,16 @@ MPESController::MPESController(Device::Identity identity, Client *pClient) : Pas
         sql_driver->threadEnd();
     }
     catch (sql::SQLException &e) {
-        std::cout << "# ERR: SQLException in " << __FILE__;
-        std::cout << "(" << __FUNCTION__ << ") on line " << __LINE__ << std::endl;
-        std::cout << "# ERR: " << e.what();
-        std::cout << " (MySQL error code: " << e.getErrorCode();
-        std::cout << ", SQLState: " << e.getSQLState() << " )" << std::endl;
+        spdlog::error("# ERR: SQLException in {}"
+                      "({}) on line {}\n"
+                      "# ERR: {}"
+                      " (MySQL error code: {}"
+                      ", SQLState: {})", __FILE__, __FUNCTION__, __LINE__, e.what(), e.getErrorCode(), e.getSQLState());
     }
-    /* END DATABASE HACK */
 
     m_SystematicOffsets = Eigen::Vector2d::Zero();
+
+    spdlog::debug("{} : Done.", m_ID);
 }
 
 /* ----------------------------------------------------------------------------
@@ -101,6 +104,7 @@ UaStatus MPESController::getState(Device::DeviceState &state) {
     value.toInt32(v);
 
     state = static_cast<Device::DeviceState>(v);
+    spdlog::trace("{} : Getting device state => ({})", m_ID, Device::deviceStateNames.at(state));
 
     return status;
 }
@@ -132,41 +136,51 @@ UaStatus MPESController::getData(OpcUa_UInt32 offset, UaVariant &value) {
             offset == PAS_MPESType_CleanedIntensity) {
             status = read(false);
             if (status.isBad()) {
-                //std::cout << m_ID << " :: MPESController::getData() : Device is in a bad state (busy, off, error) and "
-                //                     "could not read data. Check state and try again. \n";
+                //spdlog::error("{} : MPESController::operate() : Device is in a bad state (busy, off, error) and "
+                //              "could not read data. Check state and try again.", m_ID);
                 return status;
             }
         }
         switch (offset) {
             case PAS_MPESType_xCentroidAvg:
                 value.setFloat(m_data.xCentroid);
+                spdlog::trace("{} : Getting xCentroid value => ({})", m_ID, m_data.xCentroid);
                 break;
             case PAS_MPESType_yCentroidAvg:
                 value.setFloat(m_data.yCentroid);
+                spdlog::trace("{} : Getting yCentroid value => ({})", m_ID, m_data.yCentroid);
                 break;
             case PAS_MPESType_xCentroidSpotWidth:
                 value.setFloat(m_data.xSpotWidth);
+                spdlog::trace("{} : Getting xCentroidSpotWidth value => ({})", m_ID, m_data.xSpotWidth);
                 break;
             case PAS_MPESType_yCentroidSpotWidth:
                 value.setFloat(m_data.ySpotWidth);
+                spdlog::trace("{} : Getting yCentroidSpotWidth value => ({})", m_ID, m_data.ySpotWidth);
                 break;
             case PAS_MPESType_CleanedIntensity:
                 value.setFloat(m_data.cleanedIntensity);
+                spdlog::trace("{} : Getting cleanedIntensity value => ({})", m_ID, m_data.cleanedIntensity);
                 break;
             case PAS_MPESType_xCentroidNominal:
                 value.setFloat(m_data.xNominal);
+                spdlog::trace("{} : Getting xCentroidNominal value => ({})", m_ID, m_data.xNominal);
                 break;
             case PAS_MPESType_yCentroidNominal:
                 value.setFloat(m_data.yNominal);
+                spdlog::trace("{} : Getting yCentroidNominal value => ({})", m_ID, m_data.yNominal);
                 break;
             case PAS_MPESType_Position:
                 value.setInt32(m_ID.position);
+                spdlog::trace("{} : Getting Position value => ({})", m_ID, m_ID.position);
                 break;
             case PAS_MPESType_Serial:
                 value.setInt32(m_ID.serialNumber);
+                spdlog::trace("{} : Getting SerialNumber value => ({})", m_ID, m_ID.serialNumber);
                 break;
             case PAS_MPESType_ErrorState:
                 status = m_pClient->read({m_pClient->getDeviceNodeId(m_ID) + "." + "ErrorState"}, &value);
+                spdlog::trace("{} : Getting ErrorState value => ({})", m_ID, value[0].Value.UInt32);
                 break;
             default:
                 status = OpcUa_BadInvalidArgument;
@@ -185,6 +199,7 @@ UaStatus MPESController::getError(OpcUa_UInt32 offset, UaVariant &value) {
         std::string varName = std::get<0>(MPESObject::ERRORS.at(offset));
         std::vector<std::string> varsToRead = {m_pClient->getDeviceNodeId(m_ID) + "." + varName};
         status = m_pClient->read(varsToRead, &value);
+        spdlog::trace("{} : Getting error {} value => ({})", m_ID, offset, value[0].Value.Boolean);
     } else {
         status = OpcUa_BadInvalidArgument;
     }
@@ -209,28 +224,31 @@ UaStatus MPESController::operate(OpcUa_UInt32 offset, const UaVariantArray &args
     //UaMutexLocker lock(&m_mutex);
     UaStatus status;
 
-    std::cout << m_ID << " :: MPESController::operate() : Calling method " << MPESObject::METHODS.at(offset).first
-              << std::endl;
-
     if (offset == PAS_MPESType_Read) {
+        spdlog::info("{} : MPES controller calling read()", m_ID);
         status = read(true);
     } else if (offset == PAS_MPESType_SetExposure) {
+        spdlog::info("{} : MPES controller calling setExposure()", m_ID);
         status = m_pClient->callMethod(m_pClient->getDeviceNodeId(m_ID), UaString("SetExposure"), args);
     } else if (offset == PAS_MPESType_ClearError) {
+        spdlog::info("{} : MPES controller calling clearError() for error {}", m_ID, args[0].Value.Int32);
         status = m_pClient->callMethod(m_pClient->getDeviceNodeId(m_ID), UaString("ClearError"), args);
     } else if (offset == PAS_MPESType_ClearAllErrors) {
+        spdlog::info("{} : MPES controller calling clearAllErrors()", m_ID);
         status = m_pClient->callMethod(m_pClient->getDeviceNodeId(m_ID), UaString("ClearAllErrors"));
     } else if (offset == PAS_MPESType_TurnOn) {
+        spdlog::info("{} : MPES controller calling turnOn()", m_ID);
         status = m_pClient->callMethod(m_pClient->getDeviceNodeId(m_ID), UaString("TurnOn"));
     } else if (offset == PAS_MPESType_TurnOff) {
+        spdlog::info("{} : MPES controller calling turnOff()", m_ID);
         status = m_pClient->callMethod(m_pClient->getDeviceNodeId(m_ID), UaString("TurnOff"));
     } else {
         status = OpcUa_BadInvalidArgument;
     }
 
     if (status == OpcUa_BadInvalidState) {
-        std::cout << m_ID << " :: MPESController::operate() : Device is in a bad state (busy, off, error) and "
-                             "could not execute command. Check state and try again. \n";
+        spdlog::error("{} : MPESController::operate() : Device is in a bad state (busy, off, error) and "
+                      "could not execute command. Check state and try again.", m_ID);
     }
 
     return status;
@@ -245,6 +263,8 @@ UaStatus MPESController::operate(OpcUa_UInt32 offset, const UaVariantArray &args
 UaStatus MPESController::read(bool print) {  
     //UaMutexLocker lock(&m_mutex);
     UaStatus status;
+
+    spdlog::info("{} : MPESController reading webcam data from server", m_ID);
 
     status = m_pClient->callMethod(m_pClient->getDeviceNodeId(m_ID), UaString("Read"), UaVariantArray());
 
@@ -276,30 +296,37 @@ UaStatus MPESController::read(bool print) {
         valstoread[i].toFloat(*(reinterpret_cast<float *>(&m_data) + i));
 
     if (print) {
-        std::cout << "Reading MPES " << m_ID << ":" << std::endl;
-        std::cout << "x: " << m_data.xCentroid << std::endl;
-        std::cout << "xNominal: " << m_data.xNominal << std::endl;
-        std::cout << "y: " << m_data.yCentroid << std::endl;
-        std::cout << "yNominal: " << m_data.yNominal << std::endl;
-        std::cout << "xSpotWidth: " << m_data.xSpotWidth << std::endl;
-        std::cout << "ySpotWidth: " << m_data.ySpotWidth << std::endl;
-        std::cout << "Cleaned Intensity: " << m_data.cleanedIntensity << std::endl;
+        spdlog::info(
+            "Reading MPES {}:\n"
+            "x (nominal): {} ({})\n"
+            "y (nominal): {} ({})\n"
+            "xSpotWidth (nominal): {} ({})\n"
+            "xSpotWidth (nominal): {} ({})\n"
+            "Cleaned Intensity (nominal): {} ({})\n",
+            m_ID,
+            m_data.xCentroid, m_data.xNominal,
+            m_data.yCentroid, m_data.yNominal,
+            m_data.xSpotWidth, kNominalSpotWidth,
+            m_data.ySpotWidth, kNominalSpotWidth,
+            m_data.cleanedIntensity, kNominalIntensity);
     }
 
     if (isVisible()) {
         if (m_data.xSpotWidth > kNominalSpotWidth) {
-            std::cout << "+++ WARNING +++ The width of the image along the X axis for " << m_ID.name
-                      << " is greater than 20px. Consider fixing things." << std::endl;
+            spdlog::warn(
+                "{} : The width of the image along the X axis ({}) is greater than the nominal limit ({}). Consider fixing things.",
+                m_ID, m_data.xSpotWidth, kNominalSpotWidth);
         }
         if (m_data.ySpotWidth > kNominalSpotWidth) {
-            std::cout << "+++ WARNING +++ The width of the image along the Y axis for " << m_ID.name
-                      << " is greater than 20px. Consider fixing things." << std::endl;
+            spdlog::warn(
+                "{} : The width of the image along the Y axis ({}) is greater than the nominal limit ({}). Consider fixing things.",
+                m_ID, m_data.ySpotWidth, kNominalSpotWidth);
         }
         if (fabs(m_data.cleanedIntensity - kNominalIntensity) / kNominalIntensity > 0.2) {
             if (m_numAttempts <= kMaxAttempts) {
-                std::cout << "+++ WARNING +++ The intensity of " << m_ID.name
-                          << " differs from the magic value by more than 20%\n"
-                          << "+++ WARNING +++ Will readjust the exposure now!" << std::endl;
+                spdlog::warn(
+                    "{} : The image intensity ({}) differs from the nominal value ({}) by more than 20%. Will readjust exposure now.",
+                    m_ID, m_data.cleanedIntensity, kNominalIntensity);
                 operate(PAS_MPESType_SetExposure);
                 m_numAttempts++;
                 // read the sensor again
@@ -323,6 +350,9 @@ UaStatus MPESController::read(bool print) {
     std::ofstream sql_file("MPES_readings.sql", std::ios_base::app);
     sql_file << sql_stmt.toUtf8();
 
+    spdlog::trace("{} : Recorded MPES measurement SQL statement into MPES_readings.sql file: {} ", m_ID,
+                  sql_stmt.toUtf8());
+
     return status;
 }
 
@@ -332,6 +362,8 @@ char MPESController::getPanelSide(unsigned panelpos) {
         panelside = m_PanelSideMap.at(panelpos);
     }
     catch (std::out_of_range &e) {
+        spdlog::error("MPESController::getPanelSide() : Invalid panel position {} (not connected to this MPES {}).",
+                      panelpos, m_ID);
         panelside = 0;
     }
 

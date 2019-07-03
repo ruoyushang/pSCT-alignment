@@ -7,6 +7,8 @@
 #include <stdlib.h>
 #include <limits>
 
+#include "common/utilities/spdlog/spdlog.h"
+
 // timing for troubleshooting
 #include <chrono>
 
@@ -133,7 +135,7 @@ bool GASCCD::initialize()
         if (!pfCamera->isReady()) {
             std::string strout =
                     "GASCCD::initialize(): Camera [" + fLEDsIn.CCDNAME + "] reports not ready. Trying again...\n";
-            std::cout << strout;
+            spdlog::warn(strout);
 
             if(fLEDsIn.VERBOSE) {
                 logout << strout;
@@ -143,7 +145,7 @@ bool GASCCD::initialize()
         }
         if (!pfCamera->setGain(fLEDsIn.CCDGAIN)) {
             std::string strout = "+++ WARNING: GASCCD::initialize(): Error setting gain, using stock value\n";
-            std::cout << strout;
+            spdlog::warn(strout);
 
             if(fLEDsIn.VERBOSE) {
                 logout << strout;
@@ -151,7 +153,7 @@ bool GASCCD::initialize()
         }
         if (!pfCamera->setExposure(fLEDsIn.CCDEXP)) {
             std::string strout = "+++ WARNING: GASCCD::initialize(): Error setting exposure, using stock value\n";
-            std::cout << strout;
+            spdlog::warn(strout);
 
             if(fLEDsIn.VERBOSE) {
                 logout << strout;
@@ -203,12 +205,12 @@ void GASCCD::setNominalValues(int offset, double value)
 }
 
 void DummyGASCCD::setConfig(string config) {
-    std::cout << "DummyGASCCD :: setConfig() - should do nothing" << std::endl;
+    spdlog::debug("DummyGASCCD :: setConfig() - should do nothing");
     fConfigFile = config;
 }
 
 bool DummyGASCCD::initialize() {
-    std::cout << "DummyGASCCD :: initialize() - should do nothing" << std::endl;
+    spdlog::debug("DummyGASCCD :: initialize() - should do nothing");
     return true;
 }
 

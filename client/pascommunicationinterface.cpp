@@ -30,6 +30,8 @@
 
 #include <arv.h>
 
+#include "common/utilities/spdlog/spdlog.h"
+
 /* ----------------------------------------------------------------------------
     Begin Class    PasCommunicationInterface
     constructors / destructors
@@ -56,7 +58,7 @@ PasCommunicationInterface::PasCommunicationInterface() :
 PasCommunicationInterface::~PasCommunicationInterface()
 {
     m_stop = OpcUa_True; // Signal Thread to stop
-    std::cout << "Closed and cleaned up PasCommunicationInterface\n";
+    spdlog::info("Closed and cleaned up PasCommunicationInterface");
 }
 
 UaStatus PasCommunicationInterface::initialize()
@@ -88,25 +90,21 @@ UaStatus PasCommunicationInterface::initializeCCDs()
         for (const auto &identity : m_pConfiguration->getDevices(PAS_CCDType)) {
             try {
                 if (serial2ip.at(std::to_string(identity.serialNumber)) != identity.eAddress) {
-                    std::cout << " +++ WARNING +++ PasCommunicationInterface::Initialize(): "
-                                 "mismatch in recorded config and actual IP assignment:" << std::endl;
-                    std::cout << "        " << identity.serialNumber << " is assigned "
-                              << identity.eAddress << ", but actually obtained "
-                              << serial2ip[std::to_string(identity.serialNumber)] << std::endl;
+                    spdlog::warn(
+                        "PasCommunicationInterface::Initialize(): mismatch in recorded config and actual IP assignment. {} is assigned {}, but actually obtained {}.",
+                        identity.serialNumber, identity.eAddress, serial2ip[std::to_string(identity.serialNumber)]);
                 }
                 addDevice(nullptr, PAS_CCDType, identity);
             }
             catch (std::out_of_range &e) {
-                std::cout << " +++ WARNING +++ PasCommunicationInterface::Initialize(): CCD "
-                          << identity.serialNumber << " with assigned IP " << identity.eAddress
-                          << " isn't found on the network. Check your connection and restart."
-                          << " Skipping..." << std::endl;
+                spdlog::warn(
+                    "PasCommunicationInterface::Initialize(): CCD {} with assigned IP {} isn't found on the network. Check your connection and try again. Skipping...",
+                    identity.serialNumber, identity.eAddress);
             }
         }
     }
     catch (std::out_of_range &e) {
-        std::cout << " +++ WARNING +++ PasCommunicationInterface::Initialize(): "
-                     "no CCD configurations found." << std::endl;
+        spdlog::warn("PasCommunicationInterface::Initialize(): no CCD configurations found.");
     }
 
     return OpcUa_Good;
@@ -127,8 +125,7 @@ PasCommunicationInterface::addDevice(Client *pClient, OpcUa_UInt32 deviceType,
 
     // Found existing copy of device
     if (m_pControllers.count(deviceType) > 0 && m_pControllers.at(deviceType).count(identity) > 0) {
-        //std::cout << "PasCommunicationInterface::addDevice() : Device " << identity << " already exists. Moving on..."
-        //          << std::endl;
+        //spdlog::debug("PasCommunicationInterface::addDevice() : Device {} already exists. Moving on...", identity);
         return identity;
     }
         // Didn't find existing copy, create new one
@@ -162,14 +159,14 @@ PasCommunicationInterface::addDevice(Client *pClient, OpcUa_UInt32 deviceType,
 
         // Initialize this controller or return if unable to do so for whatever reason
         if (!pController->initialize()) {
-            std::cout << "Device " << identity << ": failed to initialize." << std::endl;
+            spdlog::error("Device {} failed to initialize.", identity);
             return identity;
         }
 
         m_pControllers[deviceType][identity] = pController;
-        
-        std::cout << "PasCommunicationInterface::addDevice() Added "
-                  << PasCommunicationInterface::deviceTypeNames[deviceType] << " with identity " << identity << std::endl;
+
+        std::info("PasCommunicationInterface::addDevice() Added {} with identity {}.",
+                  PasCommunicationInterface::deviceTypeNames[deviceType], identity);
 
         return identity;
     }
@@ -183,8 +180,7 @@ void PasCommunicationInterface::addEdgeControllers() {
             if (m_pControllers.at(PAS_PanelType).find(panelChildId) ==
                 m_pControllers.at(PAS_PanelType).end()) {
                 // Child panel not found
-                //std::cout << "Could not find panel " << panelChildId << " as child of Edge " << edgeId
-                //          << " (likely server failed to connect). Edge controller not created..." << std::endl;
+                //std::debug("Could not find panel {} as child of Edge {} (likely server failed to connect). Edge controller not created...", panelChildId, edgeId);
                 addEdge = false;
                 break;
             }
@@ -212,8 +208,9 @@ void PasCommunicationInterface::addMirrorControllers() {
         if (addMirror) {
             addDevice(nullptr, PAS_MirrorType, mirrorId);
         } else {
-            std::cout << "Could not find any panel children of Mirror " << mirrorId
-                      << " (likely server failed to connect). Mirror controller not created..." << std::endl;
+            spdlog::warn(
+                "Could not find any panel children of Mirror {} (likely server failed to connect). Mirror controller not created...",
+                mirrorId);
         }
     }
 }

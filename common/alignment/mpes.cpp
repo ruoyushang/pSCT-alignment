@@ -5,12 +5,13 @@
 #include <dirent.h>
 #include <fstream>
 #include <iomanip>
-#include <iostream>
 #include <sstream>
 #include <string>
 #include <unistd.h>
 
 #include "common/alignment/platform.hpp"
+
+#include "common/utilities/spdlog/spdlog.h"
 
 
 const int MPESBase::DEFAULT_IMAGES_TO_CAPTURE = 9;
@@ -33,7 +34,7 @@ const std::vector<Device::ErrorDefinition> MPESBase::ERROR_DEFINITIONS = {
 
 bool MPESBase::initialize() {
     if (isBusy()) {
-        std::cout << m_Identity << " : MPES::initialize() : Busy, cannot initialize.\n";
+        spdlog::error("{} : MPES::initialize() : Busy, cannot initialize.", m_Identity);
         return false;
     }
 
@@ -48,7 +49,7 @@ bool MPESBase::initialize() {
 // returns measured intensity -- check this value to see if things work fine
 int MPESBase::setExposure() {
     if (isBusy()) {
-        std::cout << m_Identity << " : MPES::setExposure() : Busy, cannot set exposure.\n";
+        spdlog::error("{} : MPES::setExposure() : Busy, cannot set exposure.", m_Identity);
         return -1;
     }
 
@@ -64,22 +65,22 @@ int MPESBase::setExposure() {
 // so check the return value to know if things work fine
 int MPESBase::updatePosition() {
     if (isBusy()) {
-        std::cout << m_Identity << " : MPES::updatePosition() : Busy, cannot read.\n";
+        spdlog::error("{} : MPES::updatePosition() : Busy, cannot read webcam.", m_Identity);
         return -1;
     }
 
-    std::cout << m_Identity << " : MPES::updatePosition() : Reading...\n";
+    spdlog::info("{} : MPES::updatePosition() : Reading webcam...", m_Identity);
     int intensity;
     setBusy();
     intensity = __updatePosition();
     unsetBusy();
-    std::cout << m_Identity << " : MPES::updatePosition() : Done.\n";
+    spdlog::info("{} : MPES::updatePosition() : Done.", m_Identity);
     return intensity;
 }
 
 void MPESBase::turnOn() {
     if (isBusy()) {
-        std::cout << m_Identity << " : MPES::turnOn() : Busy, cannot turn on.\n";
+        spdlog::error("{} : MPES::turnOn() : Busy, cannot turn on MPES.", m_Identity);
         return;
     }
     setBusy();
@@ -97,7 +98,7 @@ void MPESBase::turnOn() {
 
 void MPES::turnOff() {
     if (isBusy()) {
-        std::cout << m_Identity << " : MPES::turnOff() : Busy, cannot turn off.\n";
+        spdlog::error("{} : MPES::turnOff() : Busy, cannot turn off MPES.", m_Identity);
         return;
     }
     setBusy();
@@ -112,7 +113,7 @@ bool MPES::isOn() {
 // returns intensity of the sensor image.
 // check this value to see if everything is working fine
 bool MPES::__initialize() {
-    std::cout << m_Identity << " : MPES::initialize() : Initializing...\n";
+    spdlog::info("{} : MPES::initialize() : Initializing...", m_Identity);
     // we toggle the usb port, checking the video devices when it's off and again when it's on.
     // the new video device is the ID of the newly created MPES.
 
@@ -137,12 +138,13 @@ bool MPES::__initialize() {
             return false; // make sure this is a valid video device -- i.e., not -1
         }
     } else {
-        std::cout << m_Identity << " : MPES::initialize() : Found " << toggledDevices.size() << " devices, should be exactly 1.\n";
+        spdlog::error("{} : MPES::initialize() : Found {} devices, should be exactly 1.", m_Identity,
+                      toggledDevices.size());
         setError(0);
         return false; // the list should be just one device at this point
     }
 
-    //std::cout << "MPES::initialize(): Detected new video device " << newVideoDeviceId << std::endl;
+    spdlog::debug("MPES::initialize(): Detected new video device {}.", newVideoDeviceId);
     m_pDevice = std::unique_ptr<MPESDevice>(new MPESDevice(newVideoDeviceId));
     m_pImageSet = std::unique_ptr<MPESImageSet>(new MPESImageSet(m_pDevice.get(), DEFAULT_IMAGES_TO_CAPTURE));
 
@@ -151,9 +153,9 @@ bool MPES::__initialize() {
     std::string MPES_IDstring = oss.str();
 
     std::string matFileFullPath = MATRIX_CONSTANTS_DIR_PATH + MPES_IDstring + "_MatConstants.txt";
-    //std::cout << "Trying to access " << matFileFullPath << " for Matrix File" << std::endl;
+    spdlog::trace("{} : MPES::initialize(): Trying to access {} for Matrix File", m_Identity, matFileFullPath);
     std::string calFileFullPath = CAL2D_CONSTANTS_DIR_PATH + MPES_IDstring + "_2D_Constants.txt";
-    //std::cout << "Trying to access " << calFileFullPath << " for Cal2D File" << std::endl;
+    spdlog::trace("{} : MPES::initialize(): Trying to access {} for Cal2D File", m_Identity, calFileFullPath);
 
     std::ifstream matFile(matFileFullPath);
     std::ifstream calFile(calFileFullPath);
@@ -164,18 +166,18 @@ bool MPES::__initialize() {
 
         m_pDevice->LoadCalibration(calFileFullPath.c_str());
         m_pDevice->LoadMatrixTransform(matFileFullPath.c_str());
-        //std::cout << "Read calibration data OK -- using calibrated values\n";
+        spdlog::debug("{} : Read calibration data -- using calibrated values.", m_Identity);
         m_Calibrate = true;
     } else {
-        //std::cout << "Did not read calibration data -- using raw values\n";
+        spdlog::debug("{} : Did not read calibration data -- using raw values.", m_Identity);
     }
 
-    std::cout << m_Identity << " : MPES::initialize() : Done.\n";
+    spdlog::debug("{} : MPES::initialize() : Done.", m_Identity);
     return true;
 }
 
 int MPES::__setExposure() {
-    std::cout << m_Identity << " : MPES::setExposure() : Setting exposure...\n";
+    spdlog::debug("{} : MPES::setExposure() : Setting exposure...", m_Identity);
     int intensity;
 
     int counter = 0;
@@ -192,7 +194,8 @@ int MPES::__setExposure() {
         }
     }
 
-    std::cout << m_Identity << " : MPES::setExposure() : Done.\n";
+    spdlog::debug("{} : MPES::setExposure() : Done.", m_Identity);
+
     return intensity;
 }
 
@@ -235,7 +238,7 @@ int MPES::__updatePosition() {
     }
 
     if (m_Position.xCentroid == -1. || m_Position.yCentroid == -1.) {
-        std::cout << "MPES reading of xCenter or yCenter = -1! Potentially lost beam..." << std::endl;
+        spdlog::error("{} : MPES reading of xCenter or yCenter = -1! Potentially lost beam...", m_Identity);
         setError(2);
     }
 
@@ -280,7 +283,7 @@ bool DummyMPES::isOn() {
 }
 
 bool DummyMPES::__initialize() {
-    std::cout << m_Identity << " : DummyMPES::initialize(): Initializing...\n";
+    spdlog::debug("{} : DummyMPES::initialize(): Initializing...", m_Identity);
 
     m_Errors.assign(getNumErrors(), false);
 
@@ -291,9 +294,9 @@ bool DummyMPES::__initialize() {
     std::string MPES_IDstring = oss.str();
 
     std::string matFileFullPath = MATRIX_CONSTANTS_DIR_PATH + MPES_IDstring + "_MatConstants.txt";
-    //std::cout << "Trying to access " << matFileFullPath << " for Matrix File" << std::endl;
+    spdlog::trace("{} : DummyMPES::initialize(): Trying to access {} for Matrix File", m_Identity, matFileFullPath);
     std::string calFileFullPath = CAL2D_CONSTANTS_DIR_PATH + MPES_IDstring + "_2D_Constants.txt";
-    //std::cout << "Trying to access " << calFileFullPath << " for Cal2D File" << std::endl;
+    spdlog::trace("{} : DummyMPES::initialize(): Trying to access {} for Cal2D File", m_Identity, calFileFullPath);
 
     std::ifstream matFile(matFileFullPath);
     std::ifstream calFile(calFileFullPath);
@@ -302,25 +305,26 @@ bool DummyMPES::__initialize() {
         matFile.close();
         calFile.close();
 
-        //std::cout << "Read calibration data OK -- using calibrated values\n";
+        spdlog::debug("{} : Read calibration data -- using calibrated values.", m_Identity);
         m_Calibrate = true;
     } else {
-        //std::cout << "Did not read calibration data -- using raw values\n";
+        spdlog::debug("{} : Did not read calibration data -- using raw values.", m_Identity);
     }
 
-    std::cout << m_Identity << " : DummyMPES::initialize() : Done.\n";
+    spdlog::debug("{} : DummyMPES::initialize() : Done.", m_Identity);
     return true;
 }
 
 int DummyMPES::__setExposure() {
-    std::cout << m_Identity << " : DummyMPES::setExposure() : Setting exposure...\n";
+    spdlog::debug("{} : DummyMPES::setExposure() : Setting exposure...", m_Identity);
+    sleep(5);
     int intensity = MPESBase::NOMINAL_INTENSITY; // dummy value
-    std::cout << m_Identity << " : DummyMPES::setExposure() : Done.\n";
+    spdlog::debug("{} : DummyMPES::setExposure() : Done.", m_Identity);
     return intensity;
 }
 
 int DummyMPES::__updatePosition() {
-    std::cout << m_Identity << " : calling DummyMPES::updatePosition()\n";
+    spdlog::debug("{} : DummyMPES::updatePosition() : Updating position (dummy data)...", m_Identity);
     // Set internal position variable to dummy values
     m_Position.xCentroid = 160.;
     m_Position.yCentroid = 120.;
