@@ -83,7 +83,7 @@ UaStatus PasNodeManager::afterStartUp()
             ret = m_pClients.at(client)->browseAndAddDevices();
             spdlog::info("PasNodeManager::afterStartUp(): Successfully connected to server at {} and created all controllers.",address.toUtf8());
         } else
-            spdlog::warn("PasNodeManager::afterStartUp(): Failed to connect to server at {}. Moving on...", address);
+            spdlog::warn("PasNodeManager::afterStartUp(): Failed to connect to server at {}. Moving on...", address.toUtf8());
 
         ++client;
     }
