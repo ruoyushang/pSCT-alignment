@@ -81,9 +81,7 @@ UaStatus PasNodeManager::afterStartUp()
         if (ret.isGood()) {
             // add controllers for other devices in each server (this will only include ACT, MPES, and PSD controllers)
             ret = m_pClients.at(client)->browseAndAddDevices();
-            spdlog::info(
-                "PasNodeManager::afterStartUp(): Successfully connected to server at {} and created all controllers.",
-                address);
+            spdlog::info("PasNodeManager::afterStartUp(): Successfully connected to server at {} and created all controllers.",address.toUtf8());
         } else
             spdlog::warn("PasNodeManager::afterStartUp(): Failed to connect to server at {}. Moving on...", address);
 

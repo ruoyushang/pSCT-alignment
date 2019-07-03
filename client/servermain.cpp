@@ -175,7 +175,7 @@ int OpcMain(const char *szAppPath, const std::vector<std::string> &serverList, c
         ret = pServer->start();
         if ( ret == 0 )
         {
-            spdlog::info("************************************\n"
+            spdlog::info("\n************************************\n"
                          "  ---- SERVER/CLIENT STARTED ----\n"
                          "    Press x to shut down server\n"
                          "************************************");
@@ -200,7 +200,7 @@ int OpcMain(const char *szAppPath, const std::vector<std::string> &serverList, c
                 }
             }
 
-            spdlog::info("*************************************\n"
+            spdlog::info("\n*************************************\n"
                          " Shutting down server/client\n"
                          "*************************************");
 
@@ -211,7 +211,7 @@ int OpcMain(const char *szAppPath, const std::vector<std::string> &serverList, c
             // to allow them to disconnect after they received the shutdown signal
             pServer->stop(3, UaLocalizedText("", "User shutdown"));
         } else {
-            spdlog::error("*******************************************\n"
+            spdlog::error("\n*******************************************\n"
                           "  ---- FAILED TO START SERVER/CLIENT ----\n"
                           "             Shutting down\n"
                           "*******************************************");

@@ -96,7 +96,7 @@ UaStatus PSDController::operate(OpcUa_UInt32 offset, const UaVariantArray &args)
 ==============================================================================*/
 
 UaStatus PSDController::read() {
-    spdlog::trace("Calling read on PSD {} (updating controller data and last update time)", m_ID)
+    spdlog::trace("Calling read on PSD {} (updating controller data and last update time)", m_ID);
 
     UaStatus status;
 

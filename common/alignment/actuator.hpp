@@ -2,6 +2,7 @@
 #define ALIGNMENT_ACTUATOR_HPP
 
 #include <array>
+#include <cstdlib>
 #include <memory>
 #include <string>
 #include <vector>
@@ -20,7 +21,7 @@ public:
     };
 
     struct ASFInfo {
-        ASFInfo() : directory("/.ASF/"), prefix(".ASF_"), suffix(".log") {}
+        ASFInfo() : directory(std::string(getenv("HOME")) + "/.ASF/"), prefix(".ASF_"), suffix(".log") {}
 
         ASFInfo(std::string directory, std::string prefix, std::string suffix) : directory(std::move(directory)),
                                                                                  prefix(std::move(prefix)),

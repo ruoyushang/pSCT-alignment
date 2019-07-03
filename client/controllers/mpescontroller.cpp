@@ -290,6 +290,7 @@ UaStatus MPESController::read(bool print) {
     m_numAttempts = 1;
 
     if (!status.isGood()) {
+        spdlog::error("{} : MPES Read failed", m_ID);
         return status;
     }
 

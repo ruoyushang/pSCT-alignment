@@ -166,7 +166,7 @@ PasCommunicationInterface::addDevice(Client *pClient, OpcUa_UInt32 deviceType,
 
         m_pControllers[deviceType][identity] = pController;
 
-        std::info("PasCommunicationInterface::addDevice() Added {} with identity {}.",
+        spdlog::info("PasCommunicationInterface::addDevice() Added {} with identity {}.",
                   PasCommunicationInterface::deviceTypeNames[deviceType], identity);
 
         return identity;
