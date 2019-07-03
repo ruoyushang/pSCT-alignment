@@ -104,3 +104,6 @@ private:
     /// @brief Pointer to a Configuration object, used to retrieve a list
     /// of OPC UA nodes to monitor via subscription.
     std::shared_ptr<Configuration> m_pConfiguration;
+};
+
+#endif // SUBSCRIPTION_H
