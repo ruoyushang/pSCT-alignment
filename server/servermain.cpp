@@ -8,6 +8,7 @@
 #include <iostream>
 #include <memory>
 #include <string>
+#include <sstream>
 #include <vector>
 #include <sys/statvfs.h>
 
@@ -102,7 +103,7 @@ int OpcServerMain(const std::string &szAppPath, const std::string &configFilePat
 
         if (pServer->start() == 0) {
             spdlog::info(
-                "***************************************************\n"
+                "\n***************************************************\n"
                 " Press {} to shut down server\n"
                 "***************************************************", SHUTDOWN_SEQUENCE);
 
@@ -111,7 +112,7 @@ int OpcServerMain(const std::string &szAppPath, const std::string &configFilePat
             }
 
             spdlog::info(
-                "***************************************************\n"
+                "\n***************************************************\n"
                 " Shutting down server\n"
                 "***************************************************");
 
@@ -238,15 +239,16 @@ int main(int argc, char* argv[])
 
     double sysFree;
     std::string temp;
-    temp += "********************SYSTEM INFO********************\n";
+    std::ostringstream os;
+    os << "\n********************SYSTEM INFO********************" << std::endl;
     if (!checkSystem(sysFree)) // check available disk space
-        temp += " Free disk space: " + std::to_string(sysFree) + "GB\n";
+        os << " Free disk space: " << std::to_string(sysFree) << "GB" << std::endl;
     else {
         spdlog::error(" Failed to stat \"/\": terminating\n");
         return -1;
     }
-    temp += "***************************************************\n";
-    spdlog::info(temp);
+    os << "***************************************************" << std::endl;
+    spdlog::info(os.str());
     RegisterSignalHandler();
 
     int ret = OpcServerMain(pszAppPath, configFilePath, panelNumber, endpointUrl);
