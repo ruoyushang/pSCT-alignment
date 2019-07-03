@@ -264,9 +264,6 @@ UaStatus MPESController::operate(OpcUa_UInt32 offset, const UaVariantArray &args
 UaStatus MPESController::read(bool print) {  
     //UaMutexLocker lock(&m_mutex);
     UaStatus status;
-
-    spdlog::info("{} : MPESController reading webcam data from server", m_ID);
-
     status = m_pClient->callMethod(m_pClient->getDeviceNodeId(m_ID), UaString("Read"), UaVariantArray());
 
     if (!status.isGood()) {
