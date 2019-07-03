@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <memory>
+#include <sstream>
 
 #include "uaserver/opcua_analogitemtype.h"
 
@@ -84,15 +85,14 @@ UaStatus PasNodeManager::afterStartUp()
                 "PasNodeManager::afterStartUp(): Successfully connected to server at {} and created all controllers.",
                 address);
         } else
-            std::cout << "PasNodeManager::afterStartUp(): Failed to connect to server at" << address << ". Moving on..."
-                      << std::endl;
+            spdlog::warn("PasNodeManager::afterStartUp(): Failed to connect to server at {}. Moving on...", address);
 
         ++client;
     }
 
     if (m_Mode == "client") {
         // connect to positioner
-        std::cout << "PasNodeManager::afterStartUp(): Attempting to create controller for positioner...\n";
+        spdlog::info("PasNodeManager::afterStartUp(): Attempting to create controller for positioner...");
         Device::Device::Identity id;
         UaString positioner_address = m_pConfiguration->getPositionerUrl();
         m_pPositioner->setAddress(positioner_address);
@@ -103,25 +103,23 @@ UaStatus PasNodeManager::afterStartUp()
             // add the positioner to the comm interface
             dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->addDevice(m_pPositioner, GLOB_PositionerType,
                                                                                   id);
-            std::cout
-                << "PasNodeManager::afterStartUp(): Connected to positioner and added corresponding controller.\n";
+            spdlog::info("PasNodeManager::afterStartUp(): Connected to positioner and added corresponding controller.");
         } else {
-            std::cout << "PasNodeManager::afterStartUp(): Failed to connect to positioner at "
-                      << m_pConfiguration->getPositionerUrl().toUtf8()
-                      << ". Moving on..." << std::endl;
+            spdlog::warn("PasNodeManager::afterStartUp(): Failed to connect to positioner server at {}. Moving on...",
+                         m_pConfiguration->getPositionerUrl().toUtf8());
         }
 
         // Create all relevant edge controllers
-        std::cout << "\nPasNodeManager::afterStartUp(): Creating all required edge controllers...\n";
+        spdlog::info("PasNodeManager::afterStartUp(): Creating all required edge controllers...");
         dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->addEdgeControllers();
 
         // Create all relevant mirror controllers
-        std::cout << "\nPasNodeManager::afterStartUp(): Creating all required mirror controllers...\n";
+        spdlog::info("PasNodeManager::afterStartUp(): Creating all required mirror controllers...");
         dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->addMirrorControllers();
     }
 
     // Finish controller initialization by adding parent-child relationships for all controllers
-    std::cout << "\nPasNodeManager::afterStartUp(): Finalizing all controller parent-child relationships...\n";
+    spdlog::info("PasNodeManager::afterStartUp(): Finalizing all controller parent-child relationships...");
     dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->addParentChildRelations();
 
     spdlog::info("PasNodeManager::afterStartUp(): Now creating all OPC UA objects and folders...\n");
@@ -229,19 +227,21 @@ UaStatus PasNodeManager::afterStartUp()
 
         // Check if object has children (is a composite controller)
         if (dynamic_cast<PasCompositeController *>(pController.get())) {
-            std::cout << "Parent: " << pController->getId() << std::endl;
+            std::string temp;
+            std::ostringstream os(temp);
+            os << "Parent: " << pController->getId() << std::endl;
             for (const auto &devType: PasCommunicationInterface::deviceTypeNames) {
                 deviceType = devType.first;
                 deviceName = devType.second;
                 try {
                     pChildren = dynamic_cast<PasCompositeController *>(pController.get())->getChildren(deviceType);
                     if (!pChildren.empty()) {
-                        std::cout << deviceName << std::endl;
+                        os << deviceName << std::endl;
                         pFolder = new UaFolder(UaString(deviceName.c_str()), UaNodeId(objectName + UaString(deviceName.c_str()), getNameSpaceIndex()), m_defaultLocaleId);
                         ret = addNodeAndReference(pObject->nodeId(), pFolder, OpcUaId_HasComponent);
                         UA_ASSERT(ret.isGood());
                         for ( auto &child : pChildren) {
-                            std::cout << child->getId() << std::endl;
+                            os << child->getId() << std::endl;
                             ret = addUaReference(pFolder->nodeId(), pDeviceObjects[child]->nodeId(), OpcUaId_HasComponent);
                             UA_ASSERT(ret.isGood());
                             // Remove any child from the list of root devices
@@ -253,7 +253,8 @@ UaStatus PasNodeManager::afterStartUp()
                     // Do nothing
                 }
             }
-            std::cout << std::endl;
+            os << std::endl;
+            spdlog::info(os.str());
         }
     }
 
