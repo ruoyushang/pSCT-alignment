@@ -31,7 +31,7 @@
 #include "uaserver/uamodule.h"
 #include "uaserver/uasession.h"
 
-#include <iostream>
+#include <sstream>
 #include "common/utilities/spdlog/spdlog.h"
 #include "common/utilities/spdlog/fmt/ostr.h"
 
@@ -98,16 +98,17 @@ UaStatus OpcServer::afterStartUp()
         uaEndpointArray);
     if ( uaEndpointArray.length() > 0 )
     {
-        spdlog::info("***************************************************\n"
-                     " Server opened endpoints for following URLs:\n"
-        );
+        std::string temp;
+        std::ostringstream os;
+        os << "\n***************************************************\n";
+        os << " Server opened endpoints for following URLs:\n";
         OpcUa_UInt32 idx;
         bool bError = false;
         for ( idx=0; idx<uaEndpointArray.length(); idx++ )
         {
             if ( uaEndpointArray[idx]->isOpened() )
             {
-                spdlog::info("     {}", uaEndpointArray[idx]->sEndpointUrl().toUtf8());
+                os << "     " << uaEndpointArray[idx]->sEndpointUrl().toUtf8();
             }
             else
             {
@@ -116,9 +117,8 @@ UaStatus OpcServer::afterStartUp()
         }
         if ( bError )
         {
-            spdlog::error("\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n"
-                          "!!!! The following endpoints URLs failed:\n"
-            );
+            os << "\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n"
+                          "!!!! The following endpoints URLs failed:\n";
             for ( idx=0; idx<uaEndpointArray.length(); idx++ )
             {
                 if (!uaEndpointArray[idx]->isOpened())
@@ -126,9 +126,10 @@ UaStatus OpcServer::afterStartUp()
                     spdlog::error("!!!! {}", uaEndpointArray[idx]->sEndpointUrl().toUtf8());
                 }
             }
-            spdlog::error("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n\n");
+            os << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n\n";
         }
-        spdlog::info("***************************************************\n");
+        os << "\n***************************************************\n";
+        spdlog::info(os.str());
     }
 
     return status;

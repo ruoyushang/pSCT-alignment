@@ -114,7 +114,7 @@ UaStatus MPESController::getData(OpcUa_UInt32 offset, UaVariant &value) {
         if (offset != PAS_MPESType_Position && offset != PAS_MPESType_Serial && offset != PAS_MPESType_ErrorState &&
             offset != PAS_MPESType_xCentroidNominal && offset != PAS_MPESType_yCentroidNominal) {
             if (__expired()) {
-                spdlog::debug("{} : MPES data is expired, calling read()...", m_ID);
+                spdlog::info("{} : MPES data is expired, calling read()...", m_ID);
                 status = operate(PAS_MPESType_Read, UaVariantArray());
             }
             if (status == OpcUa_BadInvalidState) {
