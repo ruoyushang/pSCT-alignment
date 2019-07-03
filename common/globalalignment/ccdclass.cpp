@@ -8,6 +8,7 @@
 #include <limits>
 
 #include "common/utilities/spdlog/spdlog.h"
+#include "common/utilities/spdlog/fmt/ostr.h"
 
 // timing for troubleshooting
 #include <chrono>

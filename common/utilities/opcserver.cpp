@@ -33,6 +33,7 @@
 
 #include <iostream>
 #include "common/utilities/spdlog/spdlog.h"
+#include "common/utilities/spdlog/fmt/ostr.h"
 
 #ifndef UA_BUILD_DATE_ZONE
 #define UA_BUILD_DATE_ZONE 1 // Must match UTC offset and daylight saving time at build date

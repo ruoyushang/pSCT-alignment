@@ -17,6 +17,7 @@
 #include "common/alignment/device.hpp"
 
 #include "common/utilities/spdlog/spdlog.h"
+#include "common/utilities/spdlog/fmt/ostr.h"
 
 
 const std::vector<Device::ErrorDefinition> ActuatorBase::ERROR_DEFINITIONS = {

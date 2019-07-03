@@ -15,6 +15,7 @@
 #include "client/clienthelper.hpp"
 
 #include "common/utilities/spdlog/spdlog.h"
+#include "common/utilities/spdlog/fmt/ostr.h"
 
 
 UaStatus PositionerController::getState(Device::DeviceState &state)

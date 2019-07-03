@@ -9,6 +9,7 @@
 #include "client/clienthelper.hpp"
 
 #include "common/utilities/spdlog/spdlog.h"
+#include "common/utilities/spdlog/fmt/ostr.h"
 
 PSDController::PSDController(Device::Identity identity, Client *pClient) :
     PasController(std::move(identity), pClient, 500), m_data() {

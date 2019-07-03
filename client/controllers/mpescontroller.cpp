@@ -11,6 +11,7 @@
 #include "cppconn/statement.h"
 
 #include "common/utilities/spdlog/spdlog.h"
+#include "common/utilities/spdlog/fmt/ostr.h"
 
 
 float MPESController::kNominalIntensity = 150000.;

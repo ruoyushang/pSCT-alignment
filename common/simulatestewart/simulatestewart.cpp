@@ -7,6 +7,7 @@
 #include <string>
 
 #include "common/utilities/spdlog/spdlog.h"
+#include "common/utilities/spdlog/fmt/ostr.h"
 
 int main(int argc, char *argv[])
 {

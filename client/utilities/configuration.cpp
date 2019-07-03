@@ -14,6 +14,7 @@
 #include "DBConfig.hpp"
 
 #include "common/utilities/spdlog/spdlog.h"
+#include "common/utilities/spdlog/fmt/ostr.h"
 
 const std::map<std::string, std::string> Configuration::SUBCLIENTS = {
     {"primary_upper", "opc.tcp://127.0.0.1:48011"},

@@ -19,6 +19,7 @@
 #include "client/controllers/pascontroller.hpp"
 
 #include "common/utilities/spdlog/spdlog.h"
+#include "common/utilities/spdlog/fmt/ostr.h"
 
 
 CCDController::CCDController(Device::Identity identity) : PasController(std::move(identity), nullptr, 1000) {

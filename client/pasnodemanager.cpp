@@ -21,6 +21,7 @@
 #include "client/utilities/configuration.hpp"
 
 #include "common/utilities/spdlog/spdlog.h"
+#include "common/utilities/spdlog/fmt/ostr.h"
 
 
 PasNodeManager::PasNodeManager(std::shared_ptr<Configuration> pConfiguration, std::string mode)

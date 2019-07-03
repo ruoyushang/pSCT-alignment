@@ -4,6 +4,7 @@
 #include "common/cbccode/cbc.hpp"
 
 #include "common/utilities/spdlog/spdlog.h"
+#include "common/utilities/spdlog/fmt/ostr.h"
 
 const std::map<Device::ErrorState, std::string> Device::errorStateNames = {
     {Device::ErrorState::Nominal,       "Nominal"},

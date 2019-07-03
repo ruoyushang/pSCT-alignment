@@ -17,6 +17,7 @@
 #include "client/utilities/subscription.hpp"
 
 #include "common/utilities/spdlog/spdlog.h"
+#include "common/utilities/spdlog/fmt/ostr.h"
 
 #define _DEBUG_ 0
 

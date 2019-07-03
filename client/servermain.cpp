@@ -25,6 +25,7 @@
 #include "client/utilities/paslogic.hpp"
 
 #include "common/utilities/spdlog/spdlog.h"
+#include "common/utilities/spdlog/fmt/ostr.h"
 #include "common/utilities/spdlog/sinks/basic_file_sink.h"
 #include "common/utilities/spdlog/sinks/stdout_color_sinks.h"
 #include "common/utilities/spdlog/sinks/rotating_file_sink.h"

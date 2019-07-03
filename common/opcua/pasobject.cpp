@@ -1,6 +1,7 @@
 #include "common/opcua/pasobject.hpp"
 
 #include "common/utilities/spdlog/spdlog.h"
+#include "common/utilities/spdlog/fmt/ostr.h"
 
 #include "uabase/uamutex.h"
 #include "uaserver/methodhandleuanode.h"

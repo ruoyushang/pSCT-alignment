@@ -12,6 +12,7 @@
 #include <unistd.h>
 
 #include "common/utilities/spdlog/spdlog.h"
+#include "common/utilities/spdlog/fmt/ostr.h"
 
 #include "common/alignment/device.hpp"
 #include "common/alignment/mpes.hpp"

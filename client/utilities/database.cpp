@@ -9,6 +9,7 @@
 #include "configuration.hpp"
 
 #include "common/utilities/spdlog/spdlog.h"
+#include "common/utilities/spdlog/fmt/ostr.h"
 
 // MySQL C++ Connector includes
 #include "cppconn/driver.h"

@@ -10,6 +10,7 @@
 #include "TCanvas.h"
 
 #include "common/utilities/spdlog/spdlog.h"
+#include "common/utilities/spdlog/fmt/ostr.h"
 
 Double_t InnerProduct(Int_t n, Double_t *vec1, Double_t *vec2);
 void CrossProduct(Double_t *vec1, Double_t *vec2, Double_t *prod);

@@ -31,6 +31,7 @@
 #include <arv.h>
 
 #include "common/utilities/spdlog/spdlog.h"
+#include "common/utilities/spdlog/fmt/ostr.h"
 
 /* ----------------------------------------------------------------------------
     Begin Class    PasCommunicationInterface

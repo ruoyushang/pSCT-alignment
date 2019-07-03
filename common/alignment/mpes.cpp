@@ -12,6 +12,7 @@
 #include "common/alignment/platform.hpp"
 
 #include "common/utilities/spdlog/spdlog.h"
+#include "common/utilities/spdlog/fmt/ostr.h"
 
 
 const int MPESBase::DEFAULT_IMAGES_TO_CAPTURE = 9;
