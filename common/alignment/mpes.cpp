@@ -184,11 +184,15 @@ int MPES::__setExposure() {
     int counter = 0;
     while ((intensity = __updatePosition())
            && (!m_pDevice->isWithinIntensityTolerance(intensity))
-           && (counter <= 5)) {
+           && (counter < 5)) {
+        spdlog::debug("{} : MPES::setExposure() : Intensity {} ({}). Exposure: {}.", m_Identity, intensity,
+                      m_pDevice->GetTargetIntensity(), m_pDevice->GetExposure());
         m_pDevice->SetExposure(
             (int) (m_pDevice->GetTargetIntensity() / intensity * ((float) m_pDevice->GetExposure())));
 
-        if (++counter > 5) {
+        if (++counter >= 5) {
+            spdlog::error("{} : MPES::setExposure() : Failed to set exposure in 5 attempts, setting Error 1...",
+                          m_Identity);
             setError(1);
             intensity = -1;
             break;

@@ -65,8 +65,8 @@ Device::Device(Device::Identity identity) : m_Identity(std::move(identity)), m_B
 
 void Device::setError(int errorCode) {
     if (!m_Errors.at(errorCode)) {
-        spdlog::info("{} : Setting Error {} ({})", m_Identity, errorCode,
-                     getErrorCodeDefinitions()[errorCode].description);
+        spdlog::error("{} : Setting Error {} ({})", m_Identity, errorCode,
+                      getErrorCodeDefinitions()[errorCode].description);
         m_Errors[errorCode] = true;
     }
 }

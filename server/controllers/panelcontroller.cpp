@@ -26,7 +26,7 @@
 UaStatus PanelController::getState(Device::DeviceState &state) {
     //UaMutexLocker lock(&m_mutex);
     state = _getDeviceState();
-    spdlog::trace("{} : Getting device state => ({})", m_ID, Device::deviceStateNames.at(state));
+    spdlog::trace("{} : Read device state => ({})", m_ID, Device::deviceStateNames.at(state));
     return OpcUa_Good;
 }
 
@@ -43,21 +43,21 @@ UaStatus PanelController::getData(OpcUa_UInt32 offset, UaVariant &value) {
     if (PanelObject::VARIABLES.find(offset) != PanelObject::VARIABLES.end()) {
         if (offset == PAS_PanelType_ExtTemperature) {
             float externalTemperature = m_pPlatform->getExternalTemperature();
-            spdlog::trace("{} : Getting externalTemp value => ({})", m_ID, externalTemperature);
+            spdlog::trace("{} : Read externalTemp value => ({})", m_ID, externalTemperature);
             value.setFloat(externalTemperature);
         } else if (offset == PAS_PanelType_IntTemperature) {
             float internalTemperature = m_pPlatform->getInternalTemperature();
-            spdlog::trace("{} : Getting externalTemp value => ({})", m_ID, internalTemperature);
+            spdlog::trace("{} : Read externalTemp value => ({})", m_ID, internalTemperature);
             value.setFloat(internalTemperature);
         } else if (offset == PAS_PanelType_Position) {
-            spdlog::trace("{} : Getting Position value => ({})", m_ID, m_ID.position);
+            spdlog::trace("{} : Read Position value => ({})", m_ID, m_ID.position);
             value.setInt32(m_ID.position);
         } else if (offset == PAS_PanelType_Serial) {
-            spdlog::trace("{} : Getting Serial value => ({})", m_ID, m_ID.serialNumber);
+            spdlog::trace("{} : Read Serial value => ({})", m_ID, m_ID.serialNumber);
             value.setInt32(m_ID.serialNumber);
         } else if (offset == PAS_PanelType_ErrorState) {
             Device::ErrorState errorState = _getErrorState();
-            spdlog::trace("{} : Getting ErrorState value => ({})", m_ID, static_cast<int>(errorState));
+            spdlog::trace("{} : Read ErrorState value => ({})", m_ID, static_cast<int>(errorState));
             value.setInt32(static_cast<int>(errorState));
         }
     } else if (PanelObject::ERRORS.find(offset) != PanelObject::ERRORS.end()) {
@@ -78,7 +78,7 @@ UaStatus PanelController::getError(OpcUa_UInt32 offset, UaVariant &value) {
     if (errorNum >= 0 && errorNum < PanelObject::ERRORS.size()) {
         errorStatus = m_pPlatform->getError(int(errorNum));
         value.setBool(errorStatus);
-        spdlog::trace("{} : Getting error {} value => ({})", m_ID, errorNum, errorStatus);
+        spdlog::trace("{} : Read error {} value => ({})", m_ID, errorNum, errorStatus);
     } else {
         status = OpcUa_BadInvalidArgument;
     }

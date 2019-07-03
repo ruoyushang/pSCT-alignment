@@ -105,7 +105,7 @@ UaStatus MPESController::getState(Device::DeviceState &state) {
     value.toInt32(v);
 
     state = static_cast<Device::DeviceState>(v);
-    spdlog::trace("{} : Getting device state => ({})", m_ID, Device::deviceStateNames.at(state));
+    spdlog::trace("{} : Read device state => ({})", m_ID, Device::deviceStateNames.at(state));
 
     return status;
 }
@@ -145,43 +145,43 @@ UaStatus MPESController::getData(OpcUa_UInt32 offset, UaVariant &value) {
         switch (offset) {
             case PAS_MPESType_xCentroidAvg:
                 value.setFloat(m_data.xCentroid);
-                spdlog::trace("{} : Getting xCentroid value => ({})", m_ID, m_data.xCentroid);
+                spdlog::trace("{} : Read xCentroid value => ({})", m_ID, m_data.xCentroid);
                 break;
             case PAS_MPESType_yCentroidAvg:
                 value.setFloat(m_data.yCentroid);
-                spdlog::trace("{} : Getting yCentroid value => ({})", m_ID, m_data.yCentroid);
+                spdlog::trace("{} : Read yCentroid value => ({})", m_ID, m_data.yCentroid);
                 break;
             case PAS_MPESType_xCentroidSpotWidth:
                 value.setFloat(m_data.xSpotWidth);
-                spdlog::trace("{} : Getting xCentroidSpotWidth value => ({})", m_ID, m_data.xSpotWidth);
+                spdlog::trace("{} : Read xCentroidSpotWidth value => ({})", m_ID, m_data.xSpotWidth);
                 break;
             case PAS_MPESType_yCentroidSpotWidth:
                 value.setFloat(m_data.ySpotWidth);
-                spdlog::trace("{} : Getting yCentroidSpotWidth value => ({})", m_ID, m_data.ySpotWidth);
+                spdlog::trace("{} : Read yCentroidSpotWidth value => ({})", m_ID, m_data.ySpotWidth);
                 break;
             case PAS_MPESType_CleanedIntensity:
                 value.setFloat(m_data.cleanedIntensity);
-                spdlog::trace("{} : Getting cleanedIntensity value => ({})", m_ID, m_data.cleanedIntensity);
+                spdlog::trace("{} : Read cleanedIntensity value => ({})", m_ID, m_data.cleanedIntensity);
                 break;
             case PAS_MPESType_xCentroidNominal:
                 value.setFloat(m_data.xNominal);
-                spdlog::trace("{} : Getting xCentroidNominal value => ({})", m_ID, m_data.xNominal);
+                spdlog::trace("{} : Read xCentroidNominal value => ({})", m_ID, m_data.xNominal);
                 break;
             case PAS_MPESType_yCentroidNominal:
                 value.setFloat(m_data.yNominal);
-                spdlog::trace("{} : Getting yCentroidNominal value => ({})", m_ID, m_data.yNominal);
+                spdlog::trace("{} : Read yCentroidNominal value => ({})", m_ID, m_data.yNominal);
                 break;
             case PAS_MPESType_Position:
                 value.setInt32(m_ID.position);
-                spdlog::trace("{} : Getting Position value => ({})", m_ID, m_ID.position);
+                spdlog::trace("{} : Read Position value => ({})", m_ID, m_ID.position);
                 break;
             case PAS_MPESType_Serial:
                 value.setInt32(m_ID.serialNumber);
-                spdlog::trace("{} : Getting SerialNumber value => ({})", m_ID, m_ID.serialNumber);
+                spdlog::trace("{} : Read SerialNumber value => ({})", m_ID, m_ID.serialNumber);
                 break;
             case PAS_MPESType_ErrorState:
                 status = m_pClient->read({m_pClient->getDeviceNodeId(m_ID) + "." + "ErrorState"}, &value);
-                spdlog::trace("{} : Getting ErrorState value => ({})", m_ID, value[0].Value.UInt32);
+                spdlog::trace("{} : Read ErrorState value => ({})", m_ID, value[0].Value.UInt32);
                 break;
             default:
                 status = OpcUa_BadInvalidArgument;
@@ -200,7 +200,7 @@ UaStatus MPESController::getError(OpcUa_UInt32 offset, UaVariant &value) {
         std::string varName = std::get<0>(MPESObject::ERRORS.at(offset));
         std::vector<std::string> varsToRead = {m_pClient->getDeviceNodeId(m_ID) + "." + varName};
         status = m_pClient->read(varsToRead, &value);
-        spdlog::trace("{} : Getting error {} value => ({})", m_ID, offset, value[0].Value.Boolean);
+        spdlog::trace("{} : Read error {} value => ({})", m_ID, offset, value[0].Value.Boolean);
     } else {
         status = OpcUa_BadInvalidArgument;
     }
@@ -270,6 +270,7 @@ UaStatus MPESController::read(bool print) {
     status = m_pClient->callMethod(m_pClient->getDeviceNodeId(m_ID), UaString("Read"), UaVariantArray());
 
     if (!status.isGood()) {
+        spdlog::error("{} : MPESController::read() : Call to read webcam failed.", m_ID);
         return status;
     }
 
@@ -290,7 +291,7 @@ UaStatus MPESController::read(bool print) {
     m_numAttempts = 1;
 
     if (!status.isGood()) {
-        spdlog::error("{} : MPES Read failed", m_ID);
+        spdlog::error("{} : MPESController::read() : OPC UA read failed.", m_ID);
         return status;
     }
 

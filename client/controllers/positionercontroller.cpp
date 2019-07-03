@@ -35,7 +35,7 @@ UaStatus PositionerController::getState(Device::DeviceState &state)
             state = Device::DeviceState::On;
     }
 
-    spdlog::trace("{} : Getting device state => ({})", m_ID, Device::deviceStateNames.at(state));
+    spdlog::trace("{} : Read device state => ({})", m_ID, Device::deviceStateNames.at(state));
 
     return status;
 }
@@ -90,22 +90,22 @@ UaStatus PositionerController::getData(OpcUa_UInt32 offset, UaVariant &value)
     if (status.isGood()) {
         if (offset == GLOB_PositionerType_isMoving) {
             value.toBool(m_Data.isMoving);
-            spdlog::trace("{} : Getting isMoving value => ({})", m_ID, m_Data.isMoving);
+            spdlog::trace("{} : Read isMoving value => ({})", m_ID, m_Data.isMoving);
         } else if (offset == GLOB_PositionerType_curAz) {
             value.toFloat(m_Data.curAz);
-            spdlog::trace("{} : Getting curAz value => ({})", m_ID, m_Data.curAz);
+            spdlog::trace("{} : Read curAz value => ({})", m_ID, m_Data.curAz);
         } else if (offset == GLOB_PositionerType_curEl) {
             value.toFloat(m_Data.curEl);
-            spdlog::trace("{} : Getting curEl value => ({})", m_ID, m_Data.curEl);
+            spdlog::trace("{} : Read curEl value => ({})", m_ID, m_Data.curEl);
         } else if (offset == GLOB_PositionerType_inAz) {
             value.toFloat(m_Data.inAz);
-            spdlog::trace("{} : Getting inAz value => ({})", m_ID, m_Data.inAz);
+            spdlog::trace("{} : Read inAz value => ({})", m_ID, m_Data.inAz);
         } else if (offset == GLOB_PositionerType_inEl) {
             value.toFloat(m_Data.inEl);
-            spdlog::trace("{} : Getting inEl value => ({})", m_ID, m_Data.inEl);
+            spdlog::trace("{} : Read inEl value => ({})", m_ID, m_Data.inEl);
         } else if (offset == GLOB_PositionerType_EnergyLevel) {
             value.toInt16(m_Data.energyLevel);
-            spdlog::trace("{} : Getting EnergyLevel value => ({})", m_ID, m_Data.energyLevel);
+            spdlog::trace("{} : Read EnergyLevel value => ({})", m_ID, m_Data.energyLevel);
         }
     }
 
@@ -214,7 +214,7 @@ UaStatus DummyPositionerController::getState(Device::DeviceState &state) {
     //UaMutexLocker lock(&m_mutex);
 
     state = m_state;
-    spdlog::trace("{} : Getting dummy positioner state => ({})", m_ID, Device::deviceStateNames.at(state));
+    spdlog::trace("{} : Read dummy positioner state => ({})", m_ID, Device::deviceStateNames.at(state));
 
     return status;
 }
@@ -239,27 +239,27 @@ UaStatus DummyPositionerController::getData(OpcUa_UInt32 offset, UaVariant &valu
     switch (offset) {
         case GLOB_PositionerType_isMoving:
             value.toBool(m_Data.isMoving);
-            spdlog::trace("{} : DummyPositioner getting isMoving value => ({})", m_ID, m_Data.isMoving);
+            spdlog::trace("{} : DummyPositioner read isMoving value => ({})", m_ID, m_Data.isMoving);
             break;
         case GLOB_PositionerType_curAz:
             value.toFloat(m_Data.curAz);
-            spdlog::trace("{} : DummyPositioner getting curAz value => ({})", m_ID, m_Data.curAz);
+            spdlog::trace("{} : DummyPositioner read curAz value => ({})", m_ID, m_Data.curAz);
             break;
         case GLOB_PositionerType_curEl:
             value.toFloat(m_Data.curEl);
-            spdlog::trace("{} : DummyPositioner getting curEl value => ({})", m_ID, m_Data.curEl);
+            spdlog::trace("{} : DummyPositioner read curEl value => ({})", m_ID, m_Data.curEl);
             break;
         case GLOB_PositionerType_inAz:
             value.toFloat(m_Data.inAz);
-            spdlog::trace("{} : DummyPositioner getting inAz value => ({})", m_ID, m_Data.inAz);
+            spdlog::trace("{} : DummyPositioner read inAz value => ({})", m_ID, m_Data.inAz);
             break;
         case GLOB_PositionerType_inEl:
             value.toFloat(m_Data.inEl);
-            spdlog::trace("{} : DummyPositioner getting inEl value => ({})", m_ID, m_Data.inEl);
+            spdlog::trace("{} : DummyPositioner read inEl value => ({})", m_ID, m_Data.inEl);
             break;
         case GLOB_PositionerType_EnergyLevel:
             value.toInt16(m_Data.energyLevel);
-            spdlog::trace("{} : DummyPositioner getting EnergyLevel value => ({})", m_ID, m_Data.energyLevel);
+            spdlog::trace("{} : DummyPositioner read EnergyLevel value => ({})", m_ID, m_Data.energyLevel);
             break;
         default:
             return OpcUa_BadInvalidArgument;

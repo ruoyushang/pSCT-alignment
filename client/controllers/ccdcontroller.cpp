@@ -44,7 +44,7 @@ CCDController::CCDController(Device::Identity identity) : PasController(std::mov
 UaStatus CCDController::getState(Device::DeviceState &state) {
     //UaMutexLocker lock(&m_mutex);
     state = m_state;
-    spdlog::trace("{} : Getting device state => ({})", m_ID, Device::deviceStateNames.at(state));
+    spdlog::trace("{} : Read device state => ({})", m_ID, Device::deviceStateNames.at(state));
     return OpcUa_Good;
 }
 
@@ -77,7 +77,7 @@ UaStatus CCDController::getData(OpcUa_UInt32 offset, UaVariant &value) {
     else
         value.setDouble(*(static_cast<const double *>(m_pCCD->getOutput() + dataoffset)));
 
-    spdlog::trace("{} : Getting data... offset=> {} value => ({})", m_ID, offset, value[0].Value.Double);
+    spdlog::trace("{} : Read data... offset=> {} value => ({})", m_ID, offset, value[0].Value.Double);
 
     return OpcUa_Good;
 }

@@ -20,7 +20,7 @@ PSDController::PSDController(Device::Identity identity, Client *pClient) :
 
 UaStatus PSDController::getState(Device::DeviceState &state) {
     state = m_state;
-    spdlog::trace("{} : Getting device state => ({})", m_ID, Device::deviceStateNames.at(state));
+    spdlog::trace("{} : Read device state => ({})", m_ID, Device::deviceStateNames.at(state));
     return OpcUa_Good;
 }
 
@@ -68,7 +68,7 @@ UaStatus PSDController::getData(OpcUa_UInt32 offset, UaVariant &value) {
             return OpcUa_BadInvalidArgument;
     }
 
-    spdlog::trace("{} : Getting data... offset=> {} value => ({})", m_ID, offset, value[0].Value.Double);
+    spdlog::trace("{} : Read data... offset=> {} value => ({})", m_ID, offset, value[0].Value.Double);
     return status;
 }
 

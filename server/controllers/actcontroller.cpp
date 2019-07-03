@@ -20,7 +20,7 @@
 UaStatus ActController::getState(Device::DeviceState &state) {
     UaMutexLocker lock(&m_mutex);
     state = _getDeviceState();
-    spdlog::trace("{} : Getting device state => ({})", m_ID, Device::deviceStateNames.at(state));
+    spdlog::trace("{} : Read device state => ({})", m_ID, Device::deviceStateNames.at(state));
     return OpcUa_Good;
 }
 
@@ -36,30 +36,30 @@ UaStatus ActController::getData(OpcUa_UInt32 offset, UaVariant &value) {
     if (ACTObject::VARIABLES.find(offset) != ACTObject::VARIABLES.end()) {
         switch (offset) {
             case PAS_ACTType_DeltaLength:
-                spdlog::trace("{} : Getting DeltaLength value => ({})", m_ID, m_DeltaLength);
+                spdlog::trace("{} : Read DeltaLength value => ({})", m_ID, m_DeltaLength);
                 value.setFloat(m_DeltaLength);
                 break;
             case PAS_ACTType_CurrentLength: {
                 float length = m_pPlatform->getActuatorbyIdentity(m_ID)->measureLength();
-                spdlog::trace("{} : Getting CurrentLength value => ({})", m_ID, length);
+                spdlog::trace("{} : Read CurrentLength value => ({})", m_ID, length);
                 value.setFloat(length);
                 break;
             }
             case PAS_ACTType_TargetLength:
-                spdlog::trace("{} : Getting TargetLength value => ({})", m_ID, m_TargetLength);
+                spdlog::trace("{} : Read TargetLength value => ({})", m_ID, m_TargetLength);
                 value.setFloat(m_TargetLength);
                 break;
             case PAS_ACTType_Position:
-                spdlog::trace("{} : Getting Position value => ({})", m_ID, m_ID.position);
+                spdlog::trace("{} : Read Position value => ({})", m_ID, m_ID.position);
                 value.setInt32(m_ID.position);
                 break;
             case PAS_ACTType_Serial:
-                spdlog::trace("{} : Getting Serial value => ({})", m_ID, m_ID.serialNumber);
+                spdlog::trace("{} : Read Serial value => ({})", m_ID, m_ID.serialNumber);
                 value.setInt32(m_ID.serialNumber);
                 break;
             case PAS_ACTType_ErrorState: {
                 Device::ErrorState errorState = _getErrorState();
-                spdlog::trace("{} : Getting ErrorState value => ({})", m_ID, static_cast<int>(errorState));
+                spdlog::trace("{} : Read ErrorState value => ({})", m_ID, static_cast<int>(errorState));
                 value.setInt32(static_cast<int>(errorState));
                 break;
             }
@@ -83,7 +83,7 @@ UaStatus ActController::getError(OpcUa_UInt32 offset, UaVariant &value) {
     if (errorNum >= 0 && errorNum < ACTObject::ERRORS.size()) {
         errorStatus = m_pPlatform->getActuatorbyIdentity(m_ID)->getError(int(errorNum));
         value.setBool(errorStatus);
-        spdlog::trace("{} : Getting error {} value => ({})", m_ID, errorNum, errorStatus);
+        spdlog::trace("{} : Read error {} value => ({})", m_ID, errorNum, errorStatus);
     } else {
         status = OpcUa_BadInvalidArgument;
     }
