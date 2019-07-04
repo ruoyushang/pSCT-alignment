@@ -18,8 +18,8 @@ float MPESController::kNominalIntensity = 150000.;
 float MPESController::kNominalSpotWidth = 10.;
 int MPESController::kMaxAttempts = 1;
 
-MPESController::MPESController(Device::Identity identity, Client *pClient, bool isSubclient) : PasController(
-    std::move(identity), pClient), m_isSubclient(isSubclient),
+MPESController::MPESController(Device::Identity identity, Client *pClient, std::string mode) : PasController(
+    std::move(identity), pClient), m_mode(mode),
                                                                                                m_numAttempts(0) {
     // get the nominal aligned readings and response matrices from DB
     /* BEGIN DATABASE HACK */
@@ -324,7 +324,7 @@ UaStatus MPESController::read(bool print) {
                 "{} : The width of the image along the Y axis ({}) is greater than the nominal limit ({}). Consider fixing things.",
                 m_ID, m_data.ySpotWidth, kNominalSpotWidth);
         }
-        if (fabs(m_data.cleanedIntensity - kNominalIntensity) / kNominalIntensity > 0.2) {
+        if (m_mode == "client" && fabs(m_data.cleanedIntensity - kNominalIntensity) / kNominalIntensity > 0.2) {
             if (m_numAttempts <= kMaxAttempts) {
                 spdlog::warn(
                     "{} : The image intensity ({}) differs from the nominal value ({}) by more than 20%. Will readjust exposure now.",
@@ -339,21 +339,24 @@ UaStatus MPESController::read(bool print) {
         }
     }
 
-    time_t now = time(nullptr);
-    struct tm tstruct{};
-    char buf[80];
-    tstruct = *localtime(&now);
-    strftime(buf, sizeof(buf), "%Y-%m-%d %X", &tstruct);
+    if (m_mode == "client") {
 
-    UaString sql_stmt = UaString(
-        "INSERT INTO Opt_MPESReadings (date, serial_number, xcoord, ycoord, x_SpotWidth, y_SpotWidth, intensity) VALUES  ('%1', '%2', '%3', '%4', '%5', '%6', '%7' );\n").arg(
-        buf).arg(m_ID.serialNumber).arg(m_data.xCentroid).arg(m_data.yCentroid).arg(
-        m_data.xSpotWidth).arg(m_data.ySpotWidth).arg(m_data.cleanedIntensity);
-    std::ofstream sql_file("MPES_readings.sql", std::ios_base::app);
-    sql_file << sql_stmt.toUtf8();
+        time_t now = time(nullptr);
+        struct tm tstruct{};
+        char buf[80];
+        tstruct = *localtime(&now);
+        strftime(buf, sizeof(buf), "%Y-%m-%d %X", &tstruct);
 
-    spdlog::trace("{} : Recorded MPES measurement SQL statement into MPES_readings.sql file: {} ", m_ID,
-                  sql_stmt.toUtf8());
+        UaString sql_stmt = UaString(
+            "INSERT INTO Opt_MPESReadings (date, serial_number, xcoord, ycoord, x_SpotWidth, y_SpotWidth, intensity) VALUES  ('%1', '%2', '%3', '%4', '%5', '%6', '%7' );\n").arg(
+            buf).arg(m_ID.serialNumber).arg(m_data.xCentroid).arg(m_data.yCentroid).arg(
+            m_data.xSpotWidth).arg(m_data.ySpotWidth).arg(m_data.cleanedIntensity);
+        std::ofstream sql_file("MPES_readings.sql", std::ios_base::app);
+        sql_file << sql_stmt.toUtf8();
+
+        spdlog::trace("{} : Recorded MPES measurement SQL statement into MPES_readings.sql file: {} ", m_ID,
+                      sql_stmt.toUtf8());
+    }
 
     return status;
 }

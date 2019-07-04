@@ -329,7 +329,6 @@ int DummyMPES::__setExposure() {
 }
 
 int DummyMPES::__updatePosition() {
-    spdlog::debug("{} : DummyMPES::updatePosition() : Updating position (dummy data)...", m_Identity);
     // Set internal position variable to dummy values
     m_Position.xCentroid = 160.;
     m_Position.yCentroid = 120.;

@@ -118,7 +118,7 @@ UaStatus PasCommunicationInterface::initializeCCDs()
 -----------------------------------------------------------------------------*/
 const Device::Identity
 PasCommunicationInterface::addDevice(Client *pClient, OpcUa_UInt32 deviceType,
-                                     const Device::Identity &identity)
+                                     const Device::Identity &identity, std::string mode)
 {
     // check if object already exists -- this way, passing the same object multiple times won't
     // actually add it multiple times
@@ -128,17 +128,15 @@ PasCommunicationInterface::addDevice(Client *pClient, OpcUa_UInt32 deviceType,
     if (m_pControllers.count(deviceType) > 0 && m_pControllers.at(deviceType).count(identity) > 0) {
         //spdlog::debug("PasCommunicationInterface::addDevice() : Device {} already exists. Moving on...", identity);
         return identity;
-    }
-        // Didn't find existing copy, create new one
-    else {
+    } else { // Didn't find existing copy, create new one
         std::shared_ptr<PasController> pController;
         // up-casting is implicit
         if (deviceType == PAS_MPESType)
-            pController = std::make_shared<MPESController>(identity, pClient);
+            pController = std::make_shared<MPESController>(identity, pClient, mode);
         else if (deviceType == PAS_ACTType)
             pController = std::make_shared<ActController>(identity, pClient);
         else if (deviceType == PAS_PanelType)
-            pController = std::make_shared<PanelController>(identity, pClient);
+            pController = std::make_shared<PanelController>(identity, pClient, mode);
         else if (deviceType == PAS_EdgeType)
             pController = std::make_shared<EdgeController>(identity);
         else if (deviceType == PAS_MirrorType)

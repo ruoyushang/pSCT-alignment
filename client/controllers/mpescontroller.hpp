@@ -22,7 +22,7 @@ public:
     friend MirrorController;
 
     /* construction / destruction */
-    MPESController(Device::Identity identity, Client *pClient, bool isSubclient = true);
+    MPESController(Device::Identity identity, Client *pClient, std::string mode = "client");
 
     /* Get Controller status and data */
     UaStatus getState(Device::DeviceState &state) override;
@@ -52,7 +52,7 @@ public:
     MPESBase::Position getPosition() { return m_data; }
 
 private:
-    bool m_isSubclient;
+    std::string m_mode;
 
     static float kNominalIntensity;
     static float kNominalSpotWidth;

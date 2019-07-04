@@ -14,8 +14,8 @@
 #include "common/utilities/spdlog/fmt/ostr.h"
 
 
-PanelController::PanelController(Device::Identity identity, Client *pClient, bool isSubclient) :
-    PasCompositeController(std::move(identity), pClient, 5000), m_isSubclient(isSubclient) {
+PanelController::PanelController(Device::Identity identity, Client *pClient, std::string mode) :
+    PasCompositeController(std::move(identity), pClient, 5000), m_mode(mode) {
     m_SP.SetPanelType(StewartPlatform::PanelType::OPT);
 
     // define possible children types
@@ -64,7 +64,7 @@ UaStatus PanelController::getData(OpcUa_UInt32 offset, UaVariant &value) {
         return getError(offset, value);
     } else if (offset >= PAS_PanelType_x && offset <= PAS_PanelType_zRot) {
         // update current coordinates
-        if (__expired() && !m_isSubclient) {
+        if (__expired()) {
             spdlog::debug("{} : PanelController::operate() : Panel coordinate data is expired, updating coordinates...",
                           m_ID);
             status = updateCoords();
@@ -185,7 +185,7 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
         }
         spdlog::debug("{} : PanelController::operate() : Executing moveDeltaLengths() with delta lengths :\n{}\n", m_ID,
                       deltaLengths);
-        if (checkForCollision(deltaLengths)) {
+        if (m_mode == "client" && checkForCollision(deltaLengths)) {
             return OpcUa_Bad;
         }
         else {
@@ -200,7 +200,7 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
                       targetLengths);
         Eigen::VectorXd currentLengths = getActuatorLengths();
         deltaLengths = targetLengths - currentLengths;
-        if (checkForCollision(deltaLengths)) {
+        if (m_mode == "client" && checkForCollision(deltaLengths)) {
             return OpcUa_Bad;
         }
         else {
@@ -237,7 +237,7 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
         
         Eigen::VectorXd currentLengths = getActuatorLengths();
         deltaLengths = targetLengths - currentLengths;
-        if (checkForCollision(deltaLengths)) {
+        if (m_mode == "client" && checkForCollision(deltaLengths)) {
             return OpcUa_Bad;
         }
         else {

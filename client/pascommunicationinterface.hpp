@@ -44,7 +44,7 @@ public:
     }
 
     const Device::Identity
-    addDevice(Client *pClient, OpcUa_UInt32 deviceType, const Device::Identity &identity);
+    addDevice(Client *pClient, OpcUa_UInt32 deviceType, const Device::Identity &identity, std::string mode = "client");
 
     void addMirrorControllers();
 
@@ -86,7 +86,6 @@ public:
     static std::map<OpcUa_UInt32, std::string> deviceTypeNames;
 
 private:
-
     std::shared_ptr<Configuration> m_pConfiguration;
     OpcUa_Boolean m_stop;
 };

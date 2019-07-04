@@ -374,11 +374,8 @@ UaStatus EdgeController::alignSinglePanel(unsigned panelpos, double alignFrac, b
         Eigen::VectorXd aligned_read = getAlignedReadings() - getSystematicOffsets();
         if (!current_read.size() || !aligned_read.size()) {
             spdlog::error(
-                "{} : EdgeController::alignSinglePanel() : All sensors in the edge are  Make sure the sensors are in the field of view.",
+                "{} : EdgeController::alignSinglePanel() : All sensors in the edge are excluded (off or not in field of view).",
                 m_ID);
-            std::cout
-                    << "+++ ERROR +++ No physical sensor readings! Make sure the sensors are in the field of view. Nothing to do for now."
-                    << std::endl;
             return OpcUa_Bad;
         }
 
