@@ -324,6 +324,7 @@ UaStatus MPESController::read(bool print) {
                 "{} : The width of the image along the Y axis ({}) is greater than the nominal limit ({}). Consider fixing things.",
                 m_ID, m_data.ySpotWidth, kNominalSpotWidth);
         }
+        /**
         if (m_mode == "client" && fabs(m_data.cleanedIntensity - kNominalIntensity) / kNominalIntensity > 0.2) {
             if (m_numAttempts <= kMaxAttempts) {
                 spdlog::warn(
@@ -337,6 +338,7 @@ UaStatus MPESController::read(bool print) {
                 m_numAttempts = 0;
             }
         }
+         */
     }
 
     if (m_mode == "client") {

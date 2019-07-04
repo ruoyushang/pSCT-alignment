@@ -344,7 +344,7 @@ void BuildStewart()
             temp += AlignmentMat.GetMatrixArray()[i * 6 + j] + " ";
         temp += "\n";
     }
-    spdlog::debug("and its inverse:\n {}", temp)
+    spdlog::debug("and its inverse:\n{}\n", temp)
 
     /* END OF ALIGNMENT MATRIX COMPUTATION */
 

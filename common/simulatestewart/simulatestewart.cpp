@@ -128,7 +128,7 @@ int main(int argc, char *argv[])
         for (int i = 0; i < 3; i++)
             temp += panelCoords[3 + SP.fRotOrder[2-i] - 1] + " -- " + SP.GetPanelCoords()[i + 3] + "\n";
 
-        spdlog::debug("input vs self-consistency (platform coords):\n {}", temp);
+        spdlog::debug("input vs self-consistency (platform coords):\n{}\n", temp);
         */
     }
     else if (argc == 8) {
@@ -137,7 +137,7 @@ int main(int argc, char *argv[])
         for (int i = 0; i < 6; i++)
             temp += SP.GetPanelCoords()[i] + " ";
 
-        spdlog::debug("Panel coordinates:\n {}", temp);
+        spdlog::debug("Panel coordinates:\n{}\n", temp);
 
         temp.clear();
         for (int i = 0; i < 3; i++) {
@@ -146,7 +146,7 @@ int main(int argc, char *argv[])
             temp += "\n";
         }
 
-        spdlog::debug("Pad coordinates:\n {}", temp);
+        spdlog::debug("Pad coordinates:\n{}\n", temp);
 
         /*
         temp.clear();
@@ -155,7 +155,7 @@ int main(int argc, char *argv[])
         for (int i = 0; i < 6; i++)
             temp += actL[i] + " -- " + SP.GetActLengths()[i] + "\n";
 
-        spdlog::debug("Input vs self-consistency (actuator lengths):\n {}", temp);
+        spdlog::debug("Input vs self-consistency (actuator lengths):\n{}\n", temp);
         */
     }
     else {
@@ -171,7 +171,7 @@ int main(int argc, char *argv[])
             for (int j = 0; j < 3; j++)
                  temp += padCoords[i][j] + " -- " + SP.GetPadCoords()[i][j] + "\n";
         SP.ComputeStewart(SP.GetActLengths());
-        spdlog::debug("Input vs self-consistency (pad coords):\n {}", temp);
+        spdlog::debug("Input vs self-consistency (pad coords):\n{}\n", temp);
         */
     }
     SP.SetPanelType(StewartPlatform::PanelType::P1);

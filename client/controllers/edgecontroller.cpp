@@ -279,7 +279,7 @@ UaStatus EdgeController::findSingleMatrix(unsigned panelIdx, double stepSize) {
         missedDelta = 0.;
 
         vector0 = __getCurrentReadings().first;
-        spdlog::info("{} : Edge MPES readings (initial):\n {}", m_ID, vector0);
+        spdlog::info("{} : Edge MPES readings (initial):\n{}\n", m_ID, vector0);
 
         spdlog::info("{} : Moving actuator {} by {} mm...", m_ID, j + 1, stepSize);
         spdlog::info("{} : Waiting...", m_ID);
@@ -309,9 +309,9 @@ UaStatus EdgeController::findSingleMatrix(unsigned panelIdx, double stepSize) {
         vector1 = __getCurrentReadings().first;
         if (m_state == Device::DeviceState::Off) { return status; }
 
-        spdlog::info("{} : Edge MPES readings (after):\n {}", m_ID, vector1);
+        spdlog::info("{} : Edge MPES readings (after):\n{}\n", m_ID, vector1);
 
-        spdlog::info("{} : Change in MPES readings:\n {}", m_ID, vector1 - vector0);
+        spdlog::info("{} : Change in MPES readings:\n{}\n", m_ID, vector1 - vector0);
         
         // move the same actuator back
         spdlog::info("{} : Moving actuator {} back to original position...", m_ID, j + 1);
@@ -330,11 +330,12 @@ UaStatus EdgeController::findSingleMatrix(unsigned panelIdx, double stepSize) {
         spdlog::info("{} : Motion finished.", m_ID);
 
         responseMatrix.col(j) = (vector1 - vector0) / (stepSize - missedDelta);
-        spdlog::info("{} : CURRENT RESPONSE MATRIX:\n {}", m_ID, responseMatrix);
+        spdlog::info("{} : CURRENT RESPONSE MATRIX:\n{}\n", m_ID, responseMatrix);
     }
     spdlog::info("{} : Done calculating response matrix for Panel {}!", m_ID, pCurPanel->getId());
 
-    spdlog::info("{} : Response matrix for Edge {} --- Panel {}:\n{}", m_ID, m_ID, pCurPanel->getId(), responseMatrix);
+    spdlog::info("{} : Response matrix for Edge {} --- Panel {}:\n{}\n", m_ID, m_ID, pCurPanel->getId(),
+                 responseMatrix);
 
     std::string outfilename = "/home/ctauser/PanelAlignmentData/ResponseMatrix_" + m_ID.eAddress + ".txt";
     std::ofstream output(outfilename, std::ofstream::in | std::ofstream::out | std::ofstream::app);
@@ -521,16 +522,17 @@ UaStatus EdgeController::alignSinglePanel(unsigned panelpos, double alignFrac, b
             X = B.jacobiSvd(Eigen::ComputeThinU | Eigen::ComputeThinV).solve(Y);
         }
         catch (...) {
-            spdlog::error("{} : Singular Value Decomposition failed. Result discarded. Check your sensor readings!",
-                          m_ID);
+            spdlog::error(
+                "{} : Singular Value Decomposition failed. Result discarded and method aborted. Check your sensor readings!",
+                m_ID);
             return OpcUa_Bad;
         }
 
-        spdlog::info("\n{} : Current MPES readings:\n {}", m_ID, current_read);
-        spdlog::info("\n{} : Target MPES readings (accounting for systematics):\n {}", m_ID, aligned_read);
-        spdlog::info("\n{} : Edge response matrix:\n {}", m_ID, A);
+        spdlog::info("\n{} : Current MPES readings:\n{}\n", m_ID, current_read);
+        spdlog::info("\n{} : Target MPES readings (accounting for systematics):\n{}\n", m_ID, aligned_read);
+        spdlog::info("\n{} : Edge response matrix:\n{}\n", m_ID, A);
         if (!C.isZero(0)) {
-            spdlog::info("{} : Constraint matrix for this edge:\n{}", m_ID, C);
+            spdlog::info("{} : Constraint matrix for this edge:\n{}\n", m_ID, C);
         }
 
         // in the case of moving this panel (3 sensors and 6 actuators),
@@ -555,11 +557,11 @@ UaStatus EdgeController::alignSinglePanel(unsigned panelpos, double alignFrac, b
                 }
             }
         }
-        spdlog::info("{} : LEAST SQUARES SOLUTION:\n{}", m_ID, X);
+        spdlog::info("{} : LEAST SQUARES SOLUTION:\n{}\n", m_ID, X);
         // while (X.norm() >= 14*(X.size()/6)) { // heuristic -- don't want to move by more than the panel gap
         if (alignFrac < 1.) {
             X *= alignFrac;
-            spdlog::info("{} : Fractional motion of {} requested. Final (fractional) motion is:\n{}", m_ID, alignFrac,
+            spdlog::info("{} : Fractional motion of {} requested. Final (fractional) motion is:\n{}\n", m_ID, alignFrac,
                          X);
         }
         m_Xcalculated = X;
@@ -583,7 +585,8 @@ UaStatus EdgeController::alignSinglePanel(unsigned panelpos, double alignFrac, b
                         m_pChildren.at(PAS_PanelType).at(panelPair.second));
                     auto nACT = pCurPanel->getActuatorCount();
                     // print out to make sure
-                    spdlog::info("{} : Will move actuators by:\n{}", m_ID, m_Xcalculated.segment(j, nACT));
+                    spdlog::info("{} : Will move Panel {} actuators by:\n{}\n", m_ID, pCurPanel->getId(),
+                                 m_Xcalculated.segment(j, nACT));
                     
                     UaVariantArray deltas;
                     deltas.create(nACT);

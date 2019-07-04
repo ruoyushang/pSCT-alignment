@@ -207,6 +207,7 @@ int main(int argc, char* argv[])
                   << ". Valid choices are 'trace', 'debug', 'info', 'warn', 'error', 'critical'.";
         return -1;
     }
+    std::cout << "Console logging level set to: " << logLevel << std::endl;
 
     // Note that log directory must have been created beforehand
 #ifndef SIMMODE 

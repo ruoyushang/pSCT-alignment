@@ -183,7 +183,8 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
             UaVariant(args[i]).toFloat(deltaLength);
             deltaLengths(i) = (double)deltaLength;
         }
-        spdlog::debug("{} : PanelController::operate() : Executing moveDeltaLengths() with delta lengths :\n{}\n", m_ID,
+        spdlog::debug("{} : PanelController::operate() : Executing moveDeltaLengths() with delta lengths :\n{}\n\n",
+                      m_ID,
                       deltaLengths);
         if (m_mode == "client" && checkForCollision(deltaLengths)) {
             return OpcUa_Bad;
@@ -196,7 +197,7 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
             UaVariant(args[i]).toFloat(targetLength);
             targetLengths(i) = (double)targetLength;
         }
-        spdlog::debug("{} : PanelController::operate() : Executing moveToLengths() with target lengths :\n{}\n", m_ID,
+        spdlog::debug("{} : PanelController::operate() : Executing moveToLengths() with target lengths :\n{}\n\n", m_ID,
                       targetLengths);
         Eigen::VectorXd currentLengths = getActuatorLengths();
         deltaLengths = targetLengths - currentLengths;
@@ -208,7 +209,7 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
         }
     } else if (offset == PAS_PanelType_MoveToCoords) {
         spdlog::debug(
-            "{} : PanelController::operate() : Current panel coordinates (x, y ,z xRot, yRot, zRot):\n {} {} {} {} {} {}\n",
+            "{} : PanelController::operate() : Current panel coordinates (x, y ,z xRot, yRot, zRot):\n{}\n {} {} {} {} {}\n",
             m_ID, m_curCoords[0], m_curCoords[1], m_curCoords[2], m_curCoords[3], m_curCoords[4], m_curCoords[5]);
 
         double inputCoordinates[6];
@@ -216,7 +217,7 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
             UaVariant(args[i]).toDouble(inputCoordinates[i]);
         }
         spdlog::debug(
-            "{} : PanelController::operate() : Target panel coordinates (x, y ,z xRot, yRot, zRot):\n {} {} {} {} {} {}\n",
+            "{} : PanelController::operate() : Target panel coordinates (x, y ,z xRot, yRot, zRot):\n{}\n {} {} {} {} {}\n",
             m_ID, inputCoordinates[0], inputCoordinates[1], inputCoordinates[2], inputCoordinates[3],
             inputCoordinates[4], inputCoordinates[5]);
 
@@ -233,7 +234,7 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
             val.setFloat(targetLengths(i));
             val.copyTo(&lengthArgs[i]);
         }
-        spdlog::debug("{} : PanelController::operate() : Moving actuators to lengths:\n {}\n", m_ID, targetLengths);
+        spdlog::debug("{} : PanelController::operate() : Moving actuators to lengths:\n{}\n\n", m_ID, targetLengths);
         
         Eigen::VectorXd currentLengths = getActuatorLengths();
         deltaLengths = targetLengths - currentLengths;
@@ -247,7 +248,7 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
     } else if (offset == PAS_PanelType_ReadPosition) {
         status = updateCoords(false);
         spdlog::info(
-            "{} : PanelController::operate() : Current panel coordinates (x, y ,z xRot, yRot, zRot):\n {} {} {} {} {} {}\n",
+            "{} : PanelController::operate() : Current panel coordinates (x, y ,z xRot, yRot, zRot):\n{}\n {} {} {} {} {}\n",
             m_ID, m_curCoords[0], m_curCoords[1], m_curCoords[2], m_curCoords[3], m_curCoords[4], m_curCoords[5]);
 
         spdlog::info("{} : PanelController::operate() : Current Actuator Lengths :\n{}\n", m_ID, getActuatorLengths());
@@ -292,7 +293,7 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
 }
 
 bool PanelController::checkForCollision(const Eigen::VectorXd &deltaLengths) {
-    spdlog::debug("{} : Doing collision check for motion (delta lengths) of :\n {}.", m_ID, deltaLengths);
+    spdlog::debug("{} : Doing collision check for motion (delta lengths) of :\n{}\n.", m_ID, deltaLengths);
 
     Eigen::MatrixXd M_response; // response matrix
     Eigen::VectorXd Sen_current; // sensor current position
@@ -367,7 +368,7 @@ UaStatus PanelController::updateCoords(bool print) {
     }
 
     if (print) {
-        spdlog::info("{} : PanelController::updateCoords() : Current Actuator Lengths :\n{}\n", m_ID, currentLengths);
+        spdlog::info("{} : PanelController::updateCoords() : Current Actuator Lengths :\n{}\n\n", m_ID, currentLengths);
     }
     // update current coordinates
     m_SP.ComputeStewart(currentLengths.data());

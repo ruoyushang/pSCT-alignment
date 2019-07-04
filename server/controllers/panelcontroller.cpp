@@ -107,7 +107,7 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
         if (_getDeviceState() == Device::DeviceState::Off)
             setState(Device::DeviceState::On);
 
-        spdlog::info("{} : PanelController calling moveDeltaLength with delta lengths:\n{}\n{}\n{}\n{}\n{}\n{}\n",
+        spdlog::info("{} : PanelController calling moveDeltaLength with delta lengths:\n{}\n\n{}\n{}\n{}\n{}\n{}\n",
                      m_ID,
                      args[0].Value.Float,
                      args[1].Value.Float,
