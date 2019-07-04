@@ -111,6 +111,7 @@ UaStatus MPESController::getData(OpcUa_UInt32 offset, UaVariant &value) {
     UaStatus status;
 
     if (MPESObject::VARIABLES.find(offset) != MPESObject::VARIABLES.end()) {
+        /**
         if (offset != PAS_MPESType_Position && offset != PAS_MPESType_Serial && offset != PAS_MPESType_ErrorState &&
             offset != PAS_MPESType_xCentroidNominal && offset != PAS_MPESType_yCentroidNominal) {
             if (__expired()) {
@@ -121,6 +122,7 @@ UaStatus MPESController::getData(OpcUa_UInt32 offset, UaVariant &value) {
                 return status;
             }
         }
+        */
         const MPESBase::Position &position = m_pPlatform->getMPESbyIdentity(m_ID)->getPosition();
         switch (offset) {
             case PAS_MPESType_xCentroidAvg:

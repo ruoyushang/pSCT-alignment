@@ -18,9 +18,9 @@ float MPESController::kNominalIntensity = 150000.;
 float MPESController::kNominalSpotWidth = 10.;
 int MPESController::kMaxAttempts = 1;
 
-MPESController::MPESController(Device::Identity identity, Client *pClient) : PasController(
-    std::move(identity), pClient),
-                                                                             m_numAttempts(0) {
+MPESController::MPESController(Device::Identity identity, Client *pClient, bool isSubclient) : PasController(
+    std::move(identity), pClient), m_isSubclient(isSubclient),
+                                                                                               m_numAttempts(0) {
     // get the nominal aligned readings and response matrices from DB
     /* BEGIN DATABASE HACK */
     //std::string db_ip="172.17.10.10"; // internal ip
@@ -131,6 +131,7 @@ UaStatus MPESController::getData(OpcUa_UInt32 offset, UaVariant &value) {
     if (MPESObject::ERRORS.count(offset) > 0) {
         return getError(offset, value);
     } else {
+        /**
         if (offset == PAS_MPESType_xCentroidAvg || offset == PAS_MPESType_yCentroidAvg ||
             offset == PAS_MPESType_xCentroidSpotWidth ||
             offset == PAS_MPESType_yCentroidSpotWidth || 
@@ -142,6 +143,7 @@ UaStatus MPESController::getData(OpcUa_UInt32 offset, UaVariant &value) {
                 return status;
             }
         }
+        */
         switch (offset) {
             case PAS_MPESType_xCentroidAvg:
                 value.setFloat(m_data.xCentroid);
