@@ -81,7 +81,7 @@ UaStatus PSDController::operate(OpcUa_UInt32 offset, const UaVariantArray &args)
     // UaMutexLocker lock(&m_mutex);
 
     if (offset == PAS_PSDType_Read) {
-        spdlog::trace("{} : PSD controller calling read()", m_ID);
+        spdlog::trace("{} : PSDController calling read()", m_ID);
         status = read();
     } else {
         spdlog::error("{} : Invalid method call with offset {}", m_ID, offset);

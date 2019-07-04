@@ -24,7 +24,7 @@ const float MPESBase::NOMINAL_SPOT_WIDTH = 10.0;
 
 const std::vector<Device::ErrorDefinition> MPESBase::ERROR_DEFINITIONS = {
     {"Bad connection. No device found",                                                                            Device::ErrorState::FatalError},//error 0
-    {"Intermittent connection, possible select timeout or other error.",                                           Device::ErrorState::FatalError},//error 1
+    {"Failed to set exposure, possible select timeout high temperature.",                                          Device::ErrorState::OperableError},//error 1
     {"Cannot find laser spot (totally dark). Laser dead or not in FoV.",                                           Device::ErrorState::FatalError},//error 2
     {"Too bright. Cleaned Intensity > 1e6. Likely cause: no tube.",                                                Device::ErrorState::FatalError},//error 3
     {"Too bright. 1e6 >Cleaned Intensity > 5e5 and very wide spot width >20",                                      Device::ErrorState::OperableError},//error 4

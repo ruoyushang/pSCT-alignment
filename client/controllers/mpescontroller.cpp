@@ -228,22 +228,22 @@ UaStatus MPESController::operate(OpcUa_UInt32 offset, const UaVariantArray &args
     UaStatus status;
 
     if (offset == PAS_MPESType_Read) {
-        spdlog::info("{} : MPES controller calling read()", m_ID);
+        spdlog::info("{} : MPESController calling read()", m_ID);
         status = read(true);
     } else if (offset == PAS_MPESType_SetExposure) {
-        spdlog::info("{} : MPES controller calling setExposure()", m_ID);
+        spdlog::info("{} : MPESController calling setExposure()", m_ID);
         status = m_pClient->callMethod(m_pClient->getDeviceNodeId(m_ID), UaString("SetExposure"), args);
     } else if (offset == PAS_MPESType_ClearError) {
-        spdlog::info("{} : MPES controller calling clearError() for error {}", m_ID, args[0].Value.Int32);
+        spdlog::info("{} : MPESController calling clearError() for error {}", m_ID, args[0].Value.Int32);
         status = m_pClient->callMethod(m_pClient->getDeviceNodeId(m_ID), UaString("ClearError"), args);
     } else if (offset == PAS_MPESType_ClearAllErrors) {
-        spdlog::info("{} : MPES controller calling clearAllErrors()", m_ID);
+        spdlog::info("{} : MPESController calling clearAllErrors()", m_ID);
         status = m_pClient->callMethod(m_pClient->getDeviceNodeId(m_ID), UaString("ClearAllErrors"));
     } else if (offset == PAS_MPESType_TurnOn) {
-        spdlog::info("{} : MPES controller calling turnOn()", m_ID);
+        spdlog::info("{} : MPESController calling turnOn()", m_ID);
         status = m_pClient->callMethod(m_pClient->getDeviceNodeId(m_ID), UaString("TurnOn"));
     } else if (offset == PAS_MPESType_TurnOff) {
-        spdlog::info("{} : MPES controller calling turnOff()", m_ID);
+        spdlog::info("{} : MPESController calling turnOff()", m_ID);
         status = m_pClient->callMethod(m_pClient->getDeviceNodeId(m_ID), UaString("TurnOff"));
     } else {
         status = OpcUa_BadInvalidArgument;

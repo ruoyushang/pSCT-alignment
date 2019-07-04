@@ -231,7 +231,7 @@ UaStatus MPESController::operate(OpcUa_UInt32 offset, const UaVariantArray &args
 
     switch (offset) {
         case PAS_MPESType_TurnOn:
-            spdlog::info("{} : MPES controller calling turnOn()", m_ID);
+            spdlog::info("{} : MPESController calling turnOn()", m_ID);
             if (_getDeviceState() == Device::DeviceState::Off) {
                 m_pPlatform->getMPESbyIdentity(m_ID)->turnOn();
                 initialize();
@@ -240,7 +240,7 @@ UaStatus MPESController::operate(OpcUa_UInt32 offset, const UaVariantArray &args
             }
             break;
         case PAS_MPESType_TurnOff:
-            spdlog::info("{} : MPES controller calling turnOff()", m_ID);
+            spdlog::info("{} : MPESController calling turnOff()", m_ID);
             if (_getDeviceState() == Device::DeviceState::On) {
                 m_pPlatform->getMPESbyIdentity(m_ID)->turnOff();
             } else {
@@ -248,7 +248,7 @@ UaStatus MPESController::operate(OpcUa_UInt32 offset, const UaVariantArray &args
             }
             break;
         case PAS_MPESType_Read:
-            spdlog::info("{} : MPES controller calling read()", m_ID);
+            spdlog::info("{} : MPESController calling read()", m_ID);
             if (_getDeviceState() == Device::DeviceState::On && _getErrorState() != Device::ErrorState::FatalError) {
                 status = read();
             } else {
@@ -257,7 +257,7 @@ UaStatus MPESController::operate(OpcUa_UInt32 offset, const UaVariantArray &args
             }
             break;
         case PAS_MPESType_SetExposure:
-            spdlog::info("{} : MPES controller calling setExposure()", m_ID);
+            spdlog::info("{} : MPESController calling setExposure()", m_ID);
             if (_getDeviceState() == Device::DeviceState::On) {
                 m_pPlatform->getMPESbyIdentity(m_ID)->setExposure();
             } else {
@@ -266,11 +266,11 @@ UaStatus MPESController::operate(OpcUa_UInt32 offset, const UaVariantArray &args
             }
             break;
         case PAS_MPESType_ClearError:
-            spdlog::info("{} : MPES controller calling clearError() for error {}", m_ID, args[0].Value.Int32);
+            spdlog::info("{} : MPESController calling clearError() for error {}", m_ID, args[0].Value.Int32);
             m_pPlatform->getMPESbyIdentity(m_ID)->unsetError(args[0].Value.Int32);
             break;
         case PAS_MPESType_ClearAllErrors:
-            spdlog::info("{} : MPES controller calling clearErrors()", m_ID);
+            spdlog::info("{} : MPESController calling clearErrors()", m_ID);
             m_pPlatform->getMPESbyIdentity(m_ID)->clearErrors();
             break;
         default:

@@ -89,7 +89,7 @@ UaStatus PSDController::operate(OpcUa_UInt32 offset, const UaVariantArray &args)
 
     UaStatus status;
     if ( offset == PAS_PSDType_Read) {
-        spdlog::trace("{} : PSD controller calling read()", m_ID);
+        spdlog::trace("{} : PSDController calling read()", m_ID);
         status = read();
     }
     else {

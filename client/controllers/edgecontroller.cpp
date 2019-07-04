@@ -2,7 +2,7 @@
 
 #include <fstream>
 #include <ios>
-#include <iostream>
+#include <sstream>
 #include <string>
 #include <vector>
 
@@ -76,6 +76,7 @@ UaStatus EdgeController::operate(OpcUa_UInt32 offset, const UaVariantArray &args
 
     switch (offset) {
         case PAS_EdgeType_FindMatrix:
+            spdlog::info("{} : EdgeController calling findMatrix() with step size {}.", m_ID, args[0].Value.Double);
             status = findMatrix(args);
             break;
         case PAS_EdgeType_Align: {
@@ -143,33 +144,32 @@ UaStatus EdgeController::operate(OpcUa_UInt32 offset, const UaVariantArray &args
         }
         case PAS_EdgeType_Read: {
             // update current and target readings and print them out
-            std::cout << "\n" << m_ID.name << " :" << std::endl;
+
             std::pair<Eigen::VectorXd, Eigen::VectorXd> currentReadingsPair = getCurrentReadings();
             Eigen::VectorXd currentReadings = currentReadingsPair.first;
             Eigen::VectorXd currentReadingsSpotWidth = currentReadingsPair.second;
             Eigen::VectorXd alignedReadings = getAlignedReadings();
 
             if (m_state == Device::DeviceState::Off) {
-                std::cout << "EdgeController::operate() : Stop signal received. Read stopped." << std::endl;
+                spdlog::warn("{} : EdgeController::operate() : Stop signal received. Read stopped.", m_ID);
                 setState(Device::DeviceState::On);
                 return OpcUa_Good;
             }
 
             if (!currentReadings.size() || !alignedReadings.size()) {
-                std::cout
-                    << "+++ ERROR +++ No physical sensor readings! Make sure the sensors are on/operable/in the field of view. Nothing to do for now."
-                    << std::endl;
+                spdlog::error(
+                    "{} : EdgeController::read() : All sensors in the edge are excluded (off or not in field of view). Aborting method...",
+                    m_ID);
                 status = OpcUa_Bad;
                 break;
             }
-
-            std::cout << "\nCurrent position +/- Spot width [Aligned position] (Misalignment)\n" << std::endl;
 
             int i = 0;
             Device::DeviceState mpesState;
             Device::ErrorState errorState;
             int temp;
             UaVariant vtmp;
+            std::ostringstream os;
             for (const auto& pMPES : m_pChildren.at(PAS_MPESType)) {
                 std::dynamic_pointer_cast<MPESController>(pMPES)->getState(mpesState);
                 std::dynamic_pointer_cast<MPESController>(pMPES)->getData(PAS_MPESType_ErrorState, vtmp);
@@ -178,11 +178,17 @@ UaStatus EdgeController::operate(OpcUa_UInt32 offset, const UaVariantArray &args
                 if (mpesState == Device::DeviceState::Off || errorState == Device::ErrorState::FatalError) {
                     continue;
                 }
-                std::cout << std::dynamic_pointer_cast<MPESController>(pMPES)->getId() << ":" << std::endl;
-                std::cout << "    " << currentReadings(i) << " +/- " << currentReadingsSpotWidth(i) << " [" << alignedReadings(i) << "] (" << currentReadings(i) - alignedReadings(i) << ")" << std::endl;
-                std::cout << "    " << currentReadings(i+1) << " +/- " << currentReadingsSpotWidth(i+1) << " [" << alignedReadings(i+1) << "] (" << currentReadings(i+1) - alignedReadings(i+1) << ")" << std::endl;
+                os << std::dynamic_pointer_cast<MPESController>(pMPES)->getId() << ":" << std::endl;
+                os << "    " << currentReadings(i) << " +/- " << currentReadingsSpotWidth(i) << " ["
+                   << alignedReadings(i) << "] (" << currentReadings(i) - alignedReadings(i) << ")" << std::endl;
+                os << "    " << currentReadings(i + 1) << " +/- " << currentReadingsSpotWidth(i + 1) << " ["
+                   << alignedReadings(i + 1) << "] (" << currentReadings(i + 1) - alignedReadings(i + 1) << ")"
+                   << std::endl;
                 i += 2;
             }
+
+            spdlog::info("\n{} :\nCurrent position +/- Spot width [Aligned position] (Misalignment)\n\n {}", m_ID,
+                         os.str());
         }
             break;
         case PAS_EdgeType_Stop: {
@@ -273,10 +279,10 @@ UaStatus EdgeController::findSingleMatrix(unsigned panelIdx, double stepSize) {
         missedDelta = 0.;
 
         vector0 = __getCurrentReadings().first;
-        std::cout << "\nEdge MPES readings (before):\n" << vector0 << std::endl;
-        
-        std::cout << "\nMoving actuator " << j+1 << " by " << stepSize << " mm..." << std::endl;
-        std::cout << "Waiting..." << std::endl; 
+        spdlog::info("{} : Edge MPES readings (initial):\n {}", m_ID, vector0);
+
+        spdlog::info("{} : Moving actuator {} by {} mm...", m_ID, j + 1, stepSize);
+        spdlog::info("{} : Waiting...", m_ID);
         deltaL.copyTo(&deltas[j]);
         status = pCurPanel->__moveDeltaLengths(deltas);
         if (!status.isGood()) return status;
@@ -291,25 +297,25 @@ UaStatus EdgeController::findSingleMatrix(unsigned panelIdx, double stepSize) {
         }
         if (m_state == Device::DeviceState::Off) { return status; }
 
-        std::cout << "Motion finished." << std::endl;
+        spdlog::info("{} : Motion finished.", m_ID);
 
         // update missed steps
         actuator = std::dynamic_pointer_cast<ActController>(pCurPanel->getChildren(PAS_ACTType)[j]);
         actuator->getData(PAS_ACTType_DeltaLength, vtmp);
         vtmp.toFloat(missedDelta);
 
-        std::cout << "Actuator " << j+1 << " missed target by " << missedDelta << " mm\n" << std::endl;
+        spdlog::info("{} : Actuator {} missed target by {} mm.", m_ID, j + 1, missedDelta);
 
         vector1 = __getCurrentReadings().first;
         if (m_state == Device::DeviceState::Off) { return status; }
 
-        std::cout << "\n Edge MPES readings (after)\n" << vector1 << std::endl;
+        spdlog::info("{} : Edge MPES readings (after):\n {}", m_ID, vector1);
 
-        std::cout << "\nDifference in sensor readings:\n" << vector1 - vector0 << std::endl;
+        spdlog::info("{} : Change in MPES readings:\n {}", m_ID, vector1 - vector0);
         
         // move the same actuator back
-        std::cout << "\nMoving actuator " << j+1 << " back to original position." << std::endl;
-        std::cout << "Waiting..." << std::endl; 
+        spdlog::info("{} : Moving actuator {} back to original position...", m_ID, j + 1);
+        spdlog::info("{} : Waiting...", m_ID);
         minusdeltaL.copyTo(&deltas[j]);
         status = pCurPanel->__moveDeltaLengths(deltas);
         if (!status.isGood()) return status;
@@ -321,15 +327,14 @@ UaStatus EdgeController::findSingleMatrix(unsigned panelIdx, double stepSize) {
             pCurPanel->getState(curState);
         }
         if(m_state == Device::DeviceState::Off) { return status; }
-        std::cout << "Motion finished.\n" << std::endl;
+        spdlog::info("{} : Motion finished.", m_ID);
 
         responseMatrix.col(j) = (vector1 - vector0) / (stepSize - missedDelta);
-        std::cout << "\n+++ CURRENT RESPONSE MATRIX:\n" << responseMatrix << std::endl;
+        spdlog::info("{} : CURRENT RESPONSE MATRIX:\n {}", m_ID, responseMatrix);
     }
-    std::cout << "\n+++ ALL DONE FOR THIS PANEL!" << std::endl;
-    
-    std::cout << "\n+++ Response matrix for " << m_ID.eAddress << ": panel " << pCurPanel->getId().position << std::endl;
-    std::cout << responseMatrix << std::endl;
+    spdlog::info("{} : Done calculating response matrix for Panel {}!", m_ID, pCurPanel->getId());
+
+    spdlog::info("{} : Response matrix for Edge {} --- Panel {}:\n{}", m_ID, m_ID, pCurPanel->getId(), responseMatrix);
 
     std::string outfilename = "/home/ctauser/PanelAlignmentData/ResponseMatrix_" + m_ID.eAddress + ".txt";
     std::ofstream output(outfilename, std::ofstream::in | std::ofstream::out | std::ofstream::app);
@@ -367,6 +372,9 @@ UaStatus EdgeController::alignSinglePanel(unsigned panelpos, double alignFrac, b
     UaStatus status;
     
     if (!execute) {
+        spdlog::info("{} : EdgeController::align(): Called with execute=False. Pre-calculating alignment motion...",
+                     m_ID);
+
         Eigen::MatrixXd A; // response matrix
         Eigen::MatrixXd C; // constraint matrix
         Eigen::MatrixXd B; // complete matrix we want to solve for
@@ -374,7 +382,7 @@ UaStatus EdgeController::alignSinglePanel(unsigned panelpos, double alignFrac, b
         Eigen::VectorXd aligned_read = getAlignedReadings() - getSystematicOffsets();
         if (!current_read.size() || !aligned_read.size()) {
             spdlog::error(
-                "{} : EdgeController::alignSinglePanel() : All sensors in the edge are excluded (off or not in field of view).",
+                "{} : EdgeController::alignSinglePanel() : All sensors in the edge are excluded (off or not in field of view). Aborting method...",
                 m_ID);
             return OpcUa_Bad;
         }
@@ -504,7 +512,8 @@ UaStatus EdgeController::alignSinglePanel(unsigned panelpos, double alignFrac, b
 
         // make sure we have enough constraints to solve this
         if (Y.size() < B.cols()) {
-            std::cout << "+++ ERROR! +++ Not enough sensors to constrain the motion. Won't do anything!" << std::endl;
+            spdlog::error("{} : Not enough sensors () to constrain the motion ({} required). Method call aborted.",
+                          m_ID, Y.size(), B.cols());
             return OpcUa_Bad;
         }
 
@@ -512,16 +521,17 @@ UaStatus EdgeController::alignSinglePanel(unsigned panelpos, double alignFrac, b
             X = B.jacobiSvd(Eigen::ComputeThinU | Eigen::ComputeThinV).solve(Y);
         }
         catch (...) {
-            std::cout << "+++ WARNING! +++ Failed to perform Singular Value Decomposition. "
-                      << "Check your sensor readings! Discarding this result!" << std::endl;
+            spdlog::error("{} : Singular Value Decomposition failed. Result discarded. Check your sensor readings!",
+                          m_ID);
             return OpcUa_Bad;
         }
 
-        std::cout << "\nCurrent MPES readings:\n" << current_read << std::endl;
-        std::cout << "\nTarget MPES readings (accounting for systematics):\n" << aligned_read << std::endl;
-        std::cout << "\nActuator response matrix for this edge:\n" << A << std::endl;
-        if (!C.isZero(0))
-            std::cout << "\nConstraint matrix for this edge:\n" << C << std::endl;
+        spdlog::info("\n{} : Current MPES readings:\n {}", m_ID, current_read);
+        spdlog::info("\n{} : Target MPES readings (accounting for systematics):\n {}", m_ID, aligned_read);
+        spdlog::info("\n{} : Edge response matrix:\n {}", m_ID, A);
+        if (!C.isZero(0)) {
+            spdlog::info("{} : Constraint matrix for this edge:\n{}", m_ID, C);
+        }
 
         // in the case of moving this panel (3 sensors and 6 actuators),
         // we want to solve delS = A * delL for delL.
@@ -541,25 +551,27 @@ UaStatus EdgeController::alignSinglePanel(unsigned panelpos, double alignFrac, b
                 auto pCurPanel = std::dynamic_pointer_cast<PanelController>(
                     m_pChildren.at(PAS_PanelType).at(panelPair.second));
                 if(pCurPanel->checkForCollision((X * alignFrac).segment(0,6))) {
-                    std::cout << "Error: Sensors may go out of range! Disallowed motion, please recalculate or relax safety radius." << std::endl;
                     return OpcUa_Bad;
                 }
             }
         }
-        std::cout << "\nLEAST SQUARES SOLUTION:\n" << X << std::endl;
+        spdlog::info("{} : LEAST SQUARES SOLUTION:\n{}", m_ID, X);
         // while (X.norm() >= 14*(X.size()/6)) { // heuristic -- don't want to move by more than the panel gap
         if (alignFrac < 1.) {
-            std::cout << "+++ WARNING +++ You requested fractional motion: will move fractionally by " << alignFrac
-                      << " of the above:" << std::endl;
             X *= alignFrac;
-            std::cout << X << std::endl;
+            spdlog::info("{} : Fractional motion of {} requested. Final (fractional) motion is:\n{}", m_ID, alignFrac,
+                         X);
         }
         m_Xcalculated = X;
-        std::cout << "\nCalculation done! You should call the method again with execute=True to actually execute the motion." << std::endl;
+        spdlog::info(
+            "{} : Calculation done! You should call the method again with execute=True to actually execute the motion.",
+            m_ID);
     }
     else {
         if (m_Xcalculated.isZero(0)) {
-            std::cout << "No calculated motion found.  Call Edge.align with execute=false once first to calculate the motion to execute." << std::endl;
+            spdlog::error(
+                "{} : No calculated motion found. Call Edge.align with execute=false once first to calculate the motion to execute.",
+                m_ID);
             return OpcUa_Bad;
         }
         else {
@@ -571,8 +583,7 @@ UaStatus EdgeController::alignSinglePanel(unsigned panelpos, double alignFrac, b
                         m_pChildren.at(PAS_PanelType).at(panelPair.second));
                     auto nACT = pCurPanel->getActuatorCount();
                     // print out to make sure
-                    std::cout << "Will move actuators of "
-                              << pCurPanel->getId().name << " by\n" << m_Xcalculated.segment(j, nACT) << std::endl;
+                    spdlog::info("{} : Will move actuators by:\n{}", m_ID, m_Xcalculated.segment(j, nACT));
                     
                     UaVariantArray deltas;
                     deltas.create(nACT);

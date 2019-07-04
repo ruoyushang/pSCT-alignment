@@ -115,7 +115,7 @@ UaStatus ActController::operate(OpcUa_UInt32 offset, const UaVariantArray &args)
     UaVariantArray tempArgs;
     switch (offset) {
         case PAS_ACTType_MoveDeltaLength:
-            spdlog::info("{} : Actuator controller calling moveDeltaLength with delta length {}", m_ID,
+            spdlog::info("{} : ActuatorController calling moveDeltaLength with delta length {}", m_ID,
                          args[0].Value.Float);
             if (_getDeviceState() != Device::DeviceState::On) {
                 spdlog::error("{} : Actuator controller is off, operate call failed. Turn on and try again.", m_ID);
@@ -130,7 +130,7 @@ UaStatus ActController::operate(OpcUa_UInt32 offset, const UaVariantArray &args)
             }
             break;
         case PAS_ACTType_MoveToLength:
-            spdlog::info("{} : Actuator controller calling moveToLength with target length {}", m_ID,
+            spdlog::info("{} : ActuatorController calling moveToLength with target length {}", m_ID,
                          args[0].Value.Float);
             if (_getDeviceState() != Device::DeviceState::On) {
                 spdlog::error("{} : Actuator controller is off, operate call failed. Turn on and try again.", m_ID);
@@ -145,19 +145,19 @@ UaStatus ActController::operate(OpcUa_UInt32 offset, const UaVariantArray &args)
             }
             break;
         case PAS_ACTType_ForceRecover:
-            spdlog::info("{} : Actuator controller calling forceRecover()", m_ID);
+            spdlog::info("{} : ActuatorController calling forceRecover()", m_ID);
             m_pPlatform->getActuatorbyIdentity(m_ID)->forceRecover();
             break;
         case PAS_ACTType_ClearError:
-            spdlog::info("{} : Actuator controller calling clearError() for error {}", m_ID, args[0].Value.Int32);
+            spdlog::info("{} : ActuatorController calling clearError() for error {}", m_ID, args[0].Value.Int32);
             m_pPlatform->getActuatorbyIdentity(m_ID)->unsetError(args[0].Value.Int32);
             break;
         case PAS_ACTType_ClearAllErrors:
-            spdlog::info("{} : Actuator controller calling clearAllErrors()", m_ID);
+            spdlog::info("{} : ActuatorController calling clearAllErrors()", m_ID);
             m_pPlatform->getActuatorbyIdentity(m_ID)->clearErrors();
             break;
         case PAS_ACTType_TurnOn:
-            spdlog::info("{} : Actuator controller calling turnOn()", m_ID);
+            spdlog::info("{} : ActuatorController calling turnOn()", m_ID);
             if (_getDeviceState() == Device::DeviceState::Off) {
                 m_pPlatform->getActuatorbyIdentity(m_ID)->turnOn();
                 initialize();
@@ -166,7 +166,7 @@ UaStatus ActController::operate(OpcUa_UInt32 offset, const UaVariantArray &args)
             }
             break;
         case PAS_ACTType_TurnOff:
-            spdlog::info("{} : Actuator controller calling turnOff()", m_ID);
+            spdlog::info("{} : ActuatorController calling turnOff()", m_ID);
             if (_getDeviceState() == Device::DeviceState::On) {
                 m_pPlatform->getActuatorbyIdentity(m_ID)->turnOff();
             } else {
@@ -174,7 +174,7 @@ UaStatus ActController::operate(OpcUa_UInt32 offset, const UaVariantArray &args)
             }
             break;
         case PAS_ACTType_Stop:
-            spdlog::info("{} : Actuator controller calling stop()...", m_ID);
+            spdlog::info("{} : ActuatorController calling stop()...", m_ID);
             m_pPlatform->getActuatorbyIdentity(m_ID)->emergencyStop();
             break;
         default:

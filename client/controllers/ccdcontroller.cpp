@@ -140,15 +140,15 @@ UaStatus CCDController::operate(OpcUa_UInt32 offset, const UaVariantArray &args)
 
     switch (offset) {
         case PAS_CCDType_Read:
-            spdlog::trace("{} : CCD controller calling read()", m_ID);
+            spdlog::trace("{} : CCDController calling read()", m_ID);
             status = read();
             break;
         case PAS_CCDType_Start:
-            spdlog::trace("{} : CCD controller calling start()", m_ID);
+            spdlog::trace("{} : CCDController calling start()", m_ID);
             status = OpcUa_BadInvalidArgument;
             break;
         case PAS_CCDType_Stop:
-            spdlog::trace("{} : CCD controller calling stop()", m_ID);
+            spdlog::trace("{} : CCDController calling stop()", m_ID);
             status = OpcUa_BadInvalidArgument;
             break;
         default:

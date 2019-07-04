@@ -256,13 +256,13 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
          * stop the motion in progress                  *
          * **********************************************/
     else if (offset == PAS_PanelType_Stop) {
-        spdlog::info("{} : Panel controller calling stop()", m_ID);
+        spdlog::info("{} : PanelController calling stop()", m_ID);
         status = m_pClient->callMethodAsync(m_pClient->getDeviceNodeId(m_ID), UaString("Stop"));
     } else if (offset == PAS_PanelType_TurnOn) {
-        spdlog::info("{} : Panel controller calling turnOn()", m_ID);
+        spdlog::info("{} : PanelController calling turnOn()", m_ID);
         status = m_pClient->callMethod(m_pClient->getDeviceNodeId(m_ID), UaString("TurnOn"));
     } else if (offset == PAS_PanelType_TurnOff) {
-        spdlog::info("{} : Panel controller calling turnOff()", m_ID);
+        spdlog::info("{} : PanelController calling turnOff()", m_ID);
         status = m_pClient->callMethod(m_pClient->getDeviceNodeId(m_ID), UaString("TurnOff"));
     } else if (offset == PAS_PanelType_FindHome) {
         if (__getDeviceState() != Device::DeviceState::On) {
@@ -270,19 +270,19 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
                           "could not execute findHome command. Check state and try again.", m_ID);
             return OpcUa_BadInvalidState;
         }
-        spdlog::info("{} : Panel controller calling findHome() with direction {}", m_ID, args[0].Value.Int32);
+        spdlog::info("{} : PanelController calling findHome() with direction {}", m_ID, args[0].Value.Int32);
         status = m_pClient->callMethodAsync(m_pClient->getDeviceNodeId(m_ID), UaString("FindHome"), args);
     } else if (offset == PAS_PanelType_ClearError) {
-        spdlog::info("{} : Panel controller calling clearError() for error {}", m_ID, args[0].Value.Int32);
+        spdlog::info("{} : PanelController calling clearError() for error {}", m_ID, args[0].Value.Int32);
         status = m_pClient->callMethod(m_pClient->getDeviceNodeId(m_ID), UaString("ClearError"), args);
     } else if (offset == PAS_PanelType_ClearAllErrors) {
-        spdlog::info("{} : Panel controller calling clearAllErrors()", m_ID);
+        spdlog::info("{} : PanelController calling clearAllErrors()", m_ID);
         status = m_pClient->callMethod(m_pClient->getDeviceNodeId(m_ID), UaString("ClearAllErrors"));
     } else if (offset == PAS_PanelType_ClearActuatorErrors) {
-        spdlog::info("{} : Panel controller calling clearActuatorErrors()", m_ID);
+        spdlog::info("{} : PanelController calling clearActuatorErrors()", m_ID);
         status = m_pClient->callMethod(m_pClient->getDeviceNodeId(m_ID), UaString("ClearActuatorErrors"));
     } else if (offset == PAS_PanelType_ClearPlatformErrors) {
-        spdlog::info("{} : Panel controller calling clearPlatformErrors()", m_ID);
+        spdlog::info("{} : PanelController calling clearPlatformErrors()", m_ID);
         status = m_pClient->callMethod(m_pClient->getDeviceNodeId(m_ID), UaString("ClearPlatformErrors"));
     } else {
         status = OpcUa_BadInvalidArgument;
@@ -349,7 +349,7 @@ bool PanelController::checkForCollision(const Eigen::VectorXd &deltaLengths) {
     spdlog::debug(os.str());
 
     if (collision) {
-        spdlog::error("{} : Collision check indicates that sensors may go out of range! Motion cancelled.", m_ID);
+        spdlog::error("{} : Collision check indicates that sensors may go out of range! Motion disallowed.", m_ID);
     }
     else {
         spdlog::debug("{} : Collision check passed, motion should be safe.", m_ID);

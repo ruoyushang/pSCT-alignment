@@ -20,6 +20,9 @@
 #include "client/controllers/panelcontroller.hpp"
 #include "client/controllers/pascontroller.hpp"
 
+#include "common/utilities/spdlog/spdlog.h"
+#include "common/utilities/spdlog/fmt/ostr.h"
+
 MirrorController *MirrorControllerCompute::m_Mirror = nullptr;
 
 MirrorController::MirrorController(Device::Identity identity) : PasCompositeController(std::move(identity), nullptr,
@@ -980,22 +983,27 @@ UaStatus MirrorController::alignSector(double alignFrac, bool execute) {
  
     // make sure there are some selected sensors
     if (m_selectedPanels.empty()) {
-        std::cout << "+++ ERROR +++ No panels selected! Nothing to do." << std::endl;
+        spdlog::error("{} : MirrorController::alignSector(): No panels selected. Nothing to do, method aborted.", m_ID);
         return OpcUa_BadInvalidArgument;
     }
     // make sure there are some selected sensors
     if (m_selectedMPES.empty()) {
-        std::cout << "+++ ERROR +++ No sensors selected! Nothing to do." << std::endl;
+        spdlog::error("{} : MirrorController::alignSector(): No sensors selected. Nothing to do, method aborted.",
+                      m_ID);
         return OpcUa_BadInvalidArgument;
     }
 
-   
     if (alignFrac > 1.0 || alignFrac <= 0.0) {
-        std::cout << "Invalid choice of alignFrac, should be between 0.0 and 1.0." << std::endl;
+        spdlog::error(
+            "{} : MirrorController::alignSector(): Invalid choice of alignFrac ({}), should be between 0.0 and 1.0.",
+            m_ID, alignFrac);
         return OpcUa_BadInvalidArgument;
     }
 
-    if (!execute) {   
+    if (!execute) {
+        spdlog::info(
+            "{} : MirrorController::alignSector(): Called with execute=False. Pre-calculating alignment motion...",
+            m_ID);
         // following the align method for an edge:
         Eigen::MatrixXd C; // constraint
         Eigen::MatrixXd B; // complete matrix
@@ -1033,8 +1041,8 @@ UaStatus MirrorController::alignSector(double alignFrac, bool execute) {
                     if (!overlapIndices.count(idx)) {
                         overlapIndices.insert(idx);
                         if (count(alignMPES.begin(), alignMPES.end(), mpes)) {
-                            std::cout << "You specified the following internal MPES: " << mpes->getId().serialNumber
-                                      << std::endl;
+                            spdlog::info("{} : MirrorController::alignSector(): Internal MPES selected: {}", m_ID,
+                                         mpes->getId());
                             userOverlap = true;
                         }
                     }
@@ -1044,8 +1052,7 @@ UaStatus MirrorController::alignSector(double alignFrac, bool execute) {
 
         // if no user specified overlapping sensors, get their readings
         if (!userOverlap && !overlapIndices.empty()) {
-            std::cout << "\nNo user-specified internal MPES." << std::endl;
-            std::cout << "Reading the automatically identfied internal MPES:" << std::endl;
+            spdlog::warn("{} : MirrorController::alignSector(): No user-selected internal MPES.", m_ID);
             // only read the internal MPES if no user-specified ones have been found
             for (const auto &i: overlapIndices) {
                 std::shared_ptr<MPESController> mpes = std::dynamic_pointer_cast<MPESController>(
@@ -1140,19 +1147,22 @@ UaStatus MirrorController::alignSector(double alignFrac, bool execute) {
             }
 
             if(pCurPanel->checkForCollision(deltaLengths)) {
-                std::cout << "Error: Sensors may go out of range! Disallowed motion, please recalculate or relax safety radius." << std::endl;
                 return OpcUa_Bad;
             }
         }
         m_Xcalculated = X; // set calculated motion
         m_panelsToMove = panelsToMove;
         m_previousCalculatedMethod = PAS_MirrorType_AlignSector;
-    
-        std::cout << "Calculation done! Call the method again with execute=True to carry out the calculated motion." << std::endl;
+
+        spdlog::info(
+            "{} : Calculation done! You should call the method again with execute=True to actually execute the motion.",
+            m_ID);
     }
     else {
         if (m_Xcalculated.isZero(0) || m_previousCalculatedMethod != PAS_MirrorType_AlignSector) {
-            std::cout << "No calculated motion found.  Call Mirror.alignSector with execute=false once first to calculate the motion to execute." << std::endl;
+            spdlog::error(
+                "{} : No calculated motion found. Call Mirror.alignSector with execute=false once first to calculate the motion to execute.",
+                m_ID);
             return OpcUa_Bad;
         }
         else {        
@@ -1184,32 +1194,36 @@ UaStatus MirrorController::alignRing(int fixPanel, double alignFrac, bool execut
     UaStatus status;
 
     if (m_ChildrenPositionMap.at(PAS_PanelType).find(fixPanel) == m_ChildrenPositionMap.at(PAS_PanelType).end()) {
-        std::cout
-            << "Error: The selected fixed panel is not found in the mirror. Please double check and try again."
-            << std::endl;
+        spdlog::error(
+            "{} : MirrorController::alignRing(): The selected fixed panel ({}) is not found in the mirror. Please double check and try again.",
+            m_ID, fixPanel);
         return OpcUa_BadInvalidArgument;
     }
 
     if (alignFrac > 1.0 || alignFrac <= 0.0) {
-        std::cout << "Invalid choice of alignFrac, should be between 0.0 and 1.0." << std::endl;
+        spdlog::error(
+            "{} : MirrorController::alignRing(): Invalid choice of alignFrac ({}), should be between 0.0 and 1.0.",
+            m_ID, alignFrac);
         return OpcUa_BadInvalidArgument;
     }
 
     if (!execute) {
+        spdlog::info(
+            "{} : MirrorController::alignRing(): Called with execute=False. Pre-calculating alignment motion...", m_ID);
         // First check that all panels in ring are present
-        std::cout << "Locating all panels in ring to align..." << std::endl;
+        spdlog::info("{} : MirrorController::alignRing(): Locating all panels in ring to align...");
         int curPanel = fixPanel;
         do {
             int nextPanel = SCTMath::GetPanelNeighbor(curPanel, 0);
             if (m_ChildrenPositionMap.at(PAS_PanelType).find(nextPanel) !=
                     m_ChildrenPositionMap.at(PAS_PanelType).end()) {
-                std::cout << "Found next panel " << nextPanel << std::endl; 
+                spdlog::debug("{} : MirrorController::alignRing(): Found next panel {}...", m_ID, nextPanel);
                 continue;
             }
             else {
-                    std::cout << "Error:: Searched for next panel in ring (" << nextPanel
-                          << ") but is not present as child of mirror. Please double-check that all panels in ring are present in the mirror."
-                          << std::endl;
+                spdlog::error(
+                    "{} : MirrorController::alignRing(): Searched for next panel ({}), but did not find as child of mirror. Please double-check that all panels in ring are present in the client.",
+                    m_ID, nextPanel);
                     return OpcUa_Bad;
             }
             curPanel = nextPanel;
@@ -1251,9 +1265,9 @@ UaStatus MirrorController::alignRing(int fixPanel, double alignFrac, bool execut
         Device::Identity id;
         // keep track of the position in the global response matrix
         unsigned blockRow = 0;
-        std::cout << "Traversing Ring " << ring << " of Mirror " << mirror
-                  << " clockwise from fix panel to locate all edges to align\n"
-                  << std::endl;
+        spdlog::info(
+            "{}: MirrorController::alignRing() : Traversing Ring {} of Mirror {} clockwise from fix panel ({}) to locate all edges to align.",
+            m_ID, ring, mirror, fixPanel);
 
         Eigen::MatrixXd T; // Vladimir's T operator
         Eigen::MatrixXd Eye = Eigen::MatrixXd::Identity(6, 6);
@@ -1328,10 +1342,10 @@ UaStatus MirrorController::alignRing(int fixPanel, double alignFrac, bool execut
             if (blockRow != 1) {
                 std::cout << "Taking into account systematic displacement for edge " << edgesToFit.back()->getId() << std::endl;
                 E = MCurNext*MCurPrev.inverse();
-                //std::cout << "+++ SPECIAL DEBUG +++ ML = \n" << MCurPrev << std::endl;
-                //std::cout << "+++ SPECIAL DEBUG +++ ML*ML.invserse() = \n" << MCurPrev * MCurPrev.inverse() << std::endl;
-                //std::cout << "+++ SPECIAL DEBUG +++ MR = \n" << MCurNext << std::endl;
-                //std::cout << "+++ SPECIAL DEBUG +++ Operator E = MR*ML.inverse() \n" << E << std::endl;
+                spdlog::debug("{} : Matrix ML:\n{}", m_ID, MCurPrev);
+                spdlog::debug("{} : ML*ML.inverse():\n{}", m_ID, MCurPrev * MCurPrev.inverse());
+                spdlog::debug("{} : Matrix MR:\n{}", MCurNext);
+                spdlog::debug("{} : Operator E = MR*ML.inverse():\n{}", E);
                 T = Eye - E*T;
             }
 
@@ -1339,29 +1353,27 @@ UaStatus MirrorController::alignRing(int fixPanel, double alignFrac, bool execut
 
         } while ( curPanel != fixPanel );
 
-        std::cout << "Size of global misalignment vector: " << globMisalignVec.size() << std::endl;
-        std::cout << "Shape of global response matrix: (" << globResponse.rows() << ", " << globResponse.cols() << ")" << std::endl;
+        spdlog::info("{}: Size of global misalignment vector: {}", m_ID, globMisalignVec.size());
+        spdlog::info("{}: Shape of global response matrix: ({}, {})", m_ID, globResponse.rows(), globResponse.cols());
 
-        //std::cout << "+++ SPECIAL DEBUG +++ Operator T = \n" << T << std::endl;
-        //std::cout << "+++ SPECIAL DEBUG +++ Operator -1*T.inverse() = \n" << -1 * T.inverse() << std::endl;
-        //std::cout << "+++ SPECIAL DEBUG +++ Operator T*T.inverse() = \n" << T * T.inverse() << std::endl;
-        //std::cout << "+++ SPECIAL DEBUG +++ You want to compute -1*T.inverse*misalignmentOfLastEdge..." << std::endl;
+        spdlog::debug("{} : Operator T:\n{}", m_ID, T);
+        spdlog::debug("{} : Operator -1*T.inverse():\n{}", m_ID, -1 * T.inverse());
+        spdlog::debug("{} : Operator T*T.inverse():\n{}", m_ID, T * T.inverse());
 
         // check that we have enough sensor readings
         if (globMisalignVec.size() < globResponse.rows()) {
-            std::cout
-                    << "+++ ERROR +++ Not enough sensor readings to perform the fit! Go through the output above and find which sensor is not in the field of view, fix it, and come back."
-                    << std::endl;
+            spdlog::error("{} : Not enough sensors () to constrain the motion ({} required). Method call aborted.",
+                          m_ID, globMisalignVec.size(), globResponse.rows());
             return OpcUa_Bad;
         }
 
-        //std::cout << "+++ DEBUG +++ misalignment vector size is " << globMisalignVec.size() << std::endl;
-        //std::cout << "+++ DEBUG +++ The first 12 entries:\n" << globMisalignVec.head(12) << std::endl;
-        //std::cout << "+++ DEBUG +++ The last 12 entries:\n" << globMisalignVec.tail(12) << std::endl;
-        //std::cout << "+++ DEBUG +++ The first 12x18 block of the global response matrix:\n"
-        //          << globResponse.block(0, 0, 12, 18) << std::endl;
-        //std::cout << "+++ DEBUG +++ The last 12x18 block of the global response matrix:\n"
-        //          << globResponse.block(globResponse.rows() - 12, globResponse.cols() - 18, 12, 18) << std::endl;
+        spdlog::debug("{} : Misalignment vector size:{}.", m_ID, globMisalignVec.size());
+        spdlog::debug("{} : First 12 entries:\n{}.", m_ID, globMisalignVec.head(12));
+        spdlog::debug("{} : Last 12 entries:\n{}.", m_ID, globMisalignVec.tail(12));
+        spdlog::debug("{} : First 12x18 block of the global response matrix:\n{}.", m_ID,
+                      globResponse.block(0, 0, 12, 18));
+        spdlog::debug("{} : Last 12x18 block of the global response matrix:\n{}.", m_ID,
+                      globResponse.block(globResponse.rows() - 12, globResponse.cols() - 18, 12, 18));
 
         panelsToMove.erase(panelsToMove.begin()); // Erase fixed panel (first panel) from panelsToMove
 
@@ -1372,11 +1384,9 @@ UaStatus MirrorController::alignRing(int fixPanel, double alignFrac, bool execut
         globDisplaceVec = globResponse.jacobiSvd(Eigen::ComputeThinU | Eigen::ComputeThinV).solve(globMisalignVec);
 
         Eigen::VectorXd check = globResponse * globDisplaceVec - globMisalignVec;
-        std::cout
-                << "+++ DEBUG +++ Checking that the found solution is correct: looking at (R*Solution - MisAlign): norm = "
-                << check.norm() << std::endl;
-        //std::cout << "\t\t First 12 entries\n" << check.head(12) << std::endl;
-        //std::cout << "\t\t Last 12 entries\n" << check.tail(12) << std::endl;
+        spdlog::debug("{} : Checking the calculated solution... norm(R*Solution - MisAlign) = {}.", m_ID, check.norm());
+        //spdlog::debug("{} : First 12 entries:\n{}.", m_ID, check.head(12));
+        //spdlog::debug("{} : Last 12 entries:\n{}.", m_ID, check.tail(12));
 
         m_sysOffsetsMPES = globDisplaceVec.head(6);
         // get the order of read sensors:
@@ -1387,9 +1397,7 @@ UaStatus MirrorController::alignRing(int fixPanel, double alignFrac, bool execut
         }
         // make sure we read out the systematic vector in the same order as the sensors
         // and assign it correctly to outer/middle/inner
-
-        std::cout << "The fitted systematic offset is, in the order of read sensors:\n"
-                  << m_sysOffsetsMPES << std::endl;
+        spdlog::info("{} : Calculated systematic offsets:\n{}.", m_ID, m_sysOffsetsMPES);
 
         // set the offset for each sensor edge
         for (const auto& edge : edgesToFit) {
@@ -1401,25 +1409,23 @@ UaStatus MirrorController::alignRing(int fixPanel, double alignFrac, bool execut
             }
         }
 
-        if (alignFrac < 1.)
-            std::cout << "\n+++ WARNING +++ You requested fractional motion: will move fractionally by "
-                      << alignFrac << " of the computed displacement" << std::endl;
+        if (alignFrac < 1.) {
+            spdlog::info("{} : Fractional motion of {} requested.", m_ID, alignFrac);
+        }
 
         /* MOVE ACTUATORS */
         unsigned j = 6;
         Eigen::VectorXd deltaLengths(6);
         for (auto &pCurPanel : panelsToMove) {
             // print out to make sure
-            std::cout << "Will move actuators of "
-                      << pCurPanel->getId().name << " by (accounting for fractional motion)\n"
-                      << alignFrac * globDisplaceVec.segment(j, 6) << std::endl;
+            spdlog::info("{} : Panel {} -- Calculated change in actuator lengths is:\n{}", m_ID, pCurPanel->getId(),
+                         alignFrac * globDisplaceVec.segment(j, 6));
 
             for (unsigned i = 0; i < 6; i++) {
                 deltaLengths(i) = alignFrac * globDisplaceVec(j++);
             }
 
             if(pCurPanel->checkForCollision(deltaLengths)) {
-                std::cout << "Error: Sensors may go out of range! Disallowed motion, please recalculate or relax safety radius." << std::endl;
                 return OpcUa_Bad;
             }
         }
@@ -1429,7 +1435,9 @@ UaStatus MirrorController::alignRing(int fixPanel, double alignFrac, bool execut
     }
     else {
         if (m_Xcalculated.isZero(0) || m_previousCalculatedMethod != PAS_MirrorType_AlignRing) {
-            std::cout << "No calculated motion found.  Call Mirror.AlignRing with execute=false once first to calculate the motion to execute." << std::endl;
+            spdlog::error(
+                "{} : No calculated motion found. Call Mirror.AlignRing with execute=false once first to calculate the motion to execute.",
+                m_ID);
             return OpcUa_Bad;
         }
         else {        

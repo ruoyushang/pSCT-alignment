@@ -183,7 +183,7 @@ UaStatus ActController::operate(OpcUa_UInt32 offset, const UaVariantArray &args)
                     m_ID);
                 status = OpcUa_BadInvalidState;
             } else {
-                spdlog::info("{} : Actuator controller calling moveDeltaLength() with delta length {} mm", m_ID,
+                spdlog::info("{} : ActuatorController calling moveDeltaLength() with delta length {} mm", m_ID,
                              deltaLength);
                 status = m_pClient->callMethodAsync(m_pClient->getDeviceNodeId(m_ID), UaString("MoveDeltaLength"),
                                                     args);
@@ -193,7 +193,7 @@ UaStatus ActController::operate(OpcUa_UInt32 offset, const UaVariantArray &args)
             float targetLength;
             UaVariant(args[0]).toFloat(targetLength);
 
-            spdlog::info("{} : Actuator controller calling moveToLength() with target length {}", m_ID, targetLength);
+            spdlog::info("{} : ActuatorController calling moveToLength() with target length {}", m_ID, targetLength);
 
             // Check state manually beforehand
             if (state != Device::DeviceState::On || errorState == Device::ErrorState::FatalError) {
@@ -202,33 +202,33 @@ UaStatus ActController::operate(OpcUa_UInt32 offset, const UaVariantArray &args)
                     m_ID);
                 status = OpcUa_BadInvalidState;
             } else {
-                spdlog::info("{} : Actuator controller calling moveToLength() with target length {} mm", m_ID,
+                spdlog::info("{} : ActuatorController calling moveToLength() with target length {} mm", m_ID,
                              targetLength);
                 status = m_pClient->callMethodAsync(m_pClient->getDeviceNodeId(m_ID), UaString("MoveToLength"), args);
             }
             break;
         case PAS_ACTType_ForceRecover:
-            spdlog::info("{} : Actuator controller calling forceRecover()", m_ID);
+            spdlog::info("{} : ActuatorController calling forceRecover()", m_ID);
             status = m_pClient->callMethod(m_pClient->getDeviceNodeId(m_ID), UaString("ForceRecover"));
             break;
         case PAS_ACTType_ClearError:
-            spdlog::info("{} : Actuator controller calling clearError() for error {}", m_ID, args[0].Value.Int32);
+            spdlog::info("{} : ActuatorController calling clearError() for error {}", m_ID, args[0].Value.Int32);
             status = m_pClient->callMethod(m_pClient->getDeviceNodeId(m_ID), UaString("ClearError"), args);
             break;
         case PAS_ACTType_ClearAllErrors:
-            spdlog::info("{} : Actuator controller calling clearAllErrors()", m_ID);
+            spdlog::info("{} : ActuatorController calling clearAllErrors()", m_ID);
             status = m_pClient->callMethod(m_pClient->getDeviceNodeId(m_ID), UaString("ClearAllErrors"));
             break;
         case PAS_ACTType_TurnOn:
-            spdlog::info("{} : Actuator controller calling turnOn()", m_ID);
+            spdlog::info("{} : ActuatorController calling turnOn()", m_ID);
             status = m_pClient->callMethod(m_pClient->getDeviceNodeId(m_ID), UaString("TurnOn"));
             break;
         case PAS_ACTType_TurnOff:
-            spdlog::info("{} : Actuator controller calling turnOff()", m_ID);
+            spdlog::info("{} : ActuatorController calling turnOff()", m_ID);
             status = m_pClient->callMethod(m_pClient->getDeviceNodeId(m_ID), UaString("TurnOff"));
             break;
         case PAS_ACTType_Stop:
-            spdlog::info("{} : Actuator controller calling stop()", m_ID);
+            spdlog::info("{} : ActuatorController calling stop()", m_ID);
             status = m_pClient->callMethod(m_pClient->getDeviceNodeId(m_ID), UaString("Stop"));
             break;
         default:
