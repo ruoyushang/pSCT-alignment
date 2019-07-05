@@ -547,6 +547,14 @@ UaStatus EdgeController::alignSinglePanel(unsigned panelpos, double alignFrac, b
         // we get the following least squares solution:
         // delL = (A^T * A) \ A^T * delS - (A^T * A) \ C^T * [C(A^T * A) \ C^T]\C * (A^T * A) \ A^T * delS
         // We do this partly through brute force and partly through SVD.
+        spdlog::info("{} : LEAST SQUARES SOLUTION:\n{}\n", m_ID, X);
+
+        // while (X.norm() >= 14*(X.size()/6)) { // heuristic -- don't want to move by more than the panel gap
+        if (alignFrac < 1.) {
+            X *= alignFrac;
+            spdlog::info("{} : Fractional motion of {} requested. Final (fractional) motion is:\n{}\n", m_ID, alignFrac,
+                         X);
+        }
 
         for (const auto &panelPair : m_ChildrenPositionMap.at(PAS_PanelType)) {
             if ((panelPair.first == panelpos) == moveit) { // clever but not clear...
@@ -557,13 +565,7 @@ UaStatus EdgeController::alignSinglePanel(unsigned panelpos, double alignFrac, b
                 }
             }
         }
-        spdlog::info("{} : LEAST SQUARES SOLUTION:\n{}\n", m_ID, X);
-        // while (X.norm() >= 14*(X.size()/6)) { // heuristic -- don't want to move by more than the panel gap
-        if (alignFrac < 1.) {
-            X *= alignFrac;
-            spdlog::info("{} : Fractional motion of {} requested. Final (fractional) motion is:\n{}\n", m_ID, alignFrac,
-                         X);
-        }
+
         m_Xcalculated = X;
         spdlog::info(
             "{} : Calculation done! You should call the method again with execute=True to actually execute the motion.",
@@ -597,8 +599,8 @@ UaStatus EdgeController::alignSinglePanel(unsigned panelpos, double alignFrac, b
                     }
                     status = pCurPanel->__moveDeltaLengths(deltas);
                     if (!status.isGood()) return status;
+                    j++;
                 }
-                j++;
             }
         }
         m_Xcalculated.setZero();
