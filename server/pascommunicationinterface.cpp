@@ -165,9 +165,6 @@ UaStatus PasCommunicationInterface::initialize() {
 
     std::vector<int> mpesPositions;
     std::vector<int> actPositions;
-    for (auto mpes : mpesPositionToPort) {
-        mpesPositions.push_back(mpes.first);
-    }
     for (auto act : actPositionToPort) {
         actPositions.push_back(act.first);
     }
@@ -181,7 +178,9 @@ UaStatus PasCommunicationInterface::initialize() {
         identity.eAddress = std::to_string(mpes.second);
         identity.position = mpes.first;
         spdlog::info("Adding MPES hardware interface with identity {} as child of platform ...", identity);
-        m_platform->addMPES(identity);
+        if (m_platform->addMPES(identity)) {
+            mpesPositions.push_back(mpes.first);
+        };
     }
 
     // initialize expected devices
