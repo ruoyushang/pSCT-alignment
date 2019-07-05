@@ -17,6 +17,6 @@ fi
 screen -S $screen_name -X screen -t $panel_num
 
 screen -S $screen_name -p $panel_num -X stuff $"scp -q ~/filesToCopy/passerver root@$ip_address:~/opcua/sdk/bin/\n"
-screen -S $screen_name -p $panel_num -X stuff "scp -q ~/home/user/repos/bryan/pSCT-alignment/server/start_server.sh root@$ip_address:~/opcua/\n"
+screen -S $screen_name -p $panel_num -X stuff "scp -q ~/filesToCopy/start_server.sh root@$ip_address:~/opcua/\n"
 screen -S $screen_name -p $panel_num -X stuff "echo DONE!\n"
 
