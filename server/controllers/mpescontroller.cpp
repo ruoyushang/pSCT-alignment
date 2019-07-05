@@ -5,7 +5,7 @@
 
 #include "server/controllers/mpescontroller.hpp"
 
-#include <iostream>
+
 #include <memory>
 
 #include "uabase/statuscode.h"

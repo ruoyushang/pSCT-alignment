@@ -1,7 +1,7 @@
 #ifndef ALIGNMENT_DEVICE_HPP
 #define ALIGNMENT_DEVICE_HPP
 
-#include <iostream>
+
 #include <map>
 #include <memory>
 #include <string>

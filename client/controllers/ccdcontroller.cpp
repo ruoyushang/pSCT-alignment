@@ -1,6 +1,6 @@
 #include "client/controllers/ccdcontroller.hpp"
 
-#include <iostream>
+
 #include <string>
 #include <vector>
 

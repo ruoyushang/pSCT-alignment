@@ -5,7 +5,7 @@
 
 #include "server/pasnodemanager.hpp"
 
-#include <iostream>
+
 #include <map>
 #include <memory>
 #include <set>

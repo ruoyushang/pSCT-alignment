@@ -268,6 +268,14 @@ UaStatus Configuration::loadSubclientConfiguration(const std::vector<std::string
     return OpcUa_Good;
 }
 
+std::set<Device::Identity> Configuration::getDevices(OpcUa_UInt32 deviceType) {
+    if (m_DeviceIdentities.find(deviceType) != m_DeviceIdentities.end()) {
+        return m_DeviceIdentities.at(deviceType);
+    } else {
+        return std::set<Device::Identity>();
+    }
+}
+
 std::vector<UaString> Configuration::getServerAddresses() {
     std::vector<UaString> serverAddresses;
     if (m_Mode == "subclient") {

@@ -1,6 +1,6 @@
 #include "server/controllers/actcontroller.hpp"
 
-#include <iostream>
+
 #include <memory>
 
 #include "uabase/statuscode.h"

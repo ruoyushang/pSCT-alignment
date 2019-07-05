@@ -719,6 +719,7 @@ UaStatus MirrorController::alignSequential(const std::string &startEdge, const s
     std::deque<std::string> toAlign{}; // yes, deque, not vector!
     for (int i = 0; i < (int) selectedEdges.size() && m_state != Device::DeviceState::Off; i++) {
         toAlign.push_front(selectedEdges.at(i));
+        spdlog::info("{}: Aligning Edge {} and all previous edges...", m_ID, toAlign.front());
         // align all the preceding panels
         for (const auto &edgeEaddress : toAlign) {
             // figure out which panel is "greater" and which one is "smaller" in the sense
@@ -736,7 +737,7 @@ UaStatus MirrorController::alignSequential(const std::string &startEdge, const s
             auto movingPanel_idx = m_ChildrenPositionMap.at(PAS_PanelType).at(curPanels.at(0));
             // do this until the edge is aligned
             int alignIter = 1;
-            std::cout << "Doing alignment motion calculation..." << std::endl;
+            spdlog::debug("{} Calculating motion for Edge {}...", m_ID, edgeEaddress);
             status = m_pChildren.at(PAS_EdgeType).at(getEdgeIndex(edgeEaddress))->operate(PAS_EdgeType_Align, args);
             Device::DeviceState curState;
             m_pChildren.at(PAS_EdgeType).at(getEdgeIndex(edgeEaddress))->getState(curState);
@@ -746,32 +747,32 @@ UaStatus MirrorController::alignSequential(const std::string &startEdge, const s
             }
             if (m_state == Device::DeviceState::Off) { break; }
             args[3].Value.Boolean = true; // this time, execute
-            std::cout << "Executing motion..." << std::endl;
+            spdlog::debug("{}: Executing alignment motion for Edge {}...", m_ID, edgeEaddress);
             status = m_pChildren.at(PAS_EdgeType).at(getEdgeIndex(edgeEaddress))->operate(PAS_EdgeType_Align, args);
             while (curState == Device::DeviceState::Busy) {
                 usleep(500 * 1000); // microseconds
                 m_pChildren.at(PAS_EdgeType).at(getEdgeIndex(edgeEaddress))->getState(curState);
             }
-            if (!status.isGood()) { 
-                std::cout << "Error: Failed when executing motion." << std::endl;
+            if (!status.isGood()) {
+                spdlog::error("{}: Failed while executing motion. Method aborted.", m_ID);
                 return status; 
             }
             if (m_state == Device::DeviceState::Off) { break; }
             while (!std::dynamic_pointer_cast<EdgeController>(
                 m_pChildren.at(PAS_EdgeType).at(getEdgeIndex(edgeEaddress)))->isAligned()) {
-                std::cout << "\nAlignment Iteration " << alignIter << std::endl << std::endl;
+                spdlog::info("{}: Alignment Iteration {}.", m_ID, alignIter);
                 usleep(400*1000); // microseconds
 
                 Device::DeviceState curstate;
                 m_pChildren.at(PAS_PanelType).at(movingPanel_idx)->getState(curstate);
                 while (curstate == Device::DeviceState::Busy) {
-                    std::cout << "\tPanel " << curPanels.at(0) << " moving..." << std::endl;
+                    spdlog::debug("{}: Waiting for Panel {}", m_ID, curPanels.at(0));
                     usleep(200*1000); // microseconds
                     m_pChildren.at(PAS_PanelType).at(movingPanel_idx)->getState(curstate);
                 }
                 alignIter++;
                 args[3].Value.Boolean = false;
-                std::cout << "Doing alignment motion calculation..." << std::endl;
+                spdlog::debug("{} Calculating motion for Edge {}...", m_ID, edgeEaddress);
                 status = m_pChildren.at(PAS_EdgeType).at(getEdgeIndex(edgeEaddress))->operate(PAS_EdgeType_Align, args);
                 while (curState == Device::DeviceState::Busy) {
                     usleep(500 * 1000); // microseconds
@@ -779,10 +780,10 @@ UaStatus MirrorController::alignSequential(const std::string &startEdge, const s
                 }
                 if (m_state == Device::DeviceState::Off) { break; }
                 args[3].Value.Boolean = true; // execute motion
-                std::cout << "Executing motion..." << std::endl;
+                spdlog::debug("{}: Executing alignment motion for Edge {}...", m_ID, edgeEaddress);
                 status = m_pChildren.at(PAS_EdgeType).at(getEdgeIndex(edgeEaddress))->operate(PAS_EdgeType_Align, args);
-                if (!status.isGood()) { 
-                    std::cout << "Error: Failed when executing motion." << std::endl;
+                if (!status.isGood()) {
+                    spdlog::error("{}: Failed while executing motion. Method aborted.", m_ID);
                     return status; 
                 }
                 while (curState == Device::DeviceState::Busy) {
@@ -791,8 +792,8 @@ UaStatus MirrorController::alignSequential(const std::string &startEdge, const s
                 }
                 if (m_state == Device::DeviceState::Off) { break; }
             }
-            std::cout << "\n Edge " << m_pChildren.at(PAS_EdgeType).at(getEdgeIndex(edgeEaddress))->getId()
-                      << " aligned." << std::endl;
+            spdlog::info("{}: Edge {} aligned.", m_ID,
+                         m_pChildren.at(PAS_EdgeType).at(getEdgeIndex(edgeEaddress))->getId());
         }
     }
 

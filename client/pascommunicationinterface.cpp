@@ -175,18 +175,21 @@ void PasCommunicationInterface::addEdgeControllers() {
     for (const auto &edgeId : m_pConfiguration->getDevices(PAS_EdgeType)) {
         bool addEdge = true;
         // Check if all panels in edge exist
-        for (const auto &panelChildId : m_pConfiguration->getChildren(edgeId).at(PAS_PanelType)) {
-            if (m_pControllers.at(PAS_PanelType).find(panelChildId) ==
-                m_pControllers.at(PAS_PanelType).end()) {
-                // Child panel not found
-                //std::debug("Could not find panel {} as child of Edge {} (likely server failed to connect). Edge controller not created...", panelChildId, edgeId);
-                addEdge = false;
-                break;
+        auto children = m_pConfiguration->getChildren(edgeId);
+        if (children.find(PAS_PanelType) != children.end()) {
+            for (const auto &panelChildId : m_pConfiguration->getChildren(edgeId).at(PAS_PanelType)) {
+                if (m_pControllers.at(PAS_PanelType).find(panelChildId) ==
+                    m_pControllers.at(PAS_PanelType).end()) {
+                    // Child panel not found
+                    //std::debug("Could not find panel {} as child of Edge {} (likely server failed to connect). Edge controller not created...", panelChildId, edgeId);
+                    addEdge = false;
+                    break;
+                }
             }
-        }
 
-        if (addEdge) {
-            addDevice(nullptr, PAS_EdgeType, edgeId);
+            if (addEdge) {
+                addDevice(nullptr, PAS_EdgeType, edgeId);
+            }
         }
     }
 }

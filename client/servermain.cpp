@@ -28,7 +28,7 @@
 #include "common/utilities/spdlog/fmt/ostr.h"
 #include "common/utilities/spdlog/sinks/basic_file_sink.h"
 #include "common/utilities/spdlog/sinks/stdout_color_sinks.h"
-#include "common/utilities/spdlog/sinks/rotating_file_sink.h"
+#include "common/utilities/spdlog/sinks/daily_file_sink.h"
 #include "common/utilities/spdlog/logger.h"
 
 #define CLIENT_CPP_SDK_ACTIVATE_MEMCHECK 0
@@ -286,10 +286,12 @@ int main(int argc, char* argv[])
                   << ". Valid choices are 'trace', 'debug', 'info', 'warn', 'error', 'critical'.";
         return -1;
     }
+    std::cout << "Console logging level set to: " << logLevel << std::endl;
 
     // Note that log directory must have been created beforehand
-    auto file_sink = std::make_shared<spdlog::sinks::rotating_file_sink_mt>(std::string(getenv("HOME")) + std::string("/logs/p2pasclient_logs"), 1048576 * 5, 5,
-                                                                       false); // 5 rotating files with max size 5 MB
+    auto file_sink = std::make_shared<spdlog::sinks::daily_file_sink_mt>(
+        std::string(getenv("HOME")) + std::string("/logs/p2pasclient_logs"), 2, 0,
+        false); // Daily file created at 02:00
     file_sink->set_level(spdlog::level::trace); // always save all logging levels
     file_sink->set_pattern("[%c] [%n] [%l] [%s:%!:%#] %v");
 

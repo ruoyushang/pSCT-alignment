@@ -1,7 +1,7 @@
 #include "server/controllers/panelcontroller.hpp"
 
 #include <array>
-#include <iostream>
+
 #include <memory>
 
 #include "uabase/statuscode.h"

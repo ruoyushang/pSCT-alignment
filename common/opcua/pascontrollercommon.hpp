@@ -14,7 +14,7 @@
 #include <set>
 #include <map>
 #include <chrono>
-#include <iostream>
+
 
 #include "common/alignment/device.hpp"
 
