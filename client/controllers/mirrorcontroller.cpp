@@ -458,7 +458,7 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
                     PAS_MPESType)) {
                     if (m_selectedMPES.find(mpes->getId().serialNumber) != m_selectedMPES.end()) {
                         if (m_state == Device::DeviceState::Busy) {
-                            std::dynamic_pointer_cast<MPESController>(mpes)->read(false);
+                            std::dynamic_pointer_cast<MPESController>(mpes)->read();
                             readings.insert(std::make_pair(mpes->getId(), std::dynamic_pointer_cast<MPESController>(
                                 mpes)->getPosition()));
                         }
@@ -1046,7 +1046,7 @@ UaStatus MirrorController::alignSector(double alignFrac, bool execute) {
         for (int mpesSerial : m_selectedMPES) {
             std::shared_ptr<MPESController> mpes = std::dynamic_pointer_cast<MPESController>(
                 m_pChildren.at(PAS_MPESType).at(getMPESIndex(mpesSerial)));
-            mpes->read(false);
+            mpes->read();
             if (mpes->isVisible())
                 alignMPES.push_back(mpes);
         }
@@ -1086,7 +1086,7 @@ UaStatus MirrorController::alignSector(double alignFrac, bool execute) {
             for (const auto &i: overlapIndices) {
                 std::shared_ptr<MPESController> mpes = std::dynamic_pointer_cast<MPESController>(
                     m_pChildren.at(PAS_MPESType).at(i));
-                mpes->read(false);
+                mpes->read();
                 if (mpes->isVisible())
                     alignMPES.push_back(mpes);
             }

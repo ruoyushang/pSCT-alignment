@@ -13,11 +13,6 @@
 #include "common/utilities/spdlog/spdlog.h"
 #include "common/utilities/spdlog/fmt/ostr.h"
 
-
-float MPESController::kNominalIntensity = 150000.;
-float MPESController::kNominalSpotWidth = 10.;
-int MPESController::kMaxAttempts = 1;
-
 MPESController::MPESController(Device::Identity identity, Client *pClient, std::string mode) : PasController(
     std::move(identity), pClient), m_mode(mode),
                                                                                                m_numAttempts(0) {
@@ -131,47 +126,34 @@ UaStatus MPESController::getData(OpcUa_UInt32 offset, UaVariant &value) {
     if (MPESObject::ERRORS.count(offset) > 0) {
         return getError(offset, value);
     } else {
-        /**
-        if (offset == PAS_MPESType_xCentroidAvg || offset == PAS_MPESType_yCentroidAvg ||
-            offset == PAS_MPESType_xCentroidSpotWidth ||
-            offset == PAS_MPESType_yCentroidSpotWidth || 
-            offset == PAS_MPESType_CleanedIntensity) {
-            status = read(false);
-            if (status.isBad()) {
-                //spdlog::error("{} : MPESController::operate() : Device is in a bad state (busy, off, error) and "
-                //              "could not read data. Check state and try again.", m_ID);
-                return status;
-            }
-        }
-        */
         switch (offset) {
             case PAS_MPESType_xCentroidAvg:
-                value.setFloat(m_data.xCentroid);
-                spdlog::trace("{} : Read xCentroid value => ({})", m_ID, m_data.xCentroid);
+                status = m_pClient->read({m_pClient->getDeviceNodeId(m_ID) + "." + "xCentroidAvg"}, &value);
+                spdlog::trace("{} : Read xCentroid value => ({})", m_ID, value[0].Value.Double);
                 break;
             case PAS_MPESType_yCentroidAvg:
-                value.setFloat(m_data.yCentroid);
-                spdlog::trace("{} : Read yCentroid value => ({})", m_ID, m_data.yCentroid);
+                status = m_pClient->read({m_pClient->getDeviceNodeId(m_ID) + "." + "yCentroidAvg"}, &value);
+                spdlog::trace("{} : Read yCentroid value => ({})", m_ID, value[0].Value.Double);
                 break;
             case PAS_MPESType_xCentroidSpotWidth:
-                value.setFloat(m_data.xSpotWidth);
-                spdlog::trace("{} : Read xCentroidSpotWidth value => ({})", m_ID, m_data.xSpotWidth);
+                status = m_pClient->read({m_pClient->getDeviceNodeId(m_ID) + "." + "xCentroidSpotWidth"}, &value);
+                spdlog::trace("{} : Read xCentroidSpotWidth value => ({})", m_ID, value[0].Value.Double);
                 break;
             case PAS_MPESType_yCentroidSpotWidth:
-                value.setFloat(m_data.ySpotWidth);
-                spdlog::trace("{} : Read yCentroidSpotWidth value => ({})", m_ID, m_data.ySpotWidth);
+                status = m_pClient->read({m_pClient->getDeviceNodeId(m_ID) + "." + "xCentroidSpotWidth"}, &value);
+                spdlog::trace("{} : Read yCentroidSpotWidth value => ({})", m_ID, value[0].Value.Double);
                 break;
             case PAS_MPESType_CleanedIntensity:
-                value.setFloat(m_data.cleanedIntensity);
-                spdlog::trace("{} : Read cleanedIntensity value => ({})", m_ID, m_data.cleanedIntensity);
+                status = m_pClient->read({m_pClient->getDeviceNodeId(m_ID) + "." + "CleanedIntensity"}, &value);
+                spdlog::trace("{} : Read CleanedIntensity value => ({})", m_ID, value[0].Value.Double);
                 break;
             case PAS_MPESType_xCentroidNominal:
-                value.setFloat(m_data.xNominal);
-                spdlog::trace("{} : Read xCentroidNominal value => ({})", m_ID, m_data.xNominal);
+                status = m_pClient->read({m_pClient->getDeviceNodeId(m_ID) + "." + "xCentroidNominal"}, &value);
+                spdlog::trace("{} : Read xCentroidNominal value => ({})", m_ID, value[0].Value.Double);
                 break;
             case PAS_MPESType_yCentroidNominal:
-                value.setFloat(m_data.yNominal);
-                spdlog::trace("{} : Read yCentroidNominal value => ({})", m_ID, m_data.yNominal);
+                status = m_pClient->read({m_pClient->getDeviceNodeId(m_ID) + "." + "yCentroidNominal"}, &value);
+                spdlog::trace("{} : Read yCentroidNominal value => ({})", m_ID, value[0].Value.Double);
                 break;
             case PAS_MPESType_Position:
                 value.setInt32(m_ID.position);
@@ -229,7 +211,41 @@ UaStatus MPESController::operate(OpcUa_UInt32 offset, const UaVariantArray &args
 
     if (offset == PAS_MPESType_Read) {
         spdlog::info("{} : MPESController calling read()", m_ID);
-        status = read(true);
+        status = read();
+
+
+        MPESBase::Position data = getPosition();
+        spdlog::info(
+            "Reading MPES {}:\n"
+            "x (nominal): {} ({})\n"
+            "y (nominal): {} ({})\n"
+            "xSpotWidth (nominal): {} ({})\n"
+            "xSpotWidth (nominal): {} ({})\n"
+            "Cleaned Intensity (nominal): {} ({})\n",
+            m_ID,
+            data.xCentroid, data.xNominal,
+            data.yCentroid, data.yNominal,
+            data.xSpotWidth, MPESBase::NOMINAL_SPOT_WIDTH,
+            data.ySpotWidth, MPESBase::NOMINAL_SPOT_WIDTH,
+            data.cleanedIntensity, MPESBase::NOMINAL_INTENSITY);
+
+        if (m_mode == "client") {
+            time_t now = time(nullptr);
+            struct tm tstruct{};
+            char buf[80];
+            tstruct = *localtime(&now);
+            strftime(buf, sizeof(buf), "%Y-%m-%d %X", &tstruct);
+
+            UaString sql_stmt = UaString(
+                "INSERT INTO Opt_MPESReadings (date, serial_number, xcoord, ycoord, x_SpotWidth, y_SpotWidth, intensity) VALUES  ('%1', '%2', '%3', '%4', '%5', '%6', '%7' );\n").arg(
+                buf).arg(m_ID.serialNumber).arg(data.xCentroid).arg(data.yCentroid).arg(
+                data.xSpotWidth).arg(data.ySpotWidth).arg(data.cleanedIntensity);
+            std::ofstream sql_file("MPES_readings.sql", std::ios_base::app);
+            sql_file << sql_stmt.toUtf8();
+
+            spdlog::trace("{} : Recorded MPES measurement SQL statement into MPES_readings.sql file: {} ", m_ID,
+                          sql_stmt.toUtf8());
+        }
     } else if (offset == PAS_MPESType_SetExposure) {
         spdlog::info("{} : MPESController calling setExposure()", m_ID);
         status = m_pClient->callMethod(m_pClient->getDeviceNodeId(m_ID), UaString("SetExposure"), args);
@@ -263,7 +279,7 @@ UaStatus MPESController::operate(OpcUa_UInt32 offset, const UaVariantArray &args
     Method       read
     Description  Read Controller data.
 -----------------------------------------------------------------------------*/
-UaStatus MPESController::read(bool print) {  
+UaStatus MPESController::read() {
     //UaMutexLocker lock(&m_mutex);
     UaStatus status;
     status = m_pClient->callMethod(m_pClient->getDeviceNodeId(m_ID), UaString("Read"), UaVariantArray());
@@ -271,93 +287,6 @@ UaStatus MPESController::read(bool print) {
     if (!status.isGood()) {
         spdlog::error("{} : MPESController::read() : Call to read webcam failed.", m_ID);
         return status;
-    }
-
-    std::vector<std::string> varstoread{
-        "xCentroidAvg",
-        "yCentroidAvg",
-        "xCentroidSpotWidth",
-        "yCentroidSpotWidth",
-        "CleanedIntensity",
-        "xCentroidNominal",
-        "yCentroidNominal"
-    };
-    std::transform(varstoread.begin(), varstoread.end(), varstoread.begin(),
-                   [this](std::string &str) { return m_pClient->getDeviceNodeId(m_ID) + "." + str; });
-    UaVariant valstoread[7];
-
-    status = m_pClient->read(varstoread, &valstoread[0]);
-    m_numAttempts = 1;
-
-    if (!status.isGood()) {
-        spdlog::error("{} : MPESController::read() : OPC UA read failed.", m_ID);
-        return status;
-    }
-
-    for (unsigned i = 0; i < varstoread.size(); i++)
-        valstoread[i].toFloat(*(reinterpret_cast<float *>(&m_data) + i));
-
-    if (print) {
-        spdlog::info(
-            "Reading MPES {}:\n"
-            "x (nominal): {} ({})\n"
-            "y (nominal): {} ({})\n"
-            "xSpotWidth (nominal): {} ({})\n"
-            "xSpotWidth (nominal): {} ({})\n"
-            "Cleaned Intensity (nominal): {} ({})\n",
-            m_ID,
-            m_data.xCentroid, m_data.xNominal,
-            m_data.yCentroid, m_data.yNominal,
-            m_data.xSpotWidth, kNominalSpotWidth,
-            m_data.ySpotWidth, kNominalSpotWidth,
-            m_data.cleanedIntensity, kNominalIntensity);
-    }
-
-    if (isVisible()) {
-        if (m_data.xSpotWidth > kNominalSpotWidth) {
-            spdlog::warn(
-                "{} : The width of the image along the X axis ({}) is greater than the nominal limit ({}). Consider fixing things.",
-                m_ID, m_data.xSpotWidth, kNominalSpotWidth);
-        }
-        if (m_data.ySpotWidth > kNominalSpotWidth) {
-            spdlog::warn(
-                "{} : The width of the image along the Y axis ({}) is greater than the nominal limit ({}). Consider fixing things.",
-                m_ID, m_data.ySpotWidth, kNominalSpotWidth);
-        }
-        /**
-        if (m_mode == "client" && fabs(m_data.cleanedIntensity - kNominalIntensity) / kNominalIntensity > 0.2) {
-            if (m_numAttempts <= kMaxAttempts) {
-                spdlog::warn(
-                    "{} : The image intensity ({}) differs from the nominal value ({}) by more than 20%. Will readjust exposure now.",
-                    m_ID, m_data.cleanedIntensity, kNominalIntensity);
-                operate(PAS_MPESType_SetExposure);
-                m_numAttempts++;
-                // read the sensor again
-                status = read(print);
-            } else {
-                m_numAttempts = 0;
-            }
-        }
-         */
-    }
-
-    if (m_mode == "client") {
-
-        time_t now = time(nullptr);
-        struct tm tstruct{};
-        char buf[80];
-        tstruct = *localtime(&now);
-        strftime(buf, sizeof(buf), "%Y-%m-%d %X", &tstruct);
-
-        UaString sql_stmt = UaString(
-            "INSERT INTO Opt_MPESReadings (date, serial_number, xcoord, ycoord, x_SpotWidth, y_SpotWidth, intensity) VALUES  ('%1', '%2', '%3', '%4', '%5', '%6', '%7' );\n").arg(
-            buf).arg(m_ID.serialNumber).arg(m_data.xCentroid).arg(m_data.yCentroid).arg(
-            m_data.xSpotWidth).arg(m_data.ySpotWidth).arg(m_data.cleanedIntensity);
-        std::ofstream sql_file("MPES_readings.sql", std::ios_base::app);
-        sql_file << sql_stmt.toUtf8();
-
-        spdlog::trace("{} : Recorded MPES measurement SQL statement into MPES_readings.sql file: {} ", m_ID,
-                      sql_stmt.toUtf8());
     }
 
     return status;
@@ -388,10 +317,54 @@ bool MPESController::isVisible() {
 
 Eigen::Vector2d MPESController::getAlignedReadings() {
     Eigen::Vector2d alignedReadings;
+    double xNominal;
+    double yNominal;
 
-    alignedReadings(0) = m_data.xNominal;
-    alignedReadings(1) = m_data.yNominal;
+    std::vector<std::string> varstoread{
+        "xCentroidNominal",
+        "yCentroidNominal"
+    };
+    std::transform(varstoread.begin(), varstoread.end(), varstoread.begin(),
+                   [this](std::string &str) { return m_pClient->getDeviceNodeId(m_ID) + "." + str; });
+    UaVariant valstoread[7];
+
+    m_pClient->read(varstoread, &valstoread[0]);
+
+    valstoread[0].toDouble(xNominal);
+    valstoread[1].toDouble(yNominal);
+
+    alignedReadings(0) = xNominal;
+    alignedReadings(1) = yNominal;
 
     return alignedReadings;
-};
+}
 
+MPESBase::Position MPESController::getPosition() {
+    UaStatus status;
+
+    std::vector<std::string> varstoread{
+        "xCentroidAvg",
+        "yCentroidAvg",
+        "xCentroidSpotWidth",
+        "yCentroidSpotWidth",
+        "CleanedIntensity",
+        "xCentroidNominal",
+        "yCentroidNominal"
+    };
+    std::transform(varstoread.begin(), varstoread.end(), varstoread.begin(),
+                   [this](std::string &str) { return m_pClient->getDeviceNodeId(m_ID) + "." + str; });
+    UaVariant valstoread[7];
+
+    status = m_pClient->read(varstoread, &valstoread[0]);
+
+    MPESBase::Position data;
+    if (!status.isGood()) {
+        spdlog::error("{} : MPESController::read() : OPC UA read failed.", m_ID);
+        return data;
+    }
+
+    for (unsigned i = 0; i < varstoread.size(); i++)
+        valstoread[i].toFloat(*(reinterpret_cast<float *>(&data) + i));
+
+    return data;
+}

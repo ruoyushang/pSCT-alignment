@@ -49,21 +49,14 @@ public:
 
     Eigen::Vector2d getAlignedReadings();
     const Eigen::Vector2d &getSystematicOffsets() const { return m_SystematicOffsets; }
-    MPESBase::Position getPosition() { return m_data; }
+
+    MPESBase::Position getPosition();
 
 private:
     std::string m_mode;
 
-    static float kNominalIntensity;
-    static float kNominalSpotWidth;
-    static int kMaxAttempts;
-
-    int m_numAttempts;
-
-    MPESBase::Position m_data;
-
     // a read that performs such checks and exposure correction
-    UaStatus read(bool print = true);
+    UaStatus read();
 
     // actuator response matrix map -- {panel position -> matrix}
     std::map<char, Eigen::Matrix<double, 2, 6> > m_ResponseMatMap;

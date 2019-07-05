@@ -452,7 +452,7 @@ UaStatus EdgeController::alignSinglePanel(unsigned panelpos, double alignFrac, b
             Device::ErrorState errorState;
             int visible = 0;
             for (auto &mpes : overlapMPES) {
-                mpes->read(false);
+                mpes->read();
                 std::dynamic_pointer_cast<MPESController>(mpes)->getState(state);
                 std::dynamic_pointer_cast<MPESController>(mpes)->getData(PAS_MPESType_ErrorState, vtmp);
                 vtmp.toInt32(temp);
@@ -749,7 +749,7 @@ std::pair<Eigen::VectorXd, Eigen::VectorXd> EdgeController::__getCurrentReadings
         }
 
         spdlog::debug("Reading MPES {}...", pMPES.at(nMPES)->getId());
-        std::dynamic_pointer_cast<MPESController>(pMPES.at(nMPES))->read(false);
+        std::dynamic_pointer_cast<MPESController>(pMPES.at(nMPES))->read();
         if (m_state == Device::DeviceState::Off) { stop = true; break; }
 
         pMPES.at(nMPES)->getData(PAS_MPESType_xCentroidAvg, vtmp);

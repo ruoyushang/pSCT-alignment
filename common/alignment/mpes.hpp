@@ -62,6 +62,7 @@ public:
 
     static const int NOMINAL_INTENSITY;
     static const float NOMINAL_SPOT_WIDTH;
+    static const int MAX_READ_ATTEMPTS;
 
     void turnOn();
 

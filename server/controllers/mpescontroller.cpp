@@ -282,9 +282,28 @@ UaStatus MPESController::operate(OpcUa_UInt32 offset, const UaVariantArray &args
 /// @details If state is On, calls the ReadMPES method through the Platform object and sets the m_updated flag to true.
 /// Locks the shared mutex while reading.
 UaStatus MPESController::read() {
+    UaStatus status;
     //UaMutexLocker lock(&m_mutex);
     spdlog::trace("{} : Updating MPES position data (reading webcam) ... ", m_ID);
     m_pPlatform->getMPESbyIdentity(m_ID)->updatePosition();
     m_lastUpdateTime = TIME::now();
-    return OpcUa_Good;
+
+    MPESBase::Position position = m_pPlatform->getMPESbyIdentity(m_ID)->getPosition();
+
+    int numAttempts = 1;
+
+    if (fabs(position.cleanedIntensity - MPESBase::NOMINAL_INTENSITY) / MPESBase::NOMINAL_INTENSITY > 0.2) {
+        if (numAttempts <= MPESBase::MAX_READ_ATTEMPTS) {
+            spdlog::warn(
+                "{} : The image intensity ({}) differs from the nominal value ({}) by more than 20%. Will readjust exposure now.",
+                m_ID, position.cleanedIntensity, MPESBase::NOMINAL_INTENSITY);
+            operate(PAS_MPESType_SetExposure, UaVariantArray());
+            numAttempts++;
+            // read the sensor again
+            status = read();
+        } else {
+            numAttempts = 0;
+        }
+    }
+    return status;
 }

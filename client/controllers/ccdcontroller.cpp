@@ -70,7 +70,7 @@ UaStatus CCDController::getData(OpcUa_UInt32 offset, UaVariant &value) {
         return OpcUa_BadInvalidArgument;
 
     if (__expired())
-        status = read(false);
+        status = read();
 
     if (!m_updated)
         value.setDouble(0.);
