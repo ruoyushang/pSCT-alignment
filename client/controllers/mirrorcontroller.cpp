@@ -475,9 +475,6 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
             // Reorganize by edge and print
             for (const auto &edge : getChildren(PAS_EdgeType)) {
                 std::ostringstream os;
-                spdlog::info(
-                    "{}: Readings for Edge {}:\nCurrent position +/- Spot width [Aligned position] (Misalignment)\n\n{}\n\n",
-                    m_ID, edge->getId());
                 for (const auto &mpes : std::dynamic_pointer_cast<PasCompositeController>(edge)->getChildren(
                     PAS_MPESType)) {
                     os << mpes->getId() << " : " << std::endl;
