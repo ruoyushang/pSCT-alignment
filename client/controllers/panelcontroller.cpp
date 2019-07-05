@@ -134,7 +134,7 @@ UaStatus PanelController::getError(OpcUa_UInt32 offset, UaVariant &value) {
 
     if (PanelObject::ERRORS.count(offset) > 0) {
         std::string varName = std::get<0>(PanelObject::ERRORS.at(offset));
-        std::vector<std::string> varsToRead = {m_pClient->getDeviceNodeId(m_ID) + varName};
+        std::vector<std::string> varsToRead = {m_pClient->getDeviceNodeId(m_ID) + "." + varName};
         status = m_pClient->read(varsToRead, &value);
         spdlog::trace("{} : Read error {} value => ({})", m_ID, offset, value[0].Value.Boolean);
     } else {

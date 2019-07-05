@@ -556,10 +556,12 @@ UaStatus EdgeController::alignSinglePanel(unsigned panelpos, double alignFrac, b
                          X);
         }
 
+        spdlog::info("{} : Doing collision checks on all panels being moved...", m_ID);
         for (const auto &panelPair : m_ChildrenPositionMap.at(PAS_PanelType)) {
             if ((panelPair.first == panelpos) == moveit) { // clever but not clear...
                 auto pCurPanel = std::dynamic_pointer_cast<PanelController>(
                     m_pChildren.at(PAS_PanelType).at(panelPair.second));
+                spdlog::info("{} : Doing collision checks on Panel {}...", m_ID, pCurPanel->getId());
                 if(pCurPanel->checkForCollision((X * alignFrac).segment(0,6))) {
                     return OpcUa_Bad;
                 }
