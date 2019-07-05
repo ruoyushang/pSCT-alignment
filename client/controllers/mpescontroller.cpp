@@ -3,6 +3,7 @@
 #include <fstream>
 
 #include "common/opcua/pasobject.hpp"
+#include "common/alignment/mpes.hpp"
 #include "common/utilities/DBConfig.hpp"
 
 #include "client/clienthelper.hpp"
@@ -14,8 +15,8 @@
 #include "common/utilities/spdlog/fmt/ostr.h"
 
 MPESController::MPESController(Device::Identity identity, Client *pClient, std::string mode) : PasController(
-    std::move(identity), pClient), m_mode(mode),
-                                                                                               m_numAttempts(0) {
+    std::move(identity), pClient), m_mode(mode)
+{
     // get the nominal aligned readings and response matrices from DB
     /* BEGIN DATABASE HACK */
     //std::string db_ip="172.17.10.10"; // internal ip
@@ -225,9 +226,9 @@ UaStatus MPESController::operate(OpcUa_UInt32 offset, const UaVariantArray &args
             m_ID,
             data.xCentroid, data.xNominal,
             data.yCentroid, data.yNominal,
-            data.xSpotWidth, MPESBase::NOMINAL_SPOT_WIDTH,
-            data.ySpotWidth, MPESBase::NOMINAL_SPOT_WIDTH,
-            data.cleanedIntensity, MPESBase::NOMINAL_INTENSITY);
+            data.xSpotWidth, std::to_string(MPESBase::NOMINAL_SPOT_WIDTH),
+            data.ySpotWidth, std::to_string(MPESBase::NOMINAL_SPOT_WIDTH),
+            data.cleanedIntensity, std::to_string(MPESBase::NOMINAL_INTENSITY));
 
         if (m_mode == "client") {
             time_t now = time(nullptr);

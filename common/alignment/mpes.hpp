@@ -60,9 +60,10 @@ public:
     static const std::string MATRIX_CONSTANTS_DIR_PATH;
     static const std::string CAL2D_CONSTANTS_DIR_PATH;
 
-    static const int NOMINAL_INTENSITY;
-    static const float NOMINAL_SPOT_WIDTH;
-    static const int MAX_READ_ATTEMPTS;
+
+    static constexpr int NOMINAL_INTENSITY = 150000;
+    static constexpr float NOMINAL_SPOT_WIDTH = 10.0;
+    static constexpr int MAX_READ_ATTEMPTS = 1;
 
     void turnOn();
 

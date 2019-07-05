@@ -19,11 +19,6 @@ const int MPESBase::DEFAULT_IMAGES_TO_CAPTURE = 9;
 const std::string MPESBase::MATRIX_CONSTANTS_DIR_PATH = "/home/root/mpesCalibration/";
 const std::string MPESBase::CAL2D_CONSTANTS_DIR_PATH = "/home/root/mpesCalibration/";
 
-
-const int MPESBase::NOMINAL_INTENSITY = 150000;
-const float MPESBase::NOMINAL_SPOT_WIDTH = 10.0;
-const int MPESBase::MAX_READ_ATTEMPTS = 1;
-
 const std::vector<Device::ErrorDefinition> MPESBase::ERROR_DEFINITIONS = {
     {"Bad connection. No device found",                                                                            Device::ErrorState::FatalError},//error 0
     {"Failed to set exposure, possible select timeout high temperature.",                                          Device::ErrorState::OperableError},//error 1

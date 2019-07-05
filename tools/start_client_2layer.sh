@@ -114,6 +114,6 @@ screen -S ${screen_name} -p ${client_name} -X stuff $"cp ../client/TemplateClien
 screen -S ${screen_name} -p ${client_name} -X stuff "sed -i s@URL_LOCATION@$endpoint_addr@g ${config_filename}\n"
 printf "Starting %s client at address %s.\n" "${client_name}" "${endpoint_addr}"
 abspath=$(realpath ${config_filename})
-screen -S ${screen_name} -X stuff $"../sdk/bin/p2pasclient primary_upper primary_lower secondary other -m client -c $abspath | tee ${HOME}/logs/p2pasclient_log_`date +%Y%m%d%H%M%S`.txt\n"
+screen -S ${screen_name} -X stuff $"../sdk/bin/p2pasclient primary_upper primary_lower secondary other -m client -c $abspath\n"
 
 
