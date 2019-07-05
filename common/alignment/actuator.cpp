@@ -261,11 +261,9 @@ float ActuatorBase::readVoltage() {
         spdlog::error("{} : Actuator::readVoltage() : Busy, cannot read encoder.", m_Identity);
         return 0.0;
     }
-
+    MPESBase::CustomBusyLock lock = MPESBase::CustomBusyLock(this);
     float voltage;
-    setBusy();
     voltage = __readVoltage();
-    unsetBusy();
     return voltage;
 }
 
@@ -302,38 +300,33 @@ int ActuatorBase::step(int steps)//Positive Step is Extension of Motor
         return steps;
     }
 
-    setBusy();
+    MPESBase::CustomBusyLock lock = MPESBase::CustomBusyLock(this);
     int stepsRemaining = __step(steps);
-    unsetBusy();
     return stepsRemaining;
 }
 
 float ActuatorBase::measureLength() {
-    setBusy();
+    MPESBase::CustomBusyLock lock = MPESBase::CustomBusyLock(this);
     float currentLength = __measureLength();
-    unsetBusy();
     return currentLength;
 }
 
 float ActuatorBase::moveToLength(float targetLength) {
-    setBusy();
+    MPESBase::CustomBusyLock lock = MPESBase::CustomBusyLock(this);
 
     float currentLength = __measureLength();
     float lengthToMove = targetLength - currentLength;
     int stepsToMove = std::floor((lengthToMove / mmPerStep) + 0.5);
     __step(stepsToMove);
     currentLength = __measureLength();
-
-    unsetBusy();
     return currentLength;
 }
 
 float ActuatorBase::moveDeltaLength(float lengthToMove) {
-    setBusy();
+    MPESBase::CustomBusyLock lock = MPESBase::CustomBusyLock(this);
     int stepsToMove = std::floor((lengthToMove / mmPerStep) + 0.5);
     int stepsRemaining = __step(stepsToMove);
     float lengthRemaining = stepsRemaining * mmPerStep;
-    unsetBusy();
     return lengthRemaining;
 }
 
@@ -354,13 +347,12 @@ ActuatorBase::Position ActuatorBase::predictNewPosition(Position position,
 }
 
 int ActuatorBase::performHysteresisMotion(int steps) {
-    setBusy();
+    MPESBase::CustomBusyLock lock = MPESBase::CustomBusyLock(this);
 
     spdlog::trace("{} : Performing Hysteresis Motion of {} steps.", m_Identity, steps);
     int stepsRemaining = __step(steps - m_HysteresisSteps);
     stepsRemaining = __step(m_HysteresisSteps + stepsRemaining);
 
-    unsetBusy();
     return stepsRemaining;
 }
 
@@ -448,9 +440,8 @@ int ActuatorBase::convertPositionToSteps(Position position) {
 
 void ActuatorBase::findHomeFromEndStop(int direction)//use recorded extendstop and set actuator to that.
 {
-    setBusy();
+    MPESBase::CustomBusyLock lock = MPESBase::CustomBusyLock(this);
     __findHomeFromEndStop(direction);
-    unsetBusy();
 }
 
 
@@ -528,9 +519,8 @@ void ActuatorBase::probeEndStop(int direction) {
             m_Identity, direction);
         return;
     }
-    setBusy();
+    MPESBase::CustomBusyLock lock = MPESBase::CustomBusyLock(this);
     __probeEndStop(direction);
-    unsetBusy();
 }
 
 void ActuatorBase::createDefaultASF()//hardcoded structure of the ASF file (year,mo,day,hr,min,sec,rev,angle,errorcodes)
@@ -764,7 +754,7 @@ float Actuator::__readVoltage() {
 
 void Actuator::probeHome()//method used to define home.
 {
-    setBusy();
+    MPESBase::CustomBusyLock lock = MPESBase::CustomBusyLock(this);
     spdlog::trace("{} : Probing Home position...", m_Identity);
 
     __probeEndStop(1);
@@ -841,8 +831,6 @@ void Actuator::probeHome()//method used to define home.
     setCurrentPosition(HomePosition);
     unsetError(0);
     saveStatusToASF();
-
-    unsetBusy();
 }
 
 int Actuator::__step(int steps) {
@@ -974,9 +962,8 @@ void Actuator::__probeEndStop(int direction) {
 }
 
 int Actuator::stepDriver(int inputSteps) {
-    setBusy();
+    MPESBase::CustomBusyLock lock = MPESBase::CustomBusyLock(this);
     m_pCBC->driver.step(getPortNumber(), inputSteps);
-    unsetBusy();
 }
 
 bool Actuator::isOn() {
@@ -1044,9 +1031,8 @@ int DummyActuator::__step(int steps)
 }
 
 int DummyActuator::stepDriver(int inputSteps) {
-    setBusy();
+    MPESBase::CustomBusyLock lock = MPESBase::CustomBusyLock(this);
     __step(inputSteps);
-    unsetBusy();
 }
 
 float DummyActuator::__readVoltage() {
@@ -1111,7 +1097,7 @@ void DummyActuator::__findHomeFromEndStop(int direction) {
 }
 
 void DummyActuator::probeHome() {
-    setBusy();
+    MPESBase::CustomBusyLock lock = MPESBase::CustomBusyLock(this);
     spdlog::debug("{} : Probing Home for Dummy Actuator {}...", m_Identity);
     __probeEndStop(1);
 
@@ -1133,8 +1119,6 @@ void DummyActuator::probeHome() {
     setCurrentPosition(HomePosition);
     unsetError(0);
     saveStatusToASF();
-
-    unsetBusy();
 }
 
 void DummyActuator::__probeEndStop(int direction) {

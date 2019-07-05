@@ -38,7 +38,7 @@ public:
 
     Eigen::VectorXd getActuatorLengths();
 
-    bool checkForCollision(const Eigen::VectorXd &deltaLengths);
+    bool checkForCollision(const Eigen::VectorXd &deltaLengths, bool read = true);
 
     // helper
     UaStatus updateCoords(bool printout = false);

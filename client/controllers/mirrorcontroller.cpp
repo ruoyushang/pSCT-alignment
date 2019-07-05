@@ -459,6 +459,7 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
                     if (m_selectedMPES.find(mpes->getId().serialNumber) != m_selectedMPES.end()) {
                         if (m_state == Device::DeviceState::Busy) {
                             std::dynamic_pointer_cast<MPESController>(mpes)->read();
+                            sleep(2);
                             readings.insert(std::make_pair(mpes->getId(), std::dynamic_pointer_cast<MPESController>(
                                 mpes)->getPosition()));
                         }

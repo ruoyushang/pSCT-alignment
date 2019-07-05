@@ -110,17 +110,3 @@ void Device::clearErrors() {
         m_Errors[i] = false;
     }
 }
-
-void Device::setBusy() {
-    if (!isBusy()) {
-        spdlog::trace("{} : Blocking task started.", m_Identity);
-        m_Busy = true;
-    }
-}
-
-void Device::unsetBusy() {
-    if (isBusy()) {
-        spdlog::trace("{} : Blocking task completed.", m_Identity);
-        m_Busy = false;
-    }
-}

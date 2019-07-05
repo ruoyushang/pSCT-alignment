@@ -10,6 +10,8 @@
 
 #include "common/cbccode/cbc.hpp"
 
+#include "common/utilities/spdlog/spdlog.h"
+#include "common/utilities/spdlog/fmt/ostr.h"
 
 class Device {
 public:
@@ -102,8 +104,21 @@ protected:
 
     bool m_Busy;
 
-    void setBusy();
-    void unsetBusy();
+    class CustomBusyLock {
+    public:
+        explicit CustomBusyLock(Device *device) : m_device(device) {
+            spdlog::trace("{} : Blocking task started.", m_device->getIdentity());
+            device->m_Busy = true;
+        }
+
+        ~CustomBusyLock() {
+            spdlog::trace("{} : Blocking task started.", m_device->getIdentity());
+            m_device->m_Busy = false;
+        };
+
+    private:
+        Device *m_device;
+    };
 
     bool isBusy() { return m_Busy; }
 
