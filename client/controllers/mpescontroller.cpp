@@ -369,8 +369,8 @@ char MPESController::getPanelSide(unsigned panelpos) {
         panelside = m_PanelSideMap.at(panelpos);
     }
     catch (std::out_of_range &e) {
-        spdlog::error("MPESController::getPanelSide() : Invalid panel position {} (not connected to this MPES {}).",
-                      panelpos, m_ID);
+        //spdlog::error("MPESController::getPanelSide() : Invalid panel position {} (not connected to this MPES {}).",
+        //              panelpos, m_ID);
         panelside = 0;
     }
 
