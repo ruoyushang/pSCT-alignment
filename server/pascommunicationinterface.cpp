@@ -6,7 +6,7 @@
 #include "server/pascommunicationinterface.hpp"
 
 #include <array>
-#include <iostream>
+
 #include <map>
 #include <memory>
 #include <stdexcept>

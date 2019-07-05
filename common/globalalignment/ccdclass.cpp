@@ -1,6 +1,6 @@
 // file manipulation and console i/o
 #include "common/globalalignment/ccdclass.h"
-#include <iostream>
+
 #include <fstream>
 #include <sstream>
 #include <time.h>

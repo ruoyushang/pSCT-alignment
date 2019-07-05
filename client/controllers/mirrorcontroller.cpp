@@ -207,11 +207,6 @@ bool MirrorController::initialize()
             // need to shift those coordinates by this much opposite to the mirror norm
             // to get the origin of the panel frame in the TRF:
             m_PanelOriginTelFrame.at(ring + 1) -= m_PanelFrame.at(ring+1)*PanelCenterPanelFrame;
-
-            //std::cout << "Ideal Panel Frame origin for Ring " << ring + 1 << " in the Telescope frame :"
-                      //<< std::endl << m_PanelOriginTelFrame.at(ring + 1) << std::endl;
-            //std::cout << "Ideal Panel Frame for Ring " << ring + 1 << " in the Telescope frame :"
-                      //<< std::endl << m_PanelFrame.at(ring + 1) << std::endl << std::endl;
         }
     }
 
@@ -224,6 +219,7 @@ UaStatus MirrorController::getState(Device::DeviceState &state)
 {
     //UaMutexLocker lock(&m_mutex);
     state = m_state;
+    spdlog::trace("{} : Read device state => ({})", m_ID, Device::deviceStateNames.at(state));
     return OpcUa_Good;
 }
 
@@ -231,6 +227,7 @@ UaStatus MirrorController::setState(Device::DeviceState state)
 {
     //UaMutexLocker lock(&m_mutex);
     m_state = state;
+    spdlog::trace("{} : Setting device state => ({})", m_ID, Device::deviceStateNames.at(state));
     return OpcUa_Good;
 }
 
@@ -300,6 +297,7 @@ UaStatus MirrorController::setData(OpcUa_UInt32 offset, UaVariant value)
         value.toDouble(m_sysOffsetsMPES(dataoffset));
     } else if (offset == PAS_MirrorType_SafetyRadius) {
         value.toDouble(m_safetyRadius);
+        spdlog::info("{} : Setting safety radius (for all child panels) to {} px.", m_ID, m_safetyRadius);
         // Set for all child panels
         std::shared_ptr<PanelController> panel;
         for (auto &p : getChildren(PAS_PanelType)) {
@@ -328,7 +326,7 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
     //UaMutexLocker lock(&m_mutex);
 
     if (m_state == Device::DeviceState::Busy && offset != PAS_MirrorType_Stop) {
-        std::cout << "MirrorController::operate() : State is busy, cannot call operate." << std::endl;
+        spdlog::error("{} : MirrorController::operate() : Device is busy, method call aborted.", m_ID);
         return OpcUa_BadInvalidState;
     }
 
@@ -336,6 +334,7 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
      * Move the whole mirror in the telescope reference frame *
      * ********************************************************/
     if (offset == PAS_MirrorType_MoveToCoords) {
+        spdlog::info("{} : MirrorController::operate() : Calling moveToCoords()...", m_ID);
         setState(Device::DeviceState::Busy);
         updateCoords(false);    
         Eigen::VectorXd targetMirrorCoords(6);
@@ -356,6 +355,7 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
         setState(Device::DeviceState::Busy);
         // read out all individual positions
         // and get global mirror coordinates
+        spdlog::info("{} : MirrorController::operate() : Calling readPosition()...", m_ID);
         updateCoords();
         setState(Device::DeviceState::On);
     }

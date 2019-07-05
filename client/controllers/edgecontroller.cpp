@@ -592,12 +592,13 @@ UaStatus EdgeController::alignSinglePanel(unsigned panelpos, double alignFrac, b
                     deltas.create(nACT);
                     UaVariant var;
                     for (int i = 0; i < (int)nACT; i++) {
-                        var.setFloat(m_Xcalculated(j++));
+                        var.setFloat(m_Xcalculated(j+i));
                         var.copyTo(&deltas[i]);
                     }
                     status = pCurPanel->__moveDeltaLengths(deltas);
                     if (!status.isGood()) return status;
                 }
+                j++;
             }
         }
         m_Xcalculated.setZero();

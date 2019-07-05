@@ -1,6 +1,6 @@
 #include "client/pasnodemanager.hpp"
 
-#include <iostream>
+
 #include <memory>
 #include <sstream>
 
