@@ -26,13 +26,13 @@ public:
 
     /* construction / destruction */
     explicit PasControllerCommon(Device::Identity identity, int updateInterval = 0) :
-        m_state(Device::DeviceState::On),
-        m_ID(std::move(identity)),
+        m_State(Device::DeviceState::On),
+        m_Identity(std::move(identity)),
         m_kUpdateInterval_ms(updateInterval) {};
 
     virtual ~PasControllerCommon() = default;
 
-    const Device::Identity &getId() const { return m_ID; }
+    const Device::Identity &getIdentity() const { return m_Identity; }
 
     /* Get Controller status and data */
     virtual UaStatus getState(Device::DeviceState &state);
@@ -49,17 +49,22 @@ public:
     virtual bool initialize() { return true; }
 
 protected:
-    UaMutex m_mutex;
-    Device::DeviceState m_state;
-    Device::Identity m_ID;
+    UaMutex m_Mutex;
+    Device::DeviceState m_State;
+    Device::Identity m_Identity;
     
     // update interval in milliseconds
     const int m_kUpdateInterval_ms;
 
     // be able to check if data has expired
     typedef std::chrono::system_clock TIME;
-    bool __expired() const {return (std::chrono::duration_cast<std::chrono::milliseconds>(TIME::now() - m_lastUpdateTime).count() > m_kUpdateInterval_ms); }
-    std::chrono::time_point<TIME> m_lastUpdateTime;
+
+    bool __expired() const {
+        return (std::chrono::duration_cast<std::chrono::milliseconds>(TIME::now() - m_LastUpdateTime).count() >
+                m_kUpdateInterval_ms);
+    }
+
+    std::chrono::time_point<TIME> m_LastUpdateTime;
 };
 
 #endif

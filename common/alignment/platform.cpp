@@ -186,8 +186,8 @@ Device::ErrorState PlatformBase::getErrorState() {
     Device::ErrorState state = Device::ErrorState::Nominal;
     for (int i = 0; i < getNumErrors(); i++) {
         if (m_Errors[i]) {
-            if (getErrorCodeDefinitions()[i].severity > state) {
-                state = getErrorCodeDefinitions()[i].severity;
+            if (getErrorCodeDefinition(i).severity > state) {
+                state = getErrorCodeDefinition(i).severity;
             }
         }
     }
@@ -198,7 +198,7 @@ Device::ErrorState PlatformBase::getErrorState() {
 void PlatformBase::unsetError(int errorCode) {
     if (m_Errors.at(errorCode)) {
         spdlog::info("{} : Unsetting Error {} ({})", m_Identity, errorCode,
-                     getErrorCodeDefinitions()[errorCode].description);
+                     getErrorCodeDefinition(errorCode).description);
 
         if (errorCode >= 0 && errorCode < 12) {
             spdlog::info("{} : Also clearing corresponding errors for Actuator {}.", (errorCode / 2) + 1);

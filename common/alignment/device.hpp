@@ -74,11 +74,12 @@ public:
         bool operator!=(const Identity &r) const;
     };
 
-    Device(Identity identity);
+    explicit Device(Identity identity);
     ~Device() = default;
 
-    virtual std::vector <Device::ErrorDefinition> getErrorCodeDefinitions() = 0;
-    int getNumErrors() { return (int)getErrorCodeDefinitions().size(); }
+    virtual Device::ErrorDefinition getErrorCodeDefinition(int errorCode) = 0;
+
+    int getNumErrors() { return m_Errors.size(); }
 
     bool getError(int errorCode) { return m_Errors[errorCode]; }
 
@@ -106,18 +107,18 @@ protected:
 
     class CustomBusyLock {
     public:
-        explicit CustomBusyLock(Device *device) : m_device(device) {
-            spdlog::trace("{} : Blocking task started.", m_device->getIdentity());
+        explicit CustomBusyLock(Device *device) : m_Device(device) {
+            spdlog::trace("{} : Blocking task started.", m_Device->getIdentity());
             device->m_Busy = true;
         }
 
         ~CustomBusyLock() {
-            spdlog::trace("{} : Blocking task started.", m_device->getIdentity());
-            m_device->m_Busy = false;
+            spdlog::trace("{} : Blocking task completed.", m_Device->getIdentity());
+            D_device->m_Busy = false;
         };
 
     private:
-        Device *m_device;
+        Device *m_Device;
     };
 
     bool isBusy() { return m_Busy; }

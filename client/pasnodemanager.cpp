@@ -227,7 +227,7 @@ UaStatus PasNodeManager::afterStartUp()
         if (dynamic_cast<PasCompositeController *>(pController.get())) {
             std::string temp;
             std::ostringstream os(temp);
-            os << "Parent: " << pController->getId() << std::endl;
+            os << "Parent: " << pController->getIdentity() << std::endl;
             for (const auto &devType: PasCommunicationInterface::deviceTypeNames) {
                 deviceType = devType.first;
                 deviceName = devType.second;
@@ -239,7 +239,7 @@ UaStatus PasNodeManager::afterStartUp()
                         ret = addNodeAndReference(pObject->nodeId(), pFolder, OpcUaId_HasComponent);
                         UA_ASSERT(ret.isGood());
                         for ( auto &child : pChildren) {
-                            os << child->getId() << std::endl;
+                            os << child->getIdentity() << std::endl;
                             ret = addUaReference(pFolder->nodeId(), pDeviceObjects[child]->nodeId(), OpcUaId_HasComponent);
                             UA_ASSERT(ret.isGood());
                             // Remove any child from the list of root devices

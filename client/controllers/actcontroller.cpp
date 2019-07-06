@@ -35,11 +35,11 @@ UaStatus ActController::getState(Device::DeviceState &state) {
     UaVariant value;
     int v;
 
-    m_pClient->read({m_pClient->getDeviceNodeId(m_ID) + "." + "State"}, &value);
+    m_pClient->read({m_pClient->getDeviceNodeId(m_Identity) + "." + "State"}, &value);
     value.toInt32(v);
 
     state = static_cast<Device::DeviceState>(v);
-    spdlog::trace("{} : Read device state => ({})", m_ID, Device::deviceStateNames.at(state));
+    spdlog::trace("{} : Read device state => ({})", m_Identity, Device::deviceStateNames.at(state));
 
     return status;
 }
@@ -89,34 +89,34 @@ UaStatus ActController::getData(OpcUa_UInt32 offset, UaVariant &value) {
             default:
                 return OpcUa_BadInvalidArgument;
         }
-        std::vector<std::string> varsToRead = {m_pClient->getDeviceNodeId(m_ID) + "." + varName};
+        std::vector<std::string> varsToRead = {m_pClient->getDeviceNodeId(m_Identity) + "." + varName};
         status = m_pClient->read(varsToRead, &value);
     }
 
     if (status == OpcUa_BadInvalidState) {
         spdlog::error(
             "{} : ActController::getData() : Device is in a bad state (busy, off, error) and could not read data. Check state and try again.",
-            m_ID);
+            m_Identity);
     }
 
     switch (offset) {
         case PAS_ACTType_DeltaLength:
-            spdlog::trace("{} : Read deltaLength value => ({})", m_ID, value[0].Value.Float);
+            spdlog::trace("{} : Read deltaLength value => ({})", m_Identity, value[0].Value.Float);
             break;
         case PAS_ACTType_CurrentLength:
-            spdlog::trace("{} : Read currentLength value => ({})", m_ID, value[0].Value.Float);
+            spdlog::trace("{} : Read currentLength value => ({})", m_Identity, value[0].Value.Float);
             break;
         case PAS_ACTType_TargetLength:
-            spdlog::trace("{} : Read targetLength value => ({})", m_ID, value[0].Value.Float);
+            spdlog::trace("{} : Read targetLength value => ({})", m_Identity, value[0].Value.Float);
             break;
         case PAS_ACTType_Position:
-            spdlog::trace("{} : Read position value => ({})", m_ID, value[0].Value.Int32);
+            spdlog::trace("{} : Read position value => ({})", m_Identity, value[0].Value.Int32);
             break;
         case PAS_ACTType_Serial:
-            spdlog::trace("{} : Read serial value => ({})", m_ID, value[0].Value.Int32);
+            spdlog::trace("{} : Read serial value => ({})", m_Identity, value[0].Value.Int32);
             break;
         case PAS_ACTType_ErrorState:
-            spdlog::trace("{} : Read errorState value => ({})", m_ID, value[0].Value.UInt32);
+            spdlog::trace("{} : Read errorState value => ({})", m_Identity, value[0].Value.UInt32);
             break;
         default:
             return status;
@@ -132,9 +132,9 @@ UaStatus ActController::getError(OpcUa_UInt32 offset, UaVariant &value) {
 
     if (ACTObject::ERRORS.count(offset) > 0) {
         std::string varName = std::get<0>(ACTObject::ERRORS.at(offset));
-        std::vector<std::string> varsToRead = {m_pClient->getDeviceNodeId(m_ID) + "." + varName};
+        std::vector<std::string> varsToRead = {m_pClient->getDeviceNodeId(m_Identity) + "." + varName};
         status = m_pClient->read(varsToRead, &value);
-        spdlog::trace("{} : Read error {} value => ({})", m_ID, offset, value[0].Value.Boolean);
+        spdlog::trace("{} : Read error {} value => ({})", m_Identity, offset, value[0].Value.Boolean);
     } else {
         status = OpcUa_BadInvalidArgument;
     }
@@ -180,12 +180,12 @@ UaStatus ActController::operate(OpcUa_UInt32 offset, const UaVariantArray &args)
             if (state != Device::DeviceState::On || errorState == Device::ErrorState::FatalError) {
                 spdlog::error(
                     "{} : ActController::getData() : Device is in a bad state (busy, off, error). MoveDeltaLength call aborted. Check state and try again.",
-                    m_ID);
+                    m_Identity);
                 status = OpcUa_BadInvalidState;
             } else {
-                spdlog::info("{} : ActuatorController calling moveDeltaLength() with delta length {} mm", m_ID,
+                spdlog::info("{} : ActuatorController calling moveDeltaLength() with delta length {} mm", m_Identity,
                              deltaLength);
-                status = m_pClient->callMethodAsync(m_pClient->getDeviceNodeId(m_ID), UaString("MoveDeltaLength"),
+                status = m_pClient->callMethodAsync(m_pClient->getDeviceNodeId(m_Identity), UaString("MoveDeltaLength"),
                                                     args);
             }
             break;
@@ -193,43 +193,45 @@ UaStatus ActController::operate(OpcUa_UInt32 offset, const UaVariantArray &args)
             float targetLength;
             UaVariant(args[0]).toFloat(targetLength);
 
-            spdlog::info("{} : ActuatorController calling moveToLength() with target length {}", m_ID, targetLength);
+            spdlog::info("{} : ActuatorController calling moveToLength() with target length {}", m_Identity,
+                         targetLength);
 
             // Check state manually beforehand
             if (state != Device::DeviceState::On || errorState == Device::ErrorState::FatalError) {
                 spdlog::error(
                     "{} : ActController::getData() : Device is in a bad state (busy, off, error). MoveToLength call aborted. Check state and try again.",
-                    m_ID);
+                    m_Identity);
                 status = OpcUa_BadInvalidState;
             } else {
-                spdlog::info("{} : ActuatorController calling moveToLength() with target length {} mm", m_ID,
+                spdlog::info("{} : ActuatorController calling moveToLength() with target length {} mm", m_Identity,
                              targetLength);
-                status = m_pClient->callMethodAsync(m_pClient->getDeviceNodeId(m_ID), UaString("MoveToLength"), args);
+                status = m_pClient->callMethodAsync(m_pClient->getDeviceNodeId(m_Identity), UaString("MoveToLength"),
+                                                    args);
             }
             break;
         case PAS_ACTType_ForceRecover:
-            spdlog::info("{} : ActuatorController calling forceRecover()", m_ID);
-            status = m_pClient->callMethod(m_pClient->getDeviceNodeId(m_ID), UaString("ForceRecover"));
+            spdlog::info("{} : ActuatorController calling forceRecover()", m_Identity);
+            status = m_pClient->callMethod(m_pClient->getDeviceNodeId(m_Identity), UaString("ForceRecover"));
             break;
         case PAS_ACTType_ClearError:
-            spdlog::info("{} : ActuatorController calling clearError() for error {}", m_ID, args[0].Value.Int32);
-            status = m_pClient->callMethod(m_pClient->getDeviceNodeId(m_ID), UaString("ClearError"), args);
+            spdlog::info("{} : ActuatorController calling clearError() for error {}", m_Identity, args[0].Value.Int32);
+            status = m_pClient->callMethod(m_pClient->getDeviceNodeId(m_Identity), UaString("ClearError"), args);
             break;
         case PAS_ACTType_ClearAllErrors:
-            spdlog::info("{} : ActuatorController calling clearAllErrors()", m_ID);
-            status = m_pClient->callMethod(m_pClient->getDeviceNodeId(m_ID), UaString("ClearAllErrors"));
+            spdlog::info("{} : ActuatorController calling clearAllErrors()", m_Identity);
+            status = m_pClient->callMethod(m_pClient->getDeviceNodeId(m_Identity), UaString("ClearAllErrors"));
             break;
         case PAS_ACTType_TurnOn:
-            spdlog::info("{} : ActuatorController calling turnOn()", m_ID);
-            status = m_pClient->callMethod(m_pClient->getDeviceNodeId(m_ID), UaString("TurnOn"));
+            spdlog::info("{} : ActuatorController calling turnOn()", m_Identity);
+            status = m_pClient->callMethod(m_pClient->getDeviceNodeId(m_Identity), UaString("TurnOn"));
             break;
         case PAS_ACTType_TurnOff:
-            spdlog::info("{} : ActuatorController calling turnOff()", m_ID);
-            status = m_pClient->callMethod(m_pClient->getDeviceNodeId(m_ID), UaString("TurnOff"));
+            spdlog::info("{} : ActuatorController calling turnOff()", m_Identity);
+            status = m_pClient->callMethod(m_pClient->getDeviceNodeId(m_Identity), UaString("TurnOff"));
             break;
         case PAS_ACTType_Stop:
-            spdlog::info("{} : ActuatorController calling stop()", m_ID);
-            status = m_pClient->callMethod(m_pClient->getDeviceNodeId(m_ID), UaString("Stop"));
+            spdlog::info("{} : ActuatorController calling stop()", m_Identity);
+            status = m_pClient->callMethod(m_pClient->getDeviceNodeId(m_Identity), UaString("Stop"));
             break;
         default:
             status = OpcUa_BadInvalidArgument;
@@ -238,7 +240,7 @@ UaStatus ActController::operate(OpcUa_UInt32 offset, const UaVariantArray &args)
     if (status == OpcUa_BadInvalidState) {
         spdlog::error(
             "{} : ActController::getData() : Device is in a bad state (busy, off, error) and could not call method. Check state and try again.",
-            m_ID);
+            m_Identity);
     }
 
     return status;

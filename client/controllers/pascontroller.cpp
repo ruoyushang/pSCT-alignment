@@ -28,8 +28,8 @@
 // implement PasCompositeController::addChild()
 void PasCompositeController::addChild(OpcUa_UInt32 deviceType, const std::shared_ptr<PasController> &pController)
 {
-    const auto &id = pController->getId();
-    auto pos = pController->getId().position;
+    const auto &id = pController->getIdentity();
+    auto pos = pController->getIdentity().position;
     // don't add the same device multiple times
     try {
         m_ChildrenPositionMap.at(deviceType).at(pos);
@@ -40,7 +40,8 @@ void PasCompositeController::addChild(OpcUa_UInt32 deviceType, const std::shared
     catch (std::out_of_range &e) {
         // only add if this is a possible child
         if (m_ChildrenTypes.count(deviceType)) {
-            spdlog::info("{}: PasCompositeController::addChild(): added child with ID {}.", m_ID, pController->getId());
+            spdlog::info("{}: PasCompositeController::addChild(): added child with ID {}.", m_Identity,
+                         pController->getIdentity());
             m_pChildren[deviceType].push_back(std::shared_ptr<PasController>(pController));
             m_ChildrenSerialMap[deviceType][id.serialNumber] = m_pChildren.at(deviceType).size() - 1;
             m_ChildrenEaddressMap[deviceType][id.eAddress] = m_pChildren.at(deviceType).size() - 1;

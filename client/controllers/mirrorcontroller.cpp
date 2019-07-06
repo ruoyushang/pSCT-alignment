@@ -52,7 +52,7 @@ MirrorController::MirrorController(Device::Identity identity) : PasCompositeCont
 
     // make sure things update on the first boot up
     // duration takes seconds -- hence the conversion with the 1/1000 ratio
-    m_lastUpdateTime = TIME::now() - std::chrono::duration<int, std::ratio<1, 1000>>(m_kUpdateInterval_ms);                                                   
+    m_LastUpdateTime = TIME::now() - std::chrono::duration<int, std::ratio<1, 1000>>(m_kUpdateInterval_ms);
 }
 
 void MirrorController::addChild(OpcUa_UInt32 deviceType, const std::shared_ptr<PasController>& pController)
@@ -61,26 +61,26 @@ void MirrorController::addChild(OpcUa_UInt32 deviceType, const std::shared_ptr<P
     PasCompositeController::addChild(deviceType, pController);
 
     if (deviceType == PAS_PanelType) {
-        m_selectedPanels.insert((unsigned)pController->getId().position);
+        m_selectedPanels.insert((unsigned) pController->getIdentity().position);
     }
     else if (deviceType == PAS_EdgeType) {
-        m_selectedEdges.insert(pController->getId().eAddress);
+        m_selectedEdges.insert(pController->getIdentity().eAddress);
     }
     else if (deviceType == PAS_MPESType) {
-        m_selectedMPES.insert(pController->getId().serialNumber);
+        m_selectedMPES.insert(pController->getIdentity().serialNumber);
     }
 }
 
 
 bool MirrorController::initialize()
 {
-    spdlog::info("{} : MirrorController::initialize(): Initializing...", m_ID);
+    spdlog::info("{} : MirrorController::initialize(): Initializing...", m_Identity);
 
     // precompute everything we need
-    if (m_ID.position == 1) {
+    if (m_Identity.position == 1) {
         // bottom (w.r.t. z) surface first, then top surface --
         // back surface first, then optical surface
-        m_pSurface = std::make_shared<AGeoAsphericDisk>(m_ID.name.c_str(),
+        m_pSurface = std::make_shared<AGeoAsphericDisk>(m_Identity.name.c_str(),
                                           SCT::Primary::kZ + SCT::Primary::kz[0] - SCT::Primary::kMirrorThickness, 0,
                                           SCT::Primary::kZ + SCT::Primary::kz[0], 0,
                                           SCT::Primary::kD / 2., 0);
@@ -103,11 +103,10 @@ bool MirrorController::initialize()
                 m_PanelOriginTelFrame.at(ring + 1) += m_PadCoordsTelFrame.at(ring + 1).col(pad) / 3.;
         }
 
-    }
-    else if (m_ID.position == 2) {
+    } else if (m_Identity.position == 2) {
         // bottom (w.r.t. z) surface first, then top surface --
         // optical surface first, then back surface
-        m_pSurface = std::make_shared<AGeoAsphericDisk>(m_ID.name.c_str(),
+        m_pSurface = std::make_shared<AGeoAsphericDisk>(m_Identity.name.c_str(),
                                           SCT::Secondary::kZ + SCT::Secondary::kz[0] - SCT::Secondary::kMirrorThickness,
                                                         0,
                                           SCT::Secondary::kZ + SCT::Secondary::kz[0], 0,
@@ -131,11 +130,11 @@ bool MirrorController::initialize()
             for (int pad = 0; pad < 3; pad++)
                 m_PanelOriginTelFrame.at(ring + 1) += m_PadCoordsTelFrame.at(ring + 1).col(pad) / 3.;
         }
-    }
-    else if (m_ID.position == 3) { // this is used for the test setup in the lab (2 P2 panels) - duplicates the primary mirror geometry
+    } else if (m_Identity.position ==
+               3) { // this is used for the test setup in the lab (2 P2 panels) - duplicates the primary mirror geometry
         // bottom (w.r.t. z) surface first, then top surface --
         // back surface first, then optical surface
-        m_pSurface = std::make_shared<AGeoAsphericDisk>(m_ID.name.c_str(),
+        m_pSurface = std::make_shared<AGeoAsphericDisk>(m_Identity.name.c_str(),
                                           SCT::Primary::kZ + SCT::Primary::kz[0] - SCT::Primary::kMirrorThickness, 0,
                                           SCT::Primary::kZ + SCT::Primary::kz[0], 0,
                                           SCT::Primary::kD / 2., 0);
@@ -161,7 +160,7 @@ bool MirrorController::initialize()
     }
 
     else {
-        spdlog::error("{} : Invalid mirror position {}. Could not initialize...", m_ID, m_ID.position);
+        spdlog::error("{} : Invalid mirror position {}. Could not initialize...", m_Identity, m_Identity.position);
         return false;
     }
 
@@ -210,7 +209,7 @@ bool MirrorController::initialize()
         }
     }
 
-    spdlog::info("{}: MirrorController::initialize(): Done.", m_ID);
+    spdlog::info("{}: MirrorController::initialize(): Done.", m_Identity);
 
     return true;
 }
@@ -218,16 +217,16 @@ bool MirrorController::initialize()
 UaStatus MirrorController::getState(Device::DeviceState &state)
 {
     //UaMutexLocker lock(&m_mutex);
-    state = m_state;
-    spdlog::trace("{} : Read device state => ({})", m_ID, Device::deviceStateNames.at(state));
+    state = m_State;
+    spdlog::trace("{} : Read device state => ({})", m_Identity, Device::deviceStateNames.at(state));
     return OpcUa_Good;
 }
 
 UaStatus MirrorController::setState(Device::DeviceState state)
 {
     //UaMutexLocker lock(&m_mutex);
-    m_state = state;
-    spdlog::trace("{} : Setting device state => ({})", m_ID, Device::deviceStateNames.at(state));
+    m_State = state;
+    spdlog::trace("{} : Setting device state => ({})", m_Identity, Device::deviceStateNames.at(state));
     return OpcUa_Good;
 }
 
@@ -249,7 +248,7 @@ UaStatus MirrorController::getData(OpcUa_UInt32 offset, UaVariant &value)
     } else if (offset == PAS_MirrorType_SafetyRadius)
         value.setDouble(m_safetyRadius);
     else if (offset == PAS_MirrorType_Position)
-        value.setInt32(m_ID.position);
+        value.setInt32(m_Identity.position);
     else if (offset == PAS_MirrorType_SelectedEdges) {
         std::vector<std::string> v(m_selectedEdges.begin(), m_selectedEdges.end());
         std::string s = "[";
@@ -297,7 +296,7 @@ UaStatus MirrorController::setData(OpcUa_UInt32 offset, UaVariant value)
         value.toDouble(m_sysOffsetsMPES(dataoffset));
     } else if (offset == PAS_MirrorType_SafetyRadius) {
         value.toDouble(m_safetyRadius);
-        spdlog::info("{} : Setting safety radius (for all child panels) to {} px.", m_ID, m_safetyRadius);
+        spdlog::info("{} : Setting safety radius (for all child panels) to {} px.", m_Identity, m_safetyRadius);
         // Set for all child panels
         std::shared_ptr<PanelController> panel;
         for (auto &p : getChildren(PAS_PanelType)) {
@@ -325,8 +324,8 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
     UaStatus status;
     //UaMutexLocker lock(&m_mutex);
 
-    if (m_state == Device::DeviceState::Busy && offset != PAS_MirrorType_Stop) {
-        spdlog::error("{} : MirrorController::operate() : Device is busy, method call aborted.", m_ID);
+    if (m_State == Device::DeviceState::Busy && offset != PAS_MirrorType_Stop) {
+        spdlog::error("{} : MirrorController::operate() : Device is busy, method call aborted.", m_Identity);
         return OpcUa_BadInvalidState;
     }
 
@@ -334,7 +333,7 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
      * Move the whole mirror in the telescope reference frame *
      * ********************************************************/
     if (offset == PAS_MirrorType_MoveToCoords) {
-        spdlog::info("{} : MirrorController::operate() : Calling moveToCoords()...", m_ID);
+        spdlog::info("{} : MirrorController::operate() : Calling moveToCoords()...", m_Identity);
         setState(Device::DeviceState::Busy);
         updateCoords(false);    
         Eigen::VectorXd targetMirrorCoords(6);
@@ -355,7 +354,7 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
         setState(Device::DeviceState::Busy);
         // read out all individual positions
         // and get global mirror coordinates
-        spdlog::info("{} : MirrorController::operate() : Calling readPosition()...", m_ID);
+        spdlog::info("{} : MirrorController::operate() : Calling readPosition()...", m_Identity);
         updateCoords();
         setState(Device::DeviceState::On);
     }
@@ -367,7 +366,7 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
         double alignFrac = args[0].Value.Double;
         bool execute = args[1].Value.Boolean;
         spdlog::info("{} : MirrorController::operate() : Calling alignSector() with align fraction {}, execute {}...",
-                     m_ID, alignFrac, execute);
+                     m_Identity, alignFrac, execute);
         setState(Device::DeviceState::Busy);
         status = alignSector(alignFrac, execute);
         updateCoords(false);
@@ -385,7 +384,7 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
 
         spdlog::info(
             "{} : MirrorController::operate() : Calling alignRing() with fixed panel {}, align fraction {}, execute {}...",
-            m_ID, fixPanel, alignFrac, execute);
+            m_Identity, fixPanel, alignFrac, execute);
         setState(Device::DeviceState::Busy);
 
         status = alignRing(fixPanel, alignFrac, execute);
@@ -408,7 +407,7 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
 
         spdlog::info(
             "{} : MirrorController::operate() : Calling alignSequential() with start edge {}, end edge {}, direction {}...",
-            m_ID, startEdge, endEdge, dir);
+            m_Identity, startEdge, endEdge, dir);
         setState(Device::DeviceState::Busy);
 
 
@@ -421,34 +420,34 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
      * Read out all current edge sensors                      *
      * ********************************************************/
     else if (offset == PAS_MirrorType_ReadSensors) {
-        spdlog::info("{} : MirrorController::operate() : Calling readSensors()...", m_ID);
+        spdlog::info("{} : MirrorController::operate() : Calling readSensors()...", m_Identity);
         setState(Device::DeviceState::Busy);
         if (m_selectedEdges.empty()) {
             spdlog::error("{} : MirrorController::operate() : No Edges selected. Nothing to do, method call aborted.",
-                          m_ID);
+                          m_Identity);
         }
         else {
             for (const auto &eAddress : m_selectedEdges) {
-                if (m_state == Device::DeviceState::Busy) {
+                if (m_State == Device::DeviceState::Busy) {
                     status = std::dynamic_pointer_cast<EdgeController>(m_pChildren.at(PAS_EdgeType).at(getEdgeIndex(eAddress)))->operate(
                         PAS_EdgeType_Read);
                     if (!status.isGood()) { return status; }
                 }
                 else {
                     spdlog::warn("{} : MirrorController::readSensors() : Mirror stop detected. Readings stopped.",
-                                 m_ID);
+                                 m_Identity);
                 }
             }
         }
         setState(Device::DeviceState::On);
     } else if (offset == PAS_MirrorType_ReadSensorsParallel) {
-        spdlog::info("{} : MirrorController::operate() : Calling readSensorsParallel()...", m_ID);
+        spdlog::info("{} : MirrorController::operate() : Calling readSensorsParallel()...", m_Identity);
         setState(Device::DeviceState::Busy);
         bool stopped = false;
         std::map<Device::Identity, MPESBase::Position> readings;
         if (m_selectedMPES.empty()) {
             spdlog::error("{} : MirrorController::operate() : No MPES selected. Nothing to do, method call aborted.",
-                          m_ID);
+                          m_Identity);
         } 
         else 
         {
@@ -456,11 +455,12 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
             for (auto it = getChildren(PAS_PanelType).begin(); it < getChildren(PAS_PanelType).end(); it++) {
                 for (const auto &mpes : std::dynamic_pointer_cast<PanelController>(*it)->getChildren(
                     PAS_MPESType)) {
-                    if (m_selectedMPES.find(mpes->getId().serialNumber) != m_selectedMPES.end()) {
-                        if (m_state == Device::DeviceState::Busy) {
+                    if (m_selectedMPES.find(mpes->getIdentity().serialNumber) != m_selectedMPES.end()) {
+                        if (m_State == Device::DeviceState::Busy) {
                             std::dynamic_pointer_cast<MPESController>(mpes)->read();
                             sleep(2);
-                            readings.insert(std::make_pair(mpes->getId(), std::dynamic_pointer_cast<MPESController>(
+                            readings.insert(
+                                std::make_pair(mpes->getIdentity(), std::dynamic_pointer_cast<MPESController>(
                                 mpes)->getPosition()));
                         }
                         else {
@@ -478,8 +478,8 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
                 std::ostringstream os;
                 for (const auto &mpes : std::dynamic_pointer_cast<PasCompositeController>(edge)->getChildren(
                     PAS_MPESType)) {
-                    os << mpes->getId() << " : " << std::endl;
-                    auto it = readings.find(mpes->getId());
+                    os << mpes->getIdentity() << " : " << std::endl;
+                    auto it = readings.find(mpes->getIdentity());
                     if (it != readings.end()) {
                         os << "    " << it->second.xCentroid << " +/- " << it->second.xSpotWidth << " ["
                            << it->second.xNominal << "] ("
@@ -491,29 +491,29 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
                 }
                 spdlog::info(
                     "{}: Readings for Edge {}:\nCurrent position +/- Spot width [Aligned position] (Misalignment)\n\n{}\n\n",
-                    m_ID, edge->getId(), os.str());
+                    m_Identity, edge->getIdentity(), os.str());
             }
         }
         else {
             spdlog::warn("{} : MirrorController::readSensorsParallel() : Mirror stop detected. Readings stopped.",
-                         m_ID);
+                         m_Identity);
         }
         setState(Device::DeviceState::On);
     } else if (offset == PAS_MirrorType_SelectAll) {
-        spdlog::info("{} : MirrorController::operate() : Calling selectAll()...", m_ID);
+        spdlog::info("{} : MirrorController::operate() : Calling selectAll()...", m_Identity);
         m_selectedPanels.clear();
         for (const auto &panel : getChildren(PAS_PanelType)) {
-            m_selectedPanels.insert((unsigned) panel->getId().position);
+            m_selectedPanels.insert((unsigned) panel->getIdentity().position);
         }
 
         m_selectedEdges.clear();
         for (const auto &edge : getChildren(PAS_EdgeType)) {
-            m_selectedEdges.insert(edge->getId().eAddress);
+            m_selectedEdges.insert(edge->getIdentity().eAddress);
         }
 
         m_selectedMPES.clear();
         for (const auto &mpes : getChildren(PAS_MPESType)) {
-            m_selectedMPES.insert(mpes->getId().serialNumber);
+            m_selectedMPES.insert(mpes->getIdentity().serialNumber);
         }
     }
 
@@ -523,7 +523,7 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
     else if (offset == PAS_MirrorType_Stop) {
         spdlog::warn(
             "{} : MirrorController::operate() : Calling stop(). Stopping motion of all edges and child panels...",
-            m_ID);
+            m_Identity);
         for (const auto &pEdge : m_pChildren.at(PAS_EdgeType)) {
             std::dynamic_pointer_cast<EdgeController>(pEdge)->operate(PAS_EdgeType_Stop);
         }
@@ -547,13 +547,13 @@ UaStatus MirrorController::readPositionAll(bool print) {
         auto padCoordsActs = std::dynamic_pointer_cast<PanelController>(
             m_pChildren.at(PAS_PanelType).at(getPanelIndex(panelPos)))->getPadCoords();
         if (print) {
-            spdlog::info("{}: MirrorController::readPositionAll(): Panel frame pad coordinates:\n{}\n", m_ID,
+            spdlog::info("{}: MirrorController::readPositionAll(): Panel frame pad coordinates:\n{}\n", m_Identity,
                          padCoordsActs);
             // and transform this to the telescope reference frame:
             // these are pad coordinates in TRF as computed from actuator lengths
             for (int i = 0; i < padCoordsActs.cols(); i++)
                 padCoordsActs.col(i) = __toTelRF(panelPos, padCoordsActs.col(i));
-            spdlog::info("{}: MirrorController::readPositionAll(): Telescope frame pad coordinates:\n{}\n", m_ID,
+            spdlog::info("{}: MirrorController::readPositionAll(): Telescope frame pad coordinates:\n{}\n", m_Identity,
                          padCoordsActs);
         }
     }
@@ -567,13 +567,13 @@ UaStatus MirrorController::moveToCoords(const Eigen::VectorXd &targetMirrorCoord
     if (!execute) {
         spdlog::info(
             "{} : MirrorController::moveToCoords(): Called with execute=False. Pre-calculating alignment motion...",
-            m_ID);
+            m_Identity);
         Eigen::VectorXd deltaMirrorCoords(6);
 
         deltaMirrorCoords = targetMirrorCoords - m_curCoords;
 
-        spdlog::info("{} : Moving to target coordinates:\n{}\n", m_ID, targetMirrorCoords);
-        spdlog::info("{} : Delta coordinates:\n{}\n", m_ID, deltaMirrorCoords);
+        spdlog::info("{} : Moving to target coordinates:\n{}\n", m_Identity, targetMirrorCoords);
+        spdlog::info("{} : Delta coordinates:\n{}\n", m_Identity, deltaMirrorCoords);
 
         std::vector<std::shared_ptr<PanelController>> panelsToMove;
         Eigen::VectorXd X(m_pChildren.at(PAS_PanelType).size()*6);
@@ -586,7 +586,7 @@ UaStatus MirrorController::moveToCoords(const Eigen::VectorXd &targetMirrorCoord
         
         int j = 0;
         for (const auto &pPanel : m_pChildren.at(PAS_PanelType)) {
-            positionNum = pPanel->getId().position;
+            positionNum = pPanel->getIdentity().position;
             std::dynamic_pointer_cast<PanelController>(pPanel)->operate(PAS_PanelType_ReadPosition);
             // for this panel, we get PRF pad coords, transform them to TRF,
             // move them in TRF, transform back to PRF, and then compute new ACT lengths
@@ -611,7 +611,8 @@ UaStatus MirrorController::moveToCoords(const Eigen::VectorXd &targetMirrorCoord
             currentActLengths = std::dynamic_pointer_cast<PanelController>(pPanel)->getActuatorLengths();
 
             deltaActLengths = targetActLengths - currentActLengths;
-            spdlog::info("{} : Panel {} calculated actuator motion:\n{}\n", m_ID, pPanel->getId(), deltaActLengths);
+            spdlog::info("{} : Panel {} calculated actuator motion:\n{}\n", m_Identity, pPanel->getIdentity(),
+                         deltaActLengths);
 
             if (std::dynamic_pointer_cast<PanelController>(pPanel)->checkForCollision(deltaActLengths)) {
                 return OpcUa_Bad;
@@ -629,7 +630,7 @@ UaStatus MirrorController::moveToCoords(const Eigen::VectorXd &targetMirrorCoord
         if (m_Xcalculated.isZero(0) || m_previousCalculatedMethod != PAS_MirrorType_MoveToCoords) {
             spdlog::error(
                 "{} : No calculated motion found. Call Mirror.moveToCoords with execute=false once first to calculate the motion to execute.",
-                m_ID);
+                m_Identity);
             return OpcUa_Bad;
         }
         else {        
@@ -645,7 +646,7 @@ UaStatus MirrorController::moveToCoords(const Eigen::VectorXd &targetMirrorCoord
                 }
                 status = pCurPanel->__moveDeltaLengths(deltas);
                 if (!status.isGood()) { return status; }
-                if (m_state == Device::DeviceState::Off) { break; }
+                if (m_State == Device::DeviceState::Off) { break; }
             }
             m_Xcalculated.setZero(); // reset calculated motion
             m_panelsToMove.clear();
@@ -675,12 +676,12 @@ UaStatus MirrorController::alignSequential(const std::string &startEdge, const s
     UaStatus status;
 
     if (m_ChildrenEaddressMap.at(PAS_EdgeType).find(startEdge) == m_ChildrenEaddressMap.at(PAS_EdgeType).end()) {
-        spdlog::error("{}: Could not find start edge {} in mirror. Method call aborted.", m_ID, startEdge);
+        spdlog::error("{}: Could not find start edge {} in mirror. Method call aborted.", m_Identity, startEdge);
         return OpcUa_Bad;
     }
 
     if (m_ChildrenEaddressMap.at(PAS_EdgeType).find(endEdge) == m_ChildrenEaddressMap.at(PAS_EdgeType).end()) {
-        spdlog::error("{}: Could not find end edge {} in mirror. Method call aborted.", m_ID, endEdge);
+        spdlog::error("{}: Could not find end edge {} in mirror. Method call aborted.", m_Identity, endEdge);
         return OpcUa_Bad;
     }
 
@@ -696,14 +697,14 @@ UaStatus MirrorController::alignSequential(const std::string &startEdge, const s
             } else {
                 spdlog::error(
                     "{} : MirrorController::alignSequential(): Searched for next edge ({}), but did not find as child of mirror. Please double-check that all edges between start and end are present in the client.",
-                    m_ID, nextEdge);
+                    m_Identity, nextEdge);
                 return OpcUa_Bad;
             }
         }
         else {
             spdlog::error(
                 "{} : MirrorController::alignSequential(): Went around full cycle from start edge ({}) in requested direction ({}) without reaching end edge ({}). Double-check that you chose valid edges (in the same ring).",
-                m_ID, startEdge, dir, endEdge);
+                m_Identity, startEdge, dir, endEdge);
             return OpcUa_Bad;
         }    
     }
@@ -712,12 +713,12 @@ UaStatus MirrorController::alignSequential(const std::string &startEdge, const s
     for (const auto &edge : selectedEdges) {
         os << edge << std::endl;
     }
-    spdlog::info("{}: Edges to align sequentially:\n{}", m_ID, os.str());
+    spdlog::info("{}: Edges to align sequentially:\n{}", m_Identity, os.str());
 
     std::deque<std::string> toAlign{}; // yes, deque, not vector!
-    for (int i = 0; i < (int) selectedEdges.size() && m_state != Device::DeviceState::Off; i++) {
+    for (int i = 0; i < (int) selectedEdges.size() && m_State != Device::DeviceState::Off; i++) {
         toAlign.push_front(selectedEdges.at(i));
-        spdlog::info("{}: Aligning Edge {} and all previous edges...", m_ID, toAlign.front());
+        spdlog::info("{}: Aligning Edge {} and all previous edges...", m_Identity, toAlign.front());
         // align all the preceding panels
         for (const auto &edgeEaddress : toAlign) {
             // figure out which panel is "greater" and which one is "smaller" in the sense
@@ -735,7 +736,7 @@ UaStatus MirrorController::alignSequential(const std::string &startEdge, const s
             auto movingPanel_idx = m_ChildrenPositionMap.at(PAS_PanelType).at(curPanels.at(0));
             // do this until the edge is aligned
             int alignIter = 1;
-            spdlog::debug("{} Calculating motion for Edge {}...", m_ID, edgeEaddress);
+            spdlog::debug("{} Calculating motion for Edge {}...", m_Identity, edgeEaddress);
             status = m_pChildren.at(PAS_EdgeType).at(getEdgeIndex(edgeEaddress))->operate(PAS_EdgeType_Align, args);
             Device::DeviceState curState;
             m_pChildren.at(PAS_EdgeType).at(getEdgeIndex(edgeEaddress))->getState(curState);
@@ -743,55 +744,55 @@ UaStatus MirrorController::alignSequential(const std::string &startEdge, const s
                 usleep(500 * 1000); // microseconds
                 m_pChildren.at(PAS_EdgeType).at(getEdgeIndex(edgeEaddress))->getState(curState);
             }
-            if (m_state == Device::DeviceState::Off) { break; }
+            if (m_State == Device::DeviceState::Off) { break; }
             args[3].Value.Boolean = true; // this time, execute
-            spdlog::debug("{}: Executing alignment motion for Edge {}...", m_ID, edgeEaddress);
+            spdlog::debug("{}: Executing alignment motion for Edge {}...", m_Identity, edgeEaddress);
             status = m_pChildren.at(PAS_EdgeType).at(getEdgeIndex(edgeEaddress))->operate(PAS_EdgeType_Align, args);
             while (curState == Device::DeviceState::Busy) {
                 usleep(500 * 1000); // microseconds
                 m_pChildren.at(PAS_EdgeType).at(getEdgeIndex(edgeEaddress))->getState(curState);
             }
             if (!status.isGood()) {
-                spdlog::error("{}: Failed while executing motion. Method aborted.", m_ID);
+                spdlog::error("{}: Failed while executing motion. Method aborted.", m_Identity);
                 return status; 
             }
-            if (m_state == Device::DeviceState::Off) { break; }
+            if (m_State == Device::DeviceState::Off) { break; }
             while (!std::dynamic_pointer_cast<EdgeController>(
                 m_pChildren.at(PAS_EdgeType).at(getEdgeIndex(edgeEaddress)))->isAligned()) {
-                spdlog::info("{}: Alignment Iteration {}.", m_ID, alignIter);
+                spdlog::info("{}: Alignment Iteration {}.", m_Identity, alignIter);
                 usleep(400*1000); // microseconds
 
                 Device::DeviceState curstate;
                 m_pChildren.at(PAS_PanelType).at(movingPanel_idx)->getState(curstate);
                 while (curstate == Device::DeviceState::Busy) {
-                    spdlog::debug("{}: Waiting for Panel {}", m_ID, curPanels.at(0));
+                    spdlog::debug("{}: Waiting for Panel {}", m_Identity, curPanels.at(0));
                     usleep(200*1000); // microseconds
                     m_pChildren.at(PAS_PanelType).at(movingPanel_idx)->getState(curstate);
                 }
                 alignIter++;
                 args[3].Value.Boolean = false;
-                spdlog::debug("{} Calculating motion for Edge {}...", m_ID, edgeEaddress);
+                spdlog::debug("{} Calculating motion for Edge {}...", m_Identity, edgeEaddress);
                 status = m_pChildren.at(PAS_EdgeType).at(getEdgeIndex(edgeEaddress))->operate(PAS_EdgeType_Align, args);
                 while (curState == Device::DeviceState::Busy) {
                     usleep(500 * 1000); // microseconds
                     m_pChildren.at(PAS_EdgeType).at(getEdgeIndex(edgeEaddress))->getState(curState);
                 }
-                if (m_state == Device::DeviceState::Off) { break; }
+                if (m_State == Device::DeviceState::Off) { break; }
                 args[3].Value.Boolean = true; // execute motion
-                spdlog::debug("{}: Executing alignment motion for Edge {}...", m_ID, edgeEaddress);
+                spdlog::debug("{}: Executing alignment motion for Edge {}...", m_Identity, edgeEaddress);
                 status = m_pChildren.at(PAS_EdgeType).at(getEdgeIndex(edgeEaddress))->operate(PAS_EdgeType_Align, args);
                 if (!status.isGood()) {
-                    spdlog::error("{}: Failed while executing motion. Method aborted.", m_ID);
+                    spdlog::error("{}: Failed while executing motion. Method aborted.", m_Identity);
                     return status; 
                 }
                 while (curState == Device::DeviceState::Busy) {
                     usleep(500 * 1000); // microseconds
                     m_pChildren.at(PAS_EdgeType).at(getEdgeIndex(edgeEaddress))->getState(curState);
                 }
-                if (m_state == Device::DeviceState::Off) { break; }
+                if (m_State == Device::DeviceState::Off) { break; }
             }
-            spdlog::info("{}: Edge {} aligned.", m_ID,
-                         m_pChildren.at(PAS_EdgeType).at(getEdgeIndex(edgeEaddress))->getId());
+            spdlog::info("{}: Edge {} aligned.", m_Identity,
+                         m_pChildren.at(PAS_EdgeType).at(getEdgeIndex(edgeEaddress))->getIdentity());
         }
     }
 
@@ -839,7 +840,7 @@ void MirrorController::parseAndSetSelection(const std::string &selectionString, 
             }
         }
         os << std::endl;
-        spdlog::info("{}: Selecting panels (positions):\n{}\n", m_ID, os.str());
+        spdlog::info("{}: Selecting panels (positions):\n{}\n", m_Identity, os.str());
     }
     else if (deviceType == PAS_MPESType) { // expect a list of Sensor serials
         m_selectedMPES.clear();
@@ -854,7 +855,7 @@ void MirrorController::parseAndSetSelection(const std::string &selectionString, 
             }
         }
         os << std::endl;
-        spdlog::info("{}: Selecting MPES (serial numbers):\n{}\n", m_ID, os.str());
+        spdlog::info("{}: Selecting MPES (serial numbers):\n{}\n", m_Identity, os.str());
     }
 
     else if (deviceType == PAS_EdgeType) { // expect a list of edge addresses
@@ -871,7 +872,7 @@ void MirrorController::parseAndSetSelection(const std::string &selectionString, 
             os << std::endl;
         }
         os << std::endl;
-        spdlog::info("{}: Selecting Edges (eAddresses):\n{}\n", m_ID, os.str());
+        spdlog::info("{}: Selecting Edges (eAddresses):\n{}\n", m_Identity, os.str());
     }
 }
 
@@ -922,12 +923,12 @@ UaStatus MirrorController::updateCoords(bool print)
         for (int i = 0; i < 6; i++)
             os << m_curCoords(i) << " +/- " << m_curCoordsErr(i) << std::endl;
         os << std::endl << std::endl;
-        spdlog::info("{} : Computed mirror coordinates:\n{}\n", m_ID, os.str());
+        spdlog::info("{} : Computed mirror coordinates:\n{}\n", m_Identity, os.str());
         // display angle in common coordinates -- angle*baseRad
         //    for (int i = 3; i < 6; i++)
         //       os << m_curCoords(i)*kBaseRadius << " +/- " << m_curCoordsErr(i)*kBaseRadius << std::endl;
     }
-    m_lastUpdateTime = TIME::now();
+    m_LastUpdateTime = TIME::now();
 
     return OpcUa_Good;
 }
@@ -1011,27 +1012,28 @@ UaStatus MirrorController::alignSector(double alignFrac, bool execute) {
  
     // make sure there are some selected sensors
     if (m_selectedPanels.empty()) {
-        spdlog::error("{} : MirrorController::alignSector(): No panels selected. Nothing to do, method aborted.", m_ID);
+        spdlog::error("{} : MirrorController::alignSector(): No panels selected. Nothing to do, method aborted.",
+                      m_Identity);
         return OpcUa_BadInvalidArgument;
     }
     // make sure there are some selected sensors
     if (m_selectedMPES.empty()) {
         spdlog::error("{} : MirrorController::alignSector(): No sensors selected. Nothing to do, method aborted.",
-                      m_ID);
+                      m_Identity);
         return OpcUa_BadInvalidArgument;
     }
 
     if (alignFrac > 1.0 || alignFrac <= 0.0) {
         spdlog::error(
             "{} : MirrorController::alignSector(): Invalid choice of alignFrac ({}), should be between 0.0 and 1.0.",
-            m_ID, alignFrac);
+            m_Identity, alignFrac);
         return OpcUa_BadInvalidArgument;
     }
 
     if (!execute) {
         spdlog::info(
             "{} : MirrorController::alignSector(): Called with execute=False. Pre-calculating alignment motion...",
-            m_ID);
+            m_Identity);
         // following the align method for an edge:
         Eigen::MatrixXd C; // constraint
         Eigen::MatrixXd B; // complete matrix
@@ -1061,16 +1063,17 @@ UaStatus MirrorController::alignSector(double alignFrac, bool execute) {
                 unsigned overlap = 0;
                 for (const auto &overlapPanel : panelsToMove)
                     overlap += (
-                        std::dynamic_pointer_cast<MPESController>(mpes)->getPanelSide(overlapPanel->getId().position) !=
+                        std::dynamic_pointer_cast<MPESController>(mpes)->getPanelSide(
+                            overlapPanel->getIdentity().position) !=
                         0);
 
                 if (overlap == 2) {
-                    idx = m_ChildrenSerialMap.at(PAS_MPESType).at(mpes->getId().serialNumber);
+                    idx = m_ChildrenSerialMap.at(PAS_MPESType).at(mpes->getIdentity().serialNumber);
                     if (!overlapIndices.count(idx)) {
                         overlapIndices.insert(idx);
                         if (count(alignMPES.begin(), alignMPES.end(), mpes)) {
-                            spdlog::info("{} : MirrorController::alignSector(): Internal MPES selected: {}", m_ID,
-                                         mpes->getId());
+                            spdlog::info("{} : MirrorController::alignSector(): Internal MPES selected: {}", m_Identity,
+                                         mpes->getIdentity());
                             userOverlap = true;
                         }
                     }
@@ -1082,7 +1085,7 @@ UaStatus MirrorController::alignSector(double alignFrac, bool execute) {
         if (!userOverlap && !overlapIndices.empty()) {
             spdlog::warn(
                 "{} : MirrorController::alignSector(): No user-selected internal MPES. Reading all internal MPES...",
-                m_ID);
+                m_Identity);
             // only read the internal MPES if no user-specified ones have been found
             for (const auto &i: overlapIndices) {
                 std::shared_ptr<MPESController> mpes = std::dynamic_pointer_cast<MPESController>(
@@ -1094,22 +1097,22 @@ UaStatus MirrorController::alignSector(double alignFrac, bool execute) {
         } else if (overlapIndices.empty()) {
             spdlog::warn(
                 "{} : MirrorController::alignSector(): Found no internal MPES. This should only occur when the sector is a single panel.",
-                m_ID);
+                m_Identity);
         }
         else
-            spdlog::warn("{} : MirrorController::alignSector(): Found user-selected internal MPES.", m_ID);
+            spdlog::warn("{} : MirrorController::alignSector(): Found user-selected internal MPES.", m_Identity);
 
         std::ostringstream os;
         for (auto &panel : panelsToMove)
-            os << panel->getId().position << " ";
+            os << panel->getIdentity().position << " ";
         os << std::endl << std::endl;
-        spdlog::info("{}: Will align the following panels:\n{}\n", m_ID, os.str());
+        spdlog::info("{}: Will align the following panels:\n{}\n", m_Identity, os.str());
         os.str(""); // Clear ostringstream
 
         for (auto &mpes: alignMPES)
-            os << mpes->getId().serialNumber << " ";
+            os << mpes->getIdentity().serialNumber << " ";
         os << std::endl << std::endl;
-        spdlog::info("{}: Will use the following sensors for alignment:\n{}\n", m_ID, os.str());
+        spdlog::info("{}: Will use the following sensors for alignment:\n{}\n", m_Identity, os.str());
 
         // construct the overall target vector and the response matrix
         UaVariant vtmp;
@@ -1132,7 +1135,7 @@ UaStatus MirrorController::alignSector(double alignFrac, bool execute) {
                                            - alignMPES.at(m)->getSystematicOffsets();
 
             for (int p = 0; p < (int) panelsToMove.size(); p++) {
-                auto panelSide = alignMPES.at(m)->getPanelSide(panelsToMove.at(p)->getId().position);
+                auto panelSide = alignMPES.at(m)->getPanelSide(panelsToMove.at(p)->getIdentity().position);
                 if (panelSide)
                     responseMat = alignMPES.at(m)->getResponseMatrix(panelSide);
                 else
@@ -1146,7 +1149,7 @@ UaStatus MirrorController::alignSector(double alignFrac, bool execute) {
         if (Y.size() < B.cols()) {
             spdlog::error(
                 "{}: Found () sensors and {} actuators. Not enough sensors to constrain the motion. Method aborted.",
-                m_ID, B.rows() / 2, B.cols());
+                m_Identity, B.rows() / 2, B.cols());
             return OpcUa_Bad;
         }
 
@@ -1156,17 +1159,18 @@ UaStatus MirrorController::alignSector(double alignFrac, bool execute) {
         catch (...) {
             spdlog::error(
                 "{} : Singular Value Decomposition failed. Result discarded and method aborted. Check your sensor readings!",
-                m_ID);
+                m_Identity);
             return OpcUa_Bad;
         }
 
-        spdlog::debug("{}: Vector to solve for:\n{}\n", m_ID, Y);
-        spdlog::debug("{}: Matrix to solve with:\n{}\n", m_ID, B);
-        spdlog::debug("{}: Least squares solution:\n{}\n", m_ID, X);
+        spdlog::debug("{}: Vector to solve for:\n{}\n", m_Identity, Y);
+        spdlog::debug("{}: Matrix to solve with:\n{}\n", m_Identity, B);
+        spdlog::debug("{}: Least squares solution:\n{}\n", m_Identity, X);
 
         if (alignFrac < 1.) {
             X *= alignFrac;
-            spdlog::info("{} : Fractional motion of {} requested. Final (fractional) motion is:\n{}\n", m_ID, alignFrac,
+            spdlog::info("{} : Fractional motion of {} requested. Final (fractional) motion is:\n{}\n", m_Identity,
+                         alignFrac,
                          X);
         }
 
@@ -1174,7 +1178,8 @@ UaStatus MirrorController::alignSector(double alignFrac, bool execute) {
         Eigen::VectorXd deltaLengths(6);
         for (auto &pCurPanel : panelsToMove) {
             // print out to make sure
-            spdlog::info("{} : Will move Panel {} actuators by:\n{}\n", m_ID, pCurPanel->getId(), X.segment(j, 6));
+            spdlog::info("{} : Will move Panel {} actuators by:\n{}\n", m_Identity, pCurPanel->getIdentity(),
+                         X.segment(j, 6));
 
             for (unsigned i = 0; i < 6; i++) {
                 deltaLengths(i) = X(j++);
@@ -1190,13 +1195,13 @@ UaStatus MirrorController::alignSector(double alignFrac, bool execute) {
 
         spdlog::info(
             "{} : Calculation done! You should call the method again with execute=True to actually execute the motion.",
-            m_ID);
+            m_Identity);
     }
     else {
         if (m_Xcalculated.isZero(0) || m_previousCalculatedMethod != PAS_MirrorType_AlignSector) {
             spdlog::error(
                 "{} : No calculated motion found. Call Mirror.alignSector with execute=false once first to calculate the motion to execute.",
-                m_ID);
+                m_Identity);
             return OpcUa_Bad;
         }
         else {        
@@ -1212,7 +1217,7 @@ UaStatus MirrorController::alignSector(double alignFrac, bool execute) {
                 }
                 status = pCurPanel->__moveDeltaLengths(deltas);
                 if (!status.isGood()) { return status; }
-                if (m_state == Device::DeviceState::Off) { break; }
+                if (m_State == Device::DeviceState::Off) { break; }
             }
             m_Xcalculated.setZero(); // reset calculated motion
             m_panelsToMove.clear();
@@ -1230,20 +1235,21 @@ UaStatus MirrorController::alignRing(int fixPanel, double alignFrac, bool execut
     if (m_ChildrenPositionMap.at(PAS_PanelType).find(fixPanel) == m_ChildrenPositionMap.at(PAS_PanelType).end()) {
         spdlog::error(
             "{} : MirrorController::alignRing(): The selected fixed panel ({}) is not found in the mirror. Please double check and try again.",
-            m_ID, fixPanel);
+            m_Identity, fixPanel);
         return OpcUa_BadInvalidArgument;
     }
 
     if (alignFrac > 1.0 || alignFrac <= 0.0) {
         spdlog::error(
             "{} : MirrorController::alignRing(): Invalid choice of alignFrac ({}), should be between 0.0 and 1.0.",
-            m_ID, alignFrac);
+            m_Identity, alignFrac);
         return OpcUa_BadInvalidArgument;
     }
 
     if (!execute) {
         spdlog::info(
-            "{} : MirrorController::alignRing(): Called with execute=False. Pre-calculating alignment motion...", m_ID);
+            "{} : MirrorController::alignRing(): Called with execute=False. Pre-calculating alignment motion...",
+            m_Identity);
         // First check that all panels in ring are present
         spdlog::info("{} : MirrorController::alignRing(): Locating all panels in ring to align...");
         int curPanel = fixPanel;
@@ -1251,13 +1257,13 @@ UaStatus MirrorController::alignRing(int fixPanel, double alignFrac, bool execut
             int nextPanel = SCTMath::GetPanelNeighbor(curPanel, 0);
             if (m_ChildrenPositionMap.at(PAS_PanelType).find(nextPanel) !=
                     m_ChildrenPositionMap.at(PAS_PanelType).end()) {
-                spdlog::debug("{} : MirrorController::alignRing(): Found next panel {}...", m_ID, nextPanel);
+                spdlog::debug("{} : MirrorController::alignRing(): Found next panel {}...", m_Identity, nextPanel);
                 continue;
             }
             else {
                 spdlog::error(
                     "{} : MirrorController::alignRing(): Searched for next panel ({}), but did not find as child of mirror. Please double-check that all panels in ring are present in the client.",
-                    m_ID, nextPanel);
+                    m_Identity, nextPanel);
                     return OpcUa_Bad;
             }
             curPanel = nextPanel;
@@ -1301,7 +1307,7 @@ UaStatus MirrorController::alignRing(int fixPanel, double alignFrac, bool execut
         unsigned blockRow = 0;
         spdlog::info(
             "{}: MirrorController::alignRing() : Traversing Ring {} of Mirror {} clockwise from fix panel ({}) to locate all edges to align.",
-            m_ID, ring, mirror, fixPanel);
+            m_Identity, ring, mirror, fixPanel);
 
         Eigen::MatrixXd T; // Vladimir's T operator
         Eigen::MatrixXd Eye = Eigen::MatrixXd::Identity(6, 6);
@@ -1328,31 +1334,34 @@ UaStatus MirrorController::alignRing(int fixPanel, double alignFrac, bool execut
                     continue;
                 }
 
-                spdlog::info("{}: Found next edge to align -- {} ", m_ID, edgesToFit.back()->getId());
+                spdlog::info("{}: Found next edge to align -- {} ", m_Identity, edgesToFit.back()->getIdentity());
 
-                spdlog::debug("{}: Reading sensors...", m_ID);
+                spdlog::debug("{}: Reading sensors...", m_Identity);
                 localCurRead = edgesToFit.back()->getCurrentReadings().first;
                 localAlignRead = edgesToFit.back()->getAlignedReadings();
 
                 misalignVec = localAlignRead - localCurRead;
-                spdlog::info("{}: Edge {} current misalignment:\n{}\n", m_ID, edgesToFit.back()->getId(), misalignVec);
-                spdlog::info("{}: Adding to global misalignment vector...", m_ID);
+                spdlog::info("{}: Edge {} current misalignment:\n{}\n", m_Identity, edgesToFit.back()->getIdentity(),
+                             misalignVec);
+                spdlog::info("{}: Adding to global misalignment vector...", m_Identity);
                 globMisalignVec.conservativeResize(cursize + misalignVec.size());
                 globMisalignVec.tail(misalignVec.size()) = misalignVec;
                 cursize = globMisalignVec.size();
 
                 // get the response of this edge
                 localResponse = edgesToFit.back()->getResponseMatrix(curPanel);
-                spdlog::debug("{}: Response matrix [{}][{}]:\n{}\n", m_ID, curPanel, nextPanel, localResponse);
-                spdlog::trace("{}: Placing it at location [{}][{}] of the global response matrix", m_ID, blockRow * 6,
+                spdlog::debug("{}: Response matrix [{}][{}]:\n{}\n", m_Identity, curPanel, nextPanel, localResponse);
+                spdlog::trace("{}: Placing it at location [{}][{}] of the global response matrix", m_Identity,
+                              blockRow * 6,
                               blockRow * 6);
                 globResponse.block(blockRow*6, blockRow*6,
                         localResponse.rows(), localResponse.cols()) = localResponse;
                 MCurNext = localResponse;
 
                 localResponse = edgesToFit.back()->getResponseMatrix(nextPanel);
-                spdlog::debug("{}: Response matrix [{}][{}]:\n{}\n", m_ID, nextPanel, curPanel, localResponse);
-                spdlog::trace("{}: Placing it at location [{}][{}] of the global response matrix", m_ID, blockRow * 6,
+                spdlog::debug("{}: Response matrix [{}][{}]:\n{}\n", m_Identity, nextPanel, curPanel, localResponse);
+                spdlog::trace("{}: Placing it at location [{}][{}] of the global response matrix", m_Identity,
+                              blockRow * 6,
                               ((blockRow + 1) % numPanels) * 6);
                 globResponse.block(blockRow*6, ((blockRow + 1) % numPanels)*6,
                         localResponse.rows(), localResponse.cols()) = localResponse;
@@ -1372,11 +1381,11 @@ UaStatus MirrorController::alignRing(int fixPanel, double alignFrac, bool execut
 
             // nothing to do if on the first panel
             if (blockRow != 1) {
-                spdlog::debug("{}: Taking into account/calculating the systematic displacement for edge {}", m_ID,
-                              edgesToFit.back()->getId());
+                spdlog::debug("{}: Taking into account/calculating the systematic displacement for edge {}", m_Identity,
+                              edgesToFit.back()->getIdentity());
                 E = MCurNext*MCurPrev.inverse();
-                spdlog::debug("{}: Matrix ML:\n{}\n", m_ID, MCurPrev);
-                spdlog::debug("{}: ML*ML.inverse():\n{}\n", m_ID, MCurPrev * MCurPrev.inverse());
+                spdlog::debug("{}: Matrix ML:\n{}\n", m_Identity, MCurPrev);
+                spdlog::debug("{}: ML*ML.inverse():\n{}\n", m_Identity, MCurPrev * MCurPrev.inverse());
                 spdlog::debug("{}: Matrix MR:\n{}\n", MCurNext);
                 spdlog::debug("{}: Operator E = MR*ML.inverse():\n{}\n", E);
                 T = Eye - E*T;
@@ -1386,26 +1395,27 @@ UaStatus MirrorController::alignRing(int fixPanel, double alignFrac, bool execut
 
         } while ( curPanel != fixPanel );
 
-        spdlog::info("{}: Size of global misalignment vector: {}", m_ID, globMisalignVec.size());
-        spdlog::info("{}: Shape of global response matrix: ({}, {})", m_ID, globResponse.rows(), globResponse.cols());
+        spdlog::info("{}: Size of global misalignment vector: {}", m_Identity, globMisalignVec.size());
+        spdlog::info("{}: Shape of global response matrix: ({}, {})", m_Identity, globResponse.rows(),
+                     globResponse.cols());
 
-        spdlog::debug("{} : Operator T:\n{}\n", m_ID, T);
-        spdlog::debug("{} : Operator -1*T.inverse():\n{}\n", m_ID, -1 * T.inverse());
-        spdlog::debug("{} : Operator T*T.inverse():\n{}\n", m_ID, T * T.inverse());
+        spdlog::debug("{} : Operator T:\n{}\n", m_Identity, T);
+        spdlog::debug("{} : Operator -1*T.inverse():\n{}\n", m_Identity, -1 * T.inverse());
+        spdlog::debug("{} : Operator T*T.inverse():\n{}\n", m_Identity, T * T.inverse());
 
         // check that we have enough sensor readings
         if (globMisalignVec.size() < globResponse.rows()) {
             spdlog::error("{} : Not enough sensors () to constrain the motion ({} required). Method call aborted.",
-                          m_ID, globMisalignVec.size(), globResponse.rows());
+                          m_Identity, globMisalignVec.size(), globResponse.rows());
             return OpcUa_Bad;
         }
 
-        spdlog::debug("{} : Misalignment vector size:{}.", m_ID, globMisalignVec.size());
-        spdlog::debug("{} : First 12 entries:\n{}\n.", m_ID, globMisalignVec.head(12));
-        spdlog::debug("{} : Last 12 entries:\n{}\n.", m_ID, globMisalignVec.tail(12));
-        spdlog::debug("{} : First 12x18 block of the global response matrix:\n{}\n.", m_ID,
+        spdlog::debug("{} : Misalignment vector size:{}.", m_Identity, globMisalignVec.size());
+        spdlog::debug("{} : First 12 entries:\n{}\n.", m_Identity, globMisalignVec.head(12));
+        spdlog::debug("{} : Last 12 entries:\n{}\n.", m_Identity, globMisalignVec.tail(12));
+        spdlog::debug("{} : First 12x18 block of the global response matrix:\n{}\n.", m_Identity,
                       globResponse.block(0, 0, 12, 18));
-        spdlog::debug("{} : Last 12x18 block of the global response matrix:\n{}\n.", m_ID,
+        spdlog::debug("{} : Last 12x18 block of the global response matrix:\n{}\n.", m_Identity,
                       globResponse.block(globResponse.rows() - 12, globResponse.cols() - 18, 12, 18));
 
         panelsToMove.erase(panelsToMove.begin()); // Erase fixed panel (first panel) from panelsToMove
@@ -1417,7 +1427,8 @@ UaStatus MirrorController::alignRing(int fixPanel, double alignFrac, bool execut
         globDisplaceVec = globResponse.jacobiSvd(Eigen::ComputeThinU | Eigen::ComputeThinV).solve(globMisalignVec);
 
         Eigen::VectorXd check = globResponse * globDisplaceVec - globMisalignVec;
-        spdlog::debug("{} : Checking the calculated solution... norm(R*Solution - MisAlign) = {}.", m_ID, check.norm());
+        spdlog::debug("{} : Checking the calculated solution... norm(R*Solution - MisAlign) = {}.", m_Identity,
+                      check.norm());
         //spdlog::debug("{} : First 12 entries:\n{}\n.", m_ID, check.head(12));
         //spdlog::debug("{} : Last 12 entries:\n{}\n.", m_ID, check.tail(12));
 
@@ -1430,7 +1441,7 @@ UaStatus MirrorController::alignRing(int fixPanel, double alignFrac, bool execut
         }
         // make sure we read out the systematic vector in the same order as the sensors
         // and assign it correctly to outer/middle/inner
-        spdlog::info("{} : Calculated systematic offsets:\n{}\n.", m_ID, m_sysOffsetsMPES);
+        spdlog::info("{} : Calculated systematic offsets:\n{}\n.", m_Identity, m_sysOffsetsMPES);
 
         // set the offset for each sensor edge
         for (const auto& edge : edgesToFit) {
@@ -1443,7 +1454,7 @@ UaStatus MirrorController::alignRing(int fixPanel, double alignFrac, bool execut
         }
 
         if (alignFrac < 1.) {
-            spdlog::info("{} : Fractional motion of {} requested.", m_ID, alignFrac);
+            spdlog::info("{} : Fractional motion of {} requested.", m_Identity, alignFrac);
         }
 
         /* MOVE ACTUATORS */
@@ -1451,7 +1462,8 @@ UaStatus MirrorController::alignRing(int fixPanel, double alignFrac, bool execut
         Eigen::VectorXd deltaLengths(6);
         for (auto &pCurPanel : panelsToMove) {
             // print out to make sure
-            spdlog::info("{} : Panel {} -- Calculated change in actuator lengths is:\n{}\n", m_ID, pCurPanel->getId(),
+            spdlog::info("{} : Panel {} -- Calculated change in actuator lengths is:\n{}\n", m_Identity,
+                         pCurPanel->getIdentity(),
                          alignFrac * globDisplaceVec.segment(j, 6));
 
             for (unsigned i = 0; i < 6; i++) {
@@ -1470,7 +1482,7 @@ UaStatus MirrorController::alignRing(int fixPanel, double alignFrac, bool execut
         if (m_Xcalculated.isZero(0) || m_previousCalculatedMethod != PAS_MirrorType_AlignRing) {
             spdlog::error(
                 "{} : No calculated motion found. Call Mirror.AlignRing with execute=false once first to calculate the motion to execute.",
-                m_ID);
+                m_Identity);
             return OpcUa_Bad;
         }
         else {        
@@ -1486,7 +1498,7 @@ UaStatus MirrorController::alignRing(int fixPanel, double alignFrac, bool execut
                 }
                 status = pCurPanel->__moveDeltaLengths(deltas);
                 if (!status.isGood()) { return status; }
-                if (m_state == Device::DeviceState::Off) { break; }
+                if (m_State == Device::DeviceState::Off) { break; }
             }
             m_Xcalculated.setZero(); // reset calculated motion
             m_panelsToMove.clear();

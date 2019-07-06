@@ -53,9 +53,8 @@ public:
     MPESBase::Position getPosition();
 
 private:
-    std::string m_mode;
+    std::string m_Mode;
 
-    // a read that performs such checks and exposure correction
     UaStatus read();
 
     // actuator response matrix map -- {panel position -> matrix}

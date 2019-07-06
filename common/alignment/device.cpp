@@ -66,7 +66,7 @@ Device::Device(Device::Identity identity) : m_Identity(std::move(identity)), m_B
 void Device::setError(int errorCode) {
     if (!m_Errors.at(errorCode)) {
         spdlog::error("{} : Setting Error {} ({})", m_Identity, errorCode,
-                      getErrorCodeDefinitions()[errorCode].description);
+                      getErrorCodeDefinition(errorCode).description);
         m_Errors[errorCode] = true;
     }
 }
@@ -74,7 +74,7 @@ void Device::setError(int errorCode) {
 void Device::unsetError(int errorCode) {
     if (m_Errors.at(errorCode)) {
         spdlog::info("{} : Unsetting Error {} ({})", m_Identity, errorCode,
-                     getErrorCodeDefinitions()[errorCode].description);
+                     getErrorCodeDefinition(errorCode).description);
         m_Errors[errorCode] = false;
     }
 }
@@ -95,8 +95,8 @@ Device::ErrorState Device::getErrorState() {
     Device::ErrorState state = Device::ErrorState::Nominal;
     for (int i = 0; i < getNumErrors(); i++) {
         if (m_Errors[i]) {
-            if (getErrorCodeDefinitions()[i].severity > state) {
-                state = getErrorCodeDefinitions()[i].severity;
+            if (getErrorCodeDefinition(i).severity > state) {
+                state = getErrorCodeDefinition(i).severity;
             }
         }
     }

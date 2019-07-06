@@ -66,11 +66,11 @@ private:
     Device::DeviceState __getDeviceState();
 
     UaStatus __moveToLengths(const UaVariantArray &args) {
-        return m_pClient->callMethodAsync(m_pClient->getDeviceNodeId(m_ID), UaString("MoveToLengths"), args);
+        return m_pClient->callMethodAsync(m_pClient->getDeviceNodeId(m_Identity), UaString("MoveToLengths"), args);
     }
 
     UaStatus __moveDeltaLengths(const UaVariantArray &args) {
-        return m_pClient->callMethodAsync(m_pClient->getDeviceNodeId(m_ID), UaString("MoveDeltaLengths"), args);
+        return m_pClient->callMethodAsync(m_pClient->getDeviceNodeId(m_Identity), UaString("MoveDeltaLengths"), args);
     }
 };
 

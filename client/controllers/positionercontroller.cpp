@@ -35,7 +35,7 @@ UaStatus PositionerController::getState(Device::DeviceState &state)
             state = Device::DeviceState::On;
     }
 
-    spdlog::trace("{} : Read device state => ({})", m_ID, Device::deviceStateNames.at(state));
+    spdlog::trace("{} : Read device state => ({})", m_Identity, Device::deviceStateNames.at(state));
 
     return status;
 }
@@ -90,22 +90,22 @@ UaStatus PositionerController::getData(OpcUa_UInt32 offset, UaVariant &value)
     if (status.isGood()) {
         if (offset == GLOB_PositionerType_isMoving) {
             value.toBool(m_Data.isMoving);
-            spdlog::trace("{} : Read isMoving value => ({})", m_ID, m_Data.isMoving);
+            spdlog::trace("{} : Read isMoving value => ({})", m_Identity, m_Data.isMoving);
         } else if (offset == GLOB_PositionerType_curAz) {
             value.toFloat(m_Data.curAz);
-            spdlog::trace("{} : Read curAz value => ({})", m_ID, m_Data.curAz);
+            spdlog::trace("{} : Read curAz value => ({})", m_Identity, m_Data.curAz);
         } else if (offset == GLOB_PositionerType_curEl) {
             value.toFloat(m_Data.curEl);
-            spdlog::trace("{} : Read curEl value => ({})", m_ID, m_Data.curEl);
+            spdlog::trace("{} : Read curEl value => ({})", m_Identity, m_Data.curEl);
         } else if (offset == GLOB_PositionerType_inAz) {
             value.toFloat(m_Data.inAz);
-            spdlog::trace("{} : Read inAz value => ({})", m_ID, m_Data.inAz);
+            spdlog::trace("{} : Read inAz value => ({})", m_Identity, m_Data.inAz);
         } else if (offset == GLOB_PositionerType_inEl) {
             value.toFloat(m_Data.inEl);
-            spdlog::trace("{} : Read inEl value => ({})", m_ID, m_Data.inEl);
+            spdlog::trace("{} : Read inEl value => ({})", m_Identity, m_Data.inEl);
         } else if (offset == GLOB_PositionerType_EnergyLevel) {
             value.toInt16(m_Data.energyLevel);
-            spdlog::trace("{} : Read EnergyLevel value => ({})", m_ID, m_Data.energyLevel);
+            spdlog::trace("{} : Read EnergyLevel value => ({})", m_Identity, m_Data.energyLevel);
         }
     }
 
@@ -141,10 +141,10 @@ UaStatus PositionerController::setData(
 
     if (offset == GLOB_PositionerType_inAz) {
         value.setFloat(m_Data.inAz);
-        spdlog::trace("{} : Setting inAz value => ({})", m_ID, m_Data.inAz);
+        spdlog::trace("{} : Setting inAz value => ({})", m_Identity, m_Data.inAz);
     } else if (offset == GLOB_PositionerType_inEl) {
         value.setFloat(m_Data.inEl);
-        spdlog::trace("{} : Setting inEl value => ({})", m_ID, m_Data.inEl);
+        spdlog::trace("{} : Setting inEl value => ({})", m_Identity, m_Data.inEl);
     }
 
     status = m_pClient->write(varstowrite, &value);
@@ -170,7 +170,7 @@ UaStatus PositionerController::operate(OpcUa_UInt32 offset, const UaVariantArray
     switch ( offset )
     {
         case GLOB_PositionerType_SetEnergy:
-            spdlog::info("{} : PositionerController calling setEnergy()", m_ID);
+            spdlog::info("{} : PositionerController calling setEnergy()", m_Identity);
             // get current energy level and input toggled value before calling setEnergy level
             getData(GLOB_PositionerType_EnergyLevel, var);
 
@@ -183,15 +183,15 @@ UaStatus PositionerController::operate(OpcUa_UInt32 offset, const UaVariantArray
             valstowrite = UaVariant(OpcUa_Int16(7));
             break;
         case GLOB_PositionerType_Initialize:
-            spdlog::info("{} : PositionerController calling initialize()", m_ID);
+            spdlog::info("{} : PositionerController calling initialize()", m_Identity);
             valstowrite = UaVariant(OpcUa_Int16(8));
             break;
         case GLOB_PositionerType_Move:
-            spdlog::info("{} : PositionerController calling move()", m_ID);
+            spdlog::info("{} : PositionerController calling move()", m_Identity);
             valstowrite = UaVariant(OpcUa_Int16(13));
             break;
         case GLOB_PositionerType_Stop:
-            spdlog::info("{} : PositionerController calling stop()", m_ID);
+            spdlog::info("{} : PositionerController calling stop()", m_Identity);
             valstowrite = UaVariant(OpcUa_Int16(14));
             break;
         default:
@@ -202,7 +202,7 @@ UaStatus PositionerController::operate(OpcUa_UInt32 offset, const UaVariantArray
     UA_ASSERT(status.isGood());
 
     if (offset == GLOB_PositionerType_SetEnergy) {
-        spdlog::info("{} : Positioner controller waiting for energy to be set...", m_ID);
+        spdlog::info("{} : Positioner controller waiting for energy to be set...", m_Identity);
         usleep(100000); // ???
     }
 
@@ -213,8 +213,8 @@ UaStatus DummyPositionerController::getState(Device::DeviceState &state) {
     UaStatus status;
     //UaMutexLocker lock(&m_mutex);
 
-    state = m_state;
-    spdlog::trace("{} : Read dummy positioner state => ({})", m_ID, Device::deviceStateNames.at(state));
+    state = m_State;
+    spdlog::trace("{} : Read dummy positioner state => ({})", m_Identity, Device::deviceStateNames.at(state));
 
     return status;
 }
@@ -239,27 +239,27 @@ UaStatus DummyPositionerController::getData(OpcUa_UInt32 offset, UaVariant &valu
     switch (offset) {
         case GLOB_PositionerType_isMoving:
             value.toBool(m_Data.isMoving);
-            spdlog::trace("{} : DummyPositioner read isMoving value => ({})", m_ID, m_Data.isMoving);
+            spdlog::trace("{} : DummyPositioner read isMoving value => ({})", m_Identity, m_Data.isMoving);
             break;
         case GLOB_PositionerType_curAz:
             value.toFloat(m_Data.curAz);
-            spdlog::trace("{} : DummyPositioner read curAz value => ({})", m_ID, m_Data.curAz);
+            spdlog::trace("{} : DummyPositioner read curAz value => ({})", m_Identity, m_Data.curAz);
             break;
         case GLOB_PositionerType_curEl:
             value.toFloat(m_Data.curEl);
-            spdlog::trace("{} : DummyPositioner read curEl value => ({})", m_ID, m_Data.curEl);
+            spdlog::trace("{} : DummyPositioner read curEl value => ({})", m_Identity, m_Data.curEl);
             break;
         case GLOB_PositionerType_inAz:
             value.toFloat(m_Data.inAz);
-            spdlog::trace("{} : DummyPositioner read inAz value => ({})", m_ID, m_Data.inAz);
+            spdlog::trace("{} : DummyPositioner read inAz value => ({})", m_Identity, m_Data.inAz);
             break;
         case GLOB_PositionerType_inEl:
             value.toFloat(m_Data.inEl);
-            spdlog::trace("{} : DummyPositioner read inEl value => ({})", m_ID, m_Data.inEl);
+            spdlog::trace("{} : DummyPositioner read inEl value => ({})", m_Identity, m_Data.inEl);
             break;
         case GLOB_PositionerType_EnergyLevel:
             value.toInt16(m_Data.energyLevel);
-            spdlog::trace("{} : DummyPositioner read EnergyLevel value => ({})", m_ID, m_Data.energyLevel);
+            spdlog::trace("{} : DummyPositioner read EnergyLevel value => ({})", m_Identity, m_Data.energyLevel);
             break;
         default:
             return OpcUa_BadInvalidArgument;
@@ -282,11 +282,11 @@ UaStatus DummyPositionerController::setData(
     switch (offset) {
         case GLOB_PositionerType_inAz:
             value.setFloat(m_Data.inAz);
-            spdlog::trace("{} : DummyPositioner setting inAz value => ({})", m_ID, m_Data.inAz);
+            spdlog::trace("{} : DummyPositioner setting inAz value => ({})", m_Identity, m_Data.inAz);
             break;
         case GLOB_PositionerType_inEl:
             value.setFloat(m_Data.inEl);
-            spdlog::trace("{} : DummyPositioner setting inEl value => ({})", m_ID, m_Data.inEl);
+            spdlog::trace("{} : DummyPositioner setting inEl value => ({})", m_Identity, m_Data.inEl);
             break;
         default:
             return OpcUa_BadInvalidArgument;
@@ -307,7 +307,7 @@ UaStatus DummyPositionerController::operate(OpcUa_UInt32 offset, const UaVariant
     switch (offset) {
         case GLOB_PositionerType_SetEnergy:
             // get current energy level and input toggled value before calling setEnergy level
-            spdlog::info("{} : DummyPositionerController calling setEnergy()", m_ID);
+            spdlog::info("{} : DummyPositionerController calling setEnergy()", m_Identity);
             if (m_Data.energyLevel == 0) {
                 m_Data.energyLevel = 1;
             } else if (m_Data.energyLevel == 1) {
@@ -315,28 +315,28 @@ UaStatus DummyPositionerController::operate(OpcUa_UInt32 offset, const UaVariant
             }
             break;
         case GLOB_PositionerType_Initialize:
-            spdlog::info("{} : DummyPositionerController calling initialize()", m_ID);
+            spdlog::info("{} : DummyPositionerController calling initialize()", m_Identity);
             break;
         case GLOB_PositionerType_Move:
-            spdlog::info("{} : DummyPositionerController calling move()", m_ID);
-            m_state = Device::DeviceState::Busy;
+            spdlog::info("{} : DummyPositionerController calling move()", m_Identity);
+            m_State = Device::DeviceState::Busy;
             m_Data.isMoving = true;
             sleep(5);
             m_Data.curAz = m_Data.inAz;
             m_Data.curEl = m_Data.inEl;
             m_Data.isMoving = false;
-            m_state = Device::DeviceState::On;
+            m_State = Device::DeviceState::On;
             break;
         case GLOB_PositionerType_Stop:
-            spdlog::info("{} : DummyPositionerController calling stop()", m_ID);
-            m_state = Device::DeviceState::On;
+            spdlog::info("{} : DummyPositionerController calling stop()", m_Identity);
+            m_State = Device::DeviceState::On;
             break;
         default:
             status = OpcUa_BadInvalidArgument;
     }
 
     if (offset == GLOB_PositionerType_SetEnergy) {
-        spdlog::info("{} : DummyPositioner controller waiting for energy to be set", m_ID);
+        spdlog::info("{} : DummyPositioner controller waiting for energy to be set", m_Identity);
         usleep(100000); // Wait for completion (hardcoded)
     }
 

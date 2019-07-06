@@ -40,7 +40,9 @@ public:
 
     static const std::vector<Device::ErrorDefinition> ERROR_DEFINITIONS;
 
-    std::vector<Device::ErrorDefinition> getErrorCodeDefinitions() override { return ActuatorBase::ERROR_DEFINITIONS; }
+    Device::ErrorDefinition getErrorCodeDefinition(int errorCode) override {
+        return ActuatorBase::ERROR_DEFINITIONS.at(errorCode);
+    }
 
     explicit ActuatorBase(Device::Identity identity, Device::DBInfo DBInfo = Device::DBInfo(),
                           const ASFInfo &ASFFileInfo = ASFInfo());

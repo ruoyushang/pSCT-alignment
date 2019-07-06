@@ -23,17 +23,17 @@
 
 
 CCDController::CCDController(Device::Identity identity) : PasController(std::move(identity), nullptr, 1000) {
-    spdlog::trace("{} : Creating CCD controller... ", m_ID);
+    spdlog::trace("{} : Creating CCD controller... ", m_Identity);
 #ifndef SIMMODE  
     m_pCCD = std::unique_ptr<GASCCD>(new GASCCD());
 #else 
     m_pCCD = std::unique_ptr<GASCCD>(new DummyGASCCD());
 #endif
-    m_pCCD->setConfig(m_ID.eAddress);
-    spdlog::trace("{} : Initializing CCD controller... ", m_ID);
+    m_pCCD->setConfig(m_Identity.eAddress);
+    spdlog::trace("{} : Initializing CCD controller... ", m_Identity);
     m_pCCD->initialize();
 
-    m_lastUpdateTime = TIME::now() - std::chrono::duration<int, std::ratio<1, 1000>>(m_kUpdateInterval_ms);
+    m_LastUpdateTime = TIME::now() - std::chrono::duration<int, std::ratio<1, 1000>>(m_kUpdateInterval_ms);
 }
 
 /* ----------------------------------------------------------------------------
@@ -43,8 +43,8 @@ CCDController::CCDController(Device::Identity identity) : PasController(std::mov
 -----------------------------------------------------------------------------*/
 UaStatus CCDController::getState(Device::DeviceState &state) {
     //UaMutexLocker lock(&m_mutex);
-    state = m_state;
-    spdlog::trace("{} : Read device state => ({})", m_ID, Device::deviceStateNames.at(state));
+    state = m_State;
+    spdlog::trace("{} : Read device state => ({})", m_Identity, Device::deviceStateNames.at(state));
     return OpcUa_Good;
 }
 
@@ -77,7 +77,7 @@ UaStatus CCDController::getData(OpcUa_UInt32 offset, UaVariant &value) {
     else
         value.setDouble(*(static_cast<const double *>(m_pCCD->getOutput() + dataoffset)));
 
-    spdlog::trace("{} : Read data... offset=> {} value => ({})", m_ID, offset, value[0].Value.Double);
+    spdlog::trace("{} : Read data... offset=> {} value => ({})", m_Identity, offset, value[0].Value.Double);
 
     return OpcUa_Good;
 }
@@ -124,7 +124,7 @@ UaStatus CCDController::setData(OpcUa_UInt32 offset, UaVariant value) {
 
     m_pCCD->setNominalValues(nominalOffset, val);
 
-    spdlog::trace("{} : Setting nominal value... offset=> {} value => ({})", m_ID, nominalOffset, val);
+    spdlog::trace("{} : Setting nominal value... offset=> {} value => ({})", m_Identity, nominalOffset, val);
 
     return OpcUa_BadNotWritable;
 }
@@ -140,19 +140,19 @@ UaStatus CCDController::operate(OpcUa_UInt32 offset, const UaVariantArray &args)
 
     switch (offset) {
         case PAS_CCDType_Read:
-            spdlog::trace("{} : CCDController calling read()", m_ID);
+            spdlog::trace("{} : CCDController calling read()", m_Identity);
             status = read();
             break;
         case PAS_CCDType_Start:
-            spdlog::trace("{} : CCDController calling start()", m_ID);
+            spdlog::trace("{} : CCDController calling start()", m_Identity);
             status = OpcUa_BadInvalidArgument;
             break;
         case PAS_CCDType_Stop:
-            spdlog::trace("{} : CCDController calling stop()", m_ID);
+            spdlog::trace("{} : CCDController calling stop()", m_Identity);
             status = OpcUa_BadInvalidArgument;
             break;
         default:
-            spdlog::error("{} : Invalid method call with offset {}", m_ID, offset);
+            spdlog::error("{} : Invalid method call with offset {}", m_Identity, offset);
             status = OpcUa_BadInvalidArgument;
     }
 
@@ -167,8 +167,8 @@ UaStatus CCDController::operate(OpcUa_UInt32 offset, const UaVariantArray &args)
 UaStatus CCDController::read(bool print) {
     //UaMutexLocker lock(&m_mutex);
 
-    if (m_state == Device::DeviceState::On) {
-        spdlog::trace("{} : Reading CCD...", m_ID);
+    if (m_State == Device::DeviceState::On) {
+        spdlog::trace("{} : Reading CCD...", m_Identity);
         m_pCCD->update();
         m_updated = true;
 
@@ -184,7 +184,7 @@ UaStatus CCDController::read(bool print) {
         return OpcUa_Good;
     } else {
         m_updated = false;
-        spdlog::error("{} : CCD is off, cannot read.", m_ID);
+        spdlog::error("{} : CCD is off, cannot read.", m_Identity);
         return OpcUa_Bad;
     }
 }

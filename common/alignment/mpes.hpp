@@ -34,7 +34,9 @@ public:
 
     static const std::vector<Device::ErrorDefinition> ERROR_DEFINITIONS;
 
-    std::vector<Device::ErrorDefinition> getErrorCodeDefinitions() override { return MPESBase::ERROR_DEFINITIONS; }
+    Device::ErrorDefinition getErrorCodeDefinition(int errorCode) override {
+        return MPESBase::ERROR_DEFINITIONS.at(errorCode);
+    }
 
     explicit MPESBase(Device::Identity identity) : Device::Device(std::move(identity)),
                                                    m_Calibrate(false) {}

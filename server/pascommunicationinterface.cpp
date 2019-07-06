@@ -245,10 +245,10 @@ UaStatus PasCommunicationInterface::initialize() {
 
             if (pController->initialize()) {
                 spdlog::debug("Successfully initialized {} controller with identity {}.",
-                              deviceTypes.at(devCount.first), pController->getId());
+                              deviceTypes.at(devCount.first), pController->getIdentity());
             } else {
                 spdlog::error("Failed to initialize {} controller with identity {}.", deviceTypes.at(devCount.first),
-                              pController->getId());
+                              pController->getIdentity());
                 failed++;
             }
             m_pControllers[devCount.first].insert(std::make_pair(identity, pController));

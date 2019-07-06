@@ -295,11 +295,13 @@ UaStatus Client::callMethod(const std::string &sNodeName, const UaString &sMetho
     serviceSettings.callTimeout = 2000*60; // call timeout in ms; set to 2 minutes
     status = m_pSession->call(serviceSettings, callRequest, callResult);
 
-    if ( status.isBad() )
-        printf("** Error: UaSession::call failed [ret=%s] **\n", status.toString().toUtf8());
+    if (status.isBad()) {
+        //printf("** Error: UaSession::call failed [ret=%s] **\n", status.toString().toUtf8());
+    }
     else {
-        if(_DEBUG_)
-            printf("** UaSession::call suceeded!\n");
+        if (_DEBUG_) {
+            //printf("** UaSession::call suceeded!\n");
+        }
     }
 
     return status;

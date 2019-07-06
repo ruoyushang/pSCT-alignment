@@ -60,9 +60,9 @@ public:
 
 private:
 
-    Device::ErrorState _getErrorState() { return m_pPlatform->getMPESbyIdentity(m_ID)->getErrorState(); }
+    Device::ErrorState _getErrorState() { return m_pPlatform->getMPESbyIdentity(m_Identity)->getErrorState(); }
 
-    Device::DeviceState _getDeviceState() { return m_pPlatform->getMPESbyIdentity(m_ID)->getDeviceState(); }
+    Device::DeviceState _getDeviceState() { return m_pPlatform->getMPESbyIdentity(m_Identity)->getDeviceState(); }
 
     /// @brief Update the MPES position data.
     UaStatus read();
