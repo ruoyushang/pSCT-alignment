@@ -229,9 +229,9 @@ UaStatus MPESController::operate(OpcUa_UInt32 offset, const UaVariantArray &args
             m_Identity,
             data.xCentroid, data.xNominal,
             data.yCentroid, data.yNominal,
-            data.xSpotWidth, MPESBase::NOMINAL_SPOT_WIDTH,
-            data.ySpotWidth, MPESBase::NOMINAL_SPOT_WIDTH,
-            data.cleanedIntensity, MPESBase::NOMINAL_INTENSITY);
+            data.xSpotWidth, std::to_string(MPESBase::NOMINAL_SPOT_WIDTH),
+            data.ySpotWidth, std::to_string(MPESBase::NOMINAL_SPOT_WIDTH),
+            data.cleanedIntensity, std::to_string(MPESBase::NOMINAL_INTENSITY));
 
         if (m_Mode == "client") { // Record readings to database
             time_t now = time(nullptr);
