@@ -286,7 +286,7 @@ UaStatus MPESController::operate(OpcUa_UInt32 offset, const UaVariantArray &args
 UaStatus MPESController::read() {
     //UaMutexLocker lock(&m_mutex);
     UaStatus status;
-    status = m_pClient->callMethodAsync(m_pClient->getDeviceNodeId(m_Identity), UaString("Read"), UaVariantArray());
+    status = m_pClient->callMethod(m_pClient->getDeviceNodeId(m_Identity), UaString("Read"), UaVariantArray());
 
     if (!status.isGood()) {
         spdlog::error("{} : MPESController::read() : Call to read webcam failed.", m_Identity);
