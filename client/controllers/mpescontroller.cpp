@@ -295,6 +295,14 @@ UaStatus MPESController::read() {
     return status;
 }
 
+UaStatus MPESController::readAsync() {
+    //UaMutexLocker lock(&m_mutex);
+    UaStatus status;
+    status = m_pClient->callMethodAsync(m_pClient->getDeviceNodeId(m_Identity), UaString("Read"), UaVariantArray());
+
+    return status;
+}
+
 char MPESController::getPanelSide(unsigned panelpos) {
     char panelside;
     try {

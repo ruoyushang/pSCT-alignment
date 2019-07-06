@@ -57,6 +57,8 @@ private:
 
     UaStatus read();
 
+    UaStatus readAsync();
+
     // actuator response matrix map -- {panel position -> matrix}
     std::map<char, Eigen::Matrix<double, 2, 6> > m_ResponseMatMap;
     // systematic offsets

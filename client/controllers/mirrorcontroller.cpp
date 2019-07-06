@@ -454,74 +454,64 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
         setState(Device::DeviceState::On);
     } else if (offset == PAS_MirrorType_ReadSensorsParallel) {
         spdlog::info("{} : MirrorController::operate() : Calling readSensorsParallel()...", m_Identity);
-        if (m_Mode == "client") {
-            status = m_pClient->callMethod(m_pClient->getDeviceNodeId(m_Identity), UaString("ReadSensorsParallel"));
 
-            Device::DeviceState state;
-            getState(state);
-            while (state == Device::DeviceState::Busy) {
-                sleep(1);
-                getState(state);
-            }
-
-            std::map<Device::Identity, MPESBase::Position> readings;
+        setState(Device::DeviceState::Busy);
+        bool stopped = false;
+        if (m_selectedMPES.empty()) {
+            spdlog::error(
+                "{} : MirrorController::operate() : No MPES selected. Nothing to do, method call aborted.",
+                m_Identity);
+        } else {
+#pragma omp parallel for
             for (auto it = getChildren(PAS_PanelType).begin(); it < getChildren(PAS_PanelType).end(); it++) {
                 for (const auto &mpes : std::dynamic_pointer_cast<PanelController>(*it)->getChildren(
                     PAS_MPESType)) {
                     if (m_selectedMPES.find(mpes->getIdentity().serialNumber) != m_selectedMPES.end()) {
-                        std::dynamic_pointer_cast<MPESController>(mpes)->read();
-                        readings.insert(
-                            std::make_pair(mpes->getIdentity(), std::dynamic_pointer_cast<MPESController>(
-                                mpes)->getPosition()));
-                    }
-                }
-            }
-
-            for (const auto &edge : getChildren(PAS_EdgeType)) {
-                std::ostringstream os;
-                for (const auto &mpes : std::dynamic_pointer_cast<PasCompositeController>(edge)->getChildren(
-                    PAS_MPESType)) {
-                    os << mpes->getIdentity() << " : " << std::endl;
-                    auto it = readings.find(mpes->getIdentity());
-                    if (it != readings.end()) {
-                        os << "    " << it->second.xCentroid << " +/- " << it->second.xSpotWidth << " ["
-                           << it->second.xNominal << "] ("
-                           << it->second.xCentroid - it->second.xNominal << ")" << std::endl;
-                        os << "    " << it->second.yCentroid << " +/- " << it->second.ySpotWidth << " ["
-                           << it->second.yNominal << "] ("
-                           << it->second.yCentroid - it->second.yNominal << ")" << std::endl;
-                    }
-                }
-                spdlog::info(
-                    "{}: Readings for Edge {}:\nCurrent position +/- Spot width [Aligned position] (Misalignment)\n\n{}\n\n",
-                    m_Identity, edge->getIdentity(), os.str());
-            }
-        } else if (m_Mode == "subclient") {
-            setState(Device::DeviceState::Busy);
-            bool stopped = false;
-            if (m_selectedMPES.empty()) {
-                spdlog::error(
-                    "{} : MirrorController::operate() : No MPES selected. Nothing to do, method call aborted.",
-                    m_Identity);
-            } else {
-#pragma omp parallel for
-                for (auto it = getChildren(PAS_PanelType).begin(); it < getChildren(PAS_PanelType).end(); it++) {
-                    for (const auto &mpes : std::dynamic_pointer_cast<PanelController>(*it)->getChildren(
-                        PAS_MPESType)) {
-                        if (m_selectedMPES.find(mpes->getIdentity().serialNumber) != m_selectedMPES.end()) {
-                            if (m_State == Device::DeviceState::Busy) {
-                                std::dynamic_pointer_cast<MPESController>(mpes)->read();
-                            } else {
-                                stopped = true;
-                                break;
-                            }
+                        if (m_State == Device::DeviceState::Busy) {
+                            std::dynamic_pointer_cast<MPESController>(mpes)->readAsync();
+                        } else {
+                            stopped = true;
+                            break;
                         }
                     }
                 }
             }
-        } else {
-            spdlog::warn("{} : MirrorController::readSensorsParallel() : Mirror stop detected. Readings stopped.",
-                         m_Identity);
+        }
+
+        sleep(60);
+
+        std::map<Device::Identity, MPESBase::Position> readings;
+
+        for (auto it = getChildren(PAS_PanelType).begin(); it < getChildren(PAS_PanelType).end(); it++) {
+            for (const auto &mpes : std::dynamic_pointer_cast<PanelController>(*it)->getChildren(
+                PAS_MPESType)) {
+                if (m_selectedMPES.find(mpes->getIdentity().serialNumber) != m_selectedMPES.end()) {
+                    std::dynamic_pointer_cast<MPESController>(mpes)->read();
+                    readings.insert(
+                        std::make_pair(mpes->getIdentity(), std::dynamic_pointer_cast<MPESController>(
+                            mpes)->getPosition()));
+                }
+            }
+        }
+
+        for (const auto &edge : getChildren(PAS_EdgeType)) {
+            std::ostringstream os;
+            for (const auto &mpes : std::dynamic_pointer_cast<PasCompositeController>(edge)->getChildren(
+                PAS_MPESType)) {
+                os << mpes->getIdentity() << " : " << std::endl;
+                auto it = readings.find(mpes->getIdentity());
+                if (it != readings.end()) {
+                    os << "    " << it->second.xCentroid << " +/- " << it->second.xSpotWidth << " ["
+                       << it->second.xNominal << "] ("
+                       << it->second.xCentroid - it->second.xNominal << ")" << std::endl;
+                    os << "    " << it->second.yCentroid << " +/- " << it->second.ySpotWidth << " ["
+                       << it->second.yNominal << "] ("
+                       << it->second.yCentroid - it->second.yNominal << ")" << std::endl;
+                }
+            }
+            spdlog::info(
+                "{}: Readings for Edge {}:\nCurrent position +/- Spot width [Aligned position] (Misalignment)\n\n{}\n\n",
+                m_Identity, edge->getIdentity(), os.str());
         }
         setState(Device::DeviceState::On);
     } else if (offset == PAS_MirrorType_SelectAll) {

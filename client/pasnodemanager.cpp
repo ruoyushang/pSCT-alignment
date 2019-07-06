@@ -106,15 +106,15 @@ UaStatus PasNodeManager::afterStartUp()
             spdlog::warn("PasNodeManager::afterStartUp(): Failed to connect to positioner server at {}. Moving on...",
                          m_pConfiguration->getPositionerUrl().toUtf8());
         }
+
+        // Create all relevant edge controllers
+        spdlog::info("PasNodeManager::afterStartUp(): Creating all required edge controllers...");
+        dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->addEdgeControllers();
+
+        // Create all relevant mirror controllers
+        spdlog::info("PasNodeManager::afterStartUp(): Creating all required mirror controllers...");
+        dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->addMirrorControllers();
     }
-
-    // Create all relevant edge controllers
-    spdlog::info("PasNodeManager::afterStartUp(): Creating all required edge controllers...");
-    dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->addEdgeControllers();
-
-    // Create all relevant mirror controllers
-    spdlog::info("PasNodeManager::afterStartUp(): Creating all required mirror controllers...");
-    dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->addMirrorControllers();
 
     // Finish controller initialization by adding parent-child relationships for all controllers
     spdlog::info("PasNodeManager::afterStartUp(): Finalizing all controller parent-child relationships...");
