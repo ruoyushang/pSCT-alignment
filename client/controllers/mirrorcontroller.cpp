@@ -25,10 +25,11 @@
 
 MirrorController *MirrorControllerCompute::m_Mirror = nullptr;
 
-MirrorController::MirrorController(Device::Identity identity, std::string mode) : PasCompositeController(
-    std::move(identity), nullptr,
+MirrorController::MirrorController(Device::Identity identity, Client *pClient, std::string mode)
+    : PasCompositeController(
+    std::move(identity), pClient,
     10000),
-                                                                                  m_Mode(mode), m_pSurface(nullptr) {
+      m_Mode(mode), m_pSurface(nullptr) {
     // define possible children and initialize the selected children string
     m_ChildrenTypes = {PAS_PanelType, PAS_EdgeType, PAS_MPESType};
 
@@ -218,6 +219,16 @@ bool MirrorController::initialize()
 UaStatus MirrorController::getState(Device::DeviceState &state)
 {
     //UaMutexLocker lock(&m_mutex);
+    Device::DeviceState s;
+    std::vector<unsigned> deviceTypesToCheck = {PAS_PanelType, PAS_MPESType};
+    for (auto devType : deviceTypesToCheck) {
+        for (const auto &child : getChildren(devType)) {
+            child->getState(s);
+            if (s == Device::DeviceState::Busy) {
+                m_State = s;
+            }
+        }
+    }
     state = m_State;
     spdlog::trace("{} : Read device state => ({})", m_Identity, Device::deviceStateNames.at(state));
     return OpcUa_Good;
@@ -446,8 +457,14 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
         if (m_Mode == "client") {
             status = m_pClient->callMethod(m_pClient->getDeviceNodeId(m_Identity), UaString("ReadSensorsParallel"));
 
-            std::map<Device::Identity, MPESBase::Position> readings;
+            Device::DeviceState state;
+            getState(state);
+            while (state == Device::DeviceState::Busy) {
+                sleep(1);
+                getState(state);
+            }
 
+            std::map<Device::Identity, MPESBase::Position> readings;
             for (auto it = getChildren(PAS_PanelType).begin(); it < getChildren(PAS_PanelType).end(); it++) {
                 for (const auto &mpes : std::dynamic_pointer_cast<PanelController>(*it)->getChildren(
                     PAS_MPESType)) {

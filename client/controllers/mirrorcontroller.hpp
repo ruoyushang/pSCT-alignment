@@ -50,7 +50,7 @@ public:
 class MirrorController : public PasCompositeController {
     UA_DISABLE_COPY(MirrorController);
 public:
-    explicit MirrorController(Device::Identity identity, std::string mode = "client");
+    explicit MirrorController(Device::Identity identity, Client *pClient, std::string mode = "client");
 
     // initialize and precompute everything
     bool initialize() override;

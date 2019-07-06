@@ -138,9 +138,9 @@ PasCommunicationInterface::addDevice(Client *pClient, OpcUa_UInt32 deviceType,
         else if (deviceType == PAS_PanelType)
             pController = std::make_shared<PanelController>(identity, pClient, mode);
         else if (deviceType == PAS_EdgeType)
-            pController = std::make_shared<EdgeController>(identity);
+            pController = std::make_shared<EdgeController>(identity, pClient);
         else if (deviceType == PAS_MirrorType)
-            pController = std::make_shared<MirrorController>(identity, mode);
+            pController = std::make_shared<MirrorController>(identity, pClient, mode);
         else if (deviceType == PAS_CCDType)
             pController = std::make_shared<CCDController>(identity);
         else if (deviceType == PAS_PSDType)
