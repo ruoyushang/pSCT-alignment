@@ -440,12 +440,6 @@ void Client::addDevices(const OpcUa_ReferenceDescription& referenceDescription)
                                                         {PAS_ACTType,   "ACT"},
                                                         {PAS_PSDType,   "PSD"},
                                                         {PAS_PanelType, "Panel"}};
-
-    if (m_mode == "client") {
-        typeNamesMap.insert({PAS_MirrorType, "Mirror"});
-        typeNamesMap.insert({PAS_EdgeType, "Edge"});
-    }
-
     OpcUa_UInt32 type;
     std::string name;
     for (const auto& it_typeNameMap : typeNamesMap) {

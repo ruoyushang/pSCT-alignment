@@ -17,9 +17,9 @@
 #include "common/utilities/spdlog/fmt/ostr.h"
 
 
-EdgeController::EdgeController(Device::Identity identity, Client *pClient) : PasCompositeController(std::move(identity),
-                                                                                                    pClient, 0),
-                                                                             m_isAligned(false) {
+EdgeController::EdgeController(Device::Identity identity) : PasCompositeController(std::move(identity),
+                                                                                   nullptr, 0),
+                                                            m_isAligned(false) {
     // define possible children types
     m_ChildrenTypes = {PAS_MPESType, PAS_PanelType};
     m_Xcalculated = Eigen::VectorXd(0);
