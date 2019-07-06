@@ -25,9 +25,10 @@
 
 MirrorController *MirrorControllerCompute::m_Mirror = nullptr;
 
-MirrorController::MirrorController(Device::Identity identity) : PasCompositeController(std::move(identity), nullptr,
-                                                                                       10000),
-                                                                m_pSurface(nullptr) {
+MirrorController::MirrorController(Device::Identity identity, std::string mode) : PasCompositeController(
+    std::move(identity), nullptr,
+    10000),
+                                                                                  m_Mode(mode), m_pSurface(nullptr) {
     // define possible children and initialize the selected children string
     m_ChildrenTypes = {PAS_PanelType, PAS_EdgeType, PAS_MPESType};
 
@@ -442,38 +443,23 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
         setState(Device::DeviceState::On);
     } else if (offset == PAS_MirrorType_ReadSensorsParallel) {
         spdlog::info("{} : MirrorController::operate() : Calling readSensorsParallel()...", m_Identity);
-        setState(Device::DeviceState::Busy);
-        bool stopped = false;
-        std::map<Device::Identity, MPESBase::Position> readings;
-        if (m_selectedMPES.empty()) {
-            spdlog::error("{} : MirrorController::operate() : No MPES selected. Nothing to do, method call aborted.",
-                          m_Identity);
-        } 
-        else 
-        {
-            #pragma omp parallel for
+        if (m_Mode == "client") {
+            status = m_pClient->callMethod(m_pClient->getDeviceNodeId(m_Identity), UaString("ReadSensorsParallel"));
+
+            std::map<Device::Identity, MPESBase::Position> readings;
+
             for (auto it = getChildren(PAS_PanelType).begin(); it < getChildren(PAS_PanelType).end(); it++) {
                 for (const auto &mpes : std::dynamic_pointer_cast<PanelController>(*it)->getChildren(
                     PAS_MPESType)) {
                     if (m_selectedMPES.find(mpes->getIdentity().serialNumber) != m_selectedMPES.end()) {
-                        if (m_State == Device::DeviceState::Busy) {
-                            std::dynamic_pointer_cast<MPESController>(mpes)->read();
-                            sleep(2);
-                            readings.insert(
-                                std::make_pair(mpes->getIdentity(), std::dynamic_pointer_cast<MPESController>(
+                        std::dynamic_pointer_cast<MPESController>(mpes)->read();
+                        readings.insert(
+                            std::make_pair(mpes->getIdentity(), std::dynamic_pointer_cast<MPESController>(
                                 mpes)->getPosition()));
-                        }
-                        else {
-                            stopped = true;
-                            break;
-                        }
                     }
                 }
             }
-        }
 
-        if (!stopped) {
-            // Reorganize by edge and print
             for (const auto &edge : getChildren(PAS_EdgeType)) {
                 std::ostringstream os;
                 for (const auto &mpes : std::dynamic_pointer_cast<PasCompositeController>(edge)->getChildren(
@@ -493,8 +479,30 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
                     "{}: Readings for Edge {}:\nCurrent position +/- Spot width [Aligned position] (Misalignment)\n\n{}\n\n",
                     m_Identity, edge->getIdentity(), os.str());
             }
-        }
-        else {
+        } else if (m_Mode == "subclient") {
+            setState(Device::DeviceState::Busy);
+            bool stopped = false;
+            if (m_selectedMPES.empty()) {
+                spdlog::error(
+                    "{} : MirrorController::operate() : No MPES selected. Nothing to do, method call aborted.",
+                    m_Identity);
+            } else {
+#pragma omp parallel for
+                for (auto it = getChildren(PAS_PanelType).begin(); it < getChildren(PAS_PanelType).end(); it++) {
+                    for (const auto &mpes : std::dynamic_pointer_cast<PanelController>(*it)->getChildren(
+                        PAS_MPESType)) {
+                        if (m_selectedMPES.find(mpes->getIdentity().serialNumber) != m_selectedMPES.end()) {
+                            if (m_State == Device::DeviceState::Busy) {
+                                std::dynamic_pointer_cast<MPESController>(mpes)->read();
+                            } else {
+                                stopped = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        } else {
             spdlog::warn("{} : MirrorController::readSensorsParallel() : Mirror stop detected. Readings stopped.",
                          m_Identity);
         }
@@ -614,9 +622,11 @@ UaStatus MirrorController::moveToCoords(const Eigen::VectorXd &targetMirrorCoord
             spdlog::info("{} : Panel {} calculated actuator motion:\n{}\n", m_Identity, pPanel->getIdentity(),
                          deltaActLengths);
 
+            /**
             if (std::dynamic_pointer_cast<PanelController>(pPanel)->checkForCollision(deltaActLengths)) {
                 return OpcUa_Bad;
             }
+             */
 
             panelsToMove.push_back(std::dynamic_pointer_cast<PanelController>(pPanel));
             X.segment(j,6) = deltaActLengths;
@@ -1185,9 +1195,11 @@ UaStatus MirrorController::alignSector(double alignFrac, bool execute) {
                 deltaLengths(i) = X(j++);
             }
 
+            /**
             if(pCurPanel->checkForCollision(deltaLengths)) {
                 return OpcUa_Bad;
             }
+             */
         }
         m_Xcalculated = X; // set calculated motion
         m_panelsToMove = panelsToMove;
@@ -1469,10 +1481,11 @@ UaStatus MirrorController::alignRing(int fixPanel, double alignFrac, bool execut
             for (unsigned i = 0; i < 6; i++) {
                 deltaLengths(i) = alignFrac * globDisplaceVec(j++);
             }
-
+            /**
             if(pCurPanel->checkForCollision(deltaLengths)) {
                 return OpcUa_Bad;
             }
+             */
         }
         m_Xcalculated = globDisplaceVec.tail(globDisplaceVec.size()-6);
         m_panelsToMove = panelsToMove;

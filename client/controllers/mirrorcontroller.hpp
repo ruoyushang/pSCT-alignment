@@ -50,7 +50,7 @@ public:
 class MirrorController : public PasCompositeController {
     UA_DISABLE_COPY(MirrorController);
 public:
-    explicit MirrorController(Device::Identity identity);
+    explicit MirrorController(Device::Identity identity, std::string mode = "client");
 
     // initialize and precompute everything
     bool initialize() override;
@@ -77,6 +77,8 @@ protected:
     virtual double chiSq(const Eigen::VectorXd &telDelta);
 
 private:
+    std::string m_Mode;
+
     double m_safetyRadius = 60.0;
 
     std::set<unsigned> m_selectedPanels;
