@@ -292,6 +292,20 @@ UaStatus MPESController::read() {
         spdlog::error("{} : MPESController::read() : Call to read webcam failed.", m_Identity);
     }
 
+    MPESBase::Position position = getPosition();
+    int numAttempts = 1;
+    if (fabs(position.cleanedIntensity - MPESBase::NOMINAL_INTENSITY) / MPESBase::NOMINAL_INTENSITY > 0.2) {
+        if (numAttempts <= MPESBase::MAX_READ_ATTEMPTS) {
+            spdlog::warn(
+                "{} : The image intensity ({}) differs from the nominal value ({}) by more than 20%. Will readjust exposure now.",
+                m_Identity, position.cleanedIntensity, MPESBase::NOMINAL_INTENSITY);
+            operate(PAS_MPESType_SetExposure, UaVariantArray());
+            numAttempts++;
+            // read the sensor again
+            status = read();
+        }
+    }
+
     return status;
 }
 

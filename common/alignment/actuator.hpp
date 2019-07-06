@@ -21,7 +21,7 @@ public:
     };
 
     struct ASFInfo {
-        ASFInfo() : directory(std::string(getenv("HOME")) + "/.ASF/"), prefix(".ASF_"), suffix(".log") {}
+        ASFInfo() : directory("/.ASF/"), prefix(".ASF_"), suffix(".log") {}
 
         ASFInfo(std::string directory, std::string prefix, std::string suffix) : directory(std::move(directory)),
                                                                                  prefix(std::move(prefix)),
@@ -186,7 +186,9 @@ protected:
 class Actuator : public ActuatorBase {
 public:
     Actuator(std::shared_ptr<CBC> pCBC, Device::Identity identity,
-             Device::DBInfo DBInfo = Device::DBInfo(), const ASFInfo &ASFFileInfo = ActuatorBase::ASFInfo()) : ActuatorBase(
+             Device::DBInfo DBInfo = Device::DBInfo(),
+             const ASFInfo &ASFFileInfo = ActuatorBase::ASFInfo(std::string(getenv("HOME")) + "/.ASF/", ".ASF_",
+                                                                ".log")) : ActuatorBase(
         std::move(identity), std::move(DBInfo), ASFFileInfo), m_pCBC(std::move(pCBC)), m_ADCdata() {}
 
     ~Actuator() = default;

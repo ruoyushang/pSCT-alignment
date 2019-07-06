@@ -1066,6 +1066,7 @@ UaStatus MirrorController::alignSector(double alignFrac, bool execute) {
         for (int mpesSerial : m_selectedMPES) {
             std::shared_ptr<MPESController> mpes = std::dynamic_pointer_cast<MPESController>(
                 m_pChildren.at(PAS_MPESType).at(getMPESIndex(mpesSerial)));
+            spdlog::info("{}: Reading MPES {}...", m_Identity, mpes->getIdentity());
             mpes->read();
             if (mpes->isVisible())
                 alignMPES.push_back(mpes);
@@ -1107,6 +1108,7 @@ UaStatus MirrorController::alignSector(double alignFrac, bool execute) {
             for (const auto &i: overlapIndices) {
                 std::shared_ptr<MPESController> mpes = std::dynamic_pointer_cast<MPESController>(
                     m_pChildren.at(PAS_MPESType).at(i));
+                spdlog::info("{}: Reading MPES {}...", m_Identity, mpes->getIdentity());
                 mpes->read();
                 if (mpes->isVisible())
                     alignMPES.push_back(mpes);

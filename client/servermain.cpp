@@ -297,7 +297,7 @@ int main(int argc, char* argv[])
 
     std::vector<spdlog::sink_ptr> sinks{file_sink, console_sink};
     auto logger = std::make_shared<spdlog::logger>("p2pasclient", sinks.begin(), sinks.end());
-    logger->set_level(spdlog::level::info);
+    logger->set_level(spdlog::level::trace);
     logger->flush_on(spdlog::level::info);
     spdlog::set_default_logger(logger);
 

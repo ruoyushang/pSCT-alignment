@@ -13,7 +13,7 @@ public:
     friend MirrorController;
 
     // construction / destruction
-    explicit EdgeController(Device::Identity identity);
+    explicit EdgeController(Device::Identity identity, Client *pClient);
 
     // Get Controller status and data
     UaStatus getState(Device::DeviceState &state) override;
