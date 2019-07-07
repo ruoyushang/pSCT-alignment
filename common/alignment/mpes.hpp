@@ -21,7 +21,7 @@ class MPESBase : public Device
 public:
     struct Position {
         Position() : xCentroid(-1), yCentroid(-1), xSpotWidth(-1), ySpotWidth(-1), cleanedIntensity(0), xNominal(-1),
-                     yNominal(-1), exposure(-1), timeStamp(-1) {}
+                     yNominal(-1), exposure(-1), timestamp(-1) {}
 
         float xCentroid;
         float yCentroid;

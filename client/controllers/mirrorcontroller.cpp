@@ -6,6 +6,7 @@
 #include <deque>
 #include <sstream>
 #include <string>
+#include <sys/stat.h>
 #include <common/alignment/mpes.hpp>
 
 #include "AGeoAsphericDisk.h" // ROBAST dependency
@@ -1968,7 +1969,7 @@ UaStatus MirrorController::loadPosition(const std::string &loadFilePath, double 
     while (getline(infile, line) && line != SAVEFILE_DELIMITER) {
         os << line << std::endl;
     }
-    spdlog::info("{}: Mirror Info:\n Mirror Identity: {}\n{}", m_Identity, m_Identity, os);
+    spdlog::info("{}: Mirror Info:\n Mirror Identity: {}\n{}", m_Identity, m_Identity, os.str());
 
     // Parse all target actuator lengths
     Device::Identity panelId;
@@ -1976,7 +1977,6 @@ UaStatus MirrorController::loadPosition(const std::string &loadFilePath, double 
     int i = 0;
 
     while (infile.peek() != EOF) {
-        os.str("");
         getline(infile, line);
         s = line.find("(");
         e = line.find(")");
