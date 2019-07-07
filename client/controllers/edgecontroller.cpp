@@ -385,7 +385,7 @@ UaStatus EdgeController::alignSinglePanel(unsigned panelpos, double alignFrac, b
         Eigen::MatrixXd A; // response matrix
         Eigen::MatrixXd C; // constraint matrix
         Eigen::MatrixXd B; // complete matrix we want to solve for
-        Eigen::VectorXd current_read = getCurrentReadings(true).first;
+        Eigen::VectorXd current_read = getCurrentReadings().first;
         Eigen::VectorXd aligned_read = getAlignedReadings() - getSystematicOffsets();
         if (!current_read.size() || !aligned_read.size()) {
             spdlog::error(
@@ -458,7 +458,6 @@ UaStatus EdgeController::alignSinglePanel(unsigned panelpos, double alignFrac, b
             Device::ErrorState errorState;
             int visible = 0;
             for (auto &mpes : overlapMPES) {
-                mpes->read();
                 std::dynamic_pointer_cast<MPESController>(mpes)->getState(state);
                 std::dynamic_pointer_cast<MPESController>(mpes)->getData(PAS_MPESType_ErrorState, vtmp);
                 vtmp.toInt32(temp);

@@ -237,19 +237,22 @@ UaStatus MPESController::operate(OpcUa_UInt32 offset, const UaVariantArray &args
             "y (nominal): {} ({})\n"
             "xSpotWidth (nominal): {} ({})\n"
             "xSpotWidth (nominal): {} ({})\n"
-            "Cleaned Intensity (nominal): {} ({})\n",
+            "Cleaned Intensity (nominal): {} ({})\n"
+            "Exposure: {}\n"
+            "Timestamp: {}\n",
             m_Identity,
             data.xCentroid, data.xNominal,
             data.yCentroid, data.yNominal,
             data.xSpotWidth, std::to_string(MPESBase::NOMINAL_SPOT_WIDTH),
             data.ySpotWidth, std::to_string(MPESBase::NOMINAL_SPOT_WIDTH),
-            data.cleanedIntensity, std::to_string(MPESBase::NOMINAL_INTENSITY));
+            data.cleanedIntensity, std::to_string(MPESBase::NOMINAL_INTENSITY),
+            data.exposure,
+            data.timestamp);
 
         if (m_Mode == "client") { // Record readings to database
-            time_t now = time(nullptr);
             struct tm tstruct{};
             char buf[80];
-            tstruct = *localtime(&now);
+            tstruct = *localtime(&data.timestamp);
             strftime(buf, sizeof(buf), "%Y-%m-%d %X", &tstruct);
 
             UaString sql_stmt = UaString(

@@ -345,7 +345,7 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
     return status;
 }
 
-bool PanelController::checkForCollision(const Eigen::VectorXd &deltaLengths, bool read) {
+bool PanelController::checkForCollision(const Eigen::VectorXd &deltaLengths) {
     spdlog::debug("{} : Doing collision check for motion (delta lengths) of :\n{}\n.", m_Identity, deltaLengths);
 
     Eigen::MatrixXd M_response; // response matrix

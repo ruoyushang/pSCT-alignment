@@ -31,7 +31,7 @@ MirrorController::MirrorController(Device::Identity identity, std::string mode)
     : PasCompositeController(
     std::move(identity), nullptr,
     10000),
-      m_Mode(mode), m_pSurface(nullptr), m_setAlignFrac(false) {
+      m_Mode(mode), m_pSurface(nullptr) {
     // define possible children and initialize the selected children string
     m_ChildrenTypes = {PAS_PanelType, PAS_EdgeType, PAS_MPESType};
 
@@ -349,7 +349,7 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
     if (offset == PAS_MirrorType_MoveToCoords) {
         spdlog::info("{} : MirrorController::operate() : Calling moveToCoords()...", m_Identity);
         setState(Device::DeviceState::Busy);
-        updateCoords(false);    
+        updateCoords(false);
         Eigen::VectorXd targetMirrorCoords(6);
         for (int i = 0; i < 6; i++) {
             UaVariant(args[i]).toDouble(targetMirrorCoords[i]);
@@ -365,19 +365,15 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
         spdlog::info("{} : MirrorController::operate() : Calling moveDeltaCoords()...", m_Identity);
         setState(Device::DeviceState::Busy);
         updateCoords(false);
-
-        // Get delta coords
         Eigen::VectorXd deltaMirrorCoords(6);
         for (int i = 0; i < 6; i++) {
             UaVariant(args[i]).toDouble(deltaMirrorCoords[i]);
         }
 
-        Eigen::VectorXd targetMirrorCoords = deltaMirrorCoords + m_curCoords;
-
         double alignFrac = args[6].Value.Boolean;
         bool execute = args[7].Value.Boolean;
 
-        status = moveToCoords(targetMirrorCoords, alignFrac, execute);
+        status = moveDeltaCoords(deltaMirrorCoords, alignFrac, execute);
         updateCoords(false);
         setState(Device::DeviceState::On);
     }
@@ -389,7 +385,7 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
         // read out all individual positions
         // and get global mirror coordinates
         spdlog::info("{} : MirrorController::operate() : Calling readPosition()...", m_Identity);
-        updateCoords();
+        updateCoords(true);
         setState(Device::DeviceState::On);
     }
 
@@ -429,7 +425,7 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
         /**********************************************************
          * Align all edges of the mirror                          *
          * ********************************************************/
-    else if (offset == PAS_MirrorType_AlignSequential) {
+    else if (offset == PAS_MirrorType_AlignSequentialRecursive) {
         // make sure the arguments make sense -- we are supposed
         // to get an edge position and a direction. The type has
         // already been validated by the caller, but we need to
@@ -460,14 +456,22 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
             spdlog::error("{} : MirrorController::operate() : No Edges selected. Nothing to do, method call aborted.",
                           m_Identity);
         } else {
-            for (const auto &eAddress : m_selectedEdges) {
-                if (m_State == Device::DeviceState::Busy) {
-                    status = std::dynamic_pointer_cast<EdgeController>(m_pChildren.at(PAS_EdgeType).at(getEdgeIndex(eAddress)))->operate(
-                        PAS_EdgeType_Read);
-                    if (!status.isGood()) { return status; }
-                } else {
-                    spdlog::warn("{} : MirrorController::readSensors() : Mirror stop detected. Readings stopped.",
-                                 m_Identity);
+            for (const auto &edge : getChildren(PAS_EdgeType)) {
+                std::ostringstream os;
+                for (const auto &mpes : std::dynamic_pointer_cast<EdgeController>(edge)->getChildren(
+                    PAS_MPESType)) {
+                    os << mpes->getIdentity() << " : " << std::endl;
+                    if (m_selectedMPES.find(mpes->getIdentity().serialNumber) != m_selectedMPES.end()) {
+                        std::dynamic_pointer_cast<MPESController>(mpes)->read();
+                        MPESBase::Position position = std::dynamic_pointer_cast<MPESController>(mpes)->getPosition();
+
+                        os << "    " << position.xCentroid << " +/- " << position.xSpotWidth << " ["
+                           << position.xNominal << "] ("
+                           << position.xCentroid - position.xNominal << ")" << std::endl;
+                        os << "    " << position.yCentroid << " +/- " << position.ySpotWidth << " ["
+                           << position.yNominal << "] ("
+                           << position.yCentroid - position.yNominal << ")" << std::endl;
+                    }
                 }
             }
         }
@@ -593,6 +597,133 @@ UaStatus MirrorController::readPositionAll(bool print) {
     return status;
 }
 
+UaStatus MirrorController::moveDeltaCoords(const Eigen::VectorXd &deltaMirrorCoords, double alignFrac, bool execute) {
+    UaStatus status;
+
+    if (alignFrac > 1.0 || alignFrac <= 0.0) {
+        spdlog::error(
+            "{} : MirrorController::moveDeltaCoords(): Invalid choice of alignFrac ({}), should be between 0.0 and 1.0.",
+            m_Identity, alignFrac);
+        return OpcUa_BadInvalidArgument;
+    }
+
+    Eigen::VectorXd X(m_pChildren.at(PAS_PanelType).size() * 6);
+    if (!execute) {
+        spdlog::info(
+            "{} : MirrorController::moveDeltaCoords(): Called with execute=False. Pre-calculating alignment motion...",
+            m_Identity);
+        Eigen::VectorXd targetMirrorCoords(6);
+
+        targetMirrorCoords = m_curCoords + deltaMirrorCoords;
+        spdlog::info("{} : Delta coordinates:\n{}\n", m_Identity, deltaMirrorCoords);
+        spdlog::info("{} : Moving to target coordinates:\n{}\n", m_Identity, targetMirrorCoords);
+
+        std::vector<std::shared_ptr<PanelController>> panelsToMove;
+
+        unsigned positionNum;
+        Eigen::VectorXd prf_coords;
+        Eigen::VectorXd deltaActLengths(6);
+        Eigen::VectorXd targetActLengths(6);
+        Eigen::VectorXd currentActLengths(6);
+
+        int j = 0;
+        for (const auto &pPanel : m_pChildren.at(PAS_PanelType)) {
+            positionNum = pPanel->getIdentity().position;
+            std::dynamic_pointer_cast<PanelController>(pPanel)->operate(PAS_PanelType_ReadPosition);
+            // for this panel, we get PRF pad coords, transform them to TRF,
+            // move them in TRF, transform back to PRF, and then compute new ACT lengths
+            // based on the new pad coords. so simple!
+            auto padCoords_PanelRF = std::dynamic_pointer_cast<PanelController>(pPanel)->getPadCoords();
+            auto padCoords_TelRF = padCoords_PanelRF;
+            double newPadCoords[3][3];
+            for (unsigned pad = 0; pad < 3; pad++) {
+                // transform to TRF
+                padCoords_TelRF.col(pad) = __toTelRF(positionNum, padCoords_PanelRF.col(pad));
+                // move by the desired telescope coordinates
+                padCoords_TelRF.col(pad) = __moveInCurrentRF(padCoords_TelRF.col(pad), deltaMirrorCoords);
+                // transform back to PRF
+                padCoords_PanelRF.col(pad) = __toPanelRF(positionNum, padCoords_TelRF.col(pad));
+                for (unsigned coord = 0; coord < 3; coord++)
+                    newPadCoords[pad][coord] = padCoords_PanelRF.col(pad)(coord);
+            }
+            m_pStewartPlatform->ComputeActsFromPads(newPadCoords);
+            for (int i = 0; i < 6; i++) {
+                targetActLengths(i) = (float) m_pStewartPlatform->GetActLengths()[i];
+            }
+            currentActLengths = std::dynamic_pointer_cast<PanelController>(pPanel)->getActuatorLengths();
+
+            deltaActLengths = targetActLengths - currentActLengths;
+            spdlog::info("{} : Panel {} calculated actuator motion:\n{}\n", m_Identity, pPanel->getIdentity(),
+                         deltaActLengths);
+
+            /**
+            if (std::dynamic_pointer_cast<PanelController>(pPanel)->checkForCollision(deltaActLengths)) {
+                return OpcUa_Bad;
+            }
+             */
+
+            panelsToMove.push_back(std::dynamic_pointer_cast<PanelController>(pPanel));
+            X.segment(j, 6) = deltaActLengths;
+            j += 6;
+        }
+        spdlog::info("{} : Full calculated motion is:\n{}\n", m_Identity,
+                     X);
+
+        X *= alignFrac;
+        spdlog::info("{}: Selected align fraction of {}.", m_Identity);
+
+        double maxChange = X.cwiseAbs().maxCoeff();
+
+        unsigned k = 0;
+        for (auto &pCurPanel : panelsToMove) {
+            // print out to make sure
+            spdlog::debug("{} : Will move Panel {} actuators by:\n{}\n", m_Identity, pCurPanel->getIdentity(),
+                          X.segment(k, 6));
+            k += 6;
+        }
+
+        if (maxChange > 2.5) {
+            spdlog::warn(
+                "{}: The largest requested actuator motion has magnitude {}. This level of motion could potentially be dangerous. Be careful and review the full logfile output for a detailed breakdown of the motion before proceeding.",
+                m_Identity, maxChange);
+        } else {
+            spdlog::info(
+                "{}: The largest requested actuator motion has magnitude {}. This is small so the motion is most likely safe.",
+                m_Identity);
+        }
+
+        m_Xcalculated = X;
+        m_panelsToMove = panelsToMove;
+        m_previousCalculatedMethod = PAS_MirrorType_MoveDeltaCoords;
+    } else {
+        if (m_Xcalculated.isZero(0) || m_previousCalculatedMethod != PAS_MirrorType_MoveDeltaCoords) {
+            spdlog::error(
+                "{} : No calculated motion found. Call Mirror.MoveDeltaCoords with execute=false once first to calculate the motion to execute.",
+                m_Identity);
+            return OpcUa_Bad;
+        } else {
+            unsigned j = 0;
+            for (auto &pCurPanel : m_panelsToMove) {
+                auto nACT = pCurPanel->getActuatorCount();
+                UaVariantArray deltas;
+                deltas.create(nACT);
+                UaVariant val;
+                for (unsigned i = 0; i < nACT; i++) {
+                    val.setFloat(m_Xcalculated(j++));
+                    val.copyTo(&deltas[i]);
+                }
+                status = pCurPanel->__moveDeltaLengths(deltas);
+                if (!status.isGood()) { return status; }
+                if (m_State == Device::DeviceState::Off) { break; }
+            }
+            m_Xcalculated.setZero(); // reset calculated motion
+            m_panelsToMove.clear();
+            m_previousCalculatedMethod = 0;
+        }
+    }
+    return status;
+}
+
 UaStatus MirrorController::moveToCoords(const Eigen::VectorXd &targetMirrorCoords, double alignFrac, bool execute) {
     UaStatus status;
 
@@ -611,7 +742,6 @@ UaStatus MirrorController::moveToCoords(const Eigen::VectorXd &targetMirrorCoord
         Eigen::VectorXd deltaMirrorCoords(6);
 
         deltaMirrorCoords = targetMirrorCoords - m_curCoords;
-
         spdlog::info("{} : Moving to target coordinates:\n{}\n", m_Identity, targetMirrorCoords);
         spdlog::info("{} : Delta coordinates:\n{}\n", m_Identity, deltaMirrorCoords);
 
@@ -622,7 +752,7 @@ UaStatus MirrorController::moveToCoords(const Eigen::VectorXd &targetMirrorCoord
         Eigen::VectorXd deltaActLengths(6);
         Eigen::VectorXd targetActLengths(6);
         Eigen::VectorXd currentActLengths(6);
-        
+
         int j = 0;
         for (const auto &pPanel : m_pChildren.at(PAS_PanelType)) {
             positionNum = pPanel->getIdentity().position;
@@ -666,34 +796,38 @@ UaStatus MirrorController::moveToCoords(const Eigen::VectorXd &targetMirrorCoord
         spdlog::info("{} : Full calculated motion is:\n{}\n", m_Identity,
                      X);
 
+        X *= alignFrac;
+        spdlog::info("{}: Selected align fraction of {}.", m_Identity);
+
+        double maxChange = X.cwiseAbs().maxCoeff();
+
+        unsigned k = 0;
+        for (auto &pCurPanel : panelsToMove) {
+            // print out to make sure
+            spdlog::debug("{} : Will move Panel {} actuators by:\n{}\n", m_Identity, pCurPanel->getIdentity(),
+                          X.segment(k, 6));
+            k += 6;
+        }
+
+        if (maxChange > 2.5) {
+            spdlog::warn(
+                "{}: The largest requested actuator motion has magnitude {}. This level of motion could potentially be dangerous. Be careful and review the full logfile output for a detailed breakdown of the motion before proceeding.",
+                m_Identity, maxChange);
+        } else {
+            spdlog::info(
+                "{}: The largest requested actuator motion has magnitude {}. This is small, so the motion is most likely safe. You can review the full logfile output for a detailed breakdown of the motion before proceeding.",
+                m_Identity);
+        }
 
         m_Xcalculated = X;
         m_panelsToMove = panelsToMove;
         m_previousCalculatedMethod = PAS_MirrorType_MoveToCoords;
-    }
-    else {
+    } else {
         if (m_Xcalculated.isZero(0) || m_previousCalculatedMethod != PAS_MirrorType_MoveToCoords) {
             spdlog::error(
-                "{} : No calculated motion found. Call method with execute=false once first to calculate the motion to execute.",
+                "{} : No calculated motion found. Call Mirror.MoveToCoords with execute=false once first to calculate the motion to execute.",
                 m_Identity);
             return OpcUa_Bad;
-        } else if (!m_setAlignFrac) {
-            X = m_Xcalculated;
-            X *= alignFrac;
-            spdlog::info("{}: Selected align fraction of {}, resulting motion is:\n{}\n", m_Identity,
-                         X);
-
-            double maxChange = X.cwiseAbs().maxCoeff();
-
-            if (maxChange > 2.5) {
-                spdlog::warn(
-                    "{}: The largest requested actuator motion has magnitude {}. This level of motion could potentially be dangerous. Be careful and review the full logfile output for a detailed breakdown of the motion before proceeding.",
-                    m_Identity, maxChange);
-            } else {
-                spdlog::info(
-                    "{}: The largest requested actuator motion has magnitude {}. This is small so the motion is most likely safe.",
-                    m_Identity);
-            }
         } else {
             unsigned j = 0;
             for (auto &pCurPanel : m_panelsToMove) {
@@ -712,7 +846,6 @@ UaStatus MirrorController::moveToCoords(const Eigen::VectorXd &targetMirrorCoord
             m_Xcalculated.setZero(); // reset calculated motion
             m_panelsToMove.clear();
             m_previousCalculatedMethod = 0;
-            m_setAlignFrac = false;
         }
     }
     return status;
@@ -1111,8 +1244,6 @@ UaStatus MirrorController::alignSector(double alignFrac, bool execute) {
         for (int mpesSerial : m_selectedMPES) {
             std::shared_ptr<MPESController> mpes = std::dynamic_pointer_cast<MPESController>(
                 m_pChildren.at(PAS_MPESType).at(getMPESIndex(mpesSerial)));
-            spdlog::info("{}: Reading MPES {}...", m_Identity, mpes->getIdentity());
-            mpes->read();
             if (mpes->isVisible())
                 alignMPES.push_back(mpes);
         }
@@ -1153,8 +1284,6 @@ UaStatus MirrorController::alignSector(double alignFrac, bool execute) {
             for (const auto &i: overlapIndices) {
                 std::shared_ptr<MPESController> mpes = std::dynamic_pointer_cast<MPESController>(
                     m_pChildren.at(PAS_MPESType).at(i));
-                spdlog::info("{}: Reading MPES {}...", m_Identity, mpes->getIdentity());
-                mpes->read();
                 if (mpes->isVisible())
                     alignMPES.push_back(mpes);
             }
@@ -1227,23 +1356,34 @@ UaStatus MirrorController::alignSector(double alignFrac, bool execute) {
             return OpcUa_Bad;
         }
 
-        spdlog::debug("{}: Vector to solve for:\n{}\n", m_Identity, Y);
-        spdlog::debug("{}: Matrix to solve with:\n{}\n", m_Identity, B);
-        spdlog::debug("{}: Least squares solution:\n{}\n", m_Identity, X);
+        spdlog::info("{}: Vector to solve for:\n{}\n", m_Identity, Y);
+        spdlog::info("{}: Matrix to solve with:\n{}\n", m_Identity, B);
+        spdlog::info("{}: Least squares solution:\n{}\n", m_Identity, X);
 
-        if (alignFrac < 1.) {
-            X *= alignFrac;
-            spdlog::info("{} : Fractional motion of {} requested. Final (fractional) motion is:\n{}\n", m_Identity,
-                         alignFrac,
-                         X);
+        spdlog::info("{} : Full calculated motion is:\n{}\n", m_Identity,
+                     X);
+
+        X *= alignFrac;
+        spdlog::info("{}: Selected align fraction of {}.", m_Identity);
+
+        double maxChange = X.cwiseAbs().maxCoeff();
+
+        if (maxChange > 2.5) {
+            spdlog::warn(
+                "{}: The largest requested actuator motion has magnitude {}. This level of motion could potentially be dangerous. Be careful and review the full logfile output for a detailed breakdown of the motion before proceeding.",
+                m_Identity, maxChange);
+        } else {
+            spdlog::info(
+                "{}: The largest requested actuator motion has magnitude {}. This is small, so the motion is most likely safe. You can review the full logfile output for a detailed breakdown of the motion before proceeding.",
+                m_Identity);
         }
 
         unsigned j = 0;
         Eigen::VectorXd deltaLengths(6);
         for (auto &pCurPanel : panelsToMove) {
             // print out to make sure
-            spdlog::info("{} : Will move Panel {} actuators by:\n{}\n", m_Identity, pCurPanel->getIdentity(),
-                         X.segment(j, 6));
+            spdlog::debug("{} : Will move Panel {} actuators by:\n{}\n", m_Identity, pCurPanel->getIdentity(),
+                          X.segment(j, 6));
 
             for (unsigned i = 0; i < 6; i++) {
                 deltaLengths(i) = X(j++);
@@ -1519,8 +1659,19 @@ UaStatus MirrorController::alignRing(int fixPanel, double alignFrac, bool execut
             }
         }
 
-        if (alignFrac < 1.) {
-            spdlog::info("{} : Fractional motion of {} requested.", m_Identity, alignFrac);
+        globDisplaceVec *= alignFrac;
+        spdlog::info("{}: Selected align fraction of {}.", m_Identity);
+
+        double maxChange = globDisplaceVec.cwiseAbs().maxCoeff();
+
+        if (maxChange > 2.5) {
+            spdlog::warn(
+                "{}: The largest requested actuator motion has magnitude {}. This level of motion could potentially be dangerous. Be careful and review the full logfile output for a detailed breakdown of the motion before proceeding.",
+                m_Identity, maxChange);
+        } else {
+            spdlog::info(
+                "{}: The largest requested actuator motion has magnitude {}. This is small, so the motion is most likely safe. You can review the full logfile output for a detailed breakdown of the motion before proceeding.",
+                m_Identity);
         }
 
         /* MOVE ACTUATORS */
@@ -1528,12 +1679,11 @@ UaStatus MirrorController::alignRing(int fixPanel, double alignFrac, bool execut
         Eigen::VectorXd deltaLengths(6);
         for (auto &pCurPanel : panelsToMove) {
             // print out to make sure
-            spdlog::info("{} : Panel {} -- Calculated change in actuator lengths is:\n{}\n", m_Identity,
-                         pCurPanel->getIdentity(),
-                         alignFrac * globDisplaceVec.segment(j, 6));
+            spdlog::debug("{} : Will move Panel {} actuators by:\n{}\n", m_Identity, pCurPanel->getIdentity(),
+                          globDisplaceVec.segment(j, 6));
 
             for (unsigned i = 0; i < 6; i++) {
-                deltaLengths(i) = alignFrac * globDisplaceVec(j++);
+                deltaLengths(i) = globDisplaceVec(j++);
             }
             /**
             if(pCurPanel->checkForCollision(deltaLengths)) {
