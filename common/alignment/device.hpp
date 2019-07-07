@@ -74,6 +74,8 @@ public:
         bool operator!=(const Identity &r) const;
     };
 
+    static Device::Identity parseIdentity(std::string identityString);
+
     explicit Device(Identity identity);
     ~Device() = default;
 

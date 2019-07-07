@@ -1,6 +1,7 @@
 #ifndef __PASMIRROR_H__
 #define __PASMIRROR_H__
 
+#include <cfloat>
 #include <set>
 
 #include "TObject.h" // to be able to use ROOT's MINUIT implementation
@@ -101,12 +102,19 @@ private:
     // Align all edges fron need_alignment starting at start_idx and  moving in the direction dir
     UaStatus alignSequential(const std::string &startEdge, const std::string &EndEdge, unsigned dir);
 
-    UaStatus alignSector(double alignFrac = 0.25, bool execute = false);
+    UaStatus alignSector(double alignFrac = 0.25, std::string command = "calculate");
 
-    UaStatus alignRing(int fixPanel, double alignFrac = 0.25, bool execute = false);
+    UaStatus alignRing(int fixPanel, double alignFrac = 0.25, std::string command = "calculate");
 
-    UaStatus moveDeltaCoords(const Eigen::VectorXd &targetCoords, double alignFrac = 0.25, bool execute = false);
-    UaStatus moveToCoords(const Eigen::VectorXd &targetCoords, double alignFrac = 0.25, bool execute = false);
+    UaStatus
+    moveDeltaCoords(const Eigen::VectorXd &targetCoords, double alignFrac = 0.25, std::string command = "calculate");
+
+    UaStatus
+    moveToCoords(const Eigen::VectorXd &targetCoords, double alignFrac = 0.25, std::string command = "calculate");
+
+    UaStatus savePosition(const std::string &saveFilePath);
+
+    UaStatus loadPosition(const std::string &loadFilePath, double alignFrac = 0.25, std::string command = "calculate");
 
     // mirror coords -- x/y/z, xRot, yRot, zRot
     Eigen::VectorXd m_curCoords, m_curCoordsErr, m_sysOffsetsMPES;
@@ -168,6 +176,9 @@ private:
     Eigen::VectorXd m_Xcalculated;
     std::vector<std::shared_ptr<PanelController>> m_panelsToMove;
     unsigned m_previousCalculatedMethod;
+    float m_lastSetAlignFrac;
+
+    static const std::string SAVEFILE_DELIMITER;
 };
 
 #endif // #ifndef __PASMIRROR_H__

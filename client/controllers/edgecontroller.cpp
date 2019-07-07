@@ -1,5 +1,6 @@
 #include "client/controllers/edgecontroller.hpp"
 
+#include <cfloat>
 #include <fstream>
 #include <ios>
 #include <sstream>
@@ -19,7 +20,7 @@
 
 EdgeController::EdgeController(Device::Identity identity) : PasCompositeController(std::move(identity),
                                                                                    nullptr, 0),
-                                                            m_isAligned(false) {
+                                                            m_lastSetAlignFrac(-1.0), m_isAligned(false) {
     // define possible children types
     m_ChildrenTypes = {PAS_MPESType, PAS_PanelType};
     m_Xcalculated = Eigen::VectorXd(0);
@@ -98,7 +99,7 @@ UaStatus EdgeController::operate(OpcUa_UInt32 offset, const UaVariantArray &args
             OpcUa_UInt32 panel;
             bool moveit;
             double alignFrac;
-            bool execute;
+            std::string command;
 
             std::set<int> allowedPanels;
             for (const auto &panel : m_pChildren.at(PAS_PanelType))
@@ -135,7 +136,7 @@ UaStatus EdgeController::operate(OpcUa_UInt32 offset, const UaVariantArray &args
             }
 
             alignFrac = args[2].Value.Double;
-            execute = args[3].Value.Boolean;
+            command = UaString(args[3].Value.String).toUtf8();
 
             if (alignFrac > 1.0 || alignFrac <= 0.0) {
                 spdlog::error("{} : Invalid choice of alignFrac {}, should be between 0.0 and 1.0.", m_Identity,
@@ -143,7 +144,7 @@ UaStatus EdgeController::operate(OpcUa_UInt32 offset, const UaVariantArray &args
                 return OpcUa_BadInvalidArgument;
             }
 
-            status = align(panel, alignFrac, moveit, execute);
+            status = align(panel, alignFrac, moveit, command);
             break;
         }
         case PAS_EdgeType_Read: {
@@ -352,7 +353,7 @@ UaStatus EdgeController::findSingleMatrix(unsigned panelIdx, double stepSize) {
     return status;
 }
 
-UaStatus EdgeController::align(unsigned panel_pos, double alignFrac, bool moveit, bool execute) {
+UaStatus EdgeController::align(unsigned panel_pos, double alignFrac, bool moveit, std::string command) {
     //UaMutexLocker lock(&m_mutex);
     UaStatus status;
 
@@ -366,20 +367,20 @@ UaStatus EdgeController::align(unsigned panel_pos, double alignFrac, bool moveit
         spdlog::info("Will fix Panel {}", panel_pos);
     }
 
-    status = alignSinglePanel(panel_pos, alignFrac, moveit, execute);
+    status = alignSinglePanel(panel_pos, alignFrac, moveit, command);
 
     setState(Device::DeviceState::On);
 
     return status;
 }
 
-UaStatus EdgeController::alignSinglePanel(unsigned panelpos, double alignFrac, bool moveit, bool execute) {
+UaStatus EdgeController::alignSinglePanel(unsigned panelpos, double alignFrac, bool moveit, std::string command) {
 
     //UaMutexLocker lock(&m_mutex);
     UaStatus status;
-    
-    if (!execute) {
-        spdlog::info("{} : EdgeController::align(): Called with execute=False. Pre-calculating alignment motion...",
+
+    if (command == "calculate") {
+        spdlog::info("{} : EdgeController::align(): Called with command=calculate. Pre-calculating alignment motion...",
                      m_Identity);
 
         Eigen::MatrixXd A; // response matrix
@@ -554,15 +555,53 @@ UaStatus EdgeController::alignSinglePanel(unsigned panelpos, double alignFrac, b
         // We do this partly through brute force and partly through SVD.
         spdlog::info("{} : LEAST SQUARES SOLUTION:\n{}\n", m_Identity, X);
 
-        // while (X.norm() >= 14*(X.size()/6)) { // heuristic -- don't want to move by more than the panel gap
-        if (alignFrac < 1.) {
-            X *= alignFrac;
-            spdlog::info("{} : Fractional motion of {} requested. Final (fractional) motion is:\n{}\n", m_Identity,
-                         alignFrac,
-                         X);
+        m_Xcalculated = X;
+        spdlog::info(
+            "{} : Calculation done! You should call the method again with command=setAlignFrac to set an align fraction and inspect the resulting motion + do safety checks.",
+            m_Identity);
+    } else if (command == "setAlignFrac") {
+        if (m_Xcalculated.isZero(0)) {
+            spdlog::error(
+                "{} : No calculated motion found. Call Edge.align with command=calculate once first to calculate the motion to execute.",
+                m_Identity);
+            return OpcUa_Bad;
+        }
+        Eigen::VectorXd X = m_Xcalculated * alignFrac;
+        spdlog::info("{} : Fractional motion of {} requested.", m_Identity,
+                     alignFrac);
+
+        m_lastSetAlignFrac = alignFrac;
+
+        double maxChange = X.cwiseAbs().maxCoeff();
+
+        std::shared_ptr<PanelController> pCurPanel;
+        int j = 0;
+        for (const auto &panelPair : m_ChildrenPositionMap.at(PAS_PanelType)) {
+            if ((panelPair.first == panelpos) == moveit) { // clever but not clear...
+                pCurPanel = std::dynamic_pointer_cast<PanelController>(
+                    m_pChildren.at(PAS_PanelType).at(panelPair.second));
+                auto nACT = pCurPanel->getActuatorCount();
+
+                UaVariantArray deltas;
+                deltas.create(nACT);
+                UaVariant var;
+                spdlog::debug("{} : Will move Panel {} actuators by:\n{}\n", m_Identity, pCurPanel->getIdentity(),
+                              X.segment(j, 6));
+                j += 6;
+            }
         }
 
-        spdlog::info("{} : Doing collision checks on all panels being moved...", m_Identity);
+        if (maxChange > 2.5) {
+            spdlog::warn(
+                "{}: The largest requested actuator motion has magnitude {}. This level of motion could potentially be dangerous. Be careful and review the full logfile output for a detailed breakdown of the motion before proceeding.",
+                m_Identity, maxChange);
+        } else {
+            spdlog::info(
+                "{}: The largest requested actuator motion has magnitude {}. This is small so the motion is most likely safe.",
+                m_Identity);
+        }
+
+        spdlog::info("{} : Doing collision checks for all panels to move...", m_Identity);
         for (const auto &panelPair : m_ChildrenPositionMap.at(PAS_PanelType)) {
             if ((panelPair.first == panelpos) == moveit) { // clever but not clear...
                 auto pCurPanel = std::dynamic_pointer_cast<PanelController>(
@@ -573,20 +612,28 @@ UaStatus EdgeController::alignSinglePanel(unsigned panelpos, double alignFrac, b
                 }
             }
         }
-
-        m_Xcalculated = X;
         spdlog::info(
-            "{} : Calculation done! You should call the method again with execute=True to actually execute the motion.",
+            "{}: Done! All collision checks passed. To execute the motion, call the command again with command=execute.",
             m_Identity);
-    }
-    else {
+    } else if (command == "execute") {
         if (m_Xcalculated.isZero(0)) {
             spdlog::error(
-                "{} : No calculated motion found. Call Edge.align with execute=false once first to calculate the motion to execute.",
+                "{} : No calculated motion found. Call Edge.align with command=calculate once first to calculate the motion to execute.",
                 m_Identity);
             return OpcUa_Bad;
-        }
-        else {
+        } else if (m_lastSetAlignFrac < 0.0) {
+            spdlog::error(
+                "{} : No align fraction was set. Call Edge.align at least once with command=setAlignFrac once first to set the fractional motion to perform and do safety checks.",
+                m_Identity);
+            return OpcUa_Bad;
+        } else if (std::fabs(alignFrac - m_lastSetAlignFrac) > FLT_EPSILON) {
+            spdlog::error(
+                "{} : The selected align fraction ({}) does not match the value last used when doing setAlignFrac ({}). For safety reasons, you should always call setAlignFrac with the align fraction you"
+                "want, review it, and then execute the motion with the same align fraction. Please correct your requested align fraction or go back and call setAlignFrac again.",
+                m_Identity, alignFrac, m_lastSetAlignFrac);
+            return OpcUa_Bad;
+        } else {
+            Eigen::VectorXd X = m_Xcalculated * alignFrac;
             std::shared_ptr<PanelController> pCurPanel;
             int j = 0;
             for (const auto &panelPair : m_ChildrenPositionMap.at(PAS_PanelType)) {
@@ -594,15 +641,12 @@ UaStatus EdgeController::alignSinglePanel(unsigned panelpos, double alignFrac, b
                     pCurPanel = std::dynamic_pointer_cast<PanelController>(
                         m_pChildren.at(PAS_PanelType).at(panelPair.second));
                     auto nACT = pCurPanel->getActuatorCount();
-                    // print out to make sure
-                    spdlog::info("{} : Will move Panel {} actuators by:\n{}\n", m_Identity, pCurPanel->getIdentity(),
-                                 m_Xcalculated.segment(j, nACT));
-                    
+
                     UaVariantArray deltas;
                     deltas.create(nACT);
                     UaVariant var;
                     for (int i = 0; i < (int)nACT; i++) {
-                        var.setFloat(m_Xcalculated(j++));
+                        var.setFloat(X(j++));
                         var.copyTo(&deltas[i]);
                     }
                     status = pCurPanel->__moveDeltaLengths(deltas);
@@ -612,13 +656,19 @@ UaStatus EdgeController::alignSinglePanel(unsigned panelpos, double alignFrac, b
             }
         }
         m_Xcalculated.setZero();
-    }
+        m_lastSetAlignFrac = -1.0;
 
-    // arbitrary
-    if (m_Xcalculated.array().abs().maxCoeff() >= 0.05)
-        m_isAligned = false;
-    else
-        m_isAligned = true;
+        // arbitrary
+        if (m_Xcalculated.array().abs().maxCoeff() >= 0.05)
+            m_isAligned = false;
+        else
+            m_isAligned = true;
+    } else {
+        spdlog::error(
+            "{} : Invalid command provided ({}), valid commands are 'calculate', 'setAlignFrac', 'execute'.",
+            m_Identity, command);
+        return OpcUa_Bad;
+    }
 
     return status;
 }
