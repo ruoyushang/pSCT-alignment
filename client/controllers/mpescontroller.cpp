@@ -168,6 +168,18 @@ UaStatus MPESController::getData(OpcUa_UInt32 offset, UaVariant &value) {
                 status = m_pClient->read({m_pClient->getDeviceNodeId(m_Identity) + "." + "ErrorState"}, &value);
                 spdlog::trace("{} : Read ErrorState value => ({})", m_Identity, value[0].Value.UInt32);
                 break;
+            case PAS_MPESType_Exposure:
+                status = m_pClient->read({m_pClient->getDeviceNodeId(m_Identity) + "." + "Exposure"}, &value);
+                spdlog::trace("{} : Read Exposure value => ({})", m_Identity, value[0].Value.Int32);
+                break;
+            case PAS_MPESType_RawTimestamp:
+                status = m_pClient->read({m_pClient->getDeviceNodeId(m_Identity) + "." + "RawTimestamp"}, &value);
+                spdlog::trace("{} : Read Raw Timestamp value => ({})", m_Identity, value[0].Value.Int64);
+                break;
+            case PAS_MPESType_Timestamp:
+                status = m_pClient->read({m_pClient->getDeviceNodeId(m_Identity) + "." + "Timestamp"}, &value);
+                spdlog::trace("{} : Read Timestamp value => ({})", m_Identity, value[0].Value.String);
+                break;
             default:
                 status = OpcUa_BadInvalidArgument;
                 break;
@@ -376,7 +388,9 @@ MPESBase::Position MPESController::getPosition() {
         "yCentroidSpotWidth",
         "CleanedIntensity",
         "xCentroidNominal",
-        "yCentroidNominal"
+        "yCentroidNominal",
+        "Exposure",
+        "rawTimestamp"
     };
     std::transform(varstoread.begin(), varstoread.end(), varstoread.begin(),
                    [this](std::string &str) { return m_pClient->getDeviceNodeId(m_Identity) + "." + str; });
@@ -389,9 +403,15 @@ MPESBase::Position MPESController::getPosition() {
         spdlog::error("{} : MPESController::read() : OPC UA read failed.", m_Identity);
         return data;
     }
-
-    for (unsigned i = 0; i < varstoread.size(); i++)
-        valstoread[i].toFloat(*(reinterpret_cast<float *>(&data) + i));
+    valstoread[0].toFloat(data.xCentroid);
+    valstoread[1].toFloat(data.yCentroid);
+    valstoread[2].toFloat(data.xSpotWidth);
+    valstoread[3].toFloat(data.ySpotWidth);
+    valstoread[4].toFloat(data.cleanedIntensity);
+    valstoread[5].toFloat(data.xNominal);
+    valstoread[6].toFloat(data.yNominal);
+    valstoread[7].toInt32(data.exposure);
+    valstoread[8].toInt64(data.timestamp);
 
     return data;
 }

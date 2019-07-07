@@ -31,7 +31,7 @@ MirrorController::MirrorController(Device::Identity identity, std::string mode)
     : PasCompositeController(
     std::move(identity), nullptr,
     10000),
-      m_Mode(mode), m_pSurface(nullptr) {
+      m_Mode(mode), m_pSurface(nullptr), m_setAlignFrac(false) {
     // define possible children and initialize the selected children string
     m_ChildrenTypes = {PAS_PanelType, PAS_EdgeType, PAS_MPESType};
 
@@ -355,15 +355,35 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
             UaVariant(args[i]).toDouble(targetMirrorCoords[i]);
         }
 
-        bool execute = args[6].Value.Boolean;
+        double alignFrac = args[6].Value.Boolean;
+        bool execute = args[7].Value.Boolean;
 
-        status = moveToCoords(targetMirrorCoords, execute);
+        status = moveToCoords(targetMirrorCoords, alignFrac, execute);
+        updateCoords(false);
+        setState(Device::DeviceState::On);
+    } else if (offset == PAS_MirrorType_MoveDeltaCoords) {
+        spdlog::info("{} : MirrorController::operate() : Calling moveDeltaCoords()...", m_Identity);
+        setState(Device::DeviceState::Busy);
+        updateCoords(false);
+
+        // Get delta coords
+        Eigen::VectorXd deltaMirrorCoords(6);
+        for (int i = 0; i < 6; i++) {
+            UaVariant(args[i]).toDouble(deltaMirrorCoords[i]);
+        }
+
+        Eigen::VectorXd targetMirrorCoords = deltaMirrorCoords + m_curCoords;
+
+        double alignFrac = args[6].Value.Boolean;
+        bool execute = args[7].Value.Boolean;
+
+        status = moveToCoords(targetMirrorCoords, alignFrac, execute);
         updateCoords(false);
         setState(Device::DeviceState::On);
     }
-    /**********************************************************
-     * Read out all current panel positions in their frames   *
-     * ********************************************************/
+        /**********************************************************
+         * Read out all current panel positions in their frames   *
+         * ********************************************************/
     else if (offset == PAS_MirrorType_ReadPosition) {
         setState(Device::DeviceState::Busy);
         // read out all individual positions
@@ -373,9 +393,9 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
         setState(Device::DeviceState::On);
     }
 
-    /**********************************************************
-     * Align the selected sector to selected sensors          *
-     * ********************************************************/
+        /**********************************************************
+         * Align the selected sector to selected sensors          *
+         * ********************************************************/
     else if (offset == PAS_MirrorType_AlignSector) {
         double alignFrac = args[0].Value.Double;
         bool execute = args[1].Value.Boolean;
@@ -387,9 +407,9 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
         setState(Device::DeviceState::On);
     }
 
-    /**********************************************************************************************
-     * Perform global alignment and compute the systematics vector keeping the input panel fixed  *
-     * ********************************************************************************************/
+        /**********************************************************************************************
+         * Perform global alignment and compute the systematics vector keeping the input panel fixed  *
+         * ********************************************************************************************/
     else if (offset == PAS_MirrorType_AlignRing) {
         // get the position of the panel to keep fixed
         unsigned fixPanel = args[0].Value.UInt32;
@@ -406,9 +426,9 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
         setState(Device::DeviceState::On);
     }
 
-    /**********************************************************
-     * Align all edges of the mirror                          *
-     * ********************************************************/
+        /**********************************************************
+         * Align all edges of the mirror                          *
+         * ********************************************************/
     else if (offset == PAS_MirrorType_AlignSequential) {
         // make sure the arguments make sense -- we are supposed
         // to get an edge position and a direction. The type has
@@ -430,24 +450,22 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
         setState(Device::DeviceState::On);
     }
 
-    /**********************************************************
-     * Read out all current edge sensors                      *
-     * ********************************************************/
+        /**********************************************************
+         * Read out all current edge sensors                      *
+         * ********************************************************/
     else if (offset == PAS_MirrorType_ReadSensors) {
         spdlog::info("{} : MirrorController::operate() : Calling readSensors()...", m_Identity);
         setState(Device::DeviceState::Busy);
         if (m_selectedEdges.empty()) {
             spdlog::error("{} : MirrorController::operate() : No Edges selected. Nothing to do, method call aborted.",
                           m_Identity);
-        }
-        else {
+        } else {
             for (const auto &eAddress : m_selectedEdges) {
                 if (m_State == Device::DeviceState::Busy) {
                     status = std::dynamic_pointer_cast<EdgeController>(m_pChildren.at(PAS_EdgeType).at(getEdgeIndex(eAddress)))->operate(
                         PAS_EdgeType_Read);
                     if (!status.isGood()) { return status; }
-                }
-                else {
+                } else {
                     spdlog::warn("{} : MirrorController::readSensors() : Mirror stop detected. Readings stopped.",
                                  m_Identity);
                 }
@@ -457,8 +475,6 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
     } else if (offset == PAS_MirrorType_ReadSensorsParallel) {
         spdlog::info("{} : MirrorController::operate() : Calling readSensorsParallel()...", m_Identity);
 
-        setState(Device::DeviceState::Busy);
-        bool stopped = false;
         if (m_selectedMPES.empty()) {
             spdlog::error(
                 "{} : MirrorController::operate() : No MPES selected. Nothing to do, method call aborted.",
@@ -468,12 +484,7 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
                 for (const auto &mpes : std::dynamic_pointer_cast<PanelController>(*it)->getChildren(
                     PAS_MPESType)) {
                     if (m_selectedMPES.find(mpes->getIdentity().serialNumber) != m_selectedMPES.end()) {
-                        if (m_State == Device::DeviceState::Busy) {
-                            std::dynamic_pointer_cast<MPESController>(mpes)->readAsync();
-                        } else {
-                            stopped = true;
-                            break;
-                        }
+                        std::dynamic_pointer_cast<MPESController>(mpes)->readAsync();
                     }
                 }
             }
@@ -493,7 +504,6 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
             for (const auto &mpes : std::dynamic_pointer_cast<PanelController>(*it)->getChildren(
                 PAS_MPESType)) {
                 if (m_selectedMPES.find(mpes->getIdentity().serialNumber) != m_selectedMPES.end()) {
-                    std::dynamic_pointer_cast<MPESController>(mpes)->read();
                     readings.insert(
                         std::make_pair(mpes->getIdentity(), std::dynamic_pointer_cast<MPESController>(
                             mpes)->getPosition()));
@@ -509,11 +519,11 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
                 auto it = readings.find(mpes->getIdentity());
                 if (it != readings.end()) {
                     os << "    " << it->second.xCentroid << " +/- " << it->second.xSpotWidth << " ["
-                       << it->second.xNominal << "] ("
-                       << it->second.xCentroid - it->second.xNominal << ")" << std::endl;
+                        << it->second.xNominal << "] ("
+                        << it->second.xCentroid - it->second.xNominal << ")" << std::endl;
                     os << "    " << it->second.yCentroid << " +/- " << it->second.ySpotWidth << " ["
-                       << it->second.yNominal << "] ("
-                       << it->second.yCentroid - it->second.yNominal << ")" << std::endl;
+                        << it->second.yNominal << "] ("
+                        << it->second.yCentroid - it->second.yNominal << ")" << std::endl;
                 }
             }
             spdlog::info(
@@ -583,9 +593,17 @@ UaStatus MirrorController::readPositionAll(bool print) {
     return status;
 }
 
-UaStatus MirrorController::moveToCoords(const Eigen::VectorXd &targetMirrorCoords, bool execute) {
+UaStatus MirrorController::moveToCoords(const Eigen::VectorXd &targetMirrorCoords, double alignFrac, bool execute) {
     UaStatus status;
-    
+
+    if (alignFrac > 1.0 || alignFrac <= 0.0) {
+        spdlog::error(
+            "{} : MirrorController::moveToCoords(): Invalid choice of alignFrac ({}), should be between 0.0 and 1.0.",
+            m_Identity, alignFrac);
+        return OpcUa_BadInvalidArgument;
+    }
+
+    Eigen::VectorXd X(m_pChildren.at(PAS_PanelType).size() * 6);
     if (!execute) {
         spdlog::info(
             "{} : MirrorController::moveToCoords(): Called with execute=False. Pre-calculating alignment motion...",
@@ -598,7 +616,6 @@ UaStatus MirrorController::moveToCoords(const Eigen::VectorXd &targetMirrorCoord
         spdlog::info("{} : Delta coordinates:\n{}\n", m_Identity, deltaMirrorCoords);
 
         std::vector<std::shared_ptr<PanelController>> panelsToMove;
-        Eigen::VectorXd X(m_pChildren.at(PAS_PanelType).size()*6);
 
         unsigned positionNum;
         Eigen::VectorXd prf_coords;
@@ -646,6 +663,10 @@ UaStatus MirrorController::moveToCoords(const Eigen::VectorXd &targetMirrorCoord
             X.segment(j,6) = deltaActLengths;
             j += 6;
         }
+        spdlog::info("{} : Full calculated motion is:\n{}\n", m_Identity,
+                     X);
+
+
         m_Xcalculated = X;
         m_panelsToMove = panelsToMove;
         m_previousCalculatedMethod = PAS_MirrorType_MoveToCoords;
@@ -653,11 +674,27 @@ UaStatus MirrorController::moveToCoords(const Eigen::VectorXd &targetMirrorCoord
     else {
         if (m_Xcalculated.isZero(0) || m_previousCalculatedMethod != PAS_MirrorType_MoveToCoords) {
             spdlog::error(
-                "{} : No calculated motion found. Call Mirror.moveToCoords with execute=false once first to calculate the motion to execute.",
+                "{} : No calculated motion found. Call method with execute=false once first to calculate the motion to execute.",
                 m_Identity);
             return OpcUa_Bad;
-        }
-        else {        
+        } else if (!m_setAlignFrac) {
+            X = m_Xcalculated;
+            X *= alignFrac;
+            spdlog::info("{}: Selected align fraction of {}, resulting motion is:\n{}\n", m_Identity,
+                         X);
+
+            double maxChange = X.cwiseAbs().maxCoeff();
+
+            if (maxChange > 2.5) {
+                spdlog::warn(
+                    "{}: The largest requested actuator motion has magnitude {}. This level of motion could potentially be dangerous. Be careful and review the full logfile output for a detailed breakdown of the motion before proceeding.",
+                    m_Identity, maxChange);
+            } else {
+                spdlog::info(
+                    "{}: The largest requested actuator motion has magnitude {}. This is small so the motion is most likely safe.",
+                    m_Identity);
+            }
+        } else {
             unsigned j = 0;
             for (auto &pCurPanel : m_panelsToMove) {
                 auto nACT = pCurPanel->getActuatorCount();
@@ -675,6 +712,7 @@ UaStatus MirrorController::moveToCoords(const Eigen::VectorXd &targetMirrorCoord
             m_Xcalculated.setZero(); // reset calculated motion
             m_panelsToMove.clear();
             m_previousCalculatedMethod = 0;
+            m_setAlignFrac = false;
         }
     }
     return status;

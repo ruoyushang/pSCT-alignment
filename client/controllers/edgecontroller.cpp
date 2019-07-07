@@ -148,8 +148,9 @@ UaStatus EdgeController::operate(OpcUa_UInt32 offset, const UaVariantArray &args
         }
         case PAS_EdgeType_Read: {
             // update current and target readings and print them out
+            updateAllSensors();
 
-            std::pair<Eigen::VectorXd, Eigen::VectorXd> currentReadingsPair = getCurrentReadings(true);
+            std::pair<Eigen::VectorXd, Eigen::VectorXd> currentReadingsPair = getCurrentReadings();
             Eigen::VectorXd currentReadings = currentReadingsPair.first;
             Eigen::VectorXd currentReadingsSpotWidth = currentReadingsPair.second;
             Eigen::VectorXd alignedReadings = getAlignedReadings();
@@ -282,7 +283,7 @@ UaStatus EdgeController::findSingleMatrix(unsigned panelIdx, double stepSize) {
 
         missedDelta = 0.;
 
-        vector0 = __getCurrentReadings(true).first;
+        vector0 = __getCurrentReadings().first;
         spdlog::info("{} : Edge MPES readings (initial):\n{}\n", m_Identity, vector0);
 
         spdlog::info("{} : Moving actuator {} by {} mm...", m_Identity, j + 1, stepSize);
@@ -310,7 +311,7 @@ UaStatus EdgeController::findSingleMatrix(unsigned panelIdx, double stepSize) {
 
         spdlog::info("{} : Actuator {} missed target by {} mm.", m_Identity, j + 1, missedDelta);
 
-        vector1 = __getCurrentReadings(true).first;
+        vector1 = __getCurrentReadings().first;
         if (m_State == Device::DeviceState::Off) { return status; }
 
         spdlog::info("{} : Edge MPES readings (after):\n{}\n", m_Identity, vector1);
@@ -716,15 +717,15 @@ Eigen::VectorXd EdgeController::getSystematicOffsets() {
     return systematicOffsets;
 }
 
-std::pair<Eigen::VectorXd, Eigen::VectorXd> EdgeController::getCurrentReadings(bool read) {
+std::pair<Eigen::VectorXd, Eigen::VectorXd> EdgeController::getCurrentReadings() {
     setState(Device::DeviceState::Busy);
-    std::pair<Eigen::VectorXd, Eigen::VectorXd> currentReadings = __getCurrentReadings(read);
+    std::pair<Eigen::VectorXd, Eigen::VectorXd> currentReadings = __getCurrentReadings();
     setState(Device::DeviceState::On);
 
     return currentReadings;
 }
 
-std::pair<Eigen::VectorXd, Eigen::VectorXd> EdgeController::__getCurrentReadings(bool read)
+std::pair<Eigen::VectorXd, Eigen::VectorXd> EdgeController::__getCurrentReadings()
 {
     bool stop = false;
     // edge should have at least one sensor by definition -- otherwise it wouldn't be created.
@@ -755,7 +756,6 @@ std::pair<Eigen::VectorXd, Eigen::VectorXd> EdgeController::__getCurrentReadings
         }
 
         spdlog::debug("Reading MPES {}...", pMPES.at(nMPES)->getIdentity());
-        if (read) { std::dynamic_pointer_cast<MPESController>(pMPES.at(nMPES))->read(); }
         if (m_State == Device::DeviceState::Off) {
             stop = true;
             break;
@@ -773,4 +773,12 @@ std::pair<Eigen::VectorXd, Eigen::VectorXd> EdgeController::__getCurrentReadings
     currentReadingsSpotWidth.conservativeResize(2 * visibleMPES);
 
     return std::make_pair(currentReadings, currentReadingsSpotWidth);
+}
+
+UaStatus EdgeController::updateAllSensors() {
+    UaStatus status;
+    for (const auto &pMPES : m_pChildren.at(PAS_MPESType)) {
+        status = pMPES->operate(PAS_MPESType_Read);
+    }
+    return status;
 }

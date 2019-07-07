@@ -29,7 +29,7 @@ public:
 
     Eigen::MatrixXd getResponseMatrix(unsigned panelpos);
 
-    std::pair<Eigen::VectorXd, Eigen::VectorXd> getCurrentReadings(bool read = true);
+    std::pair<Eigen::VectorXd, Eigen::VectorXd> getCurrentReadings();
 
     Eigen::VectorXd getAlignedReadings();
 
@@ -44,7 +44,9 @@ private:
     UaStatus findMatrix(UaVariantArray args);
     UaStatus findSingleMatrix(unsigned panelIdx, double stepSize = 0.5);
 
-    std::pair<Eigen::VectorXd, Eigen::VectorXd> __getCurrentReadings(bool read = true);
+    std::pair<Eigen::VectorXd, Eigen::VectorXd> __getCurrentReadings();
+
+    UaStatus updateAllSensors();
 
     // temporarily hold calculated alignment motion
     Eigen::VectorXd m_Xcalculated;

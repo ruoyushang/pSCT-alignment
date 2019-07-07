@@ -105,7 +105,7 @@ private:
 
     UaStatus alignRing(int fixPanel, double alignFrac = 0.25, bool execute = false);
 
-    UaStatus moveToCoords(const Eigen::VectorXd &targetCoords, bool execute = false);
+    UaStatus moveToCoords(const Eigen::VectorXd &targetCoords, double alignFrac = 0.25, bool execute = false);
 
     // mirror coords -- x/y/z, xRot, yRot, zRot
     Eigen::VectorXd m_curCoords, m_curCoordsErr, m_sysOffsetsMPES;
@@ -167,6 +167,7 @@ private:
     Eigen::VectorXd m_Xcalculated;
     std::vector<std::shared_ptr<PanelController>> m_panelsToMove;
     unsigned m_previousCalculatedMethod;
+    bool m_setAlignFrac;
 };
 
 #endif // #ifndef __PASMIRROR_H__

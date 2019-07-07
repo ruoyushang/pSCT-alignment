@@ -239,13 +239,61 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
         }
         spdlog::debug("{} : PanelController::operate() : Moving actuators to lengths:\n{}\n\n", m_Identity,
                       targetLengths);
-        
+
         Eigen::VectorXd currentLengths = getActuatorLengths();
         deltaLengths = targetLengths - currentLengths;
         if (m_mode == "client" && checkForCollision(deltaLengths)) {
             return OpcUa_Bad;
+        } else {
+            status = m_pClient->callMethodAsync(m_pClient->getDeviceNodeId(m_Identity), UaString("MoveToLengths"),
+                                                lengthArgs);
         }
-        else {
+    } else if (offset == PAS_PanelType_MoveDeltaCoords) {
+        spdlog::debug(
+            "{} : PanelController::operate() : Current panel coordinates (x, y ,z xRot, yRot, zRot):\n{}\n {} {} {} {} {}\n",
+            m_Identity, m_curCoords[0], m_curCoords[1], m_curCoords[2], m_curCoords[3], m_curCoords[4], m_curCoords[5]);
+
+        double inputDeltaCoordinates[6];
+        for (int i = 0; i < 6; i++) {
+            UaVariant(args[i]).toDouble(inputDeltaCoordinates[i]);
+        }
+        spdlog::debug(
+            "{} : PanelController::operate() : Delta panel coordinates (x, y ,z xRot, yRot, zRot):\n{}\n {} {} {} {} {}\n",
+            m_Identity, inputDeltaCoordinates[0], inputDeltaCoordinates[1], inputDeltaCoordinates[2],
+            inputDeltaCoordinates[3],
+            inputDeltaCoordinates[4], inputDeltaCoordinates[5]);
+
+        double targetCoordinates[6];
+        for (int i = 0; i < 6; i++) {
+            targetCoordinates[i] = m_curCoords[i] + inputDeltaCoordinates[i];
+        }
+
+        spdlog::debug(
+            "{} : PanelController::operate() : Target panel coordinates (x, y ,z xRot, yRot, zRot):\n{}\n {} {} {} {} {}\n",
+            m_Identity, targetCoordinates[0], targetCoordinates[1], targetCoordinates[2], targetCoordinates[3],
+            targetCoordinates[4], targetCoordinates[5]);
+
+        // find actuator lengths needed
+        m_SP.ComputeActsFromPanel(targetCoordinates);
+
+        UaVariantArray lengthArgs;
+        lengthArgs.create(6);
+        UaVariant val;
+
+        // Get actuator lengths for motion
+        for (int i = 0; i < 6; i++) {
+            targetLengths(i) = (float) m_SP.GetActLengths()[i];
+            val.setFloat(targetLengths(i));
+            val.copyTo(&lengthArgs[i]);
+        }
+        spdlog::debug("{} : PanelController::operate() : Moving actuators to lengths:\n{}\n\n", m_Identity,
+                      targetLengths);
+
+        Eigen::VectorXd currentLengths = getActuatorLengths();
+        deltaLengths = targetLengths - currentLengths;
+        if (m_mode == "client" && checkForCollision(deltaLengths)) {
+            return OpcUa_Bad;
+        } else {
             status = m_pClient->callMethodAsync(m_pClient->getDeviceNodeId(m_Identity), UaString("MoveToLengths"),
                                                 lengthArgs);
         }

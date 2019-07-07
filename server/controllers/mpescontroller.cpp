@@ -162,6 +162,18 @@ UaStatus MPESController::getData(OpcUa_UInt32 offset, UaVariant &value) {
                 spdlog::trace("{} : Read Serial value => ({})", m_Identity, m_Identity.serialNumber);
                 value.setInt32(m_Identity.serialNumber);
                 break;
+            case PAS_MPESType_Exposure:
+                spdlog::trace("{} : Read Exposure value => ({})", m_Identity, position.exposure);
+                value.setInt32(position.exposure);
+                break;
+            case PAS_MPESType_RawTimestamp:
+                spdlog::trace("{} : Read Raw Timestamp value => ({})", m_Identity, position.timestamp);
+                value.setInt32(position.timestamp);
+                break;
+            case PAS_MPESType_Timestamp:
+                spdlog::trace("{} : Read Timestamp value => ({})", m_Identity, std::ctime(&position.timestamp));
+                value.setString(UaString(std::ctime(&position.timestamp)));
+                break;
             case PAS_MPESType_ErrorState: {
                 Device::ErrorState errorState = _getErrorState();
                 spdlog::trace("{} : Read ErrorState value => ({})", m_Identity, static_cast<int>(errorState));
