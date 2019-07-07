@@ -109,12 +109,12 @@ protected:
     public:
         explicit CustomBusyLock(Device *device) : m_Device(device) {
             spdlog::trace("{} : Blocking task started.", m_Device->getIdentity());
-            device->m_Busy = true;
+            m_Device->m_Busy = true;
         }
 
         ~CustomBusyLock() {
             spdlog::trace("{} : Blocking task completed.", m_Device->getIdentity());
-            D_device->m_Busy = false;
+            m_Device->m_Busy = false;
         };
 
     private:
