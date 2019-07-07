@@ -178,7 +178,7 @@ UaStatus MPESController::getData(OpcUa_UInt32 offset, UaVariant &value) {
                 break;
             case PAS_MPESType_Timestamp:
                 status = m_pClient->read({m_pClient->getDeviceNodeId(m_Identity) + "." + "Timestamp"}, &value);
-                spdlog::trace("{} : Read Timestamp value => ({})", m_Identity, value[0].Value.String);
+                spdlog::trace("{} : Read Timestamp value => ({})", m_Identity, UaString(value[0].Value.String).toUtf8());
                 break;
             default:
                 status = OpcUa_BadInvalidArgument;
