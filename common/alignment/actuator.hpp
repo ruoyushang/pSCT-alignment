@@ -44,6 +44,8 @@ public:
         return ActuatorBase::ERROR_DEFINITIONS.at(errorCode);
     }
 
+    int getNumErrors() override { return ActuatorBase::ERROR_DEFINITIONS.size(); }
+
     explicit ActuatorBase(Device::Identity identity, Device::DBInfo DBInfo = Device::DBInfo(),
                           const ASFInfo &ASFFileInfo = ASFInfo());
 

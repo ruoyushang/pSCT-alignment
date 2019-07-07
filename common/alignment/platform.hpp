@@ -28,6 +28,8 @@ public:
         return PlatformBase::ERROR_DEFINITIONS.at(errorCode);
     }
 
+    int getNumErrors() override { return PlatformBase::ERROR_DEFINITIONS.size(); }
+
     PlatformBase(Device::Identity identity, Device::DBInfo dbInfo);
 
     virtual ~PlatformBase() = default;

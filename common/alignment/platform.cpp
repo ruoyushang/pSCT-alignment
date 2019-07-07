@@ -76,7 +76,7 @@ PlatformBase::step(std::array<int, PlatformBase::NUM_ACTS_PER_PLATFORM> inputSte
         spdlog::error("{} : Platform::step() : Platform is off, motion aborted.", m_Identity);
         return inputSteps;
     }
-    MPESBase::CustomBusyLock lock = MPESBase::CustomBusyLock(this);
+    Device::CustomBusyLock lock = Device::CustomBusyLock(this);
     std::array<int, PlatformBase::NUM_ACTS_PER_PLATFORM> stepsRemaining = __step(inputSteps);
 
     return stepsRemaining;
@@ -108,13 +108,13 @@ void PlatformBase::probeEndStopAll(int direction) {
             direction);
         return;
     }
-    MPESBase::CustomBusyLock lock = MPESBase::CustomBusyLock(this);
+    Device::CustomBusyLock lock = Device::CustomBusyLock(this);
     __probeEndStopAll(direction);
 }
 
 std::array<float, PlatformBase::NUM_ACTS_PER_PLATFORM> PlatformBase::measureLengths()//public
 {
-    MPESBase::CustomBusyLock lock = MPESBase::CustomBusyLock(this);
+    Device::CustomBusyLock lock = Device::CustomBusyLock(this);
     std::array<float, PlatformBase::NUM_ACTS_PER_PLATFORM> currentLengths = __measureLengths();
     return currentLengths;
 }
@@ -130,7 +130,7 @@ std::array<float, PlatformBase::NUM_ACTS_PER_PLATFORM> PlatformBase::__measureLe
 
 std::array<float, PlatformBase::NUM_ACTS_PER_PLATFORM>
 PlatformBase::moveToLengths(std::array<float, PlatformBase::NUM_ACTS_PER_PLATFORM> targetLengths) {
-    MPESBase::CustomBusyLock lock = MPESBase::CustomBusyLock(this);
+    Device::CustomBusyLock lock = Device::CustomBusyLock(this);
 
     std::array<float, PlatformBase::NUM_ACTS_PER_PLATFORM> currentLengths = __measureLengths();
     std::array<float, PlatformBase::NUM_ACTS_PER_PLATFORM> deltaLengths{};
@@ -147,7 +147,7 @@ PlatformBase::moveToLengths(std::array<float, PlatformBase::NUM_ACTS_PER_PLATFOR
 
 std::array<float, PlatformBase::NUM_ACTS_PER_PLATFORM>
 PlatformBase::moveDeltaLengths(std::array<float, PlatformBase::NUM_ACTS_PER_PLATFORM> deltaLengths) {
-    MPESBase::CustomBusyLock lock = MPESBase::CustomBusyLock(this);
+    Device::CustomBusyLock lock = Device::CustomBusyLock(this);
     std::array<int, PlatformBase::NUM_ACTS_PER_PLATFORM> stepsToTake{};
 
     for (int i = 0; i < PlatformBase::NUM_ACTS_PER_PLATFORM; i++) {
@@ -504,7 +504,7 @@ void Platform::findHomeFromEndStopAll(int direction) {
             m_Identity, direction);
         return;
     }
-    MPESBase::CustomBusyLock lock = MPESBase::CustomBusyLock(this);
+    Device::CustomBusyLock lock = Device::CustomBusyLock(this);
     __probeEndStopAll(direction);
 
     if (getErrorState() == Device::ErrorState::FatalError) {
@@ -528,7 +528,7 @@ void Platform::findHomeFromEndStopAll(int direction) {
 
 bool Platform::probeHomeAll()
 {
-    MPESBase::CustomBusyLock lock = MPESBase::CustomBusyLock(this);
+    Device::CustomBusyLock lock = Device::CustomBusyLock(this);
     spdlog::info("{} : Platform : Probing Home for all Actuators...", m_Identity);
 
     __probeEndStopAll(1);
@@ -586,7 +586,7 @@ void Platform::disableSynchronousRectification()//public
 
 void Platform::turnOn() {
     spdlog::info("{} : Platform :: Turning on power to platform...", m_Identity);
-    MPESBase::CustomBusyLock lock = MPESBase::CustomBusyLock(this);
+    Device::CustomBusyLock lock = Device::CustomBusyLock(this);
     m_pCBC->powerUp();
     for (const auto& pMPES : m_MPES) {
     	pMPES->turnOn();
@@ -599,7 +599,7 @@ void Platform::turnOn() {
 
 void Platform::turnOff() {
     spdlog::info("{} : Platform :: Turning off power to platform...", m_Identity);
-    MPESBase::CustomBusyLock lock = MPESBase::CustomBusyLock(this);
+    Device::CustomBusyLock lock = Device::CustomBusyLock(this);
     m_pCBC->powerDown();
     m_On = false;
 }
@@ -736,7 +736,7 @@ void DummyPlatform::findHomeFromEndStopAll(int direction) {
             m_Identity, direction);
         return;
     }
-    MPESBase::CustomBusyLock lock = MPESBase::CustomBusyLock(this);
+    Device::CustomBusyLock lock = Device::CustomBusyLock(this);
     __probeEndStopAll(direction);
 
     if (getErrorState() == Device::ErrorState::FatalError) {
@@ -755,7 +755,7 @@ void DummyPlatform::findHomeFromEndStopAll(int direction) {
 }
 
 bool DummyPlatform::probeHomeAll() {
-    MPESBase::CustomBusyLock lock = MPESBase::CustomBusyLock(this);
+    Device::CustomBusyLock lock = Device::CustomBusyLock(this);
     spdlog::info("{} : DummyPlatform :: Probing Home for All Actuators", m_Identity);
     __probeEndStopAll(1);
     for (int i = 0; i < PlatformBase::NUM_ACTS_PER_PLATFORM; i++) {
@@ -816,7 +816,7 @@ void DummyPlatform::disableSynchronousRectification()//public
 
 void DummyPlatform::turnOn() {
     spdlog::info("{} : DummyPlatform::turnOff() : Turning on power to platform...", m_Identity);
-    MPESBase::CustomBusyLock lock = MPESBase::CustomBusyLock(this);
+    Device::CustomBusyLock lock = Device::CustomBusyLock(this);
     for (const auto &pMPES : m_MPES) {
         pMPES->turnOn();
     }
@@ -835,7 +835,7 @@ void DummyPlatform::emergencyStop() {
 
 void DummyPlatform::turnOff() {
     spdlog::info("{} : DummyPlatform::turnOff() : Turning off power to platform...", m_Identity);
-    MPESBase::CustomBusyLock lock = MPESBase::CustomBusyLock(this);
+    Device::CustomBusyLock lock = Device::CustomBusyLock(this);
     m_On = false;
 }
 
