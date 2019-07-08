@@ -142,8 +142,8 @@ UaStatus MPESController::getData(OpcUa_UInt32 offset, UaVariant &value) {
                 spdlog::trace("{} : Read yCentroidNominal value => ({})", m_Identity, position.yNominal);
                 value.setFloat(position.yNominal);
                 break;
-            case PAS_MPESType_Position.
-                spdlog::trace("{} : Read Position.value => ({})", m_Identity, m_Identity.position);
+            case PAS_MPESType_Position:
+                spdlog::trace("{} : Read Position value => ({})", m_Identity, m_Identity.position);
                 value.setInt32(m_Identity.position);
                 break;
             case PAS_MPESType_Serial:

@@ -239,7 +239,7 @@ int MPES::__updatePosition() {
     }
 
     m_Position.exposure = m_pDevice->GetExposure(); 
-    m_Position.timestamp = std::time(); 
+    m_Position.timestamp = std::time(0); 
 
     return static_cast<int>(m_Position.cleanedIntensity);
 }
