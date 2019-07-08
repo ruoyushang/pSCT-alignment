@@ -70,6 +70,8 @@ public:
     static constexpr float NOMINAL_INTENSITY = 150000.0;
     static constexpr float NOMINAL_SPOT_WIDTH = 10.0;
     static constexpr int MAX_EXPOSURE = 5000;
+    static constexpr int MAX_SET_EXPOSURE_TRIES = 5;
+
 
     void turnOn();
 
