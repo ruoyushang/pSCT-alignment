@@ -392,7 +392,30 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
         updateCoords(true);
         setState(Device::DeviceState::On);
     }
+    else if (offset == PAS_MirrorType_SavePosition) {
+        setState(Device::DeviceState::Busy);
+        // read out all individual positions
+        // and get global mirror coordinates
+        spdlog::info("{} : MirrorController::operate() : Calling savePosition()...", m_Identity);
+        updateCoords(true);
 
+        std::string saveFilePath = UaString(args[0].Value.String).toUtf8();        
+
+        savePosition(saveFilePath);
+        setState(Device::DeviceState::On);
+    }
+    else if (offset == PAS_MirrorType_LoadPosition) {
+        setState(Device::DeviceState::Busy);
+        // read out all individual positions
+        // and get global mirror coordinates
+        spdlog::info("{} : MirrorController::operate() : Calling loadPosition()...", m_Identity);
+        updateCoords(true);
+
+        std::string saveFilePath = UaString(args[0].Value.String).toUtf8();        
+        double alignFrac = args[1].Value.Boolean;
+        std::string command = UaString(args[2].Value.String).toUtf8();
+        setState(Device::DeviceState::On);
+    }
         /**********************************************************
          * Align the selected sector to selected sensors          *
          * ********************************************************/
@@ -477,7 +500,11 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
                            << position.yCentroid - position.yNominal << ")" << std::endl;
                     }
                 }
+                spdlog::info(
+                        "{}: Readings for Edge {}:\nCurrent position +/- Spot width [Aligned position] (Misalignment)\n\n{}\n\n",
+                        m_Identity, edge->getIdentity(), os.str());
             }
+            spdlog::info("{}: Done reading sensors.", m_Identity);
         }
         setState(Device::DeviceState::On);
     } else if (offset == PAS_MirrorType_ReadSensorsParallel) {
@@ -498,9 +525,9 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
             }
         }
 
-        spdlog::info("{}: Waiting 5 min. for all reads to complete...", m_Identity);
+        spdlog::info("{}: Waiting 10 min. for all reads to complete...", m_Identity);
  
-        UaThread::sleep(300);
+        UaThread::sleep(600);
 
         /**
         Device::DeviceState state;
@@ -545,6 +572,7 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
                 "{}: Readings for Edge {}:\nCurrent position +/- Spot width [Aligned position] (Misalignment)\n\n{}\n\n",
                 m_Identity, edge->getIdentity(), os.str());
         }
+        spdlog::info("{}: Done reading sensors.", m_Identity);
     } else if (offset == PAS_MirrorType_SelectAll) {
         spdlog::info("{} : MirrorController::operate() : Calling selectAll()...", m_Identity);
         m_selectedPanels.clear();
