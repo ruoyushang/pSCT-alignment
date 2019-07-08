@@ -498,6 +498,7 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
             }
         }
 
+        spdlog::info("{}: Waiting for all reads to complete...", m_Identity);
         Device::DeviceState state;
         getState(state);
         while (state == Device::DeviceState::Busy) {
@@ -506,6 +507,7 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
             getState(state);
         }
 
+        spdlog::info("{}: Retrieving all data from servers...\n", m_Identity);
         std::map<Device::Identity, MPESBase::Position> readings;
 
         for (auto it = getChildren(PAS_PanelType).begin(); it < getChildren(PAS_PanelType).end(); it++) {

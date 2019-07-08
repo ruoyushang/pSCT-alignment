@@ -88,7 +88,7 @@ MPESController::MPESController(Device::Identity identity, std::shared_ptr<Platfo
 
 /// @details Locks the shared mutex while retrieving the state.
 UaStatus MPESController::getState(Device::DeviceState &state) {
-    UaMutexLocker lock(&m_Mutex);
+    //UaMutexLocker lock(&m_Mutex);
     state = _getDeviceState();
     spdlog::trace("{} : Read device state => ({})", m_Identity, Device::deviceStateNames.at(state));
     return OpcUa_Good;
@@ -112,18 +112,6 @@ UaStatus MPESController::getData(OpcUa_UInt32 offset, UaVariant &value) {
     UaStatus status;
 
     if (MPESObject::VARIABLES.find(offset) != MPESObject::VARIABLES.end()) {
-        /**
-        if (offset != PAS_MPESType_Position && offset != PAS_MPESType_Serial && offset != PAS_MPESType_ErrorState &&
-            offset != PAS_MPESType_xCentroidNominal && offset != PAS_MPESType_yCentroidNominal) {
-            if (__expired()) {
-                spdlog::info("{} : MPES data is expired, calling read()...", m_ID);
-                status = operate(PAS_MPESType_Read, UaVariantArray());
-            }
-            if (status == OpcUa_BadInvalidState) {
-                return status;
-            }
-        }
-        */
         const MPESBase::Position &position = m_pPlatform->getMPESbyIdentity(m_Identity)->getPosition();
         switch (offset) {
             case PAS_MPESType_xCentroidAvg:
@@ -154,8 +142,8 @@ UaStatus MPESController::getData(OpcUa_UInt32 offset, UaVariant &value) {
                 spdlog::trace("{} : Read yCentroidNominal value => ({})", m_Identity, position.yNominal);
                 value.setFloat(position.yNominal);
                 break;
-            case PAS_MPESType_Position:
-                spdlog::trace("{} : Read Position value => ({})", m_Identity, m_Identity.position);
+            case PAS_MPESType_Position.
+                spdlog::trace("{} : Read Position.value => ({})", m_Identity, m_Identity.position);
                 value.setInt32(m_Identity.position);
                 break;
             case PAS_MPESType_Serial:

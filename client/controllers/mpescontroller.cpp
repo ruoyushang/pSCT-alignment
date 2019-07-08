@@ -225,6 +225,7 @@ UaStatus MPESController::operate(OpcUa_UInt32 offset, const UaVariantArray &args
     if (offset == PAS_MPESType_Read) {
         spdlog::info("{} : MPESController calling read()", m_Identity);
         status = read();
+        spdlog::info("{}: Done reading webcam.", m_Identity);
 
         if (!status.isGood()) {
             return status;
@@ -305,6 +306,7 @@ UaStatus MPESController::read() {
 
     if (!status.isGood()) {
         spdlog::error("{} : MPESController::read() : Call to read webcam failed.", m_Identity);
+        return status;
     }
 
     if (m_Mode == "client") {
@@ -314,7 +316,7 @@ UaStatus MPESController::read() {
             if (numAttempts <= MPESBase::MAX_READ_ATTEMPTS) {
                 spdlog::warn(
                     "{} : The image intensity ({}) differs from the nominal value ({}) by more than 20%. Will readjust exposure now.",
-                    m_Identity, position.cleanedIntensity, MPESBase::NOMINAL_INTENSITY);
+                    m_Identity, position.cleanedIntensity, std::to_string(MPESBase::NOMINAL_INTENSITY));
                 operate(PAS_MPESType_SetExposure, UaVariantArray());
                 numAttempts++;
                 // read the sensor again
@@ -393,17 +395,17 @@ MPESBase::Position MPESController::getPosition() {
         "xCentroidNominal",
         "yCentroidNominal",
         "Exposure",
-        "rawTimestamp"
+        "RawTimestamp"
     };
     std::transform(varstoread.begin(), varstoread.end(), varstoread.begin(),
                    [this](std::string &str) { return m_pClient->getDeviceNodeId(m_Identity) + "." + str; });
-    UaVariant valstoread[7];
+    UaVariant valstoread[9];
 
     status = m_pClient->read(varstoread, &valstoread[0]);
 
     MPESBase::Position data;
     if (!status.isGood()) {
-        spdlog::error("{} : MPESController::read() : OPC UA read failed.", m_Identity);
+        spdlog::error("{} : MPESController::getPosition() : OPC UA read failed.", m_Identity);
         return data;
     }
     valstoread[0].toFloat(data.xCentroid);

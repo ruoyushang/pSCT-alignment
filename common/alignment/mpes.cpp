@@ -200,6 +200,8 @@ int MPES::__updatePosition() {
     m_Position.xSpotWidth = -1.;
     m_Position.ySpotWidth = -1.;
     m_Position.cleanedIntensity = 0.;
+    m_Position.timestamp = -1;
+    m_Position.exposure = -1;
 
     // read sensor
     if (m_pImageSet->Capture()) {
@@ -235,6 +237,9 @@ int MPES::__updatePosition() {
         spdlog::error("{} : MPES reading of xCenter or yCenter = -1! Potentially lost beam...", m_Identity);
         setError(2);
     }
+
+    m_Position.exposure = m_pDevice->GetExposure(); 
+    m_Position.timestamp = std::time(); 
 
     return static_cast<int>(m_Position.cleanedIntensity);
 }
