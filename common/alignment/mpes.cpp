@@ -180,6 +180,15 @@ int MPES::__setExposure() {
         m_pDevice->SetExposure(
             (int) (m_pDevice->GetTargetIntensity() / intensity * ((float) m_pDevice->GetExposure())));
 
+        if (m_pDevice->GetExposure() >= MAX_EXPOSURE) {
+            spdlog::error("{} : MPES::setExposure() : Failed to set exposure, reached maximum limit of {}. Setting Error 1...",
+                          m_Identity, MAX_EXPOSURE);
+            m_pDevice->SetExposure(MAX_EXPOSURE);
+            setError(1);
+            intensity = -1;
+            break;
+        }
+
         if (++counter >= MAX_SET_EXPOSURE_TRIES) {
             spdlog::error("{} : MPES::setExposure() : Failed to set exposure in 5 attempts, setting Error 1...",
                           m_Identity);
@@ -187,15 +196,6 @@ int MPES::__setExposure() {
             intensity = -1;
             break;
         }
-        else if (m_pDevice->GetExposure() >= MAX_EXPOSURE) {
-            spdlog::error("{} : MPES::setExposure() : Failed to set exposure, reached maximum limit of {}. Setting Error 1...",
-                          m_Identity, MAX_EXPOSURE);
-            setExposure(MAX_EXPOSURE);
-            setError(1);
-            intensity = -1;
-            break;
-        }
-
     }
 
     spdlog::debug("{} : MPES::setExposure() : Done.", m_Identity);
