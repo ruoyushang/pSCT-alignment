@@ -225,9 +225,10 @@ UaStatus MPESController::operate(OpcUa_UInt32 offset, const UaVariantArray &args
     if (offset == PAS_MPESType_Read) {
         spdlog::info("{} : MPESController calling read()", m_Identity);
         status = read();
-        spdlog::info("{}: Done reading webcam.", m_Identity);
-
-        if (!status.isGood()) {
+        if (status.isGood()) {
+            spdlog::info("{}: Done reading webcam.", m_Identity);
+        }
+        else {
             return status;
         }
 
@@ -248,7 +249,7 @@ UaStatus MPESController::operate(OpcUa_UInt32 offset, const UaVariantArray &args
             data.ySpotWidth, std::to_string(MPESBase::NOMINAL_SPOT_WIDTH),
             data.cleanedIntensity, std::to_string(MPESBase::NOMINAL_INTENSITY),
             data.exposure,
-            data.timestamp);
+            std::ctime(&data.timestamp));
 
         if (m_Mode == "client") { // Record readings to database
             struct tm tstruct{};
@@ -370,7 +371,7 @@ Eigen::Vector2d MPESController::getAlignedReadings() {
     };
     std::transform(varstoread.begin(), varstoread.end(), varstoread.begin(),
                    [this](std::string &str) { return m_pClient->getDeviceNodeId(m_Identity) + "." + str; });
-    UaVariant valstoread[7];
+    UaVariant valstoread[2];
 
     m_pClient->read(varstoread, &valstoread[0]);
 

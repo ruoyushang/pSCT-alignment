@@ -290,7 +290,7 @@ int main(int argc, char* argv[])
 
     // Note that log directory must have been created beforehand
     auto file_sink = std::make_shared<spdlog::sinks::daily_file_sink_mt>(
-        std::string(getenv("HOME")) + std::string("/logs/p2pasclient_logs"), 2, 0,
+        std::string(getenv("HOME")) + std::string("/logs/p2pasclient_logs"), 0, 0,
         false); // Daily file created at 02:00
     file_sink->set_level(spdlog::level::trace); // always save all logging levels
     file_sink->set_pattern("[%c] [%n] [%l] [%s:%!:%#] %v");

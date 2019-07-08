@@ -40,6 +40,8 @@ public:
         return MPESBase::ERROR_DEFINITIONS.at(errorCode);
     }
 
+    int getNumErrors() override { return MPESBase::ERROR_DEFINITIONS.size(); }
+
     explicit MPESBase(Device::Identity identity) : Device::Device(std::move(identity)),
                                                    m_Calibrate(false) {}
 
