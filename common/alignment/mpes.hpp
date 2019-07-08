@@ -72,7 +72,6 @@ public:
     static constexpr int MAX_EXPOSURE = 5000;
     static constexpr int MAX_SET_EXPOSURE_TRIES = 5;
 
-
     void turnOn();
 
     virtual void turnOff() override = 0;
