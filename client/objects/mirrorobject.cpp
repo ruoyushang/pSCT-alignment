@@ -139,12 +139,12 @@ const std::map<OpcUa_UInt32, std::pair<std::string, std::vector<std::tuple<std::
                                                                            }}},
     {PAS_MirrorType_SavePosition,             {"SavePosition",             {
                                                                                std::make_tuple("Save File Name",
-                                                                                               UaNodeId(OpcUaId_UInt32),
+                                                                                               UaNodeId(OpcUaId_String),
                                                                                                "Absolute path to .mirrorPos file to save position to.")
                                                                            }}},
     {PAS_MirrorType_LoadPosition,             {"LoadPosition",             {
                                                                                std::make_tuple("Load File Name",
-                                                                                               UaNodeId(OpcUaId_UInt32),
+                                                                                               UaNodeId(OpcUaId_String),
                                                                                                "Absolute path to .mirrorPos file to load position from."),
                                                                                std::make_tuple("Align Fraction",
                                                                                                UaNodeId(OpcUaId_Double),
