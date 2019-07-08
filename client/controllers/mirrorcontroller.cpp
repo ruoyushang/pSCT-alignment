@@ -397,7 +397,7 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
         // read out all individual positions
         // and get global mirror coordinates
         spdlog::info("{} : MirrorController::operate() : Calling savePosition()...", m_Identity);
-        updateCoords(true);
+        updateCoords(false);
 
         std::string saveFilePath = UaString(args[0].Value.String).toUtf8();        
 
@@ -409,11 +409,12 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
         // read out all individual positions
         // and get global mirror coordinates
         spdlog::info("{} : MirrorController::operate() : Calling loadPosition()...", m_Identity);
-        updateCoords(true);
+        updateCoords(false);
 
         std::string saveFilePath = UaString(args[0].Value.String).toUtf8();        
         double alignFrac = args[1].Value.Boolean;
         std::string command = UaString(args[2].Value.String).toUtf8();
+        updateCoords(false);
         setState(Device::DeviceState::On);
     }
         /**********************************************************
@@ -639,7 +640,7 @@ UaStatus
 MirrorController::moveDeltaCoords(const Eigen::VectorXd &deltaMirrorCoords, double alignFrac, std::string command) {
     UaStatus status;
 
-    if (alignFrac > 1.0 || alignFrac <= 0.0) {
+    if (alignFrac > 1.01 || alignFrac <= 0.0) {
         spdlog::error(
             "{} : MirrorController::moveDeltaCoords(): Invalid choice of alignFrac ({}), should be between 0.0 and 1.0.",
             m_Identity, alignFrac);
@@ -801,7 +802,7 @@ UaStatus
 MirrorController::moveToCoords(const Eigen::VectorXd &targetMirrorCoords, double alignFrac, std::string command) {
     UaStatus status;
 
-    if (alignFrac > 1.0 || alignFrac <= 0.0) {
+    if (alignFrac > 1.01 || alignFrac <= 0.0) {
         spdlog::error(
             "{} : MirrorController::moveToCoords(): Invalid choice of alignFrac ({}), should be between 0.0 and 1.0.",
             m_Identity, alignFrac);
@@ -1328,7 +1329,7 @@ UaStatus MirrorController::alignSector(double alignFrac, std::string command) {
         return OpcUa_BadInvalidArgument;
     }
 
-    if (alignFrac > 1.0 || alignFrac <= 0.0) {
+    if (alignFrac > 1.01 || alignFrac <= 0.0) {
         spdlog::error(
             "{} : MirrorController::alignSector(): Invalid choice of alignFrac ({}), should be between 0.0 and 1.0.",
             m_Identity, alignFrac);
@@ -1608,7 +1609,7 @@ UaStatus MirrorController::alignRing(int fixPanel, double alignFrac, std::string
         return OpcUa_BadInvalidArgument;
     }
 
-    if (alignFrac > 1.0 || alignFrac <= 0.0) {
+    if (alignFrac > 1.01 || alignFrac <= 0.0) {
         spdlog::error(
             "{} : MirrorController::alignRing(): Invalid choice of alignFrac ({}), should be between 0.0 and 1.0.",
             m_Identity, alignFrac);
@@ -1935,9 +1936,9 @@ UaStatus MirrorController::savePosition(const std::string &saveFilePath) {
 
     // Place mirror name/Type and other information at top of file
     f << "Mirror: " << m_Identity << std::endl;
-    std::time_t now;
+    std::time_t now = std::time(0);
     f << "Timestamp: " << std::ctime(&now) << std::endl;
-    f << "Global coordinates: " << m_curCoords << std::endl;
+    f << "Global coordinates:\n " << m_curCoords << std::endl;
     f << SAVEFILE_DELIMITER << std::endl;
 
     for (unsigned panelPos : m_selectedPanels) {
@@ -1977,7 +1978,7 @@ UaStatus MirrorController::loadPosition(const std::string &loadFilePath, double 
         return OpcUa_Bad;
     }
 
-    if (alignFrac > 1.0 || alignFrac <= 0.0) {
+    if (alignFrac > 1.01 || alignFrac <= 0.0) {
         spdlog::error(
             "{} : MirrorController::loadPosition(): Invalid choice of alignFrac ({}), should be between 0.0 and 1.0.",
             m_Identity, alignFrac);
