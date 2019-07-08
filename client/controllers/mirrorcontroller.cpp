@@ -226,7 +226,7 @@ UaStatus MirrorController::getState(Device::DeviceState &state)
 {
     //UaMutexLocker lock(&m_mutex);
     Device::DeviceState s;
-    std::vector<unsigned> deviceTypesToCheck = {PAS_PanelType, PAS_MPESType};
+    std::vector<unsigned> deviceTypesToCheck = {PAS_MPESType};
     for (auto devType : deviceTypesToCheck) {
         for (const auto &child : getChildren(devType)) {
             child->getState(s);
@@ -236,7 +236,7 @@ UaStatus MirrorController::getState(Device::DeviceState &state)
         }
     }
     state = m_State;
-    spdlog::trace("{} : Read device state => ({})", m_Identity, Device::deviceStateNames.at(state));
+    spdlog::trace("{} : Read device state => ({})", m_Identity, (int)state);
     return OpcUa_Good;
 }
 
@@ -244,7 +244,7 @@ UaStatus MirrorController::setState(Device::DeviceState state)
 {
     //UaMutexLocker lock(&m_mutex);
     m_State = state;
-    spdlog::trace("{} : Setting device state => ({})", m_Identity, Device::deviceStateNames.at(state));
+    spdlog::trace("{} : Setting device state => ({})", m_Identity, (int)state);
     return OpcUa_Good;
 }
 
@@ -498,7 +498,11 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
             }
         }
 
-        spdlog::info("{}: Waiting for all reads to complete...", m_Identity);
+        spdlog::info("{}: Waiting 5 min. for all reads to complete...", m_Identity);
+ 
+        UaThread::sleep(300);
+
+        /**
         Device::DeviceState state;
         getState(state);
         while (state == Device::DeviceState::Busy) {
@@ -506,6 +510,7 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
             UaThread::sleep(5);
             getState(state);
         }
+        */
 
         spdlog::info("{}: Retrieving all data from servers...\n", m_Identity);
         std::map<Device::Identity, MPESBase::Position> readings;
@@ -540,7 +545,6 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
                 "{}: Readings for Edge {}:\nCurrent position +/- Spot width [Aligned position] (Misalignment)\n\n{}\n\n",
                 m_Identity, edge->getIdentity(), os.str());
         }
-        setState(Device::DeviceState::On);
     } else if (offset == PAS_MirrorType_SelectAll) {
         spdlog::info("{} : MirrorController::operate() : Calling selectAll()...", m_Identity);
         m_selectedPanels.clear();

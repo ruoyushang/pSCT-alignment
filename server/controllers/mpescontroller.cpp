@@ -90,7 +90,7 @@ MPESController::MPESController(Device::Identity identity, std::shared_ptr<Platfo
 UaStatus MPESController::getState(Device::DeviceState &state) {
     //UaMutexLocker lock(&m_Mutex);
     state = _getDeviceState();
-    spdlog::trace("{} : Read device state => ({})", m_Identity, Device::deviceStateNames.at(state));
+    spdlog::trace("{} : Read device state => ({})", m_Identity, (int)state);
     return OpcUa_Good;
 }
 

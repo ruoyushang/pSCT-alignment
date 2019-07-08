@@ -29,13 +29,13 @@ EdgeController::EdgeController(Device::Identity identity) : PasCompositeControll
 UaStatus EdgeController::getState(Device::DeviceState &state) {
     //UaMutexLocker lock(&m_mutex);
     state = m_State;
-    spdlog::trace("{} : Read device state => ({})", m_Identity, Device::deviceStateNames.at(state));
+    spdlog::trace("{} : Read device state => ({})", m_Identity, (int)state);
     return OpcUa_Good;
 }
 
 UaStatus EdgeController::setState(Device::DeviceState state) {
     m_State = state;
-    spdlog::trace("{} : Setting device state => ({})", m_Identity, Device::deviceStateNames.at(state));
+    spdlog::trace("{} : Setting device state => ({})", m_Identity, (int)state);
     return OpcUa_Good;
 }
 
