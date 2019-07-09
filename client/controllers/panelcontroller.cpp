@@ -212,7 +212,7 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
         }
     } else if (offset == PAS_PanelType_MoveToCoords) {
         spdlog::debug(
-            "{} : PanelController::operate() : Current panel coordinates (x, y ,z xRot, yRot, zRot):\n{}\n {} {} {} {} {}\n",
+            "{} : PanelController::operate() : Current panel coordinates (x, y ,z xRot, yRot, zRot):\n{} {} {} {} {} {}\n",
             m_Identity, m_curCoords[0], m_curCoords[1], m_curCoords[2], m_curCoords[3], m_curCoords[4], m_curCoords[5]);
 
         double inputCoordinates[6];
@@ -220,7 +220,7 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
             UaVariant(args[i]).toDouble(inputCoordinates[i]);
         }
         spdlog::debug(
-            "{} : PanelController::operate() : Target panel coordinates (x, y ,z xRot, yRot, zRot):\n{}\n {} {} {} {} {}\n",
+            "{} : PanelController::operate() : Target panel coordinates (x, y ,z xRot, yRot, zRot):\n{} {} {} {} {} {}\n",
             m_Identity, inputCoordinates[0], inputCoordinates[1], inputCoordinates[2], inputCoordinates[3],
             inputCoordinates[4], inputCoordinates[5]);
 
@@ -250,7 +250,7 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
         }
     } else if (offset == PAS_PanelType_MoveDeltaCoords) {
         spdlog::debug(
-            "{} : PanelController::operate() : Current panel coordinates (x, y ,z xRot, yRot, zRot):\n{}\n {} {} {} {} {}\n",
+            "{} : PanelController::operate() : Current panel coordinates (x, y ,z xRot, yRot, zRot):\n{} {} {} {} {} {}\n",
             m_Identity, m_curCoords[0], m_curCoords[1], m_curCoords[2], m_curCoords[3], m_curCoords[4], m_curCoords[5]);
 
         double inputDeltaCoordinates[6];
@@ -258,7 +258,7 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
             UaVariant(args[i]).toDouble(inputDeltaCoordinates[i]);
         }
         spdlog::debug(
-            "{} : PanelController::operate() : Delta panel coordinates (x, y ,z xRot, yRot, zRot):\n{}\n {} {} {} {} {}\n",
+            "{} : PanelController::operate() : Delta panel coordinates (x, y ,z xRot, yRot, zRot):\n{} {} {} {} {} {}\n",
             m_Identity, inputDeltaCoordinates[0], inputDeltaCoordinates[1], inputDeltaCoordinates[2],
             inputDeltaCoordinates[3],
             inputDeltaCoordinates[4], inputDeltaCoordinates[5]);
@@ -269,7 +269,7 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
         }
 
         spdlog::debug(
-            "{} : PanelController::operate() : Target panel coordinates (x, y ,z xRot, yRot, zRot):\n{}\n {} {} {} {} {}\n",
+            "{} : PanelController::operate() : Target panel coordinates (x, y ,z xRot, yRot, zRot):\n{} {} {} {} {} {}\n",
             m_Identity, targetCoordinates[0], targetCoordinates[1], targetCoordinates[2], targetCoordinates[3],
             targetCoordinates[4], targetCoordinates[5]);
 
@@ -300,7 +300,7 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
     } else if (offset == PAS_PanelType_ReadPosition) {
         status = updateCoords(false);
         spdlog::info(
-            "{} : PanelController::operate() : Current panel coordinates (x, y ,z xRot, yRot, zRot):\n{}\n {} {} {} {} {}\n",
+            "{} : PanelController::operate() : Current panel coordinates (x, y ,z xRot, yRot, zRot):\n{} {} {} {} {} {}\n",
             m_Identity, m_curCoords[0], m_curCoords[1], m_curCoords[2], m_curCoords[3], m_curCoords[4], m_curCoords[5]);
 
         spdlog::info("{} : PanelController::operate() : Current Actuator Lengths :\n{}\n", m_Identity,

@@ -107,7 +107,7 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
         if (_getDeviceState() == Device::DeviceState::Off)
             setState(Device::DeviceState::On);
 
-        spdlog::info("{} : PanelController calling moveDeltaLength with delta lengths:\n{}\n\n{}\n{}\n{}\n{}\n{}\n",
+        spdlog::info("{} : PanelController calling moveDeltaLength with delta lengths:\n{}\n{}\n{}\n{}\n{}\n{}\n",
                      m_Identity,
                      args[0].Value.Float,
                      args[1].Value.Float,
@@ -120,9 +120,8 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
         UaVariant var;
         float targetLength;
         for (int i = 0; i < 6; i++) {
-            status = m_pActuators.at(i)->getData(PAS_ACTType_CurrentLength, var);
             deltaLengths[i] = args[i].Value.Float;
-            targetLength = var[0].Value.Float + args[i].Value.Float;
+            targetLength =  m_pActuators.at(i)->measureLength() + deltaLengths(i);
             m_pActuators.at(i)->setTargetLength(targetLength);
         }
 
@@ -131,8 +130,7 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
         std::array<float, 6> finalLengths{};
         for (int i = 0; i < 6; i++) {
             m_pActuators.at(i)->setDeltaLength(deltaLengths[i]);
-            status = m_pActuators.at(i)->getData(PAS_ACTType_CurrentLength, var);
-            finalLengths[i] = var[0].Value.Float;
+            finalLengths[i] =  m_pActuators.at(i)->measureLength();
         }
 
         spdlog::info(

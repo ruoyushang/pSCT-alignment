@@ -159,7 +159,6 @@ bool ActuatorBase::readStatusFromASF(ActuatorStatus &RecordedPosition)
 {
     spdlog::trace("{} : Reading Status from ASF File at {}.", m_Identity, m_ASFPath);
     std::ifstream ASF(m_ASFPath);
-    //if(ASF.bad())//if file does not exist (or possibly other file issues not expected..)
     if (!ASF.good())//if file does not exist (or possibly other file issues not expected..)
     {
         spdlog::warn("{} : ASF file at path {} was bad. Assuming it did not exist and will create a default ASF file.",
@@ -234,8 +233,7 @@ void ActuatorBase::saveStatusToASF()//record all error codes to ASF.
     copyFile(m_ASFPath, m_OldASFPath);
     std::ofstream ASF(m_NewASFPath);
 
-    //if(ASF.bad())//or exist
-    if (!ASF.good())//or exist
+    if(ASF.bad())//or exist
     {
         spdlog::error("{} : Fatal Error (4): Cannot write to temporary ASF file ({}.log.new). ASF write failed.",
                       m_Identity, getSerialNumber());
@@ -243,11 +241,10 @@ void ActuatorBase::saveStatusToASF()//record all error codes to ASF.
         return;
     }
 
-    time_t now = time(nullptr);//0 for UTC., unix timing will overflow in 2038.
-    struct tm *ptm;
-    ptm = gmtime(&now);
-    ASF << ptm->tm_year + 1900 << " " << ptm->tm_mon + 1 << " " << ptm->tm_mday << " " << ptm->tm_hour << " "
-        << ptm->tm_min << " " << ptm->tm_sec << " ";
+    time_t now = time(0);//0 for UTC., unix timing will overflow in 2038.
+    struct tm = *gmtime(&now);
+    ASF << tm.tm_year + 1900 << " " << tm.tm_mon + 1 << " " << tm.tm_mday << " " << tm.tm_hour << " "
+        << tm.tm_min << " " << tm.tm_sec << " ";
     ASF << m_CurrentPosition.revolution << " " << m_CurrentPosition.angle;
     for (int i = 0; i < getNumErrors(); i++) {
         ASF << " " << (int)m_Errors[i];
@@ -835,6 +832,10 @@ void Actuator::probeHome()//method used to define home.
 
 int Actuator::__step(int steps) {
     spdlog::trace("{} : Stepping actuator {} steps...", m_Identity, steps);
+
+    if (getErrorState() == Device::ErrorState::FatalError) {
+        spdlog::trace("{}: Fatal error, disallowing motion.", m_Identity);
+    }
 
     loadStatusFromASF();
     recoverPosition();

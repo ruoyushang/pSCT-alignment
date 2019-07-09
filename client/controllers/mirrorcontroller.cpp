@@ -538,15 +538,48 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
 
         while (totalMPES > 0) {
             for (auto pair : MPESordering) {
-                if (pair.second.size() > 0) {
-                    spdlog::info("{}: Reading cycle {} and waiting 100 seconds...", m_Identity, i+1);
-                    pair.second.back()->readAsync();
-                    pair.second.pop_back();
+                auto mpesList = pair.second;
+                bool busy = false;
+                Device::DeviceState state;
+                for (auto mpes : mpesList)  { // Check if all mpes on panel are idle
+                    mpes->getState(state); 
+                    if (state == Device::DeviceState::Busy) {
+                        busy = true;
+                    }
+                    UaThread::sleep(0.2);
+                }
+                
+                if (totalMPES == 0) {
+                    break;
+                }
 
+                if (!busy) {
+                    mpesList.back()->readAsync();
+                    mpesList.pop_back();
+                    totalMPES--;
+                    spdlog::info("{}: Reading MPES {} on Panel {} ({} remaining)...", m_Identity, mpesList.back()->getIdentity(), pair.first->getIdentity(), totalMPES);
                 }
             };
-            UaThread::sleep(1);
         }
+
+        spdlog::info("{}: Waiting for last reads to finish...", m_Identity);
+
+        bool stillReading = true;
+        while (stillReading) {
+            stillReading = false;
+            Device::DeviceState state;
+            for (auto mpes : getChildren(PAS_MPESType)) {
+                if (m_selectedMPES.find(mpes->getIdentity().serialNumber) != m_selectedMPES.end()) {
+                    mpes->getState(state);
+                    if (state == Device::DeviceState::Busy) {
+                        stillReading = true;
+                    }
+                    UaThread::sleep(0.2);
+                }
+            };
+        }
+
+        spdlog::info("{}: Done! All webcams read.", m_Identity);
 
         /**
         Device::DeviceState state;
@@ -687,7 +720,6 @@ MirrorController::moveDeltaCoords(const Eigen::VectorXd &deltaMirrorCoords, doub
         int j = 0;
         for (const auto &pPanel : m_pChildren.at(PAS_PanelType)) {
             positionNum = pPanel->getIdentity().position;
-            std::dynamic_pointer_cast<PanelController>(pPanel)->operate(PAS_PanelType_ReadPosition);
             // for this panel, we get PRF pad coords, transform them to TRF,
             // move them in TRF, transform back to PRF, and then compute new ACT lengths
             // based on the new pad coords. so simple!
@@ -711,15 +743,6 @@ MirrorController::moveDeltaCoords(const Eigen::VectorXd &deltaMirrorCoords, doub
             currentActLengths = std::dynamic_pointer_cast<PanelController>(pPanel)->getActuatorLengths();
 
             deltaActLengths = targetActLengths - currentActLengths;
-            spdlog::info("{} : Panel {} calculated actuator motion:\n{}\n", m_Identity, pPanel->getIdentity(),
-                         deltaActLengths);
-
-            /**
-            if (std::dynamic_pointer_cast<PanelController>(pPanel)->checkForCollision(deltaActLengths)) {
-                return OpcUa_Bad;
-            }
-             */
-
             panelsToMove.push_back(std::dynamic_pointer_cast<PanelController>(pPanel));
             X.segment(j, 6) = deltaActLengths;
             j += 6;
@@ -750,9 +773,14 @@ MirrorController::moveDeltaCoords(const Eigen::VectorXd &deltaMirrorCoords, doub
 
         unsigned k = 0;
         for (auto &pCurPanel : m_panelsToMove) {
+            std::ostringstream os;
+            for (int i=0; i < 6; i++) {
+                os << pCurPanel->getChildren(PAS_ACTType).at(i)->getIdentity() << ": " << X(k+i) << std::endl;
+            }
+            
             // print out to make sure
-            spdlog::debug("{} : Will move Panel {} actuators by:\n{}\n", m_Identity, pCurPanel->getIdentity(),
-                          X.segment(k, 6));
+            spdlog::info("{} : Will move Panel {} actuators by:\n{}\n", m_Identity, pCurPanel->getIdentity(),
+                          os.str());
             k += 6;
         }
 
@@ -763,7 +791,7 @@ MirrorController::moveDeltaCoords(const Eigen::VectorXd &deltaMirrorCoords, doub
         } else {
             spdlog::info(
                 "{}: The largest requested actuator motion has magnitude {}. This is small so the motion is most likely safe.",
-                m_Identity);
+                m_Identity, maxChange);
         }
 
         // Do collision checks
@@ -788,20 +816,29 @@ MirrorController::moveDeltaCoords(const Eigen::VectorXd &deltaMirrorCoords, doub
                 m_Identity, alignFrac, m_lastSetAlignFrac);
             return OpcUa_Bad;
         } else {
+            Eigen::VectorXd X = m_Xcalculated * alignFrac;
+
+            std::map <std::shared_ptr<PanelController>, UaVariantArray> args;
+
             unsigned j = 0;
-            for (auto &pCurPanel : m_panelsToMove) {
+            for (auto pCurPanel : m_panelsToMove) {
                 auto nACT = pCurPanel->getActuatorCount();
                 UaVariantArray deltas;
                 deltas.create(nACT);
                 UaVariant val;
                 for (unsigned i = 0; i < nACT; i++) {
-                    val.setFloat(m_Xcalculated(j++));
+                    val.setFloat(X(j++));
                     val.copyTo(&deltas[i]);
                 }
-                status = pCurPanel->__moveDeltaLengths(deltas);
+                args[pCurPanel] = deltas;
+            }
+
+            for (auto pair : args) {
+                status = pair.first->__moveDeltaLengths(pair.second);
                 if (!status.isGood()) { return status; }
                 if (m_State == Device::DeviceState::Off) { break; }
             }
+
             m_Xcalculated.setZero(); // reset calculated motion
             m_panelsToMove.clear();
             m_previousCalculatedMethod = 0;
@@ -849,7 +886,6 @@ MirrorController::moveToCoords(const Eigen::VectorXd &targetMirrorCoords, double
         int j = 0;
         for (const auto &pPanel : m_pChildren.at(PAS_PanelType)) {
             positionNum = pPanel->getIdentity().position;
-            std::dynamic_pointer_cast<PanelController>(pPanel)->operate(PAS_PanelType_ReadPosition);
             // for this panel, we get PRF pad coords, transform them to TRF,
             // move them in TRF, transform back to PRF, and then compute new ACT lengths
             // based on the new pad coords. so simple!
@@ -1492,9 +1528,6 @@ UaStatus MirrorController::alignSector(double alignFrac, std::string command) {
         spdlog::info("{} : Full calculated motion is:\n{}\n", m_Identity,
                      X);
 
-        X *= alignFrac;
-        spdlog::info("{}: Selected align fraction of {}.", m_Identity);
-
         double maxChange = X.cwiseAbs().maxCoeff();
 
         if (maxChange > 2.5) {
@@ -1504,25 +1537,15 @@ UaStatus MirrorController::alignSector(double alignFrac, std::string command) {
         } else {
             spdlog::info(
                 "{}: The largest requested actuator motion has magnitude {}. This is small, so the motion is most likely safe. You can review the full logfile output for a detailed breakdown of the motion before proceeding.",
-                m_Identity);
+                m_Identity, maxChange);
         }
 
         unsigned j = 0;
         Eigen::VectorXd deltaLengths(6);
         for (auto &pCurPanel : panelsToMove) {
-            // print out to make sure
-            spdlog::debug("{} : Will move Panel {} actuators by:\n{}\n", m_Identity, pCurPanel->getIdentity(),
-                          X.segment(j, 6));
-
             for (unsigned i = 0; i < 6; i++) {
                 deltaLengths(i) = X(j++);
             }
-
-            /**
-            if(pCurPanel->checkForCollision(deltaLengths)) {
-                return OpcUa_Bad;
-            }
-             */
         }
         m_Xcalculated = X; // set calculated motion
         m_panelsToMove = panelsToMove;
@@ -1548,9 +1571,14 @@ UaStatus MirrorController::alignSector(double alignFrac, std::string command) {
 
         unsigned k = 0;
         for (auto &pCurPanel : m_panelsToMove) {
+            std::ostringstream os;
+            for (int i=0; i < 6; i++) {
+                os << pCurPanel->getChildren(PAS_ACTType).at(i)->getIdentity() << ": " << X(k+i) << std::endl;
+            }
+            
             // print out to make sure
-            spdlog::debug("{} : Will move Panel {} actuators by:\n{}\n", m_Identity, pCurPanel->getIdentity(),
-                          X.segment(k, 6));
+            spdlog::info("{} : Will move Panel {} actuators by:\n{}\n", m_Identity, pCurPanel->getIdentity(),
+                          os.str());
             k += 6;
         }
 
@@ -1561,14 +1589,14 @@ UaStatus MirrorController::alignSector(double alignFrac, std::string command) {
         } else {
             spdlog::info(
                 "{}: The largest requested actuator motion has magnitude {}. This is small so the motion is most likely safe.",
-                m_Identity);
+                m_Identity, maxChange);
         }
 
         // Do collision checks
         spdlog::info(
             "{}: Done! All collision checks passed. To execute the motion, call the command again with command=execute.",
             m_Identity);
-    } else if (command == "execute") {
+    } else if (command == "execute") {             
         if (m_Xcalculated.isZero(0) || m_previousCalculatedMethod != PAS_MirrorType_AlignSector) {
             spdlog::error(
                 "{} : No calculated motion found. Call Mirror.AlignSector with command=calculate once first to calculate the motion to execute.",
@@ -1586,20 +1614,29 @@ UaStatus MirrorController::alignSector(double alignFrac, std::string command) {
                 m_Identity, alignFrac, m_lastSetAlignFrac);
             return OpcUa_Bad;
         } else {
+            Eigen::VectorXd X = m_Xcalculated * alignFrac;
+
+            std::map <std::shared_ptr<PanelController>, UaVariantArray> args;
+
             unsigned j = 0;
-            for (auto &pCurPanel : m_panelsToMove) {
+            for (auto pCurPanel : m_panelsToMove) {
                 auto nACT = pCurPanel->getActuatorCount();
                 UaVariantArray deltas;
                 deltas.create(nACT);
                 UaVariant val;
                 for (unsigned i = 0; i < nACT; i++) {
-                    val.setFloat(m_Xcalculated(j++));
+                    val.setFloat(X(j++));
                     val.copyTo(&deltas[i]);
                 }
-                status = pCurPanel->__moveDeltaLengths(deltas);
+                args[pCurPanel] = deltas;
+            }
+
+            for (auto pair : args) {
+                status = pair.first->__moveDeltaLengths(pair.second);
                 if (!status.isGood()) { return status; }
                 if (m_State == Device::DeviceState::Off) { break; }
             }
+
             m_Xcalculated.setZero(); // reset calculated motion
             m_panelsToMove.clear();
             m_previousCalculatedMethod = 0;
@@ -1881,7 +1918,7 @@ UaStatus MirrorController::alignRing(int fixPanel, double alignFrac, std::string
         } else {
             spdlog::info(
                 "{}: The largest requested actuator motion has magnitude {}. This is small so the motion is most likely safe.",
-                m_Identity);
+                m_Identity, maxChange);
         }
 
         // Do collision checks
@@ -2122,7 +2159,7 @@ UaStatus MirrorController::loadPosition(const std::string &loadFilePath, double 
         } else {
             spdlog::info(
                 "{}: The largest requested actuator motion has magnitude {}. This is small so the motion is most likely safe.",
-                m_Identity);
+                m_Identity, maxChange);
         }
 
         // Do collision checks
