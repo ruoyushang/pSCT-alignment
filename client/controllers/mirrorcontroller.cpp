@@ -359,7 +359,7 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
             UaVariant(args[i]).toDouble(targetMirrorCoords[i]);
         }
 
-        double alignFrac = args[6].Value.Boolean;
+        double alignFrac = args[6].Value.Double;
         std::string command = UaString(args[7].Value.String).toUtf8();
 
         status = moveToCoords(targetMirrorCoords, alignFrac, command);
@@ -374,7 +374,7 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
             UaVariant(args[i]).toDouble(deltaMirrorCoords[i]);
         }
 
-        double alignFrac = args[6].Value.Boolean;
+        double alignFrac = args[6].Value.Double;
         std::string command = UaString(args[7].Value.String).toUtf8();
 
         status = moveDeltaCoords(deltaMirrorCoords, alignFrac, command);
@@ -412,7 +412,7 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
         updateCoords(false);
 
         std::string saveFilePath = UaString(args[0].Value.String).toUtf8();        
-        double alignFrac = args[1].Value.Boolean;
+        double alignFrac = args[1].Value.Double;
         std::string command = UaString(args[2].Value.String).toUtf8();
         updateCoords(false);
         setState(Device::DeviceState::On);
@@ -515,20 +515,37 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
             spdlog::error(
                 "{} : MirrorController::operate() : No MPES selected. Nothing to do, method call aborted.",
                 m_Identity);
-        } else {
-            for (auto it = getChildren(PAS_PanelType).begin(); it < getChildren(PAS_PanelType).end(); it++) {
-                for (const auto &mpes : std::dynamic_pointer_cast<PanelController>(*it)->getChildren(
-                    PAS_MPESType)) {
-                    if (m_selectedMPES.find(mpes->getIdentity().serialNumber) != m_selectedMPES.end()) {
-                        std::dynamic_pointer_cast<MPESController>(mpes)->readAsync();
-                    }
+            return OpcUa_Good;
+        }
+
+        std::map<Device::Identity, std::vector<std::shared_ptr<MPESController>>> MPESordering;
+        for (auto it = getChildren(PAS_PanelType).begin(); it < getChildren(PAS_PanelType).end(); it++) {
+            MPESordering[(*it)->getIdentity()] = std::vector<std::shared_ptr<MPESController>>();
+            for (const auto &mpes : std::dynamic_pointer_cast<PanelController>(*it)->getChildren(
+                PAS_MPESType)) {
+                if (m_selectedMPES.find(mpes->getIdentity().serialNumber) != m_selectedMPES.end()) {
+                    MPESordering[(*it)->getIdentity()].push_back(std::dynamic_pointer_cast<MPESController>(mpes));
                 }
             }
         }
 
-        spdlog::info("{}: Waiting 10 min. for all reads to complete...", m_Identity);
- 
-        UaThread::sleep(600);
+        int max = 0;
+        for (auto pair : MPESordering) {
+            if (pair.second.size() > max) { max = pair.second.size(); }
+        };
+
+        spdlog::info("{}: Largest number of MPES on a single panel is {}. Starting read cycles...", m_Identity, max);
+
+        for (int i = 0; i < max; i++) {
+            spdlog::info("{}: Reading cycle {} and waiting 100 seconds...", m_Identity, i+1);
+            for (auto pair : MPESordering) {
+                if (pair.second.size() > 0) {
+                    pair.second.back()->readAsync();
+                    pair.second.pop_back();
+                }
+            };
+            UaThread::sleep(100);
+        }
 
         /**
         Device::DeviceState state;
@@ -1929,10 +1946,14 @@ UaStatus MirrorController::savePosition(const std::string &saveFilePath) {
         return OpcUa_Bad;
     }
 
-    updateCoords(true);
-
     // Create output file stream
     std::ofstream f(saveFilePath);
+
+    if (f.bad()) {
+        spdlog::error("{}: Cannot write to file at {}. Aborting...", m_Identity, saveFilePath);
+        f.close();
+        return OpcUa_Bad;
+    }
 
     // Place mirror name/Type and other information at top of file
     f << "Mirror: " << m_Identity << std::endl;

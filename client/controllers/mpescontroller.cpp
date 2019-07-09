@@ -234,6 +234,24 @@ UaStatus MPESController::operate(OpcUa_UInt32 offset, const UaVariantArray &args
         }
 
         MPESBase::Position data = getPosition();
+        
+        if (m_Mode == "subclient") {
+            MPESBase::Position position = getPosition();
+            if (fabs(position.cleanedIntensity - MPESBase::NOMINAL_INTENSITY) / MPESBase::NOMINAL_INTENSITY > 0.2) {
+                spdlog::warn(
+                    "{} : The image intensity ({}) differs from the nominal value ({}) by more than 20%. Will readjust exposure now (up to 5 times).",
+                    m_Identity, position.cleanedIntensity, std::to_string(MPESBase::NOMINAL_INTENSITY));
+                operate(PAS_MPESType_SetExposure, UaVariantArray());
+                UaThread::sleep(5);
+                spdlog::info("{}: Reading webcam again...", m_Identity);
+                status = read();
+            }
+        }
+        
+        if (!status.isGood()) {
+            return status;
+        }
+
         spdlog::info(
             "Reading MPES {}:\n"
             "x (nominal): {} ({})\n"
@@ -309,18 +327,6 @@ UaStatus MPESController::read() {
     if (!status.isGood()) {
         spdlog::error("{} : MPESController::read() : Call to read webcam failed.", m_Identity);
         return status;
-    }
-
-    if (m_Mode == "subclient") {
-        MPESBase::Position position = getPosition();
-        if (fabs(position.cleanedIntensity - MPESBase::NOMINAL_INTENSITY) / MPESBase::NOMINAL_INTENSITY > 0.2) {
-            spdlog::warn(
-                "{} : The image intensity ({}) differs from the nominal value ({}) by more than 20%. Will readjust exposure now (up to 5 times).",
-                m_Identity, position.cleanedIntensity, std::to_string(MPESBase::NOMINAL_INTENSITY));
-            operate(PAS_MPESType_SetExposure, UaVariantArray());
-            spdlog::info("{}: Reading webcam again...", m_Identity);
-            status = m_pClient->callMethod(m_pClient->getDeviceNodeId(m_Identity), UaString("Read"), UaVariantArray());
-        }
     }
 
     return status;
