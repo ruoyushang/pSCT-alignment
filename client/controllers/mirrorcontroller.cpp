@@ -518,33 +518,34 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
             return OpcUa_Good;
         }
 
-        std::map<Device::Identity, std::vector<std::shared_ptr<MPESController>>> MPESordering;
+        std::map<std::shared_ptr<PanelController>, std::vector<std::shared_ptr<MPESController>>> MPESordering;
         for (auto it = getChildren(PAS_PanelType).begin(); it < getChildren(PAS_PanelType).end(); it++) {
-            MPESordering[(*it)->getIdentity()] = std::vector<std::shared_ptr<MPESController>>();
+            MPESordering[std::dynamic_pointer_cast<PanelController>(*it)] = std::vector<std::shared_ptr<MPESController>>();
             for (const auto &mpes : std::dynamic_pointer_cast<PanelController>(*it)->getChildren(
                 PAS_MPESType)) {
                 if (m_selectedMPES.find(mpes->getIdentity().serialNumber) != m_selectedMPES.end()) {
-                    MPESordering[(*it)->getIdentity()].push_back(std::dynamic_pointer_cast<MPESController>(mpes));
+                    MPESordering[std::dynamic_pointer_cast<PanelController>(*it)].push_back(std::dynamic_pointer_cast<MPESController>(mpes));
                 }
             }
         }
 
-        int max = 0;
+        int totalMPES = 0;
         for (auto pair : MPESordering) {
-            if (pair.second.size() > max) { max = pair.second.size(); }
+            totalMPES += pair.second.size();
         };
 
-        spdlog::info("{}: Largest number of MPES on a single panel is {}. Starting read cycles...", m_Identity, max);
+        spdlog::info("{}: Total number of MPES requested to read is {}. Starting reads...", m_Identity, totalMPES);
 
-        for (int i = 0; i < max; i++) {
-            spdlog::info("{}: Reading cycle {} and waiting 100 seconds...", m_Identity, i+1);
+        while (totalMPES > 0) {
             for (auto pair : MPESordering) {
                 if (pair.second.size() > 0) {
+                    spdlog::info("{}: Reading cycle {} and waiting 100 seconds...", m_Identity, i+1);
                     pair.second.back()->readAsync();
                     pair.second.pop_back();
+
                 }
             };
-            UaThread::sleep(100);
+            UaThread::sleep(1);
         }
 
         /**
