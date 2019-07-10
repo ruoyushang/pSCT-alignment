@@ -21,7 +21,7 @@ class MPESBase : public Device
 public:
     struct Position {
         Position() : xCentroid(-1), yCentroid(-1), xSpotWidth(-1), ySpotWidth(-1), cleanedIntensity(0), xNominal(-1),
-                     yNominal(-1) {}
+                     yNominal(-1), exposure(-1), timestamp(-1) {}
 
         float xCentroid;
         float yCentroid;
@@ -30,6 +30,8 @@ public:
         float cleanedIntensity;
         float xNominal;
         float yNominal;
+        int exposure;
+        std::time_t timestamp;
     };
 
     static const std::vector<Device::ErrorDefinition> ERROR_DEFINITIONS;
@@ -37,6 +39,8 @@ public:
     Device::ErrorDefinition getErrorCodeDefinition(int errorCode) override {
         return MPESBase::ERROR_DEFINITIONS.at(errorCode);
     }
+
+    int getNumErrors() override { return MPESBase::ERROR_DEFINITIONS.size(); }
 
     explicit MPESBase(Device::Identity identity) : Device::Device(std::move(identity)),
                                                    m_Calibrate(false) {}
@@ -63,9 +67,10 @@ public:
     static const std::string CAL2D_CONSTANTS_DIR_PATH;
 
 
-    static constexpr int NOMINAL_INTENSITY = 150000;
+    static constexpr float NOMINAL_INTENSITY = 150000.0;
     static constexpr float NOMINAL_SPOT_WIDTH = 10.0;
-    static constexpr int MAX_READ_ATTEMPTS = 1;
+    static constexpr int MAX_EXPOSURE = 5000;
+    static constexpr int MAX_SET_EXPOSURE_TRIES = 5;
 
     void turnOn();
 

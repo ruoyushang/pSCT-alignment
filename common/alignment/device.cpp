@@ -1,5 +1,6 @@
 #include "common/alignment/device.hpp"
 #include <tuple>
+#include <sstream>
 
 #include "common/cbccode/cbc.hpp"
 
@@ -109,4 +110,51 @@ void Device::clearErrors() {
     for (int i = 0; i < getNumErrors(); i++) {
         m_Errors[i] = false;
     }
+}
+
+Device::Identity Device::parseIdentity(std::string identityString) {
+    Device::Identity id;
+
+    // Strip leading and trailing parentheses
+    if (identityString.at(0) == '(') {
+        identityString = identityString.substr(1, identityString.size() - 1);
+    } else {
+        spdlog::error("Does not match expected Identity format, first character is not '('");
+        return id;
+    }
+
+    if (identityString.at(identityString.size() - 1) == ')') {
+        identityString = identityString.substr(0, identityString.size() - 2);
+    } else {
+        spdlog::error("Does not match expected Identity format, last character is not ')'");
+        return id;
+    }
+
+
+    // Vector of string to save tokens
+    std::vector<std::string> tokens;
+
+    // stringstream class check1
+    std::stringstream ss(identityString);
+
+    std::string temp;
+
+    // Tokenizing w.r.t. space ' '
+    while (getline(ss, temp, ',')) {
+        tokens.push_back(temp);
+    }
+
+    if (tokens.size() != 4) {
+        spdlog::error("Does not match expected Identity format, found {} components instead of the desired 4.",
+                      tokens.size());
+        return id;
+    }
+
+    // Printing the token vector
+    id.serialNumber = std::stoi(tokens[0]);
+    id.eAddress = tokens[1];
+    id.name = tokens[2];
+    id.serialNumber = std::stoi(tokens[3]);
+
+    return id;
 }

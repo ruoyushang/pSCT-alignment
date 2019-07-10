@@ -5,7 +5,7 @@
 
 #include "server/controllers/mpescontroller.hpp"
 
-
+#include <ctime>
 #include <memory>
 
 #include "uabase/statuscode.h"
@@ -88,9 +88,9 @@ MPESController::MPESController(Device::Identity identity, std::shared_ptr<Platfo
 
 /// @details Locks the shared mutex while retrieving the state.
 UaStatus MPESController::getState(Device::DeviceState &state) {
-    UaMutexLocker lock(&m_Mutex);
+    //UaMutexLocker lock(&m_Mutex);
     state = _getDeviceState();
-    spdlog::trace("{} : Read device state => ({})", m_Identity, Device::deviceStateNames.at(state));
+    spdlog::trace("{} : Read device state => ({})", m_Identity, (int)state);
     return OpcUa_Good;
 }
 
@@ -112,18 +112,6 @@ UaStatus MPESController::getData(OpcUa_UInt32 offset, UaVariant &value) {
     UaStatus status;
 
     if (MPESObject::VARIABLES.find(offset) != MPESObject::VARIABLES.end()) {
-        /**
-        if (offset != PAS_MPESType_Position && offset != PAS_MPESType_Serial && offset != PAS_MPESType_ErrorState &&
-            offset != PAS_MPESType_xCentroidNominal && offset != PAS_MPESType_yCentroidNominal) {
-            if (__expired()) {
-                spdlog::info("{} : MPES data is expired, calling read()...", m_ID);
-                status = operate(PAS_MPESType_Read, UaVariantArray());
-            }
-            if (status == OpcUa_BadInvalidState) {
-                return status;
-            }
-        }
-        */
         const MPESBase::Position &position = m_pPlatform->getMPESbyIdentity(m_Identity)->getPosition();
         switch (offset) {
             case PAS_MPESType_xCentroidAvg:
@@ -161,6 +149,18 @@ UaStatus MPESController::getData(OpcUa_UInt32 offset, UaVariant &value) {
             case PAS_MPESType_Serial:
                 spdlog::trace("{} : Read Serial value => ({})", m_Identity, m_Identity.serialNumber);
                 value.setInt32(m_Identity.serialNumber);
+                break;
+            case PAS_MPESType_Exposure:
+                spdlog::trace("{} : Read Exposure value => ({})", m_Identity, position.exposure);
+                value.setInt32(position.exposure);
+                break;
+            case PAS_MPESType_RawTimestamp:
+                spdlog::trace("{} : Read Raw Timestamp value => ({})", m_Identity, position.timestamp);
+                value.setInt32(position.timestamp);
+                break;
+            case PAS_MPESType_Timestamp:
+                spdlog::trace("{} : Read Timestamp value => ({})", m_Identity, std::ctime(&position.timestamp));
+                value.setString(UaString(std::ctime(&position.timestamp)));
                 break;
             case PAS_MPESType_ErrorState: {
                 Device::ErrorState errorState = _getErrorState();
@@ -288,23 +288,5 @@ UaStatus MPESController::read() {
     spdlog::trace("{} : Updating MPES position data (reading webcam) ... ", m_Identity);
     m_pPlatform->getMPESbyIdentity(m_Identity)->updatePosition();
     m_LastUpdateTime = TIME::now();
-
-    MPESBase::Position position = m_pPlatform->getMPESbyIdentity(m_Identity)->getPosition();
-
-    int numAttempts = 1;
-
-    if (fabs(position.cleanedIntensity - MPESBase::NOMINAL_INTENSITY) / MPESBase::NOMINAL_INTENSITY > 0.2) {
-        if (numAttempts <= MPESBase::MAX_READ_ATTEMPTS) {
-            spdlog::warn(
-                "{} : The image intensity ({}) differs from the nominal value ({}) by more than 20%. Will readjust exposure now.",
-                m_Identity, position.cleanedIntensity, MPESBase::NOMINAL_INTENSITY);
-            operate(PAS_MPESType_SetExposure, UaVariantArray());
-            numAttempts++;
-            // read the sensor again
-            status = read();
-        } else {
-            numAttempts = 0;
-        }
-    }
     return status;
 }

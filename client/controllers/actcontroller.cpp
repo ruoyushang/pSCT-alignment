@@ -39,7 +39,7 @@ UaStatus ActController::getState(Device::DeviceState &state) {
     value.toInt32(v);
 
     state = static_cast<Device::DeviceState>(v);
-    spdlog::trace("{} : Read device state => ({})", m_Identity, Device::deviceStateNames.at(state));
+    //spdlog::trace("{} : Read device state => ({})", m_Identity, Device::deviceStateNames.at(state));
 
     return status;
 }

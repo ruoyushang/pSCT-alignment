@@ -261,7 +261,7 @@ float ActuatorBase::readVoltage() {
         spdlog::error("{} : Actuator::readVoltage() : Busy, cannot read encoder.", m_Identity);
         return 0.0;
     }
-    MPESBase::CustomBusyLock lock = MPESBase::CustomBusyLock(this);
+    Device::CustomBusyLock lock = Device::CustomBusyLock(this);
     float voltage;
     voltage = __readVoltage();
     return voltage;
@@ -300,19 +300,19 @@ int ActuatorBase::step(int steps)//Positive Step is Extension of Motor
         return steps;
     }
 
-    MPESBase::CustomBusyLock lock = MPESBase::CustomBusyLock(this);
+    Device::CustomBusyLock lock = Device::CustomBusyLock(this);
     int stepsRemaining = __step(steps);
     return stepsRemaining;
 }
 
 float ActuatorBase::measureLength() {
-    MPESBase::CustomBusyLock lock = MPESBase::CustomBusyLock(this);
+    Device::CustomBusyLock lock = Device::CustomBusyLock(this);
     float currentLength = __measureLength();
     return currentLength;
 }
 
 float ActuatorBase::moveToLength(float targetLength) {
-    MPESBase::CustomBusyLock lock = MPESBase::CustomBusyLock(this);
+    Device::CustomBusyLock lock = Device::CustomBusyLock(this);
 
     float currentLength = __measureLength();
     float lengthToMove = targetLength - currentLength;
@@ -323,7 +323,7 @@ float ActuatorBase::moveToLength(float targetLength) {
 }
 
 float ActuatorBase::moveDeltaLength(float lengthToMove) {
-    MPESBase::CustomBusyLock lock = MPESBase::CustomBusyLock(this);
+    Device::CustomBusyLock lock = Device::CustomBusyLock(this);
     int stepsToMove = std::floor((lengthToMove / mmPerStep) + 0.5);
     int stepsRemaining = __step(stepsToMove);
     float lengthRemaining = stepsRemaining * mmPerStep;
@@ -347,7 +347,7 @@ ActuatorBase::Position ActuatorBase::predictNewPosition(Position position,
 }
 
 int ActuatorBase::performHysteresisMotion(int steps) {
-    MPESBase::CustomBusyLock lock = MPESBase::CustomBusyLock(this);
+    Device::CustomBusyLock lock = Device::CustomBusyLock(this);
 
     spdlog::trace("{} : Performing Hysteresis Motion of {} steps.", m_Identity, steps);
     int stepsRemaining = __step(steps - m_HysteresisSteps);
@@ -440,7 +440,7 @@ int ActuatorBase::convertPositionToSteps(Position position) {
 
 void ActuatorBase::findHomeFromEndStop(int direction)//use recorded extendstop and set actuator to that.
 {
-    MPESBase::CustomBusyLock lock = MPESBase::CustomBusyLock(this);
+    Device::CustomBusyLock lock = Device::CustomBusyLock(this);
     __findHomeFromEndStop(direction);
 }
 
@@ -519,7 +519,7 @@ void ActuatorBase::probeEndStop(int direction) {
             m_Identity, direction);
         return;
     }
-    MPESBase::CustomBusyLock lock = MPESBase::CustomBusyLock(this);
+    Device::CustomBusyLock lock = Device::CustomBusyLock(this);
     __probeEndStop(direction);
 }
 
@@ -754,7 +754,7 @@ float Actuator::__readVoltage() {
 
 void Actuator::probeHome()//method used to define home.
 {
-    MPESBase::CustomBusyLock lock = MPESBase::CustomBusyLock(this);
+    Device::CustomBusyLock lock = Device::CustomBusyLock(this);
     spdlog::trace("{} : Probing Home position...", m_Identity);
 
     __probeEndStop(1);
@@ -962,7 +962,7 @@ void Actuator::__probeEndStop(int direction) {
 }
 
 int Actuator::stepDriver(int inputSteps) {
-    MPESBase::CustomBusyLock lock = MPESBase::CustomBusyLock(this);
+    Device::CustomBusyLock lock = Device::CustomBusyLock(this);
     m_pCBC->driver.step(getPortNumber(), inputSteps);
 }
 
@@ -1031,7 +1031,7 @@ int DummyActuator::__step(int steps)
 }
 
 int DummyActuator::stepDriver(int inputSteps) {
-    MPESBase::CustomBusyLock lock = MPESBase::CustomBusyLock(this);
+    Device::CustomBusyLock lock = Device::CustomBusyLock(this);
     __step(inputSteps);
 }
 
@@ -1097,7 +1097,7 @@ void DummyActuator::__findHomeFromEndStop(int direction) {
 }
 
 void DummyActuator::probeHome() {
-    MPESBase::CustomBusyLock lock = MPESBase::CustomBusyLock(this);
+    Device::CustomBusyLock lock = Device::CustomBusyLock(this);
     spdlog::debug("{} : Probing Home for Dummy Actuator {}...", m_Identity);
     __probeEndStop(1);
 

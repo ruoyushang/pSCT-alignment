@@ -74,12 +74,14 @@ public:
         bool operator!=(const Identity &r) const;
     };
 
+    static Device::Identity parseIdentity(std::string identityString);
+
     explicit Device(Identity identity);
     ~Device() = default;
 
     virtual Device::ErrorDefinition getErrorCodeDefinition(int errorCode) = 0;
 
-    int getNumErrors() { return m_Errors.size(); }
+    virtual int getNumErrors() = 0;
 
     bool getError(int errorCode) { return m_Errors[errorCode]; }
 
