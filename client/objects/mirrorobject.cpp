@@ -153,6 +153,7 @@ const std::map<OpcUa_UInt32, std::pair<std::string, std::vector<std::tuple<std::
                                                                                                UaNodeId(OpcUaId_String),
                                                                                                "Command to run (calculate, setAlignFrac, execute)."),
                                                                            }}},
+    {PAS_MirrorType_TestActuators,             {"TestActuators",             {}}},
     {PAS_MirrorType_Stop,            {"Stop",            {}}}
 };
 
