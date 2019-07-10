@@ -780,6 +780,7 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
             
             if (failedActuators[panel->getIdentity()].size() > 0) {
                 std::ostringstream os;
+                os.precision(7);
                 for (auto actuator : failedActuators[panel->getIdentity()]) {
                     UaVariant var;
                     actuator->getData(PAS_ACTType_CurrentLength, var);
@@ -791,7 +792,6 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
                     UaVariant(var).toInt32(temp);
                     Device::ErrorState errorState = static_cast<Device::ErrorState>(temp);
 
-                    os.precision(4);
                     os << actuator->getIdentity() << " : " << currentLength << " [" << initialLengths.at(actuator->getIdentity()) << "] (" << currentLength - initialLengths.at(actuator->getIdentity()) << ") [[" << Device::errorStateNames.at(errorState) << "]]" << std::endl;
                 }
                 spdlog::info("Panel {}:\n"
