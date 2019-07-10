@@ -270,6 +270,7 @@ UaStatus MPESController::operate(OpcUa_UInt32 offset, const UaVariantArray &args
             data.exposure,
             std::ctime(&data.timestamp));
 
+
         if (m_Mode == "client") { // Record readings to database
             struct tm tstruct{};
             char buf[80];
