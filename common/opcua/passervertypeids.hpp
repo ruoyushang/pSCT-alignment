@@ -45,15 +45,17 @@
 #define PAS_MirrorType_sysOffsetsMPES_y3             125
 #define PAS_MirrorType_Position                      126
 #define PAS_MirrorType_ReadPosition                  130
-#define PAS_MirrorType_ReadSensors                   131
-#define PAS_MirrorType_ReadSensorsParallel           132
-#define PAS_MirrorType_MoveToCoords                  133
-#define PAS_MirrorType_MoveDeltaCoords               134
-#define PAS_MirrorType_AlignSequentialRecursive      135
-#define PAS_MirrorType_AlignSector                   136
-#define PAS_MirrorType_AlignRing                     137
-#define PAS_MirrorType_SelectAll                     138
-#define PAS_MirrorType_Stop                          139
+#define PAS_MirrorType_SavePosition                  131
+#define PAS_MirrorType_LoadPosition                  132
+#define PAS_MirrorType_ReadSensors                   133
+#define PAS_MirrorType_ReadSensorsParallel           134
+#define PAS_MirrorType_MoveToCoords                  135
+#define PAS_MirrorType_MoveDeltaCoords               136
+#define PAS_MirrorType_AlignSequentialRecursive      137
+#define PAS_MirrorType_AlignSector                   138
+#define PAS_MirrorType_AlignRing                     139
+#define PAS_MirrorType_SelectAll                     140
+#define PAS_MirrorType_Stop                          141
 
 //----------------------------------------------------------//
 // Edge Type

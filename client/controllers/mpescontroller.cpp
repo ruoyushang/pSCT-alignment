@@ -101,7 +101,7 @@ UaStatus MPESController::getState(Device::DeviceState &state) {
     value.toInt32(v);
 
     state = static_cast<Device::DeviceState>(v);
-    spdlog::trace("{} : Read device state => ({})", m_Identity, Device::deviceStateNames.at(state));
+    spdlog::trace("{} : Read device state => ({})", m_Identity, (int)state);
 
     return status;
 }
@@ -225,8 +225,11 @@ UaStatus MPESController::operate(OpcUa_UInt32 offset, const UaVariantArray &args
     if (offset == PAS_MPESType_Read) {
         spdlog::info("{} : MPESController calling read()", m_Identity);
         status = read();
-
-        if (!status.isGood()) {
+        if (status.isGood()) {
+            spdlog::info("{}: Done reading webcam.", m_Identity);
+        }
+        else {
+            spdlog::info("{}: Failed to read webcam.", m_Identity);
             return status;
         }
 
@@ -236,7 +239,7 @@ UaStatus MPESController::operate(OpcUa_UInt32 offset, const UaVariantArray &args
             "x (nominal): {} ({})\n"
             "y (nominal): {} ({})\n"
             "xSpotWidth (nominal): {} ({})\n"
-            "xSpotWidth (nominal): {} ({})\n"
+            "ySpotWidth (nominal): {} ({})\n"
             "Cleaned Intensity (nominal): {} ({})\n"
             "Exposure: {}\n"
             "Timestamp: {}\n",
@@ -247,7 +250,7 @@ UaStatus MPESController::operate(OpcUa_UInt32 offset, const UaVariantArray &args
             data.ySpotWidth, std::to_string(MPESBase::NOMINAL_SPOT_WIDTH),
             data.cleanedIntensity, std::to_string(MPESBase::NOMINAL_INTENSITY),
             data.exposure,
-            data.timestamp);
+            std::ctime(&data.timestamp));
 
         if (m_Mode == "client") { // Record readings to database
             struct tm tstruct{};
@@ -305,21 +308,18 @@ UaStatus MPESController::read() {
 
     if (!status.isGood()) {
         spdlog::error("{} : MPESController::read() : Call to read webcam failed.", m_Identity);
+        return status;
     }
 
-    if (m_Mode == "client") {
+    if (m_Mode == "subclient") {
         MPESBase::Position position = getPosition();
-        int numAttempts = 1;
         if (fabs(position.cleanedIntensity - MPESBase::NOMINAL_INTENSITY) / MPESBase::NOMINAL_INTENSITY > 0.2) {
-            if (numAttempts <= MPESBase::MAX_READ_ATTEMPTS) {
-                spdlog::warn(
-                    "{} : The image intensity ({}) differs from the nominal value ({}) by more than 20%. Will readjust exposure now.",
-                    m_Identity, position.cleanedIntensity, MPESBase::NOMINAL_INTENSITY);
-                operate(PAS_MPESType_SetExposure, UaVariantArray());
-                numAttempts++;
-                // read the sensor again
-                status = read();
-            }
+            spdlog::warn(
+                "{} : The image intensity ({}) differs from the nominal value ({}) by more than 20%. Will readjust exposure now (up to 5 times).",
+                m_Identity, position.cleanedIntensity, std::to_string(MPESBase::NOMINAL_INTENSITY));
+            operate(PAS_MPESType_SetExposure, UaVariantArray());
+            spdlog::info("{}: Reading webcam again...", m_Identity);
+            status = m_pClient->callMethod(m_pClient->getDeviceNodeId(m_Identity), UaString("Read"), UaVariantArray());
         }
     }
 
@@ -368,7 +368,7 @@ Eigen::Vector2d MPESController::getAlignedReadings() {
     };
     std::transform(varstoread.begin(), varstoread.end(), varstoread.begin(),
                    [this](std::string &str) { return m_pClient->getDeviceNodeId(m_Identity) + "." + str; });
-    UaVariant valstoread[7];
+    UaVariant valstoread[2];
 
     m_pClient->read(varstoread, &valstoread[0]);
 
@@ -393,17 +393,17 @@ MPESBase::Position MPESController::getPosition() {
         "xCentroidNominal",
         "yCentroidNominal",
         "Exposure",
-        "rawTimestamp"
+        "RawTimestamp"
     };
     std::transform(varstoread.begin(), varstoread.end(), varstoread.begin(),
                    [this](std::string &str) { return m_pClient->getDeviceNodeId(m_Identity) + "." + str; });
-    UaVariant valstoread[7];
+    UaVariant valstoread[9];
 
     status = m_pClient->read(varstoread, &valstoread[0]);
 
     MPESBase::Position data;
     if (!status.isGood()) {
-        spdlog::error("{} : MPESController::read() : OPC UA read failed.", m_Identity);
+        spdlog::error("{} : MPESController::getPosition() : OPC UA read failed.", m_Identity);
         return data;
     }
     valstoread[0].toFloat(data.xCentroid);

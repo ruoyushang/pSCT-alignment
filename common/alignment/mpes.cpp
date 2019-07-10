@@ -21,7 +21,7 @@ const std::string MPESBase::CAL2D_CONSTANTS_DIR_PATH = "/home/root/mpesCalibrati
 
 const std::vector<Device::ErrorDefinition> MPESBase::ERROR_DEFINITIONS = {
     {"Bad connection. No device found",                                                                            Device::ErrorState::FatalError},//error 0
-    {"Failed to set exposure, possible select timeout high temperature.",                                          Device::ErrorState::OperableError},//error 1
+    {"Failed to set exposure, possible select timeout or high temperature.",                                          Device::ErrorState::OperableError},//error 1
     {"Cannot find laser spot (totally dark). Laser dead or not in FoV.",                                           Device::ErrorState::FatalError},//error 2
     {"Too bright. Cleaned Intensity > 1e6. Likely cause: no tube.",                                                Device::ErrorState::FatalError},//error 3
     {"Too bright. 1e6 >Cleaned Intensity > 5e5 and very wide spot width >20",                                      Device::ErrorState::OperableError},//error 4
@@ -173,13 +173,23 @@ int MPES::__setExposure() {
     int counter = 0;
     while ((intensity = __updatePosition())
            && (!m_pDevice->isWithinIntensityTolerance(intensity))
-           && (counter < 5)) {
+           && (counter < MPESBase::MAX_SET_EXPOSURE_TRIES)
+           && m_pDevice->GetExposure() < MPESBase::MAX_EXPOSURE) {
         spdlog::debug("{} : MPES::setExposure() : Intensity {} ({}). Exposure: {}.", m_Identity, intensity,
                       m_pDevice->GetTargetIntensity(), m_pDevice->GetExposure());
         m_pDevice->SetExposure(
             (int) (m_pDevice->GetTargetIntensity() / intensity * ((float) m_pDevice->GetExposure())));
 
-        if (++counter >= 5) {
+        if (m_pDevice->GetExposure() >= MPESBase::MAX_EXPOSURE) {
+            spdlog::error("{} : MPES::setExposure() : Failed to set exposure, reached maximum limit of {}. Setting Error 1...",
+                          m_Identity, std::to_string(MPESBase::MAX_EXPOSURE));
+            m_pDevice->SetExposure(MPESBase::MAX_EXPOSURE);
+            setError(1);
+            intensity = -1;
+            break;
+        }
+
+        if (++counter >= MPESBase::MAX_SET_EXPOSURE_TRIES) {
             spdlog::error("{} : MPES::setExposure() : Failed to set exposure in 5 attempts, setting Error 1...",
                           m_Identity);
             setError(1);
@@ -200,6 +210,8 @@ int MPES::__updatePosition() {
     m_Position.xSpotWidth = -1.;
     m_Position.ySpotWidth = -1.;
     m_Position.cleanedIntensity = 0.;
+    m_Position.timestamp = -1;
+    m_Position.exposure = -1;
 
     // read sensor
     if (m_pImageSet->Capture()) {
@@ -235,6 +247,9 @@ int MPES::__updatePosition() {
         spdlog::error("{} : MPES reading of xCenter or yCenter = -1! Potentially lost beam...", m_Identity);
         setError(2);
     }
+
+    m_Position.exposure = m_pDevice->GetExposure(); 
+    m_Position.timestamp = std::time(0); 
 
     return static_cast<int>(m_Position.cleanedIntensity);
 }

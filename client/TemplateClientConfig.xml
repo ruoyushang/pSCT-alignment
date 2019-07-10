@@ -236,9 +236,9 @@
         <!--Maximum number of sessions the server allows per Client, 0 is unlimited-->
         <MaxSessionsPerClient>0</MaxSessionsPerClient>
         <!--Minimum time-out in ms for a sessions the server allows to set. Default value 0 is unlimited-->
-        <MinSessionTimeout>10000</MinSessionTimeout>
+        <MinSessionTimeout>0</MinSessionTimeout>
         <!--Maximum time-out in ms for a sessions the server allows to set. Default value 0 is unlimited-->
-        <MaxSessionTimeout>3600000</MaxSessionTimeout>
+        <MaxSessionTimeout>0</MaxSessionTimeout>
 
         <!--Maximum number of Browse Continuation Points managed by a session. Default value 0 is using internal default settings-->
         <MaxBrowseContinuationPoints>0</MaxBrowseContinuationPoints>
@@ -264,7 +264,7 @@
         <!--Maximum publishing interval in milliseconds the server allows. Default value 0 is no limitation-->
         <MaxPublishingInterval>0</MaxPublishingInterval>
         <!--Minimum KeepAlive interval  in milliseconds the server allows-->
-        <MinKeepAliveInterval>5000</MinKeepAliveInterval>
+        <MinKeepAliveInterval>5000000</MinKeepAliveInterval>
         <!--Minimum Subscription lifetime in milliseconds the server allows-->
         <MinSubscriptionLifetime>10000</MinSubscriptionLifetime>
         <!--Maximum Subscription lifetime in milliseconds the server allows. Default value 0 is no limitation-->

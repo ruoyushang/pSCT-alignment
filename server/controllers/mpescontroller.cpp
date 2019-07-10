@@ -5,7 +5,7 @@
 
 #include "server/controllers/mpescontroller.hpp"
 
-
+#include <ctime>
 #include <memory>
 
 #include "uabase/statuscode.h"
@@ -88,9 +88,9 @@ MPESController::MPESController(Device::Identity identity, std::shared_ptr<Platfo
 
 /// @details Locks the shared mutex while retrieving the state.
 UaStatus MPESController::getState(Device::DeviceState &state) {
-    UaMutexLocker lock(&m_Mutex);
+    //UaMutexLocker lock(&m_Mutex);
     state = _getDeviceState();
-    spdlog::trace("{} : Read device state => ({})", m_Identity, Device::deviceStateNames.at(state));
+    spdlog::trace("{} : Read device state => ({})", m_Identity, (int)state);
     return OpcUa_Good;
 }
 
@@ -112,18 +112,6 @@ UaStatus MPESController::getData(OpcUa_UInt32 offset, UaVariant &value) {
     UaStatus status;
 
     if (MPESObject::VARIABLES.find(offset) != MPESObject::VARIABLES.end()) {
-        /**
-        if (offset != PAS_MPESType_Position && offset != PAS_MPESType_Serial && offset != PAS_MPESType_ErrorState &&
-            offset != PAS_MPESType_xCentroidNominal && offset != PAS_MPESType_yCentroidNominal) {
-            if (__expired()) {
-                spdlog::info("{} : MPES data is expired, calling read()...", m_ID);
-                status = operate(PAS_MPESType_Read, UaVariantArray());
-            }
-            if (status == OpcUa_BadInvalidState) {
-                return status;
-            }
-        }
-        */
         const MPESBase::Position &position = m_pPlatform->getMPESbyIdentity(m_Identity)->getPosition();
         switch (offset) {
             case PAS_MPESType_xCentroidAvg:
