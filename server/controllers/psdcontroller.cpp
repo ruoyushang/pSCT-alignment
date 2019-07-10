@@ -72,7 +72,9 @@ UaStatus PSDController::getData(OpcUa_UInt32 offset, UaVariant &value)
 
     value.setDouble(m_pPSD->getOutput(offset));
 
-    spdlog::trace("{} : Read data... offset=> {} value => ({})", m_Identity, offset, value[0].Value.Double);
+    double temp;
+    value.toDouble(temp);
+    spdlog::trace("{} : Read data, offset=> {} value => ({})", m_Identity, offset, temp);
     return status;
 }
 

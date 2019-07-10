@@ -101,22 +101,35 @@ UaStatus ActController::getData(OpcUa_UInt32 offset, UaVariant &value) {
 
     switch (offset) {
         case PAS_ACTType_DeltaLength:
-            spdlog::trace("{} : Read deltaLength value => ({})", m_Identity, value[0].Value.Float);
+            float deltaLength;
+            value.toFloat(deltaLength);
+            spdlog::trace("{} : Read DeltaLength value => ({})", m_Identity, deltaLength);
             break;
         case PAS_ACTType_CurrentLength:
-            spdlog::trace("{} : Read currentLength value => ({})", m_Identity, value[0].Value.Float);
+            float currentLength;
+            value.toFloat(currentLength);
+            spdlog::trace("{} : Read CurrentLength value => ({})", m_Identity, currentLength);
             break;
         case PAS_ACTType_TargetLength:
-            spdlog::trace("{} : Read targetLength value => ({})", m_Identity, value[0].Value.Float);
+            float targetLength;
+            value.toFloat(targetLength);
+            spdlog::trace("{} : Read TargetLength value => ({})", m_Identity, targetLength);
             break;
         case PAS_ACTType_Position:
-            spdlog::trace("{} : Read position value => ({})", m_Identity, value[0].Value.Int32);
+            int position;
+            value.toInt32(position);
+            spdlog::trace("{} : Read Position value => ({})", m_Identity, position);
             break;
         case PAS_ACTType_Serial:
-            spdlog::trace("{} : Read serial value => ({})", m_Identity, value[0].Value.Int32);
+            int serial;
+            value.toInt32(serial);
+            spdlog::trace("{} : Read Serial value => ({})", m_Identity, serial);
             break;
         case PAS_ACTType_ErrorState:
-            spdlog::trace("{} : Read errorState value => ({})", m_Identity, value[0].Value.UInt32);
+            int errorState;
+            value.toInt32(errorState);
+            spdlog::trace("{} : Read errorState value => ({})", m_Identity,
+                          Device::errorStateNames.at(static_cast<Device::ErrorState>(errorState));
             break;
         default:
             return status;
@@ -134,7 +147,9 @@ UaStatus ActController::getError(OpcUa_UInt32 offset, UaVariant &value) {
         std::string varName = std::get<0>(ACTObject::ERRORS.at(offset));
         std::vector<std::string> varsToRead = {m_pClient->getDeviceNodeId(m_Identity) + "." + varName};
         status = m_pClient->read(varsToRead, &value);
-        spdlog::trace("{} : Read error {} value => ({})", m_Identity, offset, value[0].Value.Boolean);
+        bool temp;
+        value.toBool(temp);
+        spdlog::trace("{} : Read error {} value => ({})", m_Identity, offset, temp);
     } else {
         status = OpcUa_BadInvalidArgument;
     }
@@ -214,7 +229,9 @@ UaStatus ActController::operate(OpcUa_UInt32 offset, const UaVariantArray &args)
             status = m_pClient->callMethod(m_pClient->getDeviceNodeId(m_Identity), UaString("ForceRecover"));
             break;
         case PAS_ACTType_ClearError:
-            spdlog::info("{} : ActuatorController calling clearError() for error {}", m_Identity, args[0].Value.Int32);
+            int errorCode;
+            UaVariant(args[0]).toInt32(errorCode);
+            spdlog::info("{} : ActuatorController calling clearError() for error {}", m_Identity, errorCode);
             status = m_pClient->callMethod(m_pClient->getDeviceNodeId(m_Identity), UaString("ClearError"), args);
             break;
         case PAS_ACTType_ClearAllErrors:

@@ -156,7 +156,7 @@ UaStatus MPESController::getData(OpcUa_UInt32 offset, UaVariant &value) {
                 break;
             case PAS_MPESType_RawTimestamp:
                 spdlog::trace("{} : Read Raw Timestamp value => ({})", m_Identity, position.timestamp);
-                value.setInt32(position.timestamp);
+                value.setInt64(position.timestamp);
                 break;
             case PAS_MPESType_Timestamp:
                 spdlog::trace("{} : Read Timestamp value => ({})", m_Identity, std::ctime(&position.timestamp));
@@ -267,8 +267,10 @@ UaStatus MPESController::operate(OpcUa_UInt32 offset, const UaVariantArray &args
             }
             break;
         case PAS_MPESType_ClearError:
-            spdlog::info("{} : MPESController calling clearError() for error {}", m_Identity, args[0].Value.Int32);
-            m_pPlatform->getMPESbyIdentity(m_Identity)->unsetError(args[0].Value.Int32);
+            int temp;
+            UaVariant(args[0]).toInt32(temp);
+            spdlog::info("{} : MPESController calling clearError() for error {}", m_Identity, temp);
+            m_pPlatform->getMPESbyIdentity(m_Identity)->unsetError(temp);
             break;
         case PAS_MPESType_ClearAllErrors:
             spdlog::info("{} : MPESController calling clearErrors()", m_Identity);

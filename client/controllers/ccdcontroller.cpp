@@ -77,7 +77,9 @@ UaStatus CCDController::getData(OpcUa_UInt32 offset, UaVariant &value) {
     else
         value.setDouble(*(static_cast<const double *>(m_pCCD->getOutput() + dataoffset)));
 
-    spdlog::trace("{} : Read data... offset=> {} value => ({})", m_Identity, offset, value[0].Value.Double);
+    double temp;
+    value.toDouble(temp);
+    spdlog::trace("{} : Read data... offset=> {} value => ({})", m_Identity, offset, temp);
 
     return OpcUa_Good;
 }

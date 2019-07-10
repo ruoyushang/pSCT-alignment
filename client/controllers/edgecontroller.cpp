@@ -79,8 +79,10 @@ UaStatus EdgeController::operate(OpcUa_UInt32 offset, const UaVariantArray &args
 
     switch (offset) {
         case PAS_EdgeType_FindMatrix:
+            double temp;
+            UaVariant(args[0]).toDouble(temp);
             spdlog::info("{} : EdgeController calling findMatrix() with step size {}.", m_Identity,
-                         args[0].Value.Double);
+                         temp);
             status = findMatrix(args);
             break;
         case PAS_EdgeType_Align: {
@@ -106,11 +108,13 @@ UaStatus EdgeController::operate(OpcUa_UInt32 offset, const UaVariantArray &args
                 allowedPanels.insert(panel->getIdentity().position);
 
             if (allowedPanels.find((int)args[0].Value.UInt32) == allowedPanels.end()) {
-                spdlog::error("{} : Invalid choice of move panel {} (not in edge).", m_Identity, args[0].Value.UInt32);
+                spdlog::error("{} : Invalid choice of Panel to move ({}), not in edge.", m_Identity,
+                              args[0].Value.UInt32);
                 return OpcUa_BadInvalidArgument;
             }
             if (allowedPanels.find((int)args[1].Value.UInt32) == allowedPanels.end()) {
-                spdlog::error("{} : Invalid choice of fixed panel {} (not in edge).", m_Identity, args[1].Value.UInt32);
+                spdlog::error("{} : Invalid choice of Panel to fix ({}), not in edge.", m_Identity,
+                              args[1].Value.UInt32);
                 return OpcUa_BadInvalidArgument;
             }
 
