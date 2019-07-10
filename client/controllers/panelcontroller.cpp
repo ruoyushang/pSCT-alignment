@@ -100,22 +100,32 @@ UaStatus PanelController::getData(OpcUa_UInt32 offset, UaVariant &value) {
         }
     } else if (offset == PAS_PanelType_IntTemperature) {
         status = m_pClient->read({m_pClient->getDeviceNodeId(m_Identity) + ".InternalTemperature"}, &value);
-        spdlog::trace("{} : Read Internal Temperature value => ({})", m_Identity, value[0].Value.Double);
+        double temp;
+        value.toDouble(temp);
+        spdlog::trace("{} : Read Internal Temperature value => ({})", m_Identity, temp);
     } else if (offset == PAS_PanelType_ExtTemperature) {
         status = m_pClient->read({m_pClient->getDeviceNodeId(m_Identity) + ".ExternalTemperature"}, &value);
-        spdlog::trace("{} : Read External Temperature value => ({})", m_Identity, value[0].Value.Double);
+        double temp;
+        value.toDouble(temp);
+        spdlog::trace("{} : Read External Temperature value => ({})", m_Identity, temp);
     } else if (offset == PAS_PanelType_SafetyRadius) {
         value.setDouble(m_safetyRadius);
         spdlog::trace("{} : Read safety radius value => ({})", m_Identity, m_safetyRadius);
     } else if (offset == PAS_PanelType_Position) {
         status = m_pClient->read({m_pClient->getDeviceNodeId(m_Identity) + ".Position"}, &value);
-        spdlog::trace("{} : Read position value => ({})", m_Identity, value[0].Value.Int32);
+        int temp;
+        value.toInt32(temp);
+        spdlog::trace("{} : Read Position value => ({})", m_Identity, temp);
     } else if (offset == PAS_PanelType_Serial) {
         status = m_pClient->read({m_pClient->getDeviceNodeId(m_Identity) + ".Serial"}, &value);
-        spdlog::trace("{} : Read serial value => ({})", m_Identity, value[0].Value.Int32);
+        int temp;
+        value.toInt32(temp);
+        spdlog::trace("{} : Read Serial value => ({})", m_Identity, temp);
     } else if (offset == PAS_PanelType_ErrorState) {
         status = m_pClient->read({m_pClient->getDeviceNodeId(m_Identity) + ".ErrorState"}, &value);
-        spdlog::trace("{} : Read Error State value => ({})", m_Identity, value[0].Value.UInt32);
+        int temp;
+        value.toInt32(temp);
+        spdlog::trace("{} : Read ErrorState value => ({})", m_Identity, Device::errorStateNames.at(temp));
     }
     else
         status = OpcUa_BadInvalidArgument;
@@ -136,7 +146,9 @@ UaStatus PanelController::getError(OpcUa_UInt32 offset, UaVariant &value) {
         std::string varName = std::get<0>(PanelObject::ERRORS.at(offset));
         std::vector<std::string> varsToRead = {m_pClient->getDeviceNodeId(m_Identity) + "." + varName};
         status = m_pClient->read(varsToRead, &value);
-        spdlog::trace("{} : Read error {} value => ({})", m_Identity, offset, value[0].Value.Boolean);
+        bool temp;
+        value.toBool(temp);
+        spdlog::trace("{} : Read error {} value => ({})", m_Identity, offset, temp);
     } else {
         status = OpcUa_BadInvalidArgument;
     }
@@ -324,10 +336,14 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
                           "could not execute findHome command. Check state and try again.", m_Identity);
             return OpcUa_BadInvalidState;
         }
-        spdlog::info("{} : PanelController calling findHome() with direction {}", m_Identity, args[0].Value.Int32);
+        int dir;
+        UaVariant(args[0]).toInt32(dir);
+        spdlog::info("{} : PanelController calling findHome() with direction {}", m_Identity, dir);
         status = m_pClient->callMethodAsync(m_pClient->getDeviceNodeId(m_Identity), UaString("FindHome"), args);
     } else if (offset == PAS_PanelType_ClearError) {
-        spdlog::info("{} : PanelController calling clearError() for error {}", m_Identity, args[0].Value.Int32);
+        int errorCode;
+        UaVariant(args[0]).toInt32(errorCode);
+        spdlog::info("{} : PanelController calling clearError() for error {}", m_Identity, errorCode);
         status = m_pClient->callMethod(m_pClient->getDeviceNodeId(m_Identity), UaString("ClearError"), args);
     } else if (offset == PAS_PanelType_ClearAllErrors) {
         spdlog::info("{} : PanelController calling clearAllErrors()", m_Identity);
