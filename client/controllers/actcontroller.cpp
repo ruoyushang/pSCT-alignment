@@ -129,7 +129,7 @@ UaStatus ActController::getData(OpcUa_UInt32 offset, UaVariant &value) {
             int errorState;
             value.toInt32(errorState);
             spdlog::trace("{} : Read errorState value => ({})", m_Identity,
-                          Device::errorStateNames.at(static_cast<Device::ErrorState>(errorState));
+                          Device::errorStateNames.at(static_cast<Device::ErrorState>(errorState)));
             break;
         default:
             return status;
@@ -147,9 +147,9 @@ UaStatus ActController::getError(OpcUa_UInt32 offset, UaVariant &value) {
         std::string varName = std::get<0>(ACTObject::ERRORS.at(offset));
         std::vector<std::string> varsToRead = {m_pClient->getDeviceNodeId(m_Identity) + "." + varName};
         status = m_pClient->read(varsToRead, &value);
-        bool temp;
+        unsigned char temp;
         value.toBool(temp);
-        spdlog::trace("{} : Read error {} value => ({})", m_Identity, offset, temp);
+        spdlog::trace("{} : Read error {} value => ({})", m_Identity, offset, (bool)temp);
     } else {
         status = OpcUa_BadInvalidArgument;
     }

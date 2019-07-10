@@ -125,7 +125,7 @@ UaStatus PanelController::getData(OpcUa_UInt32 offset, UaVariant &value) {
         status = m_pClient->read({m_pClient->getDeviceNodeId(m_Identity) + ".ErrorState"}, &value);
         int temp;
         value.toInt32(temp);
-        spdlog::trace("{} : Read ErrorState value => ({})", m_Identity, Device::errorStateNames.at(temp));
+        spdlog::trace("{} : Read ErrorState value => ({})", m_Identity, Device::errorStateNames.at(static_cast<Device::ErrorState>(temp)));
     }
     else
         status = OpcUa_BadInvalidArgument;
@@ -146,9 +146,9 @@ UaStatus PanelController::getError(OpcUa_UInt32 offset, UaVariant &value) {
         std::string varName = std::get<0>(PanelObject::ERRORS.at(offset));
         std::vector<std::string> varsToRead = {m_pClient->getDeviceNodeId(m_Identity) + "." + varName};
         status = m_pClient->read(varsToRead, &value);
-        bool temp;
+        unsigned char temp;
         value.toBool(temp);
-        spdlog::trace("{} : Read error {} value => ({})", m_Identity, offset, temp);
+        spdlog::trace("{} : Read error {} value => ({})", m_Identity, offset, (bool)temp);
     } else {
         status = OpcUa_BadInvalidArgument;
     }
