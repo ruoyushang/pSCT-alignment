@@ -1,6 +1,8 @@
 #!/bin/bash
 
 panel_num=$1
+LOGLEVEL=${2-"info"}
+
 extension=".ini"
 screen_name=pas_serv
 config_filename="$panel_num$extension"
@@ -32,4 +34,4 @@ screen -S $screen_name -p $panel_num -X stuff "sed -i s@URL_LOCATION@$endpoint_a
 
 abspath=$(realpath ${config_filename})
 
-screen -S $screen_name -p $panel_num -X stuff $"../sdk/bin/passerver ${panel_num} -c ${abspath}\n"
+screen -S $screen_name -p $panel_num -X stuff $"../sdk/bin/passerver ${panel_num} -c ${abspath} -l ${LOGLEVEL}\n"
