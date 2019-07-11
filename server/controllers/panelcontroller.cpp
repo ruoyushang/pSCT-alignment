@@ -111,7 +111,7 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
         float targetLength;
         for (int i = 0; i < 6; i++) {
             UaVariant(args[i]).toFloat(deltaLengths[i]);
-            targetLength =  m_pActuators.at(i)->measureLength() + deltaLengths(i);
+            targetLength =  m_pActuators.at(i)->getCurrentLength() + deltaLengths[i];
             m_pActuators.at(i)->setTargetLength(targetLength);
         }
 
@@ -129,7 +129,7 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
         std::array<float, 6> finalLengths{};
         for (int i = 0; i < 6; i++) {
             m_pActuators.at(i)->setDeltaLength(deltaLengths[i]);
-            finalLengths[i] = m_pActuators.at(i)->measureLength();
+            finalLengths[i] = m_pActuators.at(i)->getCurrentLength();
         }
 
         spdlog::info(
