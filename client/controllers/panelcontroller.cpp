@@ -472,18 +472,16 @@ UaStatus PanelController::__getActuatorLengths(Eigen::VectorXd &lengths) {
 
     UaVariant val;
     auto &actuatorPositionMap = m_ChildrenPositionMap.at(PAS_ACTType);
-    auto &pACT = m_pChildren.at(PAS_ACTType);
-
     double l;
 
     lengths.resize(6);
-    for (const auto &i : actuatorPositionMap) {
-        status = pACT.at(i.second)->getData(PAS_ACTType_CurrentLength, val);
+    for (const auto &pair : actuatorPositionMap) {
+        status = pair.second->getData(PAS_ACTType_CurrentLength, val);
         if (status.isBad()) {
             return status;
         }
         val.toDouble(l);
-        lengths(i.first - 1) = l;
+        lengths(pair.first - 1) = l;
     }
 
     return status;

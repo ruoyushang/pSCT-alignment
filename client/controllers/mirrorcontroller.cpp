@@ -1577,8 +1577,7 @@ UaStatus MirrorController::alignSector(double alignFrac, std::string command) {
         }
 
         // get the overlapping sensors -- these are the constraining internal ones
-        std::set<unsigned> overlapIndices;
-        unsigned idx;
+        std::set<Device::Identity> overlapMPES;
         bool userOverlap = false;
         for (const auto &panel : panelsToMove) {
             for (const auto &mpes : panel->getChildren(PAS_MPESType)) {
@@ -1590,9 +1589,8 @@ UaStatus MirrorController::alignSector(double alignFrac, std::string command) {
                         0);
 
                 if (overlap == 2) {
-                    idx = m_ChildrenSerialMap.at(PAS_MPESType).at(mpes->getIdentity().serialNumber);
-                    if (!overlapIndices.count(idx)) {
-                        overlapIndices.insert(idx);
+                    if (!overlapMPES.count(mpes->getIdentity())) {
+                        overlapMPES.insert(mpes->getIdentity());
                         if (count(alignMPES.begin(), alignMPES.end(), mpes)) {
                             spdlog::info("{} : MirrorController::alignSector(): Internal MPES selected: {}", m_Identity,
                                          mpes->getIdentity());
@@ -1604,18 +1602,18 @@ UaStatus MirrorController::alignSector(double alignFrac, std::string command) {
         }
 
         // if no user specified overlapping sensors, get their readings
-        if (!userOverlap && !overlapIndices.empty()) {
+        if (!userOverlap && !overlapMPES.empty()) {
             spdlog::warn(
                 "{} : MirrorController::alignSector(): No user-selected internal MPES. Reading all internal MPES...",
                 m_Identity);
             // only read the internal MPES if no user-specified ones have been found
-            for (const auto &i: overlapIndices) {
+            for (const auto &mpesId: overlapMPES) {
                 std::shared_ptr<MPESController> mpes = std::dynamic_pointer_cast<MPESController>(
-                    m_pChildren.at(PAS_MPESType).at(i));
+                    m_ChildrenIdentityMap.at(PAS_MPESType).at(mpesId));
                 if (mpes->isVisible())
                     alignMPES.push_back(mpes);
             }
-        } else if (overlapIndices.empty()) {
+        } else if (overlapMPES.empty()) {
             spdlog::warn(
                 "{} : MirrorController::alignSector(): Found no internal MPES. This should only occur when the sector is a single panel.",
                 m_Identity);
@@ -1703,13 +1701,6 @@ UaStatus MirrorController::alignSector(double alignFrac, std::string command) {
                 m_Identity, maxChange);
         }
 
-        unsigned j = 0;
-        Eigen::VectorXd deltaLengths(6);
-        for (auto &pCurPanel : panelsToMove) {
-            for (unsigned i = 0; i < 6; i++) {
-                deltaLengths(i) = X(j++);
-            }
-        }
         m_Xcalculated = X; // set calculated motion
         m_panelsToMove = panelsToMove;
         m_previousCalculatedMethod = PAS_MirrorType_AlignSector;
@@ -1782,7 +1773,7 @@ UaStatus MirrorController::alignSector(double alignFrac, std::string command) {
             std::map <std::shared_ptr<PanelController>, UaVariantArray> args;
 
             unsigned j = 0;
-            for (auto pCurPanel : m_panelsToMove) {
+            for (const auto &pCurPanel : m_panelsToMove) {
                 auto nACT = pCurPanel->getActuatorCount();
                 UaVariantArray deltas;
                 deltas.create(nACT);
@@ -1794,7 +1785,7 @@ UaStatus MirrorController::alignSector(double alignFrac, std::string command) {
                 args[pCurPanel] = deltas;
             }
 
-            for (auto pair : args) {
+            for (const auto &pair : args) {
                 status = pair.first->__moveDeltaLengths(pair.second);
                 if (!status.isGood()) { return status; }
                 if (m_State == Device::DeviceState::Off) { break; }
