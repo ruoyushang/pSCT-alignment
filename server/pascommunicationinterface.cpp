@@ -97,7 +97,7 @@ UaStatus PasCommunicationInterface::initialize() {
         spdlog::info("Initializing Panel {} with CBC {}...", m_panelNum, m_cbcID);
 
         // Query DB for actuator serials and ports
-        query = "SELECT port, serial_number, position FROM Opt_ActuatorMapping WHERE panel=" +
+        query = "SELECT serial_number, position, port FROM Opt_ActuatorMapping WHERE panel=" +
                 std::to_string(m_panelNum);
         pSqlStmt->execute(query);
         pSqlResults.reset(pSqlStmt->getResultSet());
