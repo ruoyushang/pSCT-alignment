@@ -122,7 +122,7 @@ UaStatus Configuration::loadDeviceConfiguration(const std::vector<std::string> &
 
         // If empty list of panels passed, assume all panels.
         if (positionList.empty()) {
-            query = "SELECT position FROM Opt_MPMMapping WHERE substring(position,1,1) != '3'";
+            query = "SELECT position FROM Opt_MPMMapping";
             sql_stmt->execute(query);
             sql_results = sql_stmt->getResultSet();
             // should only be one result FOR NOW -- IN THE FUTURE, NEED TO FIX THIS, SORTING BY DATE
