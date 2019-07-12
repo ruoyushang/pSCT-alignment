@@ -241,10 +241,10 @@ void ActuatorBase::saveStatusToASF()//record all error codes to ASF.
         return;
     }
 
-    time_t now = time(0);//0 for UTC., unix timing will overflow in 2038.
-    struct tm = *gmtime(&now);
-    ASF << tm.tm_year + 1900 << " " << tm.tm_mon + 1 << " " << tm.tm_mday << " " << tm.tm_hour << " "
-        << tm.tm_min << " " << tm.tm_sec << " ";
+    std::time_t now = std::time(0); //0 for UTC., unix timing will overflow in 2038.
+    struct tm time = *gmtime(&now);
+    ASF << time.tm_year + 1900 << " " << time.tm_mon + 1 << " " << time.tm_mday << " " << time.tm_hour << " "
+        << time.tm_min << " " << time.tm_sec << " ";
     ASF << m_CurrentPosition.revolution << " " << m_CurrentPosition.angle;
     for (int i = 0; i < getNumErrors(); i++) {
         ASF << " " << (int)m_Errors[i];

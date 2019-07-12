@@ -4,6 +4,7 @@
 #include <chrono>
 #include <cmath>
 #include <deque>
+#include <set>
 #include <sstream>
 #include <string>
 #include <sys/stat.h>
@@ -644,8 +645,8 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
     } else if (offset == PAS_MirrorType_TestActuators) {
         spdlog::info("{} : MirrorController::operate() : Calling testActuators()...", m_Identity);
 
-        double moveDistance = 0.4;
-        double epsilonLength = 0.050;
+        float moveDistance = 0.4;
+        float epsilonLength = 0.010;
 
         if (m_selectedPanels.empty()) {
             spdlog::error(
@@ -655,15 +656,19 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
         }
 
         std::vector<std::shared_ptr<PanelController>> panelsToTest;
-        std::map<Device::Identity, double> initialLengths;
-        
+        std::map<Device::Identity, float> initialLengths;
+        std::map<Device::Identity, std::set<std::shared_ptr<PasController>>> failedActuators;
+        int numFailedActuators = 0;
+
         for (auto panel : getChildren(PAS_PanelType)) {
             if (m_selectedPanels.find(panel->getIdentity().position) != m_selectedPanels.end()) {                    
                 panelsToTest.push_back(std::dynamic_pointer_cast<PanelController>(panel));
                 for (auto actuator: std::dynamic_pointer_cast<PanelController>(panel)->getChildren(PAS_ACTType)) {
                     UaVariant var;                   
                     actuator->getData(PAS_ACTType_CurrentLength, var);
-                    initialLengths[actuator->getIdentity()] = var[0].Value.Double;
+                    float initialLength;
+                    UaVariant(var).toFloat(initialLength);
+                    initialLengths[actuator->getIdentity()] = initialLength;
                 } 
             }
         }
@@ -677,7 +682,7 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
         }
 
         // Move all panels up 
-        spdlog::info("{}: Extending all actuators on selected panels by {}...", m_Identity, moveDistance);
+        spdlog::info("{}: Extending all actuators on selected panels by {} mm...", m_Identity, moveDistance);
         for (auto panel : panelsToTest) {
             panel->operate(PAS_PanelType_MoveDeltaLengths, args);
         }
@@ -697,6 +702,31 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
         }
         spdlog::info("{}: Done! All motions completed.", m_Identity);
 
+        spdlog::info("{}: Checking for failure...", m_Identity); 
+
+        // Check for errors
+        for (auto panel : panelsToTest) {
+            for (auto actuator : panel->getChildren(PAS_ACTType)) {
+                UaVariant var;
+                actuator->getData(PAS_ACTType_ErrorState, var);
+                int temp;
+                UaVariant(var).toInt32(temp);
+                Device::ErrorState errorState = static_cast<Device::ErrorState>(temp);
+                
+                actuator->getData(PAS_ACTType_CurrentLength, var);
+                float currentLength;
+                UaVariant(var).toFloat(currentLength);
+                float distanceFromTarget = fabs(currentLength - (initialLengths.at(actuator->getIdentity()) +  moveDistance)); 
+            
+                if (errorState != Device::ErrorState::Nominal || distanceFromTarget > epsilonLength) {
+                    auto result = failedActuators[panel->getIdentity()].insert(actuator); 
+                    if (result.second) {
+                        numFailedActuators++;
+                    }
+                }
+            }      
+        }
+ 
         // Move all panels back (which are error-free)
         args.create(6);
         for (unsigned i = 0; i < 6; i++) {
@@ -704,7 +734,7 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
             val.copyTo(&args[i]);
         }
 
-        spdlog::info("{}: Retracting all actuators on selected panels by {}...", m_Identity, moveDistance);
+        spdlog::info("{}: Retracting all actuators on selected panels by {} mm...", m_Identity, moveDistance);
         for (auto panel : panelsToTest) {
             panel->operate(PAS_PanelType_MoveDeltaLengths, args);
         }
@@ -727,33 +757,42 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
         spdlog::info("{}: Report of failed actuators: ", m_Identity);
 
         // Check for errors
-        int numFailedActuators = 0;
         for (auto panel : panelsToTest) {
-            std::vector<std::shared_ptr<PasController>> failedActuators;
             for (auto actuator : panel->getChildren(PAS_ACTType)) {
                 UaVariant var;
                 actuator->getData(PAS_ACTType_ErrorState, var);
-                Device::ErrorState errorState = static_cast<Device::ErrorState>(var[0].Value.Int32);
+                int temp;
+                UaVariant(var).toInt32(temp);
+                Device::ErrorState errorState = static_cast<Device::ErrorState>(temp);
                 
                 actuator->getData(PAS_ACTType_CurrentLength, var);
-                double distanceFromInitial = fabs(var[0].Value.Double - initialLengths.at(actuator->getIdentity())); 
+                float currentLength;
+                UaVariant(var).toFloat(currentLength);
+                float distanceFromInitial = fabs(currentLength - initialLengths.at(actuator->getIdentity())); 
             
                 if (errorState != Device::ErrorState::Nominal || distanceFromInitial > epsilonLength) {
-                    failedActuators.push_back(actuator);
-                    numFailedActuators++;        
+                    auto result = failedActuators[panel->getIdentity()].insert(actuator);
+                    if (result.second) {
+                        numFailedActuators++;
+                    }  
                 }
             }
-            if (failedActuators.size() > 0) {
+            
+            if (failedActuators[panel->getIdentity()].size() > 0) {
                 std::ostringstream os;
-                for (auto actuator : failedActuators) {
+                os.precision(7);
+                for (auto actuator : failedActuators[panel->getIdentity()]) {
                     UaVariant var;
                     actuator->getData(PAS_ACTType_CurrentLength, var);
-                    double currentLength = var[0].Value.Double;
-                    
-                    actuator->getData(PAS_ACTType_ErrorState, var);
-                    Device::ErrorState errorState = static_cast<Device::ErrorState>(var[0].Value.Int32);
+                    float currentLength;
+                    UaVariant(var).toFloat(currentLength);
 
-                    os << actuator->getIdentity() << " : " << currentLength << " [" << initialLengths.at(actuator->getIdentity()) << "] (" << currentLength - initialLengths.at(actuator->getIdentity()) << "[[" << Device::errorStateNames.at(errorState) << "]]" << std::endl;
+                    actuator->getData(PAS_ACTType_ErrorState, var);
+                    int temp;
+                    UaVariant(var).toInt32(temp);
+                    Device::ErrorState errorState = static_cast<Device::ErrorState>(temp);
+
+                    os << actuator->getIdentity() << " : " << currentLength << " [" << initialLengths.at(actuator->getIdentity()) << "] (" << currentLength - initialLengths.at(actuator->getIdentity()) << ") [[" << Device::errorStateNames.at(errorState) << "]]" << std::endl;
                 }
                 spdlog::info("Panel {}:\n"
                         "ActuatorId : CurrentLength [Initial Length] (difference) [[Error Status]]\n{}", panel->getIdentity(), os.str());
@@ -761,7 +800,7 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
         }
  
         if (numFailedActuators > 0) {
-            spdlog::warn("{}: {} failed actuator(s) found.", m_Identity, numFailedActuators);
+            spdlog::warn("{}: Total of {} failed actuator(s) found.", m_Identity, numFailedActuators);
         } else {
             spdlog::info("{}: No failed actuators found.", m_Identity);
         }

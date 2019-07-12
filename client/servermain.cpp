@@ -289,13 +289,19 @@ int main(int argc, char* argv[])
     std::cout << "Console logging level set to: " << logLevel << std::endl;
 
     // Note that log directory must have been created beforehand
-    auto file_sink = std::make_shared<spdlog::sinks::daily_file_sink_mt>(
-        std::string(getenv("HOME")) + std::string("/logs/p2pasclient_logs"), 0, 0,
-        false); // Daily file created at 02:00
-    file_sink->set_level(spdlog::level::trace); // always save all logging levels
-    file_sink->set_pattern("[%c] [%n] [%l] [%s:%!:%#] %v");
+    auto detailed_file_sink = std::make_shared<spdlog::sinks::daily_file_sink_mt>(
+        std::string(getenv("HOME")) + std::string("/logs/p2pasclient_log_detailed"), 0, 0,
+        false); // Daily file created at midnight
+    detailed_file_sink->set_level(spdlog::level::trace); // always save all logging levels
+    detailed_file_sink->set_pattern("[%c] [%n] [%l] [%s:%!:%#] %v");
 
-    std::vector<spdlog::sink_ptr> sinks{file_sink, console_sink};
+    auto basic_file_sink = std::make_shared<spdlog::sinks::daily_file_sink_mt>(
+        std::string(getenv("HOME")) + std::string("/logs/p2pasclient_log_basic"), 0, 0,
+        false); // Daily file created at midnight
+    basic_file_sink->set_level(spdlog::level::info); // show only general info, no trace info
+    basic_file_sink->set_pattern("[%c] [%n] [%l] [%s:%!:%#] %v");
+
+    std::vector<spdlog::sink_ptr> sinks{detailed_file_sink, basic_file_sink, console_sink};
     auto logger = std::make_shared<spdlog::logger>("p2pasclient", sinks.begin(), sinks.end());
     logger->set_level(spdlog::level::trace);
     logger->flush_on(spdlog::level::info);

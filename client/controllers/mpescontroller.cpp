@@ -180,15 +180,15 @@ UaStatus MPESController::getData(OpcUa_UInt32 offset, UaVariant &value) {
                 break;
             case PAS_MPESType_ErrorState:
                 status = m_pClient->read({m_pClient->getDeviceNodeId(m_Identity) + "." + "ErrorState"}, &value);
-                int temp;
-                value.toInt32(temp);
-                spdlog::trace("{} : Read ErrorState value => ({})", m_Identity, Device::errorStateNames.at(temp));
+                int errorState;
+                value.toInt32(errorState);
+                spdlog::trace("{} : Read ErrorState value => ({})", m_Identity, Device::errorStateNames.at(static_cast<Device::ErrorState>(errorState)));
                 break;
             case PAS_MPESType_Exposure:
                 status = m_pClient->read({m_pClient->getDeviceNodeId(m_Identity) + "." + "Exposure"}, &value);
-                int temp;
-                value.toInt32(temp);
-                spdlog::trace("{} : Read Exposure value => ({})", m_Identity, temp);
+                int exposure;
+                value.toInt32(exposure);
+                spdlog::trace("{} : Read Exposure value => ({})", m_Identity, exposure);
                 break;
             case PAS_MPESType_RawTimestamp:
                 status = m_pClient->read({m_pClient->getDeviceNodeId(m_Identity) + "." + "RawTimestamp"}, &value);
@@ -217,9 +217,9 @@ UaStatus MPESController::getError(OpcUa_UInt32 offset, UaVariant &value) {
         std::string varName = std::get<0>(MPESObject::ERRORS.at(offset));
         std::vector<std::string> varsToRead = {m_pClient->getDeviceNodeId(m_Identity) + "." + varName};
         status = m_pClient->read(varsToRead, &value);
-        bool temp;
+        unsigned char temp;
         value.toBool(temp);
-        spdlog::trace("{} : Read error {} value => ({})", m_Identity, offset, temp);
+        spdlog::trace("{} : Read error {} value => ({})", m_Identity, offset, (bool)temp);
     } else {
         status = OpcUa_BadInvalidArgument;
     }

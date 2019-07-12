@@ -74,6 +74,8 @@ public:
     void setDeltaLength(float deltaLength) { m_DeltaLength = deltaLength; }
     void setTargetLength(float targetLength) { m_TargetLength = targetLength; }
 
+    float getCurrentLength() { return m_pPlatform->getActuatorbyIdentity(m_Identity)->measureLength(); }
+
 private:
     Device::ErrorState _getErrorState() { return m_pPlatform->getActuatorbyIdentity(m_Identity)->getErrorState(); }
 
