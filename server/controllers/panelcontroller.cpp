@@ -57,7 +57,7 @@ UaStatus PanelController::getData(OpcUa_UInt32 offset, UaVariant &value) {
             value.setInt32(m_Identity.serialNumber);
         } else if (offset == PAS_PanelType_ErrorState) {
             Device::ErrorState errorState = _getErrorState();
-            spdlog::trace("{} : Read ErrorState value => ({})", m_Identity, static_cast<int>(errorState));
+            spdlog::trace("{} : Read ErrorState value => ({})", m_Identity, Device::errorStateNames.at(errorState));
             value.setInt32(static_cast<int>(errorState));
         }
     } else if (PanelObject::ERRORS.find(offset) != PanelObject::ERRORS.end()) {
@@ -110,23 +110,23 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
 
         std::array<float, 6> initialLengths{};
         std::array<float, 6> deltaLengths{};
-        float targetLength;
+        std::array<float, 6> targetLengths{};
         for (int i = 0; i < 6; i++) {
             UaVariant(args[i]).toFloat(deltaLengths[i]);
-            targetLength =  m_pActuators.at(i)->getCurrentLength() + deltaLengths[i];
             initialLengths[i] = m_pActuators.at(i)->getCurrentLength();
-            m_pActuators.at(i)->setTargetLength(targetLength);
+            targetLengths[i] = initialLengths[i] + deltaLengths[i];
+            m_pActuators.at(i)->setTargetLength(targetLengths[i]);
         }
 
         spdlog::info(
             "{} : PanelController calling moveDeltaLength:\n CurrentLength + Delta Length => TargetLength\n\n{} + {} => {}\n{} + {} => {}\n{} + {} => {}\n{} + {} => {}\n{} + {} => {}\n{} + {} => {}\n",
             m_Identity,
-            initialLengths[0], deltaLengths[0], initialLengths[0] + deltaLengths[0],
-            initialLengths[1], deltaLengths[1], initialLengths[1] + deltaLengths[1],
-            initialLengths[2], deltaLengths[2], initialLengths[2] + deltaLengths[2],
-            initialLengths[3], deltaLengths[3], initialLengths[3] + deltaLengths[3],
-            initialLengths[4], deltaLengths[4], initialLengths[4] + deltaLengths[4],
-            initialLengths[5], deltaLengths[5], initialLengths[5] + deltaLengths[5]);
+            initialLengths[0], deltaLengths[0], targetLengths[0],
+            initialLengths[1], deltaLengths[1], targetLengths[1],
+            initialLengths[2], deltaLengths[2], targetLengths[2],
+            initialLengths[3], deltaLengths[3], targetLengths[3],
+            initialLengths[4], deltaLengths[4], targetLengths[4],
+            initialLengths[5], deltaLengths[5], targetLengths[5]);
 
         deltaLengths = m_pPlatform->moveDeltaLengths(deltaLengths);
 
@@ -139,12 +139,12 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
         spdlog::info(
             "{} : Lengths after moveDeltaLengths (Remaining distance to target):\n{} ({})\n{} ({})\n{} ({})\n{} ({})\n{} ({})\n{} ({})\n",
             m_Identity,
-            finalLengths[0], deltaLengths[0],
-            finalLengths[1], deltaLengths[1],
-            finalLengths[2], deltaLengths[2],
-            finalLengths[3], deltaLengths[3],
-            finalLengths[4], deltaLengths[4],
-            finalLengths[5], deltaLengths[5]);
+            finalLengths[0], targetLengths[0] - finalLengths[0],
+            finalLengths[1], targetLengths[1] - finalLengths[1],
+            finalLengths[2], targetLengths[2] - finalLengths[2],
+            finalLengths[3], targetLengths[3] - finalLengths[3],
+            finalLengths[4], targetLengths[4] - finalLengths[4],
+            finalLengths[5], targetLengths[5] - finalLengths[5]);
 
     } else if (offset == PAS_PanelType_MoveToLengths) {
         if (_getDeviceState() == Device::DeviceState::Off)

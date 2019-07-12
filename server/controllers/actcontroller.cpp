@@ -59,7 +59,7 @@ UaStatus ActController::getData(OpcUa_UInt32 offset, UaVariant &value) {
                 break;
             case PAS_ACTType_ErrorState: {
                 Device::ErrorState errorState = _getErrorState();
-                spdlog::trace("{} : Read ErrorState value => ({})", m_Identity, static_cast<int>(errorState));
+                spdlog::trace("{} : Read ErrorState value => ({})", m_Identity, Device::errorStateNames.at(errorState));
                 value.setInt32(static_cast<int>(errorState));
                 break;
             }
