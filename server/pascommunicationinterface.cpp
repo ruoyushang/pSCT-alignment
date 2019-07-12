@@ -158,7 +158,7 @@ UaStatus PasCommunicationInterface::initialize() {
         id.eAddress = std::to_string(actuatorPorts.at(i));
         id.position = i + 1;
         actuatorIdentities[i] = id;
-        spdlog::info("Adding ACT hardware interface with identity {} as child of platform ...", identity);
+        spdlog::info("Adding ACT hardware interface with identity {} as child of Platform...", id, identity);
     }
 
     m_platform->addActuators(actuatorIdentities);
@@ -177,7 +177,7 @@ UaStatus PasCommunicationInterface::initialize() {
         identity.serialNumber = mpesPositionToSerial.at(mpes.first);
         identity.eAddress = std::to_string(mpes.second);
         identity.position = mpes.first;
-        spdlog::info("Adding MPES hardware interface with identity {} as child of platform ...", identity);
+        spdlog::info("Adding MPES hardware interface with identity {} as child of Platform ...", identity);
         if (m_platform->addMPES(identity)) {
             mpesPositions.push_back(mpes.first);
         };
