@@ -107,22 +107,26 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
         if (_getDeviceState() == Device::DeviceState::Off)
             setState(Device::DeviceState::On);
 
+
+        std::array<float, 6> initialLengths{};
         std::array<float, 6> deltaLengths{};
         float targetLength;
         for (int i = 0; i < 6; i++) {
             UaVariant(args[i]).toFloat(deltaLengths[i]);
             targetLength =  m_pActuators.at(i)->getCurrentLength() + deltaLengths[i];
+            initialLengths[i] = m_pActuators.at(i)->getCurrentLength();
             m_pActuators.at(i)->setTargetLength(targetLength);
         }
 
-        spdlog::info("{} : PanelController calling moveDeltaLength with delta lengths:\n{}\n{}\n{}\n{}\n{}\n{}\n",
-                     m_Identity,
-                     deltaLengths[0],
-                     deltaLengths[1],
-                     deltaLengths[2],
-                     deltaLengths[3],
-                     deltaLengths[4],
-                     deltaLengths[5]);
+        spdlog::info(
+            "{} : PanelController calling moveDeltaLength:\n CurrentLength + Delta Length => TargetLength\n\n{} + {} => {}\n{} + {} => {}\n{} + {} => {}\n{} + {} => {}\n{} + {} => {}\n{} + {} => {}\n",
+            m_Identity,
+            initialLengths[0], deltaLengths[0], initialLengths[0] + deltaLengths[0],
+            initialLengths[1], deltaLengths[1], initialLengths[1] + deltaLengths[1],
+            initialLengths[2], deltaLengths[2], initialLengths[2] + deltaLengths[2],
+            initialLengths[3], deltaLengths[3], initialLengths[3] + deltaLengths[3],
+            initialLengths[4], deltaLengths[4], initialLengths[4] + deltaLengths[4],
+            initialLengths[5], deltaLengths[5], initialLengths[5] + deltaLengths[5]);
 
         deltaLengths = m_pPlatform->moveDeltaLengths(deltaLengths);
 
@@ -133,7 +137,7 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
         }
 
         spdlog::info(
-            "{} : Lengths after moveDeltaLengths (distance from target):\n{} ({})\n{} ({})\n{} ({})\n{} ({})\n{} ({})\n{} ({})\n",
+            "{} : Lengths after moveDeltaLengths (Remaining distance to target):\n{} ({})\n{} ({})\n{} ({})\n{} ({})\n{} ({})\n{} ({})\n",
             m_Identity,
             finalLengths[0], deltaLengths[0],
             finalLengths[1], deltaLengths[1],
@@ -146,32 +150,35 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
         if (_getDeviceState() == Device::DeviceState::Off)
             setState(Device::DeviceState::On);
 
+        std::array<float, 6> initialLengths{};
         std::array<float, 6> targetLengths{};
         for (int i = 0; i < 6; i++) {
             UaVariant(args[i]).toFloat(targetLengths[i]);
+            initialLengths[i] = m_pActuators.at(i)->getCurrentLength();
             m_pActuators.at(i)->setTargetLength(targetLengths[i]);
         }
 
-        spdlog::info("{} : PanelController calling moveToLengths with target lengths:\n{}\n{}\n{}\n{}\n{}\n{}\n",
-                     m_Identity,
-                     targetLengths[0],
-                     targetLengths[1],
-                     targetLengths[2],
-                     targetLengths[3],
-                     targetLengths[4],
-                     targetLengths[5]);
+        spdlog::info(
+            "{} : PanelController calling moveToLengths:\n CurrentLength => TargetLength\n\n{} => {}\n{} => {}\n{} => {}\n{} => {}\n{} => {}\n{} => {}\n",
+            m_Identity,
+            initialLengths[0], targetLengths[0],
+            initialLengths[1], targetLengths[1],
+            initialLengths[2], targetLengths[2],
+            initialLengths[3], targetLengths[3],
+            initialLengths[4], targetLengths[4],
+            initialLengths[5], targetLengths[5]);
 
         std::array<float, 6> finalLengths = m_pPlatform->moveToLengths(targetLengths);
 
         spdlog::info(
-            "{} : Lengths after moveDeltaLengths (distance from target):\n{} ({})\n{} ({})\n{} ({})\n{} ({})\n{} ({})\n{} ({})\n",
+            "{} : Lengths after moveToLengths (Remaining distance to target):\n{} ({})\n{} ({})\n{} ({})\n{} ({})\n{} ({})\n{} ({})\n",
             m_Identity,
-            finalLengths[0], finalLengths[0] - targetLengths[0],
-            finalLengths[1], finalLengths[1] - targetLengths[1],
-            finalLengths[2], finalLengths[2] - targetLengths[2],
-            finalLengths[3], finalLengths[3] - targetLengths[3],
-            finalLengths[4], finalLengths[4] - targetLengths[4],
-            finalLengths[5], finalLengths[5] - targetLengths[5]);
+            finalLengths[0], targetLengths[0] - finalLengths[0],
+            finalLengths[1], targetLengths[1] - finalLengths[1],
+            finalLengths[2], targetLengths[2] - finalLengths[2],
+            finalLengths[3], targetLengths[3] - finalLengths[3],
+            finalLengths[4], targetLengths[4] - finalLengths[4],
+            finalLengths[5], targetLengths[5] - finalLengths[5]);
 
         for (int i = 0; i < 6; i++) {
             m_pActuators.at(i)->setDeltaLength(finalLengths[i] - targetLengths[i]);
@@ -222,11 +229,12 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
 
 void PanelController::addActuator(const std::shared_ptr<ActController> &pActuator) {
     m_pActuators.push_back(pActuator);
-    spdlog::trace("{} : Panel controller added actuator {} controller as child...", m_Identity,
-                  pActuator->getIdentity());
+    spdlog::info("{} : Panel controller added actuator {} controller as Actuator child {}...", m_Identity,
+                 pActuator->getIdentity(), m_pActuators.size());
 }
 
 void PanelController::addMPES(const std::shared_ptr<MPESController> &pMPES) {
     m_pMPES.push_back(pMPES);
-    spdlog::trace("{} : Panel controller added MPES {} controller as child...", m_Identity, pMPES->getIdentity());
+    spdlog::info("{} : Panel controller added MPES {} controller as MPES child {}...", m_Identity, pMPES->getIdentity(),
+                 m_pMPES.size());
 }

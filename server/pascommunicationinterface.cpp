@@ -62,10 +62,8 @@ UaStatus PasCommunicationInterface::initialize() {
     DbInfo.dbname = myConfig.getDatabase();
     std::string dbAddress = "tcp://" + DbInfo.host + ":" + DbInfo.port;
 
-    std::map<int, int> actPositionToSerial;
-    std::map<int, int> actPositionToPort;
-    std::map<int, int> mpesPositionToSerial;
-    std::map<int, int> mpesPositionToPort;
+    std::array<Device::Identity, PlatformBase::NUM_ACTS_PER_PLATFORM> actuatorIdentities;
+    std::vector<Device::Identity> mpesIdentities;
 
     spdlog::trace("Connecting to DB {} at {} with user {}", DbInfo.dbname, dbAddress, DbInfo.user);
     try {
@@ -104,18 +102,29 @@ UaStatus PasCommunicationInterface::initialize() {
         pSqlStmt->execute(query);
         pSqlResults.reset(pSqlStmt->getResultSet());
         while (pSqlResults->next()) {
-            actPositionToPort[pSqlResults->getInt(3)] = pSqlResults->getInt(1);
-            actPositionToSerial[pSqlResults->getInt(3)] = pSqlResults->getInt(2);
+            Device::Identity actId;
+            actId.serialNumber = pSqlResults->getInt(1);
+            actId.position = pSqlResults->getInt(2);
+            std::string port = std::to_string(pSqlResults->getInt(3));
+            actId.eAddress = port;
+            actId.name = std::string("ACT_") + std::to_string(actId.serialNumber);
+            actuatorIdentities[actId.position - 1] = actId;
         }
 
         // Query DB for mpes serials and ports
-        query = "SELECT port, serial_number, w_position FROM Opt_MPESMapping WHERE w_panel=" +
+        query = "SELECT serial_number, w_position, port, l_panel FROM Opt_MPESMapping WHERE w_panel=" +
                 std::to_string(m_panelNum);
         pSqlStmt->execute(query);
         pSqlResults.reset(pSqlStmt->getResultSet());
         while (pSqlResults->next()) {
-            mpesPositionToPort[pSqlResults->getInt(3)] = pSqlResults->getInt(1);
-            mpesPositionToSerial[pSqlResults->getInt(3)] = pSqlResults->getInt(2);
+            Device::Identity mpesId;
+            mpesId.serialNumber = pSqlResults->getInt(1);
+            mpesId.position = pSqlResults->getInt(2);
+            mpesId.eAddress = std::to_string(pSqlResults->getInt(3));
+            mpesId.name = std::string("MPES_") + std::to_string(mpesId.serialNumber);
+            std::string port = std::to_string(pSqlResults->getInt(3));
+            std::string l_panelPos = std::to_string(pSqlResults->getInt(4));
+            mpesIdentities.push_back(mpesId);
         }
     }
     catch (sql::SQLException &e) {
@@ -123,16 +132,6 @@ UaStatus PasCommunicationInterface::initialize() {
                       __FILE__, __FUNCTION__, __LINE__, e.what(), e.getErrorCode(), e.getSQLState());
         return OpcUa_Bad;
     }
-
-    // construct arrays of the actuator ports and serial numbers
-    // ordered by position
-    std::array<int, 6> actuatorPorts{};
-    std::array<int, 6> actuatorSerials{};
-    for (auto act : actPositionToPort)
-        actuatorPorts[act.first - 1] = act.second;
-    for (auto act : actPositionToSerial)
-        actuatorSerials[act.first - 1] = act.second;
-
 
     Device::Identity identity;
     identity.name = std::string("Panel_") + std::to_string(m_panelNum);
@@ -150,37 +149,16 @@ UaStatus PasCommunicationInterface::initialize() {
 
     m_platform->initialize();
 
-    std::array<Device::Identity, PlatformBase::NUM_ACTS_PER_PLATFORM> actuatorIdentities;
     for (int i = 0; i < PlatformBase::NUM_ACTS_PER_PLATFORM; i++) {
-        Device::Identity id;
-        id.name = std::string("ACT_") + std::to_string(actuatorSerials.at(i));
-        id.serialNumber = actuatorSerials.at(i);
-        id.eAddress = std::to_string(actuatorPorts.at(i));
-        id.position = i + 1;
-        actuatorIdentities[i] = id;
-        spdlog::info("Adding ACT hardware interface with identity {} as child of Platform...", id, identity);
+        spdlog::info("Adding ACT hardware interface with identity {} as child of Platform...", actuatorIdentities[i]);
     }
-
     m_platform->addActuators(actuatorIdentities);
-
-    std::vector<int> mpesPositions;
-    std::vector<int> actPositions;
-    for (auto act : actPositionToPort) {
-        actPositions.push_back(act.first);
-    }
 
     // initialize the MPES in the positional order. Not strictly necessary, but keeps things tidy
     // addMPES(port, serial)
-    int pos;
-    for (auto mpes : mpesPositionToPort) {
-        identity.name = std::string("MPES_") + std::to_string(mpesPositionToSerial.at(mpes.first));
-        identity.serialNumber = mpesPositionToSerial.at(mpes.first);
-        identity.eAddress = std::to_string(mpes.second);
-        identity.position = mpes.first;
-        spdlog::info("Adding MPES hardware interface with identity {} as child of Platform ...", identity);
-        if (m_platform->addMPES(identity)) {
-            mpesPositions.push_back(mpes.first);
-        };
+    for (const auto &mpesId : mpesIdentities) {
+        spdlog::info("Adding MPES hardware interface with identity {} as child of Platform ...", mpesId);
+        m_platform->addMPES(mpesId);
     }
 
     // initialize expected devices
@@ -211,20 +189,12 @@ UaStatus PasCommunicationInterface::initialize() {
                     std::make_shared<PanelController>(identity, m_platform));
                 spdlog::info("Added Panel controller with identity {}", identity);
             } else if (devCount.first == PAS_MPESType) {
-                pos = mpesPositions.at(i);
-                identity.name = std::string("MPES_") + std::to_string(mpesPositionToSerial.at(pos));
-                identity.serialNumber = mpesPositionToSerial.at(pos);
-                identity.eAddress = std::to_string(mpesPositionToPort.at(pos));
-                identity.position = pos;
+                identity = mpesIdentities[i];
                 pController = std::dynamic_pointer_cast<PasControllerCommon>(
                     std::make_shared<MPESController>(identity, m_platform));
                 spdlog::info("Added MPES controller with identity {}", identity);
             } else if (devCount.first == PAS_ACTType) {
-                pos = actPositions.at(i);
-                identity.name = std::string("ACT_") + std::to_string(actPositionToSerial.at(pos));
-                identity.serialNumber = actPositionToSerial.at(pos);
-                identity.eAddress = std::to_string(actPositionToPort.at(pos));
-                identity.position = pos;
+                identity = actuatorIdentities[i];
                 pController = std::dynamic_pointer_cast<PasControllerCommon>(
                     std::make_shared<ActController>(identity, m_platform));
                 spdlog::info("Added Actuator controller with identity {}", identity);
@@ -263,11 +233,11 @@ UaStatus PasCommunicationInterface::initialize() {
     }
     std::shared_ptr<PanelController> pPanel = std::dynamic_pointer_cast<PanelController>(
         m_pControllers[PAS_PanelType].begin()->second); // get the first panel and assign actuators to it
-    for (const auto &act : m_pControllers[PAS_ACTType]) {
-        pPanel->addActuator(std::dynamic_pointer_cast<ActController>(act.second));
+    for (const auto &actId : actuatorIdentities) {
+        pPanel->addActuator(std::dynamic_pointer_cast<ActController>(m_pControllers[PAS_ACTType].at(actId)));
     }
-    for (const auto &mpes : m_pControllers[PAS_MPESType]) {
-        pPanel->addMPES(std::dynamic_pointer_cast<MPESController>(mpes.second));
+    for (const auto &mpesId : mpesIdentities) {
+        pPanel->addMPES(std::dynamic_pointer_cast<MPESController>(m_pControllers[PAS_MPESType].at(mpesId)));
     }
 
     // start(); // start the thread managed by this object
