@@ -138,7 +138,7 @@ protected:
     float m_StdDevMax{5.0f * dV};
     int m_QuickAngleCheckRange{5};
     int m_CyclesDefiningHome{3};
-    int m_MinimumMissedStepsToFlagError{5};
+    int m_MinimumMissedStepsToFlagError{3};
     float m_TolerablePercentOfMissedSteps{0.1};
     int m_ExtendStopToHomeStepsDeviation{StepsPerRevolution / 4};
     int m_FlaggedRecoverySteps{RecordingInterval / 10};
