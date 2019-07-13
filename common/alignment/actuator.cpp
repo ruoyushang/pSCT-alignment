@@ -820,8 +820,7 @@ void Actuator::probeHome()//method used to define home.
         spdlog::error(
             "{} : Operable Error (13): Actuator has stopped at {} steps away from the last recorded end stop position. Home position may be ill-defined.",
             m_Identity, StepsDeviationFromExtendStop);
-        setError(
-            13);//operable. if home is ill defined, we should still be able to move the actuator. Also, if internal position "ExtendStop" is not correct, we should still be able to move actuator.
+        setError(13);//operable. if home is ill defined, we should still be able to move the actuator. Also, if internal position "ExtendStop" is not correct, we should still be able to move actuator.
     }
     //Actuator::position
     Position HomePosition{};
