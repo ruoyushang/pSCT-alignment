@@ -554,10 +554,11 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
                 }
 
                 if (!busy) {
+                    spdlog::info("{}: Reading MPES {} on Panel {} ({} remaining)...", m_Identity,
+                                 mpesList.back()->getIdentity(), pair.first->getIdentity(), totalMPES);
                     mpesList.back()->readAsync();
                     mpesList.pop_back();
                     totalMPES--;
-                    spdlog::info("{}: Reading MPES {} on Panel {} ({} remaining)...", m_Identity, mpesList.back()->getIdentity(), pair.first->getIdentity(), totalMPES);
                 }
             };
         }
