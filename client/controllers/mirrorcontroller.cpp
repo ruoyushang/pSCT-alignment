@@ -781,7 +781,7 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
                 UaVariant(var).toFloat(currentLength);
                 float distanceFromInitial = fabs(currentLength - initialLengths.at(actuator->getIdentity()));
 
-                if (errorState != Device::ErrorState::Nominal || distanceFromTarget > epsilonLength) {
+                if (errorState != Device::ErrorState::Nominal || distanceFromInitial > epsilonLength) {
                     spdlog::trace("{}: Found failed actuator {}.", m_Identity, actuator->getIdentity());
                     auto result = failedActuators[panel->getIdentity()].insert(actuator);
                     if (result.second) {
@@ -916,7 +916,11 @@ MirrorController::moveDeltaCoords(const Eigen::VectorXd &deltaMirrorCoords, doub
             for (int i = 0; i < 6; i++) {
                 targetActLengths(i) = (float) m_pStewartPlatform->GetActLengths()[i];
             }
-            currentActLengths = std::dynamic_pointer_cast<PanelController>(pPanel)->getActuatorLengths();
+            status = std::dynamic_pointer_cast<PanelController>(pPanel)->__getActuatorLengths(currentActLengths);
+            if (status.isBad()) {
+                spdlog::error("{}: Unable to move delta coordinates, failed to read actuator lengths.", m_Identity);
+                return OpcUa_Bad;
+            }
 
             deltaActLengths = targetActLengths - currentActLengths;
             panelsToMove.push_back(std::dynamic_pointer_cast<PanelController>(pPanel));
@@ -1082,7 +1086,12 @@ MirrorController::moveToCoords(const Eigen::VectorXd &targetMirrorCoords, double
             for (int i = 0; i < 6; i++) {
                 targetActLengths(i) = (float) m_pStewartPlatform->GetActLengths()[i];
             }
-            currentActLengths = std::dynamic_pointer_cast<PanelController>(pPanel)->getActuatorLengths();
+
+            status = std::dynamic_pointer_cast<PanelController>(pPanel)->__getActuatorLengths(currentActLengths);
+            if (status.isBad()) {
+                spdlog::error("{}: Unable to move to coordinates, failed to read actauator lengths.", m_Identity);
+                return OpcUa_Bad;
+            }
 
             deltaActLengths = targetActLengths - currentActLengths;
             spdlog::info("{} : Panel {} calculated actuator motion:\n{}\n", m_Identity, pPanel->getIdentity(),
@@ -2170,7 +2179,12 @@ UaStatus MirrorController::savePosition(const std::string &saveFilePath) {
     for (unsigned panelPos : m_selectedPanels) {
         auto pPanel = std::dynamic_pointer_cast<PanelController>(
             m_pChildren.at(PAS_PanelType).at(getPanelIndex(panelPos)));
-        auto actuatorLengths = pPanel->getActuatorLengths();
+        Eigen::VectorXd actuatorLengths(6);
+        status = std::dynamic_pointer_cast<PanelController>(pPanel)->__getActuatorLengths(currentActLengths);
+        if (status.isBad()) {
+            spdlog::error("{}: Unable to write position, failed to read actuator lengths.", m_Identity);
+            return OpcUa_Bad;
+        }
 
         f << "Panel: " << pPanel->getIdentity() << std::endl;
         f << actuatorLengths << std::endl;
@@ -2265,8 +2279,12 @@ UaStatus MirrorController::loadPosition(const std::string &loadFilePath, double 
 
         for (const auto &pPanel : m_pChildren.at(PAS_PanelType)) {
             std::dynamic_pointer_cast<PanelController>(pPanel)->operate(PAS_PanelType_ReadPosition);
-            Device::Identity panelId = std::dynamic_pointer_cast<PanelController>(pPanel)->getIdentity();
-            currentActLengths = std::dynamic_pointer_cast<PanelController>(pPanel)->getActuatorLengths();
+            panelId = std::dynamic_pointer_cast<PanelController>(pPanel)->getIdentity();
+            status = std::dynamic_pointer_cast<PanelController>(pPanel)->__getActuatorLengths(currentActLengths);
+            if (status.isBad()) {
+                spdlog::error("{}: Unable to load position, failed to read actuator lengths.", m_Identity);
+                return OpcUa_Bad;
+            }
             if (panelPositions.find(panelId) != panelPositions.end()) {
                 targetActLengths = panelPositions.at(panelId);
                 deltaActLengths = targetActLengths - currentActLengths;

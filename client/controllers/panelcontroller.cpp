@@ -213,7 +213,14 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
         spdlog::debug("{} : PanelController::operate() : Executing moveToLengths() with target lengths :\n{}\n\n",
                       m_Identity,
                       targetLengths);
-        Eigen::VectorXd currentLengths = getActuatorLengths();
+        Eigen::VectorXd currentLengths;
+        status = __getActuatorLengths(currentLengths);
+
+        if (status.isBad()) {
+            spdlog::error("{}: Unable to moveToLengths, failed to get actauator lengths.", m_Identity);
+            return OpcUa_Bad;
+        }
+
         deltaLengths = targetLengths - currentLengths;
         if (m_mode == "client" && checkForCollision(deltaLengths)) {
             return OpcUa_Bad;
@@ -252,7 +259,14 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
         spdlog::debug("{} : PanelController::operate() : Moving actuators to lengths:\n{}\n\n", m_Identity,
                       targetLengths);
 
-        Eigen::VectorXd currentLengths = getActuatorLengths();
+        Eigen::VectorXd currentLengths;
+        status = __getActuatorLengths(currentLengths);
+
+        if (status.isBad()) {
+            spdlog::error("{}: Unable to moveToCoords, failed to get actauator lengths.", m_Identity);
+            return OpcUa_Bad;
+        }
+
         deltaLengths = targetLengths - currentLengths;
         if (m_mode == "client" && checkForCollision(deltaLengths)) {
             return OpcUa_Bad;
@@ -301,7 +315,14 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
         spdlog::debug("{} : PanelController::operate() : Moving actuators to lengths:\n{}\n\n", m_Identity,
                       targetLengths);
 
-        Eigen::VectorXd currentLengths = getActuatorLengths();
+        Eigen::VectorXd currentLengths;
+        status = __getActuatorLengths(currentLengths);
+
+        if (status.isBad()) {
+            spdlog::error("{}: Unable to moveDeltaCoords, failed to get actauator lengths.", m_Identity);
+            return OpcUa_Bad;
+        }
+
         deltaLengths = targetLengths - currentLengths;
         if (m_mode == "client" && checkForCollision(deltaLengths)) {
             return OpcUa_Bad;
@@ -310,13 +331,10 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
                                                 lengthArgs);
         }
     } else if (offset == PAS_PanelType_ReadPosition) {
-        status = updateCoords(false);
+        status = updateCoords(true);
         spdlog::info(
             "{} : PanelController::operate() : Current panel coordinates (x, y ,z xRot, yRot, zRot):\n{} {} {} {} {} {}\n",
             m_Identity, m_curCoords[0], m_curCoords[1], m_curCoords[2], m_curCoords[3], m_curCoords[4], m_curCoords[5]);
-
-        spdlog::info("{} : PanelController::operate() : Current Actuator Lengths :\n{}\n", m_Identity,
-                     getActuatorLengths());
     }
         /************************************************
          * stop the motion in progress                  *
@@ -372,7 +390,14 @@ bool PanelController::checkForCollision(const Eigen::VectorXd &deltaLengths) {
     Sen_center << 160.0, 120.0, 160.0, 120.0, 160.0, 120.0; // Hardcoded
     Eigen::VectorXd Sen_deviation; // deviated sensor reading
 
-    Eigen::VectorXd currentLengths = getActuatorLengths();
+    Eigen::VectorXd currentLengths(6);
+    UaStatus status = __getActuatorLengths(currentLengths);
+
+    if (status.isBad()) {
+        spdlog::error("{} : Collision check failed due to inability to read actuator lengths. Motion disallowed.",
+                      m_Identity);
+        return true;
+    }
 
     std::ostringstream os;
     for (int i=0; i<6; i++) {
@@ -460,7 +485,7 @@ Eigen::VectorXd PanelController::getActuatorLengths() {
     UaStatus status;
 
     Eigen::VectorXd actuatorLengths(6);
-    __getActuatorLengths(actuatorLengths);
+    status = __getActuatorLengths(actuatorLengths);
 
     return actuatorLengths;
 }
@@ -478,6 +503,9 @@ UaStatus PanelController::__getActuatorLengths(Eigen::VectorXd &lengths) {
     for (const auto &pair : actuatorPositionMap) {
         status = pair.second->getData(PAS_ACTType_CurrentLength, val);
         if (status.isBad()) {
+            for (int i = 0; i < 6; i++) {
+                lengths(i) = -1;
+            }
             return status;
         }
         val.toDouble(l);
