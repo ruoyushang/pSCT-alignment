@@ -998,12 +998,12 @@ MirrorController::moveDeltaCoords(const Eigen::VectorXd &deltaMirrorCoords, doub
                 m_Identity, alignFrac, m_lastSetAlignFrac);
             return OpcUa_Bad;
         } else {
-            Eigen::VectorXd X = m_Xcalculated * alignFrac;
+            X = m_Xcalculated * alignFrac;
 
             std::map <std::shared_ptr<PanelController>, UaVariantArray> args;
 
             unsigned j = 0;
-            for (auto pCurPanel : m_panelsToMove) {
+            for (const auto &pCurPanel : m_panelsToMove) {
                 auto nACT = pCurPanel->getActuatorCount();
                 UaVariantArray deltas;
                 deltas.create(nACT);
@@ -1015,10 +1015,10 @@ MirrorController::moveDeltaCoords(const Eigen::VectorXd &deltaMirrorCoords, doub
                 args[pCurPanel] = deltas;
             }
 
-            for (auto pair : args) {
+            for (const auto &pair : args) {
                 status = pair.first->__moveDeltaLengths(pair.second);
-                if (!status.isGood()) { return status; }
-                if (m_State == Device::DeviceState::Off) { break; }
+                //if (!status.isGood()) { return status; }
+                //if (m_State == Device::DeviceState::Off) { break; }
             }
 
             m_Xcalculated.setZero(); // reset calculated motion
@@ -1174,20 +1174,29 @@ MirrorController::moveToCoords(const Eigen::VectorXd &targetMirrorCoords, double
                 m_Identity, alignFrac, m_lastSetAlignFrac);
             return OpcUa_Bad;
         } else {
+            Eigen::VectorXd X = m_Xcalculated * alignFrac;
+
+            std::map<std::shared_ptr<PanelController>, UaVariantArray> args;
+
             unsigned j = 0;
-            for (auto &pCurPanel : m_panelsToMove) {
+            for (const auto &pCurPanel : m_panelsToMove) {
                 auto nACT = pCurPanel->getActuatorCount();
                 UaVariantArray deltas;
                 deltas.create(nACT);
                 UaVariant val;
                 for (unsigned i = 0; i < nACT; i++) {
-                    val.setFloat(m_Xcalculated(j++));
+                    val.setFloat(X(j++));
                     val.copyTo(&deltas[i]);
                 }
-                status = pCurPanel->__moveDeltaLengths(deltas);
-                if (!status.isGood()) { return status; }
-                if (m_State == Device::DeviceState::Off) { break; }
+                args[pCurPanel] = deltas;
             }
+
+            for (const auto &pair : args) {
+                status = pair.first->__moveDeltaLengths(pair.second);
+                //if (!status.isGood()) { return status; }
+                //if (m_State == Device::DeviceState::Off) { break; }
+            }
+
             m_Xcalculated.setZero(); // reset calculated motion
             m_panelsToMove.clear();
             m_previousCalculatedMethod = 0;
@@ -1799,8 +1808,8 @@ UaStatus MirrorController::alignSector(double alignFrac, std::string command) {
 
             for (const auto &pair : args) {
                 status = pair.first->__moveDeltaLengths(pair.second);
-                if (!status.isGood()) { return status; }
-                if (m_State == Device::DeviceState::Off) { break; }
+                //if (!status.isGood()) { return status; }
+                //if (m_State == Device::DeviceState::Off) { break; }
             }
 
             m_Xcalculated.setZero(); // reset calculated motion
