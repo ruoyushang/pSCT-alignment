@@ -2174,9 +2174,9 @@ UaStatus MirrorController::savePosition(const std::string &saveFilePath) {
 
     for (unsigned panelPos : m_selectedPanels) {
         auto pPanel = std::dynamic_pointer_cast<PanelController>(
-            m_pChildren.at(PAS_PanelType).at(getPanelIndex(panelPos)));
+            m_ChildrenPositionMap.at(PAS_PanelType).at(panelPos));
         Eigen::VectorXd actuatorLengths(6);
-        status = std::dynamic_pointer_cast<PanelController>(pPanel)->__getActuatorLengths(currentActLengths);
+        UaStatus status = std::dynamic_pointer_cast<PanelController>(pPanel)->__getActuatorLengths(actuatorLengths);
         if (status.isBad()) {
             spdlog::error("{}: Unable to write position, failed to read actuator lengths.", m_Identity);
             return OpcUa_Bad;
