@@ -35,7 +35,7 @@ bool MPESBase::initialize() {
         spdlog::error("{} : MPES::initialize() : Busy, cannot initialize.", m_Identity);
         return false;
     }
-    MPESBase::CustomBusyLock lock = MPESBase::CustomBusyLock(this);
+    Device::CustomBusyLock lock = Device::CustomBusyLock(this);
     bool status;
     status = __initialize();
     return status;
@@ -48,7 +48,7 @@ int MPESBase::setExposure() {
         spdlog::error("{} : MPES::setExposure() : Busy, cannot set exposure.", m_Identity);
         return -1;
     }
-    MPESBase::CustomBusyLock lock = MPESBase::CustomBusyLock(this);
+    Device::CustomBusyLock lock = Device::CustomBusyLock(this);
     int intensity;
     intensity = __setExposure();
     return intensity;
@@ -62,7 +62,7 @@ int MPESBase::updatePosition() {
         spdlog::error("{} : MPES::updatePosition() : Busy, cannot read webcam.", m_Identity);
         return -1;
     }
-    MPESBase::CustomBusyLock lock = MPESBase::CustomBusyLock(this);
+    Device::CustomBusyLock lock = Device::CustomBusyLock(this);
     spdlog::info("{} : MPES::updatePosition() : Reading webcam...", m_Identity);
     int intensity;
     intensity = __updatePosition();
@@ -75,7 +75,7 @@ void MPESBase::turnOn() {
         spdlog::error("{} : MPES::turnOn() : Busy, cannot turn on MPES.", m_Identity);
         return;
     }
-    MPESBase::CustomBusyLock lock = MPESBase::CustomBusyLock(this);
+    Device::CustomBusyLock lock = Device::CustomBusyLock(this);
     __initialize();
     __setExposure();
 }
@@ -92,7 +92,7 @@ void MPES::turnOff() {
         spdlog::error("{} : MPES::turnOff() : Busy, cannot turn off MPES.", m_Identity);
         return;
     }
-    MPESBase::CustomBusyLock lock = MPESBase::CustomBusyLock(this);
+    Device::CustomBusyLock lock = Device::CustomBusyLock(this);
     m_pCBC->usb.disable(getPortNumber());
 }
 

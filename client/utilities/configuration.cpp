@@ -138,7 +138,8 @@ UaStatus Configuration::loadDeviceConfiguration(const std::vector<std::string> &
             Device::Identity panelId;
             panelId.position = std::stoi(position);
 
-            query = "SELECT serial_number, mpcb_ip_address FROM Opt_MPMMapping WHERE position='" + position + "'";
+            query = "SELECT serial_number, mpcb_ip_address FROM Opt_MPMMapping WHERE end_date is NULL and position='" +
+                    position + "'";
             sql_stmt->execute(query);
             sql_results = sql_stmt->getResultSet();
             // should only be one result FOR NOW -- IN THE FUTURE, NEED TO FIX THIS, SORTING BY DATE
