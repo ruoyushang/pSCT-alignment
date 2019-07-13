@@ -889,7 +889,7 @@ int Actuator::__step(int steps) {
         //if( (std::abs(MissedSteps)/float(std::abs(StepsToTake)))>TolerablePercentOfMissedSteps && std::abs(MissedSteps)>MinimumMissedStepsToFlagError)//if the actuator misses a certain percent of steps AND misses more than a threshold number of steps.
         else if (std::abs(MissedSteps) >
             std::max(int(m_TolerablePercentOfMissedSteps * std::abs(StepsToTake)), m_MinimumMissedStepsToFlagError)) {
-            spdlog::error("{} : Fatal Error (6): Actuator has missed a large number of steps ({})", m_Identity,
+            spdlog::error("{} : Fatal Error (8): Actuator has missed a large number of steps ({})", m_Identity,
                           MissedSteps);
             setError(8);//fatal
             saveStatusToASF();
