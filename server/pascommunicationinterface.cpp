@@ -245,11 +245,11 @@ UaStatus PasCommunicationInterface::initialize() {
     }
     std::shared_ptr<PanelController> pPanel = std::dynamic_pointer_cast<PanelController>(
         m_pControllers[PAS_PanelType].begin()->second); // get the first panel and assign actuators to it
-    for (const auto &actId : actuatorIdentities) {
-        pPanel->addActuator(std::dynamic_pointer_cast<ActController>(m_pControllers[PAS_ACTType].at(actId)));
+    for (const auto &act : m_pControllers[PAS_ACTType]) {
+        pPanel->addActuator(std::dynamic_pointer_cast<ActController>(act.second));
     }
-    for (const auto &mpesId : mpesIdentities) {
-        pPanel->addMPES(std::dynamic_pointer_cast<MPESController>(m_pControllers[PAS_MPESType].at(mpesId)));
+    for (const auto &mpes : m_pControllers[PAS_MPESType]) {
+        pPanel->addMPES(std::dynamic_pointer_cast<MPESController>(mpes.second));
     }
 
     // start(); // start the thread managed by this object
