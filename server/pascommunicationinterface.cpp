@@ -63,7 +63,7 @@ UaStatus PasCommunicationInterface::initialize() {
     std::string dbAddress = "tcp://" + DbInfo.host + ":" + DbInfo.port;
 
     std::array<Device::Identity, PlatformBase::NUM_ACTS_PER_PLATFORM> actuatorIdentities;
-    std::map<int, Device::Identity> mpesIdentities;
+    std::vector <Device::Identity> mpesIdentities;
 
     spdlog::trace("Connecting to DB {} at {} with user {}", DbInfo.dbname, dbAddress, DbInfo.user);
     try {
@@ -125,7 +125,7 @@ UaStatus PasCommunicationInterface::initialize() {
             mpesId.name = std::string("MPES_") + std::to_string(mpesId.serialNumber);
             std::string port = std::to_string(pSqlResults->getInt(3));
             std::string l_panelPos = std::to_string(pSqlResults->getInt(4));
-            mpesIdentities[mpesId.position] = mpesId;
+            mpesIdentities.push_back(mpesId);
         }
     }
     catch (sql::SQLException &e) {
@@ -141,8 +141,8 @@ UaStatus PasCommunicationInterface::initialize() {
     panelId.position = m_panelNum;
 
 #ifdef SIMMODE
-    spdlog::info("SIMMODE: Creating DummyPlatform object with identity {}...", identity);
-    m_platform = std::dynamic_pointer_cast<PlatformBase>(std::make_shared<DummyPlatform>(identity, DbInfo));
+    spdlog::info("SIMMODE: Creating DummyPlatform object with identity {}...", panelId);
+    m_platform = std::dynamic_pointer_cast<PlatformBase>(std::make_shared<DummyPlatform>(panelId, DbInfo));
 #else
     spdlog::info("Creating Platform hardware interface with identity {}...", panelId);
     m_platform = std::dynamic_pointer_cast<PlatformBase>(std::make_shared<Platform>(panelId, DbInfo));
@@ -159,7 +159,7 @@ UaStatus PasCommunicationInterface::initialize() {
     // addMPES(port, serial)
     for (const auto &mpesId : mpesIdentities) {
         spdlog::info("Adding MPES hardware interface with identity {} as child of Platform ...", mpesId);
-        m_platform->addMPES(mpesId.second);
+        m_platform->addMPES(mpesId);
     }
 
     // initialize expected devices
@@ -181,7 +181,18 @@ UaStatus PasCommunicationInterface::initialize() {
     allDevices[PAS_PSDType] = {};
 
     for (const auto &pair: allDevices) {
-        spdlog::info("Expecting {} {} hardware interfaces...", pair.second, deviceTypes.at(pair.first));
+        int expectedDevices;
+        if (pair.first == PAS_PanelType) {
+            expectedDevices = 1;
+        } else if (pair.first == PAS_MPESType) {
+            expectedDevices = mpesIdentities.size();
+        } else if (pair.first == PAS_ACTType) {
+            expectedDevices = actuatorIdentities.size();
+        } else if (pair.first == PAS_PSDType) {
+            expectedDevices = 0;
+        }
+
+        spdlog::info("Expecting {} {} hardware interfaces...", expectedDevices, deviceTypes.at(pair.first));
 
         // If the device type does not already exist in the m_pControllers map, add it
         m_pControllers[pair.first] = std::map<Device::Identity, std::shared_ptr<PasControllerCommon>>();
@@ -223,16 +234,6 @@ UaStatus PasCommunicationInterface::initialize() {
             }
             m_pControllers[pair.first].insert(std::make_pair(identity, pController));
         }
-        int expectedDevices;
-        if (pair.first == PAS_PanelType) {
-            expectedDevices = 1;
-        } else if (pair.first == PAS_MPESType) {
-            expectedDevices = mpesIdentities.size();
-        } else if (pair.first == PAS_ACTType) {
-            expectedDevices = actuatorIdentities.size();
-        } else if (pair.first == PAS_PSDType) {
-            expectedDevices = 0;
-        }
         spdlog::info("Successfully initialized {}/{} {} controllers.", m_pControllers[pair.first].size(),
                      expectedDevices, deviceTypes.at(pair.first));
     }
@@ -248,7 +249,7 @@ UaStatus PasCommunicationInterface::initialize() {
         pPanel->addActuator(std::dynamic_pointer_cast<ActController>(m_pControllers[PAS_ACTType].at(actId)));
     }
     for (const auto &mpesId : mpesIdentities) {
-        pPanel->addMPES(std::dynamic_pointer_cast<MPESController>(m_pControllers[PAS_MPESType].at(mpesId.second)));
+        pPanel->addMPES(std::dynamic_pointer_cast<MPESController>(m_pControllers[PAS_MPESType].at(mpesId)));
     }
 
     // start(); // start the thread managed by this object
