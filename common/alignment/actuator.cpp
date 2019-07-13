@@ -21,15 +21,15 @@
 
 
 const std::vector<Device::ErrorDefinition> ActuatorBase::ERROR_DEFINITIONS = {
-    {"Home position is not calibrated",                                                                                                                           Device::ErrorState::FatalError},//error 0
-    {"DBInfo not set",                                                                                                                                            Device::ErrorState::OperableError},//error 1
-    {"MySQL Communication Error",                                                                                                                                 Device::ErrorState::OperableError},//error 2
-    {"DB Columns does not match what is expected",                                                                                                                Device::ErrorState::FatalError},//error 3
-    {"ASF File is Bad",                                                                                                                                           Device::ErrorState::FatalError},//error 4
-    {"ASF File entries does not match what is expected",                                                                                                          Device::ErrorState::FatalError},//error 5
-    {"Actuator is not stepping",                                                                                                                                  Device::ErrorState::FatalError},//error 6
-    {"Voltage Std Dev is entirely too high",                                                                                                                      Device::ErrorState::FatalError},//error 7
-    {"Actuator Missed too many steps",                                                                                                                            Device::ErrorState::FatalError},//error 8
+    {"Home position is not calibrated",                Device::ErrorState::FatalError},//error 0
+    {"DBInfo not set",                                 Device::ErrorState::OperableError},//error 1
+    {"MySQL Communication Error",                      Device::ErrorState::OperableError},//error 2
+    {"DB columns do not match what is expected",       Device::ErrorState::FatalError},//error 3
+    {"ASF File is Bad",                                Device::ErrorState::FatalError},//error 4
+    {"ASF File entries do not match what is expected", Device::ErrorState::FatalError},//error 5
+    {"Actuator is not stepping",                       Device::ErrorState::FatalError},//error 6
+    {"Voltage Std Dev is entirely too high",           Device::ErrorState::FatalError},//error 7
+    {"Actuator Missed too many steps",                 Device::ErrorState::FatalError},//error 8
     {"Actuator position is too many steps away from previously recorded position to recover safely",                                                                                                Device::ErrorState::FatalError},//error 9
     {"Actuator position is far from previously recorded position. It is close enough to automatically recover",                                                                                       Device::ErrorState::OperableError},//error 10
     {"Extend Stop Voltage is too close to the discontinuity. Possible 1 cycle uncertainty with calibrated data",                                                  Device::ErrorState::OperableError},//error 11
