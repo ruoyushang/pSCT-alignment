@@ -531,23 +531,22 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
         }
 
         int totalMPES = 0;
-        for (auto pair : MPESordering) {
+        for (const auto &pair : MPESordering) {
             totalMPES += pair.second.size();
-        };
+        }
 
         spdlog::info("{}: Total number of MPES requested to read is {}. Starting reads...", m_Identity, totalMPES);
-
         while (totalMPES > 0) {
-            for (auto pair : MPESordering) {
+            for (const auto &pair : MPESordering) {
                 auto mpesList = pair.second;
                 bool busy = false;
                 Device::DeviceState state;
-                for (auto mpes : mpesList)  { // Check if all mpes on panel are idle
+                for (const auto &mpes : mpesList) { // Check if all mpes on panel are idle
                     mpes->getState(state); 
                     if (state == Device::DeviceState::Busy) {
                         busy = true;
                     }
-                    UaThread::sleep(0.2);
+                    UaThread::msleep(200);
                 }
                 
                 if (totalMPES == 0) {
@@ -749,7 +748,7 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
 
         // Wait for completion
         spdlog::info("{}: Waiting for all motions to complete...", m_Identity);
-        UaThread::sleep(1);
+        UaThread::sleep(5);
         stillMoving = true;
         while (stillMoving) {
             stillMoving = false;
