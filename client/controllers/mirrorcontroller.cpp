@@ -303,7 +303,7 @@ UaStatus MirrorController::getData(OpcUa_UInt32 offset, UaVariant &value)
         value.setString(s.c_str());
     } else if (offset == PAS_MirrorType_ErrorState) {
         int errorState = 0;
-        for (auto childType : m_ChildType) {
+        for (auto childType : m_ChildrenTypes) {
             for (auto child : getChildren(childType)) {
                 UaVariant var;
                 if (childType == PAS_MPESType) {
@@ -322,7 +322,7 @@ UaStatus MirrorController::getData(OpcUa_UInt32 offset, UaVariant &value)
         }
         value.setInt32(errorState);
         spdlog::trace("{} : Read ErrorState value => ({})", m_Identity,
-                      Device::errorStateNames.at(static_cast<Device::ErrorState>(temp)));
+                      Device::errorStateNames.at(static_cast<Device::ErrorState>(errorState)));
     } else
         return OpcUa_BadInvalidArgument;
 
