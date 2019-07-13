@@ -401,6 +401,10 @@ Platform::__step(std::array<int, PlatformBase::NUM_ACTS_PER_PLATFORM> inputSteps
         }
     }
 
+    spdlog::debug("{} : Platform::step() : Actuator iterations: ({}, {}, {}, {}, {}, {}).",
+                  m_Identity, ActuatorIterations[0], ActuatorIterations[1], ActuatorIterations[2],
+                  ActuatorIterations[3], ActuatorIterations[4], ActuatorIterations[5]);
+
     int IterationsRemaining = *std::max_element(ActuatorIterations.begin(), ActuatorIterations.end());
     std::array<int, PlatformBase::NUM_ACTS_PER_PLATFORM> StepsToTake = {0, 0, 0, 0, 0, 0};
     int Sign;
@@ -408,14 +412,18 @@ Platform::__step(std::array<int, PlatformBase::NUM_ACTS_PER_PLATFORM> inputSteps
 
     m_pCBC->driver.enableAll();
     while (IterationsRemaining > 1) {
+        spdlog::trace("{} : Platform::step() : Iterations remaining: {}",
+                      m_Identity, IterationsRemaining);
         for (int i = 0; i < PlatformBase::NUM_ACTS_PER_PLATFORM; i++) {
             if (ActuatorIterations[i] > 1) {
                 if (getDeviceState() == Device::DeviceState::Off || getErrorState() == Device::ErrorState::FatalError) {
                     m_pCBC->driver.disableAll();
-                    spdlog::info("{} : Platform::step() : Successfully stopped motion.", m_Identity);
+                    spdlog::warn("{} : Platform::step() : Successfully stopped motion.", m_Identity);
                     return StepsRemaining;
                 }
                 StepsToTake[i] = StepsToTake[i] + StepsRemaining[i] / IterationsRemaining;
+                spdlog::trace("{} : Platform::step() : Actuator {} stepsToTake = {}.", m_Identity,
+                              m_Actuators[i]->getIdentity(), StepsToTake[i]);
                 if (std::abs(StepsToTake[i]) > m_Actuators[i]->RecordingInterval) {
                     Sign = (StepsToTake[i] > 0) - (StepsToTake[i] < 0);
                     StepsMissed = m_Actuators[i]->step(Sign * m_Actuators[i]->RecordingInterval);
@@ -433,11 +441,11 @@ Platform::__step(std::array<int, PlatformBase::NUM_ACTS_PER_PLATFORM> inputSteps
 
     //Hysteresis Motion
     if (getErrorState() != Device::ErrorState::FatalError) {
-  
+        spdlog::debug("{} : Platform::step() : Executing hysteresis motion...", m_Identity);
         for (int i = 0; i < PlatformBase::NUM_ACTS_PER_PLATFORM; i++) {
             if (getDeviceState() == Device::DeviceState::Off || getErrorState() == Device::ErrorState::FatalError) {
                 m_pCBC->driver.disableAll();
-                spdlog::info("{} : Platform::step() : Successfully stopped hysteresis motion.", m_Identity);
+                spdlog::warn("{} : Platform::step() : Successfully stopped hysteresis motion.", m_Identity);
                 return StepsRemaining;
             }
             if (StepsRemaining[i] != 0) {

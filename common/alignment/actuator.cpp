@@ -831,7 +831,7 @@ void Actuator::probeHome()//method used to define home.
 }
 
 int Actuator::__step(int steps) {
-    spdlog::trace("{} : Stepping actuator {} steps...", m_Identity, steps);
+    spdlog::trace("{} : Stepping actuator {} total steps...", m_Identity, steps);
 
     if (getErrorState() == Device::ErrorState::FatalError) {
         spdlog::trace("{}: Fatal error, disallowing motion.", m_Identity);
@@ -863,6 +863,7 @@ int Actuator::__step(int steps) {
             m_keepStepping = false;
         }
         PredictedPosition = predictNewPosition(m_CurrentPosition, -StepsToTake);
+        spdlog::trace("{} : Stepping actuator {} steps...", m_Identity, StepsToTake);
         m_pCBC->driver.step(getPortNumber(), StepsToTake);
         MissedSteps = checkAngleQuick(
             PredictedPosition);//negative*negative=positive sign because retraction is increasing internal counter and missed steps is negative by definition.
