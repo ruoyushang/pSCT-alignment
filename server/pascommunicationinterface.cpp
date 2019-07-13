@@ -75,7 +75,7 @@ UaStatus PasCommunicationInterface::initialize() {
         std::unique_ptr<sql::ResultSet> pSqlResults;
 
         // Query DB for panel position and m_pCBC id by IP address
-        std::string query = "SELECT mpcb_id, position FROM Opt_MPMMapping WHERE position='"
+        std::string query = "SELECT mpcb_id, position FROM Opt_MPMMapping WHERE end_date is NULL and position='"
                             + std::to_string(m_panelNum) + "'";
         pSqlStmt->execute(query);
         pSqlResults.reset(pSqlStmt->getResultSet());
@@ -97,7 +97,7 @@ UaStatus PasCommunicationInterface::initialize() {
         spdlog::info("Initializing Panel {} with CBC {}...", m_panelNum, m_cbcID);
 
         // Query DB for actuator serials and ports
-        query = "SELECT serial_number, position, port FROM Opt_ActuatorMapping WHERE panel=" +
+        query = "SELECT serial_number, position, port FROM Opt_ActuatorMapping WHERE end_date is NULL and panel=" +
                 std::to_string(m_panelNum);
         pSqlStmt->execute(query);
         pSqlResults.reset(pSqlStmt->getResultSet());
@@ -112,8 +112,9 @@ UaStatus PasCommunicationInterface::initialize() {
         }
 
         // Query DB for mpes serials and ports
-        query = "SELECT serial_number, w_position, port, l_panel FROM Opt_MPESMapping WHERE w_panel=" +
-                std::to_string(m_panelNum);
+        query =
+            "SELECT serial_number, w_position, port, l_panel FROM Opt_MPESMapping WHERE end_date is NULL and w_panel=" +
+            std::to_string(m_panelNum);
         pSqlStmt->execute(query);
         pSqlResults.reset(pSqlStmt->getResultSet());
         while (pSqlResults->next()) {

@@ -84,7 +84,8 @@ bool ActuatorBase::loadConfigurationAndCalibration() {
             stmt = con->createStatement();
 
             std::stringstream stmtvar;
-            stmtvar << "SELECT * FROM Opt_ActuatorConfigurationAndCalibration WHERE serial_number=" << getSerialNumber()
+            stmtvar << "SELECT * FROM Opt_ActuatorConfigurationAndCalibration WHERE end_date is NULL and serial_number="
+                    << getSerialNumber()
                     << " ORDER BY start_date DESC LIMIT 1";
             stmt->execute(stmtvar.str());
             res = stmt->getResultSet();
@@ -117,7 +118,8 @@ bool ActuatorBase::loadConfigurationAndCalibration() {
             m_encoderScale.resize(StepsPerRevolution);
             for (int i = 0; i < StepsPerRevolution; i++) {
                 stmtvar.str(std::string());
-                stmtvar << "SELECT * FROM Opt_ActuatorMotorProfile WHERE (serial_number=" << getSerialNumber()
+                stmtvar << "SELECT * FROM Opt_ActuatorMotorProfile WHERE end_date is NULL and (serial_number="
+                        << getSerialNumber()
                         << " and angle=" << i << ") ORDER BY start_date DESC LIMIT 1";
                 stmt->execute(stmtvar.str());
                 res = stmt->getResultSet();

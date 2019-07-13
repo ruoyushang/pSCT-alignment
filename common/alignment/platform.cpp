@@ -276,7 +276,8 @@ bool Platform::loadCBCParameters() {
         stmt = con->createStatement();
 
         std::stringstream stmtvar;
-        stmtvar << "SELECT * FROM Opt_ControllerBoardCalibration WHERE serial_number=" << getSerialNumber()
+        stmtvar << "SELECT * FROM Opt_ControllerBoardCalibration WHERE end_date is NULL and serial_number="
+                << getSerialNumber()
                 << " ORDER BY start_date DESC LIMIT 1";
         stmt->execute(stmtvar.str());
         res = stmt->getResultSet();
@@ -913,7 +914,8 @@ bool DummyPlatform::loadCBCParameters() {
         stmt = con->createStatement();
 
         std::stringstream stmtvar;
-        stmtvar << "SELECT * FROM Opt_ControllerBoardCalibration WHERE serial_number=" << getSerialNumber()
+        stmtvar << "SELECT * FROM Opt_ControllerBoardCalibration WHERE end_date is NULL and serial_number="
+                << getSerialNumber()
                 << " ORDER BY start_date DESC LIMIT 1";
         stmt->execute(stmtvar.str());
         res = stmt->getResultSet();
