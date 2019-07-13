@@ -690,11 +690,12 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
 
         // Wait for completion
         spdlog::info("{}: Waiting for all motions to complete...", m_Identity);
+        UaThread::sleep(5);
         bool stillMoving = true;
         while (stillMoving) {
             stillMoving = false;
-            Device::DeviceState state;
             for (const auto &panel : panelsToTest) {
+                Device::DeviceState state;
                 panel->getState(state);
                 if (state == Device::DeviceState::Busy) {
                     spdlog::trace("{}: Panel {} is still busy...", m_Identity, panel->getIdentity());
@@ -748,6 +749,7 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
 
         // Wait for completion
         spdlog::info("{}: Waiting for all motions to complete...", m_Identity);
+        UaThread::sleep(1);
         stillMoving = true;
         while (stillMoving) {
             stillMoving = false;
