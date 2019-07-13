@@ -1,7 +1,11 @@
 #include "common/alignment/device.hpp"
 #include <tuple>
+#include <sstream>
 
 #include "common/cbccode/cbc.hpp"
+
+#include "common/utilities/spdlog/spdlog.h"
+#include "common/utilities/spdlog/fmt/ostr.h"
 
 const std::map<Device::ErrorState, std::string> Device::errorStateNames = {
     {Device::ErrorState::Nominal,       "Nominal"},
@@ -62,18 +66,16 @@ Device::Device(Device::Identity identity) : m_Identity(std::move(identity)), m_B
 
 void Device::setError(int errorCode) {
     if (!m_Errors.at(errorCode)) {
-        std::cout << m_Identity << " :: Setting Error " << errorCode << " ("
-                  << getErrorCodeDefinitions()[errorCode].description
-                  << ")\n";
+        spdlog::error("{} : Setting Error {} ({})", m_Identity, errorCode,
+                      getErrorCodeDefinition(errorCode).description);
         m_Errors[errorCode] = true;
     }
 }
 
 void Device::unsetError(int errorCode) {
     if (m_Errors.at(errorCode)) {
-        std::cout << m_Identity << " :: Unsetting Error " << errorCode << " ("
-                  << getErrorCodeDefinitions()[errorCode].description
-                  << ")\n";
+        spdlog::info("{} : Unsetting Error {} ({})", m_Identity, errorCode,
+                     getErrorCodeDefinition(errorCode).description);
         m_Errors[errorCode] = false;
     }
 }
@@ -94,8 +96,8 @@ Device::ErrorState Device::getErrorState() {
     Device::ErrorState state = Device::ErrorState::Nominal;
     for (int i = 0; i < getNumErrors(); i++) {
         if (m_Errors[i]) {
-            if (getErrorCodeDefinitions()[i].severity > state) {
-                state = getErrorCodeDefinitions()[i].severity;
+            if (getErrorCodeDefinition(i).severity > state) {
+                state = getErrorCodeDefinition(i).severity;
             }
         }
     }
@@ -104,22 +106,55 @@ Device::ErrorState Device::getErrorState() {
 }
 
 void Device::clearErrors() {
-    std::cout << m_Identity << " :: Clearing All Errors... \n";
+    spdlog::info("{} : Clearing All Errors...", m_Identity);
     for (int i = 0; i < getNumErrors(); i++) {
         m_Errors[i] = false;
     }
 }
 
-void Device::setBusy() {
-    if (!isBusy()) {
-        //std::cout << m_Identity << " :: Blocking task started.\n";
-        m_Busy = true;
-    }
-}
+Device::Identity Device::parseIdentity(std::string identityString) {
+    Device::Identity id;
 
-void Device::unsetBusy() {
-    if (isBusy()) {
-        //std::cout << m_Identity << " :: Blocking task completed.\n";
-        m_Busy = false;
+    // Strip leading and trailing parentheses
+    if (identityString.at(0) == '(') {
+        identityString = identityString.substr(1, identityString.size() - 1);
+    } else {
+        spdlog::error("Does not match expected Identity format, first character is not '('");
+        return id;
     }
+
+    if (identityString.at(identityString.size() - 1) == ')') {
+        identityString = identityString.substr(0, identityString.size() - 2);
+    } else {
+        spdlog::error("Does not match expected Identity format, last character is not ')'");
+        return id;
+    }
+
+
+    // Vector of string to save tokens
+    std::vector<std::string> tokens;
+
+    // stringstream class check1
+    std::stringstream ss(identityString);
+
+    std::string temp;
+
+    // Tokenizing w.r.t. space ' '
+    while (getline(ss, temp, ',')) {
+        tokens.push_back(temp);
+    }
+
+    if (tokens.size() != 4) {
+        spdlog::error("Does not match expected Identity format, found {} components instead of the desired 4.",
+                      tokens.size());
+        return id;
+    }
+
+    // Printing the token vector
+    id.serialNumber = std::stoi(tokens[0]);
+    id.eAddress = tokens[1];
+    id.name = tokens[2];
+    id.serialNumber = std::stoi(tokens[3]);
+
+    return id;
 }

@@ -59,7 +59,7 @@ public:
         return m_DeviceSerialMap.at(deviceType).at(serial);
     }
     // {serial->Address} map of all devices of the requested type
-    const std::set<Device::Identity> &getDevices(OpcUa_UInt32 deviceType) { return m_DeviceIdentities.at(deviceType); };
+    std::set<Device::Identity> getDevices(OpcUa_UInt32 deviceType);
     // get list of all parents of a given device.
     // this is a vector of pairs {parentType, parentIdentity}
     // need to pass around the whole object!
@@ -74,7 +74,12 @@ public:
     }
 
     std::map<OpcUa_UInt32, std::set<Device::Identity>> getChildren(const Device::Identity &id) {
-        return m_ChildMap.at(id);
+        try {
+            return m_ChildMap.at(id);
+        }
+        catch (std::out_of_range &e) {
+            return std::map<OpcUa_UInt32, std::set<Device::Identity>>();
+        }
     }
 
     Device::Identity getDeviceByName(const std::string &browseName) { return m_DeviceNameMap.at(browseName); }

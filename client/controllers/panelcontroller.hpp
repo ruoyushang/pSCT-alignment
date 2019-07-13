@@ -18,7 +18,7 @@ public:
     friend EdgeController; // access internal methods for compute
 
     // construction / destruction
-    PanelController(Device::Identity identity, Client *pClient, bool isSubclient = true);
+    PanelController(Device::Identity identity, Client *pClient, std::string mode = "client");
 
     // Get Controller status and data
     UaStatus getState(Device::DeviceState &state) override;
@@ -44,7 +44,7 @@ public:
     UaStatus updateCoords(bool printout = false);
 
 private:
-    bool m_isSubclient;
+    std::string m_mode;
 
     // x, y, z, xRot, yRot, zRot
     double m_curCoords[6] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
@@ -66,11 +66,11 @@ private:
     Device::DeviceState __getDeviceState();
 
     UaStatus __moveToLengths(const UaVariantArray &args) {
-        return m_pClient->callMethodAsync(std::string("ns=2;s=Panel_0"), UaString("MoveToLengths"), args);
+        return m_pClient->callMethodAsync(m_pClient->getDeviceNodeId(m_Identity), UaString("MoveToLengths"), args);
     }
 
     UaStatus __moveDeltaLengths(const UaVariantArray &args) {
-        return m_pClient->callMethodAsync(std::string("ns=2;s=Panel_0"), UaString("MoveDeltaLengths"), args);
+        return m_pClient->callMethodAsync(m_pClient->getDeviceNodeId(m_Identity), UaString("MoveDeltaLengths"), args);
     }
 };
 

@@ -3,7 +3,7 @@
 #include <algorithm>
 #include <cstdlib> // system
 #include <fstream>
-#include <iostream>
+
 #include <sstream>
 #include <string>
 #include <unistd.h> // usleep
@@ -16,6 +16,9 @@
 
 #include "client/clienthelper.hpp"
 
+#include "common/utilities/spdlog/spdlog.h"
+#include "common/utilities/spdlog/fmt/ostr.h"
+
 // MySQL C++ Connector includes
 #include "mysql_driver.h"
 #include "cppconn/statement.h"
@@ -25,11 +28,10 @@
 // implement PasCompositeController::addChild()
 void PasCompositeController::addChild(OpcUa_UInt32 deviceType, const std::shared_ptr<PasController> &pController)
 {
-    const auto &id = pController->getId();
-    auto pos = pController->getId().position;
+    const auto &id = pController->getIdentity();
     // don't add the same device multiple times
     try {
-        m_ChildrenPositionMap.at(deviceType).at(pos);
+        m_ChildrenPositionMap.at(deviceType).at(id.position);
         m_ChildrenSerialMap.at(deviceType).at(id.serialNumber);
         m_ChildrenEaddressMap.at(deviceType).at(id.eAddress);
         return;
@@ -37,13 +39,13 @@ void PasCompositeController::addChild(OpcUa_UInt32 deviceType, const std::shared
     catch (std::out_of_range &e) {
         // only add if this is a possible child
         if (m_ChildrenTypes.count(deviceType)) {
-            std::cout << " --- " << m_ID.name << "::addChild(): "
-                      << m_ID.name << ": adding " << pController->getId() << std::endl;
+            spdlog::info("{}: PasCompositeController::addChild(): added child with ID {}.", m_Identity,
+                         pController->getIdentity());
             m_pChildren[deviceType].push_back(std::shared_ptr<PasController>(pController));
-            m_ChildrenSerialMap[deviceType][id.serialNumber] = m_pChildren.at(deviceType).size() - 1;
-            m_ChildrenEaddressMap[deviceType][id.eAddress] = m_pChildren.at(deviceType).size() - 1;
-            // this doesn't work for edges, since they don't have an assigned position
-            m_ChildrenPositionMap[deviceType][pos] = m_pChildren.at(deviceType).size() - 1;
+            m_ChildrenIdentityMap[deviceType][id] = pController;
+            m_ChildrenSerialMap[deviceType][id.serialNumber] = pController;
+            m_ChildrenEaddressMap[deviceType][id.eAddress] = pController;
+            m_ChildrenPositionMap[deviceType][id.position] = pController;
         }
     }
 }

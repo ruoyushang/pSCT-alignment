@@ -1,7 +1,7 @@
 #include "server/controllers/panelcontroller.hpp"
 
 #include <array>
-#include <iostream>
+
 #include <memory>
 
 #include "uabase/statuscode.h"
@@ -26,7 +26,7 @@
 UaStatus PanelController::getState(Device::DeviceState &state) {
     //UaMutexLocker lock(&m_mutex);
     state = _getDeviceState();
-    spdlog::trace("{} : Getting device state => ({})", m_ID, Device::deviceStateNames.at(state));
+    spdlog::trace("{} : Read device state => ({})", m_Identity, Device::deviceStateNames.at(state));
     return OpcUa_Good;
 }
 
@@ -43,21 +43,21 @@ UaStatus PanelController::getData(OpcUa_UInt32 offset, UaVariant &value) {
     if (PanelObject::VARIABLES.find(offset) != PanelObject::VARIABLES.end()) {
         if (offset == PAS_PanelType_ExtTemperature) {
             float externalTemperature = m_pPlatform->getExternalTemperature();
-            spdlog::trace("{} : Getting externalTemp value => ({})", m_ID, externalTemperature);
+            spdlog::trace("{} : Read externalTemp value => ({})", m_Identity, externalTemperature);
             value.setFloat(externalTemperature);
         } else if (offset == PAS_PanelType_IntTemperature) {
             float internalTemperature = m_pPlatform->getInternalTemperature();
-            spdlog::trace("{} : Getting externalTemp value => ({})", m_ID, internalTemperature);
+            spdlog::trace("{} : Read externalTemp value => ({})", m_Identity, internalTemperature);
             value.setFloat(internalTemperature);
         } else if (offset == PAS_PanelType_Position) {
-            spdlog::trace("{} : Getting Position value => ({})", m_ID, m_ID.position);
-            value.setInt32(m_ID.position);
+            spdlog::trace("{} : Read Position value => ({})", m_Identity, m_Identity.position);
+            value.setInt32(m_Identity.position);
         } else if (offset == PAS_PanelType_Serial) {
-            spdlog::trace("{} : Getting Serial value => ({})", m_ID, m_ID.serialNumber);
-            value.setInt32(m_ID.serialNumber);
+            spdlog::trace("{} : Read Serial value => ({})", m_Identity, m_Identity.serialNumber);
+            value.setInt32(m_Identity.serialNumber);
         } else if (offset == PAS_PanelType_ErrorState) {
             Device::ErrorState errorState = _getErrorState();
-            spdlog::trace("{} : Getting ErrorState value => ({})", m_ID, static_cast<int>(errorState));
+            spdlog::trace("{} : Read ErrorState value => ({})", m_Identity, Device::errorStateNames.at(errorState));
             value.setInt32(static_cast<int>(errorState));
         }
     } else if (PanelObject::ERRORS.find(offset) != PanelObject::ERRORS.end()) {
@@ -78,7 +78,7 @@ UaStatus PanelController::getError(OpcUa_UInt32 offset, UaVariant &value) {
     if (errorNum >= 0 && errorNum < PanelObject::ERRORS.size()) {
         errorStatus = m_pPlatform->getError(int(errorNum));
         value.setBool(errorStatus);
-        spdlog::trace("{} : Getting error {} value => ({})", m_ID, errorNum, errorStatus);
+        spdlog::trace("{} : Read error {} value => ({})", m_Identity, errorNum, errorStatus);
     } else {
         status = OpcUa_BadInvalidArgument;
     }
@@ -96,7 +96,7 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
     UaStatus status;
 
     if (_getDeviceState() == Device::DeviceState::Busy && offset != PAS_PanelType_Stop) {
-        spdlog::error("{} : Panel controller is busy, operate call failed. Wait and try again.", m_ID);
+        spdlog::error("{} : Panel controller is busy, operate call failed. Wait and try again.", m_Identity);
         return OpcUa_BadInvalidState;
     }
 
@@ -107,109 +107,118 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
         if (_getDeviceState() == Device::DeviceState::Off)
             setState(Device::DeviceState::On);
 
-        spdlog::info("{} : Panel controller calling moveDeltaLength with delta lengths:\n{}\n{}\n{}\n{}\n{}\n{}\n",
-                     m_ID,
-                     args[0].Value.Float,
-                     args[1].Value.Float,
-                     args[2].Value.Float,
-                     args[3].Value.Float,
-                     args[4].Value.Float,
-                     args[5].Value.Float);
 
+        std::array<float, 6> initialLengths{};
         std::array<float, 6> deltaLengths{};
-        UaVariant var;
-        float targetLength;
+        std::array<float, 6> targetLengths{};
         for (int i = 0; i < 6; i++) {
-            status = m_pActuators.at(i)->getData(PAS_ACTType_CurrentLength, var);
-            deltaLengths[i] = args[i].Value.Float;
-            targetLength = var[0].Value.Float + args[i].Value.Float;
-            m_pActuators.at(i)->setTargetLength(targetLength);
+            UaVariant(args[i]).toFloat(deltaLengths[i]);
+            initialLengths[i] = m_pActuators.at(i)->getCurrentLength();
+            targetLengths[i] = initialLengths[i] + deltaLengths[i];
+            m_pActuators.at(i)->setTargetLength(targetLengths[i]);
         }
+
+        spdlog::info(
+            "{} : PanelController calling moveDeltaLength:\n CurrentLength + Delta Length => TargetLength\n\n{} + {} => {}\n{} + {} => {}\n{} + {} => {}\n{} + {} => {}\n{} + {} => {}\n{} + {} => {}\n",
+            m_Identity,
+            initialLengths[0], deltaLengths[0], targetLengths[0],
+            initialLengths[1], deltaLengths[1], targetLengths[1],
+            initialLengths[2], deltaLengths[2], targetLengths[2],
+            initialLengths[3], deltaLengths[3], targetLengths[3],
+            initialLengths[4], deltaLengths[4], targetLengths[4],
+            initialLengths[5], deltaLengths[5], targetLengths[5]);
 
         deltaLengths = m_pPlatform->moveDeltaLengths(deltaLengths);
 
         std::array<float, 6> finalLengths{};
         for (int i = 0; i < 6; i++) {
             m_pActuators.at(i)->setDeltaLength(deltaLengths[i]);
-            status = m_pActuators.at(i)->getData(PAS_ACTType_CurrentLength, var);
-            finalLengths[i] = var[0].Value.Float;
+            finalLengths[i] = m_pActuators.at(i)->getCurrentLength();
         }
 
         spdlog::info(
-            "{} : Lengths after moveDeltaLengths (distance from target):\n{} ({})\n{} ({})\n{} ({})\n{} ({})\n{} ({})\n{} ({})\n",
-            m_ID,
-            finalLengths[0], deltaLengths[0],
-            finalLengths[1], deltaLengths[1],
-            finalLengths[2], deltaLengths[2],
-            finalLengths[3], deltaLengths[3],
-            finalLengths[4], deltaLengths[4],
-            finalLengths[5], deltaLengths[5]);
+            "{} : Lengths after moveDeltaLengths (Remaining distance to target):\n{} ({})\n{} ({})\n{} ({})\n{} ({})\n{} ({})\n{} ({})\n",
+            m_Identity,
+            finalLengths[0], targetLengths[0] - finalLengths[0],
+            finalLengths[1], targetLengths[1] - finalLengths[1],
+            finalLengths[2], targetLengths[2] - finalLengths[2],
+            finalLengths[3], targetLengths[3] - finalLengths[3],
+            finalLengths[4], targetLengths[4] - finalLengths[4],
+            finalLengths[5], targetLengths[5] - finalLengths[5]);
 
     } else if (offset == PAS_PanelType_MoveToLengths) {
         if (_getDeviceState() == Device::DeviceState::Off)
             setState(Device::DeviceState::On);
 
-        spdlog::info("{} : Panel controller calling moveToLengths with target lengths:\n{}\n{}\n{}\n{}\n{}\n{}\n", m_ID,
-                     args[0].Value.Float,
-                     args[1].Value.Float,
-                     args[2].Value.Float,
-                     args[3].Value.Float,
-                     args[4].Value.Float,
-                     args[5].Value.Float);
-
+        std::array<float, 6> initialLengths{};
         std::array<float, 6> targetLengths{};
         for (int i = 0; i < 6; i++) {
-            targetLengths[i] = args[i].Value.Float;
+            UaVariant(args[i]).toFloat(targetLengths[i]);
+            initialLengths[i] = m_pActuators.at(i)->getCurrentLength();
             m_pActuators.at(i)->setTargetLength(targetLengths[i]);
         }
+
+        spdlog::info(
+            "{} : PanelController calling moveToLengths:\n CurrentLength => TargetLength\n\n{} => {}\n{} => {}\n{} => {}\n{} => {}\n{} => {}\n{} => {}\n",
+            m_Identity,
+            initialLengths[0], targetLengths[0],
+            initialLengths[1], targetLengths[1],
+            initialLengths[2], targetLengths[2],
+            initialLengths[3], targetLengths[3],
+            initialLengths[4], targetLengths[4],
+            initialLengths[5], targetLengths[5]);
 
         std::array<float, 6> finalLengths = m_pPlatform->moveToLengths(targetLengths);
 
         spdlog::info(
-            "{} : Lengths after moveDeltaLengths (distance from target):\n{} ({})\n{} ({})\n{} ({})\n{} ({})\n{} ({})\n{} ({})\n",
-            m_ID,
-            finalLengths[0], finalLengths[0] - targetLengths[0],
-            finalLengths[1], finalLengths[1] - targetLengths[1],
-            finalLengths[2], finalLengths[2] - targetLengths[2],
-            finalLengths[3], finalLengths[3] - targetLengths[3],
-            finalLengths[4], finalLengths[4] - targetLengths[4],
-            finalLengths[5], finalLengths[5] - targetLengths[5]);
+            "{} : Lengths after moveToLengths (Remaining distance to target):\n{} ({})\n{} ({})\n{} ({})\n{} ({})\n{} ({})\n{} ({})\n",
+            m_Identity,
+            finalLengths[0], targetLengths[0] - finalLengths[0],
+            finalLengths[1], targetLengths[1] - finalLengths[1],
+            finalLengths[2], targetLengths[2] - finalLengths[2],
+            finalLengths[3], targetLengths[3] - finalLengths[3],
+            finalLengths[4], targetLengths[4] - finalLengths[4],
+            finalLengths[5], targetLengths[5] - finalLengths[5]);
 
         for (int i = 0; i < 6; i++) {
             m_pActuators.at(i)->setDeltaLength(finalLengths[i] - targetLengths[i]);
         }
     } else if (offset == PAS_PanelType_Stop) {
-        spdlog::info("{} : Panel controller calling stop()", m_ID);
+        spdlog::info("{} : PanelController calling stop()", m_Identity);
         m_pPlatform->emergencyStop();
     } else if (offset == PAS_PanelType_TurnOn) {
-        spdlog::info("{} : Panel controller calling turnOn()", m_ID);
+        spdlog::info("{} : PanelController calling turnOn()", m_Identity);
         if (_getDeviceState() == Device::DeviceState::Off) {
             m_pPlatform->turnOn();
         } else {
-            spdlog::trace("{} : Device is already on, nothing to do...", m_ID);
+            spdlog::trace("{} : Device is already on, nothing to do...", m_Identity);
         }
     } else if (offset == PAS_PanelType_TurnOff) {
-        spdlog::info("{} : Panel controller calling turnOff()", m_ID);
+        spdlog::info("{} : PanelController calling turnOff()", m_Identity);
         if (_getDeviceState() == Device::DeviceState::On) {
             m_pPlatform->turnOff();
         } else {
-            spdlog::trace("{} : Device is already off, nothing to do...", m_ID);
+            spdlog::trace("{} : Device is already off, nothing to do...", m_Identity);
         }
     } else if (offset == PAS_PanelType_FindHome) {
-        spdlog::info("{} : Panel controller calling findHome() with direction {}", m_ID, args[0].Value.Int32);
-        m_pPlatform->findHomeFromEndStopAll(args[0].Value.Int32);
+        int direction;
+        UaVariant(args[0]).toInt32(direction);
+        spdlog::info("{} : PanelController calling findHome() with direction {}", m_Identity, direction);
+        m_pPlatform->findHomeFromEndStopAll(direction);
     } else if (offset == PAS_PanelType_ClearError) {
-        spdlog::info("{} : Panel controller calling clearError() for error {}", m_ID, args[0].Value.Int32);
-        m_pPlatform->unsetError(args[0].Value.Int32);
+        int errorCode;
+        UaVariant(args[0]).toInt32(errorCode);
+        spdlog::info("{} : PanelController calling clearError() for error {}", m_Identity, errorCode);
+        m_pPlatform->unsetError(errorCode);
     } else if (offset == PAS_PanelType_ClearAllErrors) {
-        spdlog::info("{} : Panel controller calling clearAllErrors()", m_ID);
+        spdlog::info("{} : PanelController calling clearAllErrors()", m_Identity);
         m_pPlatform->clearActuatorErrors();
         m_pPlatform->clearPlatformErrors();
     } else if (offset == PAS_PanelType_ClearActuatorErrors) {
-        spdlog::info("{} : Panel controller calling clearActuatorErrors()", m_ID);
+        spdlog::info("{} : PanelController calling clearActuatorErrors()", m_Identity);
         m_pPlatform->clearActuatorErrors();
     } else if (offset == PAS_PanelType_ClearPlatformErrors) {
-        spdlog::info("{} : Panel controller calling clearPlatformErrors()", m_ID);
+        spdlog::info("{} : PanelController calling clearPlatformErrors()", m_Identity);
         m_pPlatform->clearPlatformErrors();
     } else {
         status = OpcUa_BadInvalidArgument;
@@ -220,10 +229,12 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
 
 void PanelController::addActuator(const std::shared_ptr<ActController> &pActuator) {
     m_pActuators.push_back(pActuator);
-    spdlog::trace("{} : Panel controller added actuator {} controller as child...", m_ID, pActuator->getId());
+    spdlog::info("{} : Panel controller added actuator {} controller as Actuator child {}...", m_Identity,
+                 pActuator->getIdentity(), m_pActuators.size());
 }
 
 void PanelController::addMPES(const std::shared_ptr<MPESController> &pMPES) {
     m_pMPES.push_back(pMPES);
-    spdlog::trace("{} : Panel controller added MPES {} controller as child...", m_ID, pMPES->getId());
+    spdlog::info("{} : Panel controller added MPES {} controller as MPES child {}...", m_Identity, pMPES->getIdentity(),
+                 m_pMPES.size());
 }

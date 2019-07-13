@@ -3,7 +3,7 @@
  * @brief Source file for PositionerObject class inheriting from the PasObject class.
  */
 
-#include <iostream>
+
 #include "positionerobject.hpp"
 #include "pasnodemanager.hpp"
 #include "passervertypeids.hpp"

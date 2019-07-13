@@ -1,6 +1,5 @@
 #include "client/objects/opttableobject.hpp"
 
-#include <iostream>
 
 #include "uaserver/methodhandleuanode.h"
 #include "uaserver/opcua_analogitemtype.h"

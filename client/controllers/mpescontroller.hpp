@@ -22,7 +22,7 @@ public:
     friend MirrorController;
 
     /* construction / destruction */
-    MPESController(Device::Identity identity, Client *pClient);
+    MPESController(Device::Identity identity, Client *pClient, std::string mode = "client");
 
     /* Get Controller status and data */
     UaStatus getState(Device::DeviceState &state) override;
@@ -49,19 +49,15 @@ public:
 
     Eigen::Vector2d getAlignedReadings();
     const Eigen::Vector2d &getSystematicOffsets() const { return m_SystematicOffsets; }
-    MPESBase::Position getPosition() { return m_data; }
+
+    MPESBase::Position getPosition();
 
 private:
-    static float kNominalIntensity;
-    static float kNominalSpotWidth;
-    static int kMaxAttempts;
+    std::string m_Mode;
 
-    int m_numAttempts;
+    UaStatus read();
 
-    MPESBase::Position m_data;
-
-    // a read that performs such checks and exposure correction
-    UaStatus read(bool print = true);
+    UaStatus readAsync();
 
     // actuator response matrix map -- {panel position -> matrix}
     std::map<char, Eigen::Matrix<double, 2, 6> > m_ResponseMatMap;

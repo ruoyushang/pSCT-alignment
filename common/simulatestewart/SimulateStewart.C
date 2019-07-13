@@ -9,6 +9,9 @@
 #include "TGeoCompositeShape.h"
 #include "TCanvas.h"
 
+#include "common/utilities/spdlog/spdlog.h"
+#include "common/utilities/spdlog/fmt/ostr.h"
+
 Double_t InnerProduct(Int_t n, Double_t *vec1, Double_t *vec2);
 void CrossProduct(Double_t *vec1, Double_t *vec2, Double_t *prod);
 void MatrixMultiplyLeft(Int_t n, Double_t A[3][3], Double_t B[3][3]);
@@ -165,7 +168,7 @@ void ComputeStewart(Double_t *actL, Double_t *plat, Double_t act[6][3],
 
         ++iter;
     }
-    std::cout << "took " << iter+1 << " iterations" << endl;
+    spdlog::debug("Took {} iterations.", iter + 1);
     // store the results
     for (Int_t i = 0; i < 6; i++) {
         plat[i] = a[i];
@@ -258,10 +261,10 @@ void BuildStewart()
     ComputeStewart(actL, platA, actCoords);
     for (int i = 0; i < 6; i++) {
         for (int j = 0; j < 3; j++)
-            std::cout << actCoords[i][j] << " ";
-        std::cout << std::endl;
+            spdlog::debug("{} ", actCoords[i][j]);
+        spdlog::debug("\n");
     }
-    std::cout << platA[2] << std::endl;
+    spdlog::debug("{}", platA[2]);
 
     // rotations should all be zeros at this point
     TGeoRotation *payloadR = new TGeoRotation("", platA[3]*r2d, platA[4]*r2d, platA[5]*r2d);
@@ -294,6 +297,7 @@ void BuildStewart()
     double AlignmentMatrix[6*6];
     
     //TransformAngles(platA);
+    std::string temp;
     for (int j = 0; j < 6; j++) 
     {
         for (int i = 0; i < 3; i++)
@@ -302,10 +306,11 @@ void BuildStewart()
               AlignmentMatrix[(i+3)*6 + j] = -platA[i];
         }
         for (int i = 0; i < 6; i++)
-            cout << setw(12) << AlignmentMatrix[i*6 + j];
-        cout << endl;
+            temp += AlignmentMatrix[i * 6 + j] + " ";
+        temp += "\n";
     }
-    // PrintMatrix(1, AlignmentMatrix);
+    spdlog::debug(temp);
+    //PrintMatrix(1, AlignmentMatrix);
   
     for (int j = 0; j < 6; j++)
     {
@@ -320,23 +325,26 @@ void BuildStewart()
         }
     }
 
+    temp.clear();
     for (int i = 0; i  < 6; i++)
     {
         for (int j = 0; j < 6; j++)
-            cout << setw(12) << 1000*AlignmentMatrix[i*6 + j];
-        cout << endl;
+            temp += 1000 * AlignmentMatrix[i * 6 + j] + " ";
+        temp += "\n";
     }
+    spdlog::debug(temp);
 
     TMatrixD AlignmentMat(6,6,AlignmentMatrix); 
     AlignmentMat *= 1000;
     AlignmentMat.Invert();
-    cout << "and its inverse: " << endl;
+    temp.clear();
     for (int i = 0; i < 6; i++)
     {
         for (int j = 0; j < 6; j++)
-            cout << setw(12) << AlignmentMat.GetMatrixArray()[i*6 + j];
-        cout << endl;
+            temp += AlignmentMat.GetMatrixArray()[i * 6 + j] + " ";
+        temp += "\n";
     }
+    spdlog::debug("and its inverse:\n{}\n", temp)
 
     /* END OF ALIGNMENT MATRIX COMPUTATION */
 
@@ -345,7 +353,6 @@ void BuildStewart()
     /*
 //    while(1)
 //    {
-        std::cout << "new actuator lengths: ";
         for (Int_t i = 0; i < 6; i++) std::cin >> actL[i];
         ComputeStewart(actL, platA, actCoords);
         // grab a hold of the payload platform
@@ -353,8 +360,11 @@ void BuildStewart()
         TGeoPhysicalNode *pnode = new TGeoPhysicalNode(path);
         TGeoHMatrix *newTransf = new TGeoHMatrix;
 
-        for (Int_t i=0; i<6; i++) std::cout << platA[i] << ", ";
-        std::cout<<endl;
+        std::string temp;
+        for (Int_t i=0; i<6; i++) temp += platA[i] + ", ";
+        temp += "\n";
+
+        spdlog::debug("New actuator lengths: {}", temp);
         
         // making rotations explicit: Z->Y->X (gamma->beta->alpha)
         newTransf->RotateZ(platA[5]*r2d);
@@ -438,14 +448,18 @@ void TransformAngles(Double_t *plat)
 
 void PrintMatrix(int n, Double_t R[6][6])
 {
+    std::string matrix;
     for (int i = 0; i < 6; i++)
     {
         for (int j = 0; j < 6; j++)
-            std::cout << setw(12) << n*R[i][j];
-        std::cout << endl;
+            matrix += n * R[i][j];
+        matrix += "\n";
     }
-   std::cout << endl;
+    matrix += "\n";
+
+    spdlog::debug(matrix);
 }
+
 // multiply two square matrices
 void MatrixMultiplyLeft(Int_t n, Double_t A[3][3], Double_t B[3][3])
 // n = dimension of the matrices

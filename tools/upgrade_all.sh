@@ -5,5 +5,5 @@ while read -r line || [[ -n $line ]]; do
     curip=`echo $line | cut -d ' ' -f3`
     newip=`echo $line | cut -d ' ' -f3`
     echo -e "\tUpgrading panel $pos @ $newip"
-    ./upgrade_passerver.sh $newip
+    ./upgrade_passerver.sh $newip $pos
 done < mpcb_map.dat

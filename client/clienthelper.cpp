@@ -16,6 +16,9 @@
 #include "client/utilities/database.hpp"
 #include "client/utilities/subscription.hpp"
 
+#include "common/utilities/spdlog/spdlog.h"
+#include "common/utilities/spdlog/fmt/ostr.h"
+
 #define _DEBUG_ 0
 
 Client::Client(PasNodeManager *pNodeManager, std::string mode) : m_mode(std::move(mode)),
@@ -292,11 +295,13 @@ UaStatus Client::callMethod(const std::string &sNodeName, const UaString &sMetho
     serviceSettings.callTimeout = 2000*60; // call timeout in ms; set to 2 minutes
     status = m_pSession->call(serviceSettings, callRequest, callResult);
 
-    if ( status.isBad() )
-        printf("** Error: UaSession::call failed [ret=%s] **\n", status.toString().toUtf8());
+    if (status.isBad()) {
+        //printf("** Error: UaSession::call failed [ret=%s] **\n", status.toString().toUtf8());
+    }
     else {
-        if(_DEBUG_)
-            printf("** UaSession::call suceeded!\n");
+        if (_DEBUG_) {
+            //printf("** UaSession::call suceeded!\n");
+        }
     }
 
     return status;
@@ -435,7 +440,6 @@ void Client::addDevices(const OpcUa_ReferenceDescription& referenceDescription)
                                                         {PAS_ACTType,   "ACT"},
                                                         {PAS_PSDType,   "PSD"},
                                                         {PAS_PanelType, "Panel"}};
-
     OpcUa_UInt32 type;
     std::string name;
     for (const auto& it_typeNameMap : typeNamesMap) {
@@ -456,13 +460,12 @@ void Client::addDevices(const OpcUa_ReferenceDescription& referenceDescription)
                 Device::Identity deviceId = m_pConfiguration->getDeviceByName(
                     UaString(referenceDescription.BrowseName.Name).toUtf8());
                 ((PasCommunicationInterface *) m_pNodeManager->getComInterface().get())->addDevice(
-                    this, type, deviceId);
+                    this, type, deviceId, m_mode);
                 m_DeviceNodeIdMap[deviceId] = std::string(sTemp);
             }
             catch (std::out_of_range &e) {
-                std::cout << "Could not find device ID matching node with name "
-                          << UaString(referenceDescription.BrowseName.Name).toUtf8() << " and type " << name
-                          << std::endl;
+                spdlog::warn("Could not find device ID matching node with name {} and type {}",
+                             UaString(referenceDescription.BrowseName.Name).toUtf8(), name);
             }
         }
     }

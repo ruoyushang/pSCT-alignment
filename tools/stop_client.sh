@@ -26,7 +26,7 @@ while (( `screen -ls | grep -c $screen_name` && `screen -S $screen_name -Q windo
     fi
     pos=`echo $windows | cut -d ' ' -f$field | rev`
     echo Shutting down $pos.
-    screen -S $screen_name -p $pos -X stuff $"^C exit\n"
+    screen -S $screen_name -p $pos -X stuff $"x\n exit\n"
     sleep 1
     if test -f "$pos$extension"; then
         rm "$pos$extension"

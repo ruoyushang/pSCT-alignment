@@ -13,7 +13,7 @@
 #include <set>
 #include <map>
 #include <chrono>
-#include <iostream>
+
 
 #include "common/opcua/pascominterfacecommon.hpp"
 #include "pascominterfacecommon.hpp"
@@ -21,7 +21,7 @@
 /// @details Locks the shared mutex while retrieving the state.
 UaStatus PasControllerCommon::getState(Device::DeviceState &state) {
     //UaMutexLocker lock(&m_mutex);
-    state = m_state;
+    state = m_State;
     return OpcUa_Good;
 }
 

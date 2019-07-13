@@ -8,10 +8,14 @@
 #include "database.hpp"
 #include "configuration.hpp"
 
+#include "common/utilities/spdlog/spdlog.h"
+#include "common/utilities/spdlog/fmt/ostr.h"
+
 // MySQL C++ Connector includes
 #include "cppconn/driver.h"
 #include "cppconn/resultset.h"
 #include "cppconn/prepared_statement.h"
+
 
 /// @details Sets internal Configuration pointer to NULL.
 Database::Database()
@@ -29,6 +33,7 @@ Database::~Database()
 /// @details Assigns provided Configuration pointer to object.
 void Database::setConfiguration(std::shared_ptr<Configuration> pConfiguration)
 {
+    spdlog::trace("Setting configuration of DB object...");
     m_pConfiguration = std::move(pConfiguration);
 }
 
@@ -39,9 +44,9 @@ void Database::setConfiguration(std::shared_ptr<Configuration> pConfiguration)
 /// is commented out.
 void Database::connectAndPrepare()
 {
-    std::cout << "reading database config details:" << std::endl;
+    spdlog::info("Reading database config details...");
     OpcUa_UInt32 i, j;
-    std::cout << "found "<< m_pConfiguration->getDatabaseHost().length() << " databases" << std::endl;
+    spdlog::info("Found {} databases.", m_pConfiguration->getDatabaseHost().length());
     for ( i = 0; i < m_pConfiguration->getDatabaseHost().length(); i++ )
     {
         m_pDriver.push_back(get_driver_instance());

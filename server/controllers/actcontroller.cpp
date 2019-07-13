@@ -1,6 +1,6 @@
 #include "server/controllers/actcontroller.hpp"
 
-#include <iostream>
+
 #include <memory>
 
 #include "uabase/statuscode.h"
@@ -18,9 +18,9 @@
 
 /// @details Calls update state before returning the current state.
 UaStatus ActController::getState(Device::DeviceState &state) {
-    UaMutexLocker lock(&m_mutex);
+    UaMutexLocker lock(&m_Mutex);
     state = _getDeviceState();
-    spdlog::trace("{} : Getting device state => ({})", m_ID, Device::deviceStateNames.at(state));
+    spdlog::trace("{} : Read device state => ({})", m_Identity, Device::deviceStateNames.at(state));
     return OpcUa_Good;
 }
 
@@ -36,30 +36,30 @@ UaStatus ActController::getData(OpcUa_UInt32 offset, UaVariant &value) {
     if (ACTObject::VARIABLES.find(offset) != ACTObject::VARIABLES.end()) {
         switch (offset) {
             case PAS_ACTType_DeltaLength:
-                spdlog::trace("{} : Getting DeltaLength value => ({})", m_ID, m_DeltaLength);
+                spdlog::trace("{} : Read DeltaLength value => ({})", m_Identity, m_DeltaLength);
                 value.setFloat(m_DeltaLength);
                 break;
             case PAS_ACTType_CurrentLength: {
-                float length = m_pPlatform->getActuatorbyIdentity(m_ID)->measureLength();
-                spdlog::trace("{} : Getting CurrentLength value => ({})", m_ID, length);
+                float length = m_pPlatform->getActuatorbyIdentity(m_Identity)->measureLength();
+                spdlog::trace("{} : Read CurrentLength value => ({})", m_Identity, length);
                 value.setFloat(length);
                 break;
             }
             case PAS_ACTType_TargetLength:
-                spdlog::trace("{} : Getting TargetLength value => ({})", m_ID, m_TargetLength);
+                spdlog::trace("{} : Read TargetLength value => ({})", m_Identity, m_TargetLength);
                 value.setFloat(m_TargetLength);
                 break;
             case PAS_ACTType_Position:
-                spdlog::trace("{} : Getting Position value => ({})", m_ID, m_ID.position);
-                value.setInt32(m_ID.position);
+                spdlog::trace("{} : Read Position value => ({})", m_Identity, m_Identity.position);
+                value.setInt32(m_Identity.position);
                 break;
             case PAS_ACTType_Serial:
-                spdlog::trace("{} : Getting Serial value => ({})", m_ID, m_ID.serialNumber);
-                value.setInt32(m_ID.serialNumber);
+                spdlog::trace("{} : Read Serial value => ({})", m_Identity, m_Identity.serialNumber);
+                value.setInt32(m_Identity.serialNumber);
                 break;
             case PAS_ACTType_ErrorState: {
                 Device::ErrorState errorState = _getErrorState();
-                spdlog::trace("{} : Getting ErrorState value => ({})", m_ID, static_cast<int>(errorState));
+                spdlog::trace("{} : Read ErrorState value => ({})", m_Identity, Device::errorStateNames.at(errorState));
                 value.setInt32(static_cast<int>(errorState));
                 break;
             }
@@ -81,9 +81,9 @@ UaStatus ActController::getError(OpcUa_UInt32 offset, UaVariant &value) {
 
     OpcUa_UInt32 errorNum = offset - PAS_ACTType_Error0;
     if (errorNum >= 0 && errorNum < ACTObject::ERRORS.size()) {
-        errorStatus = m_pPlatform->getActuatorbyIdentity(m_ID)->getError(int(errorNum));
+        errorStatus = m_pPlatform->getActuatorbyIdentity(m_Identity)->getError(int(errorNum));
         value.setBool(errorStatus);
-        spdlog::trace("{} : Getting error {} value => ({})", m_ID, errorNum, errorStatus);
+        spdlog::trace("{} : Read error {} value => ({})", m_Identity, errorNum, errorStatus);
     } else {
         status = OpcUa_BadInvalidArgument;
     }
@@ -107,7 +107,7 @@ UaStatus ActController::operate(OpcUa_UInt32 offset, const UaVariantArray &args)
     //UaMutexLocker lock(&m_mutex); // Lock the object to prevent other actions while operating.
 
     if (_getDeviceState() == Device::DeviceState::Busy && offset != PAS_ACTType_TurnOff) {
-        spdlog::error("{} : Actuator controller is busy, operate call failed. Wait and try again.", m_ID);
+        spdlog::error("{} : Actuator controller is busy, operate call failed. Wait and try again.", m_Identity);
         return OpcUa_BadInvalidState;
     }
 
@@ -115,70 +115,77 @@ UaStatus ActController::operate(OpcUa_UInt32 offset, const UaVariantArray &args)
     UaVariantArray tempArgs;
     switch (offset) {
         case PAS_ACTType_MoveDeltaLength:
-            spdlog::info("{} : Actuator controller calling moveDeltaLength with delta length {}", m_ID,
-                         args[0].Value.Float);
+            float deltaLength;
+            UaVariant(args[0]).toFloat(deltaLength);
+            spdlog::info("{} : ActuatorController calling moveDeltaLength with delta length {}", m_Identity,
+                         deltaLength);
             if (_getDeviceState() != Device::DeviceState::On) {
-                spdlog::error("{} : Actuator controller is off, operate call failed. Turn on and try again.", m_ID);
+                spdlog::error("{} : Actuator controller is off, operate call failed. Turn on and try again.",
+                              m_Identity);
                 status = OpcUa_BadInvalidState;
             } else if (_getErrorState() == Device::ErrorState::FatalError) {
                 spdlog::error(
                     "{} : Actuator controller is in fatal error state, operate call failed. Fix/clear errors and try again.",
-                    m_ID);
+                    m_Identity);
                 status = OpcUa_BadInvalidState;
             } else {
-                status = moveDelta(args[0].Value.Float);
+                status = moveDelta(deltaLength);
             }
             break;
         case PAS_ACTType_MoveToLength:
-            spdlog::info("{} : Actuator controller calling moveToLength with target length {}", m_ID,
-                         args[0].Value.Float);
+            float length;
+            UaVariant(args[0]).toFloat(length);
+            spdlog::info("{} : ActuatorController calling moveToLength with target length {}", m_Identity,
+                         length);
             if (_getDeviceState() != Device::DeviceState::On) {
-                spdlog::error("{} : Actuator controller is off, operate call failed. Turn on and try again.", m_ID);
+                spdlog::error("{} : Actuator controller is off, operate call failed. Turn on and try again.",
+                              m_Identity);
                 status = OpcUa_BadInvalidState;
             } else if (_getErrorState() == Device::ErrorState::FatalError) {
                 spdlog::error(
                     "{} : Actuator controller is in fatal error state, operate call failed. Fix/clear errors and try again.",
-                    m_ID);
+                    m_Identity);
                 status = OpcUa_BadInvalidState;
             } else {
-                status = moveToLength(args[0].Value.Float);
+                status = moveToLength(length);
             }
             break;
         case PAS_ACTType_ForceRecover:
-            spdlog::info("{} : Actuator controller calling forceRecover()", m_ID);
-            m_pPlatform->getActuatorbyIdentity(m_ID)->forceRecover();
+            spdlog::info("{} : ActuatorController calling forceRecover()", m_Identity);
+            m_pPlatform->getActuatorbyIdentity(m_Identity)->forceRecover();
             break;
         case PAS_ACTType_ClearError:
-            spdlog::info("{} : Actuator controller calling clearError() for error {}", m_ID, args[0].Value.Int32);
-            m_pPlatform->getActuatorbyIdentity(m_ID)->unsetError(args[0].Value.Int32);
+            int errorCode;
+            UaVariant(args[0]).toInt32(errorCode);
+            spdlog::info("{} : ActuatorController calling clearError() for error {}", m_Identity, errorCode);
+            m_pPlatform->getActuatorbyIdentity(m_Identity)->unsetError(errorCode);
             break;
         case PAS_ACTType_ClearAllErrors:
-            spdlog::info("{} : Actuator controller calling clearAllErrors()", m_ID);
-            m_pPlatform->getActuatorbyIdentity(m_ID)->clearErrors();
+            spdlog::info("{} : ActuatorController calling clearAllErrors()", m_Identity);
+            m_pPlatform->getActuatorbyIdentity(m_Identity)->clearErrors();
             break;
         case PAS_ACTType_TurnOn:
-            spdlog::info("{} : Actuator controller calling turnOn()", m_ID);
+            spdlog::info("{} : ActuatorController calling turnOn()", m_Identity);
             if (_getDeviceState() == Device::DeviceState::Off) {
-                m_pPlatform->getActuatorbyIdentity(m_ID)->turnOn();
+                m_pPlatform->getActuatorbyIdentity(m_Identity)->turnOn();
                 initialize();
             } else {
-                spdlog::trace("{} : Device is already on, nothing to do...", m_ID);
+                spdlog::trace("{} : Device is already on, nothing to do...", m_Identity);
             }
             break;
         case PAS_ACTType_TurnOff:
-            spdlog::info("{} : Actuator controller calling turnOff()", m_ID);
+            spdlog::info("{} : ActuatorController calling turnOff()", m_Identity);
             if (_getDeviceState() == Device::DeviceState::On) {
-                m_pPlatform->getActuatorbyIdentity(m_ID)->turnOff();
+                m_pPlatform->getActuatorbyIdentity(m_Identity)->turnOff();
             } else {
-                spdlog::trace("{} : Device is already off, nothing to do...", m_ID);
+                spdlog::trace("{} : Device is already off, nothing to do...", m_Identity);
             }
             break;
         case PAS_ACTType_Stop:
-            spdlog::info("{} : Actuator controller calling stop()...", m_ID);
-            m_pPlatform->getActuatorbyIdentity(m_ID)->emergencyStop();
+            spdlog::info("{} : ActuatorController calling stop()...", m_Identity);
+            m_pPlatform->getActuatorbyIdentity(m_Identity)->emergencyStop();
             break;
         default:
-            spdlog::error("{} : Invalid method call with offset {}", m_ID, offset);
             status = OpcUa_BadInvalidArgument;
     }
 
@@ -190,14 +197,15 @@ UaStatus ActController::operate(OpcUa_UInt32 offset, const UaVariantArray &args)
 UaStatus ActController::moveDelta(float deltaLength) {
 
     std::array<OpcUa_Float, 6> deltaLengths = {0., 0., 0., 0., 0., 0.}; // Set delta lengths to move to
-    deltaLengths[m_ID.position] = deltaLength;
+    deltaLengths[m_Identity.position] = deltaLength;
 
-    spdlog::trace("{} : Setting target length to {}", m_ID, m_pPlatform->measureLengths()[m_ID.position] + deltaLength);
-    m_TargetLength = m_pPlatform->measureLengths()[m_ID.position] + deltaLength;
+    spdlog::trace("{} : Setting target length to {}", m_Identity,
+                  m_pPlatform->measureLengths()[m_Identity.position] + deltaLength);
+    m_TargetLength = m_pPlatform->measureLengths()[m_Identity.position] + deltaLength;
 
     deltaLengths = m_pPlatform->moveDeltaLengths(deltaLengths);
-    spdlog::trace("{} : Setting remaining length (deltaLength) to {}", m_ID, deltaLengths[m_ID.position]);
-    m_DeltaLength = deltaLengths[m_ID.position];
+    spdlog::trace("{} : Setting remaining length (deltaLength) to {}", m_Identity, deltaLengths[m_Identity.position]);
+    m_DeltaLength = deltaLengths[m_Identity.position];
 
     return OpcUa_Good;
 }
@@ -206,15 +214,15 @@ UaStatus ActController::moveToLength(float targetLength) {
 
     UaStatus status;
     std::array<OpcUa_Float, 6> targetLengths = {0., 0., 0., 0., 0., 0.}; // Set target lengths to move to
-    targetLengths[m_ID.position] = targetLength;
+    targetLengths[m_Identity.position] = targetLength;
 
-    spdlog::trace("{} : Setting target length to {}", m_ID, targetLength);
+    spdlog::trace("{} : Setting target length to {}", m_Identity, targetLength);
     m_TargetLength = targetLength;
     std::array<OpcUa_Float, 6> finalLengths = m_pPlatform->moveToLengths(targetLengths);
 
-    spdlog::trace("{} : Setting remaining length (deltaLength) to {}", m_ID,
-                  targetLength - finalLengths[m_ID.position]);
-    m_DeltaLength = targetLength - finalLengths[m_ID.position];
+    spdlog::trace("{} : Setting remaining length (deltaLength) to {}", m_Identity,
+                  targetLength - finalLengths[m_Identity.position]);
+    m_DeltaLength = targetLength - finalLengths[m_Identity.position];
 
     return status;
 }

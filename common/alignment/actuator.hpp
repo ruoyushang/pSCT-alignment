@@ -2,6 +2,7 @@
 #define ALIGNMENT_ACTUATOR_HPP
 
 #include <array>
+#include <cstdlib>
 #include <memory>
 #include <string>
 #include <vector>
@@ -39,7 +40,11 @@ public:
 
     static const std::vector<Device::ErrorDefinition> ERROR_DEFINITIONS;
 
-    std::vector<Device::ErrorDefinition> getErrorCodeDefinitions() override { return ActuatorBase::ERROR_DEFINITIONS; }
+    Device::ErrorDefinition getErrorCodeDefinition(int errorCode) override {
+        return ActuatorBase::ERROR_DEFINITIONS.at(errorCode);
+    }
+
+    int getNumErrors() override { return ActuatorBase::ERROR_DEFINITIONS.size(); }
 
     explicit ActuatorBase(Device::Identity identity, Device::DBInfo DBInfo = Device::DBInfo(),
                           const ASFInfo &ASFFileInfo = ASFInfo());
@@ -133,7 +138,7 @@ protected:
     float m_StdDevMax{5.0f * dV};
     int m_QuickAngleCheckRange{5};
     int m_CyclesDefiningHome{3};
-    int m_MinimumMissedStepsToFlagError{5};
+    int m_MinimumMissedStepsToFlagError{3};
     float m_TolerablePercentOfMissedSteps{0.1};
     int m_ExtendStopToHomeStepsDeviation{StepsPerRevolution / 4};
     int m_FlaggedRecoverySteps{RecordingInterval / 10};
@@ -183,7 +188,9 @@ protected:
 class Actuator : public ActuatorBase {
 public:
     Actuator(std::shared_ptr<CBC> pCBC, Device::Identity identity,
-             Device::DBInfo DBInfo = Device::DBInfo(), const ASFInfo &ASFFileInfo = ActuatorBase::ASFInfo()) : ActuatorBase(
+             Device::DBInfo DBInfo = Device::DBInfo(),
+             const ASFInfo &ASFFileInfo = ActuatorBase::ASFInfo(std::string(getenv("HOME")) + "/.ASF/", ".ASF_",
+                                                                ".log")) : ActuatorBase(
         std::move(identity), std::move(DBInfo), ASFFileInfo), m_pCBC(std::move(pCBC)), m_ADCdata() {}
 
     ~Actuator() = default;

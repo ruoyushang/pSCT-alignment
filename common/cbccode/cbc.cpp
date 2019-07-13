@@ -11,7 +11,7 @@
 #include <math.h>
 #include <chrono>
 #include <stdio.h>
-#include <iostream>
+
 
 #include "common/cbccode/cbc.hpp"
 #include "common/cbccode/MirrorControlBoard.hpp"
@@ -35,9 +35,9 @@ void usleep2 (int usdelay)
     // Constructor..
     CBC::CBC(struct Config config) : usb(this), driver(this), encoder(this), adc(this), auxSensor(this), m_delay(0)
     {
-	std::cout << "Configuring CBC..." << std::endl;
+        //spdlog::trace("Configuring CBC...");
         configure(std::move(config));
-	std::cout << "Powering up CBC..." << std::endl;
+        //spdlog::trace("Powering up CBC...");
         powerUp();
     }
 

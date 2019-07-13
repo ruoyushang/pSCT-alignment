@@ -74,10 +74,12 @@ public:
     void setDeltaLength(float deltaLength) { m_DeltaLength = deltaLength; }
     void setTargetLength(float targetLength) { m_TargetLength = targetLength; }
 
-private:
-    Device::ErrorState _getErrorState() { return m_pPlatform->getActuatorbyIdentity(m_ID)->getErrorState(); }
+    float getCurrentLength() { return m_pPlatform->getActuatorbyIdentity(m_Identity)->measureLength(); }
 
-    Device::DeviceState _getDeviceState() { return m_pPlatform->getActuatorbyIdentity(m_ID)->getDeviceState(); }
+private:
+    Device::ErrorState _getErrorState() { return m_pPlatform->getActuatorbyIdentity(m_Identity)->getErrorState(); }
+
+    Device::DeviceState _getDeviceState() { return m_pPlatform->getActuatorbyIdentity(m_Identity)->getDeviceState(); }
     /// @brief The remaining distance between the current actuator length and the target length.
     OpcUa_Float m_DeltaLength;
     /// @brief The last requested target length.

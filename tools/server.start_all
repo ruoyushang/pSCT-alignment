@@ -1,6 +1,8 @@
 #!/bin/bash
 
+LOGLEVEL=${1-"info"}
+
 for panel in `cat panel_lists/all`; do
-        ./server.start $panel
-        echo ./server.start $panel
+        ./server.start $panel $LOGLEVEL
+        echo ./server.start $panel $LOGLEVEL
 done

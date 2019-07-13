@@ -8,15 +8,19 @@
 
 #include "client/clienthelper.hpp"
 
+#include "common/utilities/spdlog/spdlog.h"
+#include "common/utilities/spdlog/fmt/ostr.h"
 
 PSDController::PSDController(Device::Identity identity, Client *pClient) :
     PasController(std::move(identity), pClient, 500), m_data() {
 
-    m_lastUpdateTime = TIME::now() - std::chrono::duration<int, std::ratio<1, 1000>>(m_kUpdateInterval_ms);
+    spdlog::trace("{} : Creating PSD controller... ", m_Identity);
+    m_LastUpdateTime = TIME::now() - std::chrono::duration<int, std::ratio<1, 1000>>(m_kUpdateInterval_ms);
 }
 
 UaStatus PSDController::getState(Device::DeviceState &state) {
-    state = m_state;
+    state = m_State;
+    spdlog::trace("{} : Read device state => ({})", m_Identity, Device::deviceStateNames.at(state));
     return OpcUa_Good;
 }
 
@@ -63,6 +67,10 @@ UaStatus PSDController::getData(OpcUa_UInt32 offset, UaVariant &value) {
         default:
             return OpcUa_BadInvalidArgument;
     }
+
+    double temp;
+    value.toDouble(temp);
+    spdlog::trace("{} : Read data... offset=> {} value => ({})", m_Identity, offset, temp);
     return status;
 }
 
@@ -75,8 +83,10 @@ UaStatus PSDController::operate(OpcUa_UInt32 offset, const UaVariantArray &args)
     // UaMutexLocker lock(&m_mutex);
 
     if (offset == PAS_PSDType_Read) {
+        spdlog::trace("{} : PSDController calling read()", m_Identity);
         status = read();
     } else {
+        spdlog::error("{} : Invalid method call with offset {}", m_Identity, offset);
         status = OpcUa_BadInvalidArgument;
     }
 
@@ -88,13 +98,15 @@ UaStatus PSDController::operate(OpcUa_UInt32 offset, const UaVariantArray &args)
 ==============================================================================*/
 
 UaStatus PSDController::read() {
+    spdlog::trace("Calling read on PSD {} (updating controller data and last update time)", m_Identity);
+
     UaStatus status;
 
     std::vector<std::string> varstoread{"x1", "y1", "x2", "y2", "dx1", "dy1", "dx2", "dy2", "Temperature"};
     UaVariant valstoread[9];
 
     std::transform(varstoread.begin(), varstoread.end(), varstoread.begin(),
-                   [this](std::string &str) { return m_pClient->getDeviceNodeId(m_ID) + "." + str; });
+                   [this](std::string &str) { return m_pClient->getDeviceNodeId(m_Identity) + "." + str; });
 
     status = m_pClient->read(varstoread, &valstoread[0]);
     if (!status.isGood())
@@ -103,7 +115,7 @@ UaStatus PSDController::read() {
     for (unsigned i = 0; i < varstoread.size(); i++)
         valstoread[i].toDouble(*(reinterpret_cast<OpcUa_Double *>(&m_data) + i));
 
-    m_lastUpdateTime = TIME::now();
+    m_LastUpdateTime = TIME::now();
 
     return OpcUa_Good;
 }

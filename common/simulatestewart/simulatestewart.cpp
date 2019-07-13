@@ -6,6 +6,9 @@
 #include <sstream>
 #include <string>
 
+#include "common/utilities/spdlog/spdlog.h"
+#include "common/utilities/spdlog/fmt/ostr.h"
+
 int main(int argc, char *argv[])
 {
     double actL[6];
@@ -15,21 +18,19 @@ int main(int argc, char *argv[])
     StewartPlatform SP;
     StewartPlatform::PanelType paneltype;
 
-    std::cout << std::fixed << std::setprecision(5);
     if (argc == 1) {
-        std::cout << "There are three ways to run this program:\n"
-            << "\t1. specify 6 actuator lengths in mm to print out the pad coordinates;\n"
-            << "\t2. specify coords of the 3 pads to print out the actuator lengths that\n"
-            << "\t   will get you there. All units in mm.\n"
-            << "\t3. specify 6 coords of the panel (x,y,z,alpha(Rx),beta(Ry),gamma(Rz))\n"
-            << "\t   together with the  order of the axes around which the rotations\n"
-            << "\t   were applied (e.g., 321 for gamma(z)->beta(y)->alpha(x)) to print\n"
-            << "\t   the actuator lengths that will get you there.\n"
-            << "\t   All units in mm -- for the angles, it's the angle in radians*320mm.\n"
-            << "\t   \n"
-            << "\tYou also need to specify the type of panel for which to perform the computation\n"
-            << "\tas the first argument. Avaialbale panel types are P1, P2, S1, S2 or OPT."
-            << std::endl;
+        spdlog::info("There are three ways to run this program:\n"
+                     "\t1. specify 6 actuator lengths in mm to print out the pad coordinates;\n"
+                     "\t2. specify coords of the 3 pads to print out the actuator lengths that\n"
+                     "\t   will get you there. All units in mm.\n"
+                     "\t3. specify 6 coords of the panel (x,y,z,alpha(Rx),beta(Ry),gamma(Rz))\n"
+                     "\t   together with the  order of the axes around which the rotations\n"
+                     "\t   were applied (e.g., 321 for gamma(z)->beta(y)->alpha(x)) to print\n"
+                     "\t   the actuator lengths that will get you there.\n"
+                     "\t   All units in mm -- for the angles, it's the angle in radians*320mm.\n"
+                     "\t   \n"
+                     "\tYou also need to specify the type of panel for which to perform the computation\n"
+                     "\tas the first argument. Available panel types are P1, P2, S1, S2 or OPT.");
         return 1;
     }
     else if (argc > 1) {
@@ -45,64 +46,64 @@ int main(int argc, char *argv[])
         else if (tst == "opt" || tst == "OPT")
             paneltype = StewartPlatform::PanelType::OPT;
         else {
-            std::cout << "You need to choose a proper panel type (P1, P2, S1, S2, OPT).\n";
+            spdlog::error("You need to choose a proper panel type (P1, P2, S1, S2, OPT).");
             return 1;
         }
 
         const char *types[] = {"P1", "P2", "S1", "S2", "OPT"};
-        std::cout << "Chosen panel type is " << types[paneltype] << std::endl;
+        spdlog::info("Chosen panel type is {}.", types[paneltype]);
     }
 
     if (argc == 8) {
         for (int i = 2; i < 8; i++) {
             std::istringstream ss(argv[i]);
             if (!(ss >> actL[i-2])) {
-                std::cerr << "Invalid argument " << argv[i] << std::endl;
+                spdlog::error("Invalid argument {}", argv[i]);
                 return -1;
             }
         }
-        
-        std::cout << "Pad coords with actuator lengths ( "; 
-        for (int i = 0; i < 6; i++) std::cout << actL[i] << " ";
-        std::cout << "):" << std::endl;
+
+        std::string temp;
+        for (int i = 0; i < 6; i++) temp += (actL[i] + " ");
+        spdlog::debug("Pad coords with actuator lengths ({})", temp);
     }
     else if (argc == 9) {
         for (int i = 2; i < 8; i++) {
             std::istringstream ss(argv[i]);
             if (!(ss >> panelCoords[i-2])) {
-                std::cerr << "Invalid argument " << argv[i] << std::endl;
+                spdlog::error("Invalid argument {}", argv[i]);
                 return -1;
             }
         }
         std::istringstream ss(argv[8]);
         if (!(ss >> rotOrder)) {
-            std::cerr << "Invalid argument " << argv[8] << std::endl;
+            spdlog::error("Invalid argument {}", argv[8]);
             return -1;
         }
-        
-        std::cout << "Actuator lengths for the panel position ( "; 
-        for (int i = 0; i < 6; i++) std::cout << panelCoords[i] << " ";
-        std::cout << "):" << std::endl;
+
+        std::string temp;
+        for (int i = 0; i < 6; i++) temp += (panelCoords[i] + " ");
+        spdlog::debug("Actuator lengths for the panel position ({})", temp);
     }
     else if (argc == 11) {
         for (int i = 0; i < 3; i++) {
             for (int j = 0; j < 3; j++) {
                 std::istringstream ss(argv[i*3 + j + 2]);
                 if (!(ss >> padCoords[i][j])) {
-                    std::cerr << "Invalid argument " << argv[i*3 + j + 2] << std::endl;
+                    spdlog::error("Invalid argument {}", argv[i * 3 + j + 2]);
                     return -1;
                 }
             }
         }
 
-        std::cout << "Actuator lengths for the pad coords ( ";
+        std::string temp;
         for (int i = 0; i < 3; i++)
             for (int j = 0; j < 3; j++)
-                std::cout << padCoords[i][j] << " ";
-        std::cout << "):" << std::endl;
+                temp += padCoords[i][j] + " ";
+        spdlog::info("Actuator lengths for the pad coords ({}) ", temp);
     }
     else {
-        std::cout << "Wrong number of arguments!" << std::endl;
+        spdlog::error("Wrong number of arguments.");
         return -1;
     }
 
@@ -113,52 +114,64 @@ int main(int argc, char *argv[])
         // internally, the coords are taken w.r.t. base origin. Caller gives coords
         // w.r.t. the base triangle position, which is (0, 0, 0, 0, 0, 0).
         SP.ComputeActsFromPanel(panelCoords);
+        std::string temp;
         for (int i = 0; i < 6; i++)
-            std::cout << SP.GetActLengths()[i] << " ";
-        std::cout << std::endl;
-        
+            temp += SP.GetActLengths()[i] + " ";
+        spdlog::debug(temp);
+
         /*
+        temp.clear();
         SP.ComputeStewart(SP.GetActLengths());
-        std::cout << "input vs self-consistency (platform coords):" << std::endl;
+
         for (int i = 0; i < 3; i++)
-            std::cout << panelCoords[i] << " -- " << SP.GetPanelCoords()[i] << std::endl;
+            temp += panelCoords[i] + " -- " + SP.GetPanelCoords()[i] + "\n";
         for (int i = 0; i < 3; i++)
-            std::cout << panelCoords[3 + SP.fRotOrder[2-i] - 1] << " -- " << SP.GetPanelCoords()[i + 3] << std::endl;
+            temp += panelCoords[3 + SP.fRotOrder[2-i] - 1] + " -- " + SP.GetPanelCoords()[i + 3] + "\n";
+
+        spdlog::debug("input vs self-consistency (platform coords):\n{}\n", temp);
         */
     }
     else if (argc == 8) {
         SP.ComputeStewart(actL);
-        std::cout << "panel coordinates: " << std::endl;
+        std::string temp;
         for (int i = 0; i < 6; i++)
-            std::cout << SP.GetPanelCoords()[i] << " ";
-        std::cout << std::endl;
+            temp += SP.GetPanelCoords()[i] + " ";
 
-        std::cout << "pad coordinates: " << std::endl;
+        spdlog::debug("Panel coordinates:\n{}\n", temp);
+
+        temp.clear();
         for (int i = 0; i < 3; i++) {
             for (int j = 0; j < 3; j++)
-                std::cout << SP.GetPadCoords(i)[j] << " ";
-            std::cout << std::endl;
+                temp += SP.GetPadCoords(i)[j] << " ";
+            temp += "\n";
         }
 
+        spdlog::debug("Pad coordinates:\n{}\n", temp);
+
         /*
+        temp.clear();
         SP.ComputeActsFromPads(SP.GetPadCoords());
-        std::cout << "input vs self-consistency (actuator lengths):" << std::endl;
+
         for (int i = 0; i < 6; i++)
-            std::cout << actL[i] << " -- " << SP.GetActLengths()[i] << std::endl;
+            temp += actL[i] + " -- " + SP.GetActLengths()[i] + "\n";
+
+        spdlog::debug("Input vs self-consistency (actuator lengths):\n{}\n", temp);
         */
     }
     else {
         SP.ComputeActsFromPads(padCoords);
+        std::string temp;
         for (int i = 0; i < 6; i++)
-            std::cout << SP.GetActLengths()[i] << " ";
-        std::cout << std::endl;
+            temp += SP.GetActLengths()[i] + " ";
+        spdlog::debug(temp)
 
         /*
-        SP.ComputeStewart(SP.GetActLengths());
-        std::cout << "input vs self-consistency (pad coords):" << std::endl;
+        temp.clear();
         for (int i = 0; i < 3; i++)
             for (int j = 0; j < 3; j++)
-                 std::cout << padCoords[i][j] << " -- " << SP.GetPadCoords()[i][j] << std::endl;
+                 temp += padCoords[i][j] + " -- " + SP.GetPadCoords()[i][j] + "\n";
+        SP.ComputeStewart(SP.GetActLengths());
+        spdlog::debug("Input vs self-consistency (pad coords):\n{}\n", temp);
         */
     }
     SP.SetPanelType(StewartPlatform::PanelType::P1);

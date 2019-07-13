@@ -6,7 +6,7 @@
 #include "server/pascommunicationinterface.hpp"
 
 #include <array>
-#include <iostream>
+
 #include <map>
 #include <memory>
 #include <stdexcept>
@@ -62,10 +62,8 @@ UaStatus PasCommunicationInterface::initialize() {
     DbInfo.dbname = myConfig.getDatabase();
     std::string dbAddress = "tcp://" + DbInfo.host + ":" + DbInfo.port;
 
-    std::map<int, int> actPositionToSerial;
-    std::map<int, int> actPositionToPort;
-    std::map<int, int> mpesPositionToSerial;
-    std::map<int, int> mpesPositionToPort;
+    std::array<Device::Identity, PlatformBase::NUM_ACTS_PER_PLATFORM> actuatorIdentities;
+    std::vector <Device::Identity> mpesIdentities;
 
     spdlog::trace("Connecting to DB {} at {} with user {}", DbInfo.dbname, dbAddress, DbInfo.user);
     try {
@@ -77,7 +75,7 @@ UaStatus PasCommunicationInterface::initialize() {
         std::unique_ptr<sql::ResultSet> pSqlResults;
 
         // Query DB for panel position and m_pCBC id by IP address
-        std::string query = "SELECT mpcb_id, position FROM Opt_MPMMapping WHERE position='"
+        std::string query = "SELECT mpcb_id, position FROM Opt_MPMMapping WHERE end_date is NULL and position='"
                             + std::to_string(m_panelNum) + "'";
         pSqlStmt->execute(query);
         pSqlResults.reset(pSqlStmt->getResultSet());
@@ -99,23 +97,35 @@ UaStatus PasCommunicationInterface::initialize() {
         spdlog::info("Initializing Panel {} with CBC {}...", m_panelNum, m_cbcID);
 
         // Query DB for actuator serials and ports
-        query = "SELECT port, serial_number, position FROM Opt_ActuatorMapping WHERE panel=" +
+        query = "SELECT serial_number, position, port FROM Opt_ActuatorMapping WHERE end_date is NULL and panel=" +
                 std::to_string(m_panelNum);
         pSqlStmt->execute(query);
         pSqlResults.reset(pSqlStmt->getResultSet());
         while (pSqlResults->next()) {
-            actPositionToPort[pSqlResults->getInt(3)] = pSqlResults->getInt(1);
-            actPositionToSerial[pSqlResults->getInt(3)] = pSqlResults->getInt(2);
+            Device::Identity actId;
+            actId.serialNumber = pSqlResults->getInt(1);
+            actId.position = pSqlResults->getInt(2);
+            std::string port = std::to_string(pSqlResults->getInt(3));
+            actId.eAddress = port;
+            actId.name = std::string("ACT_") + std::to_string(actId.serialNumber);
+            actuatorIdentities[actId.position - 1] = actId;
         }
 
         // Query DB for mpes serials and ports
-        query = "SELECT port, serial_number, w_position FROM Opt_MPESMapping WHERE w_panel=" +
-                std::to_string(m_panelNum);
+        query =
+            "SELECT serial_number, w_position, port, l_panel FROM Opt_MPESMapping WHERE end_date is NULL and w_panel=" +
+            std::to_string(m_panelNum);
         pSqlStmt->execute(query);
         pSqlResults.reset(pSqlStmt->getResultSet());
         while (pSqlResults->next()) {
-            mpesPositionToPort[pSqlResults->getInt(3)] = pSqlResults->getInt(1);
-            mpesPositionToSerial[pSqlResults->getInt(3)] = pSqlResults->getInt(2);
+            Device::Identity mpesId;
+            mpesId.serialNumber = pSqlResults->getInt(1);
+            mpesId.position = pSqlResults->getInt(2);
+            mpesId.eAddress = std::to_string(pSqlResults->getInt(3));
+            mpesId.name = std::string("MPES_") + std::to_string(mpesId.serialNumber);
+            std::string port = std::to_string(pSqlResults->getInt(3));
+            std::string l_panelPos = std::to_string(pSqlResults->getInt(4));
+            mpesIdentities.push_back(mpesId);
         }
     }
     catch (sql::SQLException &e) {
@@ -124,137 +134,108 @@ UaStatus PasCommunicationInterface::initialize() {
         return OpcUa_Bad;
     }
 
-    // construct arrays of the actuator ports and serial numbers
-    // ordered by position
-    std::array<int, 6> actuatorPorts{};
-    std::array<int, 6> actuatorSerials{};
-    for (auto act : actPositionToPort)
-        actuatorPorts[act.first - 1] = act.second;
-    for (auto act : actPositionToSerial)
-        actuatorSerials[act.first - 1] = act.second;
-
-
-    Device::Identity identity;
-    identity.name = std::string("Panel_") + std::to_string(m_panelNum);
-    identity.serialNumber = m_cbcID;
-    identity.eAddress = std::to_string(0);
-    identity.position = m_panelNum;
+    Device::Identity panelId;
+    panelId.name = std::string("Panel_") + std::to_string(m_panelNum);
+    panelId.serialNumber = m_cbcID;
+    panelId.eAddress = std::to_string(0);
+    panelId.position = m_panelNum;
 
 #ifdef SIMMODE
-    spdlog::info("SIMMODE: Creating DummyPlatform object with identity {}...", identity);
-    m_platform = std::dynamic_pointer_cast<PlatformBase>(std::make_shared<DummyPlatform>(identity, DbInfo));
+    spdlog::info("SIMMODE: Creating DummyPlatform object with identity {}...", panelId);
+    m_platform = std::dynamic_pointer_cast<PlatformBase>(std::make_shared<DummyPlatform>(panelId, DbInfo));
 #else
-    spdlog::info("Creating Platform hardware interface with identity {}...", identity);
-    m_platform = std::dynamic_pointer_cast<PlatformBase>(std::make_shared<Platform>(identity, DbInfo));
+    spdlog::info("Creating Platform hardware interface with identity {}...", panelId);
+    m_platform = std::dynamic_pointer_cast<PlatformBase>(std::make_shared<Platform>(panelId, DbInfo));
 #endif
 
     m_platform->initialize();
 
-    std::array<Device::Identity, PlatformBase::NUM_ACTS_PER_PLATFORM> actuatorIdentities;
     for (int i = 0; i < PlatformBase::NUM_ACTS_PER_PLATFORM; i++) {
-        Device::Identity id;
-        id.name = std::string("ACT_") + std::to_string(actuatorSerials.at(i));
-        id.serialNumber = actuatorSerials.at(i);
-        id.eAddress = std::to_string(actuatorPorts.at(i));
-        id.position = i + 1;
-        actuatorIdentities[i] = id;
-        spdlog::info("Adding ACT hardware interface with identity {} as child of platform ...", identity);
+        spdlog::info("Adding ACT hardware interface with identity {} as child of Platform...", actuatorIdentities[i]);
     }
-
     m_platform->addActuators(actuatorIdentities);
-
-    std::vector<int> mpesPositions;
-    std::vector<int> actPositions;
-    for (auto mpes : mpesPositionToPort) {
-        mpesPositions.push_back(mpes.first);
-    }
-    for (auto act : actPositionToPort) {
-        actPositions.push_back(act.first);
-    }
 
     // initialize the MPES in the positional order. Not strictly necessary, but keeps things tidy
     // addMPES(port, serial)
-    int pos;
-    for (auto mpes : mpesPositionToPort) {
-        identity.name = std::string("MPES_") + std::to_string(mpesPositionToSerial.at(mpes.first));
-        identity.serialNumber = mpesPositionToSerial.at(mpes.first);
-        identity.eAddress = std::to_string(mpes.second);
-        identity.position = mpes.first;
-        spdlog::info("Adding MPES hardware interface with identity {} as child of platform ...", identity);
-        m_platform->addMPES(identity);
+    for (const auto &mpesId : mpesIdentities) {
+        spdlog::info("Adding MPES hardware interface with identity {} as child of Platform ...", mpesId);
+        m_platform->addMPES(mpesId);
     }
 
     // initialize expected devices
     spdlog::info(
         "Initializing all hardware interfaces (Platform, ACT, MPES) and creating corresponding controllers...");
 
-    std::map<OpcUa_UInt32, int> expectedDeviceCounts;
-    expectedDeviceCounts[PAS_PanelType] = 1;
-    expectedDeviceCounts[PAS_ACTType] = m_platform->getActuatorCount();
-    expectedDeviceCounts[PAS_MPESType] = m_platform->getMPESCount();
-    expectedDeviceCounts[PAS_PSDType] = 0;
+    std::map<OpcUa_UInt32, std::vector<Device::Identity>> allDevices;
+    allDevices[PAS_PanelType] = {m_platform->getIdentity()};
+    allDevices[PAS_ACTType] = {};
+    for (int i = 0; i < m_platform->getActuatorCount(); i++) {
+        allDevices[PAS_ACTType].push_back(m_platform->getActuator(i)->getIdentity());
+    }
 
-    for (auto devCount: expectedDeviceCounts) {
-        spdlog::info("Expecting {} {} hardware interfaces...", devCount.second, deviceTypes.at(devCount.first));
+    allDevices[PAS_MPESType] = {};
+    for (int i = 0; i < m_platform->getMPESCount(); i++) {
+        allDevices[PAS_MPESType].push_back(m_platform->getMPES(i)->getIdentity());
+    }
+
+    allDevices[PAS_PSDType] = {};
+
+    for (const auto &pair: allDevices) {
+        int expectedDevices;
+        if (pair.first == PAS_PanelType) {
+            expectedDevices = 1;
+        } else if (pair.first == PAS_MPESType) {
+            expectedDevices = mpesIdentities.size();
+        } else if (pair.first == PAS_ACTType) {
+            expectedDevices = actuatorIdentities.size();
+        } else if (pair.first == PAS_PSDType) {
+            expectedDevices = 0;
+        }
+
+        spdlog::info("Expecting {} {} hardware interfaces...", expectedDevices, deviceTypes.at(pair.first));
 
         // If the device type does not already exist in the m_pControllers map, add it
-        m_pControllers[devCount.first] = std::map<Device::Identity, std::shared_ptr<PasControllerCommon>>();
+        m_pControllers[pair.first] = std::map<Device::Identity, std::shared_ptr<PasControllerCommon>>();
 
         int failed = 0;
         std::shared_ptr<PasControllerCommon> pController;
-        for (int i = 0; i < devCount.second; i++) {
-            if (devCount.first == PAS_PanelType) {
-                identity.name = std::string("Panel_") + std::to_string(m_panelNum);
-                identity.serialNumber = m_cbcID;
-                identity.eAddress = std::to_string(0);
-                identity.position = m_panelNum;
+        for (int i = 0; i < pair.second.size(); i++) {
+            Device::Identity identity = pair.second.at(i);
+            if (pair.first == PAS_PanelType) {
                 pController = std::dynamic_pointer_cast<PasControllerCommon>(
                     std::make_shared<PanelController>(identity, m_platform));
                 spdlog::info("Added Panel controller with identity {}", identity);
-            } else if (devCount.first == PAS_MPESType) {
-                pos = mpesPositions.at(i);
-                identity.name = std::string("MPES_") + std::to_string(mpesPositionToSerial.at(pos));
-                identity.serialNumber = mpesPositionToSerial.at(pos);
-                identity.eAddress = std::to_string(mpesPositionToPort.at(pos));
-                identity.position = pos;
+            } else if (pair.first == PAS_MPESType) {
                 pController = std::dynamic_pointer_cast<PasControllerCommon>(
                     std::make_shared<MPESController>(identity, m_platform));
                 spdlog::info("Added MPES controller with identity {}", identity);
-            } else if (devCount.first == PAS_ACTType) {
-                pos = actPositions.at(i);
-                identity.name = std::string("ACT_") + std::to_string(actPositionToSerial.at(pos));
-                identity.serialNumber = actPositionToSerial.at(pos);
-                identity.eAddress = std::to_string(actPositionToPort.at(pos));
-                identity.position = pos;
+            } else if (pair.first == PAS_ACTType) {
                 pController = std::dynamic_pointer_cast<PasControllerCommon>(
                     std::make_shared<ActController>(identity, m_platform));
                 spdlog::info("Added Actuator controller with identity {}", identity);
             }
 #ifndef _AMD64
-            else if (devCount.first == PAS_PSDType) {
-                identity.name = std::string("PSD_0");
-                identity.serialNumber = -1;
-                identity.eAddress = "0";
-                identity.position = -1;
+            else if (pair.first == PAS_PSDType) {
                 pController = std::dynamic_pointer_cast<PasControllerCommon>(std::make_shared<PSDController>(identity));
                 spdlog::info("Added PSD controller with identity {}", identity);
             }
 #endif
             else {
-                spdlog::error("Invalid device type {} found", devCount.first);
+                spdlog::error("Invalid device type {} found", pair.first);
             }
 
             if (pController->initialize()) {
                 spdlog::debug("Successfully initialized {} controller with identity {}.",
-                              deviceTypes.at(devCount.first), pController->getId());
+                              deviceTypes.at(pair.first), pController->getIdentity());
             } else {
-                spdlog::error("Failed to initialize {} controller with identity {}.", deviceTypes.at(devCount.first),
-                              pController->getId());
+                spdlog::error("Failed to initialize {} controller with identity {}.", deviceTypes.at(pair.first),
+                              pController->getIdentity());
                 failed++;
             }
-            m_pControllers[devCount.first].insert(std::make_pair(identity, pController));
+            m_pControllers[pair.first].insert(std::make_pair(identity, pController));
         }
-        spdlog::info("Successfully initialized {}/{} {} controllers.", devCount.second - failed, devCount.second, deviceTypes.at(devCount.first));
+        spdlog::info("Successfully initialized {}/{} {} controllers.", m_pControllers[pair.first].size(),
+                     expectedDevices, deviceTypes.at(pair.first));
     }
 
     spdlog::info("Adding actuator and mpes controllers as children of the panel controller...");

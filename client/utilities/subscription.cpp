@@ -19,7 +19,7 @@ class Configuration;
 Subscription::Subscription(std::shared_ptr<Configuration> pConfiguration)
     : m_pSession(nullptr),
       m_pSubscription(nullptr),
-      m_pConfiguration(pConfiguration)
+      m_pConfiguration(std::move(pConfiguration))
 {
 }
 

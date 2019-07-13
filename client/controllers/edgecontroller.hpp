@@ -37,17 +37,21 @@ public:
 
     bool isAligned() { return m_isAligned; }
 private:
-    UaStatus align(unsigned panel_pos, double alignFrac = 0.25, bool moveit = true, bool execute = false);
+    UaStatus align(unsigned panel_pos, double alignFrac = 0.25, bool moveit = true, std::string command = "calculate");
 
-    UaStatus alignSinglePanel(unsigned panelpos, double alignFrac, bool moveit = true, bool execute = false);
+    UaStatus
+    alignSinglePanel(unsigned panelpos, double alignFrac, bool moveit = true, std::string command = "calculate");
 
     UaStatus findMatrix(UaVariantArray args);
     UaStatus findSingleMatrix(unsigned panelIdx, double stepSize = 0.5);
 
     std::pair<Eigen::VectorXd, Eigen::VectorXd> __getCurrentReadings();
 
+    UaStatus updateAllSensors();
+
     // temporarily hold calculated alignment motion
     Eigen::VectorXd m_Xcalculated;
+    float m_lastSetAlignFrac;
 
     // indicates whether edge is aligned
     bool m_isAligned;

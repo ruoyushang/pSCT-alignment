@@ -4,7 +4,7 @@
  */
 
 #include <chrono>
-#include <iostream>
+
 #include <memory>
 
 #include "uabase/statuscode.h"
@@ -30,21 +30,21 @@
 /// sets its port, and initializes. Sets its state to On.
 PSDController::PSDController(Device::Identity identity) : PasController(std::move(identity), 500)
 {
-    spdlog::trace("{} : Creating PSD hardware interface... ", m_ID);
+    spdlog::trace("{} : Creating PSD hardware interface... ", m_Identity);
 #ifndef SIMMODE
     m_pPSD = std::unique_ptr<GASPSD>(new GASPSD(identity));
 #else
     m_pPSD = std::unique_ptr<GASPSD>(new DummyGASPSD(identity));
 #endif
-    spdlog::trace("{} : Initializing PSD hardware interface... ", m_ID);
+    spdlog::trace("{} : Initializing PSD hardware interface... ", m_Identity);
     m_pPSD->initialize();
 }
 
 /// @details Locks the shared mutex while retrieving the state.
 UaStatus PSDController::getState(Device::DeviceState &state) {
-    UaMutexLocker lock(&m_mutex);
+    UaMutexLocker lock(&m_Mutex);
     state = _getDeviceState();
-    spdlog::trace("{} : Getting device state => ({})", m_ID, Device::deviceStateNames.at(state));
+    spdlog::trace("{} : Read device state => ({})", m_Identity, Device::deviceStateNames.at(state));
     return OpcUa_Good;
 }
 
@@ -72,7 +72,9 @@ UaStatus PSDController::getData(OpcUa_UInt32 offset, UaVariant &value)
 
     value.setDouble(m_pPSD->getOutput(offset));
 
-    spdlog::trace("{} : Getting data... offset=> {} value => ({})", m_ID, offset, value[0].Value.Double);
+    double temp;
+    value.toDouble(temp);
+    spdlog::trace("{} : Read data, offset=> {} value => ({})", m_Identity, offset, temp);
     return status;
 }
 
@@ -89,11 +91,11 @@ UaStatus PSDController::operate(OpcUa_UInt32 offset, const UaVariantArray &args)
 
     UaStatus status;
     if ( offset == PAS_PSDType_Read) {
-        spdlog::trace("{} : PSD controller calling read()", m_ID);
+        spdlog::trace("{} : PSDController calling read()", m_Identity);
         status = read();
     }
     else {
-        spdlog::error("{} : Invalid method call with offset {}", m_ID, offset);
+        spdlog::error("{} : Invalid method call with offset {}", m_Identity, offset);
         status = OpcUa_BadInvalidArgument;
     }
 
@@ -107,13 +109,13 @@ UaStatus PSDController::read()
 
     if (_getErrorState() == Device::ErrorState::Nominal || _getErrorState() == Device::ErrorState::OperableError)
     {
-        spdlog::trace("{} : Updating PSD data and lastUpdateTime... ", m_ID);
+        spdlog::trace("{} : Updating PSD data and lastUpdateTime... ", m_Identity);
         m_pPSD->update();
-        m_lastUpdateTime = std::chrono::system_clock::now();
+        m_LastUpdateTime = std::chrono::system_clock::now();
         return OpcUa_Good;
     }
     else {
-        spdlog::error("{} : Device is in fatal error state, cannot read. ", m_ID);
+        spdlog::error("{} : Device is in fatal error state, cannot read. ", m_Identity);
         return OpcUa_BadInvalidState;
     }
 }

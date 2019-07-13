@@ -1,14 +1,17 @@
 #ifndef ALIGNMENT_DEVICE_HPP
 #define ALIGNMENT_DEVICE_HPP
 
-#include <iostream>
+
 #include <map>
 #include <memory>
+#include <iostream>
 #include <string>
 #include <vector>
 
 #include "common/cbccode/cbc.hpp"
 
+#include "common/utilities/spdlog/spdlog.h"
+#include "common/utilities/spdlog/fmt/ostr.h"
 
 class Device {
 public:
@@ -71,11 +74,14 @@ public:
         bool operator!=(const Identity &r) const;
     };
 
-    Device(Identity identity);
+    static Device::Identity parseIdentity(std::string identityString);
+
+    explicit Device(Identity identity);
     ~Device() = default;
 
-    virtual std::vector <Device::ErrorDefinition> getErrorCodeDefinitions() = 0;
-    int getNumErrors() { return (int)getErrorCodeDefinitions().size(); }
+    virtual Device::ErrorDefinition getErrorCodeDefinition(int errorCode) = 0;
+
+    virtual int getNumErrors() = 0;
 
     bool getError(int errorCode) { return m_Errors[errorCode]; }
 
@@ -92,6 +98,8 @@ public:
     virtual void turnOn() = 0;
     virtual void turnOff() = 0;
 
+    Device::Identity getIdentity() { return m_Identity; }
+
 protected:
     Device::Identity m_Identity;
 
@@ -99,8 +107,21 @@ protected:
 
     bool m_Busy;
 
-    void setBusy();
-    void unsetBusy();
+    class CustomBusyLock {
+    public:
+        explicit CustomBusyLock(Device *device) : m_Device(device) {
+            spdlog::trace("{} : Blocking task started.", m_Device->getIdentity());
+            m_Device->m_Busy = true;
+        }
+
+        ~CustomBusyLock() {
+            spdlog::trace("{} : Blocking task completed.", m_Device->getIdentity());
+            m_Device->m_Busy = false;
+        };
+
+    private:
+        Device *m_Device;
+    };
 
     bool isBusy() { return m_Busy; }
 

@@ -5,6 +5,9 @@
 #include <cstdlib> // abs
 #include <dirent.h> // DIR
 
+#include "common/utilities/spdlog/spdlog.h"
+#include "common/utilities/spdlog/fmt/ostr.h"
+
 #ifdef WITH_OPENCV3
 #define CV_CAP_PROP_FRAME_WIDTH CAP_PROP_FRAME_WIDTH
 #define CV_CAP_PROP_FRAME_HEIGHT CAP_PROP_FRAME_HEIGHT
@@ -282,14 +285,29 @@ void MPESImageSet::simpleAverage()
 	}
 }
 
-void MPESImageSet::printSetProperties(FILE * file)
-{
+void MPESImageSet::printSetProperties(FILE * file) { /**
     fprintf(stderr, "Device ID: %i \n",device->GetID());
     fprintf(stderr, "Width: %i \n",device->GetResolution());
     fprintf(stderr, "Cleaning Threshold: %i \n" ,iThresh);
     fprintf(stderr, "Time (MJD): %f\n", SetData.MJD);
     fprintf(stderr, "%i images captured\n", capturedImages); 
     fprintf(file, "%e %e %e %e %f %f %f %f %f %f %f %f %i\n", SetData.Intensity, SetData.IntensitySD, SetData.CleanedIntensity, SetData.CleanedIntensitySD, SetData.xCentroid, SetData.yCentroid, SetData.xCentroidSD, SetData.yCentroidSD, SetData.xSpotSD, SetData.ySpotSD, SetData.Xcal, SetData.Ycal, SetData.nSat);
+*/
+    spdlog::trace("\n"
+                  "Device ID: {}\n"
+                  "Width: {} \n"
+                  "Cleaning Threshold: {} \n"
+                  "Time (MJD): {}\n"
+                  "{} images captured\n"
+                  "{} {} {} {} {} {} {} {} {} {} {} {} {}\n",
+                  device->GetID(),
+                  device->GetResolution(),
+                  iThresh,
+                  SetData.MJD,
+                  capturedImages,
+                  SetData.Intensity, SetData.IntensitySD, SetData.CleanedIntensity, SetData.CleanedIntensitySD,
+                  SetData.xCentroid, SetData.yCentroid, SetData.xCentroidSD, SetData.yCentroidSD, SetData.xSpotSD,
+                  SetData.ySpotSD, SetData.Xcal, SetData.Ycal, SetData.nSat);
 }
 
 

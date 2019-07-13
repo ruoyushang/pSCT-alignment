@@ -1,6 +1,7 @@
 #include "common/opcua/pasobject.hpp"
 
-#include <iostream>
+#include "common/utilities/spdlog/spdlog.h"
+#include "common/utilities/spdlog/fmt/ostr.h"
 
 #include "uabase/uamutex.h"
 #include "uaserver/methodhandleuanode.h"
@@ -39,16 +40,16 @@ void PasObject::initialize() {
     OpcUa_Int16 nsIdx = m_pNodeManager->getNameSpaceIndex();
     OpcUa::DataItemType *pDataItem;
 
-    std::cout << "PasObject::Initialize(): initializing object w/ identity " << m_Identity << "...\n";
+    spdlog::info("PasObject::Initialize(): initializing object w/ identity {}...", m_Identity);
 
-    //std::cout << "Creating variables...\n";
+    //spdlog::debug("Creating variables...");
     // Add all child variable nodes
     for (auto &kv : getVariableDefs()) {
         addVariable(m_pNodeManager, typeDefinitionId().identifierNumeric(), kv.first, std::get<2>(kv.second));
     }
 
 
-    //std::cout << "Creating error variables...\n";
+    //spdlog::debug("Creating error variables...");
     //Create the folder for the Errors
     UaFolder *pErrorFolder = new UaFolder("Errors", UaNodeId(
             (std::to_string(typeDefinitionId().identifierNumeric()) + "_" + std::to_string(m_Identity.serialNumber) + "_errors").c_str(),
@@ -64,7 +65,7 @@ void PasObject::initialize() {
     }
 
     // Add all child method nodes
-    //std::cout << "Creating method nodes...\n";
+    //spdlog::debug("Creating method nodes...");
     for (auto &m : getMethodDefs()) {
         sName = UaString(m.second.first.c_str());
         sNodeId = UaString("%1.%2").arg(m_newNodeId.toString()).arg(sName);
@@ -230,7 +231,13 @@ const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, O
                                                         Ua_AccessLevel_CurrentRead)},
     {PAS_MPESType_yCentroidNominal, std::make_tuple("yCentroidNominal", UaVariant(0.0), OpcUa_False,
                                                         Ua_AccessLevel_CurrentRead)},
-    {PAS_MPESType_ErrorState, std::make_tuple("ErrorState", UaVariant(0), OpcUa_False,
+    {PAS_MPESType_Exposure,         std::make_tuple("Exposure", UaVariant(0), OpcUa_False,
+                                                    Ua_AccessLevel_CurrentRead)},
+    {PAS_MPESType_Timestamp,        std::make_tuple("Timestamp", UaVariant(""), OpcUa_False,
+                                                    Ua_AccessLevel_CurrentRead)},
+    {PAS_MPESType_RawTimestamp,     std::make_tuple("RawTimestamp", UaVariant(0), OpcUa_False,
+                                                    Ua_AccessLevel_CurrentRead)},
+    {PAS_MPESType_ErrorState,       std::make_tuple("ErrorState", UaVariant(0), OpcUa_False,
                                                         Ua_AccessLevel_CurrentRead)},
 };
 
@@ -275,17 +282,20 @@ const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean>> 
     {PAS_ACTType_Error0,  std::make_tuple("[0] Home position not calibrated", UaVariant(false), OpcUa_False)},
     {PAS_ACTType_Error1,  std::make_tuple("[1] DBInfo not set", UaVariant(false), OpcUa_False)},
     {PAS_ACTType_Error2,  std::make_tuple("[2] MySQL Communication Error", UaVariant(false), OpcUa_False)},
-    {PAS_ACTType_Error3,  std::make_tuple("[3] DB Columns does not match what is expected", UaVariant(false),
+    {PAS_ACTType_Error3,  std::make_tuple("[3] DB columns do not match what is expected", UaVariant(false),
                                           OpcUa_False)},
-    {PAS_ACTType_Error4,  std::make_tuple("[4] Bad ASF file", UaVariant(false), OpcUa_False)},
-    {PAS_ACTType_Error5,  std::make_tuple("[5] ASF File entry mismatch", UaVariant(false), OpcUa_False)},
-    {PAS_ACTType_Error6,  std::make_tuple("[6] DB recording more recent than ASF and has mismatch with measured angle",
+    {PAS_ACTType_Error4,  std::make_tuple("[4] ASF File is Bad", UaVariant(false), OpcUa_False)},
+    {PAS_ACTType_Error5,  std::make_tuple("[5] ASF File entries do not match what is expected", UaVariant(false),
+                                          OpcUa_False)},
+    {PAS_ACTType_Error6,  std::make_tuple("[6] Actuator is not stepping",
                                           UaVariant(false), OpcUa_False)},
-    {PAS_ACTType_Error7,  std::make_tuple("[7] High voltage StdDev", UaVariant(false), OpcUa_False)},
-    {PAS_ACTType_Error8,  std::make_tuple("[8] Actuator missed steps", UaVariant(false), OpcUa_False)},
-    {PAS_ACTType_Error9,  std::make_tuple("[9] Actuator position missed, far away to recover safely", UaVariant(false),
+    {PAS_ACTType_Error7,  std::make_tuple("[7] Voltage stddev too high", UaVariant(false), OpcUa_False)},
+    {PAS_ACTType_Error8,  std::make_tuple("[8] Actuator missed steps while stepping", UaVariant(false), OpcUa_False)},
+    {PAS_ACTType_Error9,  std::make_tuple("[9] Actuator position discrepancy, too far away to recover safely",
+                                          UaVariant(false),
                                           OpcUa_False)},
-    {PAS_ACTType_Error10, std::make_tuple("[10] Missed steps but recovered automatically", UaVariant(false),
+    {PAS_ACTType_Error10, std::make_tuple("[10] Actuator position discrepancy, small enough to recover automatically",
+                                          UaVariant(false),
                                           OpcUa_False)},
     {PAS_ACTType_Error11, std::make_tuple("[11] Extend Stop Voltage too close to discontinuity", UaVariant(false),
                                           OpcUa_False)},

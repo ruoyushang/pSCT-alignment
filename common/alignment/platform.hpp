@@ -24,7 +24,11 @@ public:
 
     static const std::vector<Device::ErrorDefinition> ERROR_DEFINITIONS;
 
-    std::vector<Device::ErrorDefinition> getErrorCodeDefinitions() override { return PlatformBase::ERROR_DEFINITIONS; }
+    Device::ErrorDefinition getErrorCodeDefinition(int errorCode) override {
+        return PlatformBase::ERROR_DEFINITIONS.at(errorCode);
+    }
+
+    int getNumErrors() override { return PlatformBase::ERROR_DEFINITIONS.size(); }
 
     PlatformBase(Device::Identity identity, Device::DBInfo dbInfo);
 

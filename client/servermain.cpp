@@ -25,9 +25,10 @@
 #include "client/utilities/paslogic.hpp"
 
 #include "common/utilities/spdlog/spdlog.h"
+#include "common/utilities/spdlog/fmt/ostr.h"
 #include "common/utilities/spdlog/sinks/basic_file_sink.h"
 #include "common/utilities/spdlog/sinks/stdout_color_sinks.h"
-#include "common/utilities/spdlog/sinks/rotating_file_sink.h"
+#include "common/utilities/spdlog/sinks/daily_file_sink.h"
 #include "common/utilities/spdlog/logger.h"
 
 #define CLIENT_CPP_SDK_ACTIVATE_MEMCHECK 0
@@ -141,7 +142,7 @@ int OpcMain(const char *szAppPath, const std::vector<std::string> &serverList, c
 
         // Load configuration.
         auto pClientConfiguration = std::make_shared<Configuration>(mode);
-        std::cout << "Loading Configuration...\n";
+        spdlog::info("Loading Configuration...");
         status = pClientConfiguration->loadConnectionConfiguration(sClientConfigFile);
         if (mode == "subclient") {
             status = pClientConfiguration->loadDeviceConfiguration(serverList);
@@ -150,7 +151,7 @@ int OpcMain(const char *szAppPath, const std::vector<std::string> &serverList, c
             pClientConfiguration->loadSubclientConfiguration(serverList);
         }
 
-        std::cout << "Finished loading Configuration...\n";
+        spdlog::info("Finished loading Configuration...");
 
         // Create and initialize communication interface.
         std::shared_ptr<PasCommunicationInterface> pCommIf = std::make_shared<PasCommunicationInterface>();
@@ -166,18 +167,18 @@ int OpcMain(const char *szAppPath, const std::vector<std::string> &serverList, c
         pNodeManagerClient->setCommunicationInterface(pCommIf);
 
         // add the node manager
-        std::cout << "Adding node manager...\n";
+        spdlog::info("Adding node manager...");
         pServer->addNodeManager(pNodeManagerClient);
 
         // Start server object
-        std::cout << "Starting server...\n";
+        spdlog::info("Starting server...");
         ret = pServer->start();
         if ( ret == 0 )
         {
-            std::cout << "************************************\n";
-            std::cout << "  ---- SERVER/CLIENT STARTED ----\n";
-            std::cout << "    Press x to shut down server\n";
-            std::cout << "************************************" << std::endl;
+            spdlog::info("\n************************************\n"
+                         "  ---- SERVER/CLIENT STARTED ----\n"
+                         "    Press x to shut down server\n"
+                         "************************************");
             
             //pLogic = new PasLogic(pCommIf);
             //pLogic->start();
@@ -199,9 +200,9 @@ int OpcMain(const char *szAppPath, const std::vector<std::string> &serverList, c
                 }
             }
 
-            std::cout << "*************************************\n";
-            std::cout << " Shutting down server/client\n";
-            std::cout << "*************************************" << std::endl;
+            spdlog::info("\n*************************************\n"
+                         " Shutting down server/client\n"
+                         "*************************************");
 
             // Stop the utilities thread;
             //pLogic->stop();
@@ -210,10 +211,10 @@ int OpcMain(const char *szAppPath, const std::vector<std::string> &serverList, c
             // to allow them to disconnect after they received the shutdown signal
             pServer->stop(3, UaLocalizedText("", "User shutdown"));
         } else {
-            std::cout << "*******************************************\n";
-            std::cout << "  ---- FAILED TO START SERVER/CLIENT ----\n";
-            std::cout << "             Shutting down\n";
-            std::cout << "*******************************************" << std::endl;
+            spdlog::error("\n*******************************************\n"
+                          "  ---- FAILED TO START SERVER/CLIENT ----\n"
+                          "             Shutting down\n"
+                          "*******************************************");
         }
 
         delete pServer;
@@ -285,23 +286,26 @@ int main(int argc, char* argv[])
                   << ". Valid choices are 'trace', 'debug', 'info', 'warn', 'error', 'critical'.";
         return -1;
     }
+    std::cout << "Console logging level set to: " << logLevel << std::endl;
 
     // Note that log directory must have been created beforehand
-    auto file_sink = std::make_shared<spdlog::sinks::rotating_file_sink_mt>(std::string(getenv("HOME")) + std::string("/logs/p2pasclient_logs"), 1048576 * 5, 5,
-                                                                       false); // 5 rotating files with max size 5 MB
-    file_sink->set_level(spdlog::level::trace); // always save all logging levels
-    file_sink->set_pattern("[%c] [%n] [%l] [%s:%!:%#] ");
+    auto detailed_file_sink = std::make_shared<spdlog::sinks::daily_file_sink_mt>(
+        std::string(getenv("HOME")) + std::string("/logs/p2pasclient_log_detailed"), 0, 0,
+        false); // Daily file created at midnight
+    detailed_file_sink->set_level(spdlog::level::trace); // always save all logging levels
+    detailed_file_sink->set_pattern("[%c] [%n] [%l] [%s:%!:%#] %v");
 
-    std::vector<spdlog::sink_ptr> sinks{file_sink, console_sink};
+    auto basic_file_sink = std::make_shared<spdlog::sinks::daily_file_sink_mt>(
+        std::string(getenv("HOME")) + std::string("/logs/p2pasclient_log_basic"), 0, 0,
+        false); // Daily file created at midnight
+    basic_file_sink->set_level(spdlog::level::info); // show only general info, no trace info
+    basic_file_sink->set_pattern("[%c] [%n] [%l] [%s:%!:%#] %v");
+
+    std::vector<spdlog::sink_ptr> sinks{detailed_file_sink, basic_file_sink, console_sink};
     auto logger = std::make_shared<spdlog::logger>("p2pasclient", sinks.begin(), sinks.end());
-    logger->set_level(spdlog::level::info);
+    logger->set_level(spdlog::level::trace);
     logger->flush_on(spdlog::level::info);
     spdlog::set_default_logger(logger);
-
-    if (argc < 2) {
-        std::cout << "Usage: " << argv[0] << " <Positions of panels to connect to>" << std::endl;
-        return 1;
-    }
 
 #ifndef WIN32
     init_keyboard();

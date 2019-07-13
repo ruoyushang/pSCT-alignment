@@ -10,8 +10,9 @@
 
 
 const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, OpcUa_Byte>> EdgeObject::VARIABLES = {
-    {PAS_EdgeType_State,    std::make_tuple("State", UaVariant(0), OpcUa_True, Ua_AccessLevel_CurrentRead)},
-    {PAS_EdgeType_Position, std::make_tuple("Position", UaVariant(0), OpcUa_False, Ua_AccessLevel_CurrentRead)},
+    {PAS_EdgeType_State,      std::make_tuple("State", UaVariant(0), OpcUa_True, Ua_AccessLevel_CurrentRead)},
+    {PAS_EdgeType_Position,   std::make_tuple("Position", UaVariant(0), OpcUa_False, Ua_AccessLevel_CurrentRead)},
+    {PAS_EdgeType_ErrorState, std::make_tuple("ErrorState", UaVariant(0), OpcUa_True, Ua_AccessLevel_CurrentRead)},
 };
 
 const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean>> EdgeObject::ERRORS = {
@@ -28,9 +29,9 @@ const std::map<OpcUa_UInt32, std::pair<std::string, std::vector<std::tuple<std::
                                                          std::make_tuple("Align Fraction",
                                                                          UaNodeId(OpcUaId_Double),
                                                                          "Fraction of motion to carry out (between 0.0 and 1.0, default = 0.25)"),
-                                                         std::make_tuple("Execute",
-                                                                         UaNodeId(OpcUaId_Boolean),
-                                                                         "Whether to actually execute the calculated motion."),
+                                                     std::make_tuple("Command",
+                                                                     UaNodeId(OpcUaId_String),
+                                                                     "Command to run (calculate, setAlignFrac, execute)."),
                                                 }}
         },
         {PAS_EdgeType_FindMatrix, {"FindMatrix", {       std::make_tuple("Step Size",
