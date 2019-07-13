@@ -10,14 +10,15 @@
 
 
 const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, OpcUa_Byte>> MirrorObject::VARIABLES = {
-    {PAS_MirrorType_State,    std::make_tuple("State", UaVariant(0), OpcUa_True, Ua_AccessLevel_CurrentRead)},
-    {PAS_MirrorType_Position, std::make_tuple("Position", UaVariant(0), OpcUa_False,
+    {PAS_MirrorType_State,      std::make_tuple("State", UaVariant(0), OpcUa_True, Ua_AccessLevel_CurrentRead)},
+    {PAS_MirrorType_ErrorState, std::make_tuple("ErrorState", UaVariant(0), OpcUa_True, Ua_AccessLevel_CurrentRead)},
+    {PAS_MirrorType_Position,   std::make_tuple("Position", UaVariant(0), OpcUa_False,
                                               Ua_AccessLevel_CurrentRead)},
-    {PAS_MirrorType_x,        std::make_tuple("x", UaVariant(0.0), OpcUa_False,
+    {PAS_MirrorType_x,          std::make_tuple("x", UaVariant(0.0), OpcUa_False,
                                                        Ua_AccessLevel_CurrentRead)},
-    {PAS_MirrorType_y,        std::make_tuple("y", UaVariant(0.0), OpcUa_False,
+    {PAS_MirrorType_y,          std::make_tuple("y", UaVariant(0.0), OpcUa_False,
                                                        Ua_AccessLevel_CurrentRead)},
-    {PAS_MirrorType_z,        std::make_tuple("z", UaVariant(0.0), OpcUa_False,
+    {PAS_MirrorType_z,          std::make_tuple("z", UaVariant(0.0), OpcUa_False,
                                                        Ua_AccessLevel_CurrentRead)},
     {PAS_MirrorType_xRot,              std::make_tuple("xRot", UaVariant(0.0), OpcUa_False,
                                                        Ua_AccessLevel_CurrentRead)},

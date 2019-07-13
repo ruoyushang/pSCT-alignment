@@ -44,6 +44,7 @@
 #define PAS_MirrorType_sysOffsetsMPES_x3             124
 #define PAS_MirrorType_sysOffsetsMPES_y3             125
 #define PAS_MirrorType_Position                      126
+#define PAS_MirrorType_ErrorState                    127
 #define PAS_MirrorType_ReadPosition                  130
 #define PAS_MirrorType_SavePosition                  131
 #define PAS_MirrorType_LoadPosition                  132
@@ -64,6 +65,7 @@
 // Instance declaration
 #define PAS_EdgeType_State                          1001
 #define PAS_EdgeType_Position                       1002
+#define PAS_EdgeType_ErrorState                     1003
 #define PAS_EdgeType_FindMatrix                     1011
 #define PAS_EdgeType_Align                          1012
 #define PAS_EdgeType_Read                           1013
