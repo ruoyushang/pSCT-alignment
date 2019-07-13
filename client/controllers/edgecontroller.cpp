@@ -46,7 +46,7 @@ UaStatus EdgeController::getData(OpcUa_UInt32 offset, UaVariant &value) {
         spdlog::trace("{} : Read position => ({})", m_Identity, m_Identity.position);
     } else if (offset == PAS_EdgeType_ErrorState) {
         int errorState = 0;
-        for (auto childType : m_ChildType) {
+        for (auto childType : m_ChildrenTypes) {
             for (auto child : getChildren(childType)) {
                 UaVariant var;
                 if (childType == PAS_MPESType) {
@@ -63,7 +63,7 @@ UaStatus EdgeController::getData(OpcUa_UInt32 offset, UaVariant &value) {
         }
         value.setInt32(errorState);
         spdlog::trace("{} : Read ErrorState value => ({})", m_Identity,
-                      Device::errorStateNames.at(static_cast<Device::ErrorState>(temp)));
+                      Device::errorStateNames.at(static_cast<Device::ErrorState>(errorState)));
     } else {
         return OpcUa_BadInvalidArgument;
     }
