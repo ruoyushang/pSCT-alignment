@@ -443,8 +443,7 @@ UaStatus EdgeController::alignSinglePanel(unsigned panelpos, double alignFrac, b
                 if (panelPair.first == panelpos)
                     continue;
 
-                auto pMPES = std::dynamic_pointer_cast<PanelController>(m_pChildren.at(PAS_PanelType).at(
-                        panelPair.second))->getChildren(
+                auto pMPES = std::dynamic_pointer_cast<PanelController>(panelPair.second)->getChildren(
                         PAS_MPESType);
                 for (const auto &mpes : pMPES)
                     if (std::dynamic_pointer_cast<MPESController>(mpes)->getPanelSide(twopanels[0])
@@ -582,8 +581,7 @@ UaStatus EdgeController::alignSinglePanel(unsigned panelpos, double alignFrac, b
         int j = 0;
         for (const auto &panelPair : m_ChildrenPositionMap.at(PAS_PanelType)) {
             if ((panelPair.first == panelpos) == moveit) { // clever but not clear...
-                pCurPanel = std::dynamic_pointer_cast<PanelController>(
-                    m_pChildren.at(PAS_PanelType).at(panelPair.second));
+                pCurPanel = std::dynamic_pointer_cast<PanelController>(panelPair.second);
                 auto nACT = pCurPanel->getActuatorCount();
 
                 UaVariantArray deltas;
@@ -608,8 +606,7 @@ UaStatus EdgeController::alignSinglePanel(unsigned panelpos, double alignFrac, b
         spdlog::info("{} : Doing collision checks for all panels to move...", m_Identity);
         for (const auto &panelPair : m_ChildrenPositionMap.at(PAS_PanelType)) {
             if ((panelPair.first == panelpos) == moveit) { // clever but not clear...
-                auto pCurPanel = std::dynamic_pointer_cast<PanelController>(
-                    m_pChildren.at(PAS_PanelType).at(panelPair.second));
+                auto pCurPanel = std::dynamic_pointer_cast<PanelController>(panelPair.second);
                 spdlog::info("{} : Doing collision checks on Panel {}...", m_Identity, pCurPanel->getIdentity());
                 if(pCurPanel->checkForCollision((X * alignFrac).segment(0,6))) {
                     return OpcUa_Bad;
@@ -642,8 +639,7 @@ UaStatus EdgeController::alignSinglePanel(unsigned panelpos, double alignFrac, b
             int j = 0;
             for (const auto &panelPair : m_ChildrenPositionMap.at(PAS_PanelType)) {
                 if ((panelPair.first == panelpos) == moveit) { // clever but not clear...
-                    pCurPanel = std::dynamic_pointer_cast<PanelController>(
-                        m_pChildren.at(PAS_PanelType).at(panelPair.second));
+                    pCurPanel = std::dynamic_pointer_cast<PanelController>(panelPair.second);
                     auto nACT = pCurPanel->getActuatorCount();
 
                     UaVariantArray deltas;

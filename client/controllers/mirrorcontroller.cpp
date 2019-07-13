@@ -844,10 +844,10 @@ UaStatus MirrorController::readPositionAll(bool print) {
     UaStatus status;
     
     for (unsigned panelPos : m_selectedPanels) {
-        std::dynamic_pointer_cast<PanelController>(m_pChildren.at(PAS_PanelType).at(getPanelIndex(panelPos)))->updateCoords(print);
+        auto pPanel = std::dynamic_pointer_cast<PanelController>(m_ChildrenPositionMap.at(PAS_PanelType).at(panelPos));
+        pPanel->updateCoords(print);
 
-        auto padCoordsActs = std::dynamic_pointer_cast<PanelController>(
-            m_pChildren.at(PAS_PanelType).at(getPanelIndex(panelPos)))->getPadCoords();
+        auto padCoordsActs = pPanel->getPadCoords();
         if (print) {
             spdlog::info("{}: MirrorController::readPositionAll(): Panel frame pad coordinates:\n{}\n", m_Identity,
                          padCoordsActs);
@@ -1270,6 +1270,7 @@ UaStatus MirrorController::alignSequential(const std::string &startEdge, const s
             // of dir, assuming a two-panel edge for now.
             // get vector of panel positions:
             auto curPanels = SCTMath::GetPanelsFromEdge(edgeEaddress, dir);
+            auto edge = m_ChildrenEaddressMap.at(PAS_EdgeType).at(edgeEaddress);
 
             // align this edge moving the "smaller" panel
             UaVariantArray args; 
@@ -1278,66 +1279,65 @@ UaStatus MirrorController::alignSequential(const std::string &startEdge, const s
             args[1].Value.UInt32 = curPanels.at(1); // larger panel
             args[2].Value.Double = 1.0;
             args[3].Value.Boolean = false; // first, calculate
-            auto movingPanel_idx = m_ChildrenPositionMap.at(PAS_PanelType).at(curPanels.at(0));
+            auto movingPanel = m_ChildrenPositionMap.at(PAS_PanelType).at(curPanels.at(0));
             // do this until the edge is aligned
             int alignIter = 1;
             spdlog::debug("{} Calculating motion for Edge {}...", m_Identity, edgeEaddress);
-            status = m_pChildren.at(PAS_EdgeType).at(getEdgeIndex(edgeEaddress))->operate(PAS_EdgeType_Align, args);
+            status = edge->operate(PAS_EdgeType_Align, args);
             Device::DeviceState curState;
-            m_pChildren.at(PAS_EdgeType).at(getEdgeIndex(edgeEaddress))->getState(curState);
+            edge->getState(curState);
             while (curState == Device::DeviceState::Busy) {
                 usleep(500 * 1000); // microseconds
-                m_pChildren.at(PAS_EdgeType).at(getEdgeIndex(edgeEaddress))->getState(curState);
+                edge->getState(curState);
             }
             if (m_State == Device::DeviceState::Off) { break; }
             args[3].Value.Boolean = true; // this time, execute
             spdlog::debug("{}: Executing alignment motion for Edge {}...", m_Identity, edgeEaddress);
-            status = m_pChildren.at(PAS_EdgeType).at(getEdgeIndex(edgeEaddress))->operate(PAS_EdgeType_Align, args);
+            status = edge->operate(PAS_EdgeType_Align, args);
             while (curState == Device::DeviceState::Busy) {
                 usleep(500 * 1000); // microseconds
-                m_pChildren.at(PAS_EdgeType).at(getEdgeIndex(edgeEaddress))->getState(curState);
+                edge->getState(curState);
             }
             if (!status.isGood()) {
                 spdlog::error("{}: Failed while executing motion. Method aborted.", m_Identity);
                 return status; 
             }
             if (m_State == Device::DeviceState::Off) { break; }
-            while (!std::dynamic_pointer_cast<EdgeController>(
-                m_pChildren.at(PAS_EdgeType).at(getEdgeIndex(edgeEaddress)))->isAligned()) {
+            while (!std::dynamic_pointer_cast<EdgeController>(edge)->isAligned()) {
                 spdlog::info("{}: Alignment Iteration {}.", m_Identity, alignIter);
                 usleep(400*1000); // microseconds
 
                 Device::DeviceState curstate;
-                m_pChildren.at(PAS_PanelType).at(movingPanel_idx)->getState(curstate);
+                movingPanel->getState(curstate);
                 while (curstate == Device::DeviceState::Busy) {
                     spdlog::debug("{}: Waiting for Panel {}", m_Identity, curPanels.at(0));
                     usleep(200*1000); // microseconds
-                    m_pChildren.at(PAS_PanelType).at(movingPanel_idx)->getState(curstate);
+                    movingPanel->getState(curstate);
                 }
                 alignIter++;
                 args[3].Value.Boolean = false;
                 spdlog::debug("{} Calculating motion for Edge {}...", m_Identity, edgeEaddress);
-                status = m_pChildren.at(PAS_EdgeType).at(getEdgeIndex(edgeEaddress))->operate(PAS_EdgeType_Align, args);
+                status = edge->operate(PAS_EdgeType_Align, args);
                 while (curState == Device::DeviceState::Busy) {
                     usleep(500 * 1000); // microseconds
-                    m_pChildren.at(PAS_EdgeType).at(getEdgeIndex(edgeEaddress))->getState(curState);
+                    edge->getState(curState);
                 }
                 if (m_State == Device::DeviceState::Off) { break; }
                 args[3].Value.Boolean = true; // execute motion
                 spdlog::debug("{}: Executing alignment motion for Edge {}...", m_Identity, edgeEaddress);
-                status = m_pChildren.at(PAS_EdgeType).at(getEdgeIndex(edgeEaddress))->operate(PAS_EdgeType_Align, args);
+                status = edge->operate(PAS_EdgeType_Align, args);
                 if (!status.isGood()) {
                     spdlog::error("{}: Failed while executing motion. Method aborted.", m_Identity);
                     return status; 
                 }
                 while (curState == Device::DeviceState::Busy) {
                     usleep(500 * 1000); // microseconds
-                    m_pChildren.at(PAS_EdgeType).at(getEdgeIndex(edgeEaddress))->getState(curState);
+                    edge->getState(curState);
                 }
                 if (m_State == Device::DeviceState::Off) { break; }
             }
             spdlog::info("{}: Edge {} aligned.", m_Identity,
-                         m_pChildren.at(PAS_EdgeType).at(getEdgeIndex(edgeEaddress))->getIdentity());
+                         edge->getIdentity());
         }
     }
 
@@ -1419,18 +1419,6 @@ void MirrorController::parseAndSetSelection(const std::string &selectionString, 
         os << std::endl;
         spdlog::info("{}: Selecting Edges (eAddresses):\n{}\n", m_Identity, os.str());
     }
-}
-
-unsigned MirrorController::getPanelIndex(unsigned position) {
-    return m_ChildrenPositionMap.at(PAS_PanelType).at(position);
-}
-
-unsigned MirrorController::getMPESIndex(int serialNumber) {
-    return m_ChildrenSerialMap.at(PAS_MPESType).at(serialNumber);
-}
-
-unsigned MirrorController::getEdgeIndex(const std::string &eAddress) {
-    return m_ChildrenEaddressMap.at(PAS_EdgeType).at(eAddress);
 }
 
 UaStatus MirrorController::updateCoords(bool print)
@@ -1590,10 +1578,10 @@ UaStatus MirrorController::alignSector(double alignFrac, std::string command) {
         std::vector<std::shared_ptr<PanelController>> panelsToMove;
         std::vector<std::shared_ptr<MPESController>> alignMPES;
         for (unsigned panelPos : m_selectedPanels)
-            panelsToMove.push_back(std::dynamic_pointer_cast<PanelController>(m_pChildren.at(PAS_PanelType).at(getPanelIndex(panelPos))));
+            panelsToMove.push_back(std::dynamic_pointer_cast<PanelController>(m_ChildrenPositionMap.at(PAS_PanelType).at(panelPos)));
         for (int mpesSerial : m_selectedMPES) {
             std::shared_ptr<MPESController> mpes = std::dynamic_pointer_cast<MPESController>(
-                m_pChildren.at(PAS_MPESType).at(getMPESIndex(mpesSerial)));
+                m_ChildrenSerialMap.at(PAS_MPESType).at(mpesSerial));
             if (mpes->isVisible())
                 alignMPES.push_back(mpes);
         }
@@ -1916,9 +1904,8 @@ UaStatus MirrorController::alignRing(int fixPanel, double alignFrac, std::string
         Eigen::MatrixXd E;
         T = Eye;
 
-        panelsToMove.push_back(std::dynamic_pointer_cast<PanelController>(
-            m_pChildren.at(PAS_PanelType).at(m_ChildrenPositionMap.at(PAS_PanelType).at(
-                curPanel)))); // add the fixed panel to panelsToMove (only temporary, will remove later)
+        panelsToMove.push_back(std::dynamic_pointer_cast<PanelController>(m_ChildrenPositionMap.at(PAS_PanelType).at(
+                curPanel))); // add the fixed panel to panelsToMove (only temporary, will remove later)
 
         do {
             nextPanel = SCTMath::GetPanelNeighbor(curPanel, 0);
@@ -1926,10 +1913,9 @@ UaStatus MirrorController::alignRing(int fixPanel, double alignFrac, std::string
                 if (m_ChildrenPositionMap.at(PAS_PanelType).find(nextPanel) !=
                     m_ChildrenPositionMap.at(PAS_PanelType).end()) {
                     panelsToMove.push_back(std::dynamic_pointer_cast<PanelController>(
-                        m_pChildren.at(PAS_PanelType).at(m_ChildrenPositionMap.at(PAS_PanelType).at(curPanel)) ) );
+                        m_ChildrenPositionMap.at(PAS_PanelType).at(curPanel)) ) ;
                     edgesToFit.push_back(std::dynamic_pointer_cast<EdgeController>(
-                        m_pChildren.at(PAS_EdgeType).at(
-                            getEdgeIndex(SCTMath::GetEdgeFromPanels({curPanel, nextPanel})))));
+                        m_ChildrenEaddressMap.at(PAS_EdgeType).at(SCTMath::GetEdgeFromPanels({curPanel, nextPanel}))));
                 } else {
                     curPanel = nextPanel;
                     continue;
@@ -2048,8 +2034,7 @@ UaStatus MirrorController::alignRing(int fixPanel, double alignFrac, std::string
         for (const auto& edge : edgesToFit) {
             // and set them for each sensor along each edge
             for (const auto& mpes : edge->m_ChildrenPositionMap.at(PAS_MPESType) ) {
-                (std::dynamic_pointer_cast<MPESController>(
-                    edge->m_pChildren.at(PAS_MPESType).at(mpes.second)))->m_SystematicOffsets =
+                std::dynamic_pointer_cast<MPESController>(mpes.second)->m_SystematicOffsets =
                     SystematicOffsetsMPESMap.at(ring).at(mpes.first);
             }
         }
@@ -2185,7 +2170,6 @@ UaStatus MirrorController::savePosition(const std::string &saveFilePath) {
             spdlog::error("{}: Unable to write position, failed to read actuator lengths.", m_Identity);
             return OpcUa_Bad;
         }
-
         f << "Panel: " << pPanel->getIdentity() << std::endl;
         f << actuatorLengths << std::endl;
         f << SAVEFILE_DELIMITER << std::endl;
@@ -2503,8 +2487,6 @@ double MirrorController::chiSq(const Eigen::VectorXd &telDelta)
 {
     // tel delta is a perturbation to the coordinates of the mirror
     double chiSq = 0.;
-    const auto& panels = m_pChildren.at(PAS_PanelType);
-
     // pad coordinates in TRF as computed from actuator lengths
     Eigen::Vector3d padCoordsActs;
     // pad coordinates in TRF as computed from telescope perturbation
@@ -2520,7 +2502,7 @@ double MirrorController::chiSq(const Eigen::VectorXd &telDelta)
         // as computed from actuator lengths and pad coordinates as computed from telescope
         // coordinates
         for (int pad = 0; pad < 3; pad++) {
-            padCoordsActs = std::dynamic_pointer_cast<PanelController>(panels.at(getPanelIndex(panelPos)))->getPadCoords().col(
+            padCoordsActs = std::dynamic_pointer_cast<PanelController>(m_ChildrenPositionMap.at(PAS_PanelType).at(panelPos))->getPadCoords().col(
                 pad);
             // and transform this to the telescope reference frame:
             // these are pad coordinates in TRF as computed from actuator lengths
