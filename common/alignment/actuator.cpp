@@ -27,11 +27,11 @@ const std::vector<Device::ErrorDefinition> ActuatorBase::ERROR_DEFINITIONS = {
     {"DB Columns does not match what is expected",                                                                                                                Device::ErrorState::FatalError},//error 3
     {"ASF File is Bad",                                                                                                                                           Device::ErrorState::FatalError},//error 4
     {"ASF File entries does not match what is expected",                                                                                                          Device::ErrorState::FatalError},//error 5
-    {"DB recording more recent than ASF and has mismatch with measured angle",                                                                                    Device::ErrorState::FatalError},//error 6
+    {"Actuator is not stepping",                                                                                                                                  Device::ErrorState::FatalError},//error 6
     {"Voltage Std Dev is entirely too high",                                                                                                                      Device::ErrorState::FatalError},//error 7
     {"Actuator Missed too many steps",                                                                                                                            Device::ErrorState::FatalError},//error 8
-    {"Actuator position is too many steps away to recover safely",                                                                                                Device::ErrorState::FatalError},//error 9
-    {"Actuator position is recovering large amount of steps, should be ok",                                                                                       Device::ErrorState::OperableError},//error 10
+    {"Actuator position is too many steps away from previously recorded position to recover safely",                                                                                                Device::ErrorState::FatalError},//error 9
+    {"Actuator position is far from previously recorded position. It is close enough to automatically recover",                                                                                       Device::ErrorState::OperableError},//error 10
     {"Extend Stop Voltage is too close to the discontinuity. Possible 1 cycle uncertainty with calibrated data",                                                  Device::ErrorState::OperableError},//error 11
     {"End stop is large number of steps away from what is expected. Possible uncertainty in home position",                                                       Device::ErrorState::OperableError},//error 12
     {"Discrepancy between number of steps from extend stop and recorded number of steps from end stop is too high. Possible uncertainty in probed home position", Device::ErrorState::OperableError}//error 13
@@ -877,10 +877,19 @@ int Actuator::__step(int steps) {
         StepsTaken = StepsToTake - MissedSteps;
         setCurrentPosition(predictNewPosition(m_CurrentPosition, -StepsTaken));
 
+        if (std::abs(StepsTaken)==0 && std::abs(StepsToTake)>m_MinimumMissedStepsToFlagError)
+	{
+            spdlog::error("{} : Fatal Error (6): Actuator does not appear to be stepping.",
+                    m_Identity);
+            SetError(6);//fatal
+            saveStatusToASF();
+            return StepsRemaining;//quit, don't record or register steps attempted to be taken.
+	}
+        
         //if( (std::abs(MissedSteps)/float(std::abs(StepsToTake)))>TolerablePercentOfMissedSteps && std::abs(MissedSteps)>MinimumMissedStepsToFlagError)//if the actuator misses a certain percent of steps AND misses more than a threshold number of steps.
-        if (std::abs(MissedSteps) >
+        else if (std::abs(MissedSteps) >
             std::max(int(m_TolerablePercentOfMissedSteps * std::abs(StepsToTake)), m_MinimumMissedStepsToFlagError)) {
-            spdlog::error("{} : Fatal Error (8): Actuator has missed a large number of steps ({})", m_Identity,
+            spdlog::error("{} : Fatal Error (6): Actuator has missed a large number of steps ({})", m_Identity,
                           MissedSteps);
             setError(8);//fatal
             saveStatusToASF();
