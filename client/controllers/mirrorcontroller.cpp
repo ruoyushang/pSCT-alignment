@@ -898,7 +898,7 @@ MirrorController::moveDeltaCoords(const Eigen::VectorXd &deltaMirrorCoords, doub
         return OpcUa_BadInvalidArgument;
     }
 
-    Eigen::VectorXd X(m_pChildren.at(PAS_PanelType).size() * 6);
+    Eigen::VectorXd X(m_selectedPanels.size() * 6);
     if (command == "calculate") {
         spdlog::info(
             "{} : MirrorController::moveDeltaCoords(): Called with command=calculate. Pre-calculating alignment motion...",
@@ -1075,7 +1075,7 @@ MirrorController::moveToCoords(const Eigen::VectorXd &targetMirrorCoords, double
             "{} : MirrorController::moveToCoords(): Called with command=calculate. Pre-calculating alignment motion...",
             m_Identity);
         Eigen::VectorXd deltaMirrorCoords(6);
-        Eigen::VectorXd X(m_pChildren.at(PAS_PanelType).size() * 6);
+        Eigen::VectorXd X(m_selectedPanels.size() * 6);
 
         deltaMirrorCoords = targetMirrorCoords - m_curCoords;
         spdlog::info("{} : Moving to target coordinates:\n{}\n", m_Identity, targetMirrorCoords);
