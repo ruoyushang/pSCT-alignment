@@ -918,7 +918,9 @@ MirrorController::moveDeltaCoords(const Eigen::VectorXd &deltaMirrorCoords, doub
         Eigen::VectorXd currentActLengths(6);
 
         int j = 0;
-        for (const auto &pPanel : m_pChildren.at(PAS_PanelType)) {
+        for (unsigned panelPos : m_selectedPanels) {
+            auto pPanel = std::dynamic_pointer_cast<PanelController>(
+                m_ChildrenPositionMap.at(PAS_PanelType).at(panelPos));
             positionNum = pPanel->getIdentity().position;
             // for this panel, we get PRF pad coords, transform them to TRF,
             // move them in TRF, transform back to PRF, and then compute new ACT lengths
@@ -1088,7 +1090,9 @@ MirrorController::moveToCoords(const Eigen::VectorXd &targetMirrorCoords, double
         Eigen::VectorXd currentActLengths(6);
 
         int j = 0;
-        for (const auto &pPanel : m_pChildren.at(PAS_PanelType)) {
+        for (unsigned panelPos : m_selectedPanels) {
+            auto pPanel = std::dynamic_pointer_cast<PanelController>(
+                m_ChildrenPositionMap.at(PAS_PanelType).at(panelPos));
             positionNum = pPanel->getIdentity().position;
             // for this panel, we get PRF pad coords, transform them to TRF,
             // move them in TRF, transform back to PRF, and then compute new ACT lengths
@@ -1215,6 +1219,7 @@ MirrorController::moveToCoords(const Eigen::VectorXd &targetMirrorCoords, double
 
             for (const auto &pair : args) {
                 status = pair.first->__moveDeltaLengths(pair.second);
+                //UaThread::msleep(200);
                 //if (!status.isGood()) { return status; }
                 //if (m_State == Device::DeviceState::Off) { break; }
             }
@@ -2187,7 +2192,8 @@ UaStatus MirrorController::savePosition(const std::string &saveFilePath) {
         return OpcUa_Bad;
     }
 
-    // Place mirror name/Type and other information at top of file
+    // Place mirror name/Type and
+    // other information at top of file
     f << "Mirror: " << m_Identity << std::endl;
     std::time_t now = std::time(0);
     f << "Timestamp: " << std::ctime(&now) << std::endl;
