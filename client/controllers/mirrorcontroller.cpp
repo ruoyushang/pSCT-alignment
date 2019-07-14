@@ -437,6 +437,7 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
         std::string saveFilePath = UaString(args[0].Value.String).toUtf8();        
         double alignFrac = args[1].Value.Double;
         std::string command = UaString(args[2].Value.String).toUtf8();
+        loadPosition(saveFilePath, alignFrac, command);
         updateCoords(false);
         setState(Device::DeviceState::On);
     }
@@ -2222,76 +2223,69 @@ UaStatus MirrorController::savePosition(const std::string &saveFilePath) {
 UaStatus MirrorController::loadPosition(const std::string &loadFilePath, double alignFrac, std::string command) {
     UaStatus status;
 
-    spdlog::info("{}: Attempting to load Mirror position from file {}...", m_Identity, loadFilePath);
-
-    //Check if file already exists
-    struct stat buf{};
-    if (stat(loadFilePath.c_str(), &buf) == -1) {
-        spdlog::error("{}: File {} not found. Please make sure the selected file path is valid.", m_Identity,
-                      loadFilePath);
-        return OpcUa_Bad;
-    }
-
-    std::ostringstream os;
-
-    // Open file stream
-    std::ifstream infile(loadFilePath);
-    if (infile.bad()) {
-        spdlog::error("{}: File {} cannot be read. Please check it and try again.", m_Identity, loadFilePath);
-        return OpcUa_Bad;
-    }
-
-    if (alignFrac > 1.01 || alignFrac <= 0.0) {
-        spdlog::error(
-            "{} : MirrorController::loadPosition(): Invalid choice of alignFrac ({}), should be between 0.0 and 1.0.",
-            m_Identity, alignFrac);
-        return OpcUa_BadInvalidArgument;
-    }
-
-    // Check to make sure it matches this mirror
-    std::string line;
-    getline(infile, line);
-    unsigned s = line.find("(");
-    unsigned e = line.find(")");
-    Device::Identity mirrorId = Device::parseIdentity(line.substr(s - 1, e - s + 1));
-
-    if (mirrorId != m_Identity) {
-        spdlog::error(
-            "{}: Mirror Identity indicated in file ({}) does not match the Identity of this mirror ({}). Cannot load position.",
-            m_Identity, mirrorId, m_Identity);
-        return OpcUa_Bad;
-    }
-
-    // Print Mirror Info
-    std::map<Device::Identity, Eigen::VectorXd> panelPositions;
-    while (getline(infile, line) && line != SAVEFILE_DELIMITER) {
-        os << line << std::endl;
-    }
-    spdlog::info("{}: Mirror Info:\n Mirror Identity: {}\n{}", m_Identity, m_Identity, os.str());
-
-    // Parse all target actuator lengths
-    Device::Identity panelId;
-    Eigen::VectorXd actuatorLengths(6);
-    int i = 0;
-
-    while (infile.peek() != EOF) {
-        getline(infile, line);
-        s = line.find("(");
-        e = line.find(")");
-        panelId = Device::parseIdentity(line.substr(s - 1, e - s + 1));
-        i = 0;
-        while (getline(infile, line) && line != SAVEFILE_DELIMITER) {
-            actuatorLengths(i) = std::stod(line);
-            i++;
-        }
-        panelPositions[panelId] = actuatorLengths;
-        spdlog::info("{}: Found position for Panel {}:\n{}\n", m_Identity, panelId, actuatorLengths);
-    }
-
     if (command == "calculate") {
         spdlog::info(
             "{} : MirrorController::loadPosition(): Called with command=calculate. Pre-calculating alignment motion...",
             m_Identity);
+
+        spdlog::info("{}: Attempting to load Mirror position from file {}...", m_Identity, loadFilePath);
+
+        //Check if file already exists
+        struct stat buf{};
+        if (stat(loadFilePath.c_str(), &buf) == -1) {
+            spdlog::error("{}: File {} not found. Please make sure the selected file path is valid.", m_Identity,
+                          loadFilePath);
+            return OpcUa_Bad;
+        }
+
+        std::ostringstream os;
+
+        // Open file stream
+        std::ifstream infile(loadFilePath);
+        if (infile.bad()) {
+            spdlog::error("{}: File {} cannot be read. Please check it and try again.", m_Identity, loadFilePath);
+            return OpcUa_Bad;
+        }
+
+        // Check to make sure it matches this mirror
+        std::string line;
+        getline(infile, line);
+        unsigned s = line.find("(");
+        unsigned e = line.find(")");
+        Device::Identity mirrorId = Device::parseIdentity(line.substr(s - 1, e - s + 1));
+
+        if (mirrorId != m_Identity) {
+            spdlog::error(
+                "{}: Mirror Identity indicated in file ({}) does not match the Identity of this mirror ({}). Cannot load position.",
+                m_Identity, mirrorId, m_Identity);
+            return OpcUa_Bad;
+        }
+
+        // Print Mirror Info
+        std::map<Device::Identity, Eigen::VectorXd> panelPositions;
+        while (getline(infile, line) && (line != SAVEFILE_DELIMITER)) {
+            os << line << std::endl;
+        }
+        spdlog::info("{}: Mirror Info:\n Mirror Identity: {}\n{}", m_Identity, m_Identity, os.str());
+
+        // Parse all target actuator lengths
+        Device::Identity panelId;
+        Eigen::VectorXd actuatorLengths(6);
+        int i = 0;
+
+        while (infile.peek() != EOF) {
+            getline(infile, line);
+            s = line.find("(");
+            e = line.find(")");
+            panelId = Device::parseIdentity(line.substr(s - 1, e - s + 1));
+            i = 0;
+            while (getline(infile, line) && line != SAVEFILE_DELIMITER) {
+                actuatorLengths(i) = std::stod(line);
+                i++;
+            }
+            panelPositions[panelId] = actuatorLengths;
+            spdlog::info("{}: Found position for Panel {}:\n{}\n", m_Identity, panelId, actuatorLengths);
+        }
 
         Eigen::VectorXd X(m_pChildren.at(PAS_PanelType).size() * 6);
         Eigen::VectorXd deltaActLengths(6);
@@ -2338,6 +2332,13 @@ UaStatus MirrorController::loadPosition(const std::string &loadFilePath, double 
             "{} : Calculation done! You should call the method again with command=setAlignFrac to set an align fraction and inspect the resulting motion + do safety checks.",
             m_Identity);
     } else if (command == "setAlignFrac") {
+        if (alignFrac > 1.01 || alignFrac <= 0.0) {
+            spdlog::error(
+                "{} : MirrorController::loadPosition(): Invalid choice of alignFrac ({}), should be between 0.0 and 1.0.",
+                m_Identity, alignFrac);
+            return OpcUa_BadInvalidArgument;
+        }
+
         if (m_Xcalculated.isZero(0)) {
             spdlog::error(
                 "{} : No calculated motion found. Call Mirror.loadPosition with command=calculate once first to calculate the motion to execute.",
