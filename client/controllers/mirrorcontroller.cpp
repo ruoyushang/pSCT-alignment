@@ -1041,7 +1041,7 @@ MirrorController::moveDeltaCoords(const Eigen::VectorXd &deltaMirrorCoords, doub
 
             for (const auto &pair : args) {
                 status = pair.first->__moveDeltaLengths(pair.second);
-                UaThread::msleep(200);
+                UaThread::msleep(300); // This sleep is necessary between move commands to ensure that the commands execute correctly.
                 //if (!status.isGood()) { return status; }
                 //if (m_State == Device::DeviceState::Off) { break; }
             }
@@ -1220,7 +1220,7 @@ MirrorController::moveToCoords(const Eigen::VectorXd &targetMirrorCoords, double
 
             for (const auto &pair : args) {
                 status = pair.first->__moveDeltaLengths(pair.second);
-                //UaThread::msleep(200);
+                UaThread::msleep(300); // This sleep is necessary between move commands to ensure that the commands execute correctly.
                 //if (!status.isGood()) { return status; }
                 //if (m_State == Device::DeviceState::Off) { break; }
             }
@@ -1836,6 +1836,7 @@ UaStatus MirrorController::alignSector(double alignFrac, std::string command) {
 
             for (const auto &pair : args) {
                 status = pair.first->__moveDeltaLengths(pair.second);
+                UaThread::msleep(300); // This sleep is necessary between move commands to ensure that the commands execute correctly.
                 //if (!status.isGood()) { return status; }
                 //if (m_State == Device::DeviceState::Off) { break; }
             }
@@ -2154,8 +2155,9 @@ UaStatus MirrorController::alignRing(int fixPanel, double alignFrac, std::string
                     val.copyTo(&deltas[i]);
                 }
                 status = pCurPanel->__moveDeltaLengths(deltas);
-                if (!status.isGood()) { return status; }
-                if (m_State == Device::DeviceState::Off) { break; }
+                UaThread::msleep(300); // This sleep is necessary between move commands to ensure that the commands execute correctly.
+                //if (!status.isGood()) { return status; }
+                //if (m_State == Device::DeviceState::Off) { break; }
             }
             m_Xcalculated.setZero(); // reset calculated motion
             m_panelsToMove.clear();
@@ -2207,8 +2209,8 @@ UaStatus MirrorController::savePosition(const std::string &saveFilePath) {
         Eigen::VectorXd actuatorLengths(6);
         UaStatus status = std::dynamic_pointer_cast<PanelController>(pPanel)->__getActuatorLengths(actuatorLengths);
         if (status.isBad()) {
-            spdlog::error("{}: Unable to write position, failed to read actuator lengths.", m_Identity);
-            return OpcUa_Bad;
+            spdlog::error("{}: Unable to write position for Panel {}, failed to read actuator lengths.", m_Identity, pPanel->getIdentity());
+            continue;
         }
         f << "Panel: " << pPanel->getIdentity() << std::endl;
         f << actuatorLengths << std::endl;
@@ -2404,8 +2406,9 @@ UaStatus MirrorController::loadPosition(const std::string &loadFilePath, double 
                     val.copyTo(&deltas[i]);
                 }
                 status = pCurPanel->__moveDeltaLengths(deltas);
-                if (!status.isGood()) { return status; }
-                if (m_State == Device::DeviceState::Off) { break; }
+                UaThread::msleep(300); // This sleep is necessary between move commands to ensure that the commands execute correctly.
+                //if (!status.isGood()) { return status; }
+                //if (m_State == Device::DeviceState::Off) { break; }
             }
             m_Xcalculated.setZero(); // reset calculated motion
             m_panelsToMove.clear();
