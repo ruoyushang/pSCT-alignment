@@ -897,12 +897,11 @@ MirrorController::moveDeltaCoords(const Eigen::VectorXd &deltaMirrorCoords, doub
             m_Identity, alignFrac);
         return OpcUa_BadInvalidArgument;
     }
-
-    Eigen::VectorXd X(m_selectedPanels.size() * 6);
     if (command == "calculate") {
         spdlog::info(
             "{} : MirrorController::moveDeltaCoords(): Called with command=calculate. Pre-calculating alignment motion...",
             m_Identity);
+        Eigen::VectorXd X(m_selectedPanels.size() * 6);
         Eigen::VectorXd targetMirrorCoords(6);
 
         targetMirrorCoords = m_curCoords + deltaMirrorCoords;
@@ -1022,7 +1021,7 @@ MirrorController::moveDeltaCoords(const Eigen::VectorXd &deltaMirrorCoords, doub
                 m_Identity, alignFrac, m_lastSetAlignFrac);
             return OpcUa_Bad;
         } else {
-            X = m_Xcalculated * alignFrac;
+            Eigen::VectorXd X = m_Xcalculated * alignFrac;
 
             std::map <std::shared_ptr<PanelController>, UaVariantArray> args;
 
@@ -1041,6 +1040,7 @@ MirrorController::moveDeltaCoords(const Eigen::VectorXd &deltaMirrorCoords, doub
 
             for (const auto &pair : args) {
                 status = pair.first->__moveDeltaLengths(pair.second);
+                UaThread::msleep(200);
                 //if (!status.isGood()) { return status; }
                 //if (m_State == Device::DeviceState::Off) { break; }
             }
