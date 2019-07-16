@@ -19,7 +19,7 @@
 #include "common/utilities/spdlog/spdlog.h"
 #include "common/utilities/spdlog/fmt/ostr.h"
 
-#define _DEBUG_ 0
+#define _DEBUG_ 1
 
 Client::Client(PasNodeManager *pNodeManager, std::string mode) : m_mode(std::move(mode)),
                                                                  m_pNodeManager(pNodeManager),
@@ -37,34 +37,34 @@ void Client::connectionStatusChanged(
 {
     OpcUa_ReferenceParameter(clientConnectionId);
 
-    printf("-------------------------------------------------------------\n");
+    spdlog::info("-------------------------------------------------------------");
     switch (serverStatus)
     {
       case UaClientSdk::UaClient::Disconnected:
-          printf("Connection status changed to Disconnected\n");
+          spdlog::info("Connection status changed to Disconnected");
           break;
       case UaClientSdk::UaClient::Connected:
-          printf("Connection status changed to Connected\n");
+          spdlog::info("Connection status changed to Connected");
           if (m_serverStatus != UaClientSdk::UaClient::NewSessionCreated)
           {
             m_pConfiguration->updateNamespaceIndexes(m_pSession->getNamespaceTable());
           }
           break;
       case UaClientSdk::UaClient::ConnectionWarningWatchdogTimeout:
-          printf("Connection status changed to ConnectionWarningWatchdogTimeout\n");
+          spdlog::info("Connection status changed to ConnectionWarningWatchdogTimeout");
           break;
       case UaClientSdk::UaClient::ConnectionErrorApiReconnect:
-          printf("Connection status changed to ConnectionErrorApiReconnect\n");
+          spdlog::info("Connection status changed to ConnectionErrorApiReconnect");
           break;
       case UaClientSdk::UaClient::ServerShutdown:
-          printf("Connection status changed to ServerShutdown\n");
+          spdlog::info("Connection status changed to ServerShutdown");
           break;
       case UaClientSdk::UaClient::NewSessionCreated:
-          printf("Connection status changed to NewSessionCreated\n");
+          spdlog::info("Connection status changed to NewSessionCreated");
           m_pConfiguration->updateNamespaceIndexes(m_pSession->getNamespaceTable());
           break; 
     }
-    printf("-------------------------------------------------------------\n");
+    spdlog::info("-------------------------------------------------------------");
 
     m_serverStatus = serverStatus; 
 }
@@ -113,19 +113,19 @@ UaStatus Client::_connect(const UaString& serverUrl, UaClientSdk::SessionSecurit
     sessionConnectInfo.bRetryInitialConnect = m_pConfiguration->getRetryInitialConnect();
 
     // Connect to server
-    printf("\nConnecting to %s\n", serverUrl.toUtf8());
+    spdlog::info("Connecting to {}", serverUrl.toUtf8());
     result = m_pSession->connect(serverUrl, // Url of the endpoint to connect to
             sessionConnectInfo, // General settings for the connection
             sessionSecurityInfo,// Security Settings
-            this);              // the callback -- the client ingerits from UaSessionCallback!
+            this);              // the callback -- the client inherits from UaSessionCallback!
 
     if (result.isGood())
     {
-        printf("Connect succeeded\n");
+        spdlog::info("Connect succeeded");
     }
     else
     {
-        printf("Connect failed with status %s\n", result.toString().toUtf8());
+        spdlog::info("Connect failed with status {}", result.toString().toUtf8());
     }
 
     return result;
@@ -141,16 +141,16 @@ UaStatus Client::disconnect()
     // Default settings like timeout
     UaClientSdk::ServiceSettings serviceSettings;
 
-    printf("\nDisconnecting ...\n");
+    spdlog::info("Disconnecting ...");
     result = m_pSession->disconnect(serviceSettings, OpcUa_True);
 
     if (result.isGood())
     {
-        printf("Disconnect succeeded\n");
+        spdlog::info("Disconnect succeeded");
     }
     else
     {
-        printf("Disconnect failed with status %s\n", result.toString().toUtf8());
+        spdlog::info("Disconnect failed with status {}", result.toString().toUtf8());
     }
 
     return result;
@@ -174,10 +174,10 @@ UaStatus Client::read(std::vector<std::string> sNodeNames, UaVariant *data)
     nodesToRead.create(nodes.length());
 
     if (_DEBUG_)
-        printf("will attempt to read:\n");
+        spdlog::debug("will attempt to read:");
     for (OpcUa_UInt32 i = 0; i < size; i++) {
         if (_DEBUG_)
-            printf("%s\n", sNodeNames.at(i).c_str());
+            spdlog::debug("{}", sNodeNames.at(i).c_str());
 
         UaNodeId::fromXmlString(UaString(sNodeNames.at(i).c_str())).copyTo(&nodes[i]);
 
@@ -197,16 +197,78 @@ UaStatus Client::read(std::vector<std::string> sNodeNames, UaVariant *data)
             }
             else {
                 return UaStatus(values[i].StatusCode);
-                //printf("Read failed for item[%d] with status %s\n", i, UaStatus(values[i].StatusCode).toString().toUtf8());
+                //spdlog::info("Read failed for item[{}] with status {}", i, UaStatus(values[i].StatusCode).toString().toUtf8());
             }
         }
     }
     else {
         // Service call failed
-        printf("Read failed with status %s\n", result.toString().toUtf8());
+        spdlog::info("Read failed with status {}", result.toString().toUtf8());
     }
 
     return result;
+}
+
+UaStatus Client::readAsync(std::vector<std::string> sNodeNames, UaVariant *data)
+{
+    spdlog::info("\n\n****************************************************************");
+    spdlog::info("** Try to call read asynchronous for configured node ids");
+    if ( m_pSession == NULL )
+    {
+        spdlog::info("** Error: Server not connected");
+        spdlog::info("****************************************************************");
+        return OpcUa_Bad;
+    }
+
+    OpcUa_UInt32      i;
+    OpcUa_UInt32      count;
+    UaStatus          status;
+    UaReadValueIds    nodesToRead;
+    UaDataValues      values;
+    UaDiagnosticInfos diagnosticInfos;
+    UaClientSdk::ServiceSettings   serviceSettings;
+
+    OpcUa_UInt32 size = sNodeNames.size();
+    UaNodeIdArray nodes;
+    nodes.clear();
+    nodes.resize(size);
+
+    // Initialize IN parameter nodesToRead
+    nodesToRead.create(nodes.length());
+    for ( i=0; i<count; i++ )
+    {
+        UaNodeId::fromXmlString(UaString(sNodeNames.at(i).c_str())).copyTo(&nodes[i]);
+
+        nodesToRead[i].AttributeId = OpcUa_Attributes_Value;
+        OpcUa_NodeId_CopyTo(&nodes[i], &nodesToRead[i].NodeId);
+    }
+
+    /*********************************************************************
+     Call read service
+    **********************************************************************/
+    status = m_pSession->beginRead(
+            serviceSettings,                // Use default settings
+            0,                              // Max age
+            OpcUa_TimestampsToReturn_Both,  // Time stapmps to return
+            nodesToRead,                    // Array of nodes to read
+            1);                             // Application definded transaction ID
+    /*********************************************************************/
+    if ( status.isBad() )
+    {
+        spdlog::info("** Error: UaSession::beginRead failed [ret={}] **", status.toString().toUtf8());
+    }
+    else
+    {
+        for (OpcUa_UInt32 i = 0; i < values.length(); i++) {
+            if (OpcUa_IsGood(values[i].StatusCode)) {
+                data[i] = UaVariant(values[i].Value);
+            }
+            else {
+                spdlog::info("Read failed for item[{}] with status {}", i, UaStatus(values[i].StatusCode).toString().toUtf8());
+            }
+        }
+        spdlog::info("** UaSession::beginRead succeeded ********************************");
+    }
 }
 
 UaStatus Client::write(std::vector<std::string> sNodeNames, const UaVariant *values)
@@ -225,10 +287,10 @@ UaStatus Client::write(std::vector<std::string> sNodeNames, const UaVariant *val
     nodesToWrite.create(nodes.length());
 
     if (_DEBUG_)
-        printf("will attempt to write:\n");
+        spdlog::debug("will attempt to write:");
     for (OpcUa_UInt32 i = 0; i < nodes.length(); i++) {
         if (_DEBUG_)
-            printf("%s\n", sNodeNames.at(i).c_str());
+            spdlog::debug("{}\n", sNodeNames.at(i).c_str());
 
         UaNodeId::fromXmlString(UaString(sNodeNames.at(i).c_str())).copyTo(&nodes[i]);
 
@@ -241,7 +303,7 @@ UaStatus Client::write(std::vector<std::string> sNodeNames, const UaVariant *val
 
     if ( result.isBad() )
     {
-        printf("** Error: UaSession::write failed [ret=%s] **\n", result.toString().toUtf8());
+        spdlog::info("** Error: UaSession::write failed [ret={}] **", result.toString().toUtf8());
     }
     else
     {
@@ -251,11 +313,11 @@ UaStatus Client::write(std::vector<std::string> sNodeNames, const UaVariant *val
             if ( OpcUa_IsGood(results[i]) )
             {
                 if (_DEBUG_)
-                    printf("** Variable %s succeeded!\n", node.toString().toUtf8());
+                    spdlog::debug("** Variable {} succeeded!\n", node.toString().toUtf8());
             }
             else
             {
-                printf("** Variable %s failed with error %s\n", node.toString().toUtf8(), UaStatus(results[i]).toString().toUtf8());
+                spdlog::info("** Variable {} failed with error {}", node.toString().toUtf8(), UaStatus(results[i]).toString().toUtf8());
             }
         }
     }
@@ -296,11 +358,11 @@ UaStatus Client::callMethod(const std::string &sNodeName, const UaString &sMetho
     status = m_pSession->call(serviceSettings, callRequest, callResult);
 
     if (status.isBad()) {
-        //printf("** Error: UaSession::call failed [ret=%s] **\n", status.toString().toUtf8());
+        //spdlog::info("** Error: UaSession::call failed [ret={}] **", status.toString().toUtf8());
     }
     else {
         if (_DEBUG_) {
-            //printf("** UaSession::call suceeded!\n");
+            //spdlog::debug("** UaSession::call suceeded!");
         }
     }
 
@@ -335,13 +397,14 @@ UaStatus Client::callMethodAsync(const std::string &sNodeName, const UaString &s
     callRequest.methodId = nodes[1];
     callRequest.inputArguments = args;
 
+    serviceSettings.callTimeout = 1000 * 60 * 5; // 5mins call timeout
     status = m_pSession->beginCall(serviceSettings, callRequest, m_TransactionId);
 
     if ( status.isBad() )
-        printf("** Error: Client at %s: UaSession::beginCall with transactionId=%d failed [ret=%s] **\n", m_Address.toUtf8(), m_TransactionId, status.toString().toUtf8());
+        spdlog::error("** Error: Client at {}: UaSession::beginCall with transactionId={} failed [ret={}] **", m_Address.toUtf8(), m_TransactionId, status.toString().toUtf8());
     else {
         if(_DEBUG_)
-            printf("** Client at %s: UaSession::beginCall with transactionId=%d suceeded!\n", m_Address.toUtf8(), m_TransactionId);
+            spdlog::debug("** Client at %s: UaSession::beginCall with transactionId=%d succeeded!", m_Address.toUtf8(), m_TransactionId);
 
         ++m_TransactionId;
     }
@@ -349,13 +412,13 @@ UaStatus Client::callMethodAsync(const std::string &sNodeName, const UaString &s
     return status;
 }
 
-void Client::callComplete(OpcUa_UInt32 transactionId, const UaStatus &result, const UaClientSdk::CallOut &callResponse)
+void Client::callComplete(OpcUa_UInt32 m_TransactionId, const UaStatus &result, const UaClientSdk::CallOut &callResponse)
 {
-        //printf("-- Event callComplete --------------------------------\n");
-        //printf("\ttransactionId %d \n", transactionId);
-        //printf("\tresultStatus %s \n", result.toString().toUtf8());
-        // this should duplicate the behavior of the synchronous callMethod() after the method
-        // call succeeds. But we're not doing anything there for now, so this too is empty
+    spdlog::info("-- Event callComplete --------------------------------");
+    spdlog::info("\ttransactionId {}", m_TransactionId);
+    spdlog::info("\tresultStatus {}", result.toString().toUtf8());
+    // this should duplicate the behavior of the synchronous callMethod() after the method
+    // call succeeds. But we're not doing anything there for now, so this too is empty
 }
 
 UaStatus Client::browseAndAddDevices()
@@ -378,16 +441,14 @@ UaStatus Client::recurseAddressSpace(const UaNodeId& nodeToBrowse, OpcUa_UInt32 
     UaByteString continuationPoint;
     UaReferenceDescriptions referenceDescriptions;
 
-    UaClientSdk::BrowseContext browseContext;
+    // configure browseContextClient
+    UaClientSdk::BrowseContext browseContextClient;
+    browseContextClient.browseDirection = OpcUa_BrowseDirection_Forward;
+    browseContextClient.referenceTypeId = OpcUaId_HierarchicalReferences;
+    browseContextClient.includeSubtype = OpcUa_True;
+    browseContextClient.maxReferencesToReturn = maxReferencesToReturn;
 
-    // configure browseContext
-    browseContext.browseDirection = OpcUa_BrowseDirection_Forward;
-    browseContext.referenceTypeId = OpcUaId_HierarchicalReferences;
-    browseContext.includeSubtype = OpcUa_True;
-    browseContext.maxReferencesToReturn = maxReferencesToReturn;
-
-    //printf("\nBrowsing from Node %s...\n", nodeToBrowse.toXmlString().toUtf8());
-    result = m_pSession->browse(serviceSettings, nodeToBrowse, browseContext,
+    result = m_pSession->browse(serviceSettings, nodeToBrowse, browseContextClient,
             continuationPoint, referenceDescriptions);
 
     if (result.isGood())
@@ -417,14 +478,14 @@ UaStatus Client::recurseAddressSpace(const UaNodeId& nodeToBrowse, OpcUa_UInt32 
             else
             {
                 // Service call failed
-                printf("BrowseNext failed with status %s\n", result.toString().toUtf8());
+                spdlog::info("BrowseNext failed with status {}", result.toString().toUtf8());
             }
         }
     }
     else
     {
         // Service call failed
-        printf("Browse failed with status %s\n", result.toString().toUtf8());
+        spdlog::info("Browse failed with status {}", result.toString().toUtf8());
     }
 
     return result;
@@ -473,31 +534,31 @@ void Client::addDevices(const OpcUa_ReferenceDescription& referenceDescription)
 
 void Client::printBrowseResults(const OpcUa_ReferenceDescription& referenceDescription)
 {
-    printf("node: ");
+    spdlog::info("node: ");
     UaNodeId referenceTypeId(referenceDescription.ReferenceTypeId);
-    printf("[Ref=%s] ", referenceTypeId.toString().toUtf8() );
+    spdlog::info("[Ref={}] ", referenceTypeId.toString().toUtf8() );
     UaQualifiedName browseName(referenceDescription.BrowseName);
-    printf("%s ( ", browseName.toString().toUtf8() );
+    spdlog::info("{} ( ", browseName.toString().toUtf8() );
     if (referenceDescription.NodeClass & OpcUa_NodeClass_Object)
-        printf("Object ");
-    if (referenceDescription.NodeClass & OpcUa_NodeClass_Variable) 
-        printf("Variable ");
-    if (referenceDescription.NodeClass & OpcUa_NodeClass_Method) 
-        printf("Method ");
-    if (referenceDescription.NodeClass & OpcUa_NodeClass_ObjectType) 
-        printf("ObjectType ");
-    if (referenceDescription.NodeClass & OpcUa_NodeClass_VariableType) 
-        printf("VariableType ");
-    if (referenceDescription.NodeClass & OpcUa_NodeClass_ReferenceType) 
-        printf("ReferenceType ");
+        spdlog::info("Object ");
+    if (referenceDescription.NodeClass & OpcUa_NodeClass_Variable)
+        spdlog::info("Variable ");
+    if (referenceDescription.NodeClass & OpcUa_NodeClass_Method)
+        spdlog::info("Method ");
+    if (referenceDescription.NodeClass & OpcUa_NodeClass_ObjectType)
+        spdlog::info("ObjectType ");
+    if (referenceDescription.NodeClass & OpcUa_NodeClass_VariableType)
+        spdlog::info("VariableType ");
+    if (referenceDescription.NodeClass & OpcUa_NodeClass_ReferenceType)
+        spdlog::info("ReferenceType ");
     if (referenceDescription.NodeClass & OpcUa_NodeClass_DataType)
-        printf("DataType ");
-    if (referenceDescription.NodeClass & OpcUa_NodeClass_View) 
-        printf("View ");
+        spdlog::info("DataType ");
+    if (referenceDescription.NodeClass & OpcUa_NodeClass_View)
+        spdlog::info("View ");
     
     UaNodeId nodeId(referenceDescription.NodeId.NodeId);
-    printf("[NodeId=%s] ", nodeId.toFullString().toUtf8() );
-    printf(")\n");
+    spdlog::info("[NodeId={}] ", nodeId.toFullString().toUtf8() );
+    spdlog::info(")");
 }
 
 

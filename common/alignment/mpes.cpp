@@ -334,11 +334,15 @@ int DummyMPES::__setExposure() {
 
 int DummyMPES::__updatePosition() {
     // Set internal position variable to dummy values
-    m_Position.xCentroid = 160.;
-    m_Position.yCentroid = 120.;
+    double dev;
+    dev = rand() % 15 + 2;
+    spdlog::info("sleeping {}",dev);
+    sleep(dev);
+    m_Position.xCentroid = 160.+dev;
+    m_Position.yCentroid = 120.+dev;
     m_Position.xSpotWidth = MPESBase::NOMINAL_SPOT_WIDTH;
     m_Position.ySpotWidth = MPESBase::NOMINAL_SPOT_WIDTH;
-    m_Position.cleanedIntensity = MPESBase::NOMINAL_INTENSITY;
+    m_Position.cleanedIntensity = MPESBase::NOMINAL_INTENSITY+dev*2000;
 
     return static_cast<int>(m_Position.cleanedIntensity);
 }

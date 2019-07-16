@@ -23,8 +23,8 @@ void MPESEventTypeData::registerEventFields()
     // Register event fields
     s_MPESEventTypeDataFields.clear();
     s_MPESEventTypeDataFields[EventManagerUaNode::registerEventField(UaQualifiedName("State", m_nsIdx).toFullString())] = 1;
-    s_MPESEventTypeDataFields[EventManagerUaNode::registerEventField(UaQualifiedName("xCentroid", m_nsIdx).toFullString())] = 2;
-    s_MPESEventTypeDataFields[EventManagerUaNode::registerEventField(UaQualifiedName("yCentroid", m_nsIdx).toFullString())] = 3;
+    s_MPESEventTypeDataFields[EventManagerUaNode::registerEventField(UaQualifiedName("xCentroidAvg", m_nsIdx).toFullString())] = 2;
+    s_MPESEventTypeDataFields[EventManagerUaNode::registerEventField(UaQualifiedName("yCentroidAvg", m_nsIdx).toFullString())] = 3;
     s_MPESEventTypeDataFields[EventManagerUaNode::registerEventField(UaQualifiedName("xCentroidSpotWidth", m_nsIdx).toFullString())] = 4;
     s_MPESEventTypeDataFields[EventManagerUaNode::registerEventField(UaQualifiedName("yCentroidSpotWidth", m_nsIdx).toFullString())] = 5;
     s_MPESEventTypeDataFields[EventManagerUaNode::registerEventField(UaQualifiedName("CleanedIntensity", m_nsIdx).toFullString())] = 6;

@@ -38,6 +38,7 @@ public:
     UaStatus browseAndAddDevices();
 
     UaStatus read(std::vector<std::string> sNodeNames, UaVariant *data);
+    UaStatus readAsync(std::vector<std::string> sNodeNames, UaVariant *data);
     UaStatus write(std::vector<std::string> sNodeName, const UaVariant *values);
 
     // synchronous call

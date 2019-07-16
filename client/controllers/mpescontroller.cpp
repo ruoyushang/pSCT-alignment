@@ -246,7 +246,7 @@ UaStatus MPESController::operate(OpcUa_UInt32 offset, const UaVariantArray &args
 
     if (offset == PAS_MPESType_Read) {
         spdlog::info("{} : MPESController calling read()", m_Identity);
-        status = read();
+        status = readAsync();
         if (status.isGood()) {
             spdlog::info("{}: Done reading webcam.", m_Identity);
         }
@@ -311,21 +311,21 @@ UaStatus MPESController::operate(OpcUa_UInt32 offset, const UaVariantArray &args
         }
     } else if (offset == PAS_MPESType_SetExposure) {
         spdlog::info("{} : MPESController calling setExposure()", m_Identity);
-        status = m_pClient->callMethod(m_pClient->getDeviceNodeId(m_Identity), UaString("SetExposure"), args);
+        status = m_pClient->callMethodAsync(m_pClient->getDeviceNodeId(m_Identity), UaString("SetExposure"), args);
     } else if (offset == PAS_MPESType_ClearError) {
         int errorCode;
         UaVariant(args[0]).toInt32(errorCode);
         spdlog::info("{} : MPESController calling clearError() for error {}", m_Identity, errorCode);
-        status = m_pClient->callMethod(m_pClient->getDeviceNodeId(m_Identity), UaString("ClearError"), args);
+        status = m_pClient->callMethodAsync(m_pClient->getDeviceNodeId(m_Identity), UaString("ClearError"), args);
     } else if (offset == PAS_MPESType_ClearAllErrors) {
         spdlog::info("{} : MPESController calling clearAllErrors()", m_Identity);
-        status = m_pClient->callMethod(m_pClient->getDeviceNodeId(m_Identity), UaString("ClearAllErrors"));
+        status = m_pClient->callMethodAsync(m_pClient->getDeviceNodeId(m_Identity), UaString("ClearAllErrors"));
     } else if (offset == PAS_MPESType_TurnOn) {
         spdlog::info("{} : MPESController calling turnOn()", m_Identity);
-        status = m_pClient->callMethod(m_pClient->getDeviceNodeId(m_Identity), UaString("TurnOn"));
+        status = m_pClient->callMethodAsync(m_pClient->getDeviceNodeId(m_Identity), UaString("TurnOn"));
     } else if (offset == PAS_MPESType_TurnOff) {
         spdlog::info("{} : MPESController calling turnOff()", m_Identity);
-        status = m_pClient->callMethod(m_pClient->getDeviceNodeId(m_Identity), UaString("TurnOff"));
+        status = m_pClient->callMethodAsync(m_pClient->getDeviceNodeId(m_Identity), UaString("TurnOff"));
     } else {
         status = OpcUa_BadInvalidArgument;
     }

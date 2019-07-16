@@ -126,8 +126,18 @@ public:
 
     UaNodeId typeDefinitionId() const override { return UaNodeId(PAS_MPESType, browseName().namespaceIndex()); }
 
+    UaStatus beginCall(
+            MethodManagerCallback* pCallback,
+            const ServiceContext&  serviceContext,
+            OpcUa_UInt32           callbackHandle,
+            MethodHandle*          pMethodHandle,
+            const UaVariantArray&  inputArguments) override;
+
     const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, OpcUa_Byte>>
     getVariableDefs() override { return MPESObject::VARIABLES; }
+
+    const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, OpcUa_Byte>>
+    getEventDefs() { return MPESObject::EVENTS; }
 
     const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean>>
     getErrorDefs() override { return MPESObject::ERRORS; }
@@ -143,6 +153,8 @@ public:
 
     /// @brief Map of OPC UA type ids for all child methods to their name and number of arguments.
     static const std::map<OpcUa_UInt32, std::pair<std::string, std::vector<std::tuple<std::string, UaNodeId, std::string>>>> METHODS;
+
+    static const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, OpcUa_Byte>> EVENTS;
 
 };
 

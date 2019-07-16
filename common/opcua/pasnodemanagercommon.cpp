@@ -318,7 +318,7 @@ UaStatus PasNodeManagerCommon::createTypeNodes()
     defaultValue.setDouble(0);
     pProperty = new UaPropertyCache(
         "xCentroidSpotWidth",
-        UaNodeId(PAS_MPESEventType_xCentroidSD, getNameSpaceIndex()),
+        UaNodeId(PAS_MPESEventType_xCentroidSpotWidth, getNameSpaceIndex()),
         defaultValue,
         Ua_AccessLevel_CurrentRead,
         m_defaultLocaleId);
@@ -329,7 +329,7 @@ UaStatus PasNodeManagerCommon::createTypeNodes()
     defaultValue.setDouble(0);
     pProperty = new UaPropertyCache(
         "yCentroidSpotWidth",
-        UaNodeId(PAS_MPESEventType_yCentroidSD, getNameSpaceIndex()),
+        UaNodeId(PAS_MPESEventType_yCentroidSpotWidth, getNameSpaceIndex()),
         defaultValue,
         Ua_AccessLevel_CurrentRead,
         m_defaultLocaleId);

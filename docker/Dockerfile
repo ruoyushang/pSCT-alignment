@@ -30,7 +30,7 @@ RUN  yum -y update && yum erase cmake && yum -y install wget \
 
 RUN mkdir software
 WORKDIR /software
-RUN mkdir tarballs ROOT_build mysql_5.7 mysqlcppconn_build mysqlcppconn opencv_build /var/run/sshd
+RUN mkdir tarballs ROOT_build mysql_5.7 mysqlcppconn_build mysqlcppconn opencv_build /var/run/sshd /root/logs/
 
 RUN echo 'root:pass' | chpasswd
 RUN sed -i 's/PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config
@@ -174,9 +174,22 @@ RUN git checkout v2.4.4 \
 ENV LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:/software/ROBAST/"
 COPY ROBAST.pc /usr/local/lib/pkgconfig
 
+WORKDIR /software/
+RUN git clone https://github.com/gabime/spdlog.git \
+    && mkdir -p /software/spdlog/build && cd /software/spdlog/build/ \
+    && cmake .. \
+    && cmake --build . -- -j${NTHREADS} \
+    && cmake --build . --target install
+
+WORKDIR /software
+RUN git clone https://github.com/doxygen/doxygen.git \
+    && yum -y install graphviz flex.x86_64 strip bison \
+    && mkdir /software/doxygen/build && cd /software/doxygen/build \
+    && cmake -G "Unix Makefiles" .. \
+    && make && make install
+
 COPY bash_profile /root/.bash_profile
 COPY screenrc /root/.screenrc
-#EXPOSE 22 7777 9999 48010
 WORKDIR /app
 
 #CMD ["/usr/sbin/sshd", "-D"]

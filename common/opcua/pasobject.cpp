@@ -263,6 +263,20 @@ const std::map<OpcUa_UInt32, std::pair<std::string, std::vector<std::tuple<std::
     {PAS_MPESType_ClearAllErrors, {"ClearAllErrors", {}}}
 };
 
+const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, OpcUa_Byte>> MPESObject::EVENTS = {
+    {PAS_MPESEventType_State,              std::make_tuple("State", UaVariant(0), OpcUa_True, Ua_AccessLevel_CurrentRead)},
+    {PAS_MPESEventType_xCentroidAvg,       std::make_tuple("xCentroidAvg", UaVariant(0.0), OpcUa_False,
+                                                      Ua_AccessLevel_CurrentRead)},
+    {PAS_MPESEventType_yCentroidAvg,       std::make_tuple("yCentroidAvg", UaVariant(0.0), OpcUa_False,
+                                                      Ua_AccessLevel_CurrentRead)},
+    {PAS_MPESEventType_xCentroidSpotWidth, std::make_tuple("xCentroidSpotWidth", UaVariant(0.0), OpcUa_False,
+                                                      Ua_AccessLevel_CurrentRead)},
+    {PAS_MPESEventType_yCentroidSpotWidth,      std::make_tuple("yCentroidSpotWidth", UaVariant(0.0), OpcUa_False,
+                                                           Ua_AccessLevel_CurrentRead)},
+    {PAS_MPESEventType_CleanedIntensity, std::make_tuple("CleanedIntensity", UaVariant(0.0), OpcUa_False,
+                                                    Ua_AccessLevel_CurrentRead)}
+};
+
 const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, OpcUa_Byte>> ACTObject::VARIABLES = {
     {PAS_ACTType_State,         std::make_tuple("State", UaVariant(0), OpcUa_True, Ua_AccessLevel_CurrentRead)},
     {PAS_ACTType_Position,      std::make_tuple("Position", UaVariant(0), OpcUa_False, Ua_AccessLevel_CurrentRead)},
@@ -347,3 +361,54 @@ const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean>> 
 const std::map<OpcUa_UInt32, std::pair<std::string, std::vector<std::tuple<std::string, UaNodeId, std::string>>>> PSDObject::METHODS = {
         {PAS_PSDType_Read, {"Read", {}}}
 };
+
+UaStatus MPESObject::beginCall(
+        MethodManagerCallback* pCallback,
+        const ServiceContext&  serviceContext,
+        OpcUa_UInt32           callbackHandle,
+        MethodHandle*          pMethodHandle,
+        const UaVariantArray&  inputArguments)
+{
+    UaStatus            ret;
+    UaVariantArray      outputArguments;
+    UaStatusCodeArray   inputArgumentResults;
+    UaDiagnosticInfos   inputArgumentDiag;
+
+    auto pCallJob = new OpcUa::MethodCallJob;
+    pCallJob->initialize(this, pCallback, serviceContext, callbackHandle, pMethodHandle, inputArguments);
+    ret = NodeManagerRoot::CreateRootNodeManager()->pServerManager()->getThreadPool()->addJob(pCallJob);
+    if ( ret.isBad() )
+    {
+        delete pCallJob;
+    }
+    else{
+        // Create event
+        MPESEventTypeData eventData(m_pNodeManager->getNameSpaceIndex());
+
+//        // Handle ControllerEventType specific fields
+//        auto pUserData = (PasUserData *) getUserData();
+
+//        // CleanedIntensity
+//        UaVariant varValue;
+//        OpcUa_Double value;
+//        m_pCommIf->getDeviceData(PAS_MPESType_CleanedIntensity, pUserData->DeviceId(), pUserData->variableOffset(), varValue);
+//        varValue.toDouble(value);
+//        eventData.m_CleanedIntensity.setDouble(value);
+
+//        // State
+//        Device::DeviceState state;
+//        m_pCommIf->getDeviceState(PAS_MPESEventType_State, pUserData->DeviceId(), state);
+//        eventData.m_State.setDouble(value);
+
+        // Fill all default event fields
+        eventData.m_SourceNode.setNodeId(nodeId());
+        eventData.m_SourceName.setString(browseName().toString());
+        eventData.m_Severity.setUInt16(500);
+        // Set timestamps and unique EventId
+        eventData.prepareNewEvent(UaDateTime::now(), UaDateTime::now(), UaByteString());
+        // Fire the event
+        m_pNodeManager->fireEvent(&eventData);
+    }
+
+    return ret;
+}
