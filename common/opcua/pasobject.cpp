@@ -52,7 +52,7 @@ void PasObject::initialize() {
     //spdlog::debug("Creating error variables...");
     //Create the folder for the Errors
     UaFolder *pErrorFolder = new UaFolder("Errors", UaNodeId(
-            (std::to_string(typeDefinitionId().identifierNumeric()) + "_" + std::to_string(m_Identity.serialNumber) + "_errors").c_str(),
+            (std::string(browseName().toString().toUtf8()).substr(std::string(browseName().toString().toUtf8()).find(":") + 1) + "_errors").c_str(),
             nsIdx),
                                           m_defaultLocaleId);
     addStatus = m_pNodeManager->addNodeAndReference(this, pErrorFolder, OpcUaId_Organizes);
