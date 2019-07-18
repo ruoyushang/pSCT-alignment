@@ -275,6 +275,9 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
                                                 lengthArgs);
         }
     } else if (offset == PAS_PanelType_MoveDeltaCoords) {
+
+        status = updateCoords();
+
         spdlog::debug(
             "{} : PanelController::operate() : Current panel coordinates (x, y ,z xRot, yRot, zRot):\n{} {} {} {} {} {}\n",
             m_Identity, m_curCoords[0], m_curCoords[1], m_curCoords[2], m_curCoords[3], m_curCoords[4], m_curCoords[5]);
