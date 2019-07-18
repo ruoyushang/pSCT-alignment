@@ -303,9 +303,7 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
             targetCoordinates[4], targetCoordinates[5]);
 
         // find actuator lengths needed
-        std::cout << "Calculate the actuator length." << std::endl; //Ruo
         m_SP.ComputeActsFromPanel(targetCoordinates);
-        std::cout << "Done calculating the actuator length." << std::endl; //Ruo
 
         UaVariantArray lengthArgs;
         lengthArgs.create(6);
