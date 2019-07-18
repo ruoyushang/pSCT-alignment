@@ -4,7 +4,7 @@ panel_num=$1
 LOGLEVEL=${2-"info"}
 
 extension=".ini"
-screen_name=pas_serv
+screen_name=sim_server
 config_filename="$panel_num$extension"
 
 if [[ -n ${LOCALIP} ]]; then
