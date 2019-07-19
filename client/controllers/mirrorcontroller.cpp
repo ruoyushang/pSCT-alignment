@@ -386,7 +386,6 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
         std::string command = UaString(args[7].Value.String).toUtf8();
 
         status = moveToCoords(targetMirrorCoords, alignFrac, command);
-        updateCoords(false);
         setState(Device::DeviceState::On);
     } else if (offset == PAS_MirrorType_MoveDeltaCoords) {
         spdlog::info("{} : MirrorController::operate() : Calling moveDeltaCoords()...", m_Identity);
@@ -401,7 +400,6 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
         std::string command = UaString(args[7].Value.String).toUtf8();
 
         status = moveDeltaCoords(deltaMirrorCoords, alignFrac, command);
-        updateCoords(false);
         setState(Device::DeviceState::On);
     }
         /**********************************************************
@@ -438,7 +436,6 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
         double alignFrac = args[1].Value.Double;
         std::string command = UaString(args[2].Value.String).toUtf8();
         loadPosition(saveFilePath, alignFrac, command);
-        updateCoords(false);
         setState(Device::DeviceState::On);
     }
         /**********************************************************
@@ -449,9 +446,9 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
         std::string command = UaString(args[1].Value.String).toUtf8();
         spdlog::info("{} : MirrorController::operate() : Calling alignSector() with align fraction={}, command={}...",
                      m_Identity, alignFrac, command);
+        updateCoords(false);
         setState(Device::DeviceState::Busy);
         status = alignSector(alignFrac, command);
-        updateCoords(false);
         setState(Device::DeviceState::On);
     }
 
@@ -468,9 +465,9 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
             "{} : MirrorController::operate() : Calling alignRing() with fixed panel={}, align fraction={}, command={}...",
             m_Identity, fixPanel, alignFrac, command);
         setState(Device::DeviceState::Busy);
+        updateCoords(false);
 
         status = alignRing(fixPanel, alignFrac, command);
-        updateCoords(false);
         setState(Device::DeviceState::On);
     }
 
@@ -491,10 +488,9 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
             "{} : MirrorController::operate() : Calling alignSequential() with start edge {}, end edge {}, direction {}...",
             m_Identity, startEdge, endEdge, dir);
         setState(Device::DeviceState::Busy);
-
+        updateCoords(false);
 
         status = alignSequential(startEdge, endEdge, dir);
-        updateCoords(false);
         setState(Device::DeviceState::On);
     }
 
@@ -2307,12 +2303,6 @@ UaStatus MirrorController::loadPosition(const std::string &loadFilePath, double 
             if (panelPositions.find(panelId) != panelPositions.end()) {
                 targetActLengths = panelPositions.at(panelId);
                 deltaActLengths = targetActLengths - currentActLengths;
-
-                /**
-                if (std::dynamic_pointer_cast<PanelController>(pPanel)->checkForCollision(deltaActLengths)) {
-                return OpcUa_Bad;
-                }
-                */
 
                 panelsToMove.push_back(std::dynamic_pointer_cast<PanelController>(pPanel));
                 X.segment(j, 6) = deltaActLengths;
