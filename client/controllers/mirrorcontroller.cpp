@@ -2308,12 +2308,6 @@ UaStatus MirrorController::loadPosition(const std::string &loadFilePath, double 
                 targetActLengths = panelPositions.at(panelId);
                 deltaActLengths = targetActLengths - currentActLengths;
 
-                /**
-                if (std::dynamic_pointer_cast<PanelController>(pPanel)->checkForCollision(deltaActLengths)) {
-                return OpcUa_Bad;
-                }
-                */
-
                 panelsToMove.push_back(std::dynamic_pointer_cast<PanelController>(pPanel));
                 X.segment(j, 6) = deltaActLengths;
                 j += 6;
