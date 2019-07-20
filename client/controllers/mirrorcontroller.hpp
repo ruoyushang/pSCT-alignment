@@ -179,6 +179,10 @@ private:
     float m_lastSetAlignFrac;
 
     static const std::string SAVEFILE_DELIMITER;
+
+    UaStatus __moveSelectedPanels(unsigned methodTypeId, double alignFrac);
+
+    UaStatus __setAlignFrac(double alignFrac);
 };
 
 #endif // #ifndef __PASMIRROR_H__
