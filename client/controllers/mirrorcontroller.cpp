@@ -452,12 +452,6 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
 
         } else if (command == "setAlignFrac") {
             double alignFrac;
-            if (alignFrac > 1.01 || alignFrac <= 0.0) {
-                spdlog::error(
-                        "{} : MirrorController::moveDeltaCoords(): Invalid choice of alignFrac ({}), should be between 0.0 and 1.0.",
-                        m_Identity, alignFrac);
-                return OpcUa_BadInvalidArgument;
-            }
             if (offset == PAS_MirrorType_MoveToCoords) {
                 alignFrac = args[6].Value.Double;
             } else if (offset == PAS_MirrorType_MoveDeltaCoords) {
@@ -472,12 +466,6 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
             __setAlignFrac(alignFrac);
         } else if (command == "execute") {
             double alignFrac;
-            if (alignFrac > 1.01 || alignFrac <= 0.0) {
-                spdlog::error(
-                        "{} : MirrorController::moveDeltaCoords(): Invalid choice of alignFrac ({}), should be between 0.0 and 1.0.",
-                        m_Identity, alignFrac);
-                return OpcUa_BadInvalidArgument;
-            }
             if (offset == PAS_MirrorType_MoveToCoords) {
                 alignFrac = args[6].Value.Double;
             } else if (offset == PAS_MirrorType_MoveDeltaCoords) {
@@ -488,6 +476,12 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
                 alignFrac = args[1].Value.Double;
             } else if (offset == PAS_MirrorType_LoadPosition) {
                 alignFrac = args[1].Value.Double;
+            }
+            if (alignFrac > 1.01 || alignFrac <= 0.0) {
+                spdlog::error(
+                        "{} : MirrorController::moveDeltaCoords(): Invalid choice of alignFrac ({}), should be between 0.0 and 1.0.",
+                        m_Identity, alignFrac);
+                return OpcUa_BadInvalidArgument;
             }
             __moveSelectedPanels(offset, alignFrac);
         } else {
