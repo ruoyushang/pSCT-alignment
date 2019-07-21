@@ -99,22 +99,21 @@ private:
     UaStatus updateCoords(bool print=true);
     // a bunch of internal implementations
     UaStatus readPositionAll(bool print=true);
-    // Align all edges fron need_alignment starting at start_idx and  moving in the direction dir
-    UaStatus alignSequential(const std::string &startEdge, const std::string &EndEdge, unsigned dir);
-
-    UaStatus alignSector(double alignFrac = 0.25, std::string command = "calculate");
-
-    UaStatus alignRing(int fixPanel, double alignFrac = 0.25, std::string command = "calculate");
-
-    UaStatus
-    moveDeltaCoords(const Eigen::VectorXd &targetCoords, double alignFrac = 0.25, std::string command = "calculate");
-
-    UaStatus
-    moveToCoords(const Eigen::VectorXd &targetCoords, double alignFrac = 0.25, std::string command = "calculate");
 
     UaStatus savePosition(const std::string &saveFilePath);
 
-    UaStatus loadPosition(const std::string &loadFilePath, double alignFrac = 0.25, std::string command = "calculate");
+    // Align all edges fron need_alignment starting at start_idx and  moving in the direction dir
+    UaStatus alignSequential(const std::string &startEdge, const std::string &EndEdge, unsigned dir);
+
+    UaStatus __calculateAlignSector();
+
+    UaStatus __calculateAlignRing(int fixPanel);
+
+    UaStatus __calculateMoveDeltaCoords(const Eigen::VectorXd &targetCoords);
+
+    UaStatus __calculateMoveToCoords(const Eigen::VectorXd &targetCoords);
+
+    UaStatus __calculateLoadPosition(const std::string &loadFilePath);
 
     // mirror coords -- x/y/z, xRot, yRot, zRot
     Eigen::VectorXd m_curCoords, m_curCoordsErr, m_sysOffsetsMPES;
@@ -181,7 +180,6 @@ private:
     static const std::string SAVEFILE_DELIMITER;
 
     UaStatus __moveSelectedPanels(unsigned methodTypeId, double alignFrac);
-
     UaStatus __setAlignFrac(double alignFrac);
 };
 
