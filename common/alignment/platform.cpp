@@ -364,6 +364,12 @@ bool Platform::loadCBCParameters() {
 std::array<int, PlatformBase::NUM_ACTS_PER_PLATFORM>
 Platform::__step(std::array<int, PlatformBase::NUM_ACTS_PER_PLATFORM> inputSteps) {
 
+    spdlog::info("{} : Platform::step() : Executing stepping motion.", m_Identity);
+    if (getDeviceState() == Device::DeviceState::Busy) {
+        spdlog::error("{} : Platform::step() : Platform is busy, motion aborted.", m_Identity);
+        return inputSteps;
+    }
+
     spdlog::debug("{} : Platform::step() : Stepping platform ({}, {}, {}, {}, {}, {}) steps.",
                   m_Identity, inputSteps[0], inputSteps[1], inputSteps[2], inputSteps[3], inputSteps[4], inputSteps[5]);
     std::array<int, PlatformBase::NUM_ACTS_PER_PLATFORM> StepsRemaining{};
@@ -459,6 +465,9 @@ Platform::__step(std::array<int, PlatformBase::NUM_ACTS_PER_PLATFORM> inputSteps
     }
 
     m_pCBC->driver.disableAll();
+
+    spdlog::info("{} : Platform::step() : Successfully finished stepping motion.", m_Identity);
+
     return StepsRemaining;
 }
 

@@ -689,7 +689,6 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
         }
     } else if (offset == PAS_MirrorType_TestActuators) {
         spdlog::info("{} : MirrorController::operate() : Calling testActuators()...", m_Identity);
-
         status = testActuators();
     } else if (offset == PAS_MirrorType_Stop) {
         spdlog::warn(
@@ -706,7 +705,7 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
     return status;
 }
 
-UaStatus MirrorController:testActuators(float moveDistance = 0.4, float epsilonLength = 0.01) {
+UaStatus MirrorController::testActuators(float moveDistance, float epsilonLength) {
     if (m_selectedPanels.empty()) {
         spdlog::error(
                 "{} : MirrorController::operate() : No Panels selected. Nothing to do, method call aborted.",
@@ -1111,14 +1110,14 @@ UaStatus MirrorController::alignSequential(const std::string &startEdge, const s
             args[0].Value.UInt32 = curPanels.at(0); // "smaller" panel
             args[1].Value.UInt32 = curPanels.at(1); // larger panel
             args[2].Value.Double = 1.0;
-            args[3].Value.String = UaString("calculate"); // first, calculate
+            args[3].Value.String = *UaString("calculate").toOpcUaString(); // first, calculate
             auto movingPanel = m_ChildrenPositionMap.at(PAS_PanelType).at(curPanels.at(0));
             // do this until the edge is aligned
             int alignIter = 1;
             spdlog::debug("{} Calculating motion for Edge {}...", m_Identity, edgeEaddress);
             status = edge->operate(PAS_EdgeType_Align, args);
             spdlog::debug("{} Setting align frac for Edge {}...", m_Identity, edgeEaddress);
-            args[3].Value.String = UaString("setAlignFrac"); // first, calculate
+            args[3].Value.String = *UaString("setAlignFrac").toOpcUaString(); // first, calculate
             status = edge->operate(PAS_EdgeType_Align, args);
             Device::DeviceState curState;
             edge->getState(curState);
@@ -1127,7 +1126,7 @@ UaStatus MirrorController::alignSequential(const std::string &startEdge, const s
                 edge->getState(curState);
             }
             if (m_State == Device::DeviceState::Off) { break; }
-            args[3].Value.String = UaString("execute"); // first, calculate; // this time, execute
+            args[3].Value.String = *UaString("execute").toOpcUaString(); // first, calculate; // this time, execute
             spdlog::debug("{}: Executing alignment motion for Edge {}...", m_Identity, edgeEaddress);
             status = edge->operate(PAS_EdgeType_Align, args);
             while (curState == Device::DeviceState::Busy) {
@@ -1151,18 +1150,18 @@ UaStatus MirrorController::alignSequential(const std::string &startEdge, const s
                     movingPanel->getState(curstate);
                 }
                 alignIter++;
-                args[3].Value.String = UaString("calculate");
+                args[3].Value.String = *UaString("calculate").toOpcUaString();
                 spdlog::debug("{} Calculating motion for Edge {}...", m_Identity, edgeEaddress);
                 status = edge->operate(PAS_EdgeType_Align, args);
                 spdlog::debug("{} Setting align frac for Edge {}...", m_Identity, edgeEaddress);
-                args[3].Value.String = UaString("setAlignFrac"); // first, calculate
+                args[3].Value.String = *UaString("setAlignFrac").toOpcUaString(); // first, calculate
                 status = edge->operate(PAS_EdgeType_Align, args);
                 while (curState == Device::DeviceState::Busy) {
                     usleep(500 * 1000); // microseconds
                     edge->getState(curState);
                 }
                 if (m_State == Device::DeviceState::Off) { break; }
-                args[3].Value.String = UaString("execute"); // execute motion
+                args[3].Value.String = *UaString("execute").toOpcUaString(); // execute motion
                 spdlog::debug("{}: Executing alignment motion for Edge {}...", m_Identity, edgeEaddress);
                 status = edge->operate(PAS_EdgeType_Align, args);
                 if (!status.isGood()) {

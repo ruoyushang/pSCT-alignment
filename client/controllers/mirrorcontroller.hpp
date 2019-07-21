@@ -115,6 +115,8 @@ private:
 
     UaStatus __calculateLoadPosition(const std::string &loadFilePath);
 
+    UaStatus testActuators(float moveDistance = 0.4, float epsilonLength = 0.01);
+
     // mirror coords -- x/y/z, xRot, yRot, zRot
     Eigen::VectorXd m_curCoords, m_curCoordsErr, m_sysOffsetsMPES;
     // map ring -> {MPES Position -> Systematic Offset}
