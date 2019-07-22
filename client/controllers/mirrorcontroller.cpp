@@ -958,6 +958,8 @@ MirrorController::__calculateMoveDeltaCoords(const Eigen::VectorXd &deltaMirrorC
     m_Xcalculated = X;
     m_panelsToMove = panelsToMove;
     m_previousCalculatedMethod = PAS_MirrorType_MoveDeltaCoords;
+
+    return status;
 }
 
 UaStatus
