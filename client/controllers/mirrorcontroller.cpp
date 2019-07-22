@@ -1922,9 +1922,13 @@ UaStatus MirrorController::__setAlignFrac(double alignFrac) {
 
     unsigned k = 0;
     for (auto &pCurPanel : m_panelsToMove) {
+        std::ostringstream os;
+        for (int i=0; i < 6; i++) {
+            os << pCurPanel->getChildren(PAS_ACTType).at(i)->getIdentity() << ": " << X(k+i) << std::endl;
+        }
+
         // print out to make sure
-        spdlog::debug("{} : Will move Panel {} actuators by:\n{}\n", m_Identity, pCurPanel->getIdentity(),
-                      X.segment(k, 6));
+        spdlog::info("{} : Will move Panel {} actuators by:\n{}\n", m_Identity, pCurPanel->getIdentity(), os.str());
         k += 6;
     }
 
