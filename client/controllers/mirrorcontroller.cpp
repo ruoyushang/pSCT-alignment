@@ -1897,6 +1897,8 @@ UaStatus MirrorController::__calculateLoadPosition(const std::string &loadFilePa
 }
 
 UaStatus MirrorController::__setAlignFrac(double alignFrac) {
+    UaStatus status;
+    
     if (alignFrac > 1.01 || alignFrac <= 0.0) {
         spdlog::error(
             "{} : Invalid choice of alignFrac ({}), should be between 0.0 and 1.0.",
@@ -1940,6 +1942,8 @@ UaStatus MirrorController::__setAlignFrac(double alignFrac) {
     spdlog::info(
         "{}: Done! All collision checks passed. To execute the motion, call the command again with command=execute.",
         m_Identity);
+
+    return status;
 }
 
 UaStatus MirrorController::__moveSelectedPanels(unsigned methodTypeId, double alignFrac) {
