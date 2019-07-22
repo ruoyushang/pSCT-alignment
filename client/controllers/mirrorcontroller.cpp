@@ -1829,9 +1829,15 @@ UaStatus MirrorController::__calculateLoadPosition(const std::string &loadFilePa
     }
     spdlog::info("{}: Mirror Info:\n Mirror Identity: {}\n{}", m_Identity, m_Identity, os.str());
 
+    Eigen::VectorXd X(m_pChildren.at(PAS_PanelType).size() * 6);
+    Eigen::VectorXd deltaActLengths(6);
+    Eigen::VectorXd targetActLengths(6);
+    Eigen::VectorXd currentActLengths(6);
+    std::vector<std::shared_ptr<PanelController>> panelsToMove;
+    unsigned j = 0;
+
     // Parse all target actuator lengths
     Device::Identity panelId;
-    Eigen::VectorXd actuatorLengths(6);
     int i = 0;
 
     while (infile.peek() != EOF) {
@@ -1841,35 +1847,39 @@ UaStatus MirrorController::__calculateLoadPosition(const std::string &loadFilePa
         panelId = Device::parseIdentity(line.substr(s - 1, e - s + 1));
         i = 0;
         while (getline(infile, line) && line != SAVEFILE_DELIMITER) {
-            actuatorLengths(i) = std::stod(line);
+            targetActLengths(i) = std::stod(line);
             i++;
         }
-        panelPositions[panelId] = actuatorLengths;
-        spdlog::info("{}: Found position for Panel {}:\n{}\n", m_Identity, panelId, actuatorLengths);
+        panelPositions[panelId] = targetActLengths;
+        spdlog::info("{}: Found position for Panel {}:\n{}\n", m_Identity, panelId, targetActLengths);
     }
-
-    Eigen::VectorXd X(m_pChildren.at(PAS_PanelType).size() * 6);
-    Eigen::VectorXd deltaActLengths(6);
-    Eigen::VectorXd targetActLengths(6);
-    Eigen::VectorXd currentActLengths(6);
-    std::vector<std::shared_ptr<PanelController>> panelsToMove;
-    unsigned j = 0;
 
     for (const auto &pPanel : m_pChildren.at(PAS_PanelType)) {
         std::dynamic_pointer_cast<PanelController>(pPanel)->operate(PAS_PanelType_ReadPosition);
         panelId = std::dynamic_pointer_cast<PanelController>(pPanel)->getIdentity();
-        status = std::dynamic_pointer_cast<PanelController>(pPanel)->__getActuatorLengths(currentActLengths);
         if (status.isBad()) {
             spdlog::error("{}: Unable to load position, failed to read actuator lengths.", m_Identity);
             return OpcUa_Bad;
         }
         if (panelPositions.find(panelId) != panelPositions.end()) {
+            status = std::dynamic_pointer_cast<PanelController>(pPanel)->__getActuatorLengths(currentActLengths);
             targetActLengths = panelPositions.at(panelId);
             deltaActLengths = targetActLengths - currentActLengths;
 
             panelsToMove.push_back(std::dynamic_pointer_cast<PanelController>(pPanel));
             X.segment(j, 6) = deltaActLengths;
             j += 6;
+
+            spdlog::info(
+                    "{} : Moving Panel {} :\n CurrentLength + Delta Length => TargetLength\n\n{} + {} => {}\n{} + {} => {}\n{} + {} => {}\n{} + {} => {}\n{} + {} => {}\n{} + {} => {}\n",
+                    m_Identity, panelId,
+                    currentActLengths[0], deltaActLengths[0], targetActLengths[0],
+                    currentActLengths[1], deltaActLengths[1], targetActLengths[1],
+                    currentActLengths[2], deltaActLengths[2], targetActLengths[2],
+                    currentActLengths[3], deltaActLengths[3], targetActLengths[3],
+                    currentActLengths[4], deltaActLengths[4], targetActLengths[4],
+                    currentActLengths[5], deltaActLengths[5], targetActLengths[5]);
+
         } else {
             spdlog::warn(
                 "{}: Did not find a target position for Panel {} in the file! Will not move this panel. Make sure this is the desired behavior before moving.",
