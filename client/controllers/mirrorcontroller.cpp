@@ -1815,7 +1815,7 @@ UaStatus MirrorController::__calculateLoadPosition(const std::string &loadFilePa
     getline(infile, line);
     unsigned s = line.find("(");
     unsigned e = line.find(")");
-    Device::Identity mirrorId = Device::parseIdentity(line.substr(s - 1, e - s + 1));
+    Device::Identity mirrorId = Device::parseIdentity(line.substr(s, e - s + 2));
 
     if (mirrorId != m_Identity) {
         spdlog::error(
@@ -1846,7 +1846,7 @@ UaStatus MirrorController::__calculateLoadPosition(const std::string &loadFilePa
         getline(infile, line);
         s = line.find("(");
         e = line.find(")");
-        panelId = Device::parseIdentity(line.substr(s - 1, e - s + 1));
+        panelId = Device::parseIdentity(line.substr(s , e - s + 2));
         i = 0;
         while (getline(infile, line) && line != SAVEFILE_DELIMITER) {
             targetActLengths(i) = std::stod(line);
@@ -1924,7 +1924,7 @@ UaStatus MirrorController::__setAlignFrac(double alignFrac) {
     for (auto &pCurPanel : m_panelsToMove) {
         std::ostringstream os;
         for (int i=0; i < 6; i++) {
-            os << pCurPanel->getChildren(PAS_ACTType).at(i)->getIdentity() << ": " << X(k+i) << std::endl;
+            os << pCurPanel->getChildAtPosition(PAS_ACTType, i+1)->getIdentity() << ": " << X(k+i) << std::endl;
         }
 
         // print out to make sure

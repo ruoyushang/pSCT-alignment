@@ -213,7 +213,7 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
             if (__getDeviceState() != Device::DeviceState::On)
             {
                 stillMoving = true;
-                spdlog::info("{}: PanelController::operate() : still moving...\n", m_Identity);
+                spdlog::trace("{}: PanelController::operate() : still moving...\n", m_Identity);
                 UaThread::sleep(2.0);
             }
             //Device::DeviceState state;
