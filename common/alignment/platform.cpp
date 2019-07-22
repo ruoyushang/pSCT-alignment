@@ -365,10 +365,6 @@ std::array<int, PlatformBase::NUM_ACTS_PER_PLATFORM>
 Platform::__step(std::array<int, PlatformBase::NUM_ACTS_PER_PLATFORM> inputSteps) {
 
     spdlog::info("{} : Platform::step() : Executing stepping motion.", m_Identity);
-    if (getDeviceState() == Device::DeviceState::Busy) {
-        spdlog::error("{} : Platform::step() : Platform is busy, motion aborted.", m_Identity);
-        return inputSteps;
-    }
 
     spdlog::debug("{} : Platform::step() : Stepping platform ({}, {}, {}, {}, {}, {}) steps.",
                   m_Identity, inputSteps[0], inputSteps[1], inputSteps[2], inputSteps[3], inputSteps[4], inputSteps[5]);
