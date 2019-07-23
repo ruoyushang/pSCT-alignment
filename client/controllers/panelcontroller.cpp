@@ -360,7 +360,7 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
     } else if (offset == PAS_PanelType_ReadPosition) {
         status = updateCoords(true);
         spdlog::info(
-            "{} : PanelController::operate() : Current panel coordinates (x, y ,z xRot, yRot, zRot):\n{} {} {} {} {} {}\n",
+            "{} : PanelController::operate() : Current panel coordinates (x, y ,z xRot, yRot, zRot):\n{}\n{}\n{}\n{}\n{}\n{}",
             m_Identity, m_curCoords[0], m_curCoords[1], m_curCoords[2], m_curCoords[3], m_curCoords[4], m_curCoords[5]);
     }
         /************************************************
