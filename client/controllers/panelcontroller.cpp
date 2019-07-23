@@ -1,6 +1,7 @@
 #include "client/controllers/panelcontroller.hpp"
 
 #include <chrono>
+#include <sstream>
 #include <string>
 
 #include <Eigen/Dense>
@@ -489,8 +490,13 @@ UaStatus PanelController::updateCoords(bool print) {
     }
 
     if (print) {
+        std::ostringstream os;
+        for (int i = 0; i < 6; i++) {
+            os << getChildAtPosition(PAS_ACTType, i)->getIdentity() << ": " << currentLengths(i) << std::endl;
+        }
+
         spdlog::info("{} : PanelController::updateCoords() : Current Actuator Lengths :\n{}\n\n", m_Identity,
-                     currentLengths);
+                     os.str());
     }
     // update current coordinates
     m_SP.ComputeStewart(currentLengths.data());
