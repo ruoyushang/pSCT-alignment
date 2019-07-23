@@ -124,17 +124,13 @@ Device::Identity Device::parseIdentity(std::string identityString) {
     }
 
     if (identityString.at(identityString.size() - 1) == ')') {
-        identityString = identityString.substr(0, identityString.size() - 2);
+        identityString = identityString.substr(0, identityString.size() - 1);
     } else {
         spdlog::error("Does not match expected Identity format, last character is not ')'");
         return id;
     }
-    spdlog::info(identityString);
-
     // Remove all whitespace
     identityString.erase(std::remove(identityString.begin(), identityString.end(), ' '), identityString.end());
-
-    spdlog::info(identityString);
 
     // Vector of string to save tokens
     std::vector<std::string> tokens;
@@ -144,7 +140,7 @@ Device::Identity Device::parseIdentity(std::string identityString) {
 
     std::string temp;
 
-    // Tokenizing w.r.t. space ' '
+    // Tokenizing w.r.t. ','
     while (getline(ss, temp, ',')) {
         tokens.push_back(temp);
         spdlog::info(temp);
@@ -155,8 +151,8 @@ Device::Identity Device::parseIdentity(std::string identityString) {
                       tokens.size());
         return id;
     }
-
-    // Printing the token vector
+    
+    // Constructing the Identity object
     id.serialNumber = std::stoi(tokens[0]);
     id.eAddress = tokens[1];
     id.name = tokens[2];
