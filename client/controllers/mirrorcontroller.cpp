@@ -700,6 +700,8 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
 }
 
 UaStatus MirrorController::testActuators(float moveDistance, float epsilonLength) {
+    UaStatus status;
+
     if (m_selectedPanels.empty()) {
         spdlog::error(
                 "{} : MirrorController::operate() : No Panels selected. Nothing to do, method call aborted.",
@@ -871,6 +873,8 @@ UaStatus MirrorController::testActuators(float moveDistance, float epsilonLength
     } else {
         spdlog::info("{}: No failed actuators found.", m_Identity);
     }
+
+    return status;
 };
 
 UaStatus MirrorController::readPositionAll(bool print) {

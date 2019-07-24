@@ -206,7 +206,7 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
             status = m_pClient->callMethodAsync(m_pClient->getDeviceNodeId(m_Identity), UaString("MoveDeltaLengths"),
                                                 args);
         }
-
+        /**
         UaThread::sleep(2.0);
         bool stillMoving = true;
         while (stillMoving) {
@@ -218,6 +218,7 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
                 UaThread::sleep(2.0);
             }
         }
+        */
         spdlog::debug("{}: PanelController::operate() : Successfully finished MoveDeltaLengths.\n", m_Identity);
 
     } else if (offset == PAS_PanelType_MoveToLengths) {
