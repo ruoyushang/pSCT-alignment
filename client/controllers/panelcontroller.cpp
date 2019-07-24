@@ -484,7 +484,7 @@ UaStatus PanelController::updateCoords(bool print) {
     if (print) {
         std::ostringstream os;
         for (int i = 0; i < 6; i++) {
-            os << getChildAtPosition(PAS_ACTType, i)->getIdentity() << ": " << currentLengths(i) << std::endl;
+            os << getChildAtPosition(PAS_ACTType, i+1)->getIdentity() << ": " << currentLengths(i) << std::endl;
         }
 
         spdlog::info("{} : PanelController::updateCoords() : Current Actuator Lengths :\n{}\n\n", m_Identity,
