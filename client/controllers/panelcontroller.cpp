@@ -217,17 +217,8 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
                 spdlog::trace("{}: PanelController::operate() : still moving...\n", m_Identity);
                 UaThread::sleep(2.0);
             }
-            //Device::DeviceState state;
-            //for (auto act : getChildren(PAS_ACTType)) {
-            //    act->getState(state);
-            //    if (state == Device::DeviceState::Busy) {
-            //        stillMoving = true;
-            //        spdlog::info("{}: PanelController::operate() : still moving...\n", m_Identity);
-            //    }
-            //    UaThread::sleep(0.2);
-            //};
         }
-        spdlog::info("{}: PanelController::operate() : Successfully finished MoveDeltaLengths.\n", m_Identity);
+        spdlog::debug("{}: PanelController::operate() : Successfully finished MoveDeltaLengths.\n", m_Identity);
 
     } else if (offset == PAS_PanelType_MoveToLengths) {
         for (int i = 0; i < 6; i++) {
