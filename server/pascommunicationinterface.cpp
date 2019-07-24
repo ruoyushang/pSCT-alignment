@@ -251,9 +251,13 @@ UaStatus PasCommunicationInterface::initialize() {
         pPanel->addActuator(pActuator);
     }
     for (const auto &mpesId : mpesIdentities) {
-        std::shared_ptr<MPESController> pMPES = std::dynamic_pointer_cast<MPESController>(
-                getDevice(PAS_MPESType, mpesId));
-        pPanel->addMPES(pMPES);
+        try {
+            std::shared_ptr <MPESController> pMPES = std::dynamic_pointer_cast<MPESController>(
+                    getDevice(PAS_MPESType, mpesId));
+            pPanel->addMPES(pMPES);
+        }
+        catch (...) {
+        }
     }
 
     // start(); // start the thread managed by this object
