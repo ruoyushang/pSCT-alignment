@@ -171,8 +171,7 @@ int MPES::__setExposure() {
     int intensity;
 
     int counter = 0;
-    while ((intensity = __updatePosition())
-           && (!m_pDevice->isWithinIntensityTolerance(intensity))
+    while ((!m_pDevice->isWithinIntensityTolerance(__updatePosition()))
            && (counter < MPESBase::MAX_SET_EXPOSURE_TRIES)
            && m_pDevice->GetExposure() < MPESBase::MAX_EXPOSURE) {
         spdlog::debug("{} : MPES::setExposure() : Intensity {} ({}). Exposure: {}.", m_Identity, intensity,
