@@ -168,23 +168,21 @@ bool MPES::__initialize() {
 
 int MPES::__setExposure() {
     spdlog::debug("{} : MPES::setExposure() : Setting exposure...", m_Identity);
-    int intensity;
-
     int counter = 0;
     while ((!m_pDevice->isWithinIntensityTolerance(__updatePosition()))
            && (counter < MPESBase::MAX_SET_EXPOSURE_TRIES)
            && m_pDevice->GetExposure() < MPESBase::MAX_EXPOSURE) {
-        spdlog::debug("{} : MPES::setExposure() : Intensity {} ({}). Exposure: {}.", m_Identity, intensity,
+        spdlog::debug("{} : MPES::setExposure() : Intensity {} ({}). Exposure: {}.", m_Identity, m_Position.cleanedIntensity,
                       m_pDevice->GetTargetIntensity(), m_pDevice->GetExposure());
         m_pDevice->SetExposure(
-            (int) (m_pDevice->GetTargetIntensity() / intensity * ((float) m_pDevice->GetExposure())));
+            (int) (m_pDevice->GetTargetIntensity() / m_Position.cleanedIntensity * ((float) m_pDevice->GetExposure())));
 
         if (m_pDevice->GetExposure() >= MPESBase::MAX_EXPOSURE) {
             spdlog::error("{} : MPES::setExposure() : Failed to set exposure, reached maximum limit of {}. Setting Error 1...",
                           m_Identity, std::to_string(MPESBase::MAX_EXPOSURE));
             m_pDevice->SetExposure(MPESBase::MAX_EXPOSURE);
             setError(1);
-            intensity = -1;
+            m_Position.cleanedIntensity = -1;
             break;
         }
 
@@ -192,14 +190,14 @@ int MPES::__setExposure() {
             spdlog::error("{} : MPES::setExposure() : Failed to set exposure in 5 attempts, setting Error 1...",
                           m_Identity);
             setError(1);
-            intensity = -1;
+            m_Position.cleanedIntensity = -1;
             break;
         }
     }
 
     spdlog::debug("{} : MPES::setExposure() : Done.", m_Identity);
 
-    return intensity;
+    return m_Position.cleanedIntensity;
 }
 
 int MPES::__updatePosition() {
