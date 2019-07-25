@@ -405,28 +405,6 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
 
             updateCoords(false);
 
-            spdlog::info("{}: Reading all sensors...", m_Identity);
-
-            operate(PAS_MirrorType_ReadSensorsParallel);
-
-            bool stillReading = true;
-            while (stillReading) {
-                stillReading = false;
-                Device::DeviceState state;
-                for (auto mpes : getChildren(PAS_MPESType)) {
-                    if (m_selectedMPES.find(mpes->getIdentity().serialNumber) != m_selectedMPES.end()) {
-                        mpes->getState(state);
-                        if (state == Device::DeviceState::Busy) {
-                            stillReading = true;
-                        }
-                        UaThread::sleep(0.2);
-                    }
-                };
-            }
-
-            // Wait a little longer for the output to print
-            UaThread::sleep(20);
-
             if (offset == PAS_MirrorType_MoveToCoords) {
                 Eigen::VectorXd targetMirrorCoords(6);
                 for (int i = 0; i < 6; i++) {
@@ -608,39 +586,32 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
 
         spdlog::info("{}: Total number of MPES requested to read is {}. Starting reads...", m_Identity, totalMPES);
         while (totalMPES > 0) {
-            for (const auto &pair : MPESordering) {
-                bool busy = false;
-                Device::DeviceState state;
-                for (const auto &mpes : pair.second) { // Check if all mpes on panel are idle
-                    mpes->getState(state); 
-                    if (state == Device::DeviceState::Busy) {
-                        busy = true;
-                    }
-                    UaThread::msleep(200);
-                }
-                
+            for (auto &pair : MPESordering) {
+
                 if (totalMPES == 0) {
                     break;
                 }
 
-                if (!busy) {
-                    spdlog::info("{}: Reading MPES {} on Panel {} ({} remaining)...", m_Identity,
-                                 pair.second.back()->getIdentity(), pair.first->getIdentity(), totalMPES);
-                    std::ostringstream os;
-                    for (const auto &mpes : pair.second) { // Check if all mpes on panel are idle
-                        os << mpes->getIdentity().name << " ";
+                if (!pair.second.empty()) {
+                    bool busy = false;
+                    Device::DeviceState state;
+                    for (const auto &mpes : pair.first->getChildren(PAS_MPESType)) { // Check if all mpes on panel are idle
+                        mpes->getState(state); 
+                        if (state == Device::DeviceState::Busy) {
+                            busy = true;
+                        }
+                        UaThread::msleep(200);
                     }
-                    spdlog::info("{}: Sensors left to read on panel (before): ({})", m_Identity, os.str());
-                    pair.second.back()->readAsync();
-                    pair.second.pop_back();
-                    totalMPES--;
-                    os.str("");
-                    for (const auto &mpes : pair.second) { // Check if all mpes on panel are idle
-                        os << mpes->getIdentity().name << " ";
+                    
+                    if (!busy) {
+                        spdlog::info("{}: Reading MPES {} on Panel {} ({} remaining)...", m_Identity,
+                                     pair.second.back()->getIdentity(), pair.first->getIdentity(), totalMPES);
+                        pair.second.back()->readAsync();
+                        pair.second.pop_back();
+                        totalMPES--;
                     }
-                    spdlog::info("{}: Sensors left to read on panel (after): ({})", m_Identity, os.str());
                 }
-            };
+            }
         }
 
         spdlog::info("{}: Waiting for last reads to finish...", m_Identity);
