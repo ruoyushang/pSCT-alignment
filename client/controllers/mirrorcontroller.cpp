@@ -373,40 +373,125 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
     /**********************************************************
      * Move the whole mirror in the telescope reference frame *
      * ********************************************************/
-    if (offset == PAS_MirrorType_MoveToCoords) {
-        spdlog::info("{} : MirrorController::operate() : Calling moveToCoords()...", m_Identity);
-        setState(Device::DeviceState::Busy);
-        updateCoords(false);
-        Eigen::VectorXd targetMirrorCoords(6);
-        for (int i = 0; i < 6; i++) {
-            UaVariant(args[i]).toDouble(targetMirrorCoords[i]);
+    if (offset == PAS_MirrorType_MoveToCoords || offset == PAS_MirrorType_MoveDeltaCoords ||
+        offset == PAS_MirrorType_AlignSector || offset == PAS_MirrorType_LoadPosition ||
+        offset == PAS_MirrorType_AlignRing) {
+
+        std::string command;
+
+        if (offset == PAS_MirrorType_MoveToCoords) {
+            spdlog::info("{} : MirrorController::operate() : Calling moveToCoords()...", m_Identity);
+            command = UaString(args[7].Value.String).toUtf8();
+        } else if (offset == PAS_MirrorType_MoveDeltaCoords) {
+            spdlog::info("{} : MirrorController::operate() : Calling moveDeltaCoords()...", m_Identity);
+            command = UaString(args[7].Value.String).toUtf8();
+        } else if (offset == PAS_MirrorType_AlignSector) {
+            spdlog::info("{} : MirrorController::operate() : Calling alignSector()...", m_Identity);
+            command = UaString(args[1].Value.String).toUtf8();
+        } else if (offset == PAS_MirrorType_AlignRing) {
+            spdlog::info("{} : MirrorController::operate() : Calling alignRing()...", m_Identity);
+            command = UaString(args[2].Value.String).toUtf8();
+        }
+        else if (offset == PAS_MirrorType_LoadPosition) {
+            spdlog::info("{} : MirrorController::operate() : Calling loadPosition()...", m_Identity);
+            command = UaString(args[2].Value.String).toUtf8();
         }
 
-        double alignFrac = args[6].Value.Double;
-        std::string command = UaString(args[7].Value.String).toUtf8();
-
-        status = moveToCoords(targetMirrorCoords, alignFrac, command);
-        updateCoords(false);
-        setState(Device::DeviceState::On);
-    } else if (offset == PAS_MirrorType_MoveDeltaCoords) {
-        spdlog::info("{} : MirrorController::operate() : Calling moveDeltaCoords()...", m_Identity);
         setState(Device::DeviceState::Busy);
-        updateCoords(false);
-        Eigen::VectorXd deltaMirrorCoords(6);
-        for (int i = 0; i < 6; i++) {
-            UaVariant(args[i]).toDouble(deltaMirrorCoords[i]);
+        if (command == "calculate") {
+            spdlog::info(
+                    "{} : Pre-calculating alignment motion...",
+                    m_Identity);
+
+            updateCoords(false);
+
+            if (offset == PAS_MirrorType_MoveToCoords) {
+                Eigen::VectorXd targetMirrorCoords(6);
+                for (int i = 0; i < 6; i++) {
+                    UaVariant(args[i]).toDouble(targetMirrorCoords[i]);
+                }
+                status = __calculateMoveToCoords(targetMirrorCoords);
+            } else if (offset == PAS_MirrorType_MoveDeltaCoords) {
+                Eigen::VectorXd deltaMirrorCoords(6);
+                for (int i = 0; i < 6; i++) {
+                    UaVariant(args[i]).toDouble(deltaMirrorCoords[i]);
+                }
+                status = __calculateMoveDeltaCoords(deltaMirrorCoords);
+            } else if (offset == PAS_MirrorType_AlignSector) {
+                status = __calculateAlignSector();
+            } else if (offset == PAS_MirrorType_AlignRing) {
+                unsigned fixPanel = args[0].Value.UInt32;
+                status = __calculateAlignRing(fixPanel);
+            } else if (offset == PAS_MirrorType_LoadPosition) {
+                std::string saveFilePath = UaString(args[0].Value.String).toUtf8();
+                status = __calculateLoadPosition(saveFilePath);
+            }
+
+            if (status.isBad()) {
+                spdlog::error("{}: There was an error during the calculation. No motion prepared. Please identify the error and try again.", m_Identity);
+                return status;
+            }
+
+            if (m_Xcalculated.size() == m_panelsToMove.size() * 6) {
+                spdlog::info("{} : The full calculated motion is:\n{}\n", m_Identity,
+                             m_Xcalculated);
+
+                spdlog::info("{} : A total of {} panels will be moved.", m_Identity,
+                             m_panelsToMove.size());
+            }
+            else {
+                spdlog::error(
+                        "{} : The length of the calculated motion vector ({}) is not equal to the total number of actutors ({} x 6 = {}).",
+                        m_Identity, m_Xcalculated.size(), m_panelsToMove.size() * 6);
+                return OpcUa_Bad;
+            }
+
+            spdlog::info(
+                    "{} : Calculation done! You should call the method again with command=setAlignFrac to set an align fraction and inspect the resulting motion + do safety checks.",
+                    m_Identity);
+
+        } else if (command == "setAlignFrac") {
+            double alignFrac;
+            if (offset == PAS_MirrorType_MoveToCoords) {
+                alignFrac = args[6].Value.Double;
+            } else if (offset == PAS_MirrorType_MoveDeltaCoords) {
+                alignFrac = args[6].Value.Double;
+            } else if (offset == PAS_MirrorType_AlignSector) {
+                alignFrac = args[0].Value.Double;
+            } else if (offset == PAS_MirrorType_AlignRing) {
+                alignFrac = args[1].Value.Double;
+            } else if (offset == PAS_MirrorType_LoadPosition) {
+                alignFrac = args[1].Value.Double;
+            }
+            __setAlignFrac(alignFrac);
+        } else if (command == "execute") {
+            double alignFrac;
+            if (offset == PAS_MirrorType_MoveToCoords) {
+                alignFrac = args[6].Value.Double;
+            } else if (offset == PAS_MirrorType_MoveDeltaCoords) {
+                alignFrac = args[6].Value.Double;
+            } else if (offset == PAS_MirrorType_AlignSector) {
+                alignFrac = args[0].Value.Double;
+            } else if (offset == PAS_MirrorType_AlignRing) {
+                alignFrac = args[1].Value.Double;
+            } else if (offset == PAS_MirrorType_LoadPosition) {
+                alignFrac = args[1].Value.Double;
+            }
+            if (alignFrac > 1.01 || alignFrac <= 0.0) {
+                spdlog::error(
+                        "{} : MirrorController::moveDeltaCoords(): Invalid choice of alignFrac ({}), should be between 0.0 and 1.0.",
+                        m_Identity, alignFrac);
+                return OpcUa_BadInvalidArgument;
+            }
+            __moveSelectedPanels(offset, alignFrac);
+        } else {
+            spdlog::error(
+                    "{} : Invalid command provided ({}), valid commands are 'calculate', 'setAlignFrac', 'execute'.",
+                    m_Identity, command);
+            return OpcUa_Bad;
         }
-
-        double alignFrac = args[6].Value.Double;
-        std::string command = UaString(args[7].Value.String).toUtf8();
-
-        status = moveDeltaCoords(deltaMirrorCoords, alignFrac, command);
-        updateCoords(false);
         setState(Device::DeviceState::On);
     }
-        /**********************************************************
-         * Read out all current panel positions in their frames   *
-         * ********************************************************/
     else if (offset == PAS_MirrorType_ReadPosition) {
         setState(Device::DeviceState::Busy);
         // read out all individual positions
@@ -421,62 +506,11 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
         // and get global mirror coordinates
         spdlog::info("{} : MirrorController::operate() : Calling savePosition()...", m_Identity);
         updateCoords(false);
-
         std::string saveFilePath = UaString(args[0].Value.String).toUtf8();        
 
         savePosition(saveFilePath);
         setState(Device::DeviceState::On);
-    }
-    else if (offset == PAS_MirrorType_LoadPosition) {
-        setState(Device::DeviceState::Busy);
-        // read out all individual positions
-        // and get global mirror coordinates
-        spdlog::info("{} : MirrorController::operate() : Calling loadPosition()...", m_Identity);
-        updateCoords(false);
-
-        std::string saveFilePath = UaString(args[0].Value.String).toUtf8();        
-        double alignFrac = args[1].Value.Double;
-        std::string command = UaString(args[2].Value.String).toUtf8();
-        updateCoords(false);
-        setState(Device::DeviceState::On);
-    }
-        /**********************************************************
-         * Align the selected sector to selected sensors          *
-         * ********************************************************/
-    else if (offset == PAS_MirrorType_AlignSector) {
-        double alignFrac = args[0].Value.Double;
-        std::string command = UaString(args[1].Value.String).toUtf8();
-        spdlog::info("{} : MirrorController::operate() : Calling alignSector() with align fraction={}, command={}...",
-                     m_Identity, alignFrac, command);
-        setState(Device::DeviceState::Busy);
-        status = alignSector(alignFrac, command);
-        updateCoords(false);
-        setState(Device::DeviceState::On);
-    }
-
-        /**********************************************************************************************
-         * Perform global alignment and compute the systematics vector keeping the input panel fixed  *
-         * ********************************************************************************************/
-    else if (offset == PAS_MirrorType_AlignRing) {
-        // get the position of the panel to keep fixed
-        unsigned fixPanel = args[0].Value.UInt32;
-        double alignFrac = args[1].Value.Double;
-        std::string command = UaString(args[2].Value.String).toUtf8();
-
-        spdlog::info(
-            "{} : MirrorController::operate() : Calling alignRing() with fixed panel={}, align fraction={}, command={}...",
-            m_Identity, fixPanel, alignFrac, command);
-        setState(Device::DeviceState::Busy);
-
-        status = alignRing(fixPanel, alignFrac, command);
-        updateCoords(false);
-        setState(Device::DeviceState::On);
-    }
-
-        /**********************************************************
-         * Align all edges of the mirror                          *
-         * ********************************************************/
-    else if (offset == PAS_MirrorType_AlignSequentialRecursive) {
+    } else if (offset == PAS_MirrorType_AlignSequentialRecursive) {
         // make sure the arguments make sense -- we are supposed
         // to get an edge position and a direction. The type has
         // already been validated by the caller, but we need to
@@ -490,17 +524,10 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
             "{} : MirrorController::operate() : Calling alignSequential() with start edge {}, end edge {}, direction {}...",
             m_Identity, startEdge, endEdge, dir);
         setState(Device::DeviceState::Busy);
-
-
-        status = alignSequential(startEdge, endEdge, dir);
         updateCoords(false);
+        status = alignSequential(startEdge, endEdge, dir);
         setState(Device::DeviceState::On);
-    }
-
-        /**********************************************************
-         * Read out all current edge sensors                      *
-         * ********************************************************/
-    else if (offset == PAS_MirrorType_ReadSensors) {
+    } else if (offset == PAS_MirrorType_ReadSensors) {
         spdlog::info("{} : MirrorController::operate() : Calling readSensors()...", m_Identity);
         setState(Device::DeviceState::Busy);
         if (m_selectedEdges.empty()) {
@@ -604,16 +631,6 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
 
         spdlog::info("{}: Done! All webcams read.", m_Identity);
 
-        /**
-        Device::DeviceState state;
-        getState(state);
-        while (state == Device::DeviceState::Busy) {
-            spdlog::info("{}: Waiting for all reads to complete...", m_Identity);
-            UaThread::sleep(5);
-            getState(state);
-        }
-        */
-
         spdlog::info("{}: Retrieving all data from servers...\n", m_Identity);
         std::map<Device::Identity, MPESBase::Position> readings;
 
@@ -666,187 +683,8 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
         }
     } else if (offset == PAS_MirrorType_TestActuators) {
         spdlog::info("{} : MirrorController::operate() : Calling testActuators()...", m_Identity);
-
-        float moveDistance = 0.4;
-        float epsilonLength = 0.010;
-
-        if (m_selectedPanels.empty()) {
-            spdlog::error(
-                "{} : MirrorController::operate() : No Panels selected. Nothing to do, method call aborted.",
-                m_Identity);
-            return OpcUa_Good;
-        }
-
-        std::vector<std::shared_ptr<PanelController>> panelsToTest;
-        std::map<Device::Identity, float> initialLengths;
-        std::map<Device::Identity, std::set<std::shared_ptr<PasController>>> failedActuators;
-        int numFailedActuators = 0;
-
-        for (const auto &panel : getChildren(PAS_PanelType)) {
-            if (m_selectedPanels.find(panel->getIdentity().position) != m_selectedPanels.end()) {                    
-                panelsToTest.push_back(std::dynamic_pointer_cast<PanelController>(panel));
-                for (const auto &actuator : std::dynamic_pointer_cast<PanelController>(panel)->getChildren(
-                    PAS_ACTType)) {
-                    UaVariant var;                   
-                    actuator->getData(PAS_ACTType_CurrentLength, var);
-                    float initialLength;
-                    UaVariant(var).toFloat(initialLength);
-                    initialLengths[actuator->getIdentity()] = initialLength;
-                } 
-            }
-        }
-
-        UaVariantArray deltaLengths;
-        deltaLengths.create(6);
-        UaVariant val;
-        for (unsigned i = 0; i < 6; i++) {
-            val.setFloat(moveDistance);
-            val.copyTo(&deltaLengths[i]);
-        }
-
-        // Move all panels up 
-        spdlog::info("{}: Extending all actuators on selected panels by {} mm...", m_Identity, moveDistance);
-        for (const auto &panel : panelsToTest) {
-            panel->operate(PAS_PanelType_MoveDeltaLengths, deltaLengths);
-        }
-
-        // Wait for completion
-        spdlog::info("{}: Waiting for all motions to complete...", m_Identity);
-        UaThread::sleep(5);
-        bool stillMoving = true;
-        while (stillMoving) {
-            stillMoving = false;
-            for (const auto &panel : panelsToTest) {
-                Device::DeviceState state;
-                panel->getState(state);
-                if (state == Device::DeviceState::Busy) {
-                    spdlog::trace("{}: Panel {} is still busy...", m_Identity, panel->getIdentity());
-                    stillMoving = true;
-                } else {
-                    spdlog::trace("{}: Panel {} is idle.", m_Identity, panel->getIdentity());
-                }
-                UaThread::sleep(1);
-            }
-        }
-        spdlog::info("{}: Done! All motions completed.", m_Identity);
-
-        spdlog::info("{}: Checking for failure...", m_Identity); 
-
-        // Check for errors
-        for (const auto &panel : panelsToTest) {
-            for (const auto &actuator : panel->getChildren(PAS_ACTType)) {
-                UaVariant var;
-                actuator->getData(PAS_ACTType_ErrorState, var);
-                int temp;
-                UaVariant(var).toInt32(temp);
-                auto errorState = static_cast<Device::ErrorState>(temp);
-                
-                actuator->getData(PAS_ACTType_CurrentLength, var);
-                float currentLength;
-                UaVariant(var).toFloat(currentLength);
-                float distanceFromTarget = fabs(currentLength - (initialLengths.at(actuator->getIdentity()) +  moveDistance)); 
-            
-                if (errorState != Device::ErrorState::Nominal || distanceFromTarget > epsilonLength) {
-                    spdlog::trace("{}: Found failed actuator {}.", m_Identity, actuator->getIdentity());
-                    auto result = failedActuators[panel->getIdentity()].insert(actuator); 
-                    if (result.second) {
-                        numFailedActuators++;
-                        spdlog::trace("{}: Num failed actuators = {}", m_Identity, numFailedActuators);
-                    }
-                }
-            }      
-        }
- 
-        // Move all panels back (which are error-free)
-        deltaLengths.create(6);
-        for (unsigned i = 0; i < 6; i++) {
-            val.setFloat(-1 * moveDistance);
-            val.copyTo(&deltaLengths[i]);
-        }
-
-        spdlog::info("{}: Retracting all actuators on selected panels by {} mm...", m_Identity, moveDistance);
-        for (const auto &panel : panelsToTest) {
-            panel->operate(PAS_PanelType_MoveDeltaLengths, deltaLengths);
-        }
-
-        // Wait for completion
-        spdlog::info("{}: Waiting for all motions to complete...", m_Identity);
-        UaThread::sleep(5);
-        stillMoving = true;
-        while (stillMoving) {
-            stillMoving = false;
-            Device::DeviceState state;
-            for (const auto &panel : panelsToTest) {
-                panel->getState(state);
-                if (state == Device::DeviceState::Busy) {
-                    spdlog::trace("{}: Panel {} is still busy...", m_Identity, panel->getIdentity());
-                    stillMoving = true;
-                } else {
-                    spdlog::trace("{}: Panel {} is idle.", m_Identity, panel->getIdentity());
-                }
-                UaThread::sleep(1);
-            }
-        }
-        spdlog::info("{}: Done! All motions completed.", m_Identity);
-
-        spdlog::info("{}: Report of failed actuators: ", m_Identity);
-
-        // Check for errors
-        for (const auto &panel : panelsToTest) {
-            for (const auto &actuator : panel->getChildren(PAS_ACTType)) {
-                UaVariant var;
-                actuator->getData(PAS_ACTType_ErrorState, var);
-                int temp;
-                UaVariant(var).toInt32(temp);
-                auto errorState = static_cast<Device::ErrorState>(temp);
-                
-                actuator->getData(PAS_ACTType_CurrentLength, var);
-                float currentLength;
-                UaVariant(var).toFloat(currentLength);
-                float distanceFromInitial = fabs(currentLength - initialLengths.at(actuator->getIdentity()));
-
-                if (errorState != Device::ErrorState::Nominal || distanceFromInitial > epsilonLength) {
-                    spdlog::trace("{}: Found failed actuator {}.", m_Identity, actuator->getIdentity());
-                    auto result = failedActuators[panel->getIdentity()].insert(actuator);
-                    if (result.second) {
-                        numFailedActuators++;
-                        spdlog::trace("{}: Num failed actuators = {}", m_Identity, numFailedActuators);
-                    }
-                }
-            }
-
-            if (!failedActuators[panel->getIdentity()].empty()) {
-                std::ostringstream os;
-                os.precision(7);
-                for (const auto &actuator : failedActuators[panel->getIdentity()]) {
-                    UaVariant var;
-                    actuator->getData(PAS_ACTType_CurrentLength, var);
-                    float currentLength;
-                    UaVariant(var).toFloat(currentLength);
-
-                    actuator->getData(PAS_ACTType_ErrorState, var);
-                    int temp;
-                    UaVariant(var).toInt32(temp);
-                    auto errorState = static_cast<Device::ErrorState>(temp);
-
-                    os << actuator->getIdentity() << " : " << currentLength << " [" << initialLengths.at(actuator->getIdentity()) << "] (" << currentLength - initialLengths.at(actuator->getIdentity()) << ") [[" << Device::errorStateNames.at(errorState) << "]]" << std::endl;
-                }
-                spdlog::info("Panel {}:\n"
-                        "ActuatorId : CurrentLength [Initial Length] (difference) [[Error Status]]\n{}", panel->getIdentity(), os.str());
-            }            
-        }
- 
-        if (numFailedActuators > 0) {
-            spdlog::warn("{}: Total of {} failed actuator(s) found.", m_Identity, numFailedActuators);
-        } else {
-            spdlog::info("{}: No failed actuators found.", m_Identity);
-        }
-
-    }
-        /************************************************
-         * stop the motion in progress                  *
-         * **********************************************/
-    else if (offset == PAS_MirrorType_Stop) {
+        status = testActuators();
+    } else if (offset == PAS_MirrorType_Stop) {
         spdlog::warn(
             "{} : MirrorController::operate() : Calling stop(). Stopping motion of all edges and child panels...",
             m_Identity);
@@ -861,8 +699,183 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
     return status;
 }
 
+UaStatus MirrorController::testActuators(float moveDistance, float epsilonLength) {
+    UaStatus status;
 
-/* ================= INTERNAL IMPLEMENTATIONS OF ALL METHODS ================== */
+    if (m_selectedPanels.empty()) {
+        spdlog::error(
+                "{} : MirrorController::operate() : No Panels selected. Nothing to do, method call aborted.",
+                m_Identity);
+        return OpcUa_Good;
+    }
+
+    std::vector<std::shared_ptr<PanelController>> panelsToTest;
+    std::map<Device::Identity, float> initialLengths;
+    std::map<Device::Identity, std::set<std::shared_ptr<PasController>>> failedActuators;
+    int numFailedActuators = 0;
+
+    for (const auto &panel : getChildren(PAS_PanelType)) {
+        if (m_selectedPanels.find(panel->getIdentity().position) != m_selectedPanels.end()) {
+            panelsToTest.push_back(std::dynamic_pointer_cast<PanelController>(panel));
+            for (const auto &actuator : std::dynamic_pointer_cast<PanelController>(panel)->getChildren(
+                    PAS_ACTType)) {
+                UaVariant var;
+                actuator->getData(PAS_ACTType_CurrentLength, var);
+                float initialLength;
+                UaVariant(var).toFloat(initialLength);
+                initialLengths[actuator->getIdentity()] = initialLength;
+            }
+        }
+    }
+
+    UaVariantArray deltaLengths;
+    deltaLengths.create(6);
+    UaVariant val;
+    for (unsigned i = 0; i < 6; i++) {
+        val.setFloat(moveDistance);
+        val.copyTo(&deltaLengths[i]);
+    }
+
+    // Move all panels up
+    spdlog::info("{}: Extending all actuators on selected panels by {} mm...", m_Identity, moveDistance);
+    for (const auto &panel : panelsToTest) {
+        panel->operate(PAS_PanelType_MoveDeltaLengths, deltaLengths);
+    }
+
+    // Wait for completion
+    spdlog::info("{}: Waiting for all motions to complete...", m_Identity);
+    UaThread::sleep(5);
+    bool stillMoving = true;
+    while (stillMoving) {
+        stillMoving = false;
+        for (const auto &panel : panelsToTest) {
+            Device::DeviceState state;
+            panel->getState(state);
+            if (state == Device::DeviceState::Busy) {
+                spdlog::trace("{}: Panel {} is still busy...", m_Identity, panel->getIdentity());
+                stillMoving = true;
+            } else {
+                spdlog::trace("{}: Panel {} is idle.", m_Identity, panel->getIdentity());
+            }
+            UaThread::sleep(1);
+        }
+    }
+    spdlog::info("{}: Done! All motions completed.", m_Identity);
+
+    spdlog::info("{}: Checking for failure...", m_Identity);
+
+    // Check for errors
+    for (const auto &panel : panelsToTest) {
+        for (const auto &actuator : panel->getChildren(PAS_ACTType)) {
+            UaVariant var;
+            actuator->getData(PAS_ACTType_ErrorState, var);
+            int temp;
+            UaVariant(var).toInt32(temp);
+            auto errorState = static_cast<Device::ErrorState>(temp);
+
+            actuator->getData(PAS_ACTType_CurrentLength, var);
+            float currentLength;
+            UaVariant(var).toFloat(currentLength);
+            float distanceFromTarget = fabs(currentLength - (initialLengths.at(actuator->getIdentity()) +  moveDistance));
+
+            if (errorState != Device::ErrorState::Nominal || distanceFromTarget > epsilonLength) {
+                spdlog::trace("{}: Found failed actuator {}.", m_Identity, actuator->getIdentity());
+                auto result = failedActuators[panel->getIdentity()].insert(actuator);
+                if (result.second) {
+                    numFailedActuators++;
+                    spdlog::trace("{}: Num failed actuators = {}", m_Identity, numFailedActuators);
+                }
+            }
+        }
+    }
+
+    // Move all panels back (which are error-free)
+    deltaLengths.create(6);
+    for (unsigned i = 0; i < 6; i++) {
+        val.setFloat(-1 * moveDistance);
+        val.copyTo(&deltaLengths[i]);
+    }
+
+    spdlog::info("{}: Retracting all actuators on selected panels by {} mm...", m_Identity, moveDistance);
+    for (const auto &panel : panelsToTest) {
+        panel->operate(PAS_PanelType_MoveDeltaLengths, deltaLengths);
+    }
+
+    // Wait for completion
+    spdlog::info("{}: Waiting for all motions to complete...", m_Identity);
+    UaThread::sleep(5);
+    stillMoving = true;
+    while (stillMoving) {
+        stillMoving = false;
+        Device::DeviceState state;
+        for (const auto &panel : panelsToTest) {
+            panel->getState(state);
+            if (state == Device::DeviceState::Busy) {
+                spdlog::trace("{}: Panel {} is still busy...", m_Identity, panel->getIdentity());
+                stillMoving = true;
+            } else {
+                spdlog::trace("{}: Panel {} is idle.", m_Identity, panel->getIdentity());
+            }
+            UaThread::sleep(1);
+        }
+    }
+    spdlog::info("{}: Done! All motions completed.", m_Identity);
+
+    spdlog::info("{}: Report of failed actuators: ", m_Identity);
+
+    // Check for errors
+    for (const auto &panel : panelsToTest) {
+        for (const auto &actuator : panel->getChildren(PAS_ACTType)) {
+            UaVariant var;
+            actuator->getData(PAS_ACTType_ErrorState, var);
+            int temp;
+            UaVariant(var).toInt32(temp);
+            auto errorState = static_cast<Device::ErrorState>(temp);
+
+            actuator->getData(PAS_ACTType_CurrentLength, var);
+            float currentLength;
+            UaVariant(var).toFloat(currentLength);
+            float distanceFromInitial = fabs(currentLength - initialLengths.at(actuator->getIdentity()));
+
+            if (errorState != Device::ErrorState::Nominal || distanceFromInitial > epsilonLength) {
+                spdlog::trace("{}: Found failed actuator {}.", m_Identity, actuator->getIdentity());
+                auto result = failedActuators[panel->getIdentity()].insert(actuator);
+                if (result.second) {
+                    numFailedActuators++;
+                    spdlog::trace("{}: Num failed actuators = {}", m_Identity, numFailedActuators);
+                }
+            }
+        }
+
+        if (!failedActuators[panel->getIdentity()].empty()) {
+            std::ostringstream os;
+            os.precision(7);
+            for (const auto &actuator : failedActuators[panel->getIdentity()]) {
+                UaVariant var;
+                actuator->getData(PAS_ACTType_CurrentLength, var);
+                float currentLength;
+                UaVariant(var).toFloat(currentLength);
+
+                actuator->getData(PAS_ACTType_ErrorState, var);
+                int temp;
+                UaVariant(var).toInt32(temp);
+                auto errorState = static_cast<Device::ErrorState>(temp);
+
+                os << actuator->getIdentity() << " : " << currentLength << " [" << initialLengths.at(actuator->getIdentity()) << "] (" << currentLength - initialLengths.at(actuator->getIdentity()) << ") [[" << Device::errorStateNames.at(errorState) << "]]" << std::endl;
+            }
+            spdlog::info("Panel {}:\n"
+                         "ActuatorId : CurrentLength [Initial Length] (difference) [[Error Status]]\n{}", panel->getIdentity(), os.str());
+        }
+    }
+
+    if (numFailedActuators > 0) {
+        spdlog::warn("{}: Total of {} failed actuator(s) found.", m_Identity, numFailedActuators);
+    } else {
+        spdlog::info("{}: No failed actuators found.", m_Identity);
+    }
+
+    return status;
+};
 
 UaStatus MirrorController::readPositionAll(bool print) {
     UaStatus status;
@@ -888,348 +901,134 @@ UaStatus MirrorController::readPositionAll(bool print) {
 }
 
 UaStatus
-MirrorController::moveDeltaCoords(const Eigen::VectorXd &deltaMirrorCoords, double alignFrac, std::string command) {
+MirrorController::__calculateMoveDeltaCoords(const Eigen::VectorXd &deltaMirrorCoords) {
     UaStatus status;
 
-    if (alignFrac > 1.01 || alignFrac <= 0.0) {
-        spdlog::error(
-            "{} : MirrorController::moveDeltaCoords(): Invalid choice of alignFrac ({}), should be between 0.0 and 1.0.",
-            m_Identity, alignFrac);
-        return OpcUa_BadInvalidArgument;
+    spdlog::info(
+        "{} : MirrorController::moveDeltaCoords(): Called with command=calculate. Pre-calculating alignment motion...",
+        m_Identity);
+    Eigen::VectorXd X(m_selectedPanels.size() * 6);
+    Eigen::VectorXd targetMirrorCoords(6);
+
+    targetMirrorCoords = m_curCoords + deltaMirrorCoords;
+    spdlog::info("{} : Delta coordinates:\n{}\n", m_Identity, deltaMirrorCoords);
+    spdlog::info("{} : Moving to target coordinates:\n{}\n", m_Identity, targetMirrorCoords);
+
+    std::vector<std::shared_ptr<PanelController>> panelsToMove;
+
+    unsigned positionNum;
+    Eigen::VectorXd prf_coords;
+    Eigen::VectorXd deltaActLengths(6);
+    Eigen::VectorXd targetActLengths(6);
+    Eigen::VectorXd currentActLengths(6);
+
+    int j = 0;
+    for (unsigned panelPos : m_selectedPanels) {
+        auto pPanel = std::dynamic_pointer_cast<PanelController>(
+            m_ChildrenPositionMap.at(PAS_PanelType).at(panelPos));
+        positionNum = pPanel->getIdentity().position;
+        // for this panel, we get PRF pad coords, transform them to TRF,
+        // move them in TRF, transform back to PRF, and then compute new ACT lengths
+        // based on the new pad coords. so simple!
+        auto padCoords_PanelRF = std::dynamic_pointer_cast<PanelController>(pPanel)->getPadCoords();
+        auto padCoords_TelRF = padCoords_PanelRF;
+        double newPadCoords[3][3];
+        for (unsigned pad = 0; pad < 3; pad++) {
+            // transform to TRF
+            padCoords_TelRF.col(pad) = __toTelRF(positionNum, padCoords_PanelRF.col(pad));
+            // move by the desired telescope coordinates
+            padCoords_TelRF.col(pad) = __moveInCurrentRF(padCoords_TelRF.col(pad), deltaMirrorCoords);
+            // transform back to PRF
+            padCoords_PanelRF.col(pad) = __toPanelRF(positionNum, padCoords_TelRF.col(pad));
+            for (unsigned coord = 0; coord < 3; coord++)
+                newPadCoords[pad][coord] = padCoords_PanelRF.col(pad)(coord);
+        }
+        m_pStewartPlatform->ComputeActsFromPads(newPadCoords);
+        for (int i = 0; i < 6; i++) {
+            targetActLengths(i) = (float) m_pStewartPlatform->GetActLengths()[i];
+        }
+        status = std::dynamic_pointer_cast<PanelController>(pPanel)->__getActuatorLengths(currentActLengths);
+        if (status.isBad()) {
+            spdlog::error("{}: Unable to move delta coordinates, failed to read actuator lengths.", m_Identity);
+            return OpcUa_Bad;
+        }
+
+        deltaActLengths = targetActLengths - currentActLengths;
+        panelsToMove.push_back(std::dynamic_pointer_cast<PanelController>(pPanel));
+        X.segment(j, 6) = deltaActLengths;
+        j += 6;
     }
 
-    Eigen::VectorXd X(m_pChildren.at(PAS_PanelType).size() * 6);
-    if (command == "calculate") {
-        spdlog::info(
-            "{} : MirrorController::moveDeltaCoords(): Called with command=calculate. Pre-calculating alignment motion...",
-            m_Identity);
-        Eigen::VectorXd targetMirrorCoords(6);
+    m_Xcalculated = X;
+    m_panelsToMove = panelsToMove;
+    m_previousCalculatedMethod = PAS_MirrorType_MoveDeltaCoords;
 
-        targetMirrorCoords = m_curCoords + deltaMirrorCoords;
-        spdlog::info("{} : Delta coordinates:\n{}\n", m_Identity, deltaMirrorCoords);
-        spdlog::info("{} : Moving to target coordinates:\n{}\n", m_Identity, targetMirrorCoords);
-
-        std::vector<std::shared_ptr<PanelController>> panelsToMove;
-
-        unsigned positionNum;
-        Eigen::VectorXd prf_coords;
-        Eigen::VectorXd deltaActLengths(6);
-        Eigen::VectorXd targetActLengths(6);
-        Eigen::VectorXd currentActLengths(6);
-
-        int j = 0;
-        for (const auto &pPanel : m_pChildren.at(PAS_PanelType)) {
-            positionNum = pPanel->getIdentity().position;
-            // for this panel, we get PRF pad coords, transform them to TRF,
-            // move them in TRF, transform back to PRF, and then compute new ACT lengths
-            // based on the new pad coords. so simple!
-            auto padCoords_PanelRF = std::dynamic_pointer_cast<PanelController>(pPanel)->getPadCoords();
-            auto padCoords_TelRF = padCoords_PanelRF;
-            double newPadCoords[3][3];
-            for (unsigned pad = 0; pad < 3; pad++) {
-                // transform to TRF
-                padCoords_TelRF.col(pad) = __toTelRF(positionNum, padCoords_PanelRF.col(pad));
-                // move by the desired telescope coordinates
-                padCoords_TelRF.col(pad) = __moveInCurrentRF(padCoords_TelRF.col(pad), deltaMirrorCoords);
-                // transform back to PRF
-                padCoords_PanelRF.col(pad) = __toPanelRF(positionNum, padCoords_TelRF.col(pad));
-                for (unsigned coord = 0; coord < 3; coord++)
-                    newPadCoords[pad][coord] = padCoords_PanelRF.col(pad)(coord);
-            }
-            m_pStewartPlatform->ComputeActsFromPads(newPadCoords);
-            for (int i = 0; i < 6; i++) {
-                targetActLengths(i) = (float) m_pStewartPlatform->GetActLengths()[i];
-            }
-            status = std::dynamic_pointer_cast<PanelController>(pPanel)->__getActuatorLengths(currentActLengths);
-            if (status.isBad()) {
-                spdlog::error("{}: Unable to move delta coordinates, failed to read actuator lengths.", m_Identity);
-                return OpcUa_Bad;
-            }
-
-            deltaActLengths = targetActLengths - currentActLengths;
-            panelsToMove.push_back(std::dynamic_pointer_cast<PanelController>(pPanel));
-            X.segment(j, 6) = deltaActLengths;
-            j += 6;
-        }
-        spdlog::info("{} : Full calculated motion is:\n{}\n", m_Identity,
-                     X);
-
-        m_Xcalculated = X;
-        m_panelsToMove = panelsToMove;
-        m_previousCalculatedMethod = PAS_MirrorType_MoveDeltaCoords;
-        spdlog::info(
-            "{} : Calculation done! You should call the method again with command=setAlignFrac to set an align fraction and inspect the resulting motion + do safety checks.",
-            m_Identity);
-    } else if (command == "setAlignFrac") {
-        if (m_Xcalculated.isZero(0) || m_previousCalculatedMethod != PAS_MirrorType_MoveDeltaCoords) {
-            spdlog::error(
-                "{} : No calculated motion found. Call Mirror.MoveDeltaCoords with command=calculate once first to calculate the motion to execute.",
-                m_Identity);
-            return OpcUa_Bad;
-        }
-        Eigen::VectorXd X = m_Xcalculated * alignFrac;
-        spdlog::info("{} : Fractional motion of {} requested.", m_Identity,
-                     alignFrac);
-
-        m_lastSetAlignFrac = alignFrac;
-
-        double maxChange = X.cwiseAbs().maxCoeff();
-
-        unsigned k = 0;
-        for (auto &pCurPanel : m_panelsToMove) {
-            std::ostringstream os;
-            for (int i=0; i < 6; i++) {
-                os << pCurPanel->getChildren(PAS_ACTType).at(i)->getIdentity() << ": " << X(k+i) << std::endl;
-            }
-            
-            // print out to make sure
-            spdlog::info("{} : Will move Panel {} actuators by:\n{}\n", m_Identity, pCurPanel->getIdentity(),
-                          os.str());
-            k += 6;
-        }
-
-        if (maxChange > 2.5) {
-            spdlog::warn(
-                "{}: The largest requested actuator motion has magnitude {}. This level of motion could potentially be dangerous. Be careful and review the full logfile output for a detailed breakdown of the motion before proceeding.",
-                m_Identity, maxChange);
-        } else {
-            spdlog::info(
-                "{}: The largest requested actuator motion has magnitude {}. This is small so the motion is most likely safe.",
-                m_Identity, maxChange);
-        }
-
-        // Do collision checks
-        spdlog::info(
-            "{}: Done! All collision checks passed. To execute the motion, call the command again with command=execute.",
-            m_Identity);
-    } else if (command == "execute") {
-        if (m_Xcalculated.isZero(0) || m_previousCalculatedMethod != PAS_MirrorType_MoveDeltaCoords) {
-            spdlog::error(
-                "{} : No calculated motion found. Call Mirror.MoveDeltaCoords with command=calculate once first to calculate the motion to execute.",
-                m_Identity);
-            return OpcUa_Bad;
-        } else if (m_lastSetAlignFrac < 0.0) {
-            spdlog::error(
-                "{} : No align fraction was set. Call Mirror.MoveDeltaCoords at least once with command=setAlignFrac once first to set the fractional motion to perform and do safety checks.",
-                m_Identity);
-            return OpcUa_Bad;
-        } else if (std::fabs(alignFrac - m_lastSetAlignFrac) > FLT_EPSILON) {
-            spdlog::error(
-                "{} : The selected align fraction ({}) does not match the value last used when doing setAlignFrac ({}). For safety reasons, you should always call setAlignFrac with the align fraction you"
-                "want, review it, and then execute the motion with the same align fraction. Please correct your requested align fraction or go back and call setAlignFrac again.",
-                m_Identity, alignFrac, m_lastSetAlignFrac);
-            return OpcUa_Bad;
-        } else {
-            X = m_Xcalculated * alignFrac;
-
-            std::map <std::shared_ptr<PanelController>, UaVariantArray> args;
-
-            unsigned j = 0;
-            for (const auto &pCurPanel : m_panelsToMove) {
-                auto nACT = pCurPanel->getActuatorCount();
-                UaVariantArray deltas;
-                deltas.create(nACT);
-                UaVariant val;
-                for (unsigned i = 0; i < nACT; i++) {
-                    val.setFloat(X(j++));
-                    val.copyTo(&deltas[i]);
-                }
-                args[pCurPanel] = deltas;
-            }
-
-            for (const auto &pair : args) {
-                status = pair.first->__moveDeltaLengths(pair.second);
-                //if (!status.isGood()) { return status; }
-                //if (m_State == Device::DeviceState::Off) { break; }
-            }
-
-            m_Xcalculated.setZero(); // reset calculated motion
-            m_panelsToMove.clear();
-            m_previousCalculatedMethod = 0;
-            m_lastSetAlignFrac = -1.0;
-        }
-    } else {
-        spdlog::error(
-            "{} : Invalid command provided ({}), valid commands are 'calculate', 'setAlignFrac', 'execute'.",
-            m_Identity, command);
-        return OpcUa_Bad;
-    }
     return status;
 }
 
 UaStatus
-MirrorController::moveToCoords(const Eigen::VectorXd &targetMirrorCoords, double alignFrac, std::string command) {
+MirrorController::__calculateMoveToCoords(const Eigen::VectorXd &targetMirrorCoords) {
     UaStatus status;
 
-    if (alignFrac > 1.01 || alignFrac <= 0.0) {
-        spdlog::error(
-            "{} : MirrorController::moveToCoords(): Invalid choice of alignFrac ({}), should be between 0.0 and 1.0.",
-            m_Identity, alignFrac);
-        return OpcUa_BadInvalidArgument;
+    Eigen::VectorXd deltaMirrorCoords(6);
+    Eigen::VectorXd X(m_selectedPanels.size() * 6);
+
+    deltaMirrorCoords = targetMirrorCoords - m_curCoords;
+    spdlog::info("{} : Moving to target coordinates:\n{}\n", m_Identity, targetMirrorCoords);
+    spdlog::info("{} : Delta coordinates:\n{}\n", m_Identity, deltaMirrorCoords);
+
+    std::vector<std::shared_ptr<PanelController>> panelsToMove;
+
+    unsigned positionNum;
+    Eigen::VectorXd prf_coords;
+    Eigen::VectorXd deltaActLengths(6);
+    Eigen::VectorXd targetActLengths(6);
+    Eigen::VectorXd currentActLengths(6);
+
+    int j = 0;
+    for (unsigned panelPos : m_selectedPanels) {
+        auto pPanel = std::dynamic_pointer_cast<PanelController>(
+            m_ChildrenPositionMap.at(PAS_PanelType).at(panelPos));
+        positionNum = pPanel->getIdentity().position;
+        // for this panel, we get PRF pad coords, transform them to TRF,
+        // move them in TRF, transform back to PRF, and then compute new ACT lengths
+        // based on the new pad coords. so simple!
+        auto padCoords_PanelRF = std::dynamic_pointer_cast<PanelController>(pPanel)->getPadCoords();
+        auto padCoords_TelRF = padCoords_PanelRF;
+        double newPadCoords[3][3];
+        for (unsigned pad = 0; pad < 3; pad++) {
+            // transform to TRF
+            padCoords_TelRF.col(pad) = __toTelRF(positionNum, padCoords_PanelRF.col(pad));
+            // move by the desired telescope coordinates
+            padCoords_TelRF.col(pad) = __moveInCurrentRF(padCoords_TelRF.col(pad), deltaMirrorCoords);
+            // transform back to PRF
+            padCoords_PanelRF.col(pad) = __toPanelRF(positionNum, padCoords_TelRF.col(pad));
+            for (unsigned coord = 0; coord < 3; coord++)
+                newPadCoords[pad][coord] = padCoords_PanelRF.col(pad)(coord);
+        }
+        m_pStewartPlatform->ComputeActsFromPads(newPadCoords);
+        for (int i = 0; i < 6; i++) {
+            targetActLengths(i) = (float) m_pStewartPlatform->GetActLengths()[i];
+        }
+
+        status = std::dynamic_pointer_cast<PanelController>(pPanel)->__getActuatorLengths(currentActLengths);
+        if (status.isBad()) {
+            spdlog::error("{}: Unable to move to coordinates, failed to read actauator lengths.", m_Identity);
+            return OpcUa_Bad;
+        }
+
+        deltaActLengths = targetActLengths - currentActLengths;
+        spdlog::info("{} : Panel {} calculated actuator motion:\n{}\n", m_Identity, pPanel->getIdentity(),
+                     deltaActLengths);
+
+        panelsToMove.push_back(std::dynamic_pointer_cast<PanelController>(pPanel));
+        X.segment(j,6) = deltaActLengths;
+        j += 6;
     }
 
-    if (command == "calculate") {
-        spdlog::info(
-            "{} : MirrorController::moveToCoords(): Called with command=calculate. Pre-calculating alignment motion...",
-            m_Identity);
-        Eigen::VectorXd deltaMirrorCoords(6);
-        Eigen::VectorXd X(m_pChildren.at(PAS_PanelType).size() * 6);
-
-        deltaMirrorCoords = targetMirrorCoords - m_curCoords;
-        spdlog::info("{} : Moving to target coordinates:\n{}\n", m_Identity, targetMirrorCoords);
-        spdlog::info("{} : Delta coordinates:\n{}\n", m_Identity, deltaMirrorCoords);
-
-        std::vector<std::shared_ptr<PanelController>> panelsToMove;
-
-        unsigned positionNum;
-        Eigen::VectorXd prf_coords;
-        Eigen::VectorXd deltaActLengths(6);
-        Eigen::VectorXd targetActLengths(6);
-        Eigen::VectorXd currentActLengths(6);
-
-        int j = 0;
-        for (const auto &pPanel : m_pChildren.at(PAS_PanelType)) {
-            positionNum = pPanel->getIdentity().position;
-            // for this panel, we get PRF pad coords, transform them to TRF,
-            // move them in TRF, transform back to PRF, and then compute new ACT lengths
-            // based on the new pad coords. so simple!
-            auto padCoords_PanelRF = std::dynamic_pointer_cast<PanelController>(pPanel)->getPadCoords();
-            auto padCoords_TelRF = padCoords_PanelRF;
-            double newPadCoords[3][3];
-            for (unsigned pad = 0; pad < 3; pad++) {
-                // transform to TRF
-                padCoords_TelRF.col(pad) = __toTelRF(positionNum, padCoords_PanelRF.col(pad));
-                // move by the desired telescope coordinates
-                padCoords_TelRF.col(pad) = __moveInCurrentRF(padCoords_TelRF.col(pad), deltaMirrorCoords);
-                // transform back to PRF
-                padCoords_PanelRF.col(pad) = __toPanelRF(positionNum, padCoords_TelRF.col(pad));
-                for (unsigned coord = 0; coord < 3; coord++)
-                    newPadCoords[pad][coord] = padCoords_PanelRF.col(pad)(coord);
-            }
-            m_pStewartPlatform->ComputeActsFromPads(newPadCoords);
-            for (int i = 0; i < 6; i++) {
-                targetActLengths(i) = (float) m_pStewartPlatform->GetActLengths()[i];
-            }
-
-            status = std::dynamic_pointer_cast<PanelController>(pPanel)->__getActuatorLengths(currentActLengths);
-            if (status.isBad()) {
-                spdlog::error("{}: Unable to move to coordinates, failed to read actauator lengths.", m_Identity);
-                return OpcUa_Bad;
-            }
-
-            deltaActLengths = targetActLengths - currentActLengths;
-            spdlog::info("{} : Panel {} calculated actuator motion:\n{}\n", m_Identity, pPanel->getIdentity(),
-                         deltaActLengths);
-
-            /**
-            if (std::dynamic_pointer_cast<PanelController>(pPanel)->checkForCollision(deltaActLengths)) {
-                return OpcUa_Bad;
-            }
-             */
-
-            panelsToMove.push_back(std::dynamic_pointer_cast<PanelController>(pPanel));
-            X.segment(j,6) = deltaActLengths;
-            j += 6;
-        }
-        spdlog::info("{} : Full calculated motion is:\n{}\n", m_Identity,
-                     X);
-
-        m_Xcalculated = X;
-        m_panelsToMove = panelsToMove;
-        m_previousCalculatedMethod = PAS_MirrorType_MoveToCoords;
-
-        spdlog::info(
-            "{} : Calculation done! You should call the method again with command=setAlignFrac to set an align fraction and inspect the resulting motion + do safety checks.",
-            m_Identity);
-    } else if (command == "setAlignFrac") {
-        if (m_Xcalculated.isZero(0) || m_previousCalculatedMethod != PAS_MirrorType_MoveToCoords) {
-            spdlog::error(
-                "{} : No calculated motion found. Call Mirror.MoveToCoords with command=calculate once first to calculate the motion to execute.",
-                m_Identity);
-            return OpcUa_Bad;
-        }
-        Eigen::VectorXd X = m_Xcalculated * alignFrac;
-        spdlog::info("{} : Fractional motion of {} requested.", m_Identity,
-                     alignFrac);
-
-        m_lastSetAlignFrac = alignFrac;
-
-        double maxChange = X.cwiseAbs().maxCoeff();
-
-        unsigned k = 0;
-        for (auto &pCurPanel : m_panelsToMove) {
-            // print out to make sure
-            spdlog::debug("{} : Will move Panel {} actuators by:\n{}\n", m_Identity, pCurPanel->getIdentity(),
-                          X.segment(k, 6));
-            k += 6;
-        }
-
-        if (maxChange > 2.5) {
-            spdlog::warn(
-                "{}: The largest requested actuator motion has magnitude {}. This level of motion could potentially be dangerous. Be careful and review the full logfile output for a detailed breakdown of the motion before proceeding.",
-                m_Identity, maxChange);
-        } else {
-            spdlog::info(
-                "{}: The largest requested actuator motion has magnitude {}. This is small so the motion is most likely safe.",
-                m_Identity);
-        }
-
-        // Do collision checks
-        spdlog::info(
-            "{}: Done! All collision checks passed. To execute the motion, call the command again with command=execute.",
-            m_Identity);
-    } else if (command == "execute") {
-        if (m_Xcalculated.isZero(0) || m_previousCalculatedMethod != PAS_MirrorType_MoveToCoords) {
-            spdlog::error(
-                "{} : No calculated motion found. Call Mirror.MoveToCoords with command=calculate once first to calculate the motion to execute.",
-                m_Identity);
-            return OpcUa_Bad;
-        } else if (m_lastSetAlignFrac < 0.0) {
-            spdlog::error(
-                "{} : No align fraction was set. Call Mirror.MoveToCoords at least once with command=setAlignFrac once first to set the fractional motion to perform and do safety checks.",
-                m_Identity);
-            return OpcUa_Bad;
-        } else if (std::fabs(alignFrac - m_lastSetAlignFrac) > FLT_EPSILON) {
-            spdlog::error(
-                "{} : The selected align fraction ({}) does not match the value last used when doing setAlignFrac ({}). For safety reasons, you should always call setAlignFrac with the align fraction you"
-                "want, review it, and then execute the motion with the same align fraction. Please correct your requested align fraction or go back and call setAlignFrac again.",
-                m_Identity, alignFrac, m_lastSetAlignFrac);
-            return OpcUa_Bad;
-        } else {
-            Eigen::VectorXd X = m_Xcalculated * alignFrac;
-
-            std::map<std::shared_ptr<PanelController>, UaVariantArray> args;
-
-            unsigned j = 0;
-            for (const auto &pCurPanel : m_panelsToMove) {
-                auto nACT = pCurPanel->getActuatorCount();
-                UaVariantArray deltas;
-                deltas.create(nACT);
-                UaVariant val;
-                for (unsigned i = 0; i < nACT; i++) {
-                    val.setFloat(X(j++));
-                    val.copyTo(&deltas[i]);
-                }
-                args[pCurPanel] = deltas;
-            }
-
-            for (const auto &pair : args) {
-                status = pair.first->__moveDeltaLengths(pair.second);
-                //if (!status.isGood()) { return status; }
-                //if (m_State == Device::DeviceState::Off) { break; }
-            }
-
-            m_Xcalculated.setZero(); // reset calculated motion
-            m_panelsToMove.clear();
-            m_previousCalculatedMethod = 0;
-            m_lastSetAlignFrac = -1.0;
-        }
-    } else {
-        spdlog::error(
-            "{} : Invalid command provided ({}), valid commands are 'calculate', 'setAlignFrac', 'execute'.",
-            m_Identity, command);
-        return OpcUa_Bad;
-    }
+    m_Xcalculated = X;
+    m_panelsToMove = panelsToMove;
+    m_previousCalculatedMethod = PAS_MirrorType_MoveToCoords;
 
     return status;
 }
@@ -1311,11 +1110,14 @@ UaStatus MirrorController::alignSequential(const std::string &startEdge, const s
             args[0].Value.UInt32 = curPanels.at(0); // "smaller" panel
             args[1].Value.UInt32 = curPanels.at(1); // larger panel
             args[2].Value.Double = 1.0;
-            args[3].Value.Boolean = false; // first, calculate
+            args[3].Value.String = *UaString("calculate").toOpcUaString(); // first, calculate
             auto movingPanel = m_ChildrenPositionMap.at(PAS_PanelType).at(curPanels.at(0));
             // do this until the edge is aligned
             int alignIter = 1;
             spdlog::debug("{} Calculating motion for Edge {}...", m_Identity, edgeEaddress);
+            status = edge->operate(PAS_EdgeType_Align, args);
+            spdlog::debug("{} Setting align frac for Edge {}...", m_Identity, edgeEaddress);
+            args[3].Value.String = *UaString("setAlignFrac").toOpcUaString(); // first, calculate
             status = edge->operate(PAS_EdgeType_Align, args);
             Device::DeviceState curState;
             edge->getState(curState);
@@ -1324,7 +1126,7 @@ UaStatus MirrorController::alignSequential(const std::string &startEdge, const s
                 edge->getState(curState);
             }
             if (m_State == Device::DeviceState::Off) { break; }
-            args[3].Value.Boolean = true; // this time, execute
+            args[3].Value.String = *UaString("execute").toOpcUaString(); // first, calculate; // this time, execute
             spdlog::debug("{}: Executing alignment motion for Edge {}...", m_Identity, edgeEaddress);
             status = edge->operate(PAS_EdgeType_Align, args);
             while (curState == Device::DeviceState::Busy) {
@@ -1348,15 +1150,18 @@ UaStatus MirrorController::alignSequential(const std::string &startEdge, const s
                     movingPanel->getState(curstate);
                 }
                 alignIter++;
-                args[3].Value.Boolean = false;
+                args[3].Value.String = *UaString("calculate").toOpcUaString();
                 spdlog::debug("{} Calculating motion for Edge {}...", m_Identity, edgeEaddress);
+                status = edge->operate(PAS_EdgeType_Align, args);
+                spdlog::debug("{} Setting align frac for Edge {}...", m_Identity, edgeEaddress);
+                args[3].Value.String = *UaString("setAlignFrac").toOpcUaString(); // first, calculate
                 status = edge->operate(PAS_EdgeType_Align, args);
                 while (curState == Device::DeviceState::Busy) {
                     usleep(500 * 1000); // microseconds
                     edge->getState(curState);
                 }
                 if (m_State == Device::DeviceState::Off) { break; }
-                args[3].Value.Boolean = true; // execute motion
+                args[3].Value.String = *UaString("execute").toOpcUaString(); // execute motion
                 spdlog::debug("{}: Executing alignment motion for Edge {}...", m_Identity, edgeEaddress);
                 status = edge->operate(PAS_EdgeType_Align, args);
                 if (!status.isGood()) {
@@ -1572,10 +1377,8 @@ Eigen::MatrixXd MirrorController::__computeSystematicsMatrix(unsigned pos1, unsi
     return res;
 }
 
-UaStatus MirrorController::alignSector(double alignFrac, std::string command) {
-
+UaStatus MirrorController::__calculateAlignSector() {
     UaStatus status;
- 
     // make sure there are some selected sensors
     if (m_selectedPanels.empty()) {
         spdlog::error("{} : MirrorController::alignSector(): No panels selected. Nothing to do, method aborted.",
@@ -1588,269 +1391,142 @@ UaStatus MirrorController::alignSector(double alignFrac, std::string command) {
                       m_Identity);
         return OpcUa_BadInvalidArgument;
     }
+    // following the align method for an edge:
+    Eigen::MatrixXd C; // constraint
+    Eigen::MatrixXd B; // complete matrix
 
-    if (alignFrac > 1.01 || alignFrac <= 0.0) {
-        spdlog::error(
-            "{} : MirrorController::alignSector(): Invalid choice of alignFrac ({}), should be between 0.0 and 1.0.",
-            m_Identity, alignFrac);
-        return OpcUa_BadInvalidArgument;
+    Eigen::VectorXd X; // solutions vector -- this moves actuators
+    Eigen::VectorXd Y; // sensor misalignment vector, we want to fit this
+
+    // grab all user specified panels to move and sensors to fit
+    std::vector<std::shared_ptr<PanelController>> panelsToMove;
+    std::vector<std::shared_ptr<MPESController>> alignMPES;
+    for (unsigned panelPos : m_selectedPanels)
+        panelsToMove.push_back(std::dynamic_pointer_cast<PanelController>(m_ChildrenPositionMap.at(PAS_PanelType).at(panelPos)));
+    for (int mpesSerial : m_selectedMPES) {
+        std::shared_ptr<MPESController> mpes = std::dynamic_pointer_cast<MPESController>(
+            m_ChildrenSerialMap.at(PAS_MPESType).at(mpesSerial));
+        if (mpes->isVisible())
+            alignMPES.push_back(mpes);
     }
 
-    if (command == "calculate") {
-        spdlog::info(
-            "{} : MirrorController::alignSector(): Called with command=calculate. Pre-calculating alignment motion...",
-            m_Identity);
-        // following the align method for an edge:
-        Eigen::MatrixXd C; // constraint
-        Eigen::MatrixXd B; // complete matrix
+    // get the overlapping sensors -- these are the constraining internal ones
+    std::set<Device::Identity> overlapMPES;
+    bool userOverlap = false;
+    for (const auto &panel : panelsToMove) {
+        for (const auto &mpes : panel->getChildren(PAS_MPESType)) {
+            unsigned overlap = 0;
+            for (const auto &overlapPanel : panelsToMove)
+                overlap += (
+                    std::dynamic_pointer_cast<MPESController>(mpes)->getPanelSide(
+                        overlapPanel->getIdentity().position) !=
+                    0);
 
-        Eigen::VectorXd X; // solutions vector -- this moves actuators
-        Eigen::VectorXd Y; // sensor misalignment vector, we want to fit this
-
-        // grab all user specified panels to move and sensors to fit
-        std::vector<std::shared_ptr<PanelController>> panelsToMove;
-        std::vector<std::shared_ptr<MPESController>> alignMPES;
-        for (unsigned panelPos : m_selectedPanels)
-            panelsToMove.push_back(std::dynamic_pointer_cast<PanelController>(m_ChildrenPositionMap.at(PAS_PanelType).at(panelPos)));
-        for (int mpesSerial : m_selectedMPES) {
-            std::shared_ptr<MPESController> mpes = std::dynamic_pointer_cast<MPESController>(
-                m_ChildrenSerialMap.at(PAS_MPESType).at(mpesSerial));
-            if (mpes->isVisible())
-                alignMPES.push_back(mpes);
-        }
-
-        // get the overlapping sensors -- these are the constraining internal ones
-        std::set<Device::Identity> overlapMPES;
-        bool userOverlap = false;
-        for (const auto &panel : panelsToMove) {
-            for (const auto &mpes : panel->getChildren(PAS_MPESType)) {
-                unsigned overlap = 0;
-                for (const auto &overlapPanel : panelsToMove)
-                    overlap += (
-                        std::dynamic_pointer_cast<MPESController>(mpes)->getPanelSide(
-                            overlapPanel->getIdentity().position) !=
-                        0);
-
-                if (overlap == 2) {
-                    if (!overlapMPES.count(mpes->getIdentity())) {
-                        overlapMPES.insert(mpes->getIdentity());
-                        if (count(alignMPES.begin(), alignMPES.end(), mpes)) {
-                            spdlog::info("{} : MirrorController::alignSector(): Internal MPES selected: {}", m_Identity,
-                                         mpes->getIdentity());
-                            userOverlap = true;
-                        }
+            if (overlap == 2) {
+                if (!overlapMPES.count(mpes->getIdentity())) {
+                    overlapMPES.insert(mpes->getIdentity());
+                    if (count(alignMPES.begin(), alignMPES.end(), mpes)) {
+                        spdlog::info("{} : MirrorController::alignSector(): Internal MPES selected: {}", m_Identity,
+                                     mpes->getIdentity());
+                        userOverlap = true;
                     }
                 }
             }
         }
+    }
 
-        // if no user specified overlapping sensors, get their readings
-        if (!userOverlap && !overlapMPES.empty()) {
-            spdlog::warn(
-                "{} : MirrorController::alignSector(): No user-selected internal MPES. Reading all internal MPES...",
-                m_Identity);
-            // only read the internal MPES if no user-specified ones have been found
-            for (const auto &mpesId: overlapMPES) {
-                std::shared_ptr<MPESController> mpes = std::dynamic_pointer_cast<MPESController>(
-                    m_ChildrenIdentityMap.at(PAS_MPESType).at(mpesId));
-                if (mpes->isVisible())
-                    alignMPES.push_back(mpes);
-            }
-        } else if (overlapMPES.empty()) {
-            spdlog::warn(
-                "{} : MirrorController::alignSector(): Found no internal MPES. This should only occur when the sector is a single panel.",
-                m_Identity);
-        }
-        else
-            spdlog::warn("{} : MirrorController::alignSector(): Found user-selected internal MPES.", m_Identity);
-
-        std::ostringstream os;
-        for (auto &panel : panelsToMove)
-            os << panel->getIdentity().position << " ";
-        os << std::endl << std::endl;
-        spdlog::info("{}: Will align the following panels:\n{}\n", m_Identity, os.str());
-        os.str(""); // Clear ostringstream
-
-        for (auto &mpes: alignMPES)
-            os << mpes->getIdentity().serialNumber << " ";
-        os << std::endl << std::endl;
-        spdlog::info("{}: Will use the following sensors for alignment:\n{}\n", m_Identity, os.str());
-
-        // construct the overall target vector and the response matrix
-        UaVariant vtmp;
-        // store the current readings and the target readings
-        Eigen::VectorXd curRead(2 * alignMPES.size());
-        Eigen::VectorXd targetRead(2 * alignMPES.size());
-        // store individual response matrix;
-        Eigen::MatrixXd responseMat(2, 6);
-
-        unsigned nCols = 6 * panelsToMove.size();
-        unsigned nRows = 2 * alignMPES.size();
-        B = Eigen::MatrixXd(nRows, nCols);
-        Y = Eigen::VectorXd(nRows);
-        for (int m = 0; m < (int) alignMPES.size(); m++) {
-            alignMPES.at(m)->getData(PAS_MPESType_xCentroidAvg, vtmp);
-            vtmp.toDouble(curRead(m * 2));
-            alignMPES.at(m)->getData(PAS_MPESType_yCentroidAvg, vtmp);
-            vtmp.toDouble(curRead(m * 2 + 1));
-            targetRead.segment(2 * m, 2) = alignMPES.at(m)->getAlignedReadings()
-                                           - alignMPES.at(m)->getSystematicOffsets();
-
-            for (int p = 0; p < (int) panelsToMove.size(); p++) {
-                auto panelSide = alignMPES.at(m)->getPanelSide(panelsToMove.at(p)->getIdentity().position);
-                if (panelSide)
-                    responseMat = alignMPES.at(m)->getResponseMatrix(panelSide);
-                else
-                    responseMat.setZero();
-                B.block(2 * m, 6 * p, 2, 6) = responseMat;
-            }
-        }
-        Y = targetRead - curRead;
-
-        // make sure we have enough constraints to solve this
-        if (Y.size() < B.cols()) {
-            spdlog::error(
-                "{}: Found () sensors and {} actuators. Not enough sensors to constrain the motion. Method aborted.",
-                m_Identity, B.rows() / 2, B.cols());
-            return OpcUa_Bad;
-        }
-
-        try {
-            X = B.jacobiSvd(Eigen::ComputeThinU | Eigen::ComputeThinV).solve(Y);
-        }
-        catch (...) {
-            spdlog::error(
-                "{} : Singular Value Decomposition failed. Result discarded and method aborted. Check your sensor readings!",
-                m_Identity);
-            return OpcUa_Bad;
-        }
-
-        spdlog::info("{}: Vector to solve for:\n{}\n", m_Identity, Y);
-        spdlog::info("{}: Matrix to solve with:\n{}\n", m_Identity, B);
-        spdlog::info("{}: Least squares solution:\n{}\n", m_Identity, X);
-
-        spdlog::info("{} : Full calculated motion is:\n{}\n", m_Identity,
-                     X);
-
-        double maxChange = X.cwiseAbs().maxCoeff();
-
-        if (maxChange > 2.5) {
-            spdlog::warn(
-                "{}: The largest requested actuator motion has magnitude {}. This level of motion could potentially be dangerous. Be careful and review the full logfile output for a detailed breakdown of the motion before proceeding.",
-                m_Identity, maxChange);
-        } else {
-            spdlog::info(
-                "{}: The largest requested actuator motion has magnitude {}. This is small, so the motion is most likely safe. You can review the full logfile output for a detailed breakdown of the motion before proceeding.",
-                m_Identity, maxChange);
-        }
-
-        m_Xcalculated = X; // set calculated motion
-        m_panelsToMove = panelsToMove;
-        m_previousCalculatedMethod = PAS_MirrorType_AlignSector;
-
-        spdlog::info(
-            "{} : Calculation done! You should call the method again with command=setAlignFrac to set an align fraction and inspect the resulting motion + do safety checks.",
+    // if no user specified overlapping sensors, get their readings
+    if (!userOverlap && !overlapMPES.empty()) {
+        spdlog::warn(
+            "{} : MirrorController::alignSector(): No user-selected internal MPES. Reading all internal MPES...",
             m_Identity);
-    } else if (command == "setAlignFrac") {
-        if (m_Xcalculated.isZero(0) || m_previousCalculatedMethod != PAS_MirrorType_AlignSector) {
-            spdlog::error(
-                "{} : No calculated motion found. Call Mirror.AlignSector with command=calculate once first to calculate the motion to execute.",
-                m_Identity);
-            return OpcUa_Bad;
+        // only read the internal MPES if no user-specified ones have been found
+        for (const auto &mpesId: overlapMPES) {
+            std::shared_ptr<MPESController> mpes = std::dynamic_pointer_cast<MPESController>(
+                m_ChildrenIdentityMap.at(PAS_MPESType).at(mpesId));
+            if (mpes->isVisible())
+                alignMPES.push_back(mpes);
         }
-        Eigen::VectorXd X = m_Xcalculated * alignFrac;
-        spdlog::info("{} : Fractional motion of {} requested.", m_Identity,
-                     alignFrac);
-
-        m_lastSetAlignFrac = alignFrac;
-
-        double maxChange = X.cwiseAbs().maxCoeff();
-
-        unsigned k = 0;
-        for (auto &pCurPanel : m_panelsToMove) {
-            std::ostringstream os;
-            for (int i=0; i < 6; i++) {
-                os << pCurPanel->getChildren(PAS_ACTType).at(i)->getIdentity() << ": " << X(k+i) << std::endl;
-            }
-            
-            // print out to make sure
-            spdlog::info("{} : Will move Panel {} actuators by:\n{}\n", m_Identity, pCurPanel->getIdentity(),
-                          os.str());
-            k += 6;
-        }
-
-        if (maxChange > 2.5) {
-            spdlog::warn(
-                "{}: The largest requested actuator motion has magnitude {}. This level of motion could potentially be dangerous. Be careful and review the full logfile output for a detailed breakdown of the motion before proceeding.",
-                m_Identity, maxChange);
-        } else {
-            spdlog::info(
-                "{}: The largest requested actuator motion has magnitude {}. This is small so the motion is most likely safe.",
-                m_Identity, maxChange);
-        }
-
-        // Do collision checks
-        spdlog::info(
-            "{}: Done! All collision checks passed. To execute the motion, call the command again with command=execute.",
+    } else if (overlapMPES.empty()) {
+        spdlog::warn(
+            "{} : MirrorController::alignSector(): Found no internal MPES. This should only occur when the sector is a single panel.",
             m_Identity);
-    } else if (command == "execute") {             
-        if (m_Xcalculated.isZero(0) || m_previousCalculatedMethod != PAS_MirrorType_AlignSector) {
-            spdlog::error(
-                "{} : No calculated motion found. Call Mirror.AlignSector with command=calculate once first to calculate the motion to execute.",
-                m_Identity);
-            return OpcUa_Bad;
-        } else if (m_lastSetAlignFrac < 0.0) {
-            spdlog::error(
-                "{} : No align fraction was set. Call Mirror.AlignSector at least once with command=setAlignFrac once first to set the fractional motion to perform and do safety checks.",
-                m_Identity);
-            return OpcUa_Bad;
-        } else if (std::fabs(alignFrac - m_lastSetAlignFrac) > FLT_EPSILON) {
-            spdlog::error(
-                "{} : The selected align fraction ({}) does not match the value last used when doing setAlignFrac ({}). For safety reasons, you should always call setAlignFrac with the align fraction you"
-                "want, review it, and then execute the motion with the same align fraction. Please correct your requested align fraction or go back and call setAlignFrac again.",
-                m_Identity, alignFrac, m_lastSetAlignFrac);
-            return OpcUa_Bad;
-        } else {
-            Eigen::VectorXd X = m_Xcalculated * alignFrac;
+    }
+    else
+        spdlog::warn("{} : MirrorController::alignSector(): Found user-selected internal MPES.", m_Identity);
 
-            std::map <std::shared_ptr<PanelController>, UaVariantArray> args;
+    std::ostringstream os;
+    for (auto &panel : panelsToMove)
+        os << panel->getIdentity().position << " ";
+    os << std::endl << std::endl;
+    spdlog::info("{}: Will align the following panels:\n{}\n", m_Identity, os.str());
+    os.str(""); // Clear ostringstream
 
-            unsigned j = 0;
-            for (const auto &pCurPanel : m_panelsToMove) {
-                auto nACT = pCurPanel->getActuatorCount();
-                UaVariantArray deltas;
-                deltas.create(nACT);
-                UaVariant val;
-                for (unsigned i = 0; i < nACT; i++) {
-                    val.setFloat(X(j++));
-                    val.copyTo(&deltas[i]);
-                }
-                args[pCurPanel] = deltas;
-            }
+    for (auto &mpes: alignMPES)
+        os << mpes->getIdentity().serialNumber << " ";
+    os << std::endl << std::endl;
+    spdlog::info("{}: Will use the following sensors for alignment:\n{}\n", m_Identity, os.str());
 
-            for (const auto &pair : args) {
-                status = pair.first->__moveDeltaLengths(pair.second);
-                //if (!status.isGood()) { return status; }
-                //if (m_State == Device::DeviceState::Off) { break; }
-            }
+    // construct the overall target vector and the response matrix
+    UaVariant vtmp;
+    // store the current readings and the target readings
+    Eigen::VectorXd curRead(2 * alignMPES.size());
+    Eigen::VectorXd targetRead(2 * alignMPES.size());
+    // store individual response matrix;
+    Eigen::MatrixXd responseMat(2, 6);
 
-            m_Xcalculated.setZero(); // reset calculated motion
-            m_panelsToMove.clear();
-            m_previousCalculatedMethod = 0;
-            m_lastSetAlignFrac = -1.0;
+    unsigned nCols = 6 * panelsToMove.size();
+    unsigned nRows = 2 * alignMPES.size();
+    B = Eigen::MatrixXd(nRows, nCols);
+    Y = Eigen::VectorXd(nRows);
+    for (int m = 0; m < (int) alignMPES.size(); m++) {
+        alignMPES.at(m)->getData(PAS_MPESType_xCentroidAvg, vtmp);
+        vtmp.toDouble(curRead(m * 2));
+        alignMPES.at(m)->getData(PAS_MPESType_yCentroidAvg, vtmp);
+        vtmp.toDouble(curRead(m * 2 + 1));
+        targetRead.segment(2 * m, 2) = alignMPES.at(m)->getAlignedReadings()
+                                       - alignMPES.at(m)->getSystematicOffsets();
+
+        for (int p = 0; p < (int) panelsToMove.size(); p++) {
+            auto panelSide = alignMPES.at(m)->getPanelSide(panelsToMove.at(p)->getIdentity().position);
+            if (panelSide)
+                responseMat = alignMPES.at(m)->getResponseMatrix(panelSide);
+            else
+                responseMat.setZero();
+            B.block(2 * m, 6 * p, 2, 6) = responseMat;
         }
-    } else {
+    }
+    Y = targetRead - curRead;
+
+    spdlog::info("{}: Vector to solve for:\n{}\n", m_Identity, Y);
+    spdlog::info("{}: Matrix to solve with:\n{}\n", m_Identity, B);
+
+    // make sure we have enough constraints to solve this
+    if (Y.size() < B.cols()) {
         spdlog::error(
-            "{} : Invalid command provided ({}), valid commands are 'calculate', 'setAlignFrac', 'execute'.",
-            m_Identity, command);
+            "{}: Found () sensors and {} actuators. Not enough sensors to constrain the motion. Method aborted.",
+            m_Identity, B.rows() / 2, B.cols());
         return OpcUa_Bad;
     }
+
+    try {
+        X = B.jacobiSvd(Eigen::ComputeThinU | Eigen::ComputeThinV).solve(Y);
+    }
+    catch (...) {
+        spdlog::error(
+            "{} : Singular Value Decomposition failed. Result discarded and method aborted. Check your sensor readings!",
+            m_Identity);
+        return OpcUa_Bad;
+    }
+
+    m_Xcalculated = X;
+    m_panelsToMove = panelsToMove;
+    m_previousCalculatedMethod = PAS_MirrorType_AlignSector;
 
     return status;
 }
 
-
-UaStatus MirrorController::alignRing(int fixPanel, double alignFrac, std::string command)
+UaStatus MirrorController::__calculateAlignRing(int fixPanel)
 {
     UaStatus status;
 
@@ -1861,307 +1537,209 @@ UaStatus MirrorController::alignRing(int fixPanel, double alignFrac, std::string
         return OpcUa_BadInvalidArgument;
     }
 
-    if (alignFrac > 1.01 || alignFrac <= 0.0) {
-        spdlog::error(
-            "{} : MirrorController::alignRing(): Invalid choice of alignFrac ({}), should be between 0.0 and 1.0.",
-            m_Identity, alignFrac);
-        return OpcUa_BadInvalidArgument;
-    }
+    // First check that all panels in ring are present
+    spdlog::info("{} : MirrorController::alignRing(): Locating all panels in ring to align...");
+    int curPanel = fixPanel;
+    do {
+        int nextPanel = SCTMath::GetPanelNeighbor(curPanel, 0);
+        if (m_ChildrenPositionMap.at(PAS_PanelType).find(nextPanel) !=
+                m_ChildrenPositionMap.at(PAS_PanelType).end()) {
+            spdlog::debug("{} : MirrorController::alignRing(): Found next panel {}...", m_Identity, nextPanel);
+            continue;
+        }
+        else {
+            spdlog::error(
+                "{} : MirrorController::alignRing(): Searched for next panel ({}), but did not find as child of mirror. Please double-check that all panels in ring are present in the client.",
+                m_Identity, nextPanel);
+                return OpcUa_Bad;
+        }
+        curPanel = nextPanel;
+    } while (curPanel != fixPanel);
 
-    if (command == "calculate") {
-        spdlog::info(
-            "{} : MirrorController::alignRing(): Called with command=calculate. Pre-calculating alignment motion...",
-            m_Identity);
-        // First check that all panels in ring are present
-        spdlog::info("{} : MirrorController::alignRing(): Locating all panels in ring to align...");
-        int curPanel = fixPanel;
-        do {
-            int nextPanel = SCTMath::GetPanelNeighbor(curPanel, 0);
+
+    // we want to fit all sensors simultaneously while constraining the motion of 'fixPanel'
+    // first, find which ring we are on:
+    unsigned ring = SCTMath::Ring(fixPanel);
+    unsigned mirror = SCTMath::Mirror(fixPanel);
+
+    unsigned numPanels = 0;
+
+    if (mirror == 1)
+        numPanels = SCT::Primary::kPanels[ring - 1];
+    else if (mirror == 2)
+        numPanels = SCT::Secondary::kPanels[ring - 1];
+    else if (mirror == 3)
+        numPanels = SCT::Primary::kPanels[ring - 1];
+
+    // initialize the response matrices
+    Eigen::MatrixXd localResponse;
+    Eigen::MatrixXd globResponse = Eigen::MatrixXd(numPanels * 6, numPanels * 6);
+    globResponse.setZero();
+    // initialize the misalignment vector
+    Eigen::VectorXd localAlignRead;
+    Eigen::VectorXd localCurRead;
+    Eigen::VectorXd misalignVec;
+    Eigen::VectorXd globMisalignVec;
+    // initialize the displacement vector
+    Eigen::VectorXd globDisplaceVec = Eigen::VectorXd(numPanels * 6);
+
+    // get all the edges we need to fit:
+    std::vector<std::shared_ptr<EdgeController>> edgesToFit; // we actually don't need to keep these in a vector,
+                                  // but doing this for possible future needs
+    std::vector<std::shared_ptr<PanelController>> panelsToMove;
+    curPanel = fixPanel;
+    int nextPanel, cursize = 0;
+    Device::Identity id;
+    // keep track of the position in the global response matrix
+    unsigned blockRow = 0;
+    spdlog::info(
+        "{}: MirrorController::alignRing() : Traversing Ring {} of Mirror {} clockwise from fix panel ({}) to locate all edges to align.",
+        m_Identity, ring, mirror, fixPanel);
+
+    Eigen::MatrixXd T; // Vladimir's T operator
+    Eigen::MatrixXd Eye = Eigen::MatrixXd::Identity(6, 6);
+    Eigen::MatrixXd MCurPrev, MCurNext, MNextCur;
+    Eigen::MatrixXd E;
+    T = Eye;
+
+    panelsToMove.push_back(std::dynamic_pointer_cast<PanelController>(m_ChildrenPositionMap.at(PAS_PanelType).at(
+            curPanel))); // add the fixed panel to panelsToMove (only temporary, will remove later)
+
+    do {
+        nextPanel = SCTMath::GetPanelNeighbor(curPanel, 0);
+        try {
             if (m_ChildrenPositionMap.at(PAS_PanelType).find(nextPanel) !=
-                    m_ChildrenPositionMap.at(PAS_PanelType).end()) {
-                spdlog::debug("{} : MirrorController::alignRing(): Found next panel {}...", m_Identity, nextPanel);
+                m_ChildrenPositionMap.at(PAS_PanelType).end()) {
+                panelsToMove.push_back(std::dynamic_pointer_cast<PanelController>(
+                    m_ChildrenPositionMap.at(PAS_PanelType).at(curPanel)) ) ;
+                edgesToFit.push_back(std::dynamic_pointer_cast<EdgeController>(
+                    m_ChildrenEaddressMap.at(PAS_EdgeType).at(SCTMath::GetEdgeFromPanels({curPanel, nextPanel}))));
+            } else {
+                curPanel = nextPanel;
                 continue;
             }
-            else {
-                spdlog::error(
-                    "{} : MirrorController::alignRing(): Searched for next panel ({}), but did not find as child of mirror. Please double-check that all panels in ring are present in the client.",
-                    m_Identity, nextPanel);
-                    return OpcUa_Bad;
-            }
-            curPanel = nextPanel;
-        } while (curPanel != fixPanel);
 
-        
-        // we want to fit all sensors simultaneously while constraining the motion of 'fixPanel'
-        // first, find which ring we are on:
-        unsigned ring = SCTMath::Ring(fixPanel);
-        unsigned mirror = SCTMath::Mirror(fixPanel);
-        
-        unsigned numPanels = 0;
+            spdlog::info("{}: Found next edge to align -- {} ", m_Identity, edgesToFit.back()->getIdentity());
 
-        if (mirror == 1)
-            numPanels = SCT::Primary::kPanels[ring - 1];
-        else if (mirror == 2)
-            numPanels = SCT::Secondary::kPanels[ring - 1];
-        else if (mirror == 3)
-            numPanels = SCT::Primary::kPanels[ring - 1];
+            spdlog::debug("{}: Reading sensors...", m_Identity);
+            localCurRead = edgesToFit.back()->getCurrentReadings().first;
+            localAlignRead = edgesToFit.back()->getAlignedReadings();
 
-        // initialize the response matrices
-        Eigen::MatrixXd localResponse;
-        Eigen::MatrixXd globResponse = Eigen::MatrixXd(numPanels * 6, numPanels * 6);
-        globResponse.setZero();
-        // initialize the misalignment vector
-        Eigen::VectorXd localAlignRead;
-        Eigen::VectorXd localCurRead;
-        Eigen::VectorXd misalignVec;
-        Eigen::VectorXd globMisalignVec;
-        // initialize the displacement vector
-        Eigen::VectorXd globDisplaceVec = Eigen::VectorXd(numPanels * 6);
+            misalignVec = localAlignRead - localCurRead;
+            spdlog::info("{}: Edge {} current misalignment:\n{}\n", m_Identity, edgesToFit.back()->getIdentity(),
+                         misalignVec);
+            spdlog::info("{}: Adding to global misalignment vector...", m_Identity);
+            globMisalignVec.conservativeResize(cursize + misalignVec.size());
+            globMisalignVec.tail(misalignVec.size()) = misalignVec;
+            cursize = globMisalignVec.size();
 
-        // get all the edges we need to fit:
-        std::vector<std::shared_ptr<EdgeController>> edgesToFit; // we actually don't need to keep these in a vector,
-                                      // but doing this for possible future needs
-        std::vector<std::shared_ptr<PanelController>> panelsToMove;
-        curPanel = fixPanel;
-        int nextPanel, cursize = 0;
-        Device::Identity id;
-        // keep track of the position in the global response matrix
-        unsigned blockRow = 0;
-        spdlog::info(
-            "{}: MirrorController::alignRing() : Traversing Ring {} of Mirror {} clockwise from fix panel ({}) to locate all edges to align.",
-            m_Identity, ring, mirror, fixPanel);
+            // get the response of this edge
+            localResponse = edgesToFit.back()->getResponseMatrix(curPanel);
+            spdlog::debug("{}: Response matrix [{}][{}]:\n{}\n", m_Identity, curPanel, nextPanel, localResponse);
+            spdlog::trace("{}: Placing it at location [{}][{}] of the global response matrix", m_Identity,
+                          blockRow * 6,
+                          blockRow * 6);
+            globResponse.block(blockRow*6, blockRow*6,
+                    localResponse.rows(), localResponse.cols()) = localResponse;
+            MCurNext = localResponse;
 
-        Eigen::MatrixXd T; // Vladimir's T operator
-        Eigen::MatrixXd Eye = Eigen::MatrixXd::Identity(6, 6);
-        Eigen::MatrixXd MCurPrev, MCurNext, MNextCur;
-        Eigen::MatrixXd E;
-        T = Eye;
+            localResponse = edgesToFit.back()->getResponseMatrix(nextPanel);
+            spdlog::debug("{}: Response matrix [{}][{}]:\n{}\n", m_Identity, nextPanel, curPanel, localResponse);
+            spdlog::trace("{}: Placing it at location [{}][{}] of the global response matrix", m_Identity,
+                          blockRow * 6,
+                          ((blockRow + 1) % numPanels) * 6);
+            globResponse.block(blockRow*6, ((blockRow + 1) % numPanels)*6,
+                    localResponse.rows(), localResponse.cols()) = localResponse;
 
-        panelsToMove.push_back(std::dynamic_pointer_cast<PanelController>(m_ChildrenPositionMap.at(PAS_PanelType).at(
-                curPanel))); // add the fixed panel to panelsToMove (only temporary, will remove later)
+            MNextCur = localResponse;
 
-        do {
-            nextPanel = SCTMath::GetPanelNeighbor(curPanel, 0);
-            try {
-                if (m_ChildrenPositionMap.at(PAS_PanelType).find(nextPanel) !=
-                    m_ChildrenPositionMap.at(PAS_PanelType).end()) {
-                    panelsToMove.push_back(std::dynamic_pointer_cast<PanelController>(
-                        m_ChildrenPositionMap.at(PAS_PanelType).at(curPanel)) ) ;
-                    edgesToFit.push_back(std::dynamic_pointer_cast<EdgeController>(
-                        m_ChildrenEaddressMap.at(PAS_EdgeType).at(SCTMath::GetEdgeFromPanels({curPanel, nextPanel}))));
-                } else {
-                    curPanel = nextPanel;
-                    continue;
-                }
-
-                spdlog::info("{}: Found next edge to align -- {} ", m_Identity, edgesToFit.back()->getIdentity());
-
-                spdlog::debug("{}: Reading sensors...", m_Identity);
-                localCurRead = edgesToFit.back()->getCurrentReadings().first;
-                localAlignRead = edgesToFit.back()->getAlignedReadings();
-
-                misalignVec = localAlignRead - localCurRead;
-                spdlog::info("{}: Edge {} current misalignment:\n{}\n", m_Identity, edgesToFit.back()->getIdentity(),
-                             misalignVec);
-                spdlog::info("{}: Adding to global misalignment vector...", m_Identity);
-                globMisalignVec.conservativeResize(cursize + misalignVec.size());
-                globMisalignVec.tail(misalignVec.size()) = misalignVec;
-                cursize = globMisalignVec.size();
-
-                // get the response of this edge
-                localResponse = edgesToFit.back()->getResponseMatrix(curPanel);
-                spdlog::debug("{}: Response matrix [{}][{}]:\n{}\n", m_Identity, curPanel, nextPanel, localResponse);
-                spdlog::trace("{}: Placing it at location [{}][{}] of the global response matrix", m_Identity,
-                              blockRow * 6,
-                              blockRow * 6);
-                globResponse.block(blockRow*6, blockRow*6,
-                        localResponse.rows(), localResponse.cols()) = localResponse;
-                MCurNext = localResponse;
-
-                localResponse = edgesToFit.back()->getResponseMatrix(nextPanel);
-                spdlog::debug("{}: Response matrix [{}][{}]:\n{}\n", m_Identity, nextPanel, curPanel, localResponse);
-                spdlog::trace("{}: Placing it at location [{}][{}] of the global response matrix", m_Identity,
-                              blockRow * 6,
-                              ((blockRow + 1) % numPanels) * 6);
-                globResponse.block(blockRow*6, ((blockRow + 1) % numPanels)*6,
-                        localResponse.rows(), localResponse.cols()) = localResponse;
-
-                MNextCur = localResponse;
-
-                // replace the first 6 columns of the response matrix with 6x6 identity matrices:
-                // this gets rid of the response matrices corresponding to the fixed panel
-                // and replaces them with the Systematic Offset Response matrix (just identity)
-                globResponse.block(blockRow * 6, 0, 6, 6) = Eigen::MatrixXd::Identity(6, 6);
-            }
-            catch (...) {
-            }
-
-            curPanel = nextPanel;
-            ++blockRow;
-
-            // nothing to do if on the first panel
-            if (blockRow != 1) {
-                spdlog::debug("{}: Taking into account/calculating the systematic displacement for edge {}", m_Identity,
-                              edgesToFit.back()->getIdentity());
-                E = MCurNext*MCurPrev.inverse();
-                spdlog::debug("{}: Matrix ML:\n{}\n", m_Identity, MCurPrev);
-                spdlog::debug("{}: ML*ML.inverse():\n{}\n", m_Identity, MCurPrev * MCurPrev.inverse());
-                spdlog::debug("{}: Matrix MR:\n{}\n", MCurNext);
-                spdlog::debug("{}: Operator E = MR*ML.inverse():\n{}\n", E);
-                T = Eye - E*T;
-            }
-
-            MCurPrev = MNextCur;
-
-        } while ( curPanel != fixPanel );
-
-        spdlog::info("{}: Size of global misalignment vector: {}", m_Identity, globMisalignVec.size());
-        spdlog::info("{}: Shape of global response matrix: ({}, {})", m_Identity, globResponse.rows(),
-                     globResponse.cols());
-
-        spdlog::debug("{} : Operator T:\n{}\n", m_Identity, T);
-        spdlog::debug("{} : Operator -1*T.inverse():\n{}\n", m_Identity, -1 * T.inverse());
-        spdlog::debug("{} : Operator T*T.inverse():\n{}\n", m_Identity, T * T.inverse());
-
-        // check that we have enough sensor readings
-        if (globMisalignVec.size() < globResponse.rows()) {
-            spdlog::error("{} : Not enough sensors () to constrain the motion ({} required). Method call aborted.",
-                          m_Identity, globMisalignVec.size(), globResponse.rows());
-            return OpcUa_Bad;
+            // replace the first 6 columns of the response matrix with 6x6 identity matrices:
+            // this gets rid of the response matrices corresponding to the fixed panel
+            // and replaces them with the Systematic Offset Response matrix (just identity)
+            globResponse.block(blockRow * 6, 0, 6, 6) = Eigen::MatrixXd::Identity(6, 6);
+        }
+        catch (...) {
         }
 
-        spdlog::debug("{} : Misalignment vector size:{}.", m_Identity, globMisalignVec.size());
-        spdlog::debug("{} : First 12 entries:\n{}\n.", m_Identity, globMisalignVec.head(12));
-        spdlog::debug("{} : Last 12 entries:\n{}\n.", m_Identity, globMisalignVec.tail(12));
-        spdlog::debug("{} : First 12x18 block of the global response matrix:\n{}\n.", m_Identity,
-                      globResponse.block(0, 0, 12, 18));
-        spdlog::debug("{} : Last 12x18 block of the global response matrix:\n{}\n.", m_Identity,
-                      globResponse.block(globResponse.rows() - 12, globResponse.cols() - 18, 12, 18));
+        curPanel = nextPanel;
+        ++blockRow;
 
-        panelsToMove.erase(panelsToMove.begin()); // Erase fixed panel (first panel) from panelsToMove
-
-        // we are all set now. now solve the system
-        // globResponse * globDisplaceVec = globMisalignVec;
-        // the first 6 elements of the solution are the systematic vectors, the others are the
-        // panel displacements
-        globDisplaceVec = globResponse.jacobiSvd(Eigen::ComputeThinU | Eigen::ComputeThinV).solve(globMisalignVec);
-
-        Eigen::VectorXd check = globResponse * globDisplaceVec - globMisalignVec;
-        spdlog::debug("{} : Checking the calculated solution... norm(R*Solution - MisAlign) = {}.", m_Identity,
-                      check.norm());
-        //spdlog::debug("{} : First 12 entries:\n{}\n.", m_ID, check.head(12));
-        //spdlog::debug("{} : Last 12 entries:\n{}\n.", m_ID, check.tail(12));
-
-        m_sysOffsetsMPES = globDisplaceVec.head(6);
-        // get the order of read sensors:
-        unsigned pos = 0;
-        for (const auto& mpes : edgesToFit.back()->m_ChildrenPositionMap.at(PAS_MPESType)) {
-            SystematicOffsetsMPESMap[ring][mpes.first] = m_sysOffsetsMPES.segment(pos*2, 2);
-            ++pos;
-        }
-        // make sure we read out the systematic vector in the same order as the sensors
-        // and assign it correctly to outer/middle/inner
-        spdlog::info("{} : Calculated systematic offsets:\n{}\n.", m_Identity, m_sysOffsetsMPES);
-
-        // set the offset for each sensor edge
-        for (const auto& edge : edgesToFit) {
-            // and set them for each sensor along each edge
-            for (const auto& mpes : edge->m_ChildrenPositionMap.at(PAS_MPESType) ) {
-                std::dynamic_pointer_cast<MPESController>(mpes.second)->m_SystematicOffsets =
-                    SystematicOffsetsMPESMap.at(ring).at(mpes.first);
-            }
+        // nothing to do if on the first panel
+        if (blockRow != 1) {
+            spdlog::debug("{}: Taking into account/calculating the systematic displacement for edge {}", m_Identity,
+                          edgesToFit.back()->getIdentity());
+            E = MCurNext*MCurPrev.inverse();
+            spdlog::debug("{}: Matrix ML:\n{}\n", m_Identity, MCurPrev);
+            spdlog::debug("{}: ML*ML.inverse():\n{}\n", m_Identity, MCurPrev * MCurPrev.inverse());
+            spdlog::debug("{}: Matrix MR:\n{}\n", MCurNext);
+            spdlog::debug("{}: Operator E = MR*ML.inverse():\n{}\n", E);
+            T = Eye - E*T;
         }
 
-        spdlog::debug("{}: Final calculated motion is:\n{}", m_Identity,
-                      globDisplaceVec.tail(globDisplaceVec.size() - 6));
+        MCurPrev = MNextCur;
 
-        m_Xcalculated = globDisplaceVec.tail(globDisplaceVec.size()-6);
-        m_panelsToMove = panelsToMove;
-        m_previousCalculatedMethod = PAS_MirrorType_AlignRing;
+    } while ( curPanel != fixPanel );
 
-        spdlog::info(
-            "{} : Calculation done! You should call the method again with command=setAlignFrac to set an align fraction and inspect the resulting motion + do safety checks.",
-            m_Identity);
-    } else if (command == "setAlignFrac") {
-        if (m_Xcalculated.isZero(0) || m_previousCalculatedMethod != PAS_MirrorType_AlignRing) {
-            spdlog::error(
-                "{} : No calculated motion found. Call Mirror.AlignRing with command=calculate once first to calculate the motion to execute.",
-                m_Identity);
-            return OpcUa_Bad;
-        }
-        Eigen::VectorXd X = m_Xcalculated * alignFrac;
-        spdlog::info("{} : Fractional motion of {} requested.", m_Identity,
-                     alignFrac);
+    spdlog::info("{}: Size of global misalignment vector: {}", m_Identity, globMisalignVec.size());
+    spdlog::info("{}: Shape of global response matrix: ({}, {})", m_Identity, globResponse.rows(),
+                 globResponse.cols());
 
-        m_lastSetAlignFrac = alignFrac;
+    spdlog::debug("{} : Operator T:\n{}\n", m_Identity, T);
+    spdlog::debug("{} : Operator -1*T.inverse():\n{}\n", m_Identity, -1 * T.inverse());
+    spdlog::debug("{} : Operator T*T.inverse():\n{}\n", m_Identity, T * T.inverse());
 
-        double maxChange = X.cwiseAbs().maxCoeff();
-
-        unsigned k = 0;
-        for (auto &pCurPanel : m_panelsToMove) {
-            // print out to make sure
-            spdlog::debug("{} : Will move Panel {} actuators by:\n{}\n", m_Identity, pCurPanel->getIdentity(),
-                          X.segment(k, 6));
-            k += 6;
-        }
-
-        if (maxChange > 2.5) {
-            spdlog::warn(
-                "{}: The largest requested actuator motion has magnitude {}. This level of motion could potentially be dangerous. Be careful and review the full logfile output for a detailed breakdown of the motion before proceeding.",
-                m_Identity, maxChange);
-        } else {
-            spdlog::info(
-                "{}: The largest requested actuator motion has magnitude {}. This is small so the motion is most likely safe.",
-                m_Identity, maxChange);
-        }
-
-        // Do collision checks
-        spdlog::info(
-            "{}: Done! All collision checks passed. To execute the motion, call the command again with command=execute.",
-            m_Identity);
-    } else if (command == "execute") {
-        if (m_Xcalculated.isZero(0) || m_previousCalculatedMethod != PAS_MirrorType_AlignRing) {
-            spdlog::error(
-                "{} : No calculated motion found. Call Mirror.AlignRing with command=calculate once first to calculate the motion to execute.",
-                m_Identity);
-            return OpcUa_Bad;
-        } else if (m_lastSetAlignFrac < 0.0) {
-            spdlog::error(
-                "{} : No align fraction was set. Call Mirror.AlignRing at least once with command=setAlignFrac once first to set the fractional motion to perform and do safety checks.",
-                m_Identity);
-            return OpcUa_Bad;
-        } else if (std::fabs(alignFrac - m_lastSetAlignFrac) > FLT_EPSILON) {
-            spdlog::error(
-                "{} : The selected align fraction ({}) does not match the value last used when doing setAlignFrac ({}). For safety reasons, you should always call setAlignFrac with the align fraction you"
-                "want, review it, and then execute the motion with the same align fraction. Please correct your requested align fraction or go back and call setAlignFrac again.",
-                m_Identity, alignFrac, m_lastSetAlignFrac);
-            return OpcUa_Bad;
-        } else {
-            unsigned j = 0;
-            for (auto &pCurPanel : m_panelsToMove) {
-                auto nACT = pCurPanel->getActuatorCount();
-                UaVariantArray deltas;
-                deltas.create(nACT);
-                UaVariant val;
-                for (unsigned i = 0; i < nACT; i++) {
-                    val.setFloat(m_Xcalculated(j++));
-                    val.copyTo(&deltas[i]);
-                }
-                status = pCurPanel->__moveDeltaLengths(deltas);
-                if (!status.isGood()) { return status; }
-                if (m_State == Device::DeviceState::Off) { break; }
-            }
-            m_Xcalculated.setZero(); // reset calculated motion
-            m_panelsToMove.clear();
-            m_previousCalculatedMethod = 0;
-            m_lastSetAlignFrac = -1.0;
-        }
-    } else {
-        spdlog::error(
-            "{} : Invalid command provided ({}), valid commands are 'calculate', 'setAlignFrac', 'execute'.",
-            m_Identity, command);
+    // check that we have enough sensor readings
+    if (globMisalignVec.size() < globResponse.rows()) {
+        spdlog::error("{} : Not enough sensors () to constrain the motion ({} required). Method call aborted.",
+                      m_Identity, globMisalignVec.size(), globResponse.rows());
         return OpcUa_Bad;
     }
+
+    spdlog::debug("{} : Misalignment vector size:{}.", m_Identity, globMisalignVec.size());
+    spdlog::debug("{} : First 12 entries:\n{}\n.", m_Identity, globMisalignVec.head(12));
+    spdlog::debug("{} : Last 12 entries:\n{}\n.", m_Identity, globMisalignVec.tail(12));
+    spdlog::debug("{} : First 12x18 block of the global response matrix:\n{}\n.", m_Identity,
+                  globResponse.block(0, 0, 12, 18));
+    spdlog::debug("{} : Last 12x18 block of the global response matrix:\n{}\n.", m_Identity,
+                  globResponse.block(globResponse.rows() - 12, globResponse.cols() - 18, 12, 18));
+
+    panelsToMove.erase(panelsToMove.begin()); // Erase fixed panel (first panel) from panelsToMove
+
+    // we are all set now. now solve the system
+    // globResponse * globDisplaceVec = globMisalignVec;
+    // the first 6 elements of the solution are the systematic vectors, the others are the
+    // panel displacements
+    globDisplaceVec = globResponse.jacobiSvd(Eigen::ComputeThinU | Eigen::ComputeThinV).solve(globMisalignVec);
+
+    Eigen::VectorXd check = globResponse * globDisplaceVec - globMisalignVec;
+    spdlog::debug("{} : Checking the calculated solution... norm(R*Solution - MisAlign) = {}.", m_Identity,
+                  check.norm());
+    //spdlog::debug("{} : First 12 entries:\n{}\n.", m_ID, check.head(12));
+    //spdlog::debug("{} : Last 12 entries:\n{}\n.", m_ID, check.tail(12));
+
+    m_sysOffsetsMPES = globDisplaceVec.head(6);
+    // get the order of read sensors:
+    unsigned pos = 0;
+    for (const auto& mpes : edgesToFit.back()->m_ChildrenPositionMap.at(PAS_MPESType)) {
+        SystematicOffsetsMPESMap[ring][mpes.first] = m_sysOffsetsMPES.segment(pos*2, 2);
+        ++pos;
+    }
+    // make sure we read out the systematic vector in the same order as the sensors
+    // and assign it correctly to outer/middle/inner
+    spdlog::info("{} : Calculated systematic offsets:\n{}\n.", m_Identity, m_sysOffsetsMPES);
+
+    // set the offset for each sensor edge
+    for (const auto& edge : edgesToFit) {
+        // and set them for each sensor along each edge
+        for (const auto& mpes : edge->m_ChildrenPositionMap.at(PAS_MPESType) ) {
+            std::dynamic_pointer_cast<MPESController>(mpes.second)->m_SystematicOffsets =
+                SystematicOffsetsMPESMap.at(ring).at(mpes.first);
+        }
+    }
+
+    m_Xcalculated = globDisplaceVec.tail(globDisplaceVec.size()-6);
+    m_panelsToMove = panelsToMove;
+    m_previousCalculatedMethod = PAS_MirrorType_AlignRing;
 
     return status;
 }
@@ -2187,7 +1765,8 @@ UaStatus MirrorController::savePosition(const std::string &saveFilePath) {
         return OpcUa_Bad;
     }
 
-    // Place mirror name/Type and other information at top of file
+    // Place mirror name/Type and
+    // other information at top of file
     f << "Mirror: " << m_Identity << std::endl;
     std::time_t now = std::time(0);
     f << "Timestamp: " << std::ctime(&now) << std::endl;
@@ -2200,8 +1779,8 @@ UaStatus MirrorController::savePosition(const std::string &saveFilePath) {
         Eigen::VectorXd actuatorLengths(6);
         UaStatus status = std::dynamic_pointer_cast<PanelController>(pPanel)->__getActuatorLengths(actuatorLengths);
         if (status.isBad()) {
-            spdlog::error("{}: Unable to write position, failed to read actuator lengths.", m_Identity);
-            return OpcUa_Bad;
+            spdlog::error("{}: Unable to write position for Panel {}, failed to read actuator lengths.", m_Identity, pPanel->getIdentity());
+            continue;
         }
         f << "Panel: " << pPanel->getIdentity() << std::endl;
         f << actuatorLengths << std::endl;
@@ -2213,7 +1792,7 @@ UaStatus MirrorController::savePosition(const std::string &saveFilePath) {
     return OpcUa_Good;
 }
 
-UaStatus MirrorController::loadPosition(const std::string &loadFilePath, double alignFrac, std::string command) {
+UaStatus MirrorController::__calculateLoadPosition(const std::string &loadFilePath) {
     UaStatus status;
 
     spdlog::info("{}: Attempting to load Mirror position from file {}...", m_Identity, loadFilePath);
@@ -2235,19 +1814,12 @@ UaStatus MirrorController::loadPosition(const std::string &loadFilePath, double 
         return OpcUa_Bad;
     }
 
-    if (alignFrac > 1.01 || alignFrac <= 0.0) {
-        spdlog::error(
-            "{} : MirrorController::loadPosition(): Invalid choice of alignFrac ({}), should be between 0.0 and 1.0.",
-            m_Identity, alignFrac);
-        return OpcUa_BadInvalidArgument;
-    }
-
     // Check to make sure it matches this mirror
     std::string line;
     getline(infile, line);
     unsigned s = line.find("(");
     unsigned e = line.find(")");
-    Device::Identity mirrorId = Device::parseIdentity(line.substr(s - 1, e - s + 1));
+    Device::Identity mirrorId = Device::parseIdentity(line.substr(s, e - s + 2));
 
     if (mirrorId != m_Identity) {
         spdlog::error(
@@ -2258,158 +1830,182 @@ UaStatus MirrorController::loadPosition(const std::string &loadFilePath, double 
 
     // Print Mirror Info
     std::map<Device::Identity, Eigen::VectorXd> panelPositions;
-    while (getline(infile, line) && line != SAVEFILE_DELIMITER) {
+    while (getline(infile, line) && (line != SAVEFILE_DELIMITER)) {
         os << line << std::endl;
     }
     spdlog::info("{}: Mirror Info:\n Mirror Identity: {}\n{}", m_Identity, m_Identity, os.str());
 
+    Eigen::VectorXd X(m_pChildren.at(PAS_PanelType).size() * 6);
+    Eigen::VectorXd deltaActLengths(6);
+    Eigen::VectorXd targetActLengths(6);
+    Eigen::VectorXd currentActLengths(6);
+    std::vector<std::shared_ptr<PanelController>> panelsToMove;
+    unsigned j = 0;
+
     // Parse all target actuator lengths
     Device::Identity panelId;
-    Eigen::VectorXd actuatorLengths(6);
     int i = 0;
 
     while (infile.peek() != EOF) {
         getline(infile, line);
         s = line.find("(");
         e = line.find(")");
-        panelId = Device::parseIdentity(line.substr(s - 1, e - s + 1));
+        panelId = Device::parseIdentity(line.substr(s , e - s + 2));
         i = 0;
         while (getline(infile, line) && line != SAVEFILE_DELIMITER) {
-            actuatorLengths(i) = std::stod(line);
+            targetActLengths(i) = std::stod(line);
             i++;
         }
-        panelPositions[panelId] = actuatorLengths;
-        spdlog::info("{}: Found position for Panel {}:\n{}\n", m_Identity, panelId, actuatorLengths);
+        panelPositions[panelId] = targetActLengths;
+        spdlog::info("{}: Found position for Panel {}:\n{}\n", m_Identity, panelId, targetActLengths);
     }
 
-    if (command == "calculate") {
-        spdlog::info(
-            "{} : MirrorController::loadPosition(): Called with command=calculate. Pre-calculating alignment motion...",
-            m_Identity);
-
-        Eigen::VectorXd X(m_pChildren.at(PAS_PanelType).size() * 6);
-        Eigen::VectorXd deltaActLengths(6);
-        Eigen::VectorXd targetActLengths(6);
-        Eigen::VectorXd currentActLengths(6);
-        std::vector<std::shared_ptr<PanelController>> panelsToMove;
-        unsigned j = 0;
-
-        for (const auto &pPanel : m_pChildren.at(PAS_PanelType)) {
-            std::dynamic_pointer_cast<PanelController>(pPanel)->operate(PAS_PanelType_ReadPosition);
-            panelId = std::dynamic_pointer_cast<PanelController>(pPanel)->getIdentity();
+    for (const auto &pPanel : m_pChildren.at(PAS_PanelType)) {
+        std::dynamic_pointer_cast<PanelController>(pPanel)->operate(PAS_PanelType_ReadPosition);
+        panelId = std::dynamic_pointer_cast<PanelController>(pPanel)->getIdentity();
+        if (status.isBad()) {
+            spdlog::error("{}: Unable to load position, failed to read actuator lengths.", m_Identity);
+            return OpcUa_Bad;
+        }
+        if (panelPositions.find(panelId) != panelPositions.end()) {
             status = std::dynamic_pointer_cast<PanelController>(pPanel)->__getActuatorLengths(currentActLengths);
-            if (status.isBad()) {
-                spdlog::error("{}: Unable to load position, failed to read actuator lengths.", m_Identity);
-                return OpcUa_Bad;
-            }
-            if (panelPositions.find(panelId) != panelPositions.end()) {
-                targetActLengths = panelPositions.at(panelId);
-                deltaActLengths = targetActLengths - currentActLengths;
+            targetActLengths = panelPositions.at(panelId);
+            deltaActLengths = targetActLengths - currentActLengths;
 
-                /**
-                if (std::dynamic_pointer_cast<PanelController>(pPanel)->checkForCollision(deltaActLengths)) {
-                return OpcUa_Bad;
-                }
-                */
+            panelsToMove.push_back(std::dynamic_pointer_cast<PanelController>(pPanel));
+            X.segment(j, 6) = deltaActLengths;
+            j += 6;
 
-                panelsToMove.push_back(std::dynamic_pointer_cast<PanelController>(pPanel));
-                X.segment(j, 6) = deltaActLengths;
-                j += 6;
-            } else {
-                spdlog::warn(
-                    "{}: Did not find a target position for Panel {} in the file! Will not move this panel. Make sure this is the desired behavior before moving.",
-                    m_Identity, panelId);
-            }
-        }
-        spdlog::info("{} : Full calculated motion is:\n{}\n", m_Identity,
-                     X);
-
-        m_Xcalculated = X;
-        m_panelsToMove = panelsToMove;
-        m_previousCalculatedMethod = PAS_MirrorType_LoadPosition;
-
-        spdlog::info(
-            "{} : Calculation done! You should call the method again with command=setAlignFrac to set an align fraction and inspect the resulting motion + do safety checks.",
-            m_Identity);
-    } else if (command == "setAlignFrac") {
-        if (m_Xcalculated.isZero(0)) {
-            spdlog::error(
-                "{} : No calculated motion found. Call Mirror.loadPosition with command=calculate once first to calculate the motion to execute.",
-                m_Identity);
-            return OpcUa_Bad;
-        }
-        Eigen::VectorXd X = m_Xcalculated * alignFrac;
-        spdlog::debug("{} : Fractional motion of {} requested.", m_Identity,
-                      alignFrac);
-
-        m_lastSetAlignFrac = alignFrac;
-
-        double maxChange = X.cwiseAbs().maxCoeff();
-
-        unsigned k = 0;
-        for (auto &pCurPanel : m_panelsToMove) {
-            // print out to make sure
-            spdlog::debug("{} : Will move Panel {} actuators by:\n{}\n", m_Identity, pCurPanel->getIdentity(),
-                          X.segment(k, 6));
-            k += 6;
-        }
-
-        if (maxChange > 2.5) {
-            spdlog::warn(
-                "{}: The largest requested actuator motion has magnitude {}. This level of motion could potentially be dangerous. Be careful and review the full logfile output for a detailed breakdown of the motion before proceeding.",
-                m_Identity, maxChange);
-        } else {
             spdlog::info(
-                "{}: The largest requested actuator motion has magnitude {}. This is small so the motion is most likely safe.",
-                m_Identity, maxChange);
+                    "{} : Moving Panel {} :\n CurrentLength + Delta Length => TargetLength\n\n{} + {} => {}\n{} + {} => {}\n{} + {} => {}\n{} + {} => {}\n{} + {} => {}\n{} + {} => {}\n",
+                    m_Identity, panelId,
+                    currentActLengths[0], deltaActLengths[0], targetActLengths[0],
+                    currentActLengths[1], deltaActLengths[1], targetActLengths[1],
+                    currentActLengths[2], deltaActLengths[2], targetActLengths[2],
+                    currentActLengths[3], deltaActLengths[3], targetActLengths[3],
+                    currentActLengths[4], deltaActLengths[4], targetActLengths[4],
+                    currentActLengths[5], deltaActLengths[5], targetActLengths[5]);
+
+        } else {
+            spdlog::warn(
+                "{}: Did not find a target position for Panel {} in the file! Will not move this panel. Make sure this is the desired behavior before moving.",
+                m_Identity, panelId);
+        }
+    }
+
+    m_Xcalculated = X;
+    m_panelsToMove = panelsToMove;
+    m_previousCalculatedMethod = PAS_MirrorType_LoadPosition;
+
+    return status;
+}
+
+UaStatus MirrorController::__setAlignFrac(double alignFrac) {
+    UaStatus status;
+    
+    if (alignFrac > 1.01 || alignFrac <= 0.0) {
+        spdlog::error(
+            "{} : Invalid choice of alignFrac ({}), should be between 0.0 and 1.0.",
+            m_Identity, alignFrac);
+        return OpcUa_BadInvalidArgument;
+    }
+
+    if (m_Xcalculated.isZero(0)) {
+        spdlog::error(
+            "{} : No calculated motion found. Call method with command=calculate once first to calculate the motion to execute.",
+            m_Identity);
+        return OpcUa_Bad;
+    }
+    Eigen::VectorXd X = m_Xcalculated * alignFrac;
+    spdlog::debug("{} : Fractional motion of {} requested.", m_Identity,
+                  alignFrac);
+
+    m_lastSetAlignFrac = alignFrac;
+
+    double maxChange = X.cwiseAbs().maxCoeff();
+
+    unsigned k = 0;
+    for (auto &pCurPanel : m_panelsToMove) {
+        std::ostringstream os;
+        for (int i=0; i < 6; i++) {
+            os << pCurPanel->getChildAtPosition(PAS_ACTType, i+1)->getIdentity() << ": " << X(k+i) << std::endl;
         }
 
-        // Do collision checks
-        spdlog::info(
-            "{}: Done! All collision checks passed. To execute the motion, call the command again with command=execute.",
-            m_Identity);
-    } else if (command == "execute") {
-        if (m_Xcalculated.isZero(0) || m_previousCalculatedMethod != PAS_MirrorType_LoadPosition) {
-            spdlog::error(
-                "{} : No calculated motion found. Call Mirror.LoadPosition with command=calculate once first to calculate the motion to execute.",
-                m_Identity);
-            return OpcUa_Bad;
-        } else if (m_lastSetAlignFrac < 0.0) {
-            spdlog::error(
-                "{} : No align fraction was set. Call Mirror.LoadPosition at least once with command=setAlignFrac once first to set the fractional motion to perform and do safety checks.",
-                m_Identity);
-            return OpcUa_Bad;
-        } else if (std::fabs(alignFrac - m_lastSetAlignFrac) > FLT_EPSILON) {
-            spdlog::error(
-                "{} : The selected align fraction ({}) does not match the value last used when doing setAlignFrac ({}). For safety reasons, you should always call setAlignFrac with the align fraction you"
-                "want, review it, and then execute the motion with the same align fraction. Please correct your requested align fraction or go back and call setAlignFrac again.",
-                m_Identity, alignFrac, m_lastSetAlignFrac);
-            return OpcUa_Bad;
-        } else {
-            unsigned j = 0;
-            for (auto &pCurPanel : m_panelsToMove) {
-                auto nACT = pCurPanel->getActuatorCount();
-                UaVariantArray deltas;
-                deltas.create(nACT);
-                UaVariant val;
-                for (unsigned i = 0; i < nACT; i++) {
-                    val.setFloat(m_Xcalculated(j++));
-                    val.copyTo(&deltas[i]);
-                }
-                status = pCurPanel->__moveDeltaLengths(deltas);
-                if (!status.isGood()) { return status; }
-                if (m_State == Device::DeviceState::Off) { break; }
-            }
-            m_Xcalculated.setZero(); // reset calculated motion
-            m_panelsToMove.clear();
-            m_previousCalculatedMethod = 0;
-            m_lastSetAlignFrac = -1.0;
-        }
+        // print out to make sure
+        spdlog::info("{} : Will move Panel {} actuators by:\n{}\n", m_Identity, pCurPanel->getIdentity(), os.str());
+        k += 6;
+    }
+
+    if (maxChange > 2.5) {
+        spdlog::warn(
+            "{}: The largest requested actuator motion has magnitude {}. This level of motion could potentially be dangerous. Be careful and review the full logfile output for a detailed breakdown of the motion before proceeding.",
+            m_Identity, maxChange);
     } else {
+        spdlog::info(
+            "{}: The largest requested actuator motion has magnitude {}. This is small so the motion is most likely safe.",
+            m_Identity, maxChange);
+    }
+
+    // Do collision checks
+    spdlog::info(
+        "{}: Done! All collision checks passed. To execute the motion, call the command again with command=execute.",
+        m_Identity);
+
+    return status;
+}
+
+UaStatus MirrorController::__moveSelectedPanels(unsigned methodTypeId, double alignFrac) {
+    UaStatus status;
+
+    if (m_Xcalculated.isZero(0) || m_previousCalculatedMethod != methodTypeId) {
         spdlog::error(
-            "{} : Invalid command provided ({}), valid commands are 'calculate', 'setAlignFrac', 'execute'.",
-            m_Identity, command);
+            "{} : No calculated motion found. Call the method with command=calculate once first to calculate the motion to execute.",
+            m_Identity);
         return OpcUa_Bad;
+    } else if (m_lastSetAlignFrac < 0.0) {
+        spdlog::error(
+            "{} : No align fraction was set. Call Mirror.AlignSector at least once with command=setAlignFrac once first to set the fractional motion to perform and do safety checks.",
+            m_Identity);
+        return OpcUa_Bad;
+    } else if (std::fabs(alignFrac - m_lastSetAlignFrac) > FLT_EPSILON) {
+        spdlog::error(
+            "{} : The selected align fraction ({}) does not match the value last used when doing setAlignFrac ({}). For safety reasons, you should always call setAlignFrac with the align fraction you"
+            "want, review it, and then execute the motion with the same align fraction. Please correct your requested align fraction or go back and call setAlignFrac again.",
+            m_Identity, alignFrac, m_lastSetAlignFrac);
+        return OpcUa_Bad;
+    } else if (m_panelsToMove.size() * 6 != m_Xcalculated.size()) {
+        spdlog::error(
+            "{} : The length of the calculated motion vector ({}) is not equal to the total number of actutors ({} x 6 = {}).",
+            m_Identity, m_Xcalculated.size(), m_panelsToMove.size() * 6);
+        return OpcUa_Bad;
+    } else {
+        Eigen::VectorXd X = m_Xcalculated * alignFrac;
+
+        std::map<std::shared_ptr<PanelController>, UaVariantArray> args;
+
+        unsigned j = 0;
+        for (const auto &pCurPanel : m_panelsToMove) {
+            auto nACT = pCurPanel->getActuatorCount();
+            UaVariantArray deltas;
+            deltas.create(nACT);
+            UaVariant val;
+            for (unsigned i = 0; i < nACT; i++) {
+                val.setFloat(X(j++));
+                val.copyTo(&deltas[i]);
+            }
+            args[pCurPanel] = deltas;
+        }
+
+        for (const auto &pair : args) {
+            status = pair.first->__moveDeltaLengths(pair.second);
+            if (!status.isGood()) { return status; }
+            if (m_State == Device::DeviceState::Off) { break; }
+        }
+
+        m_Xcalculated.setZero(); // reset calculated motion
+        m_panelsToMove.clear();
+        m_previousCalculatedMethod = 0;
+        m_lastSetAlignFrac = -1.0;
     }
 
     return status;

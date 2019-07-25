@@ -95,7 +95,7 @@ class pSCTDB_readonly:
 
             print("====")
 
-            q2 = "select * from Opt_MPESMapping where w_panel = {} or l_panel = {}".format(p_,p_)
+            q2 = "select * from Opt_MPESMapping where (w_panel = {} or l_panel = {}) and end_date IS NULL".format(p_,p_)
             nentries2=self.cur.execute(q2)
             print("Panel {}".format(p_))
             print("MPES mapping")

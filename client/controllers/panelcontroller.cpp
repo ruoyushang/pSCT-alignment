@@ -1,6 +1,7 @@
 #include "client/controllers/panelcontroller.hpp"
 
 #include <chrono>
+#include <sstream>
 #include <string>
 
 #include <Eigen/Dense>
@@ -205,6 +206,21 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
             status = m_pClient->callMethodAsync(m_pClient->getDeviceNodeId(m_Identity), UaString("MoveDeltaLengths"),
                                                 args);
         }
+        /**
+        UaThread::sleep(2.0);
+        bool stillMoving = true;
+        while (stillMoving) {
+            stillMoving = false;
+            if (__getDeviceState() != Device::DeviceState::On)
+            {
+                stillMoving = true;
+                spdlog::trace("{}: PanelController::operate() : still moving...\n", m_Identity);
+                UaThread::sleep(2.0);
+            }
+        }
+        */
+        spdlog::debug("{}: PanelController::operate() : Successfully finished MoveDeltaLengths.\n", m_Identity);
+
     } else if (offset == PAS_PanelType_MoveToLengths) {
         for (int i = 0; i < 6; i++) {
             UaVariant(args[i]).toFloat(targetLength);
@@ -275,6 +291,9 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
                                                 lengthArgs);
         }
     } else if (offset == PAS_PanelType_MoveDeltaCoords) {
+
+        status = updateCoords();
+
         spdlog::debug(
             "{} : PanelController::operate() : Current panel coordinates (x, y ,z xRot, yRot, zRot):\n{} {} {} {} {} {}\n",
             m_Identity, m_curCoords[0], m_curCoords[1], m_curCoords[2], m_curCoords[3], m_curCoords[4], m_curCoords[5]);
@@ -333,7 +352,7 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
     } else if (offset == PAS_PanelType_ReadPosition) {
         status = updateCoords(true);
         spdlog::info(
-            "{} : PanelController::operate() : Current panel coordinates (x, y ,z xRot, yRot, zRot):\n{} {} {} {} {} {}\n",
+            "{} : PanelController::operate() : Current panel coordinates (x, y ,z xRot, yRot, zRot):\n{}\n{}\n{}\n{}\n{}\n{}",
             m_Identity, m_curCoords[0], m_curCoords[1], m_curCoords[2], m_curCoords[3], m_curCoords[4], m_curCoords[5]);
     }
         /************************************************
@@ -463,8 +482,13 @@ UaStatus PanelController::updateCoords(bool print) {
     }
 
     if (print) {
+        std::ostringstream os;
+        for (int i = 0; i < 6; i++) {
+            os << getChildAtPosition(PAS_ACTType, i+1)->getIdentity() << ": " << currentLengths(i) << std::endl;
+        }
+
         spdlog::info("{} : PanelController::updateCoords() : Current Actuator Lengths :\n{}\n\n", m_Identity,
-                     currentLengths);
+                     os.str());
     }
     // update current coordinates
     m_SP.ComputeStewart(currentLengths.data());

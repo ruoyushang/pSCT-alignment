@@ -1,7 +1,7 @@
 #include "server/controllers/panelcontroller.hpp"
 
 #include <array>
-
+#include <sstream>
 #include <memory>
 
 #include "uabase/statuscode.h"
@@ -111,78 +111,61 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
         std::array<float, 6> initialLengths{};
         std::array<float, 6> deltaLengths{};
         std::array<float, 6> targetLengths{};
+        std::ostringstream os;
         for (int i = 0; i < 6; i++) {
             UaVariant(args[i]).toFloat(deltaLengths[i]);
             initialLengths[i] = m_pActuators.at(i)->getCurrentLength();
             targetLengths[i] = initialLengths[i] + deltaLengths[i];
             m_pActuators.at(i)->setTargetLength(targetLengths[i]);
+            os << m_pActuators.at(i)->getIdentity() << " : " << initialLengths[i] << " + " << deltaLengths[i] << " => " << targetLengths[i] << std::endl;
         }
 
         spdlog::info(
-            "{} : PanelController calling moveDeltaLength:\n CurrentLength + Delta Length => TargetLength\n\n{} + {} => {}\n{} + {} => {}\n{} + {} => {}\n{} + {} => {}\n{} + {} => {}\n{} + {} => {}\n",
-            m_Identity,
-            initialLengths[0], deltaLengths[0], targetLengths[0],
-            initialLengths[1], deltaLengths[1], targetLengths[1],
-            initialLengths[2], deltaLengths[2], targetLengths[2],
-            initialLengths[3], deltaLengths[3], targetLengths[3],
-            initialLengths[4], deltaLengths[4], targetLengths[4],
-            initialLengths[5], deltaLengths[5], targetLengths[5]);
-
+            "{} : PanelController calling moveDeltaLengths\n ActuatorId : CurrentLength + Delta Length => TargetLength\n\n{}",
+            m_Identity, os.str());
+        
         deltaLengths = m_pPlatform->moveDeltaLengths(deltaLengths);
 
         std::array<float, 6> finalLengths{};
+        os.str("");
         for (int i = 0; i < 6; i++) {
             m_pActuators.at(i)->setDeltaLength(deltaLengths[i]);
             finalLengths[i] = m_pActuators.at(i)->getCurrentLength();
+            os << m_pActuators.at(i)->getIdentity() << " : " << finalLengths[i] << " (" << deltaLengths[i] << ")" << std::endl;
         }
 
         spdlog::info(
-            "{} : Lengths after moveDeltaLengths (Remaining distance to target):\n{} ({})\n{} ({})\n{} ({})\n{} ({})\n{} ({})\n{} ({})\n",
-            m_Identity,
-            finalLengths[0], targetLengths[0] - finalLengths[0],
-            finalLengths[1], targetLengths[1] - finalLengths[1],
-            finalLengths[2], targetLengths[2] - finalLengths[2],
-            finalLengths[3], targetLengths[3] - finalLengths[3],
-            finalLengths[4], targetLengths[4] - finalLengths[4],
-            finalLengths[5], targetLengths[5] - finalLengths[5]);
-
+            "{} : Lengths after moveDeltaLengths (Remaining distance to target):\n{}",
+            m_Identity, os.str());
+    
     } else if (offset == PAS_PanelType_MoveToLengths) {
         if (_getDeviceState() == Device::DeviceState::Off)
             setState(Device::DeviceState::On);
 
         std::array<float, 6> initialLengths{};
         std::array<float, 6> targetLengths{};
+        std::ostringstream os;
         for (int i = 0; i < 6; i++) {
             UaVariant(args[i]).toFloat(targetLengths[i]);
             initialLengths[i] = m_pActuators.at(i)->getCurrentLength();
             m_pActuators.at(i)->setTargetLength(targetLengths[i]);
+            os << m_pActuators.at(i)->getIdentity() << " : " << initialLengths[i] << " => " << targetLengths[i] << std::endl;
         }
 
         spdlog::info(
-            "{} : PanelController calling moveToLengths:\n CurrentLength => TargetLength\n\n{} => {}\n{} => {}\n{} => {}\n{} => {}\n{} => {}\n{} => {}\n",
-            m_Identity,
-            initialLengths[0], targetLengths[0],
-            initialLengths[1], targetLengths[1],
-            initialLengths[2], targetLengths[2],
-            initialLengths[3], targetLengths[3],
-            initialLengths[4], targetLengths[4],
-            initialLengths[5], targetLengths[5]);
-
+            "{} : PanelController calling moveToLengths:\n ActuatorId : CurrentLength => TargetLength\n\n{}",
+            m_Identity, os.str());
+        
         std::array<float, 6> finalLengths = m_pPlatform->moveToLengths(targetLengths);
+        os.str("");
+        for (int i = 0; i < 6; i++) {
+            m_pActuators.at(i)->setDeltaLength(targetLengths[i] - finalLengths[i]);
+            os << m_pActuators.at(i)->getIdentity() << " : " << finalLengths[i] << " (" << targetLengths[i] - finalLengths[i] << ")" << std::endl;          
+        }
 
         spdlog::info(
-            "{} : Lengths after moveToLengths (Remaining distance to target):\n{} ({})\n{} ({})\n{} ({})\n{} ({})\n{} ({})\n{} ({})\n",
-            m_Identity,
-            finalLengths[0], targetLengths[0] - finalLengths[0],
-            finalLengths[1], targetLengths[1] - finalLengths[1],
-            finalLengths[2], targetLengths[2] - finalLengths[2],
-            finalLengths[3], targetLengths[3] - finalLengths[3],
-            finalLengths[4], targetLengths[4] - finalLengths[4],
-            finalLengths[5], targetLengths[5] - finalLengths[5]);
-
-        for (int i = 0; i < 6; i++) {
-            m_pActuators.at(i)->setDeltaLength(finalLengths[i] - targetLengths[i]);
-        }
+            "{} : Lengths after moveToLengths (Remaining distance to target):\n{}",
+            m_Identity, os.str());
     } else if (offset == PAS_PanelType_Stop) {
         spdlog::info("{} : PanelController calling stop()", m_Identity);
         m_pPlatform->emergencyStop();

@@ -60,6 +60,10 @@ class PasCompositeController : public PasController
         return m_pChildren.at(type);
     };
 
+    virtual const std::shared_ptr<PasController> &getChildAtPosition(unsigned type, int position) const {
+        return m_ChildrenPositionMap.at(type).at(position);
+    };
+
     protected:
         // stores the possbile types of children
         std::set<unsigned> m_ChildrenTypes;

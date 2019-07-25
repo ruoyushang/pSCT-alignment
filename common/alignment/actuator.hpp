@@ -230,7 +230,7 @@ class DummyActuator : public ActuatorBase
 {
 public:
     explicit DummyActuator(Device::Identity identity,
-                           Device::DBInfo DBInfo = Device::DBInfo(), const ASFInfo &ASFFileInfo = ActuatorBase::ASFInfo())
+                           Device::DBInfo DBInfo = Device::DBInfo(), const ASFInfo &ASFFileInfo = ActuatorBase::ASFInfo("~/.ASF/", ".ASF_", ".log"))
         : ActuatorBase(std::move(identity), std::move(DBInfo), ASFFileInfo), m_On(true) {};
 
     int stepDriver(int inputSteps) override;

@@ -880,7 +880,7 @@ int Actuator::__step(int steps) {
 	{
             spdlog::error("{} : Fatal Error (6): Actuator does not appear to be stepping.",
                     m_Identity);
-            SetError(6);//fatal
+            setError(6);//fatal
             saveStatusToASF();
             return StepsRemaining;//quit, don't record or register steps attempted to be taken.
 	}

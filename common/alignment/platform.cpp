@@ -32,7 +32,7 @@ const std::vector<Device::ErrorDefinition> PlatformBase::ERROR_DEFINITIONS = {
     {"Actuator 5 Fatal Error",                Device::ErrorState::FatalError},
     {"Actuator 6 Operable Error",             Device::ErrorState::OperableError},
     {"Actuator 6 Fatal Error",                Device::ErrorState::FatalError},
-    {"Attempt to move out of Software Range", Device::ErrorState::OperableError},
+    {"Attempt to move out of Software Range", Device::ErrorState::FatalError},
     {"DBInfo not set",                        Device::ErrorState::OperableError},
     {"MySQL Communication Error",             Device::ErrorState::OperableError}
 };
@@ -459,6 +459,9 @@ Platform::__step(std::array<int, PlatformBase::NUM_ACTS_PER_PLATFORM> inputSteps
     }
 
     m_pCBC->driver.disableAll();
+
+    spdlog::debug("{} : Platform::step() : Finished stepping.", m_Identity);
+
     return StepsRemaining;
 }
 

@@ -2,7 +2,7 @@
 usage() { echo "Usage: $0  [-a (all)] [panel number(s)] [-h]" 1>&2; exit 1; }
 
 all=false
-screen_name="p2pas_client"
+screen_name="sim_client"
 extension=".ini"
 
 subclient_names=( "primary_upper" "primary_lower" "secondary" "other" )
