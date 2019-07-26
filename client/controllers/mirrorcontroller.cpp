@@ -9,6 +9,7 @@
 #include <string>
 #include <sys/stat.h>
 #include <common/alignment/mpes.hpp>
+#include <common/alignment/actuator.hpp>
 
 #include "AGeoAsphericDisk.h" // ROBAST dependency
 #include "TMinuit.h" // ROOT's implementation of MINUIT for chiSq minimization
@@ -715,6 +716,81 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
     } else if (offset == PAS_MirrorType_TestActuators) {
         spdlog::info("{} : MirrorController::operate() : Calling testActuators()...", m_Identity);
         status = testActuators();
+    } else if (offset == PAS_MirrorType_TestSensors) {
+        spdlog::info("{} : MirrorController::operate() : Calling readSensorsParallel()...", m_Identity);
+
+        if (m_selectedMPES.empty()) {
+            spdlog::error(
+                    "{} : MirrorController::operate() : No MPES selected. Nothing to do, method call aborted.",
+                    m_Identity);
+            return OpcUa_Good;
+        }
+
+        std::map<std::shared_ptr<PanelController>, std::vector<std::shared_ptr<MPESController>>> MPESordering;
+        for (auto it = getChildren(PAS_PanelType).begin(); it < getChildren(PAS_PanelType).end(); it++) {
+            MPESordering[std::dynamic_pointer_cast<PanelController>(*it)] = std::vector<std::shared_ptr<MPESController>>();
+            for (const auto &mpes : std::dynamic_pointer_cast<PanelController>(*it)->getChildren(
+                    PAS_MPESType)) {
+                if (m_selectedMPES.find(mpes->getIdentity().serialNumber) != m_selectedMPES.end()) {
+                    MPESordering[std::dynamic_pointer_cast<PanelController>(*it)].push_back(std::dynamic_pointer_cast<MPESController>(mpes));
+                }
+            }
+        }
+
+        int totalMPES = 0;
+        for (const auto &pair : MPESordering) {
+            totalMPES += pair.second.size();
+        }
+
+        spdlog::info("{}: Total number of MPES requested to read is {}. Starting reads...", m_Identity, totalMPES);
+        while (totalMPES > 0) {
+            for (const auto &pair : MPESordering) {
+                bool busy = false;
+                Device::DeviceState state;
+                for (const auto &mpes : pair.second) { // Check if all mpes on panel are idle
+                    mpes->getState(state);
+                    if (state == Device::DeviceState::Busy) {
+                        busy = true;
+                    }
+                    UaThread::msleep(200);
+                }
+
+                if (totalMPES == 0) {
+                    break;
+                }
+
+                if (!busy) {
+                    totalMPES--;
+                    spdlog::info("{}: Reading MPES {} on Panel {} ({} remaining)...", m_Identity,
+                                 pair.second.back()->getIdentity(), pair.first->getIdentity(), totalMPES);
+                    spdlog::info("{}: Sensors left to read on panel (before): ({})", m_Identity, os.str());
+                    pair.second.back()->readAsync();
+                    pair.second.pop_back();
+                }
+            }
+        }
+
+        spdlog::info("{}: Waiting for last reads to finish...", m_Identity);
+
+        bool stillReading = true;
+        while (stillReading) {
+            stillReading = false;
+            Device::DeviceState state;
+            for (auto mpes : getChildren(PAS_MPESType)) {
+                if (m_selectedMPES.find(mpes->getIdentity().serialNumber) != m_selectedMPES.end()) {
+                    mpes->getState(state);
+                    if (state == Device::DeviceState::Busy) {
+                        stillReading = true;
+                    }
+                    UaThread::sleep(0.1);
+                }
+            };
+        }
+
+        spdlog::info("{}: Done! All webcams read.", m_Identity);
+
+    } else if (offset == PAS_MirrorType_CheckStatus) {
+
     } else if (offset == PAS_MirrorType_Stop) {
         spdlog::warn(
             "{} : MirrorController::operate() : Calling stop(). Stopping motion of all edges and child panels...",
@@ -1958,12 +2034,19 @@ UaStatus MirrorController::__setAlignFrac(double alignFrac) {
     unsigned k = 0;
     for (auto &pCurPanel : m_panelsToMove) {
         std::ostringstream os;
+        auto currentLengths = pCurPanel->getActuatorLengths();
         for (int i=0; i < 6; i++) {
-            os << pCurPanel->getChildAtPosition(PAS_ACTType, i+1)->getIdentity() << ": " << X(k+i) << std::endl;
-        }
+            double currentLength = currentLengths(i);
+            double targetLength = currentLength + X(k+i);
+            os << pCurPanel->getChildAtPosition(PAS_ACTType, i+1)->getIdentity() << ": " << currentLength << " + " << X(k+i) << " => " << targetLength;
 
+            if ((targetLength < ActuatorBase::DEFAULT_SOFTWARE_RANGE_MIN + 0.5) || (targetLength > ActuatorBase::DEFAULT_SOFTWARE_RANGE_MAX - 0.5)) {
+                os << "[WARNING: Target length is close to boundaries of software range ({} mm - {} mm). Motion may be disallowed.]";
+            }
+            os <<  << std::endl;
+        }
         // print out to make sure
-        spdlog::info("{} : Will move Panel {} actuators by:\n{}\n", m_Identity, pCurPanel->getIdentity(), os.str());
+        spdlog::info("{} : Panel {} requested motion:\nActuatorId : CurrentLength + DeltaLength => TargetLength\n{}\n", m_Identity, pCurPanel->getIdentity(), os.str());
         k += 6;
     }
 

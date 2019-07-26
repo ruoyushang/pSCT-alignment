@@ -1,0 +1,4 @@
+Cannot generate into C:\Users\bryan\projects\pSCT-alignment\sdk\buildClientReleaseSIMMODE
+Cannot create directory
+
+Please either delete it manually or select another generation directory
