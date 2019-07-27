@@ -736,7 +736,10 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
             sql_results = sql_stmt->getResultSet();
             // should only be one result FOR NOW -- IN THE FUTURE, NEED TO FIX THIS, SORTING BY DATE
             while (sql_results->next()) {
-                positions.push_back(sql_results->getString(1));
+                std::string position = sql_results->getString(1);
+                if (std::stoi(position.substr(0,1)) == m_Identity.position) {
+                    positions.push_back(sql_results->getString(1));
+                }
             }
 
             // get panel IP and serial from position
@@ -803,54 +806,6 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
             totalMPES += pair.second.size();
         }
         
-        spdlog::info("{}: Total number of MPES found in client is {}. Starting reads...", m_Identity, totalMPES);
-        while (totalMPES > 0) {
-            for (auto &pair : MPESordering) {
-
-                if (totalMPES == 0) {
-                    break;
-                }
-
-
-                bool busy = false;
-                Device::DeviceState state;
-                for (const auto &mpes : pair.second) { // Check if all mpes on panel are idle
-                    mpes->getState(state);
-                    if (state == Device::DeviceState::Busy) {
-                        busy = true;
-                    }
-                    UaThread::msleep(200);
-                }
-
-                if (!busy) {
-                    totalMPES--;
-                    spdlog::info("{}: Reading MPES {} on Panel {} ({} remaining)...", m_Identity,
-                                 pair.second.back()->getIdentity(), pair.first->getIdentity(), totalMPES);
-                    pair.second.back()->readAsync();
-                    pair.second.pop_back();
-                }
-            }
-        }
-
-        spdlog::info("{}: Waiting for last reads to finish...", m_Identity);
-
-        bool stillReading = true;
-        while (stillReading) {
-            stillReading = false;
-            Device::DeviceState state;
-            for (auto mpes : getChildren(PAS_MPESType)) {
-                if (m_selectedMPES.find(mpes->getIdentity().serialNumber) != m_selectedMPES.end()) {
-                    mpes->getState(state);
-                    if (state == Device::DeviceState::Busy) {
-                        stillReading = true;
-                    }
-                    UaThread::sleep(0.1);
-                }
-            };
-        }
-
-        spdlog::info("{}: Done! All webcams read.", m_Identity);
-
         std::ostringstream os;
 
         for (auto it = getChildren(PAS_PanelType).begin(); it < getChildren(PAS_PanelType).end(); it++) {
@@ -1229,7 +1184,7 @@ UaStatus MirrorController::readPositionAll(bool print) {
             // these are pad coordinates in TRF as computed from actuator lengths
             for (int i = 0; i < padCoordsActs.cols(); i++)
                 padCoordsActs.col(i) = __toTelRF(panelPos, padCoordsActs.col(i));
-            spdlog::info("{}: MirrorController::readPositionAll(): Telescope frame pad coordinates:\n{}\n\n\n", m_Identity,
+            spdlog::info("{}: MirrorController::readPositionAll(): Telescope frame pad coordinates:\n{}\n\n\n\n", m_Identity,
                          padCoordsActs);
         }
     }
@@ -2268,10 +2223,10 @@ UaStatus MirrorController::__setAlignFrac(double alignFrac) {
         for (int i=0; i < 6; i++) {
             double currentLength = currentLengths(i);
             double targetLength = currentLength + X(k+i);
-            os << pCurPanel->getChildAtPosition(PAS_ACTType, i+1)->getIdentity() << ": " << currentLength << " + " << X(k+i) << " => " << targetLength;
+            os << std::setw(20) << pCurPanel->getChildAtPosition(PAS_ACTType, i+1)->getIdentity() << ": " << std::setw(8) << currentLength << " + " << std::setw(8) << X(k+i) << " => " << std::setw(8) << targetLength;
 
             if ((targetLength < ActuatorBase::DEFAULT_SOFTWARE_RANGE_MIN + 0.5) || (targetLength > ActuatorBase::DEFAULT_SOFTWARE_RANGE_MAX - 0.5)) {
-                os << " [WARNING: Target length is close to boundaries of software range (" << ActuatorBase::DEFAULT_SOFTWARE_RANGE_MIN << " mm - " << ActuatorBase::DEFAULT_SOFTWARE_RANGE_MAX << " mm). Motion may be disallowed.]";
+                os << "  [WARNING: Target length is close to or outside of software range (" << ActuatorBase::DEFAULT_SOFTWARE_RANGE_MIN << " mm - " << ActuatorBase::DEFAULT_SOFTWARE_RANGE_MAX << " mm). Motion may be disallowed.]";
             }
             os << std::endl;
         }
