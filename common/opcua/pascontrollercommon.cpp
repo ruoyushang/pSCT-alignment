@@ -31,13 +31,13 @@ UaStatus PasControllerCommon::setState(Device::DeviceState state) {
     return OpcUa_BadNotWritable;
 }
 
-Device::ErrorState PasControllerCommon::getErrorState() {
+Device::DeviceState PasControllerCommon::getDeviceState() {
     Device::DeviceState state;
     getState(state);
 
     return state;
 }
 
-Device::DeviceState PasControllerCommon::getDeviceState() {
-    return Device::DeviceState::On;
+Device::ErrorState PasControllerCommon::getErrorState() {
+    return Device::ErrorState::Nominal;
 }

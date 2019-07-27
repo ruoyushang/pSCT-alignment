@@ -23,11 +23,17 @@
 #include "client/controllers/edgecontroller.hpp"
 #include "client/controllers/mpescontroller.hpp"
 #include "client/controllers/panelcontroller.hpp"
+#include "client/controllers/actcontroller.hpp"
 #include "client/controllers/pascontroller.hpp"
 
 #include "client/objects/panelobject.hpp"
 
 #include "uathread.h"
+
+// MySQL C++ Connector includes
+#include "mysql_driver.h"
+#include "cppconn/statement.h"
+#include "DBConfig.hpp"
 
 #include "common/utilities/spdlog/spdlog.h"
 #include "common/utilities/spdlog/fmt/ostr.h"
@@ -796,9 +802,16 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
         for (const auto &pair : MPESordering) {
             totalMPES += pair.second.size();
         }
+        
         spdlog::info("{}: Total number of MPES found in client is {}. Starting reads...", m_Identity, totalMPES);
         while (totalMPES > 0) {
-            for (const auto &pair : MPESordering) {
+            for (auto &pair : MPESordering) {
+
+                if (totalMPES == 0) {
+                    break;
+                }
+
+
                 bool busy = false;
                 Device::DeviceState state;
                 for (const auto &mpes : pair.second) { // Check if all mpes on panel are idle
@@ -809,15 +822,10 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
                     UaThread::msleep(200);
                 }
 
-                if (totalMPES == 0) {
-                    break;
-                }
-
                 if (!busy) {
                     totalMPES--;
                     spdlog::info("{}: Reading MPES {} on Panel {} ({} remaining)...", m_Identity,
                                  pair.second.back()->getIdentity(), pair.first->getIdentity(), totalMPES);
-                    spdlog::info("{}: Sensors left to read on panel (before): ({})", m_Identity, os.str());
                     pair.second.back()->readAsync();
                     pair.second.pop_back();
                 }
@@ -859,7 +867,7 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
                     os << panelId << " : " << mpesId << " [NOT FOUND (likely did not initialize)]" << std::endl;
                 }
                 else {
-                    if (mpesIdMap.at(mpesId)->getErrorState == Device::ErrorState::FatalError) {
+                    if (mpesIdMap.at(mpesId)->getErrorState() == Device::ErrorState::FatalError) {
                         os << panelId << " : " << mpesId << " [FAILED TO READ (Fatal Error)]" << std::endl;
                     }
                 }
@@ -882,7 +890,7 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
         };
 
         for (const auto &panel : m_pChildren.at(PAS_PanelType)) {
-            auto panelController = std::dynamic_pointer_cast<MPESController>(panel);
+            auto panelController = std::dynamic_pointer_cast<PanelController>(panel);
             if (panelController->getDeviceState() != normalDeviceStates.at(PAS_PanelType)) {
                 badDeviceStates[panelController->getIdentity()] = panelController->getDeviceState();
             }
@@ -890,7 +898,7 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
             for (auto pair : PanelObject::ERRORS) {
                 UaVariant var;
                 panelController->getError(pair.first, var);
-                OpcUa_Boolean errorVal = var.Value.Boolean;
+                OpcUa_Boolean errorVal = var[0].Value.Boolean;
                 if (errorVal == OpcUa_True) {
                     deviceErrors[panelController->getIdentity()].push_back(
                             std::get<0>(pair.second));
@@ -900,15 +908,15 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
             for (const auto &act : panelController->getChildren(PAS_ACTType)) {
                 auto actuatorController = std::dynamic_pointer_cast<ActController>(act);
                 if (actuatorController->getDeviceState() != normalDeviceStates.at(PAS_ACTType)) {
-                    badDeviceStates[actController->getIdentity()] = actuatorController->getDeviceState();
+                    badDeviceStates[actuatorController->getIdentity()] = actuatorController->getDeviceState();
                 }
                 if (panelController->getErrorState() != Device::ErrorState::Nominal) {
                     for (auto pair : ACTObject::ERRORS) {
                         UaVariant var;
                         actuatorController->getError(pair.first, var);
-                        OpcUa_Boolean errorVal = var.Value.Boolean;
+                        OpcUa_Boolean errorVal = var[0].Value.Boolean;
                         if (errorVal == OpcUa_True) {
-                            deviceErrors[actController->getIdentity()].push_back(
+                            deviceErrors[actuatorController->getIdentity()].push_back(
                                     std::get<0>(pair.second));
                         }
                     }
@@ -924,7 +932,7 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
                     for (auto pair : MPESObject::ERRORS) {
                         UaVariant var;
                         mpesController->getError(pair.first, var);
-                        OpcUa_Boolean errorVal = var.Value.Boolean;
+                        OpcUa_Boolean errorVal = var[0].Value.Boolean;
                         if (errorVal == OpcUa_True) {
                             deviceErrors[mpesController->getIdentity()].push_back(
                                     std::get<0>(pair.second));
@@ -2265,7 +2273,7 @@ UaStatus MirrorController::__setAlignFrac(double alignFrac) {
             if ((targetLength < ActuatorBase::DEFAULT_SOFTWARE_RANGE_MIN + 0.5) || (targetLength > ActuatorBase::DEFAULT_SOFTWARE_RANGE_MAX - 0.5)) {
                 os << "[WARNING: Target length is close to boundaries of software range ({} mm - {} mm). Motion may be disallowed.]";
             }
-            os <<  << std::endl;
+            os << std::endl;
         }
         // print out to make sure
         spdlog::info("{} : Panel {} requested motion:\nActuatorId : CurrentLength + DeltaLength => TargetLength\n{}\n", m_Identity, pCurPanel->getIdentity(), os.str());

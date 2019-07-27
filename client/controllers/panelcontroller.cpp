@@ -172,7 +172,7 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
     UaStatus status;
 
     if (offset == PAS_PanelType_MoveToLengths || offset == PAS_PanelType_MoveToCoords || offset == PAS_PanelType_MoveDeltaLengths) {
-        if (__getErrorState() == Device::ErrorState::FatalError || __getDeviceState() != Device::DeviceState::On) {
+        if (getErrorState() == Device::ErrorState::FatalError || getDeviceState() != Device::DeviceState::On) {
             spdlog::error(
                 "{} : PanelController::operate() : Device is in a bad state (busy, off, error). Method call aborted. Check state and try again.",
                 m_Identity);
@@ -211,7 +211,7 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
         bool stillMoving = true;
         while (stillMoving) {
             stillMoving = false;
-            if (__getDeviceState() != Device::DeviceState::On)
+            if (getDeviceState() != Device::DeviceState::On)
             {
                 stillMoving = true;
                 spdlog::trace("{}: PanelController::operate() : still moving...\n", m_Identity);
@@ -365,7 +365,7 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
         spdlog::info("{} : PanelController calling turnOff()", m_Identity);
         status = m_pClient->callMethod(m_pClient->getDeviceNodeId(m_Identity), UaString("TurnOff"));
     } else if (offset == PAS_PanelType_FindHome) {
-        if (__getDeviceState() != Device::DeviceState::On) {
+        if (getDeviceState() != Device::DeviceState::On) {
             spdlog::error("{} : PanelController::operate() : Device is in a bad state (busy, off, error) and "
                           "could not execute findHome command. Check state and try again.", m_Identity);
             return OpcUa_BadInvalidState;
