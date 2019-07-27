@@ -1229,7 +1229,7 @@ UaStatus MirrorController::readPositionAll(bool print) {
             // these are pad coordinates in TRF as computed from actuator lengths
             for (int i = 0; i < padCoordsActs.cols(); i++)
                 padCoordsActs.col(i) = __toTelRF(panelPos, padCoordsActs.col(i));
-            spdlog::info("{}: MirrorController::readPositionAll(): Telescope frame pad coordinates:\n{}\n", m_Identity,
+            spdlog::info("{}: MirrorController::readPositionAll(): Telescope frame pad coordinates:\n{}\n\n\n", m_Identity,
                          padCoordsActs);
         }
     }
@@ -2271,7 +2271,7 @@ UaStatus MirrorController::__setAlignFrac(double alignFrac) {
             os << pCurPanel->getChildAtPosition(PAS_ACTType, i+1)->getIdentity() << ": " << currentLength << " + " << X(k+i) << " => " << targetLength;
 
             if ((targetLength < ActuatorBase::DEFAULT_SOFTWARE_RANGE_MIN + 0.5) || (targetLength > ActuatorBase::DEFAULT_SOFTWARE_RANGE_MAX - 0.5)) {
-                os << "[WARNING: Target length is close to boundaries of software range ({} mm - {} mm). Motion may be disallowed.]";
+                os << " [WARNING: Target length is close to boundaries of software range (" << ActuatorBase::DEFAULT_SOFTWARE_RANGE_MIN << " mm - " << ActuatorBase::DEFAULT_SOFTWARE_RANGE_MAX << " mm). Motion may be disallowed.]";
             }
             os << std::endl;
         }
