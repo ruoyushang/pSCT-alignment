@@ -542,17 +542,10 @@ UaStatus PanelController::__getActuatorLengths(Eigen::VectorXd &lengths) {
     return status;
 }
 
-Device::DeviceState PanelController::__getDeviceState() {
-    Device::DeviceState state;
-    getState(state);
-
-    return state;
-}
-
-Device::ErrorState PanelController::__getErrorState() {
+Device::ErrorState PanelController::getErrorState() {
     UaVariant var;
     int err;
-    getData(PAS_ACTType_ErrorState, var);
+    getData(PAS_PanelType_ErrorState, var);
     var.toInt32(err);
     return static_cast<Device::ErrorState>(err);
 }

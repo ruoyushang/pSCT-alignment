@@ -52,6 +52,8 @@ public:
 
     MPESBase::Position getPosition();
 
+    Device::ErrorState getErrorState() override;
+
 private:
     std::string m_Mode;
 

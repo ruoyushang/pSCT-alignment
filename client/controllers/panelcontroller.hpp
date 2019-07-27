@@ -43,6 +43,8 @@ public:
     // helper
     UaStatus updateCoords(bool printout = false);
 
+    Device::ErrorState getErrorState() override;
+
 private:
     std::string m_mode;
 
@@ -60,10 +62,6 @@ private:
     Eigen::Matrix3d m_PadCoords;
 
     UaStatus __getActuatorLengths(Eigen::VectorXd &lengths);
-
-    Device::ErrorState __getErrorState();
-
-    Device::DeviceState __getDeviceState();
 
     UaStatus __moveToLengths(const UaVariantArray &args) {
         return m_pClient->callMethodAsync(m_pClient->getDeviceNodeId(m_Identity), UaString("MoveToLengths"), args);
