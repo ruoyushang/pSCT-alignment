@@ -848,12 +848,14 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
             auto panelController = std::dynamic_pointer_cast<PanelController>(panel);
             if (panelController->getDeviceState() != normalDeviceStates.at(PAS_PanelType)) {
                 badDeviceStates[panelController->getIdentity()] = panelController->getDeviceState();
+                spdlog::info("{} : Found Panel {} in bad state", m_Identity, panelController->getIdentity());
             }
             // Get panel errors
             for (auto pair : PanelObject::ERRORS) {
                 UaVariant var;
                 panelController->getError(pair.first, var);
                 OpcUa_Boolean errorVal = var[0].Value.Boolean;
+                spdlog::info("{} : Error ({}) => {}", m_Identity, panelController->getIdentity(), std::get<0>(pair.second), (bool)errorVal);
                 if (errorVal == OpcUa_True) {
                     deviceErrors[panelController->getIdentity()].push_back(
                             std::get<0>(pair.second));
@@ -864,12 +866,14 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
                 auto actuatorController = std::dynamic_pointer_cast<ActController>(act);
                 if (actuatorController->getDeviceState() != normalDeviceStates.at(PAS_ACTType)) {
                     badDeviceStates[actuatorController->getIdentity()] = actuatorController->getDeviceState();
+                    spdlog::info("{} : Found Actuator {} in bad state", m_Identity, actuatorController->getIdentity());
                 }
-                if (panelController->getErrorState() != Device::ErrorState::Nominal) {
+                if (actuatorController->getErrorState() != Device::ErrorState::Nominal) {
                     for (auto pair : ACTObject::ERRORS) {
                         UaVariant var;
                         actuatorController->getError(pair.first, var);
                         OpcUa_Boolean errorVal = var[0].Value.Boolean;
+                        spdlog::info("{} : Error ({}) => {}", m_Identity, actuatorController->getIdentity(), std::get<0>(pair.second), (bool)errorVal);
                         if (errorVal == OpcUa_True) {
                             deviceErrors[actuatorController->getIdentity()].push_back(
                                     std::get<0>(pair.second));
@@ -882,12 +886,14 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
                 auto mpesController = std::dynamic_pointer_cast<MPESController>(mpes);
                 if (mpesController->getDeviceState() != normalDeviceStates.at(PAS_MPESType)) {
                     badDeviceStates[mpesController->getIdentity()] = mpesController->getDeviceState();
+                    spdlog::info("{} : Found MPES {} in bad state", m_Identity, mpesController->getIdentity());
                 }
                 if (mpesController->getErrorState() != Device::ErrorState::Nominal) {
                     for (auto pair : MPESObject::ERRORS) {
                         UaVariant var;
                         mpesController->getError(pair.first, var);
                         OpcUa_Boolean errorVal = var[0].Value.Boolean;
+                        spdlog::info("{} : Error ({}) => {}", m_Identity, mpesController->getIdentity(), std::get<0>(pair.second), (bool)errorVal);
                         if (errorVal == OpcUa_True) {
                             deviceErrors[mpesController->getIdentity()].push_back(
                                     std::get<0>(pair.second));
@@ -903,73 +909,74 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
         for (const auto &panel : m_pChildren.at(PAS_PanelType)) {
             auto panelController = std::dynamic_pointer_cast<PanelController>(panel);
             auto panelId = panelController->getIdentity();
-            if ((deviceErrors.find(panelId) != deviceErrors.end()) || (badDeviceStates.find(panelId) != badDeviceStates.end())) {
-                os << "Panel " << panelId << ":" << std::endl;
-                os << "Device State: ";
-                if (badDeviceStates.find(panelId) == badDeviceStates.end()) {
-                    os << Device::deviceStateNames.at(normalDeviceStates.at(PAS_PanelType)) << " [Normal]" << std::endl;
-                }
-                else {
-                    os << Device::deviceStateNames.at(badDeviceStates.at(panelId)) << " [WARNING: Abnormal. Should be " << Device::deviceStateNames.at(normalDeviceStates.at(PAS_PanelType)) << "]" << std::endl;
-                }
+            os << "Panel " << panelId << ":" << std::endl;
+            os << "Device State: ";
+            if (badDeviceStates.find(panelId) == badDeviceStates.end()) {
+                os << Device::deviceStateNames.at(normalDeviceStates.at(PAS_PanelType)) << " [Normal]" << std::endl;
+            }
+            else {
+                os << Device::deviceStateNames.at(badDeviceStates.at(panelId)) << " [WARNING: Abnormal. Should be " << Device::deviceStateNames.at(normalDeviceStates.at(PAS_PanelType)) << "]" << std::endl;
+            }
+            os << "Error State: " << Device::errorStateNames.at(panelController->getErrorState());
+            if (deviceErrors.find(panelId) != deviceErrors.end()) {
                 os << "Device Errors:" << std::endl;
-                if (deviceErrors.find(panelId) != deviceErrors.end()) {
-                    for (auto errorString : deviceErrors.at(panelId)) {
-                        os << errorString << std::endl;
-                    }
+                for (auto errorString : deviceErrors.at(panelId)) {
+                    os << errorString << std::endl;
                 }
-                os << std::endl << std::endl;
+            }
+            os << std::endl << std::endl;
 
-                os << "Actuators:" << std::endl << std::endl;
-                for (const auto &actuator : panelController->getChildren(PAS_ACTType)) {
-                    auto actController = std::dynamic_pointer_cast<MPESController>(actuator);
-                    auto actId = actController->getIdentity();
-                    if ((deviceErrors.find(actId) != deviceErrors.end()) ||
-                        (badDeviceStates.find(actId) != badDeviceStates.end())) {
-                        os << "\tActuator " << actId << ":" << std::endl;
-                        os << "\tDevice State: ";
-                        if (badDeviceStates.find(actId) == badDeviceStates.end()) {
-                            os << "\t" << Device::deviceStateNames.at(normalDeviceStates.at(PAS_ACTType))
-                               << " [Normal]" << std::endl;
-                        } else {
-                            os << "\t" << Device::deviceStateNames.at(badDeviceStates.at(actId))
-                               << " [WARNING: Abnormal. Should be "
-                               << Device::deviceStateNames.at(normalDeviceStates.at(PAS_ACTType)) << "]" << std::endl;
-                        }
-                        os << "\tDevice Errors:" << std::endl;
-                        if (deviceErrors.find(actId) != deviceErrors.end()) {
-                            for (auto errorString : deviceErrors.at(actId)) {
-                                os << errorString << std::endl;
-                            }
-                        }
-                        os << std::endl;
+            os << "Actuators:" << std::endl << std::endl;
+            for (const auto &actuator : panelController->getChildren(PAS_ACTType)) {
+                auto actController = std::dynamic_pointer_cast<MPESController>(actuator);
+                auto actId = actController->getIdentity();
+                if ((deviceErrors.find(actId) != deviceErrors.end()) ||
+                    (badDeviceStates.find(actId) != badDeviceStates.end())) {
+                    os << "\tActuator " << actId << ":" << std::endl;
+                    os << "\tDevice State: ";
+                    if (badDeviceStates.find(actId) == badDeviceStates.end()) {
+                        os << "\t" << Device::deviceStateNames.at(normalDeviceStates.at(PAS_ACTType))
+                           << " [Normal]" << std::endl;
+                    } else {
+                        os << "\t" << Device::deviceStateNames.at(badDeviceStates.at(actId))
+                           << " [WARNING: Abnormal. Should be "
+                           << Device::deviceStateNames.at(normalDeviceStates.at(PAS_ACTType)) << "]" << std::endl;
                     }
+                    os << "\tError State: " << Device::errorStateNames.at(actController->getErrorState());
+                    if (deviceErrors.find(actId) != deviceErrors.end()) {
+                        os << "\tDevice Errors:" << std::endl;
+                        for (auto errorString : deviceErrors.at(actId)) {
+                            os << errorString << std::endl;
+                        }
+                    }
+                    os << std::endl;
                 }
+            }
 
-                os << "MPES:" << std::endl << std::endl;
-                for (const auto &mpes : panelController->getChildren(PAS_MPESType)) {
-                    auto mpesController = std::dynamic_pointer_cast<MPESController>(mpes);
-                    auto mpesId = mpesController->getIdentity();
-                    if ((deviceErrors.find(mpesId) != deviceErrors.end()) ||
-                        (badDeviceStates.find(mpesId) != badDeviceStates.end())) {
-                        os << "\tMPES " << mpesId << ":" << std::endl;
-                        os << "\tDevice State: ";
-                        if (badDeviceStates.find(mpesId) == badDeviceStates.end()) {
-                            os << "\t" << Device::deviceStateNames.at(normalDeviceStates.at(PAS_MPESType))
-                               << " [Normal]" << std::endl;
-                        } else {
-                            os << "\t" << Device::deviceStateNames.at(badDeviceStates.at(mpesId))
-                               << " [WARNING: Abnormal. Should be "
-                               << Device::deviceStateNames.at(normalDeviceStates.at(PAS_MPESType)) << "]" << std::endl;
-                        }
-                        os << "\tDevice Errors:" << std::endl;
-                        if (deviceErrors.find(mpesId) != deviceErrors.end()) {
-                            for (auto errorString : deviceErrors.at(mpesId)) {
-                                os << errorString << std::endl;
-                            }
-                        }
-                        os << std::endl;
+            os << "MPES:" << std::endl << std::endl;
+            for (const auto &mpes : panelController->getChildren(PAS_MPESType)) {
+                auto mpesController = std::dynamic_pointer_cast<MPESController>(mpes);
+                auto mpesId = mpesController->getIdentity();
+                if ((deviceErrors.find(mpesId) != deviceErrors.end()) ||
+                    (badDeviceStates.find(mpesId) != badDeviceStates.end())) {
+                    os << "\tMPES " << mpesId << ":" << std::endl;
+                    os << "\tDevice State: ";
+                    if (badDeviceStates.find(mpesId) == badDeviceStates.end()) {
+                        os << "\t" << Device::deviceStateNames.at(normalDeviceStates.at(PAS_MPESType))
+                           << " [Normal]" << std::endl;
+                    } else {
+                        os << "\t" << Device::deviceStateNames.at(badDeviceStates.at(mpesId))
+                           << " [WARNING: Abnormal. Should be "
+                           << Device::deviceStateNames.at(normalDeviceStates.at(PAS_MPESType)) << "]" << std::endl;
                     }
+                    os << "\tError State: " << Device::errorStateNames.at(mpesController->getErrorState());
+                    if (deviceErrors.find(mpesId) != deviceErrors.end()) {
+                        os << "\tDevice Errors:" << std::endl;
+                        for (auto errorString : deviceErrors.at(mpesId)) {
+                            os << errorString << std::endl;
+                        }
+                    }
+                    os << std::endl;
                 }
             }
         }
@@ -2223,7 +2230,7 @@ UaStatus MirrorController::__setAlignFrac(double alignFrac) {
         for (int i=0; i < 6; i++) {
             double currentLength = currentLengths(i);
             double targetLength = currentLength + X(k+i);
-            os << std::setw(20) << pCurPanel->getChildAtPosition(PAS_ACTType, i+1)->getIdentity() << ": " << std::setw(8) << currentLength << " + " << std::setw(8) << X(k+i) << " => " << std::setw(8) << targetLength;
+            os << pCurPanel->getChildAtPosition(PAS_ACTType, i+1)->getIdentity() << ": " << std::setw(10) << currentLength << " + " << std::setw(10) << X(k+i) << " => " << std::setw(10) << targetLength;
 
             if ((targetLength < ActuatorBase::DEFAULT_SOFTWARE_RANGE_MIN + 0.5) || (targetLength > ActuatorBase::DEFAULT_SOFTWARE_RANGE_MAX - 0.5)) {
                 os << "  [WARNING: Target length is close to or outside of software range (" << ActuatorBase::DEFAULT_SOFTWARE_RANGE_MIN << " mm - " << ActuatorBase::DEFAULT_SOFTWARE_RANGE_MAX << " mm). Motion may be disallowed.]";
