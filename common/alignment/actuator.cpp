@@ -521,26 +521,6 @@ void ActuatorBase::probeEndStop(int direction) {
     __probeEndStop(direction);
 }
 
-void ActuatorBase::createDefaultASF()//hardcoded structure of the ASF file (year,mo,day,hr,min,sec,rev,angle,errorcodes)
-{
-    spdlog::trace("{} : Creating default ASF file at {}...", m_Identity, m_ASFPath);
-    copyFile(m_ASFPath, m_OldASFPath); // Create a copy of the current ASF file contents (the "old" ASF file)
-
-    std::ofstream ASFfile(m_NewASFPath); // Write new default ASF file contents to a separate (the "new" ASF file)
-    ASFfile << "2000 1 1 0 0 0 50 0"; // year month day hour minute second revolution angle
-    for (int i = 0; i < getNumErrors(); i++) {
-        if (i == 0) {
-            ASFfile << " 1"; //set error code 0 to true, meaning home is not found.
-        } else {
-            ASFfile << " 0";
-        }
-    }
-    ASFfile << std::endl;
-    ASFfile.close();
-
-    copyFile(m_NewASFPath, m_ASFPath); // Copy the "new" ASF file to the current ASF file location to overwrite
-}
-
 void ActuatorBase::clearErrors() {
     Device::clearErrors();
     saveStatusToASF();
@@ -577,6 +557,27 @@ void ActuatorBase::copyFile(const std::string &srcFilePath, const std::string &d
 #ifndef SIMMODE
 
 #include "common/cbccode/cbc.hpp"
+
+void Actuator::createDefaultASF()//hardcoded structure of the ASF file (year,mo,day,hr,min,sec,rev,angle,errorcodes)
+{
+    spdlog::trace("{} : Creating default ASF file at {}...", m_Identity, m_ASFPath);
+    copyFile(m_ASFPath, m_OldASFPath); // Create a copy of the current ASF file contents (the "old" ASF file)
+
+    std::ofstream ASFfile(m_NewASFPath); // Write new default ASF file contents to a separate (the "new" ASF file)
+    ASFfile << "2000 1 1 0 0 0 50 0"; // year month day hour minute second revolution angle
+    for (int i = 0; i < getNumErrors(); i++) {
+        if (i == 0) {
+            ASFfile << " 1"; //set error code 0 to true, meaning home is not found.
+        } else {
+            ASFfile << " 0";
+        }
+    }
+    ASFfile << std::endl;
+    ASFfile.close();
+
+    copyFile(m_NewASFPath, m_ASFPath); // Copy the "new" ASF file to the current ASF file location to overwrite
+}
+
 
 //read all error codes from DB. Check size of error codes to make sure version is consistent. Adjust this function to the new database table structure.
 bool Actuator::readStatusFromDB(ActuatorStatus &RecordedPosition) {

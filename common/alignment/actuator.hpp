@@ -163,7 +163,7 @@ protected:
 
     bool loadConfigurationAndCalibration();
 
-    virtual void createDefaultASF();
+    virtual void createDefaultASF() = 0;
 
     void setASFInfo(const ASFInfo &ASFInfo);
     void setDBInfo(Device::DBInfo DBInfo);
@@ -219,6 +219,8 @@ public:
     void turnOff() override;
 
     void probeHome() override;
+
+    void createDefaultASF() override;
 
 protected:
     std::shared_ptr<CBC> m_pCBC;
