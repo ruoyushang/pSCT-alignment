@@ -318,6 +318,9 @@ bool DummyMPES::__initialize() {
     }
 
     spdlog::debug("{} : DummyMPES::initialize() : Done.", m_Identity);
+
+    // Load default
+
     return true;
 }
 
@@ -331,11 +334,20 @@ int DummyMPES::__setExposure() {
 
 int DummyMPES::__updatePosition() {
     // Set internal position variable to dummy values
-    m_Position.xCentroid = 160.;
-    m_Position.yCentroid = 120.;
+    std::random_device rd{};
+    std::mt19937 generator{rd()};
+
+    std::normal_distribution<float> xCentroidDistribution(m_Position.xNominal, 5.0);
+    std::normal_distribution<float> yCentroidDistribution(m_Position.yNominal, 5.0);
+
+    m_Position.xCentroid = xCentroidDistribution(generator);
+    m_Position.yCentroid = yCentroidDistribution(generator);
     m_Position.xSpotWidth = MPESBase::NOMINAL_SPOT_WIDTH;
     m_Position.ySpotWidth = MPESBase::NOMINAL_SPOT_WIDTH;
     m_Position.cleanedIntensity = MPESBase::NOMINAL_INTENSITY;
+
+    m_Position.exposure = 500.0;
+    m_Position.timestamp = std::time(0);
 
     return static_cast<int>(m_Position.cleanedIntensity);
 }
