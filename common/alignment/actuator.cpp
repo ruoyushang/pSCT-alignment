@@ -43,8 +43,6 @@ ActuatorBase::ActuatorBase(Device::Identity identity, Device::DBInfo DBInfo,
                            const ASFInfo &ASFFileInfo) : Device::Device(std::move(identity)),
                                                          m_keepStepping(true) {
     m_Errors.assign(getNumErrors(), false);
-    setError(0); // By default, home position not calibrated
-    setError(1); // By default, DB info not set
 
     if (getSerialNumber() == -1) {
         m_Identity.serialNumber = std::stoi(m_Identity.eAddress);
@@ -57,6 +55,7 @@ ActuatorBase::ActuatorBase(Device::Identity identity, Device::DBInfo DBInfo,
         setDBInfo(DBInfo);
     } else {
         spdlog::warn("{} : Actuator: No DB info provided.", m_Identity);
+        setError(1); // By default, DB info not set
     }
 
     m_encoderScale.resize(StepsPerRevolution);
