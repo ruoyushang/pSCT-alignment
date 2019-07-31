@@ -1161,3 +1161,19 @@ void DummyActuator::__probeEndStop(int direction) {
         }
     }
 }
+
+void DummyActuator::createDefaultASF()//hardcoded structure of the ASF file (year,mo,day,hr,min,sec,rev,angle,errorcodes)
+{
+    spdlog::trace("{} : Creating default ASF file at {}...", m_Identity, m_ASFPath);
+    copyFile(m_ASFPath, m_OldASFPath); // Create a copy of the current ASF file contents (the "old" ASF file)
+
+    std::ofstream ASFfile(m_NewASFPath); // Write new default ASF file contents to a separate (the "new" ASF file)
+    ASFfile << "2000 1 1 0 0 0 50 0"; // year month day hour minute second revolution angle
+    for (int i = 0; i < getNumErrors(); i++) {
+        ASFfile << " 0";
+    }
+    ASFfile << std::endl;
+    ASFfile.close();
+
+    copyFile(m_NewASFPath, m_ASFPath); // Copy the "new" ASF file to the current ASF file location to overwrite
+}

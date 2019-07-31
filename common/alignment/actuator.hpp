@@ -163,7 +163,7 @@ protected:
 
     bool loadConfigurationAndCalibration();
 
-    void createDefaultASF();
+    virtual void createDefaultASF();
 
     void setASFInfo(const ASFInfo &ASFInfo);
     void setDBInfo(Device::DBInfo DBInfo);
@@ -255,6 +255,8 @@ public:
     void turnOff() override;
 
     void probeHome() override;
+
+    void createDefaultASF() override;
 
 protected:
     bool m_On;
