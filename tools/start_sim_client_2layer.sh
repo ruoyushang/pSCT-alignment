@@ -100,14 +100,14 @@ for i in {0..3}; do
 done
 
 # Now start high-level client connecting to all lower-level panels
-printf "Sleeping to give subclients time to start...\n"
+#printf "Sleeping to give subclients time to start...\n"
 
-sleep 30
+#sleep 30
 
 printf "Starting top-level client...\n"
 
 client_name="client"
-port="48015"
+port="48010"
 config_filename="${client_name}${extension}"
 endpoint_addr="opc.tcp://10.0.1.13:$port"
 
@@ -118,4 +118,4 @@ printf "Starting %s client at address %s.\n" "${client_name}" "${endpoint_addr}"
 abspath=$(realpath ${config_filename})
 screen -S ${screen_name} -X stuff $"../sdk/bin/p2pasclient $clients_to_connect -m client -c $abspath\n"
 
-
+printf "Done! You will need to go to the screen session named $screen_name and manually start the top-level client in the tab named $client_name ."
