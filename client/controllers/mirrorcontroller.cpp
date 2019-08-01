@@ -266,9 +266,11 @@ UaStatus MirrorController::getData(OpcUa_UInt32 offset, UaVariant &value)
 
     if (offset >= PAS_MirrorType_x && offset <= PAS_MirrorType_zRot) {
         // update current coordinates
+        /**
         if (__expired()) {
             updateCoords(false);
         }
+        */
         int dataoffset = offset - PAS_MirrorType_x;
         value.setDouble(m_curCoords(dataoffset));
     }

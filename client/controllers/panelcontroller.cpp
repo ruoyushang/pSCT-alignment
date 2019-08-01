@@ -64,6 +64,7 @@ UaStatus PanelController::getData(OpcUa_UInt32 offset, UaVariant &value) {
     if (PanelObject::ERRORS.count(offset) > 0) {
         return getError(offset, value);
     } else if (offset >= PAS_PanelType_x && offset <= PAS_PanelType_zRot) {
+        /**
         // update current coordinates
         if (__expired()) {
             spdlog::debug("{} : PanelController::operate() : Panel coordinate data is expired, updating coordinates...",
@@ -74,6 +75,7 @@ UaStatus PanelController::getData(OpcUa_UInt32 offset, UaVariant &value) {
                 return status;
             }
         }
+        */
         int dataOffset = offset - PAS_PanelType_x;
         value.setDouble(m_curCoords[dataOffset]);
 
