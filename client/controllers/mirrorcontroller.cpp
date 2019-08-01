@@ -855,7 +855,8 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
             for (auto pair : PanelObject::ERRORS) {
                 UaVariant var;
                 panelController->getData(pair.first, var);
-                OpcUa_Boolean errorVal = var[0].Value.Boolean;
+                unsigned char errorVal;
+                var.toBool(errorVal);
                 if (errorVal == OpcUa_True) {
                     deviceErrors[panelController->getIdentity()].push_back(
                             std::get<0>(pair.second));
@@ -871,7 +872,8 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
                     for (auto pair : ACTObject::ERRORS) {
                         UaVariant var;
                         actuatorController->getData(pair.first, var);
-                        OpcUa_Boolean errorVal = var[0].Value.Boolean;
+                        unsigned char errorVal;
+                        var.toBool(errorVal);
                         if (errorVal == OpcUa_True) {
                             deviceErrors[actuatorController->getIdentity()].push_back(
                                     std::get<0>(pair.second));
@@ -889,7 +891,8 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
                     for (auto pair : MPESObject::ERRORS) {
                         UaVariant var;
                         mpesController->getData(pair.first, var);
-                        OpcUa_Int32 errorVal = var[0].Value.Boolean;
+                        unsigned char errorVal;
+                        var.toBool(errorVal);
                         if (errorVal == OpcUa_True) {
                             deviceErrors[mpesController->getIdentity()].push_back(
                                     std::get<0>(pair.second));
@@ -918,7 +921,7 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
                 else {
                     os << Device::deviceStateNames.at(badDeviceStates.at(panelId)) << " [WARNING: Abnormal. Should be " << Device::deviceStateNames.at(normalDeviceStates.at(PAS_PanelType)) << "]" << std::endl;
                 }
-                os << "\tError State: " << Device::errorStateNames.at(panelController->getErrorState());
+                os << "\tError State: " << Device::errorStateNames.at(panelController->getErrorState()) << std::endl;
                 if (deviceErrors.find(panelId) != deviceErrors.end()) {
                     os << "\tDevice Errors:" << std::endl;
                     for (auto errorString : deviceErrors.at(panelId)) {
@@ -928,7 +931,6 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
                 os << std::endl;
             }
         }
-        os << std::endl << std::endl;
 
         os << "Actuators: " << std::endl << std::endl;
         for (const auto &panel : m_pChildren.at(PAS_PanelType)) {
@@ -949,7 +951,7 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
                     else {
                         os << Device::deviceStateNames.at(badDeviceStates.at(actId)) << " [WARNING: Abnormal. Should be " << Device::deviceStateNames.at(normalDeviceStates.at(PAS_ACTType)) << "]" << std::endl;
                     }
-                    os << "\tError State: " << Device::errorStateNames.at(actController->getErrorState());
+                    os << "\tError State: " << Device::errorStateNames.at(actController->getErrorState()) << std::endl;
                     if (deviceErrors.find(actId) != deviceErrors.end()) {
                         os << "\tDevice Errors:" << std::endl;
                         for (auto errorString : deviceErrors.at(actId)) {
@@ -980,7 +982,7 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
                     else {
                         os << Device::deviceStateNames.at(badDeviceStates.at(mpesId)) << " [WARNING: Abnormal. Should be " << Device::deviceStateNames.at(normalDeviceStates.at(PAS_MPESType)) << "]" << std::endl;
                     }
-                    os << "\tError State: " << Device::errorStateNames.at(mpesController->getErrorState());
+                    os << "\tError State: " << Device::errorStateNames.at(mpesController->getErrorState()) << std::endl;
                     if (deviceErrors.find(mpesId) != deviceErrors.end()) {
                         os << "\tDevice Errors:" << std::endl;
                         for (auto errorString : deviceErrors.at(mpesId)) {

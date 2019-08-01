@@ -196,6 +196,7 @@ Device::ErrorState PlatformBase::getErrorState() {
 }
 
 void PlatformBase::unsetError(int errorCode) {
+    spdlog::info("{}: unsetError {}, {}", m_Identity, errorCode, m_Errors.at(errorCode));
     if (m_Errors.at(errorCode)) {
         spdlog::info("{} : Unsetting Error {} ({})", m_Identity, errorCode,
                      getErrorCodeDefinition(errorCode).description);
@@ -217,7 +218,7 @@ void PlatformBase::clearActuatorErrors() {
 
 void PlatformBase::clearPlatformErrors() {
     spdlog::info("{} : Clearing all Platform-level errors for Platform...", m_Identity);
-    for (int i = 12; i < getNumErrors(); i++) {
+    for (int i = 2 * PlatformBase::NUM_ACTS_PER_PLATFORM; i < getNumErrors(); i++) {
         unsetError(i);
     }
 }
