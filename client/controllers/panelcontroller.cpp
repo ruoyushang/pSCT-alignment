@@ -64,6 +64,7 @@ UaStatus PanelController::getData(OpcUa_UInt32 offset, UaVariant &value) {
     if (PanelObject::ERRORS.count(offset) > 0) {
         return getError(offset, value);
     } else if (offset >= PAS_PanelType_x && offset <= PAS_PanelType_zRot) {
+        /**
         // update current coordinates
         if (__expired()) {
             spdlog::debug("{} : PanelController::operate() : Panel coordinate data is expired, updating coordinates...",
@@ -74,6 +75,7 @@ UaStatus PanelController::getData(OpcUa_UInt32 offset, UaVariant &value) {
                 return status;
             }
         }
+        */
         int dataOffset = offset - PAS_PanelType_x;
         value.setDouble(m_curCoords[dataOffset]);
 
@@ -172,7 +174,7 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
     UaStatus status;
 
     if (offset == PAS_PanelType_MoveToLengths || offset == PAS_PanelType_MoveToCoords || offset == PAS_PanelType_MoveDeltaLengths) {
-        if (__getErrorState() == Device::ErrorState::FatalError || __getDeviceState() != Device::DeviceState::On) {
+        if (getErrorState() == Device::ErrorState::FatalError || getDeviceState() != Device::DeviceState::On) {
             spdlog::error(
                 "{} : PanelController::operate() : Device is in a bad state (busy, off, error). Method call aborted. Check state and try again.",
                 m_Identity);
@@ -211,7 +213,7 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
         bool stillMoving = true;
         while (stillMoving) {
             stillMoving = false;
-            if (__getDeviceState() != Device::DeviceState::On)
+            if (getDeviceState() != Device::DeviceState::On)
             {
                 stillMoving = true;
                 spdlog::trace("{}: PanelController::operate() : still moving...\n", m_Identity);
@@ -351,9 +353,6 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
         }
     } else if (offset == PAS_PanelType_ReadPosition) {
         status = updateCoords(true);
-        spdlog::info(
-            "{} : PanelController::operate() : Current panel coordinates (x, y ,z xRot, yRot, zRot):\n{}\n{}\n{}\n{}\n{}\n{}",
-            m_Identity, m_curCoords[0], m_curCoords[1], m_curCoords[2], m_curCoords[3], m_curCoords[4], m_curCoords[5]);
     }
         /************************************************
          * stop the motion in progress                  *
@@ -368,7 +367,7 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
         spdlog::info("{} : PanelController calling turnOff()", m_Identity);
         status = m_pClient->callMethod(m_pClient->getDeviceNodeId(m_Identity), UaString("TurnOff"));
     } else if (offset == PAS_PanelType_FindHome) {
-        if (__getDeviceState() != Device::DeviceState::On) {
+        if (getDeviceState() != Device::DeviceState::On) {
             spdlog::error("{} : PanelController::operate() : Device is in a bad state (busy, off, error) and "
                           "could not execute findHome command. Check state and try again.", m_Identity);
             return OpcUa_BadInvalidState;
@@ -487,7 +486,7 @@ UaStatus PanelController::updateCoords(bool print) {
             os << getChildAtPosition(PAS_ACTType, i+1)->getIdentity() << ": " << currentLengths(i) << std::endl;
         }
 
-        spdlog::info("{} : PanelController::updateCoords() : Current Actuator Lengths :\n{}\n\n", m_Identity,
+        spdlog::info("{} : PanelController::updateCoords() : Current Actuator Lengths :\n{}", m_Identity,
                      os.str());
     }
     // update current coordinates
@@ -501,6 +500,12 @@ UaStatus PanelController::updateCoords(bool print) {
         // populate panel frame pad coordinates
         for (int coord = 0; coord < 3; coord++)
             m_PadCoords.col(pad)(coord) = m_SP.GetPadCoords(pad)[coord];
+
+    if (print) {
+        spdlog::info(
+                "{} : PanelController::operate() : Current panel coordinates (x, y ,z xRot, yRot, zRot):\n{}\n{}\n{}\n{}\n{}\n{}\n",
+                m_Identity, m_curCoords[0], m_curCoords[1], m_curCoords[2], m_curCoords[3], m_curCoords[4], m_curCoords[5]);
+    }
 
     m_LastUpdateTime = TIME::now();
 }
@@ -539,17 +544,10 @@ UaStatus PanelController::__getActuatorLengths(Eigen::VectorXd &lengths) {
     return status;
 }
 
-Device::DeviceState PanelController::__getDeviceState() {
-    Device::DeviceState state;
-    getState(state);
-
-    return state;
-}
-
-Device::ErrorState PanelController::__getErrorState() {
+Device::ErrorState PanelController::getErrorState() {
     UaVariant var;
     int err;
-    getData(PAS_ACTType_ErrorState, var);
+    getData(PAS_PanelType_ErrorState, var);
     var.toInt32(err);
     return static_cast<Device::ErrorState>(err);
 }

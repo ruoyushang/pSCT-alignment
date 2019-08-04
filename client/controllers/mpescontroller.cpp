@@ -449,3 +449,11 @@ MPESBase::Position MPESController::getPosition() {
 
     return data;
 }
+
+Device::ErrorState MPESController::getErrorState() {
+    UaVariant var;
+    int err;
+    getData(PAS_MPESType_ErrorState, var);
+    var.toInt32(err);
+    return static_cast<Device::ErrorState>(err);
+}

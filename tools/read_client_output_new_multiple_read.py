@@ -165,7 +165,7 @@ def FindEdgeSensorPosition(edge_id, port):
     return 0, 0
 
 
-def read_misalignment(inputfilename="logs/p2pasclient_log_20190703184623.txt", out_text="mpes_readings_new.txt"):
+def read_misalignment(inputfilename="logs/p2pasclient_log_20190703184623.txt", out_text="mpes_readings_new.txt", zmax=0.8):
     #KNOWN_BAD_SENSORS = [10332, 10358, 10152, 10146]  # permanent dead
 
     outputfile = open(inputfilename, "r")
@@ -209,6 +209,7 @@ def read_misalignment(inputfilename="logs/p2pasclient_log_20190703184623.txt", o
                 misalignment_array = np.array(misalignment_array)
                 print("========================================================")
                 print("==== Summary of the {}th parallel read: ====".format(num_read))
+                print("==== Time or read: {} ====".format(time_tag))
                 print("{num} > 1mm misalignment".format(num=gt1mm))
                 print("{num} > 2mm misalignment".format(num=gt2mm))
                 print("{num} > 3mm misalignment".format(num=gt3mm))
@@ -226,11 +227,12 @@ def read_misalignment(inputfilename="logs/p2pasclient_log_20190703184623.txt", o
                 #return all_misalignment, misalignment_array
                 all_misalignment_list.append(all_misalignment)
                 misalignment_array_list.append((misalignment_array))
+
                 if plot:
-                    plotfile = "alignment_plot_" + outputfilename.split('.')[0].split('_')[-1] + "reading_"+ str(num_read)+ ".png"
-                    plot_misalignments(all_misalignment, comparison, zmax=1, outfilename=plotfile)
+                    plotfile = "alignment_plot_" + time_tag + "reading_"+ str(num_read)+ ".png"
+                    plot_misalignments(all_misalignment, comparison, zmax=zmax, outfilename=plotfile)
                     print("Saving plot to {}".format(plotfile))
-                    plotfile2 = "alignment_plot_" + outputfilename.split('.')[0].split('_')[-1] + "reading_" + str(
+                    plotfile2 = "alignment_plot_" + time_tag + "reading_" + str(
                         num_read) + "_hist.png"
                     plt.figure(figsize=(8,3))
                     plt.hist(misalignment_array, bins=30)
@@ -240,6 +242,7 @@ def read_misalignment(inputfilename="logs/p2pasclient_log_20190703184623.txt", o
                     plt.savefig(plotfile2)
 
             num_read += 1
+            time_tag = '_'.join('_'.join(line.split('] [')[0][1:].split()).split(':'))
 
             #initialize for next read
             all_misalignment = {}
@@ -273,8 +276,8 @@ def read_misalignment(inputfilename="logs/p2pasclient_log_20190703184623.txt", o
             which_sensor = 0
             is_an_edge_block = True
             edge_id = line.split(", ")[-3]
-            print(line)
-            print(edge_id)
+            #print(line)
+            #print(edge_id)
             sensor_ports = []
             sensor_serial = []
             sensor_misalign = []
@@ -290,7 +293,7 @@ def read_misalignment(inputfilename="logs/p2pasclient_log_20190703184623.txt", o
                 sensor_serial += [serial_]
                 if int(serial_) in mpeses_port6_airquote:
                     # assert([line.split(", ")[-1].split(")")[0]] == '2')
-                    print("Changing MPES {} port to 6 just for plotting".format(serial_))
+                    #print("Changing MPES {} port to 6 just for plotting".format(serial_))
                     sensor_ports.append("6")  # to avoid two port-2 sensors
                 else:
                     sensor_ports += [line.split(", ")[-1].split(")")[0]]
@@ -298,6 +301,7 @@ def read_misalignment(inputfilename="logs/p2pasclient_log_20190703184623.txt", o
                 if empty_sensor:
                     which_sensor += 1
                 empty_sensor = True
+                sensor_FoV.append(True)
 
                 continue
             elif "Current" in line.split(" ")[0]:
@@ -315,9 +319,9 @@ def read_misalignment(inputfilename="logs/p2pasclient_log_20190703184623.txt", o
                 x_array.append(x_val)
                 dx_array.append(x_rms)
                 if x_val == -1:
-                    sensor_FoV.append(False)
+                    sensor_FoV[which_sensor] = False
                 else:
-                    sensor_FoV.append(True)
+                    sensor_FoV[which_sensor] = True
                 # sensor_misalign.append(x_val**2)
                 reading_x = False
                 empty_sensor = False
@@ -388,7 +392,7 @@ def read_misalignment(inputfilename="logs/p2pasclient_log_20190703184623.txt", o
                     for i in range(4):
                         serial_ = sensor_serial[i]
                         if int(serial_) in mpeses_port6_airquote:
-                            print("Changing MPES {} port to 6 just for plotting".format(serial_))
+                            #print("Changing MPES {} port to 6 just for plotting".format(serial_))
                             sensor_ports[i] = "6"  # to avoid two port-2 sensors
 
     misalignment_array = np.array(misalignment_array)
@@ -408,10 +412,10 @@ def read_misalignment(inputfilename="logs/p2pasclient_log_20190703184623.txt", o
     all_misalignment_list.append(all_misalignment)
     misalignment_array_list.append((misalignment_array))
     if plot:
-        plotfile = "alignment_plot_" + outputfilename.split('.')[0].split('_')[-1] + "reading_" + str(num_read) + ".png"
-        plot_misalignments(all_misalignment, comparison, zmax=1, outfilename=plotfile)
+        plotfile = "alignment_plot_" + time_tag + "reading_" + str(num_read) + ".png"
+        plot_misalignments(all_misalignment, comparison, zmax=zmax, outfilename=plotfile)
         print("Saving plot to {}".format(plotfile))
-        plotfile2 = "alignment_plot_" + outputfilename.split('.')[0].split('_')[-1] + "reading_" + str(
+        plotfile2 = "alignment_plot_" + time_tag + "reading_" + str(
             num_read) + "_hist.png"
         plt.figure(figsize=(8, 3))
         plt.hist(misalignment_array, bins=30)

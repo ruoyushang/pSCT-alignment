@@ -73,14 +73,29 @@ public:
 
     void clearErrors() override;
 
+    static constexpr float DEFAULT_HOME_LENGTH = 476.2;
+    static constexpr int DEFAULT_RETRACT_REVOLUTION_LIMIT = 100;
+    static constexpr int DEFAULT_EXTEND_REVOLUTION_LIMIT = 0;
+    static constexpr int DEFAULT_STEPS_PER_REVOLUTION = 200;
+    static constexpr float DEFAULT_MM_PER_STEP = 0.003048;
+
+    static constexpr float DEFAULT_SOFTWARE_RANGE_MIN = DEFAULT_HOME_LENGTH -
+                                                        (DEFAULT_RETRACT_REVOLUTION_LIMIT *
+                                                         DEFAULT_STEPS_PER_REVOLUTION *
+                                                         DEFAULT_MM_PER_STEP);
+    static constexpr float DEFAULT_SOFTWARE_RANGE_MAX = DEFAULT_HOME_LENGTH -
+                                                        (DEFAULT_EXTEND_REVOLUTION_LIMIT *
+                                                         DEFAULT_STEPS_PER_REVOLUTION *
+                                                         DEFAULT_MM_PER_STEP);
+
     int EndstopSearchStepsize{15};
-    float dV{(m_VMax - m_VMin) / (StepsPerRevolution - 1)};
-    float mmPerStep = 0.003048;
-    int RecordingInterval{(StepsPerRevolution / 2) - 20};
-    int RetractRevolutionLimit{100};
-    int ExtendRevolutionLimit{0};
-    int StepsPerRevolution = 200;
-    float HomeLength = 476.2;
+    float dV{(m_VMax - m_VMin) / (DEFAULT_STEPS_PER_REVOLUTION - 1)};
+    float mmPerStep = DEFAULT_MM_PER_STEP;
+    int RecordingInterval{(DEFAULT_STEPS_PER_REVOLUTION / 2) - 20};
+    int RetractRevolutionLimit{DEFAULT_RETRACT_REVOLUTION_LIMIT};
+    int ExtendRevolutionLimit{DEFAULT_EXTEND_REVOLUTION_LIMIT};
+    int StepsPerRevolution = DEFAULT_STEPS_PER_REVOLUTION;
+    float HomeLength = DEFAULT_HOME_LENGTH;
 
     int convertPositionToSteps(Position position);
 
@@ -148,7 +163,7 @@ protected:
 
     bool loadConfigurationAndCalibration();
 
-    void createDefaultASF();
+    virtual void createDefaultASF() = 0;
 
     void setASFInfo(const ASFInfo &ASFInfo);
     void setDBInfo(Device::DBInfo DBInfo);
@@ -205,6 +220,8 @@ public:
 
     void probeHome() override;
 
+    void createDefaultASF() override;
+
 protected:
     std::shared_ptr<CBC> m_pCBC;
     CBC::ADC::adcData m_ADCdata;
@@ -240,6 +257,8 @@ public:
     void turnOff() override;
 
     void probeHome() override;
+
+    void createDefaultASF() override;
 
 protected:
     bool m_On;

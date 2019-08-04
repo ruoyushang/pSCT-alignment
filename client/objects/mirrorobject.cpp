@@ -155,6 +155,8 @@ const std::map<OpcUa_UInt32, std::pair<std::string, std::vector<std::tuple<std::
                                                                                                "Command to run (calculate, setAlignFrac, execute)."),
                                                                            }}},
     {PAS_MirrorType_TestActuators,             {"TestActuators",             {}}},
+    {PAS_MirrorType_TestSensors,             {"TestSensors",             {}}},
+    {PAS_MirrorType_CheckStatus,             {"CheckStatus",             {}}},
     {PAS_MirrorType_Stop,            {"Stop",            {}}}
 };
 

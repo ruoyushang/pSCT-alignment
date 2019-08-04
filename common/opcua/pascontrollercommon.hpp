@@ -48,6 +48,9 @@ public:
 
     virtual bool initialize() { return true; }
 
+    virtual Device::ErrorState getErrorState();
+    virtual Device::DeviceState getDeviceState();
+
 protected:
     UaMutex m_Mutex;
     Device::DeviceState m_State;

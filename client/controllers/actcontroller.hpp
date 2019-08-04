@@ -35,6 +35,8 @@ public:
     UaStatus setData(OpcUa_UInt32 offset, UaVariant value) override;
 
     UaStatus operate(OpcUa_UInt32 offset, const UaVariantArray &args) override;
+
+    Device::ErrorState getErrorState() override;
 };
 
 #endif //CLIENT_ACTCONTROLLER_HPP

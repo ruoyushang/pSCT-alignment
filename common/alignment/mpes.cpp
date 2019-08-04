@@ -168,24 +168,21 @@ bool MPES::__initialize() {
 
 int MPES::__setExposure() {
     spdlog::debug("{} : MPES::setExposure() : Setting exposure...", m_Identity);
-    int intensity;
-
     int counter = 0;
-    while ((intensity = __updatePosition())
-           && (!m_pDevice->isWithinIntensityTolerance(intensity))
+    while ((!m_pDevice->isWithinIntensityTolerance(__updatePosition()))
            && (counter < MPESBase::MAX_SET_EXPOSURE_TRIES)
            && m_pDevice->GetExposure() < MPESBase::MAX_EXPOSURE) {
-        spdlog::debug("{} : MPES::setExposure() : Intensity {} ({}). Exposure: {}.", m_Identity, intensity,
+        spdlog::debug("{} : MPES::setExposure() : Intensity {} ({}). Exposure: {}.", m_Identity, m_Position.cleanedIntensity,
                       m_pDevice->GetTargetIntensity(), m_pDevice->GetExposure());
         m_pDevice->SetExposure(
-            (int) (m_pDevice->GetTargetIntensity() / intensity * ((float) m_pDevice->GetExposure())));
+            (int) (m_pDevice->GetTargetIntensity() / m_Position.cleanedIntensity * ((float) m_pDevice->GetExposure())));
 
         if (m_pDevice->GetExposure() >= MPESBase::MAX_EXPOSURE) {
             spdlog::error("{} : MPES::setExposure() : Failed to set exposure, reached maximum limit of {}. Setting Error 1...",
                           m_Identity, std::to_string(MPESBase::MAX_EXPOSURE));
             m_pDevice->SetExposure(MPESBase::MAX_EXPOSURE);
             setError(1);
-            intensity = -1;
+            m_Position.cleanedIntensity = -1;
             break;
         }
 
@@ -193,14 +190,14 @@ int MPES::__setExposure() {
             spdlog::error("{} : MPES::setExposure() : Failed to set exposure in 5 attempts, setting Error 1...",
                           m_Identity);
             setError(1);
-            intensity = -1;
+            m_Position.cleanedIntensity = -1;
             break;
         }
     }
 
     spdlog::debug("{} : MPES::setExposure() : Done.", m_Identity);
 
-    return intensity;
+    return m_Position.cleanedIntensity;
 }
 
 int MPES::__updatePosition() {
@@ -321,6 +318,9 @@ bool DummyMPES::__initialize() {
     }
 
     spdlog::debug("{} : DummyMPES::initialize() : Done.", m_Identity);
+
+    // Load default
+
     return true;
 }
 
@@ -334,11 +334,20 @@ int DummyMPES::__setExposure() {
 
 int DummyMPES::__updatePosition() {
     // Set internal position variable to dummy values
-    m_Position.xCentroid = 160.;
-    m_Position.yCentroid = 120.;
+    std::random_device rd{};
+    std::mt19937 generator{rd()};
+
+    std::normal_distribution<float> xCentroidDistribution(m_Position.xNominal, 5.0);
+    std::normal_distribution<float> yCentroidDistribution(m_Position.yNominal, 5.0);
+
+    m_Position.xCentroid = xCentroidDistribution(generator);
+    m_Position.yCentroid = yCentroidDistribution(generator);
     m_Position.xSpotWidth = MPESBase::NOMINAL_SPOT_WIDTH;
     m_Position.ySpotWidth = MPESBase::NOMINAL_SPOT_WIDTH;
     m_Position.cleanedIntensity = MPESBase::NOMINAL_INTENSITY;
+
+    m_Position.exposure = 500.0;
+    m_Position.timestamp = std::time(0);
 
     return static_cast<int>(m_Position.cleanedIntensity);
 }

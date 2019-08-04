@@ -1,6 +1,6 @@
 #!/bin/bash
 
-screen_name=pas_serv
+screen_name=sim_server
 extension=".ini"
 
 # only need to do something if the screen session is up
