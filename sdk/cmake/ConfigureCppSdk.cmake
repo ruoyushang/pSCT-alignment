@@ -133,7 +133,7 @@ else ()
     set(UAWIDGETS_INCLUDE           ${UASDK_BASE_DIR}/include/uawidgets)
     set(DATALOGGER_INCLUDE          ${UASDK_BASE_DIR}/include/datalogger)
 
-    set(UA_LIB_DIR                  ${UASDK_BASE_DIR}/lib)
+    set(UA_LIB_DIR                  ${UASDK_BASE_DIR}/lib64)
 
     set(UABASE_LIBRARY              debug "uabased"             optimized "uabase")
     set(UAPKI_LIBRARY               debug "uapkid"              optimized "uapki")

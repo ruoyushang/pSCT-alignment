@@ -33,7 +33,7 @@ const std::string MirrorController::SAVEFILE_DELIMITER = "**********************
 
 MirrorController::MirrorController(Device::Identity identity, std::string mode)
     : PasCompositeController(
-    std::move(identity), nullptr,
+    std::move(identity), nullptr, m_pNodeManager,
     10000),
       m_Mode(mode), m_pSurface(nullptr) {
     // define possible children and initialize the selected children string

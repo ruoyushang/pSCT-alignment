@@ -132,9 +132,9 @@ PasCommunicationInterface::addDevice(Client *pClient, OpcUa_UInt32 deviceType,
         std::shared_ptr<PasController> pController;
         // up-casting is implicit
         if (deviceType == PAS_MPESType)
-            pController = std::make_shared<MPESController>(identity, pClient, mode);
+            pController = std::make_shared<MPESController>(identity, pClient, m_pNodeManager, mode);
         else if (deviceType == PAS_ACTType)
-            pController = std::make_shared<ActController>(identity, pClient);
+            pController = std::make_shared<ActController>(identity, pClient, m_pNodeManager);
         else if (deviceType == PAS_PanelType)
             pController = std::make_shared<PanelController>(identity, pClient, mode);
         else if (deviceType == PAS_EdgeType)
@@ -142,9 +142,9 @@ PasCommunicationInterface::addDevice(Client *pClient, OpcUa_UInt32 deviceType,
         else if (deviceType == PAS_MirrorType)
             pController = std::make_shared<MirrorController>(identity, mode);
         else if (deviceType == PAS_CCDType)
-            pController = std::make_shared<CCDController>(identity);
+            pController = std::make_shared<CCDController>(identity,m_pNodeManager);
         else if (deviceType == PAS_PSDType)
-            pController = std::make_shared<PSDController>(identity, pClient);
+            pController = std::make_shared<PSDController>(identity, pClient, m_pNodeManager);
         else if (deviceType == GLOB_PositionerType) {
 #if SIMMODE
             pController = std::dynamic_pointer_cast<PositionerController>(std::make_shared<DummyPositionerController>(identity));
@@ -304,6 +304,15 @@ UaStatus PasCommunicationInterface::setDeviceData(
 
     return status;
 }
+/* ----------------------------------------------------------------------------
+    Class        PasCommunicationInterface
+    Method       setPNodeManager
+    Description  Set pNodemanager
+-----------------------------------------------------------------------------*/
+void PasCommunicationInterface::setpNodeManager(PasNodeManager *pNodeManager){
+    m_pNodeManager = pNodeManager;
+}
+
 /* ----------------------------------------------------------------------------
     Class        PasCommunicationInterface
     Method       OperateDevice

@@ -43,6 +43,12 @@ public:
 
     UaVariantArray getWriteValues() const { return m_writeValues; }
 
+    UaNodeId getEventTypeToFilter() const { return m_eventTypeToFilter; }
+
+    UaNodeIdArray getMethodsToCall() const {return m_methodsToCall; }
+
+    UaNodeIdArray getObjectsToCall() const {return m_objectToCall; }
+
     // get database params
     UaStringArray getDatabaseHost() const { return m_databaseHost; }
 
@@ -119,6 +125,9 @@ private:
     UaNodeIdArray   m_nodesToWrite;
     UaNodeIdArray   m_nodesToMonitor;
     UaVariantArray  m_writeValues;
+    UaNodeId        m_eventTypeToFilter;
+    UaNodeIdArray   m_methodsToCall;
+    UaNodeIdArray   m_objectToCall;
 
     // Certificate handling
     UaString        m_certificateTrustListLocation;

@@ -206,6 +206,19 @@ public:
         }
         printf("-------------------------------------------------------\n");
     }
+    virtual void finishCall(OpcUa_UInt32       callbackHandle,
+                    UaStatusCodeArray& inputArgumentResults,
+                    UaDiagnosticInfos& inputArgumentDiag,
+                    UaVariantArray&    outputArguments,
+                    UaStatus&          statusCode)
+    {
+        spdlog::info("-- Event finishCall --------------------------------");
+        spdlog::info("\ttransactionId {}", m_TransactionId);
+        spdlog::info("\tresultStatus {}", statusCode.toString().toUtf8());
+        spdlog::info("\tcallbackHandle {}", callbackHandle);
+        // this should duplicate the behavior of the synchronous callMethod() after the method
+        // call succeeds. But we're not doing anything there for now, so this too is empty
+    }
 
     UaStringArray m_eventFields;
 protected:

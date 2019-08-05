@@ -43,7 +43,7 @@ void Subscription::subscriptionStatusChanged(
 
     if (status.isBad())
     {
-        printf("Subscription not longer valid - failed with status %s\n", status.toString().toUtf8());
+        spdlog::error("Subscription not longer valid - failed with status {}", status.toString().toUtf8());
 
         // recover subscription on the server
         recoverSubscription();
@@ -62,21 +62,21 @@ void Subscription::dataChange(
     OpcUa_ReferenceParameter(diagnosticInfos);
     OpcUa_UInt32 i = 0;
 
-    printf("-- DataChange Notification ---------------------------------\n");
+    spdlog::info("-- DataChange Notification ---------------------------------");
     for ( i=0; i<dataNotifications.length(); i++ )
     {
         if ( OpcUa_IsGood(dataNotifications[i].Value.StatusCode) )
         {
             UaVariant tempValue = dataNotifications[i].Value.Value;
-            printf("  Variable = %d value = %s\n", dataNotifications[i].ClientHandle, tempValue.toString().toUtf8());
+            spdlog::info("  Variable = {} value = {}", dataNotifications[i].ClientHandle, tempValue.toString().toUtf8());
         }
         else
         {
             UaStatus itemError(dataNotifications[i].Value.StatusCode);
-            printf("  Variable = %d failed with status %s\n", dataNotifications[i].ClientHandle, itemError.toString().toUtf8());
+            spdlog::error("  Variable = {} failed with status {}", dataNotifications[i].ClientHandle, itemError.toString().toUtf8());
         }
     }
-    printf("------------------------------------------------------------\n");
+    spdlog::info("------------------------------------------------------------");
 }
 
 /// @details If an event triggers on a monitored OPC UA node, does nothing.
@@ -84,8 +84,21 @@ void Subscription::newEvents(
     OpcUa_UInt32                clientSubscriptionHandle, //!< [in] Client defined handle of the affected subscription
     UaEventFieldLists&          eventFieldList)           //!< [in] List of event notifications sent by the server
 {
-    OpcUa_ReferenceParameter(clientSubscriptionHandle);
-    OpcUa_ReferenceParameter(eventFieldList);
+    OpcUa_UInt32 i = 0;
+    spdlog::info("-- Event newEvents -----------------------------------------");
+    spdlog::info("clientSubscriptionHandle {}", clientSubscriptionHandle);
+    for ( i=0; i<eventFieldList.length(); i++ )
+    {
+        UaVariant message    = eventFieldList[i].EventFields[0];
+        UaVariant sourceName = eventFieldList[i].EventFields[1];
+        UaVariant severity   = eventFieldList[i].EventFields[2];
+        spdlog::info("Event[{}] Message = {} SourceName = {} Severity = {}",
+               i,
+               message.toString().toUtf8(),
+               sourceName.toString().toUtf8(),
+               severity.toString().toUtf8());
+    }
+    spdlog::info("------------------------------------------------------------");
 }
 
 /// @details If the object does not already have an internal UaSubscription,
@@ -96,7 +109,7 @@ UaStatus Subscription::createSubscription(UaClientSdk::UaSession* pSession)
 {
     if ( m_pSubscription )
     {
-        printf("\nError: Subscription already created\n");
+        spdlog::error("Error: Subscription already created");
         return OpcUa_BadInvalidState;
     }
 
@@ -108,7 +121,7 @@ UaStatus Subscription::createSubscription(UaClientSdk::UaSession* pSession)
     UaClientSdk::SubscriptionSettings subscriptionSettings;
     subscriptionSettings.publishingInterval = 100;
 
-    printf("\nCreating subscription ...\n");
+    spdlog::info("Creating subscription ...");
     result = pSession->createSubscription(
         serviceSettings,
         this,
@@ -119,12 +132,12 @@ UaStatus Subscription::createSubscription(UaClientSdk::UaSession* pSession)
 
     if (result.isGood())
     {
-        printf("CreateSubscription succeeded\n");
+        spdlog::info("CreateSubscription succeeded");
     }
     else
     {
         m_pSubscription = nullptr;
-        printf("CreateSubscription failed with status %s\n", result.toString().toUtf8());
+        spdlog::error("CreateSubscription failed with status {}", result.toString().toUtf8());
     }
 
     return result;
@@ -137,7 +150,7 @@ UaStatus Subscription::deleteSubscription()
 {
     if (m_pSubscription == nullptr)
     {
-        printf("\nError: No Subscription created\n");
+        spdlog::error("Error: No Subscription created");
         return OpcUa_BadInvalidState;
     }
 
@@ -145,18 +158,18 @@ UaStatus Subscription::deleteSubscription()
     UaClientSdk::ServiceSettings serviceSettings;
 
     // let the SDK cleanup the resources for the existing subscription
-    printf("\nDeleting subscription ...\n");
+    spdlog::info("Deleting subscription ...");
     result = m_pSession->deleteSubscription(
         serviceSettings,
         &m_pSubscription);
 
     if (result.isGood())
     {
-        printf("DeleteSubscription succeeded\n");
+        spdlog::info("DeleteSubscription succeeded");
     }
     else
     {
-        printf("DeleteSubscription failed with status %s\n", result.toString().toUtf8());
+        spdlog::error("DeleteSubscription failed with status {}", result.toString().toUtf8());
     }
     m_pSubscription = nullptr;
 
@@ -172,34 +185,54 @@ UaStatus Subscription::createMonitoredItems()
 {
     if (m_pSubscription == nullptr)
     {
-        printf("\nError: No Subscription created\n");
+        spdlog::error("Error: No Subscription created");
         return OpcUa_BadInvalidState;
     }
 
     UaStatus result;
-    OpcUa_UInt32 size;
     OpcUa_UInt32 i;
     UaClientSdk::ServiceSettings serviceSettings;
     UaMonitoredItemCreateRequests itemsToCreate;
     UaMonitoredItemCreateResults createResults;
+// Configure one event monitored item - we use the server object here
+    itemsToCreate.create(1);
 
-    // Configure items to add to the subscription
-    UaNodeIdArray lstNodeIds = m_pConfiguration->getNodesToMonitor();
-    size = lstNodeIds.length();
-    itemsToCreate.create(size);
+    UaEventFilter            eventFilter;
+    UaSimpleAttributeOperand selectElement;
+    UaContentFilter*         pContentFilter        = NULL;
+    UaContentFilterElement*  pContentFilterElement = NULL;
+    UaFilterOperand*         pOperand              = NULL;
 
-    for (i = 0; i < size; i++)
-    {
-        itemsToCreate[i].ItemToMonitor.AttributeId = OpcUa_Attributes_Value;
-        OpcUa_NodeId_CopyTo(&lstNodeIds[i], &itemsToCreate[i].ItemToMonitor.NodeId);
-        itemsToCreate[i].RequestedParameters.ClientHandle = i;
-        itemsToCreate[i].RequestedParameters.SamplingInterval = 500;
-        itemsToCreate[i].RequestedParameters.QueueSize = 1;
-        itemsToCreate[i].RequestedParameters.DiscardOldest = OpcUa_True;
-        itemsToCreate[i].MonitoringMode = OpcUa_MonitoringMode_Reporting;
-    }
+    itemsToCreate[0].ItemToMonitor.AttributeId = OpcUa_Attributes_EventNotifier;
+    itemsToCreate[0].ItemToMonitor.NodeId.Identifier.Numeric = OpcUaId_Server;
+    itemsToCreate[0].RequestedParameters.ClientHandle = 0;
+    itemsToCreate[0].RequestedParameters.SamplingInterval = 0;
+    itemsToCreate[0].RequestedParameters.QueueSize = 0;
+    itemsToCreate[0].RequestedParameters.DiscardOldest = OpcUa_True;
+    itemsToCreate[0].MonitoringMode = OpcUa_MonitoringMode_Reporting;
 
-    printf("\nAdding monitored items to subscription ...\n");
+    // Define which eventfields to send with each event
+    selectElement.setBrowsePathElement(0, UaQualifiedName("Message", 0), 1);
+    eventFilter.setSelectClauseElement(0, selectElement, 3);
+    selectElement.setBrowsePathElement(0, UaQualifiedName("SourceName", 0), 1);
+    eventFilter.setSelectClauseElement(1, selectElement, 3);
+    selectElement.setBrowsePathElement(0, UaQualifiedName("Severity", 0), 1);
+    eventFilter.setSelectClauseElement(2, selectElement, 3);
+// We only want to receive events of type ControllerEventType
+    pContentFilter = new UaContentFilter;
+    pContentFilterElement = new UaContentFilterElement;
+// Operator OfType
+    pContentFilterElement->setFilterOperator(OpcUa_FilterOperator_OfType);
+// Operand 1 (Literal)
+    pOperand = new UaLiteralOperand;
+    ((UaLiteralOperand*)pOperand)->setLiteralValue(m_pConfiguration->getEventTypeToFilter());
+    pContentFilterElement->setFilterOperand(0, pOperand, 1);
+    pContentFilter->setContentFilterElement(0, pContentFilterElement, 1);
+    eventFilter.setWhereClause(pContentFilter);
+// set filter for monitored items
+    eventFilter.detachFilter(itemsToCreate[0].RequestedParameters.Filter);
+
+    spdlog::info("Adding monitored items to subscription ...");
     result = m_pSubscription->createMonitoredItems(
         serviceSettings,
         OpcUa_TimestampsToReturn_Both,
@@ -213,12 +246,12 @@ UaStatus Subscription::createMonitoredItems()
         {
             if (OpcUa_IsGood(createResults[i].StatusCode))
             {
-                printf("CreateMonitoredItems succeeded for item: %s\n",
+                spdlog::info("CreateMonitoredItems succeeded for item: {}",
                     UaNodeId(itemsToCreate[i].ItemToMonitor.NodeId).toXmlString().toUtf8());
             }
             else
             {
-                printf("CreateMonitoredItems failed for item: %s - Status %s\n",
+                spdlog::error("CreateMonitoredItems failed for item: {} - Status {}",
                     UaNodeId(itemsToCreate[i].ItemToMonitor.NodeId).toXmlString().toUtf8(),
                     UaStatus(createResults[i].StatusCode).toString().toUtf8());
             }
@@ -227,7 +260,7 @@ UaStatus Subscription::createMonitoredItems()
     // service call failed
     else
     {
-        printf("CreateMonitoredItems failed with status %s\n", result.toString().toUtf8());
+        spdlog::error("CreateMonitoredItems failed with status {}", result.toString().toUtf8());
     }
 
     return result;
@@ -263,16 +296,16 @@ UaStatus Subscription::recoverSubscription()
         result = createMonitoredItems();
     }
 
-    printf("-------------------------------------------------------------\n");
+    spdlog::info("-------------------------------------------------------------");
     if (result.isGood())
     {
-        printf("RecoverSubscription succeeded.\n");
+        spdlog::info("RecoverSubscription succeeded.");
     }
     else
     {
-        printf("RecoverSubscription failed with status %s\n", result.toString().toUtf8());
+        spdlog::error("RecoverSubscription failed with status {}", result.toString().toUtf8());
     }
-    printf("-------------------------------------------------------------\n");
+    spdlog::info("-------------------------------------------------------------");
 
     return result;
 }

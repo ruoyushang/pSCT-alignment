@@ -17,9 +17,9 @@ class PositionerController : public PasController {
     UA_DISABLE_COPY(PositionerController);
 public:
     /* construction / destruction */
-    PositionerController(Device::Identity identity, Client *pClient) : PasController(
+    PositionerController(Device::Identity identity, Client *pClient,PasNodeManager * pNodeManager) : PasController(
         std::move(identity),
-        pClient), m_Data() {
+        pClient, pNodeManager), m_Data() {
     }
 
     /* Get Controller status and data */
@@ -53,7 +53,7 @@ class DummyPositionerController : public PositionerController {
 public:
     /* construction / destruction */
     explicit DummyPositionerController(Device::Identity identity) : PositionerController(
-        std::move(identity), nullptr), m_Data() {
+        std::move(identity), nullptr, m_pNodeManager), m_Data() {
     }
 
     /* Get Controller status and data */

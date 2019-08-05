@@ -14,8 +14,8 @@
 #include "common/utilities/spdlog/spdlog.h"
 #include "common/utilities/spdlog/fmt/ostr.h"
 
-MPESController::MPESController(Device::Identity identity, Client *pClient, std::string mode) : PasController(
-    std::move(identity), pClient), m_Mode(mode)
+MPESController::MPESController(Device::Identity identity, Client *pClient, PasNodeManager * pNodeManager, std::string mode) : PasController(
+    std::move(identity), pClient, pNodeManager), m_Mode(mode)
 {
     // get the nominal aligned readings and response matrices from DB
     /* BEGIN DATABASE HACK */
@@ -248,10 +248,10 @@ UaStatus MPESController::operate(OpcUa_UInt32 offset, const UaVariantArray &args
         spdlog::info("{} : MPESController calling read()", m_Identity);
         status = readAsync();
         if (status.isGood()) {
-            spdlog::info("{}: Done reading webcam.", m_Identity);
+            spdlog::info("{}: Submitted webcam read.", m_Identity);
         }
         else {
-            spdlog::info("{}: Failed to read webcam.", m_Identity);
+            spdlog::info("{}: Failed to submit webcam read.", m_Identity);
             return status;
         }
 
@@ -266,7 +266,7 @@ UaStatus MPESController::operate(OpcUa_UInt32 offset, const UaVariantArray &args
                 operate(PAS_MPESType_SetExposure, UaVariantArray());
                 UaThread::sleep(5);
                 spdlog::info("{}: Reading webcam again...", m_Identity);
-                status = read();
+                status = readAsync();
             }
         }
         
@@ -309,6 +309,59 @@ UaStatus MPESController::operate(OpcUa_UInt32 offset, const UaVariantArray &args
             spdlog::trace("{} : Recorded MPES measurement SQL statement into MPES_readings.sql file: {} ", m_Identity,
                           sql_stmt.toUtf8());
         }
+        // Create event
+        MPESEventTypeData eventData(m_pNodeManager->getNameSpaceIndex());
+
+//        // Handle ControllerEventType specific fields
+//        auto pUserData = (PasUserData *) getUserData();
+
+//        // CleanedIntensity
+//        UaVariant varValue;
+//        OpcUa_Double value;
+//        m_pCommIf->getDeviceData(PAS_MPESType_CleanedIntensity, pUserData->DeviceId(), pUserData->variableOffset(), varValue);
+//        varValue.toDouble(value);
+//        eventData.m_CleanedIntensity.setDouble(value);
+
+//        // State
+//        Device::DeviceState state;
+//        m_pCommIf->getDeviceState(PAS_MPESEventType_State, pUserData->DeviceId(), state);
+//        eventData.m_State.setDouble(value);
+
+
+        eventData.m_xCentroidAvg.setDouble(data.xCentroid);
+        eventData.m_yCentroidAvg.setDouble(data.yCentroid);
+        eventData.m_xCentroidSpotWidth.setDouble(data.xSpotWidth);
+        eventData.m_yCentroidSpotWidth.setDouble(data.ySpotWidth);
+        eventData.m_CleanedIntensity.setDouble(data.cleanedIntensity);
+        UaVariant value;
+        status = m_pClient->read({m_pClient->getDeviceNodeId(m_Identity) + "." + "ErrorState"}, &value);
+        int errorState;
+        eventData.m_State.setInt16(errorState);
+
+        // Fill all default event fields
+        eventData.m_SourceNode.setNodeId((m_pClient->getDeviceNodeId(m_Identity), m_pNodeManager->getNameSpaceIndex()));
+        eventData.m_SourceName.setString(m_pClient->getDeviceNodeId(m_Identity).c_str());
+        eventData.m_Severity.setUInt16(500);
+        // Set timestamps and unique EventId
+        eventData.prepareNewEvent(UaDateTime::now(), UaDateTime::now(), UaByteString());
+        // Fire the event
+        m_pNodeManager->fireEvent(&eventData);
+
+//        if ( state == BaCommunicationInterface::Ba_ControllerState_Off )
+//        {
+//            m_pStateOffNormalAlarm->setAckedState(OpcUa_False);
+//            m_pStateOffNormalAlarm->setActiveState(OpcUa_True);
+//            m_pStateOffNormalAlarm->setRetain(OpcUa_True);
+//        }
+//        else
+//        {
+//            m_pStateOffNormalAlarm->setAckedState(OpcUa_True);
+//            m_pStateOffNormalAlarm->setActiveState(OpcUa_False);
+//            m_pStateOffNormalAlarm->setRetain(OpcUa_False);
+//        }
+//        m_pStateOffNormalAlarm->setMessage(UaLocalizedText("en", messageText));
+//        m_pStateOffNormalAlarm->triggerEvent(UaDateTime::now(), UaDateTime::now(), UaByteString());
+
     } else if (offset == PAS_MPESType_SetExposure) {
         spdlog::info("{} : MPESController calling setExposure()", m_Identity);
         status = m_pClient->callMethodAsync(m_pClient->getDeviceNodeId(m_Identity), UaString("SetExposure"), args);
@@ -446,6 +499,7 @@ MPESBase::Position MPESController::getPosition() {
     valstoread[6].toFloat(data.yNominal);
     valstoread[7].toInt32(data.exposure);
     valstoread[8].toInt64(data.timestamp);
+
 
     return data;
 }

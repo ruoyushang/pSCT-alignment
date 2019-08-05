@@ -332,6 +332,7 @@
         <ProductUri>urn:UnifiedAutomation:UaServerCpp</ProductUri>
         <ManufacturerName>Unified Automation GmbH</ManufacturerName>
         <ProductName>C++ SDK OPC UA Demo Server</ProductName>
+        <ApplicationName>pSCT Alignment System</ApplicationName>
         <SoftwareVersion>1.5.0</SoftwareVersion>
         <BuildNumber>318</BuildNumber>
         <!--Build information end-->

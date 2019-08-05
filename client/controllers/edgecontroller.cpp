@@ -19,7 +19,7 @@
 
 
 EdgeController::EdgeController(Device::Identity identity) : PasCompositeController(std::move(identity),
-                                                                                   nullptr, 0),
+                                                                                   nullptr, m_pNodeManager, 0),
                                                             m_lastSetAlignFrac(-1.0), m_isAligned(false) {
     // define possible children types
     m_ChildrenTypes = {PAS_MPESType, PAS_PanelType};

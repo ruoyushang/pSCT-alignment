@@ -11,8 +11,8 @@
 #include "common/utilities/spdlog/spdlog.h"
 #include "common/utilities/spdlog/fmt/ostr.h"
 
-PSDController::PSDController(Device::Identity identity, Client *pClient) :
-    PasController(std::move(identity), pClient, 500), m_data() {
+PSDController::PSDController(Device::Identity identity, Client *pClient,PasNodeManager * pNodeManager) :
+    PasController(std::move(identity), pClient, m_pNodeManager, 500), m_data() {
 
     spdlog::trace("{} : Creating PSD controller... ", m_Identity);
     m_LastUpdateTime = TIME::now() - std::chrono::duration<int, std::ratio<1, 1000>>(m_kUpdateInterval_ms);

@@ -19,7 +19,7 @@ public:
     friend MirrorController;
 
     /* construction / destruction */
-    explicit CCDController(Device::Identity identity);
+    explicit CCDController(Device::Identity identity, PasNodeManager * pNodeManager);
 
     /* Get Controller status and data */
     UaStatus getState(Device::DeviceState &state) override;

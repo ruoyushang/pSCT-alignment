@@ -53,7 +53,7 @@ UaStatus Configuration::loadConnectionConfiguration(const UaString& sConfigurati
     m_clientPrivateKeyFile = value.toString();
 
     // Application Name
-    value = pSettings->value("ApplicationName", UaString());
+    value = pSettings->value("ApplicationName", UaString("pSCT Alignment System"));
     m_applicationName = value.toString();
 
     // Reconnection settings
@@ -89,6 +89,29 @@ UaStatus Configuration::loadConnectionConfiguration(const UaString& sConfigurati
         value.toString().copyTo(&m_namespaceArray[i]);
     }
     pSettings->endGroup();  // NSArray
+
+    // Read NodeIds for EventType we use for filtering
+    value = pSettings->value("EventTypeToFilter", UaString(""));
+    m_eventTypeToFilter = UaNodeId::fromXmlString(value.toString());
+
+    // Read NodeIds for calling methods
+    m_methodsToCall.clear();
+    m_objectToCall.clear();
+    pSettings->beginGroup("MethodsToCall");
+    value = pSettings->value("size", (OpcUa_UInt32)0);
+    value.toUInt32(size);
+    m_methodsToCall.resize(size);
+    m_objectToCall.resize(size);
+    for (int i=0; i<size;i++)
+    {
+        sTempKey = UaString("Method0%1").arg((int)i);
+        value = pSettings->value(sTempKey.toUtf16(), UaString(""));
+        UaNodeId::fromXmlString(value.toString()).copyTo(&m_methodsToCall[i]);
+        sTempKey = UaString("Object0%1").arg((int)i);
+        value = pSettings->value(sTempKey.toUtf16(), UaString(""));
+        UaNodeId::fromXmlString(value.toString()).copyTo(&m_objectToCall[i]);
+    }
+    pSettings->endGroup();  // MethodsToCall
 
     pSettings->endGroup(); // UaClientConfig
 
@@ -356,10 +379,10 @@ UaStatus Configuration::setupSecurity(UaClientSdk::SessionSecurityInfo &sessionS
         m_issuersCertificatesLocation);
     if (result.isBad())
     {
-        printf("*******************************************************\n");
-        printf("** setupSecurity failed!\n");
-        printf("** Could not initialize PKI\n");
-        printf("*******************************************************\n");
+        spdlog::error("*******************************************************\n");
+        spdlog::error("** setupSecurity failed!\n");
+        spdlog::error("** Could not initialize PKI\n");
+        spdlog::error("*******************************************************\n");
         return result;
     }
 
@@ -370,11 +393,11 @@ UaStatus Configuration::setupSecurity(UaClientSdk::SessionSecurityInfo &sessionS
     /*********************************************************************/
     if (result.isBad())
     {
-        printf("*******************************************************\n");
-        printf("** setupSecurity failed!\n");
-        printf("** Could not load Client certificate\n");
-        printf("** Connect will work only without security\n");
-        printf("*******************************************************\n");
+        spdlog::error("*******************************************************\n");
+        spdlog::error("** setupSecurity failed!\n");
+        spdlog::error("** Could not load Client certificate\n");
+        spdlog::error("** Connect will work only without security\n");
+        spdlog::error("*******************************************************\n");
         return result;
     }
 
@@ -424,6 +447,19 @@ UaStatus Configuration::updateNamespaceIndexes(const UaStringArray& namespaceArr
     for (i = 0; i < m_nodesToMonitor.length(); i++)
     {
         m_nodesToMonitor[i].NamespaceIndex = mappingTable[m_nodesToMonitor[i].NamespaceIndex];
+    }
+
+    // EventType to filter
+    m_eventTypeToFilter.setNamespaceIndex(mappingTable[m_eventTypeToFilter.namespaceIndex()]);
+
+    // Methods and Objects
+    for (i = 0; i < m_methodsToCall.length(); i++)
+    {
+        m_methodsToCall[i].NamespaceIndex = mappingTable[m_methodsToCall[i].NamespaceIndex];
+    }
+    for (i = 0; i < m_objectToCall.length(); i++)
+    {
+        m_objectToCall[i].NamespaceIndex = mappingTable[m_objectToCall[i].NamespaceIndex];
     }
 
     // update namespace array

@@ -19,22 +19,26 @@
 #include "common/simulatestewart/stewartplatform.hpp"
 
 #include "client/pascommunicationinterface.hpp"
+#include "client/pasnodemanager.hpp"
 
 
 class Client;
+class PasNodeManager;
 
 class PasController : public PasControllerCommon
 {
     UA_DISABLE_COPY(PasController);
 public:
     /* construction / destruction */
-    PasController(Device::Identity identity, Client *pClient, int updateInterval = 0)
+    PasController( Device::Identity identity, Client *pClient, PasNodeManager *pNodeManager, int updateInterval = 0)
         : PasControllerCommon(std::move(identity),
                               updateInterval),
-          m_pClient(pClient) {}
+          m_pClient(pClient),
+          m_pNodeManager(pNodeManager) {}
 
 protected:
     Client *m_pClient;
+    PasNodeManager *m_pNodeManager;
 };
 
 
@@ -43,17 +47,17 @@ protected:
 class PasCompositeController : public PasController
 {
     public:
-    PasCompositeController(Device::Identity identity, Client *pClient, int updateInterval = 0) :
-        PasController(std::move(identity), pClient, updateInterval) {}
+    PasCompositeController(Device::Identity identity, Client *pClient, PasNodeManager *pNodeManager, int updateInterval = 0) :
+        PasController( std::move(identity), pClient, pNodeManager, updateInterval) {}
 
     ~PasCompositeController() override = default;
 
     // yes, this indeed needs to be the specified type -- a const pointer to a
-    // (non-const) PasController. The constness guarantees that the panel doesn't change the
+    // (non-const) PasController. The const-ness guarantees that the panel doesn't change the
     // pointer -- but other methods we use require that the underlying object itself is not
     // a const.
     // declaring these as virtual, but they should be the same for everything that
-    // inherts from here
+    // inherits from here
     virtual void addChild(OpcUa_UInt32 deviceType, const std::shared_ptr<PasController> &pController);
 
     virtual const std::vector<std::shared_ptr<PasController>> &getChildren(unsigned type) const {

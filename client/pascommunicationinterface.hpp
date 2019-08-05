@@ -50,6 +50,8 @@ public:
 
     void addEdgeControllers();
 
+    void setpNodeManager(PasNodeManager *pNodeManager);
+
     void addParentChildRelations();
 
     /* Get device status and data */
@@ -88,6 +90,7 @@ public:
 private:
     std::shared_ptr<Configuration> m_pConfiguration;
     OpcUa_Boolean m_stop;
+    PasNodeManager * m_pNodeManager;
 };
 
 #endif // #ifndef __PASCOMMUNICATIONINTERFACE_H__

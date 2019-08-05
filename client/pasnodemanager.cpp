@@ -60,6 +60,7 @@ void PasNodeManager::createClients() {
 void PasNodeManager::setCommunicationInterface(std::shared_ptr<PasCommunicationInterface> &pCommIf)
 {
     spdlog::debug("PasNodeManager:: Setting communication interface...");
+    pCommIf->setpNodeManager(this);
     m_pCommIf = pCommIf;
 }
 
@@ -73,7 +74,7 @@ UaStatus PasNodeManager::afterStartUp()
     UA_ASSERT(ret.isGood());
 
     // connect to each server
-    spdlog::info("\nPasNodeManager::afterStartUp(): Connecting to all servers...");
+    spdlog::info("PasNodeManager::afterStartUp(): Connecting to all servers...");
     unsigned client = 0;
     for (const auto &address : m_pConfiguration->getServerAddresses()) {
         m_pClients.at(client)->setAddress(address);
@@ -82,6 +83,10 @@ UaStatus PasNodeManager::afterStartUp()
             // add controllers for other devices in each server (this will only include ACT, MPES, and PSD controllers)
             ret = m_pClients.at(client)->browseAndAddDevices();
             spdlog::info("PasNodeManager::afterStartUp(): Successfully connected to server at {} and created all controllers.",address.toUtf8());
+            ret = m_pClients.at(client)->subscribe();
+            if (ret.isGood()){
+                spdlog::info("PasNodeManager::afterStartUp(): subscribed to clients.");
+            }
         } else
             spdlog::warn("PasNodeManager::afterStartUp(): Failed to connect to server at {}. Moving on...", address.toUtf8());
 
@@ -102,6 +107,10 @@ UaStatus PasNodeManager::afterStartUp()
             dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->addDevice(m_pPositioner, GLOB_PositionerType,
                                                                                   id);
             spdlog::info("PasNodeManager::afterStartUp(): Connected to positioner and added corresponding controller.");
+            ret=m_pPositioner->subscribe();
+            if (ret.isGood()){
+                spdlog::info("PasNodeManager::afterStartUp(): subscribed to positioner.");
+            }
         } else {
             spdlog::warn("PasNodeManager::afterStartUp(): Failed to connect to positioner server at {}. Moving on...",
                          m_pConfiguration->getPositionerUrl().toUtf8());

@@ -15,7 +15,7 @@
 
 
 PanelController::PanelController(Device::Identity identity, Client *pClient, std::string mode) :
-    PasCompositeController(std::move(identity), pClient, 5000), m_mode(mode) {
+    PasCompositeController(std::move(identity), pClient, m_pNodeManager, 5000), m_mode(mode) {
     m_SP.SetPanelType(StewartPlatform::PanelType::OPT);
 
     // define possible children types

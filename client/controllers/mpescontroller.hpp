@@ -11,6 +11,7 @@
 #include "client/controllers/mirrorcontroller.hpp"
 #include "client/controllers/pascontroller.hpp"
 
+#include "common/opcua/mpeseventdata.hpp"
 #include "common/alignment/mpes.hpp"
 
 
@@ -22,7 +23,7 @@ public:
     friend MirrorController;
 
     /* construction / destruction */
-    MPESController(Device::Identity identity, Client *pClient, std::string mode = "client");
+    MPESController(Device::Identity identity, Client *pClient, PasNodeManager * pNodeManager, std::string mode = "client");
 
     /* Get Controller status and data */
     UaStatus getState(Device::DeviceState &state) override;

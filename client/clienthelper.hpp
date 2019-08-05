@@ -11,11 +11,12 @@
 
 #include "client/utilities/database.hpp"
 #include "client/utilities/subscription.hpp"
+#include "client/utilities/callback.hpp"
 
 class Configuration;
 class PasNodeManager;
 
-class Client : public UaClientSdk::UaSessionCallback
+class Client : public callback
 {
     UA_DISABLE_COPY(Client);
 public:
@@ -66,7 +67,7 @@ private:
     UaStatus recurseAddressSpace(const UaNodeId& nodeToBrowse, OpcUa_UInt32 maxReferencesToReturn);
 
     static void printBrowseResults(const OpcUa_ReferenceDescription &referenceDescription);
-    void addDevices(const OpcUa_ReferenceDescription& eferenceDescription);
+    void addDevices(const OpcUa_ReferenceDescription& referenceDescription);
 
     // variables
     std::shared_ptr<PasNodeManager> m_pNodeManager;
@@ -81,5 +82,134 @@ private:
 
     std::map<Device::Identity, std::string> m_DeviceNodeIdMap;
 };
+/*
+//private
 
+class CallMethodAsyncData {
+public:
+    ServiceContext Context;
+public:
+    std::shared_ptr<UaVariantArray> InputArguments;
+public:
+    MethodHandle OperationHandle;
+public:
+    CallCompleteEventHandler Callback;
+public:
+    object CallbackData;
+};
+
+//private
+
+void OnAsyncMethodCompletes(object state) {
+    CallMethodAsyncData data = (CallMethodAsyncData) state;
+    ((CallCompleteEventHandler) data.Callback)(data.OperationHandle, data.CallbackData, CallMethodAsync(data), false);
+}
+
+//private
+
+CallMethodResult CallMethodAsync(CallMethodAsyncData data) {
+    CallMethodResult result = new CallMethodResult();
+    Argument[]
+    arguments = Server.InternalClient.ReadValue<Argument[]>(
+            data.Context,
+            data.OperationHandle.MethodHandle.MethodId,
+            UnifiedAutomation.UaBase.BrowseNames.OutputArguments,
+            null);
+    VariantCollection outputArguments = null;
+    if (arguments.Length > 0) {
+        outputArguments = new VariantCollection(arguments.Length);
+        for (int ii = 0; ii < arguments.Length; ii++) {
+            outputArguments.Add(new Variant());
+        }
+    }
+    StatusCode status = data.OperationHandle.MethodHandle.Dispatcher(
+            data.Context,
+            data.OperationHandle.MethodHandle,
+            data.InputArguments,
+            result.InputArgumentResults,
+            outputArguments);
+    if (status.IsGood()) {
+        result.OutputArguments = outputArguments;
+    }
+    result.StatusCode = status;
+    return result;
+}
+
+//public
+
+override void FinishCallTransaction(TransactionHandle transaction) {
+    CallTransactionHandle
+    transaction2 = transaction
+    as CallTransactionHandle;
+    for (int ii = 0; ii < transaction2.MethodHandles.Count; ii++) {
+        MethodOperationHandle methodHandle = transaction2.MethodHandles[ii];
+        // check for long running methods which are processed
+        // asychnonously.
+
+        if (methodHandle.MethodHandle.MethodDeclarationId.Equals(
+                MethodIds.MyType_LongRunning.ToNodeId(Server.NamespaceUris))) {
+            ThreadPool.QueueUserWorkItem(OnAsyncMethodCompletes, new CallMethodAsyncData()
+            {
+                Context = transaction.Context,
+                InputArguments = transaction2.InputArguments[ii],
+                Callback = (CallCompleteEventHandler) transaction.Callback,
+                CallbackData = transaction.CallbackData,
+                OperationHandle = transaction2.MethodHandles[ii],
+            });
+            continue;
+        }
+        // call normal methods synchronously.
+        CallMethodResult result = CallMethod(
+                transaction.Context,
+                transaction2.MethodHandles[ii].MethodHandle,
+                transaction2.InputArguments[ii]);
+        ((CallCompleteEventHandler) transaction.Callback)(
+                transaction2.MethodHandles[ii],
+                transaction.CallbackData, result, false);
+    }
+}
+
+//public
+
+override void FinishCallTransaction(TransactionHandle transaction) {
+    CallTransactionHandle
+    transaction2 = transaction
+    as CallTransactionHandle;
+    for (int ii = 0; ii < transaction2.MethodHandles.Count; ii++) {
+        MethodOperationHandle methodHandle = transaction2.MethodHandles[ii];
+        ThreadPool.QueueUserWorkItem(
+                OnAsyncMethodCompletes, new CallMethodAsyncData()
+        {
+            Context = transaction.Context,
+            InputArguments = transaction2.InputArguments[ii],
+            Callback = (CallCompleteEventHandler) transaction.Callback,
+            CallbackData = transaction.CallbackData,
+            OperationHandle = transaction2.MethodHandles[ii],
+        });
+    }
+}
+
+//The following source code shows an example how to add all methods to the ThreadPool:
+//private
+
+//class CallMethodAsyncData {
+//public
+//    ServiceContext Context;
+//public
+//    IList <Variant> InputArguments;
+//public
+//    MethodOperationHandle OperationHandle;
+//public
+//    CallCompleteEventHandler Callback;
+//public
+//    object CallbackData;
+//}
+
+//private
+
+void OnAsyncMethodCompletes(object state) {
+    CallMethodAsyncData data = (CallMethodAsyncData) state;
+    CallMethodResult result = CallMethod(data.Context, data.OperationHandle.MethodHandle, data.InputArguments);
+    ((CallCompleteEventHandler) data.Callback)(data.OperationHandle, data.CallbackData, result, false);
+};*/
 #endif
