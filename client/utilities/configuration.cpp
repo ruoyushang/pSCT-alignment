@@ -379,10 +379,10 @@ UaStatus Configuration::setupSecurity(UaClientSdk::SessionSecurityInfo &sessionS
         m_issuersCertificatesLocation);
     if (result.isBad())
     {
-        spdlog::error("*******************************************************\n");
-        spdlog::error("** setupSecurity failed!\n");
-        spdlog::error("** Could not initialize PKI\n");
-        spdlog::error("*******************************************************\n");
+        spdlog::error("*******************************************************");
+        spdlog::error("** setupSecurity failed!");
+        spdlog::error("** Could not initialize PKI");
+        spdlog::error("*******************************************************");
         return result;
     }
 
@@ -393,11 +393,11 @@ UaStatus Configuration::setupSecurity(UaClientSdk::SessionSecurityInfo &sessionS
     /*********************************************************************/
     if (result.isBad())
     {
-        spdlog::error("*******************************************************\n");
-        spdlog::error("** setupSecurity failed!\n");
-        spdlog::error("** Could not load Client certificate\n");
-        spdlog::error("** Connect will work only without security\n");
-        spdlog::error("*******************************************************\n");
+        spdlog::error("*******************************************************");
+        spdlog::error("** setupSecurity failed!");
+        spdlog::error("** Could not load Client certificate");
+        spdlog::error("** Connect will work only without security");
+        spdlog::error("*******************************************************");
         return result;
     }
 

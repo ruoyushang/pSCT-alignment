@@ -30,10 +30,10 @@ public:
             case UaClientSdk::UaClient::ServerShutdown: sStatus="ServerShutdown"; break;
             case UaClientSdk::UaClient::NewSessionCreated: sStatus="NewSessionCreated"; break;
         }
-        printf("-- Event connectionStatusChanged ----------------------\n");
-        printf("clientConnectionId %d \n", clientConnectionId);
-        printf("serverStatus %s \n", sStatus.toUtf8());
-        printf("-------------------------------------------------------\n");
+        spdlog::info("-- Event connectionStatusChanged ----------------------");
+        spdlog::info("clientConnectionId {} ", clientConnectionId);
+        spdlog::info("serverStatus {} ", sStatus.toUtf8());
+        spdlog::info("-------------------------------------------------------");
     }
 
     /** Connect errors. */
@@ -51,17 +51,17 @@ public:
             case UaClientSdk::UaClient::CreateSession: sServiceType="Processing of Service CreateSession"; break;
             case UaClientSdk::UaClient::ActivateSession: sServiceType="Processing of Service CreateSession"; break;
         }
-        printf("-- Event connectError ---------------------------------\n");
-        printf("clientConnectionId %d \n", clientConnectionId);
-        printf("Service Type %s \n", sServiceType.toUtf8());
-        printf("Status %s \n", error.toString().toUtf8());
-        printf("-------------------------------------------------------\n");
+        spdlog::error("-- Event connectError ---------------------------------");
+        spdlog::error("clientConnectionId {} ", clientConnectionId);
+        spdlog::error("Service Type {} ", sServiceType.toUtf8());
+        spdlog::error("Status {} ", error.toString().toUtf8());
+        spdlog::error("-------------------------------------------------------");
 
 //        if ( clientSideError )
 //        {
-//            printf("Press 1 to stop connect\n");
-//            printf("Press 2 to overwrite the error and continue\n");
-//            printf("-------------------------------------------------------\n");
+//            spdlog::info("Press 1 to stop connect\n");
+//            spdlog::info("Press 2 to overwrite the error and continue\n");
+//            spdlog::info("-------------------------------------------------------\n");
 //            int action;
 //            while (!WaitForKeypress(action))
 //            {
@@ -85,23 +85,23 @@ public:
         const UaDiagnosticInfos&   /*diagnosticInfos*/)
     {
         OpcUa_UInt32 i = 0;
-        printf("-- Event dataChange -----------------------------------\n");
-        printf("clientSubscriptionHandle %d \n", clientSubscriptionHandle);
+        spdlog::info("-- Event dataChange -----------------------------------");
+        spdlog::info("clientSubscriptionHandle {} ", clientSubscriptionHandle);
         for ( i=0; i<dataNotifications.length(); i++ )
         {
             if ( OpcUa_IsGood(dataNotifications[i].Value.StatusCode) )
             {
                 UaVariant tempValue = dataNotifications[i].Value.Value;
 
-                    printf("  Variable %d value = %s\n", dataNotifications[i].ClientHandle, tempValue.toString().toUtf8());
+                spdlog::info("  Variable {}} value = {} ", dataNotifications[i].ClientHandle, tempValue.toString().toUtf8());
 
             }
             else
             {
-                printf("  Variable %d failed!\n", i);
+                spdlog::error("  Variable {} failed!", i);
             }
         }
-        printf("-------------------------------------------------------\n");
+        spdlog::info("-------------------------------------------------------");
     }
 
     /** Send subscription state change. */
@@ -109,10 +109,10 @@ public:
         OpcUa_UInt32      clientSubscriptionHandle,
         const UaStatus&   status)
     {
-        printf("-- Event subscriptionStatusChanged ----------------------\n");
-        printf("clientSubscriptionHandle %d \n", clientSubscriptionHandle);
-        printf("subscriptionStatus %s \n", status.toString().toUtf8());
-        printf("-------------------------------------------------------\n");
+        spdlog::info("-- Event subscriptionStatusChanged ----------------------");
+        spdlog::info("clientSubscriptionHandle {} ", clientSubscriptionHandle);
+        spdlog::info("subscriptionStatus {} ", status.toString().toUtf8());
+        spdlog::info("-------------------------------------------------------");
     }
 
     /** Send new events. */
@@ -122,13 +122,13 @@ public:
     {
         OpcUa_UInt32 i = 0;
         OpcUa_Int32 j = 0;
-        printf("-- Event newEvents ------------------------------------\n");
-        printf("clientSubscriptionHandle %d \n", clientSubscriptionHandle);
+        spdlog::info("-- Event newEvents ------------------------------------");
+        spdlog::info("clientSubscriptionHandle {}", clientSubscriptionHandle);
         for ( i=0; i<eventFieldList.length(); i++ )
         {
             // Print event message text first
             UaVariant message    = eventFieldList[i].EventFields[0];
-            printf("Event[%d] Message = %s\n",
+            spdlog::info("Event[{}] Message = {} ",
                 i,
                 message.toString().toUtf8());
 
@@ -138,7 +138,7 @@ public:
             {
                 if ( (OpcUa_Int32)(m_eventFields.length() + 1) < j )
                 {
-                    printf("  More event fields delivered than requested\n");
+                    spdlog::warn("  More event fields delivered than requested");
                 }
                 UaVariant tempValue = eventFieldList[i].EventFields[j];
 //                if (tempValue.type() == OpcUaType_ExtensionObject)
@@ -148,15 +148,15 @@ public:
                 if (tempValue.type() == OpcUaType_Null)
                 {
                     // Special handling for NULL values
-                    printf("  %s = NULL\n", UaString(m_eventFields[j-1]).toUtf8());
+                    spdlog::info("  {} = NULL ", UaString(m_eventFields[j-1]).toUtf8());
                 }
                 else
                 {
-                    printf("  %s = %s\n", UaString(m_eventFields[j-1]).toUtf8(), tempValue.toString().toUtf8());
+                    spdlog::info("  {} = {} ", UaString(m_eventFields[j-1]).toUtf8(), tempValue.toString().toUtf8());
                 }
             }
         }
-        printf("-------------------------------------------------------\n");
+        spdlog::info("-------------------------------------------------------\n");
     }
 
     /** Send read results. */
@@ -165,23 +165,23 @@ public:
         const UaDataValues&      values ,
         const UaDiagnosticInfos& diagnosticInfos)
     {
-        printf("-- Event readComplete ---------------------------------\n");
-        printf("transactionId %d \n", m_TransactionId);
-        printf("resultStatus %s \n", result.toString().toUtf8());
+        spdlog::info("-- Event readComplete ---------------------------------");
+        spdlog::info("transactionId {} ", m_TransactionId);
+        spdlog::info("resultStatus {} ", result.toString().toUtf8());
         for ( OpcUa_UInt32 i=0; i<values.length(); i++ )
         {
             if ( OpcUa_IsGood(values[i].StatusCode) )
             {
                 UaVariant tempValue = values[i].Value;
 
-                    printf("  Variable %d value = %s\n", i, tempValue.toString().toUtf8());
+                    spdlog::info("  Variable {} value = {} ", i, tempValue.toString().toUtf8());
             }
             else
             {
-                printf("  Variable %d failed with error %s\n", i, UaStatus(values[i].StatusCode).toString().toUtf8());
+                spdlog::error("  Variable {} failed with error {}", i, UaStatus(values[i].StatusCode).toString().toUtf8());
             }
         }
-        printf("-------------------------------------------------------\n");
+        spdlog::info("-------------------------------------------------------");
     }
 
     /** Send write results. */
@@ -190,21 +190,21 @@ public:
         const UaStatusCodeArray& results,
         const UaDiagnosticInfos& diagnosticInfos)
     {
-        printf("-- Event writeComplete --------------------------------\n");
-        printf("transactionId %d \n", m_TransactionId);
-        printf("resultStatus %s \n", result.toString().toUtf8());
+        spdlog::info("-- Event writeComplete --------------------------------");
+        spdlog::info("transactionId {} ", m_TransactionId);
+        spdlog::info("resultStatus {}", result.toString().toUtf8());
         for ( OpcUa_UInt32 i=0; i<results.length(); i++ )
         {
             if ( OpcUa_IsGood(results[i]) )
             {
-                printf("  Variable %d succeeded!\n", i);
+                spdlog::info("  Variable {} succeeded!", i);
             }
             else
             {
-                printf("  Variable %d failed with error %s\n", i, UaStatus(results[i]).toString().toUtf8());
+                spdlog::error("  Variable {} failed with error {}", i, UaStatus(results[i]).toString().toUtf8());
             }
         }
-        printf("-------------------------------------------------------\n");
+        spdlog::info("-------------------------------------------------------");
     }
     virtual void finishCall(OpcUa_UInt32       callbackHandle,
                     UaStatusCodeArray& inputArgumentResults,
@@ -264,9 +264,9 @@ public:
         const UaDataNotifications& /*dataNotifications*/,
         const UaDiagnosticInfos&   /*diagnosticInfos*/)
     {
-        printf("-- Event dataChange -----------------------------------\n");
-        printf("clientSubscriptionHandle %d \n", clientSubscriptionHandle);
-        printf("-------------------------------------------------------\n");
+        spdlog::info("-- Event dataChange -----------------------------------");
+        spdlog::info("clientSubscriptionHandle {}", clientSubscriptionHandle);
+        spdlog::info("-------------------------------------------------------");
     }
 
     /** Send subscription state change. */
@@ -274,10 +274,10 @@ public:
         OpcUa_UInt32      clientSubscriptionHandle,
         const UaStatus&   status)
     {
-        printf("-- Event subscriptionStatusChanged ----------------------\n");
-        printf("clientSubscriptionHandle %d \n", clientSubscriptionHandle);
-        printf("serverStatus %s \n", status.toString().toUtf8());
-        printf("-------------------------------------------------------\n");
+        spdlog::info("-- Event subscriptionStatusChanged ----------------------");
+        spdlog::info("clientSubscriptionHandle {} ", clientSubscriptionHandle);
+        spdlog::info("serverStatus {}", status.toString().toUtf8());
+        spdlog::info("-------------------------------------------------------");
     };
 
     /** Send new events. */
@@ -285,9 +285,9 @@ public:
         OpcUa_UInt32          clientSubscriptionHandle,
         UaEventFieldLists&    eventFieldList)
     {
-        printf("\n-- Event newEvents ------------------------------------\n");
-        printf("clientSubscriptionHandle %d \n", clientSubscriptionHandle);
-        printf("Number of new events %d \n", eventFieldList.length());
+        spdlog::info("-- Event newEvents ------------------------------------");
+        spdlog::info("clientSubscriptionHandle {} ", clientSubscriptionHandle);
+        spdlog::info("Number of new events {} ", eventFieldList.length());
 
         // save list of EventObjects
         OpcUa_UInt32 i = 0;
@@ -320,7 +320,7 @@ public:
 
                 // add event to internal list
                 addEvent(newEvent);
-                printf("Event[%d] SourceName=%s | %s | Acked=%s | Message=%s \n",
+                spdlog::info("Event[{}] SourceName={} | {} | Acked={} | Message={} \n",
                     i,
                     sourceName.toString().toUtf8(),
                     uvActive.toString().toUtf8(),
@@ -331,15 +331,15 @@ public:
             {
                 if ( newEvent.eventType == OpcUaId_RefreshStartEventType )
                 {
-                    printf("Event[%d] Refresh Start Event \n", i);
+                    spdlog::info("Event[{}] Refresh Start Event ", i);
                 }
                 else if ( newEvent.eventType == OpcUaId_RefreshEndEventType )
                 {
-                    printf("Event[%d] Refresh End Event \n", i);
+                    spdlog::info("Event[{}] Refresh End Event ", i);
                 }
                 else
                 {
-                    printf("Event[%d] Skipped - can not get event type of conditionId - SourceName = %s Message = %s \n",
+                    spdlog::info("Event[{}] Skipped - can not get event type of conditionId - SourceName = {} Message = {} ",
                         i,
                         sourceName.toString().toUtf8(),
                         message.toString().toUtf8());
@@ -347,19 +347,19 @@ public:
                 // skip this event
             }
         }
-        printf("-------------------------------------------------------\n");
+        spdlog::info("-------------------------------------------------------");
 
         // print alarms
         if (m_bTableChanged)
         {
-            printf("\n-- Alarm list -----------------------------------------\n");
+            spdlog::info("-- Alarm list -----------------------------------------");
             printAlarmList();
-            printf("\n-------------------------------------------------------\n");
-            printf("|     Press x to stop subscription                    |\n");
-            printf("|     Press a to acknowledge all                      |\n");
-            printf("|     Press c to confirm all                          |\n");
-            printf("|     Press number to acknowledge / confirm single    |\n");
-            printf("-------------------------------------------------------\n\n");
+            spdlog::info("-------------------------------------------------------");
+            spdlog::info("|     Press x to stop subscription                    |");
+            spdlog::info("|     Press a to acknowledge all                      |");
+            spdlog::info("|     Press c to confirm all                          |");
+            spdlog::info("|     Press number to acknowledge / confirm single    |");
+            spdlog::info("-------------------------------------------------------");
         }
     }
 
@@ -406,11 +406,11 @@ public:
         OpcUa_UInt16 i = 0;
         std::map<UaNodeId, EventObject>::iterator it = m_mapAlarms.begin();
 
-        printf("# | Ack | Conf | Time | Severity | Source | Message | CondName\n");
+        spdlog::info("# | Ack | Conf | Time | Severity | Source | Message | CondName");
 
         while (it != m_mapAlarms.end())
         {
-            printf("[%d] | %d | %d | %s | %d | %s | %s | %s\n",
+            spdlog::info("[{}] | {} | {} | {} | {} | {} | {} | {}",
             i++,
             it->second.ackedStateId,
             it->second.confirmedStateId,
@@ -422,7 +422,7 @@ public:
             it++;
         }
 
-        printf("-------------------------------------------------------\n");
+        spdlog::info("-------------------------------------------------------");
         m_bTableChanged = false;
     }
 

@@ -404,7 +404,7 @@ UaStatus Client::callMethodAsync(const std::string &sNodeName, const UaString &s
         spdlog::error("** Error: Client at {}: UaSession::beginCall with transactionId={} failed [ret={}] **", m_Address.toUtf8(), m_TransactionId, status.toString().toUtf8());
     else {
         if(_DEBUG_)
-            spdlog::debug("** Client at %s: UaSession::beginCall with transactionId=%d succeeded!", m_Address.toUtf8(), m_TransactionId);
+            spdlog::debug("** Client at {}: UaSession::beginCall with transactionId={} succeeded!", m_Address.toUtf8(), m_TransactionId);
 
         ++m_TransactionId;
     }

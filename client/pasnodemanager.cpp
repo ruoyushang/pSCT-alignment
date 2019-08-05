@@ -785,20 +785,20 @@ OpcUa_Int32 PasNodeManager::Panic()
     for (const auto &id : dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->getValidDeviceIdentities(
         PAS_ACTType)) {
         if (status.isGood()) {
-            printf("Will try turning off %s\n", id.eAddress.c_str());
+            spdlog::info("Will try turning off {}", id.eAddress.c_str());
             status = dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->getDeviceFromId(PAS_ACTType, id)->operate(PAS_ACTType_TurnOff);
         } else
-            printf("Problem turning off %s\n", id.eAddress.c_str());
+            spdlog::info("Problem turning off {}", id.eAddress.c_str());
     }
 
     sleep(3);
     for (const auto &id : dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->getValidDeviceIdentities(
         PAS_ACTType)) {
         if (status.isGood()) {
-            printf("Will try turning on %s again\n", id.eAddress.c_str());
+            spdlog::info("Will try turning on {} again", id.eAddress.c_str());
             status = dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->getDeviceFromId(PAS_ACTType, id)->operate(PAS_ACTType_TurnOn);
         } else
-            printf("Problem turning on %s\n", id.eAddress.c_str());
+            spdlog::info("Problem turning on {}", id.eAddress.c_str());
     }
 
     if (status.isGood())
