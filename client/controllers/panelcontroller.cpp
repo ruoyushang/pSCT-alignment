@@ -292,6 +292,25 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
             status = m_pClient->callMethodAsync(m_pClient->getDeviceNodeId(m_Identity), UaString("MoveToLengths"),
                                                 lengthArgs);
         }
+
+        // Wait for completion
+        spdlog::info("{}: Waiting for all motions to complete...", m_Identity);
+        UaThread::sleep(5);
+        bool stillMoving = true;
+        while (stillMoving) {
+            stillMoving = false;
+            Device::DeviceState state;
+            getState(state);
+            if (state == Device::DeviceState::Busy) {
+                spdlog::trace("{}: Panel {} is still busy...", m_Identity, getIdentity());
+                stillMoving = true;
+            } else {
+                spdlog::trace("{}: Panel {} is idle.", m_Identity, getIdentity());
+            }
+            UaThread::sleep(1);
+        }
+        spdlog::info("{}: Done! All motions completed for MoveToCoords method.", m_Identity);
+
     } else if (offset == PAS_PanelType_MoveDeltaCoords) {
 
         status = updateCoords();
