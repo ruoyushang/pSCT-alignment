@@ -2321,6 +2321,26 @@ UaStatus MirrorController::__moveSelectedPanels(unsigned methodTypeId, double al
             if (m_State == Device::DeviceState::Off) { break; }
         }
 
+        // Wait for completion
+        spdlog::info("{}: Waiting for all motions to complete...", m_Identity);
+        UaThread::sleep(5);
+        bool stillMoving = true;
+        while (stillMoving) {
+            stillMoving = false;
+            for (const auto &pair : args) {
+                Device::DeviceState state;
+                pair.first->getState(state);
+                if (state == Device::DeviceState::Busy) {
+                    spdlog::trace("{}: Panel {} is still busy...", m_Identity, pair.first->getIdentity());
+                    stillMoving = true;
+                } else {
+                    spdlog::trace("{}: Panel {} is idle.", m_Identity, pair.first->getIdentity());
+                }
+                UaThread::sleep(1);
+            }
+        }
+        spdlog::info("{}: Done! All motions completed for execute() method.", m_Identity);
+
         m_Xcalculated.setZero(); // reset calculated motion
         m_panelsToMove.clear();
         m_previousCalculatedMethod = 0;
