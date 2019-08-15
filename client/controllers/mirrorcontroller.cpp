@@ -2341,6 +2341,38 @@ UaStatus MirrorController::__moveSelectedPanels(unsigned methodTypeId, double al
         }
         spdlog::info("{}: Done! All motions completed for execute() method.", m_Identity);
 
+        // Check for errors
+        float epsilonLength = 0.01;
+        std::map<Device::Identity, float> finalLengths;
+        std::map<Device::Identity, float> targetLengths;
+        int N_bad_act = 0;
+        for (const auto &pair : args) {
+            for (const auto &actuator : pair.first->getChildren(PAS_ACTType)) {
+                UaVariant var;
+                actuator->getData(PAS_ACTType_ErrorState, var);
+                int temp;
+                UaVariant(var).toInt32(temp);
+                auto errorState = static_cast<Device::ErrorState>(temp);
+                actuator->getData(PAS_ACTType_CurrentLength, var);
+                float finalLength;
+                UaVariant(var).toFloat(finalLength);
+                finalLengths[actuator->getIdentity()] = finalLength;
+                actuator->getData(PAS_ACTType_TargetLength, var);
+                float targetLength;
+                UaVariant(var).toFloat(targetLength);
+                targetLengths[actuator->getIdentity()] = targetLength;
+                float distanceFromTarget = fabs(finalLength - targetLength);
+                if (errorState != Device::ErrorState::Nominal || distanceFromTarget>epsilonLength) {
+                    spdlog::trace("{}: Found failed actuator {}.", m_Identity, actuator->getIdentity());
+                    N_bad_act ++;
+                }
+            }
+        }
+        if (N_bad_act!=0)
+        {
+            spdlog::error("{}: Found {} failed actuators.", m_Identity, N_bad_act);
+        }
+
         m_Xcalculated.setZero(); // reset calculated motion
         m_panelsToMove.clear();
         m_previousCalculatedMethod = 0;
