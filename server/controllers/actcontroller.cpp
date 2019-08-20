@@ -15,6 +15,7 @@
 
 #include "common/utilities/spdlog/spdlog.h"
 #include "common/utilities/spdlog/fmt/ostr.h"
+//TODO refactor all the pNodeManager here so that operate() can fire event. Monitor this event with Client.
 
 /// @details Calls update state before returning the current state.
 UaStatus ActController::getState(Device::DeviceState &state) {

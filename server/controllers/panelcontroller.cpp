@@ -21,6 +21,7 @@
 
 #include "common/utilities/spdlog/spdlog.h"
 #include "common/utilities/spdlog/fmt/ostr.h"
+//TODO refactor all the pNodeManager here so that operate() can fire event. Monitor this event with Client.
 
 /// @details Locks the shared mutex while retrieving the state.
 UaStatus PanelController::getState(Device::DeviceState &state) {

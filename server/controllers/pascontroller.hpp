@@ -19,6 +19,7 @@
 #include "common/opcua/pascontrollercommon.hpp"
 #include "common/alignment/device.hpp"
 
+//TODO refactor all the pNodeManager here so that operate() can fire event. Monitor this event with Client.
 
 class PlatformBase;
 

@@ -15,7 +15,8 @@
 #include "common/utilities/spdlog/fmt/ostr.h"
 
 
-const int MPESBase::DEFAULT_IMAGES_TO_CAPTURE = 9;
+const int MPESBase::DEFAULT_IMAGES_TO_CAPTURE = 9; //TODO dont hard code this, move to client.
+//TODO add sDefaultDirToSave.c_str() string MPES::sDefaultDirToSave = "/home/root/mpesimages/";
 const std::string MPESBase::MATRIX_CONSTANTS_DIR_PATH = "/home/root/mpesCalibration/";
 const std::string MPESBase::CAL2D_CONSTANTS_DIR_PATH = "/home/root/mpesCalibration/";
 
@@ -137,6 +138,7 @@ bool MPES::__initialize() {
     spdlog::debug("MPES::initialize(): Detected new video device {}.", newVideoDeviceId);
     m_pDevice = std::unique_ptr<MPESDevice>(new MPESDevice(newVideoDeviceId));
     m_pImageSet = std::unique_ptr<MPESImageSet>(new MPESImageSet(m_pDevice.get(), DEFAULT_IMAGES_TO_CAPTURE));
+    //TODO add the default save directory to initializer.
 
     std::ostringstream oss;
     oss << std::setfill('0') << std::setw(6) << getSerialNumber(); // pad serial number to 6 digits with zeros
@@ -228,7 +230,7 @@ int MPES::__updatePosition() {
         m_Position.ySpotWidth = m_pImageSet->SetData.yCentroidSD;
         m_Position.cleanedIntensity = m_pImageSet->SetData.CleanedIntensity;
     }
-
+//TODO update intensity range to 50%
     if (std::abs(m_Position.cleanedIntensity - MPESBase::NOMINAL_INTENSITY) >= MPESBase::NOMINAL_INTENSITY * 0.2) {
         setError(7);
     } else if (m_Position.cleanedIntensity > 5e5 && m_Position.cleanedIntensity < 1e6) {
@@ -240,7 +242,7 @@ int MPES::__updatePosition() {
     if (std::abs(m_Position.xSpotWidth / m_Position.ySpotWidth - 1) > 0.1) {
         setError(6);
     } else if (std::abs(m_Position.xSpotWidth / m_Position.ySpotWidth - 1) > 0.25) {
-        setError(5);
+        setError(5); //TODO updated these ranges to be a little wider
     }
 
     if (m_Position.xCentroid == -1. || m_Position.yCentroid == -1.) {

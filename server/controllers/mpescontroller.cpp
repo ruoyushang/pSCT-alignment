@@ -31,6 +31,8 @@
 #include "common/utilities/spdlog/spdlog.h"
 #include "common/utilities/spdlog/fmt/ostr.h"
 
+//TODO refactor all the pNodeManager here so that operate() can fire event. Monitor this event with Client.
+
 
 MPESController::MPESController(Device::Identity identity, std::shared_ptr<PlatformBase> pPlatform)
     : PasController::PasController(std::move(identity), std::move(pPlatform), 5000) {
