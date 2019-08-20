@@ -18,6 +18,7 @@
 #include "common/opcua/passervertypeids.hpp"
 #include "common/opcua/pasobject.hpp"
 #include "common/utilities/DBConfig.hpp"
+#include "common/opcua/mpeseventdata.hpp"
 
 #include "mysql_connection.h"
 #include "mysql_driver.h"

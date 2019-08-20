@@ -201,12 +201,14 @@ OpcUa::DataItemType* PasObject::addVariable(PasNodeManagerCommon *pNodeManager, 
     else
         addStatus = pNodeManager->addUaNode(pDataItem->getUaNode());
     UA_ASSERT(addStatus.isGood());
+    pDataItem->setHistorizing(OpcUa_True);
 
     // Store information needed to access device
     PasUserData* pUserData = new PasUserData(isState, ParentType, m_Identity, VarType);
     pDataItem->setUserData(pUserData);
     // Change value handling to get read and write calls to the node manager
     pDataItem->setValueHandling(UaVariable_Value_Cache);
+    spdlog::debug("For this OpcUa object: the name space index {} and string {}",pDataItem->getUaNode()->nodeId().identifierNumeric(), pDataItem->getUaNode()->nodeId().toString().toUtf8());
 
     return pDataItem;
 }

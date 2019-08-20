@@ -195,7 +195,7 @@ UaStatus Subscription::createMonitoredItems()
     UaMonitoredItemCreateRequests itemsToCreate;
     UaMonitoredItemCreateResults createResults;
 // Configure one event monitored item - we use the server object here
-    itemsToCreate.create(1);
+    itemsToCreate.create(2);
 
     UaEventFilter            eventFilter;
     UaSimpleAttributeOperand selectElement;
@@ -210,6 +210,14 @@ UaStatus Subscription::createMonitoredItems()
     itemsToCreate[0].RequestedParameters.QueueSize = 0;
     itemsToCreate[0].RequestedParameters.DiscardOldest = OpcUa_True;
     itemsToCreate[0].MonitoringMode = OpcUa_MonitoringMode_Reporting;
+
+    itemsToCreate[1].ItemToMonitor.AttributeId = OpcUa_Attributes_EventNotifier;
+    itemsToCreate[1].ItemToMonitor.NodeId.Identifier.Numeric = PAS_MPESType_CleanedIntensity;
+    itemsToCreate[1].RequestedParameters.ClientHandle = 0;
+    itemsToCreate[1].RequestedParameters.SamplingInterval = 0;
+    itemsToCreate[1].RequestedParameters.QueueSize = 0;
+    itemsToCreate[1].RequestedParameters.DiscardOldest = OpcUa_True;
+    itemsToCreate[1].MonitoringMode = OpcUa_MonitoringMode_Reporting;
 
     // Define which eventfields to send with each event
     selectElement.setBrowsePathElement(0, UaQualifiedName("Message", 0), 1);
