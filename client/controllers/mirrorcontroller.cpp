@@ -2339,7 +2339,6 @@ UaStatus MirrorController::__moveSelectedPanels(unsigned methodTypeId, double al
                 UaThread::sleep(1);
             }
         }
-        spdlog::info("{}: Done! All motions completed for execute() method.", m_Identity);
 
         // Check for errors
         float epsilonLength = 0.01;
@@ -2372,6 +2371,11 @@ UaStatus MirrorController::__moveSelectedPanels(unsigned methodTypeId, double al
         {
             spdlog::error("{}: Found {} failed actuators.", m_Identity, N_bad_act);
         }
+        else
+        {
+            spdlog::info("{}: Found {} failed actuators.", m_Identity, N_bad_act);
+        }
+        spdlog::info("{}: Done! All motions completed for execute() method.", m_Identity);
 
         m_Xcalculated.setZero(); // reset calculated motion
         m_panelsToMove.clear();
