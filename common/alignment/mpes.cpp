@@ -16,6 +16,7 @@
 
 
 const int MPESBase::DEFAULT_IMAGES_TO_CAPTURE = 9;
+const std::string MPESBase::DEFAULT_IMAGES_SAVE_DIR_PATH = "/home/root/mpesimages";
 const std::string MPESBase::MATRIX_CONSTANTS_DIR_PATH = "/home/root/mpesCalibration/";
 const std::string MPESBase::CAL2D_CONSTANTS_DIR_PATH = "/home/root/mpesCalibration/";
 
@@ -136,7 +137,7 @@ bool MPES::__initialize() {
 
     spdlog::debug("MPES::initialize(): Detected new video device {}.", newVideoDeviceId);
     m_pDevice = std::unique_ptr<MPESDevice>(new MPESDevice(newVideoDeviceId));
-    m_pImageSet = std::unique_ptr<MPESImageSet>(new MPESImageSet(m_pDevice.get(), DEFAULT_IMAGES_TO_CAPTURE));
+    m_pImageSet = std::unique_ptr<MPESImageSet>(new MPESImageSet(m_pDevice.get(), DEFAULT_IMAGES_TO_CAPTURE,DEFAULT_IMAGES_SAVE_DIR_PATH.c_str()));
 
     std::ostringstream oss;
     oss << std::setfill('0') << std::setw(6) << getSerialNumber(); // pad serial number to 6 digits with zeros
@@ -174,11 +175,14 @@ int MPES::__setExposure() {
            && m_pDevice->GetExposure() < 1.01*MPESBase::MAX_EXPOSURE) {
         spdlog::debug("{} : MPES::setExposure() : Intensity {} ({}). Exposure: {}.", m_Identity, m_Position.cleanedIntensity,
                       m_pDevice->GetTargetIntensity(), m_pDevice->GetExposure());
-        float tmp_current_intensity;
-        tmp_current_intensity = m_Position.cleanedIntensity;
-        if ( tmp_current_intensity < INTENSITY_SCALING_LIMIT) { tmp_current_intensity = INTENSITY_SCALING_LIMIT;}
+        double tmp_current_intensity = (double) m_Position.cleanedIntensity;
+        if (tmp_current_intensity < INTENSITY_SCALING_LIMIT) {
+            tmp_current_intensity = INTENSITY_SCALING_LIMIT;
+            spdlog::debug("Current Intensity too low (e.g. 0). Resetting this value to an arbitrary lower limit, from {} to {}",m_Position.cleanedIntensity, INTENSITY_SCALING_LIMIT);
+        }
+
         m_pDevice->SetExposure(
-            (int) (m_pDevice->GetTargetIntensity() / tmp_current_intensity * ((float) m_pDevice->GetExposure())));
+                (int) (m_pDevice->GetTargetIntensity() / tmp_current_intensity * ((float) m_pDevice->GetExposure())));
 
         if (m_pDevice->GetExposure() >= MPESBase::MAX_EXPOSURE) {
             spdlog::error("{} : MPES::setExposure() : Failed to set exposure, reached maximum limit of {}. Setting Error 1...",

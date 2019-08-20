@@ -66,13 +66,14 @@ public:
     static const int DEFAULT_IMAGES_TO_CAPTURE;
     static const std::string MATRIX_CONSTANTS_DIR_PATH;
     static const std::string CAL2D_CONSTANTS_DIR_PATH;
+    static const std::string DEFAULT_IMAGES_SAVE_DIR_PATH;
 
 
     static constexpr float NOMINAL_INTENSITY = 150000.0;
     static constexpr float NOMINAL_SPOT_WIDTH = 10.0;
     static constexpr int MAX_EXPOSURE = 5000;
     static constexpr int MAX_SET_EXPOSURE_TRIES = 5;
-    static constexpr int INTENSITY_SCALING_LIMIT = NOMINAL_INTENSITY * pow(10.0,(-(1/(MAX_SET_EXPOSURE_TRIES-1))));
+    double INTENSITY_SCALING_LIMIT = ((double) NOMINAL_INTENSITY) * pow(10.0, (-(1 / ((double)MAX_SET_EXPOSURE_TRIES - 1))));
 
     void turnOn();
 
