@@ -171,11 +171,14 @@ int MPES::__setExposure() {
     int counter = 0;
     while ((!m_pDevice->isWithinIntensityTolerance(__updatePosition()))
            && (counter < MPESBase::MAX_SET_EXPOSURE_TRIES)
-           && m_pDevice->GetExposure() < MPESBase::MAX_EXPOSURE) {
+           && m_pDevice->GetExposure() < 1.01*MPESBase::MAX_EXPOSURE) {
         spdlog::debug("{} : MPES::setExposure() : Intensity {} ({}). Exposure: {}.", m_Identity, m_Position.cleanedIntensity,
                       m_pDevice->GetTargetIntensity(), m_pDevice->GetExposure());
+        float tmp_current_intensity;
+        tmp_current_intensity = m_Position.cleanedIntensity;
+        if ( tmp_current_intensity < INTENSITY_SCALING_LIMIT) { tmp_current_intensity = INTENSITY_SCALING_LIMIT;}
         m_pDevice->SetExposure(
-            (int) (m_pDevice->GetTargetIntensity() / m_Position.cleanedIntensity * ((float) m_pDevice->GetExposure())));
+            (int) (m_pDevice->GetTargetIntensity() / tmp_current_intensity * ((float) m_pDevice->GetExposure())));
 
         if (m_pDevice->GetExposure() >= MPESBase::MAX_EXPOSURE) {
             spdlog::error("{} : MPES::setExposure() : Failed to set exposure, reached maximum limit of {}. Setting Error 1...",

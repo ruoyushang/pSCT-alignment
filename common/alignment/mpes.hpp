@@ -11,6 +11,7 @@
 #include <memory>
 #include <set>
 #include <string>
+#include <math.h>
 
 #include "common/alignment/device.hpp"
 
@@ -71,6 +72,7 @@ public:
     static constexpr float NOMINAL_SPOT_WIDTH = 10.0;
     static constexpr int MAX_EXPOSURE = 5000;
     static constexpr int MAX_SET_EXPOSURE_TRIES = 5;
+    static constexpr int INTENSITY_SCALING_LIMIT = NOMINAL_INTENSITY * pow(10.0,(-(1/(MAX_SET_EXPOSURE_TRIES-1))));
 
     void turnOn();
 
