@@ -14,7 +14,7 @@ MPESDevice::MPESDevice() :
     m_exposure {500},
     m_imgLapse {0},
     m_targetIntensity {150000.},
-    m_targetIntensityTolerance {0.25}
+    m_targetIntensityTolerance {0.1}
 {
 }
 
@@ -25,7 +25,7 @@ MPESDevice::MPESDevice(int ID) :
     m_exposure {500},
     m_imgLapse {0},
     m_targetIntensity {150000.},
-    m_targetIntensityTolerance {0.25}
+    m_targetIntensityTolerance {0.1}
 {
 }
 

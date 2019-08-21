@@ -169,37 +169,43 @@ bool MPES::__initialize() {
 
 int MPES::__setExposure() {
     spdlog::debug("{} : MPES::setExposure() : Setting exposure...", m_Identity);
-    int counter = 0;
-    while ((!m_pDevice->isWithinIntensityTolerance(__updatePosition()))
-           && (counter < MPESBase::MAX_SET_EXPOSURE_TRIES)
-           && m_pDevice->GetExposure() < 1.01*MPESBase::MAX_EXPOSURE) {
+
+    float default_tolerance = 0.15;
+    m_pDevice->SetTolerance(default_tolerance);
+    float precision = default_tolerance + 1;
+
+    while (((m_Position.cleanedIntensity < (m_pDevice->GetTargetIntensity()/precision)) or (m_Position.cleanedIntensity > (m_pDevice->GetTargetIntensity() * precision))) && (m_pDevice->GetExposure() <= MAX_EXPOSURE ) && (m_pDevice->GetExposure() >= MIN_EXPOSURE)){
+        __updatePosition();
         spdlog::debug("{} : MPES::setExposure() : Intensity {} ({}). Exposure: {}.", m_Identity, m_Position.cleanedIntensity,
                       m_pDevice->GetTargetIntensity(), m_pDevice->GetExposure());
-        double tmp_current_intensity = (double) m_Position.cleanedIntensity;
-        if (tmp_current_intensity < INTENSITY_SCALING_LIMIT) {
-            tmp_current_intensity = INTENSITY_SCALING_LIMIT;
-            spdlog::debug("Current Intensity too low (e.g. 0). Resetting this value to an arbitrary lower limit, from {} to {}",m_Position.cleanedIntensity, INTENSITY_SCALING_LIMIT);
-        }
 
-        m_pDevice->SetExposure(
-                (int) (m_pDevice->GetTargetIntensity() / tmp_current_intensity * ((float) m_pDevice->GetExposure())));
-
-        if (m_pDevice->GetExposure() >= MPESBase::MAX_EXPOSURE) {
-            spdlog::error("{} : MPES::setExposure() : Failed to set exposure, reached maximum limit of {}. Setting Error 1...",
-                          m_Identity, std::to_string(MPESBase::MAX_EXPOSURE));
-            m_pDevice->SetExposure(MPESBase::MAX_EXPOSURE);
-            setError(1);
-            m_Position.cleanedIntensity = -1;
-            break;
+        // Case 1: intensity is less than target (or even is zero), multiply exposure by precision and try again.
+        if (m_Position.cleanedIntensity <= (m_pDevice->GetTargetIntensity() * ((float)m_pDevice->GetExposure()/MAX_EXPOSURE))){
+            m_pDevice->SetExposure(m_pDevice->GetExposure() * precision);
+            spdlog::debug("Image is too dim, resetting exposure up to {}",m_pDevice->GetExposure());
         }
-
-        if (++counter >= MPESBase::MAX_SET_EXPOSURE_TRIES) {
-            spdlog::error("{} : MPES::setExposure() : Failed to set exposure in 5 attempts, setting Error 1...",
-                          m_Identity);
-            setError(1);
-            m_Position.cleanedIntensity = -1;
-            break;
+        // Case 2: intensity is greater than target (or is totally bright, e.g. tube open), divide exposure by precision and try again.
+        else if (m_Position.cleanedIntensity >=(m_pDevice->GetTargetIntensity() * ((float)m_pDevice->GetExposure()/MIN_EXPOSURE))) {
+            m_pDevice->SetExposure(m_pDevice->GetExposure() / precision);
+            spdlog::debug("Image is too bright, resetting exposure up to {}",m_pDevice->GetExposure());
         }
+        // Case 3: normal operation, just increment to get closer to target.
+        else {
+            m_pDevice->SetExposure(m_pDevice->GetExposure() * (m_pDevice->GetTargetIntensity() / m_Position.cleanedIntensity ));
+        }
+    }
+    if (m_pDevice->GetExposure() > MAX_EXPOSURE){
+        spdlog::error("{} : MPES::setExposure() : Failed to set exposure, reached maximum limit of {}. Setting Error 1 (too dim)...",
+                      m_Identity, std::to_string(MPESBase::MAX_EXPOSURE));
+        setError(1);
+        m_Position.cleanedIntensity = -1;
+    }
+
+    if (m_pDevice->GetExposure() < MIN_EXPOSURE){
+        spdlog::error("{} : MPES::setExposure() : Failed to set exposure, reached minimum limit of {}. Setting Error 2 (too bright)...",
+                      m_Identity, std::to_string(MPESBase::MIN_EXPOSURE));
+        setError(2);
+        m_Position.cleanedIntensity = -1;
     }
 
     spdlog::debug("{} : MPES::setExposure() : Done.", m_Identity);

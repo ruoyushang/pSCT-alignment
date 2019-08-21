@@ -34,6 +34,7 @@ class MPESDevice
         bool MatrixLoaded() {return m_matLoaded;};
         int GetID() {return m_id;};
         void SetID(int ID) {m_id = ID;};
+        void SetTolerance(float tolerance) {m_targetIntensityTolerance = tolerance;}
         void SetResolution(int in_resolution) {m_resolution = in_resolution;};
         int GetResolution() {return m_resolution;};
         void SetExposure(int in_exposure) {m_exposure = in_exposure;};
