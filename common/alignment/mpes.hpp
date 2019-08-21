@@ -69,11 +69,11 @@ public:
     static const std::string DEFAULT_IMAGES_SAVE_DIR_PATH;
 
 
-    static constexpr float NOMINAL_INTENSITY = 150000.0;
+    static constexpr float NOMINAL_INTENSITY = 110000.0; // default was 150,000.
     static constexpr float NOMINAL_SPOT_WIDTH = 10.0;
     static constexpr int MAX_EXPOSURE = 5000-1;
     static constexpr int MIN_EXPOSURE = 50;
-    static constexpr float INTENSITY_RATIO_TOLERANCE = 0.2;
+    static constexpr float INTENSITY_RATIO_TOLERANCE = 0.3;
     static constexpr float PRECISION = INTENSITY_RATIO_TOLERANCE + 1;
 
     void turnOn();

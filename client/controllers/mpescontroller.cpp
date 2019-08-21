@@ -262,8 +262,8 @@ UaStatus MPESController::operate(OpcUa_UInt32 offset, const UaVariantArray &args
             //TODO correct this condition to be the same as setExposure while conditions.
             if (((position.cleanedIntensity < (MPESBase::NOMINAL_INTENSITY/MPESBase::PRECISION)) or (position.cleanedIntensity > (MPESBase::NOMINAL_INTENSITY * MPESBase::PRECISION)))) {
                 spdlog::warn(
-                    "{} : The image intensity ({}) differs from the nominal value ({}) by more than {}%. Will readjust exposure now (up to 5 times).",
-                    m_Identity, position.cleanedIntensity, std::to_string(MPESBase::NOMINAL_INTENSITY),MPESBase::INTENSITY_RATIO_TOLERANCE);
+                    "{} : The image intensity ({}) differs from the nominal value ({}) by more than {}%. Will readjust exposure now.",
+                    m_Identity, position.cleanedIntensity, std::to_string(MPESBase::NOMINAL_INTENSITY),std::to_string(100*MPESBase::INTENSITY_RATIO_TOLERANCE));
                 operate(PAS_MPESType_SetExposure, UaVariantArray());
                 UaThread::sleep(5);
                 spdlog::info("{}: Reading webcam again...", m_Identity);
