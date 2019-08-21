@@ -179,7 +179,15 @@ int MPES::__setExposure() {
         unsetError(5);
         unsetError(6);
 
+        spdlog::info("Condition 1: {} <= {} * {}/{} = {}",m_Position.cleanedIntensity, m_pDevice->GetTargetIntensity(), tempExposure,std::to_string(MAX_EXPOSURE),std::to_string(m_pDevice->GetTargetIntensity() * ((float)tempExposure/MAX_EXPOSURE)));
+        spdlog::info("Condition 2: {} >= {} * {}/{} = {}",m_Position.cleanedIntensity, m_pDevice->GetTargetIntensity(), tempExposure,std::to_string(MIN_EXPOSURE),std::to_string(m_pDevice->GetTargetIntensity() * ((float)tempExposure/MIN_EXPOSURE)));
+
         __updatePosition();
+
+        spdlog::info("After updating position: ");
+        spdlog::info("Condition 1: {} <= {} * {}/{} = {}",m_Position.cleanedIntensity, m_pDevice->GetTargetIntensity(), tempExposure,std::to_string(MAX_EXPOSURE),std::to_string(m_pDevice->GetTargetIntensity() * ((float)tempExposure/MAX_EXPOSURE)));
+        spdlog::info("Condition 2: {} >= {} * {}/{} = {}",m_Position.cleanedIntensity, m_pDevice->GetTargetIntensity(), tempExposure,std::to_string(MIN_EXPOSURE),std::to_string(m_pDevice->GetTargetIntensity() * ((float)tempExposure/MIN_EXPOSURE)));
+
         spdlog::info("{} : MPES::setExposure() : Intensity {} ({}). Exposure: {}.", m_Identity, m_Position.cleanedIntensity,
                       m_pDevice->GetTargetIntensity(), m_pDevice->GetExposure());
 
@@ -198,6 +206,7 @@ int MPES::__setExposure() {
         // Case 3: normal operation, just increment to get closer to target.
         else {
             m_pDevice->SetExposure((int)((float)tempExposure * (m_pDevice->GetTargetIntensity() / m_Position.cleanedIntensity )));
+            spdlog::info("Normal operation, incrementing exposure up to {}",m_pDevice->GetExposure());
         }
     }
     if (m_pDevice->GetExposure() > MAX_EXPOSURE){
