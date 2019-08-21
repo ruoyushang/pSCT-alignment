@@ -26,8 +26,8 @@ const std::vector<Device::ErrorDefinition> MPESBase::ERROR_DEFINITIONS = {
     {"Intensity of the image is insufficient to process or it is absent.",                              Device::ErrorState::FatalError},//error 2
     {"Intensity of the image is too bright to produce reliable measurement. Likely cause: no tube or no lid.",             Device::ErrorState::FatalError},//error 3
     {"Intensity of the image is bright to perform calculations but the spot width is extensively large > 20px.",      Device::ErrorState::OperableError},//error 4
-    {"Image is severely uneven. Likely due to being in the reflection region, too close to webcam edges, or a bad laser.", Device::ErrorState::OperableError},//error 5
-    {"Image is mildly uneven. Less than 10% difference",                                           Device::ErrorState::OperableError},//error 6
+    {"Image is severely uneven. Likely due to being in the reflection region, too close to webcam edges, or a bad laser. More than 30% deviation.", Device::ErrorState::OperableError},//error 5
+    {"Image is mildly uneven. More than 20% but less than 30% deviation.",                                           Device::ErrorState::OperableError},//error 6
 };
 
 bool MPESBase::initialize() {
@@ -173,7 +173,7 @@ int MPES::__setExposure() {
 
     int tempExposure= m_pDevice->GetExposure();
 
-    while (((m_Position.cleanedIntensity < (m_pDevice->GetTargetIntensity()/PRECISION)) or (m_Position.cleanedIntensity > (m_pDevice->GetTargetIntensity() * PRECISION))) && (m_pDevice->GetExposure() <= MAX_EXPOSURE ) && (m_pDevice->GetExposure() >= MIN_EXPOSURE)){
+    do{
         spdlog::info("Trying read() again to maintain inside constraints");
         unsetError(4);
         unsetError(5);
@@ -209,18 +209,20 @@ int MPES::__setExposure() {
             spdlog::info("Normal operation, incrementing exposure up to {}",m_pDevice->GetExposure());
         }
     }
+    while (((m_Position.cleanedIntensity < (m_pDevice->GetTargetIntensity()/PRECISION)) || (m_Position.cleanedIntensity > (m_pDevice->GetTargetIntensity() * PRECISION))) && (m_pDevice->GetExposure() <= MAX_EXPOSURE ) && (m_pDevice->GetExposure() >= MIN_EXPOSURE));
     if (m_pDevice->GetExposure() > MAX_EXPOSURE){
-        spdlog::error("{} : MPES::setExposure() : Failed to set exposure, reached maximum limit of {}. Setting Error 1 (too dim)...",
+        spdlog::error("{} : MPES::setExposure() : Failed to set exposure, reached maximum limit of {}. Setting Error 2 (too dim)...",
                       m_Identity, std::to_string(MPESBase::MAX_EXPOSURE));
         setError(2); //fatal
     }
     else if (m_pDevice->GetExposure() < MIN_EXPOSURE){
-        spdlog::error("{} : MPES::setExposure() : Failed to set exposure, reached minimum limit of {}. Setting Error 2 (too bright)...",
+        spdlog::error("{} : MPES::setExposure() : Failed to set exposure, reached minimum limit of {}. Setting Error 3 (too bright)...",
                       m_Identity, std::to_string(MPESBase::MIN_EXPOSURE));
         setError(3); //fatal
     }
     else{
         m_pDevice->SetExposure(tempExposure);
+        spdlog::info("Normal exit from do - while loop. Intensity and exposure within the bound.");
     }
 
     spdlog::debug("{} : MPES::setExposure() : Done.", m_Identity);
@@ -259,10 +261,11 @@ int MPES::__updatePosition() {
     if (m_Position.cleanedIntensity > 5e5 && m_Position.cleanedIntensity < 1e6) {
         setError(4);
     }
-    if (std::abs(m_Position.xSpotWidth / m_Position.ySpotWidth - 1) > 0.1) {
-        setError(6);
-    } else if (std::abs(m_Position.xSpotWidth / m_Position.ySpotWidth - 1) > 0.25) {
+    if (std::abs(m_Position.xSpotWidth / m_Position.ySpotWidth - 1) > 0.30) {
         setError(5);
+    }
+    else if (std::abs(m_Position.xSpotWidth / m_Position.ySpotWidth - 1) > 0.20) {
+        setError(6);
     }
 
     m_Position.exposure = m_pDevice->GetExposure(); 
