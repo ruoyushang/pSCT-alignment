@@ -168,30 +168,31 @@ bool MPES::__initialize() {
 }
 
 int MPES::__setExposure() {
-    spdlog::debug("{} : MPES::setExposure() : Setting exposure...", m_Identity);
+    spdlog::info("{} : MPES::setExposure() : Resetting exposure...", m_Identity);
 
-    float default_tolerance = 0.15;
+    float default_tolerance = 0.2;
     m_pDevice->SetTolerance(default_tolerance);
     float precision = default_tolerance + 1;
 
     while (((m_Position.cleanedIntensity < (m_pDevice->GetTargetIntensity()/precision)) or (m_Position.cleanedIntensity > (m_pDevice->GetTargetIntensity() * precision))) && (m_pDevice->GetExposure() <= MAX_EXPOSURE ) && (m_pDevice->GetExposure() >= MIN_EXPOSURE)){
+        spdlog::info("Trying read() again to maintain inside constraints");
         __updatePosition();
-        spdlog::debug("{} : MPES::setExposure() : Intensity {} ({}). Exposure: {}.", m_Identity, m_Position.cleanedIntensity,
+        spdlog::info("{} : MPES::setExposure() : Intensity {} ({}). Exposure: {}.", m_Identity, m_Position.cleanedIntensity,
                       m_pDevice->GetTargetIntensity(), m_pDevice->GetExposure());
 
         // Case 1: intensity is less than target (or even is zero), multiply exposure by precision and try again.
         if (m_Position.cleanedIntensity <= (m_pDevice->GetTargetIntensity() * ((float)m_pDevice->GetExposure()/MAX_EXPOSURE))){
-            m_pDevice->SetExposure(m_pDevice->GetExposure() * precision);
-            spdlog::debug("Image is too dim, resetting exposure up to {}",m_pDevice->GetExposure());
+            m_pDevice->SetExposure((int)((float)m_pDevice->GetExposure() * precision));
+            spdlog::info("Image is too dim, resetting exposure up to {}",m_pDevice->GetExposure());
         }
         // Case 2: intensity is greater than target (or is totally bright, e.g. tube open), divide exposure by precision and try again.
         else if (m_Position.cleanedIntensity >=(m_pDevice->GetTargetIntensity() * ((float)m_pDevice->GetExposure()/MIN_EXPOSURE))) {
-            m_pDevice->SetExposure(m_pDevice->GetExposure() / precision);
-            spdlog::debug("Image is too bright, resetting exposure up to {}",m_pDevice->GetExposure());
+            m_pDevice->SetExposure((int)((float)m_pDevice->GetExposure() / precision));
+            spdlog::info("Image is too bright, resetting exposure up to {}",m_pDevice->GetExposure());
         }
         // Case 3: normal operation, just increment to get closer to target.
         else {
-            m_pDevice->SetExposure(m_pDevice->GetExposure() * (m_pDevice->GetTargetIntensity() / m_Position.cleanedIntensity ));
+            m_pDevice->SetExposure((int)((float)m_pDevice->GetExposure() * (m_pDevice->GetTargetIntensity() / m_Position.cleanedIntensity )));
         }
     }
     if (m_pDevice->GetExposure() > MAX_EXPOSURE){
@@ -200,17 +201,19 @@ int MPES::__setExposure() {
         setError(1);
         m_Position.cleanedIntensity = -1;
     }
-
-    if (m_pDevice->GetExposure() < MIN_EXPOSURE){
+    else if (m_pDevice->GetExposure() < MIN_EXPOSURE){
         spdlog::error("{} : MPES::setExposure() : Failed to set exposure, reached minimum limit of {}. Setting Error 2 (too bright)...",
                       m_Identity, std::to_string(MPESBase::MIN_EXPOSURE));
         setError(2);
         m_Position.cleanedIntensity = -1;
     }
+    else{
+        m_pDevice->SetExposure((int)((float)m_pDevice->GetExposure() * (m_Position.cleanedIntensity / m_pDevice->GetTargetIntensity())));
+    }
 
     spdlog::debug("{} : MPES::setExposure() : Done.", m_Identity);
 
-    return m_Position.cleanedIntensity;
+    return (int)m_Position.cleanedIntensity;
 }
 
 int MPES::__updatePosition() {
