@@ -13,8 +13,8 @@ MPESDevice::MPESDevice() :
     m_resolution {320},
     m_exposure {500},
     m_imgLapse {0},
-    m_targetIntensity {MPESBase::NOMINAL_INTENSITY},
-    m_targetIntensityTolerance {MPESBase::INTENSITY_RATIO_TOLERANCE}
+    m_targetIntensity {kNOMINAL_INTENSITY},
+    m_targetIntensityTolerance {kINTENSITY_RATIO_TOLERANCE}
 {
 }
 
@@ -24,8 +24,8 @@ MPESDevice::MPESDevice(int ID) :
     m_resolution {320},
     m_exposure {500},
     m_imgLapse {0},
-    m_targetIntensity {MPESBase::NOMINAL_INTENSITY},
-    m_targetIntensityTolerance {MPESBase::INTENSITY_RATIO_TOLERANCE}
+    m_targetIntensity {kNOMINAL_INTENSITY},
+    m_targetIntensityTolerance {kINTENSITY_RATIO_TOLERANCE}
 {
 }
 
