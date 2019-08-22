@@ -179,14 +179,14 @@ int MPES::__setExposure() {
         unsetError(5);
         unsetError(6);
 
-        spdlog::info("Condition 1: {} <= {} * {}/{} = {}",m_Position.cleanedIntensity, m_pDevice->GetTargetIntensity(), tempExposure,std::to_string(MAX_EXPOSURE),std::to_string(m_pDevice->GetTargetIntensity() * ((float)tempExposure/MAX_EXPOSURE)));
-        spdlog::info("Condition 2: {} >= {} * {}/{} = {}",m_Position.cleanedIntensity, m_pDevice->GetTargetIntensity(), tempExposure,std::to_string(MIN_EXPOSURE),std::to_string(m_pDevice->GetTargetIntensity() * ((float)tempExposure/MIN_EXPOSURE)));
+        spdlog::warn("Condition 1: {} <= {} * {}/{} = {}",m_Position.cleanedIntensity, m_pDevice->GetTargetIntensity(), tempExposure,std::to_string(MAX_EXPOSURE),std::to_string(m_pDevice->GetTargetIntensity() * ((float)tempExposure/MAX_EXPOSURE)));
+        spdlog::warn("Condition 2: {} >= {} * {}/{} = {}",m_Position.cleanedIntensity, m_pDevice->GetTargetIntensity(), tempExposure,std::to_string(MIN_EXPOSURE),std::to_string(m_pDevice->GetTargetIntensity() * ((float)tempExposure/MIN_EXPOSURE)));
 
         __updatePosition();
 
-        spdlog::info("After updating position: ");
-        spdlog::info("Condition 1: {} <= {} * {}/{} = {}",m_Position.cleanedIntensity, m_pDevice->GetTargetIntensity(), tempExposure,std::to_string(MAX_EXPOSURE),std::to_string(m_pDevice->GetTargetIntensity() * ((float)tempExposure/MAX_EXPOSURE)));
-        spdlog::info("Condition 2: {} >= {} * {}/{} = {}",m_Position.cleanedIntensity, m_pDevice->GetTargetIntensity(), tempExposure,std::to_string(MIN_EXPOSURE),std::to_string(m_pDevice->GetTargetIntensity() * ((float)tempExposure/MIN_EXPOSURE)));
+        spdlog::warn("After updating position: ");
+        spdlog::warn("Condition 1: {} <= {} * {}/{} = {}",m_Position.cleanedIntensity, m_pDevice->GetTargetIntensity(), tempExposure,std::to_string(MAX_EXPOSURE),std::to_string(m_pDevice->GetTargetIntensity() * ((float)tempExposure/MAX_EXPOSURE)));
+        spdlog::warn("Condition 2: {} >= {} * {}/{} = {}",m_Position.cleanedIntensity, m_pDevice->GetTargetIntensity(), tempExposure,std::to_string(MIN_EXPOSURE),std::to_string(m_pDevice->GetTargetIntensity() * ((float)tempExposure/MIN_EXPOSURE)));
 
         spdlog::info("{} : MPES::setExposure() : Intensity {} ({}). Exposure: {}.", m_Identity, m_Position.cleanedIntensity,
                       m_pDevice->GetTargetIntensity(), m_pDevice->GetExposure());
@@ -211,21 +211,25 @@ int MPES::__setExposure() {
     }
     while (((m_Position.cleanedIntensity < (m_pDevice->GetTargetIntensity()/PRECISION)) || (m_Position.cleanedIntensity > (m_pDevice->GetTargetIntensity() * PRECISION))) && (m_pDevice->GetExposure() <= MAX_EXPOSURE ) && (m_pDevice->GetExposure() >= MIN_EXPOSURE));
     if (m_pDevice->GetExposure() > MAX_EXPOSURE){
+        if (m_Position.cleanedIntensity <= (m_pDevice->GetTargetIntensity()/PRECISION)){
         spdlog::error("{} : MPES::setExposure() : Failed to set exposure, reached maximum limit of {}. Setting Error 2 (too dim)...",
                       m_Identity, std::to_string(MPESBase::MAX_EXPOSURE));
         setError(2); //fatal
+        }
     }
     else if (m_pDevice->GetExposure() < MIN_EXPOSURE){
+        if (m_Position.cleanedIntensity >= (m_pDevice->GetTargetIntensity() * PRECISION)){
         spdlog::error("{} : MPES::setExposure() : Failed to set exposure, reached minimum limit of {}. Setting Error 3 (too bright)...",
                       m_Identity, std::to_string(MPESBase::MIN_EXPOSURE));
         setError(3); //fatal
+        }
     }
     else{
         m_pDevice->SetExposure(tempExposure);
-        spdlog::info("Normal exit from do - while loop. Intensity and exposure within the bound.");
+        spdlog::info("Normal exit from do-while loop. Intensity and exposure within the bound.");
     }
 
-    spdlog::debug("{} : MPES::setExposure() : Done.", m_Identity);
+    spdlog::info("{} : MPES::setExposure() : Done.", m_Identity);
 
     return (int)m_Position.cleanedIntensity;
 }
