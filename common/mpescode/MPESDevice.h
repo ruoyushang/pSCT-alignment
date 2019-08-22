@@ -1,6 +1,8 @@
 #ifndef __MPESDEVICE_H__
 #define __MPESDEVICE_H__
 
+#include "common/alignment/mpes.hpp"
+
 struct MPESCalibrationData
 {
     // matrix stuff
