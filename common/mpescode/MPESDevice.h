@@ -1,11 +1,11 @@
 #ifndef __MPESDEVICE_H__
 #define __MPESDEVICE_H__
 
-static constexpr float kNOMINAL_INTENSITY = 110000.0; // default was 150,000.
+static constexpr float kNOMINAL_INTENSITY = 100000.0; // default was 150,000.
 static constexpr float kNOMINAL_SPOT_WIDTH = 10.0;
 static constexpr int kMAX_EXPOSURE = 5000-1;
 static constexpr int kMIN_EXPOSURE = 50;
-static constexpr float kINTENSITY_RATIO_TOLERANCE = 0.3;
+static constexpr float kINTENSITY_RATIO_TOLERANCE = 0.258;
 static constexpr float kPRECISION = kINTENSITY_RATIO_TOLERANCE + 1;
 
 struct MPESCalibrationData
