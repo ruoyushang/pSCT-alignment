@@ -14,6 +14,7 @@
 #include <math.h>
 
 #include "common/alignment/device.hpp"
+#include "common/mpescode/MPESDevice.h"
 
 class Platform;
 
@@ -69,12 +70,12 @@ public:
     static const std::string DEFAULT_IMAGES_SAVE_DIR_PATH;
 
 
-    static constexpr float NOMINAL_INTENSITY = 110000.0; // default was 150,000.
-    static constexpr float NOMINAL_SPOT_WIDTH = 10.0;
-    static constexpr int MAX_EXPOSURE = 5000-1;
-    static constexpr int MIN_EXPOSURE = 50;
-    static constexpr float INTENSITY_RATIO_TOLERANCE = 0.3;
-    static constexpr float PRECISION = INTENSITY_RATIO_TOLERANCE + 1;
+    static constexpr float NOMINAL_INTENSITY = kNOMINAL_INTENSITY; // default was 150,000.
+    static constexpr float NOMINAL_SPOT_WIDTH = kNOMINAL_SPOT_WIDTH;
+    static constexpr int MAX_EXPOSURE = kMAX_EXPOSURE;
+    static constexpr int MIN_EXPOSURE = kMIN_EXPOSURE;
+    static constexpr float INTENSITY_RATIO_TOLERANCE = kINTENSITY_RATIO_TOLERANCE;
+    static constexpr float PRECISION = kPRECISION;
 
     void turnOn();
 
