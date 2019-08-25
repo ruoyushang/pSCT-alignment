@@ -160,6 +160,8 @@ int MPESImageSet::Capture()
         else
             it++;
     }
+//TODO figure out how to respond to select_timeout issue here.
+//Proposal: Add own timer here, say 1-3s per image, and trigger my own select timeout.
     if(ignored)
     {
         fprintf(stderr,"%i images ignored because of unphysical results.",ignored);
