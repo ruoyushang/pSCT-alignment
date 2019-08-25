@@ -78,7 +78,8 @@ int MPESImageSet::Capture()
         }
     }
     else { // read from camera
-        reject_img = 10;
+        reject_img = 3;   //number to capture at start, but ignore from calculation
+        int save_img = 2; //number to save, starting to last going backwards
 
         if(verbosity)
         {
@@ -122,7 +123,7 @@ int MPESImageSet::Capture()
             fprintf(stderr, "taking picture...\n");
         }
 
-        for(int img = 0; img < imagesToCapture + reject_img +1 ; img++)
+        for(int img = 0; img < imagesToCapture + reject_img + 1 ; img++)
         {
             MPESImage capturedimage;
             capture >> capturedimage;
@@ -136,7 +137,9 @@ int MPESImageSet::Capture()
                     now->tm_sec);
             if(img>reject_img)
             {
-                imwrite(imagefile, capturedimage);
+                if (img > imagesToCapture + reject_img - save_img){
+                    imwrite(imagefile, capturedimage);
+                }
                 capturedimage.analyze(iThresh);
                 datasetvec.push_back(capturedimage.datavec);
                 sleep(device->GetLapse()); 
