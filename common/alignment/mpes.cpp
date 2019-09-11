@@ -26,7 +26,7 @@ const std::vector<Device::ErrorDefinition> MPESBase::ERROR_DEFINITIONS = {
     {"Intensity of the image is insufficient to process or it is absent.",                              Device::ErrorState::FatalError},//error 2
     {"Intensity of the image is too bright to produce reliable measurement. Likely cause: no tube or no lid.",             Device::ErrorState::FatalError},//error 3
     {"Intensity of the image is bright to perform calculations but the spot width is extensively large > 20px.",      Device::ErrorState::OperableError},//error 4
-    {"Image is severely uneven. Likely due to being in the reflection region, too close to webcam edges, or a bad laser. More than 30% deviation.", Device::ErrorState::OperableError},//error 5
+    {"Image is severely uneven. Likely due to being in the reflection region, too close to webcam edges, or a bad laser. More than 30% deviation.",Device::ErrorState::OperableError},//error 5
     {"Image is mildly uneven. More than 20% but less than 30% deviation.",                                           Device::ErrorState::OperableError},//error 6
 };
 
@@ -200,7 +200,7 @@ int MPES::__setExposure() {
         }
         // Case 2: intensity is greater than target (or is totally bright, e.g. tube open), divide exposure by precision and try again.
         else if (m_Position.cleanedIntensity >=(m_pDevice->GetTargetIntensity() * ((float)tempExposure/MIN_EXPOSURE))) {
-            m_pDevice->SetExposure((int)((float)tempExposure/ PRECISION));
+            m_pDevice->SetExposure((int)((float)tempExposure / PRECISION));
             spdlog::warn("Image is too bright, resetting exposure up to {}",m_pDevice->GetExposure());
         }
         // Case 3: normal operation, just increment to get closer to target.
@@ -216,6 +216,7 @@ int MPES::__setExposure() {
                       m_Identity, std::to_string(MPESBase::MAX_EXPOSURE));
         setError(2); //fatal
         }
+        m_pDevice->SetExposure(tempExposure);
     }
     else if (m_pDevice->GetExposure() < MIN_EXPOSURE){
         if (m_Position.cleanedIntensity >= (m_pDevice->GetTargetIntensity() * PRECISION)){
@@ -223,6 +224,7 @@ int MPES::__setExposure() {
                       m_Identity, std::to_string(MPESBase::MIN_EXPOSURE));
         setError(3); //fatal
         }
+        m_pDevice->SetExposure(tempExposure);
     }
     else{
         m_pDevice->SetExposure(tempExposure);
@@ -240,7 +242,7 @@ int MPES::__updatePosition() {
     m_Position.yCentroid = -1.;
     m_Position.xSpotWidth = -1.;
     m_Position.ySpotWidth = -1.;
-    m_Position.cleanedIntensity = 0.;
+    m_Position.cleanedIntensity = -1.;
     m_Position.timestamp = -1;
     m_Position.exposure = -1;
 
@@ -259,6 +261,7 @@ int MPES::__updatePosition() {
         m_Position.ySpotWidth = m_pImageSet->SetData.yCentroidSD;
         m_Position.cleanedIntensity = m_pImageSet->SetData.CleanedIntensity;
     }
+//TODO figure out how to respond to select_timeout issue here
     if (m_Position.cleanedIntensity < 0 ){
         setError(1);
     }
