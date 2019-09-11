@@ -2341,7 +2341,7 @@ UaStatus MirrorController::__moveSelectedPanels(unsigned methodTypeId, double al
         }
 
         // Check for errors
-        float epsilonLength = 0.01;
+        float epsilonLength = 0.016;
         std::map<Device::Identity, float> finalLengths;
         std::map<Device::Identity, float> targetLengths;
         int N_bad_act = 0;
