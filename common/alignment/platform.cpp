@@ -285,13 +285,13 @@ bool Platform::loadCBCParameters() {
         //check if number of results match what is expected. if not, set error(3)
         if (resmeta->getColumnCount() != NUM_DB_CB_COLUMNS) {
             spdlog::error(
-                "{} : Operable Error (13): Number of columns in DB table ({}) did not equal the number expected ({}). DB table appears to have an incorrect structure.",
+                "{} : Operable Error (14): Number of columns in DB table ({}) did not equal the number expected ({}). DB table appears to have an incorrect structure.",
                 m_Identity, resmeta->getColumnCount(), NUM_DB_CB_COLUMNS);
-            setError(13);//fatal
+            setError(14);
             return false;
             }
         
-	while (res->next())
+	if (res->next())
         {
             m_InternalTemperatureSlope = res->getDouble(5);
             m_InternalTemperatureOffset = res->getDouble(6);
@@ -325,6 +325,13 @@ bool Platform::loadCBCParameters() {
             m_SynchronousRectification = res->getInt(34);
             m_HighCurrent = res->getInt(35);
         }
+	else {
+            spdlog::error(
+                "{} : Operable Error (14): No calibration data found in the CBC Calibration Table.",
+                m_Identity);
+            setError(14);
+	    return false;
+	}
 
         delete res;
         delete stmt;

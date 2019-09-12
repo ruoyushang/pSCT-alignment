@@ -100,7 +100,7 @@ bool ActuatorBase::loadConfigurationAndCalibration() {
                 return false;
             }
 
-            while (res->next()) {
+            if (res->next()) {
                 mmPerStep = res->getDouble(4);
                 StepsPerRevolution = res->getInt(5);
                 HomeLength = res->getDouble(6);
@@ -126,6 +126,15 @@ bool ActuatorBase::loadConfigurationAndCalibration() {
                 m_MaxRecoverySteps = res->getInt(26);
                 m_EndStopRecoverySteps = res->getInt(27);
             }
+	    else {
+                spdlog::error(
+                    "{} : Operable Error (2): No calibration data found in the Actuator Calibration Table.",
+                    m_Identity);
+                setError(2);
+                saveStatusToASF();
+		return false;
+	    }
+	
             m_encoderScale.resize(StepsPerRevolution);
             for (int i = 0; i < StepsPerRevolution; i++) {
                 stmtvar.str(std::string());
@@ -146,9 +155,17 @@ bool ActuatorBase::loadConfigurationAndCalibration() {
 		    return false;
 		}
 
-                while (res->next()) {
+                if (res->next()) {
                     m_encoderScale[i] = res->getDouble(5);
                 }
+	    	else {
+                    spdlog::error(
+                        "{} : Operable Error (2): No calibration data found in the Actuator MotorProfile Table for index {}.",
+                        m_Identity, i);
+                    setError(2);
+                    saveStatusToASF();
+		    return false;
+	        }
             }
             m_VMin = m_encoderScale[0];
             m_VMax = m_encoderScale[StepsPerRevolution - 1];
@@ -378,11 +395,18 @@ int ActuatorBase::performHysteresisMotion(int steps) {
     return stepsRemaining;
 }
 
-//Port, Serial, ASFPath, and sometimes DB are loaded. The rest of the loading needs to be designed here. Set Current position. This does not handle error during initialization process (e.g. calibration information cannot be loaded).
+//Port, Serial, ASFPath, and sometimes DB are loaded. The rest of the loading needs to be designed here. Set Current position. This does not handle error during initialization process (e.g. calibration information cannot be loaded). This is always returning true even when something goes wrong.
 bool ActuatorBase::initialize() {
     spdlog::debug("{} : Initializing actuator...", m_Identity);
     loadStatusFromASF();
-    loadConfigurationAndCalibration();
+
+    if (!loadConfigurationAndCalibration()) {
+        m_encoderScale.resize(StepsPerRevolution);
+        for (int i = 0; i < StepsPerRevolution; i++) {
+             m_encoderScale[i] = m_VMin + (i * dV);
+	}
+    }
+
     recoverPosition();
     getErrorState();
 
