@@ -119,6 +119,8 @@ protected:
     static const float DEFAULT_EXTERNAL_TEMPERATURE_SLOPE;
     static const float DEFAULT_EXTERNAL_TEMPERATURE_OFFSET;
 
+    static constexpr int NUM_DB_CB_COLUMNS = 36;
+
     Device::DBInfo m_DBInfo;
 
     bool m_On;

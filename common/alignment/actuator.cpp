@@ -88,6 +88,18 @@ bool ActuatorBase::loadConfigurationAndCalibration() {
                     << " ORDER BY start_date DESC LIMIT 1";
             stmt->execute(stmtvar.str());
             res = stmt->getResultSet();
+
+            resmeta = res->getMetaData();
+            //check if number of results match what is expected. if not, set error(3)
+            if (resmeta->getColumnCount() != NUM_DB_CALIBRATION_COLUMNS) {
+                spdlog::error(
+                    "{} : Fatal Error (3): Number of columns in DB table ({}) did not equal the number expected ({}). DB table appears to have an incorrect structure.",
+                    m_Identity, resmeta->getColumnCount(), NUM_DB_CALIBRATION_COLUMNS);
+                setError(3);//fatal
+                saveStatusToASF();
+                return false;
+            }
+
             while (res->next()) {
                 mmPerStep = res->getDouble(4);
                 StepsPerRevolution = res->getInt(5);
@@ -122,6 +134,18 @@ bool ActuatorBase::loadConfigurationAndCalibration() {
                         << " and angle=" << i << ") ORDER BY start_date DESC LIMIT 1";
                 stmt->execute(stmtvar.str());
                 res = stmt->getResultSet();
+	        
+                resmeta = res->getMetaData();
+                //check if number of results match what is expected. if not, set error(3)
+		if (resmeta->getColumnCount() != NUM_DB_PROFILE_COLUMNS) {
+		    spdlog::error(
+		        "{} : Fatal Error (3): Number of columns in DB table ({}) did not equal the number expected ({}). DB table appears to have an incorrect structure.",
+		        m_Identity, resmeta->getColumnCount(), NUM_DB_PROFILE_COLUMNS);
+		    setError(3);//fatal
+		    saveStatusToASF();
+		    return false;
+		}
+
                 while (res->next()) {
                     m_encoderScale[i] = res->getDouble(5);
                 }
@@ -354,7 +378,7 @@ int ActuatorBase::performHysteresisMotion(int steps) {
     return stepsRemaining;
 }
 
-//Port, Serial, ASFPath, and sometimes DB are loaded. The rest of the loading needs to be designed here. Set Current position
+//Port, Serial, ASFPath, and sometimes DB are loaded. The rest of the loading needs to be designed here. Set Current position. This does not handle error during initialization process (e.g. calibration information cannot be loaded).
 bool ActuatorBase::initialize() {
     spdlog::debug("{} : Initializing actuator...", m_Identity);
     loadStatusFromASF();
@@ -984,7 +1008,7 @@ bool Actuator::isOn() {
 
 void Actuator::turnOn() {
     spdlog::debug("{} : Actuator : Turning on power...", m_Identity);
-    m_pCBC->driver.enable(getPortNumber());    
+//    m_pCBC->driver.enable(getPortNumber()); //brandon commented this out because we don't want actuator to be powered on when they are created. power should be handled at platform level. This may destroy some individual actuator functionality.
     initialize();
 }
 
