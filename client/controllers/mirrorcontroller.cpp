@@ -2234,6 +2234,59 @@ UaStatus MirrorController::__setAlignFrac(double alignFrac) {
 
     m_lastSetAlignFrac = alignFrac;
 
+    // here we set alignment constraints for the panels
+    bool setConstraints = true;
+    if (setConstraints) 
+    {
+        spdlog::info("Mirror {}: constraining panel motions...", m_Identity);
+        std::map<Device::Identity, Eigen::VectorXd> panelPositions;
+        Eigen::VectorXd targetActLengths(6);
+        Eigen::VectorXd currentActLengths(6);
+        Eigen::VectorXd deltaActLengths(6);
+        Eigen::VectorXd new_Xcalculated = X;
+        double currentCoordinates[6];
+        double targetCoordinates[6];
+        unsigned j = 0;
+        Device::Identity panelId;
+        for (auto &pPanel : m_panelsToMove) {
+            panelId = std::dynamic_pointer_cast<PanelController>(pPanel)->getIdentity();
+            currentActLengths = pPanel->getActuatorLengths();
+            for (int i=0; i < 6; i++)
+                targetActLengths(i) = currentActLengths(i) + X(j+i);
+            //spdlog::info("Panel {}: currentActLengths: {}", panelId, currentActLengths);
+            //targetActLengths = pPanel->getActuatorLengths() + m_Xcalculated.segment(j, 6);
+            //spdlog::info("Panel {}: targetActLengths: {}", panelId, targetActLengths);
+            // update current coordinates
+            m_pStewartPlatform->ComputeStewart(currentActLengths.data());
+            for (int i = 0; i < 6; i++)
+                currentCoordinates[i] = m_pStewartPlatform->GetPanelCoords()[i];
+            // update target coordinates
+            m_pStewartPlatform->ComputeStewart(targetActLengths.data());
+            for (int i = 0; i < 6; i++)
+                targetCoordinates[i] = m_pStewartPlatform->GetPanelCoords()[i];
+            // updated the target coordinates with constraints
+            spdlog::info("Panel {}: fix Tz at {} mm.", panelId, currentCoordinates[2]);
+            targetCoordinates[2] = currentCoordinates[2]; // Tz
+            //targetCoordinates[3] = currentCoordinates[3]; // Rx
+            //targetCoordinates[4] = currentCoordinates[4]; // Ry
+            // find actuator lengths needed
+            m_pStewartPlatform->ComputeActsFromPanel(targetCoordinates);
+            spdlog::info("Panel {}: currentCoordinates: {}, {}, {}, {}, {}, {}", panelId, currentCoordinates[0], currentCoordinates[1], currentCoordinates[2], currentCoordinates[3], currentCoordinates[4], currentCoordinates[5]);
+            spdlog::info("Panel {}: targetCoordinates: {}, {}, {}, {}, {}, {}", panelId, targetCoordinates[0], targetCoordinates[1], targetCoordinates[2], targetCoordinates[3], targetCoordinates[4], targetCoordinates[5]);
+            // Get actuator lengths for motion
+            for (int i = 0; i < 6; i++) {
+                targetActLengths(i) = (float) m_pStewartPlatform->GetActLengths()[i];
+            }
+
+            deltaActLengths = targetActLengths - currentActLengths;
+            //new_Xcalculated.segment(j, 6) = deltaActLengths;
+            for (int i=0; i < 6; i++)
+                new_Xcalculated(j+i) = deltaActLengths(i);
+            j += 6;
+        }
+        X = new_Xcalculated;
+    }
+
     double maxChange = X.cwiseAbs().maxCoeff();
 
     unsigned k = 0;
