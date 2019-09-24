@@ -22,8 +22,6 @@ public:
     // Public constants
     static constexpr const int NUM_ACTS_PER_PLATFORM = 6;
 
-    static constexpr const int NUM_DB_CB_COLUMNS = 36;
-
     static const std::vector<Device::ErrorDefinition> ERROR_DEFINITIONS;
 
     Device::ErrorDefinition getErrorCodeDefinition(int errorCode) override {
@@ -126,6 +124,8 @@ protected:
     bool m_On;
 
     void checkActuatorStatus(int actuatorIdx);
+
+    const int NUM_DB_CB_COLUMNS = 36;
 
     virtual std::array<int, NUM_ACTS_PER_PLATFORM> __step(std::array<int, NUM_ACTS_PER_PLATFORM> inputSteps) = 0;
 

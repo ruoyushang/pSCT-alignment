@@ -88,10 +88,6 @@ public:
                                                          DEFAULT_STEPS_PER_REVOLUTION *
                                                          DEFAULT_MM_PER_STEP);
 
-    static constexpr const int NUM_DB_CALIBRATION_COLUMNS = 28;
-    
-    static constexpr const int NUM_DB_PROFILE_COLUMNS = 5; //serial, start_date, end_date, angle, voltage
-
     int EndstopSearchStepsize{15};
     float dV{(m_VMax - m_VMin) / (DEFAULT_STEPS_PER_REVOLUTION - 1)};
     float mmPerStep = DEFAULT_MM_PER_STEP;
@@ -133,6 +129,10 @@ protected:
 
     static constexpr const unsigned NUM_DB_HEADER_COLUMNS = 5; //id_increment, serial, start_date, rev, angle
     unsigned NUM_DB_COLUMNS{NUM_DB_HEADER_COLUMNS + getNumErrors()};
+    
+    const int NUM_DB_CALIBRATION_COLUMNS = 28;
+    
+    const int NUM_DB_PROFILE_COLUMNS = 5; //serial, start_date, end_date, angle, voltage
 
     Device::DBInfo m_DBInfo;
     bool m_keepStepping;
