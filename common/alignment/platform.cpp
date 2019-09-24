@@ -268,6 +268,8 @@ bool Platform::loadCBCParameters() {
         sql::Connection *con;
         sql::Statement *stmt;
         sql::ResultSet *res;
+        sql::ResultSetMetaData *resmeta;
+
         driver = get_driver_instance();
         std::string dbAddress = "tcp://" + m_DBInfo.host + ":" + m_DBInfo.port;
         con = driver->connect(dbAddress, m_DBInfo.user, m_DBInfo.password);
@@ -632,7 +634,7 @@ void Platform::turnOn() {
 void Platform::turnOff() {
     spdlog::info("{} : Platform :: Turning off power to platform...", m_Identity);
     Device::CustomBusyLock lock = Device::CustomBusyLock(this);
-//    m_pCBC->powerDown(); //brandon commented this out because it was turning off the cbc functionality outside of opcua
+    m_pCBC->powerDown();
     m_On = false;
 }
 

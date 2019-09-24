@@ -130,9 +130,9 @@ protected:
     static constexpr const unsigned NUM_DB_HEADER_COLUMNS = 5; //id_increment, serial, start_date, rev, angle
     unsigned NUM_DB_COLUMNS{NUM_DB_HEADER_COLUMNS + getNumErrors()};
     
-    static constexpr int NUM_DB_CALIBRATION_COLUMNS = 28;
+    static constexpr const int NUM_DB_CALIBRATION_COLUMNS = 28;
     
-    static constexpr int NUM_DB_PROFILE_COLUMNS = 5; //serial, start_date, end_date, angle, voltage
+    static constexpr const int NUM_DB_PROFILE_COLUMNS = 5; //serial, start_date, end_date, angle, voltage
 
     Device::DBInfo m_DBInfo;
     bool m_keepStepping;

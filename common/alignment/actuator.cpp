@@ -75,6 +75,7 @@ bool ActuatorBase::loadConfigurationAndCalibration() {
             sql::Connection *con;
             sql::Statement *stmt;
             sql::ResultSet *res;
+            sql::ResultSetMetaData *resmeta;
 
             driver = get_driver_instance();
             std::string dbAddress = "tcp://" + m_DBInfo.host + ":" + m_DBInfo.port;
