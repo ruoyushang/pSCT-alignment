@@ -402,7 +402,7 @@ bool ActuatorBase::initialize() {
     loadStatusFromASF();
 
     if (!loadConfigurationAndCalibration()) {
-        m_encoderScale.resize(StepsPerRevolution);
+	m_encoderScale.resize(StepsPerRevolution);
         for (int i = 0; i < StepsPerRevolution; i++) {
              m_encoderScale[i] = m_VMin + (i * dV);
 	}
