@@ -16,18 +16,18 @@
 
 
 const int MPESBase::DEFAULT_IMAGES_TO_CAPTURE = 9;
+const std::string MPESBase::DEFAULT_IMAGES_SAVE_DIR_PATH = "/home/root/mpesimages";
 const std::string MPESBase::MATRIX_CONSTANTS_DIR_PATH = "/home/root/mpesCalibration/";
 const std::string MPESBase::CAL2D_CONSTANTS_DIR_PATH = "/home/root/mpesCalibration/";
 
 const std::vector<Device::ErrorDefinition> MPESBase::ERROR_DEFINITIONS = {
     {"Bad connection. No device found",                                                                            Device::ErrorState::FatalError},//error 0
-    {"Failed to set exposure, possible select timeout or high temperature.",                                          Device::ErrorState::OperableError},//error 1
-    {"Cannot find laser spot (totally dark). Laser dead or not in FoV.",                                           Device::ErrorState::FatalError},//error 2
-    {"Too bright. Cleaned Intensity > 1e6. Likely cause: no tube.",                                                Device::ErrorState::FatalError},//error 3
-    {"Too bright. 1e6 >Cleaned Intensity > 5e5 and very wide spot width >20",                                      Device::ErrorState::OperableError},//error 4
-    {"Very uneven spot. Likely due to being in the reflection region (too close to webcam edges) or a bad laser.", Device::ErrorState::OperableError},//error 5
-    {"Uneven spot. Spot is uneven, but not severe. Likely recoverable.",                                           Device::ErrorState::OperableError},//error 6
-    {"Intensity deviation from nominal value (more than 20%).",                                                    Device::ErrorState::OperableError},//error 7
+    {"Failed to read data, possible select timeout.",                                          Device::ErrorState::FatalError},//error 1
+    {"Intensity of the image is insufficient to process or it is absent.",                              Device::ErrorState::FatalError},//error 2
+    {"Intensity of the image is too bright to produce reliable measurement. Likely cause: no tube or no lid.",             Device::ErrorState::FatalError},//error 3
+    {"Intensity of the image is bright to perform calculations but the spot width is extensively large > 20px.",      Device::ErrorState::OperableError},//error 4
+    {"Image is severely uneven. Likely due to being in the reflection region, too close to webcam edges, or a bad laser. More than 30% deviation.",Device::ErrorState::OperableError},//error 5
+    {"Image is mildly uneven. More than 20% but less than 30% deviation.",                                           Device::ErrorState::OperableError},//error 6
 };
 
 bool MPESBase::initialize() {
@@ -130,13 +130,13 @@ bool MPES::__initialize() {
     } else {
         spdlog::error("{} : MPES::initialize() : Found {} devices, should be exactly 1.", m_Identity,
                       toggledDevices.size());
-        setError(0);
+        setError(0); // fatal
         return false; // the list should be just one device at this point
     }
 
     spdlog::debug("MPES::initialize(): Detected new video device {}.", newVideoDeviceId);
     m_pDevice = std::unique_ptr<MPESDevice>(new MPESDevice(newVideoDeviceId));
-    m_pImageSet = std::unique_ptr<MPESImageSet>(new MPESImageSet(m_pDevice.get(), DEFAULT_IMAGES_TO_CAPTURE));
+    m_pImageSet = std::unique_ptr<MPESImageSet>(new MPESImageSet(m_pDevice.get(), DEFAULT_IMAGES_TO_CAPTURE,DEFAULT_IMAGES_SAVE_DIR_PATH.c_str()));
 
     std::ostringstream oss;
     oss << std::setfill('0') << std::setw(6) << getSerialNumber(); // pad serial number to 6 digits with zeros
@@ -167,37 +167,73 @@ bool MPES::__initialize() {
 }
 
 int MPES::__setExposure() {
-    spdlog::debug("{} : MPES::setExposure() : Setting exposure...", m_Identity);
-    int counter = 0;
-    while ((!m_pDevice->isWithinIntensityTolerance(__updatePosition()))
-           && (counter < MPESBase::MAX_SET_EXPOSURE_TRIES)
-           && m_pDevice->GetExposure() < MPESBase::MAX_EXPOSURE) {
-        spdlog::debug("{} : MPES::setExposure() : Intensity {} ({}). Exposure: {}.", m_Identity, m_Position.cleanedIntensity,
+    spdlog::info("{} : MPES::setExposure() : Resetting exposure...", m_Identity);
+
+    m_pDevice->SetTolerance(INTENSITY_RATIO_TOLERANCE);
+
+    int tempExposure= m_pDevice->GetExposure();
+
+    do{
+        spdlog::info("Trying read() again to maintain inside constraints");
+        unsetError(4);
+        unsetError(5);
+        unsetError(6);
+
+        spdlog::warn("Condition 1: {} <= {} * {}/{} = {}",m_Position.cleanedIntensity, m_pDevice->GetTargetIntensity(), tempExposure,std::to_string(MAX_EXPOSURE),std::to_string(m_pDevice->GetTargetIntensity() * ((float)tempExposure/MAX_EXPOSURE)));
+        spdlog::warn("Condition 2: {} >= {} * {}/{} = {}",m_Position.cleanedIntensity, m_pDevice->GetTargetIntensity(), tempExposure,std::to_string(MIN_EXPOSURE),std::to_string(m_pDevice->GetTargetIntensity() * ((float)tempExposure/MIN_EXPOSURE)));
+
+        __updatePosition();
+
+        spdlog::warn("After updating position: ");
+        spdlog::warn("Condition 1: {} <= {} * {}/{} = {}",m_Position.cleanedIntensity, m_pDevice->GetTargetIntensity(), tempExposure,std::to_string(MAX_EXPOSURE),std::to_string(m_pDevice->GetTargetIntensity() * ((float)tempExposure/MAX_EXPOSURE)));
+        spdlog::warn("Condition 2: {} >= {} * {}/{} = {}",m_Position.cleanedIntensity, m_pDevice->GetTargetIntensity(), tempExposure,std::to_string(MIN_EXPOSURE),std::to_string(m_pDevice->GetTargetIntensity() * ((float)tempExposure/MIN_EXPOSURE)));
+
+        spdlog::info("{} : MPES::setExposure() : Intensity {} ({}). Exposure: {}.", m_Identity, m_Position.cleanedIntensity,
                       m_pDevice->GetTargetIntensity(), m_pDevice->GetExposure());
-        m_pDevice->SetExposure(
-            (int) (m_pDevice->GetTargetIntensity() / m_Position.cleanedIntensity * ((float) m_pDevice->GetExposure())));
 
-        if (m_pDevice->GetExposure() >= MPESBase::MAX_EXPOSURE) {
-            spdlog::error("{} : MPES::setExposure() : Failed to set exposure, reached maximum limit of {}. Setting Error 1...",
-                          m_Identity, std::to_string(MPESBase::MAX_EXPOSURE));
-            m_pDevice->SetExposure(MPESBase::MAX_EXPOSURE);
-            setError(1);
-            m_Position.cleanedIntensity = -1;
-            break;
+        tempExposure = m_pDevice->GetExposure();
+
+        // Case 1: intensity is less than target (or even is zero), multiply exposure by precision and try again.
+        if (m_Position.cleanedIntensity <= (m_pDevice->GetTargetIntensity() * ((float)tempExposure/MAX_EXPOSURE))){
+            m_pDevice->SetExposure((int)((float)tempExposure * PRECISION));
+            spdlog::warn("Image is too dim, resetting exposure up to {}",m_pDevice->GetExposure());
         }
-
-        if (++counter >= MPESBase::MAX_SET_EXPOSURE_TRIES) {
-            spdlog::error("{} : MPES::setExposure() : Failed to set exposure in 5 attempts, setting Error 1...",
-                          m_Identity);
-            setError(1);
-            m_Position.cleanedIntensity = -1;
-            break;
+        // Case 2: intensity is greater than target (or is totally bright, e.g. tube open), divide exposure by precision and try again.
+        else if (m_Position.cleanedIntensity >=(m_pDevice->GetTargetIntensity() * ((float)tempExposure/MIN_EXPOSURE))) {
+            m_pDevice->SetExposure((int)((float)tempExposure / PRECISION));
+            spdlog::warn("Image is too bright, resetting exposure up to {}",m_pDevice->GetExposure());
+        }
+        // Case 3: normal operation, just increment to get closer to target.
+        else {
+            m_pDevice->SetExposure((int)((float)tempExposure * (m_pDevice->GetTargetIntensity() / m_Position.cleanedIntensity )));
+            spdlog::info("Normal operation, incrementing exposure up to {}",m_pDevice->GetExposure());
         }
     }
+    while (((m_Position.cleanedIntensity < (m_pDevice->GetTargetIntensity()/PRECISION)) || (m_Position.cleanedIntensity > (m_pDevice->GetTargetIntensity() * PRECISION))) && (m_pDevice->GetExposure() <= MAX_EXPOSURE ) && (m_pDevice->GetExposure() >= MIN_EXPOSURE));
+    if (m_pDevice->GetExposure() > MAX_EXPOSURE){
+        if (m_Position.cleanedIntensity <= (m_pDevice->GetTargetIntensity()/PRECISION)){
+        spdlog::error("{} : MPES::setExposure() : Failed to set exposure, reached maximum limit of {}. Setting Error 2 (too dim)...",
+                      m_Identity, std::to_string(MPESBase::MAX_EXPOSURE));
+        setError(2); //fatal
+        }
+        m_pDevice->SetExposure(tempExposure);
+    }
+    else if (m_pDevice->GetExposure() < MIN_EXPOSURE){
+        if (m_Position.cleanedIntensity >= (m_pDevice->GetTargetIntensity() * PRECISION)){
+        spdlog::error("{} : MPES::setExposure() : Failed to set exposure, reached minimum limit of {}. Setting Error 3 (too bright)...",
+                      m_Identity, std::to_string(MPESBase::MIN_EXPOSURE));
+        setError(3); //fatal
+        }
+        m_pDevice->SetExposure(tempExposure);
+    }
+    else{
+        m_pDevice->SetExposure(tempExposure);
+        spdlog::info("Normal exit from do-while loop. Intensity and exposure within the bound.");
+    }
 
-    spdlog::debug("{} : MPES::setExposure() : Done.", m_Identity);
+    spdlog::info("{} : MPES::setExposure() : Done.", m_Identity);
 
-    return m_Position.cleanedIntensity;
+    return (int)m_Position.cleanedIntensity;
 }
 
 int MPES::__updatePosition() {
@@ -206,7 +242,7 @@ int MPES::__updatePosition() {
     m_Position.yCentroid = -1.;
     m_Position.xSpotWidth = -1.;
     m_Position.ySpotWidth = -1.;
-    m_Position.cleanedIntensity = 0.;
+    m_Position.cleanedIntensity = -1.;
     m_Position.timestamp = -1;
     m_Position.exposure = -1;
 
@@ -225,24 +261,18 @@ int MPES::__updatePosition() {
         m_Position.ySpotWidth = m_pImageSet->SetData.yCentroidSD;
         m_Position.cleanedIntensity = m_pImageSet->SetData.CleanedIntensity;
     }
-
-    if (std::abs(m_Position.cleanedIntensity - MPESBase::NOMINAL_INTENSITY) >= MPESBase::NOMINAL_INTENSITY * 0.2) {
-        setError(7);
-    } else if (m_Position.cleanedIntensity > 5e5 && m_Position.cleanedIntensity < 1e6) {
-        setError(4);
-    } else if (m_Position.cleanedIntensity >= 1e6) {
-        setError(3);
+//TODO figure out how to respond to select_timeout issue here
+    if (m_Position.cleanedIntensity < 0 ){
+        setError(1);
     }
-
-    if (std::abs(m_Position.xSpotWidth / m_Position.ySpotWidth - 1) > 0.1) {
-        setError(6);
-    } else if (std::abs(m_Position.xSpotWidth / m_Position.ySpotWidth - 1) > 0.25) {
+    if (m_Position.cleanedIntensity > 5e5 && m_Position.cleanedIntensity < 1e6) {
+        setError(4);
+    }
+    if (std::abs(m_Position.xSpotWidth / m_Position.ySpotWidth - 1) > 0.30) {
         setError(5);
     }
-
-    if (m_Position.xCentroid == -1. || m_Position.yCentroid == -1.) {
-        spdlog::error("{} : MPES reading of xCenter or yCenter = -1! Potentially lost beam...", m_Identity);
-        setError(2);
+    else if (std::abs(m_Position.xSpotWidth / m_Position.ySpotWidth - 1) > 0.20) {
+        setError(6);
     }
 
     m_Position.exposure = m_pDevice->GetExposure(); 

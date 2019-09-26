@@ -1,6 +1,13 @@
 #ifndef __MPESDEVICE_H__
 #define __MPESDEVICE_H__
 
+static constexpr float kNOMINAL_INTENSITY = 100000.0; // default was 150,000.
+static constexpr float kNOMINAL_SPOT_WIDTH = 10.0;
+static constexpr int kMAX_EXPOSURE = 5000-1;
+static constexpr int kMIN_EXPOSURE = 50;
+static constexpr float kINTENSITY_RATIO_TOLERANCE = 0.258;
+static constexpr float kPRECISION = kINTENSITY_RATIO_TOLERANCE + 1;
+
 struct MPESCalibrationData
 {
     // matrix stuff
@@ -34,6 +41,7 @@ class MPESDevice
         bool MatrixLoaded() {return m_matLoaded;};
         int GetID() {return m_id;};
         void SetID(int ID) {m_id = ID;};
+        void SetTolerance(float tolerance) {m_targetIntensityTolerance = tolerance;}
         void SetResolution(int in_resolution) {m_resolution = in_resolution;};
         int GetResolution() {return m_resolution;};
         void SetExposure(int in_exposure) {m_exposure = in_exposure;};

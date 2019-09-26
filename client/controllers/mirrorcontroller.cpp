@@ -388,7 +388,7 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
      * ********************************************************/
     if (offset == PAS_MirrorType_MoveToCoords || offset == PAS_MirrorType_MoveDeltaCoords ||
         offset == PAS_MirrorType_AlignSector || offset == PAS_MirrorType_LoadPosition ||
-        offset == PAS_MirrorType_AlignRing) {
+        offset == PAS_MirrorType_AlignRing || offset == PAS_MirrorType_LoadDeltaCoords) {
 
         std::string command;
 
@@ -407,6 +407,10 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
         }
         else if (offset == PAS_MirrorType_LoadPosition) {
             spdlog::info("{} : MirrorController::operate() : Calling loadPosition()...", m_Identity);
+            command = UaString(args[2].Value.String).toUtf8();
+        }
+        else if (offset == PAS_MirrorType_LoadDeltaCoords) {
+            spdlog::info("{} : MirrorController::operate() : Calling loadDeltaCoords()...", m_Identity);
             command = UaString(args[2].Value.String).toUtf8();
         }
 
@@ -438,6 +442,10 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
             } else if (offset == PAS_MirrorType_LoadPosition) {
                 std::string saveFilePath = UaString(args[0].Value.String).toUtf8();
                 status = __calculateLoadPosition(saveFilePath);
+            }
+            else if (offset == PAS_MirrorType_LoadDeltaCoords) {
+                std::string saveFilePath = UaString(args[0].Value.String).toUtf8();
+                status = __calculateLoadDeltaCoords(saveFilePath);
             }
 
             if (status.isBad()) {
@@ -476,7 +484,11 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
             } else if (offset == PAS_MirrorType_LoadPosition) {
                 alignFrac = args[1].Value.Double;
             }
+            else if (offset == PAS_MirrorType_LoadDeltaCoords) {
+                alignFrac = args[1].Value.Double;
+            }
             __setAlignFrac(alignFrac);
+            alignFrac = abs(alignFrac);
         } else if (command == "execute") {
             double alignFrac;
             if (offset == PAS_MirrorType_MoveToCoords) {
@@ -490,6 +502,10 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
             } else if (offset == PAS_MirrorType_LoadPosition) {
                 alignFrac = args[1].Value.Double;
             }
+            else if (offset == PAS_MirrorType_LoadDeltaCoords) {
+                alignFrac = args[1].Value.Double;
+            }
+            alignFrac = abs(alignFrac);
             if (alignFrac > 1.01 || alignFrac <= 0.0) {
                 spdlog::error(
                         "{} : MirrorController::moveDeltaCoords(): Invalid choice of alignFrac ({}), should be between 0.0 and 1.0.",
@@ -2212,14 +2228,144 @@ UaStatus MirrorController::__calculateLoadPosition(const std::string &loadFilePa
     return status;
 }
 
+UaStatus MirrorController::__calculateLoadDeltaCoords(const std::string &loadFilePath) {
+    UaStatus status;
+
+    spdlog::info("{}: Attempting to load Mirror delta coordinates from file {}...", m_Identity, loadFilePath);
+
+    //Check if file already exists
+    struct stat buf{};
+    if (stat(loadFilePath.c_str(), &buf) == -1) {
+        spdlog::error("{}: File {} not found. Please make sure the selected file path is valid.", m_Identity,
+                      loadFilePath);
+        return OpcUa_Bad;
+    }
+
+    std::ostringstream os;
+
+    // Open file stream
+    std::ifstream infile(loadFilePath);
+    if (infile.bad()) {
+        spdlog::error("{}: File {} cannot be read. Please check it and try again.", m_Identity, loadFilePath);
+        return OpcUa_Bad;
+    }
+
+    // Check to make sure it matches this mirror
+    std::string line;
+    getline(infile, line);
+    unsigned s = line.find("(");
+    unsigned e = line.find(")");
+    Device::Identity mirrorId = Device::parseIdentity(line.substr(s, e - s + 2));
+
+    if (mirrorId != m_Identity) {
+        spdlog::error(
+            "{}: Mirror Identity indicated in file ({}) does not match the Identity of this mirror ({}). Cannot load position.",
+            m_Identity, mirrorId, m_Identity);
+        return OpcUa_Bad;
+    }
+
+    // Print Mirror Info
+    std::map<Device::Identity, Eigen::VectorXd> panelDeltaCoords;
+    while (getline(infile, line) && (line != SAVEFILE_DELIMITER)) {
+        os << line << std::endl;
+    }
+    spdlog::info("{}: Mirror Info:\n Mirror Identity: {}\n{}", m_Identity, m_Identity, os.str());
+
+    double currentCoordinates[6];
+    double targetCoordinates[6];
+    Eigen::VectorXd X(m_pChildren.at(PAS_PanelType).size() * 6);
+    Eigen::VectorXd deltaCoordinates(6);
+    Eigen::VectorXd deltaActLengths(6);
+    Eigen::VectorXd targetActLengths(6);
+    Eigen::VectorXd currentActLengths(6);
+    std::vector<std::shared_ptr<PanelController>> panelsToMove;
+    unsigned j = 0;
+
+    // Parse all target actuator lengths
+    Device::Identity panelId;
+    int i = 0;
+
+    while (infile.peek() != EOF) {
+        getline(infile, line);
+        s = line.find("(");
+        e = line.find(")");
+        panelId = Device::parseIdentity(line.substr(s , e - s + 2));
+        i = 0;
+        while (getline(infile, line) && line != SAVEFILE_DELIMITER) {
+            deltaCoordinates(i) = std::stod(line);
+            i++;
+        }
+        panelDeltaCoords[panelId] = deltaCoordinates;
+        spdlog::info("{}: Found delta coords for Panel {}:\n{}\n", m_Identity, panelId, deltaCoordinates);
+    }
+
+    for (const auto &pPanel : m_pChildren.at(PAS_PanelType)) {
+        std::dynamic_pointer_cast<PanelController>(pPanel)->operate(PAS_PanelType_ReadPosition);
+        panelId = std::dynamic_pointer_cast<PanelController>(pPanel)->getIdentity();
+        if (status.isBad()) {
+            spdlog::error("{}: Unable to load position, failed to read actuator lengths.", m_Identity);
+            return OpcUa_Bad;
+        }
+        if (panelDeltaCoords.find(panelId) != panelDeltaCoords.end()) {
+            status = std::dynamic_pointer_cast<PanelController>(pPanel)->__getActuatorLengths(currentActLengths);
+            m_pStewartPlatform->ComputeStewart(currentActLengths.data());
+            for (int i = 0; i < 6; i++)
+                currentCoordinates[i] = m_pStewartPlatform->GetPanelCoords()[i];
+            for (int i = 0; i < 6; i++)
+                targetCoordinates[i] = m_pStewartPlatform->GetPanelCoords()[i] + panelDeltaCoords[panelId](i);
+            m_pStewartPlatform->ComputeActsFromPanel(targetCoordinates);
+            for (int i = 0; i < 6; i++) {
+                targetActLengths(i) = (float) m_pStewartPlatform->GetActLengths()[i];
+            }
+            deltaActLengths = targetActLengths - currentActLengths;
+            spdlog::info("Panel {}: currentCoordinates: {}, {}, {}, {}, {}, {}", panelId, currentCoordinates[0], currentCoordinates[1], currentCoordinates[2], currentCoordinates[3], currentCoordinates[4], currentCoordinates[5]);
+            spdlog::info("Panel {}: targetCoordinates: {}, {}, {}, {}, {}, {}", panelId, targetCoordinates[0], targetCoordinates[1], targetCoordinates[2], targetCoordinates[3], targetCoordinates[4], targetCoordinates[5]);
+
+            panelsToMove.push_back(std::dynamic_pointer_cast<PanelController>(pPanel));
+            X.segment(j, 6) = deltaActLengths;
+            j += 6;
+
+            spdlog::info(
+                    "{} : Moving Panel {} :\n CurrentLength + Delta Length => TargetLength\n\n{} + {} => {}\n{} + {} => {}\n{} + {} => {}\n{} + {} => {}\n{} + {} => {}\n{} + {} => {}\n",
+                    m_Identity, panelId,
+                    currentActLengths[0], deltaActLengths[0], targetActLengths[0],
+                    currentActLengths[1], deltaActLengths[1], targetActLengths[1],
+                    currentActLengths[2], deltaActLengths[2], targetActLengths[2],
+                    currentActLengths[3], deltaActLengths[3], targetActLengths[3],
+                    currentActLengths[4], deltaActLengths[4], targetActLengths[4],
+                    currentActLengths[5], deltaActLengths[5], targetActLengths[5]);
+
+        } else {
+            spdlog::warn(
+                "{}: Did not find a target position for Panel {} in the file! Will not move this panel. Make sure this is the desired behavior before moving.",
+                m_Identity, panelId);
+        }
+    }
+
+    m_Xcalculated = X;
+    m_panelsToMove = panelsToMove;
+    m_previousCalculatedMethod = PAS_MirrorType_LoadDeltaCoords;
+
+    return status;
+}
+
 UaStatus MirrorController::__setAlignFrac(double alignFrac) {
     UaStatus status;
     
-    if (alignFrac > 1.01 || alignFrac <= 0.0) {
+    if (abs(alignFrac) > 1.01 || abs(alignFrac) <= 0.0) {
         spdlog::error(
             "{} : Invalid choice of alignFrac ({}), should be between 0.0 and 1.0.",
             m_Identity, alignFrac);
         return OpcUa_BadInvalidArgument;
+    }
+    if (alignFrac < 0.)
+    {
+        spdlog::info("Mirror {}: alignFrac<0, apply alignment constraints", m_Identity);
+        if (abs(alignFrac)!=1.) 
+        {
+            spdlog::error("Mirror {}: alignFrac!=-1, frac can only be -1. for alignment with constraints.", m_Identity);
+            return OpcUa_BadInvalidArgument;
+        }
     }
 
     if (m_Xcalculated.isZero(0)) {
@@ -2228,11 +2374,66 @@ UaStatus MirrorController::__setAlignFrac(double alignFrac) {
             m_Identity);
         return OpcUa_Bad;
     }
-    Eigen::VectorXd X = m_Xcalculated * alignFrac;
+    Eigen::VectorXd X = m_Xcalculated * abs(alignFrac);
     spdlog::debug("{} : Fractional motion of {} requested.", m_Identity,
                   alignFrac);
 
-    m_lastSetAlignFrac = alignFrac;
+    m_lastSetAlignFrac = abs(alignFrac);
+
+    // here we set alignment constraints for the panels
+    bool setConstraints = false;
+    if (alignFrac < 0.) setConstraints = true;
+    if (setConstraints) 
+    {
+        spdlog::info("Mirror {}: constraining panel motions...", m_Identity);
+        std::map<Device::Identity, Eigen::VectorXd> panelPositions;
+        Eigen::VectorXd targetActLengths(6);
+        Eigen::VectorXd currentActLengths(6);
+        Eigen::VectorXd deltaActLengths(6);
+        Eigen::VectorXd new_Xcalculated = X;
+        double currentCoordinates[6];
+        double targetCoordinates[6];
+        unsigned j = 0;
+        Device::Identity panelId;
+        for (auto &pPanel : m_panelsToMove) {
+            panelId = std::dynamic_pointer_cast<PanelController>(pPanel)->getIdentity();
+            currentActLengths = pPanel->getActuatorLengths();
+            for (int i=0; i < 6; i++)
+                targetActLengths(i) = currentActLengths(i) + X(j+i);
+            //spdlog::info("Panel {}: currentActLengths: {}", panelId, currentActLengths);
+            //targetActLengths = pPanel->getActuatorLengths() + m_Xcalculated.segment(j, 6);
+            //spdlog::info("Panel {}: targetActLengths: {}", panelId, targetActLengths);
+            // update current coordinates
+            m_pStewartPlatform->ComputeStewart(currentActLengths.data());
+            for (int i = 0; i < 6; i++)
+                currentCoordinates[i] = m_pStewartPlatform->GetPanelCoords()[i];
+            // update target coordinates
+            m_pStewartPlatform->ComputeStewart(targetActLengths.data());
+            for (int i = 0; i < 6; i++)
+                targetCoordinates[i] = m_pStewartPlatform->GetPanelCoords()[i];
+            // updated the target coordinates with constraints
+            spdlog::info("Panel {}: fix Tz at {} mm.", panelId, currentCoordinates[2]);
+            targetCoordinates[2] = currentCoordinates[2]; // Tz
+            //targetCoordinates[3] = currentCoordinates[3]; // Rx
+            //targetCoordinates[4] = currentCoordinates[4]; // Ry
+            // find actuator lengths needed
+            m_pStewartPlatform->ComputeActsFromPanel(targetCoordinates);
+            spdlog::info("Panel {}: currentCoordinates: {}, {}, {}, {}, {}, {}", panelId, currentCoordinates[0], currentCoordinates[1], currentCoordinates[2], currentCoordinates[3], currentCoordinates[4], currentCoordinates[5]);
+            spdlog::info("Panel {}: targetCoordinates: {}, {}, {}, {}, {}, {}", panelId, targetCoordinates[0], targetCoordinates[1], targetCoordinates[2], targetCoordinates[3], targetCoordinates[4], targetCoordinates[5]);
+            // Get actuator lengths for motion
+            for (int i = 0; i < 6; i++) {
+                targetActLengths(i) = (float) m_pStewartPlatform->GetActLengths()[i];
+            }
+
+            deltaActLengths = targetActLengths - currentActLengths;
+            //new_Xcalculated.segment(j, 6) = deltaActLengths;
+            for (int i=0; i < 6; i++)
+                new_Xcalculated(j+i) = deltaActLengths(i);
+            j += 6;
+        }
+        X = new_Xcalculated;
+        m_Xcalculated = X;
+    }
 
     double maxChange = X.cwiseAbs().maxCoeff();
 
@@ -2320,6 +2521,62 @@ UaStatus MirrorController::__moveSelectedPanels(unsigned methodTypeId, double al
             if (!status.isGood()) { return status; }
             if (m_State == Device::DeviceState::Off) { break; }
         }
+
+        // Wait for completion
+        spdlog::info("{}: Waiting for all motions to complete...", m_Identity);
+        UaThread::sleep(5);
+        bool stillMoving = true;
+        while (stillMoving) {
+            stillMoving = false;
+            for (const auto &pair : args) {
+                Device::DeviceState state;
+                pair.first->getState(state);
+                if (state == Device::DeviceState::Busy) {
+                    spdlog::trace("{}: Panel {} is still busy...", m_Identity, pair.first->getIdentity());
+                    stillMoving = true;
+                } else {
+                    spdlog::trace("{}: Panel {} is idle.", m_Identity, pair.first->getIdentity());
+                }
+                UaThread::sleep(1);
+            }
+        }
+
+        // Check for errors
+        float epsilonLength = 0.016;
+        std::map<Device::Identity, float> finalLengths;
+        std::map<Device::Identity, float> targetLengths;
+        int N_bad_act = 0;
+        for (const auto &pair : args) {
+            for (const auto &actuator : pair.first->getChildren(PAS_ACTType)) {
+                UaVariant var;
+                actuator->getData(PAS_ACTType_ErrorState, var);
+                int temp;
+                UaVariant(var).toInt32(temp);
+                auto errorState = static_cast<Device::ErrorState>(temp);
+                actuator->getData(PAS_ACTType_CurrentLength, var);
+                float finalLength;
+                UaVariant(var).toFloat(finalLength);
+                finalLengths[actuator->getIdentity()] = finalLength;
+                actuator->getData(PAS_ACTType_TargetLength, var);
+                float targetLength;
+                UaVariant(var).toFloat(targetLength);
+                targetLengths[actuator->getIdentity()] = targetLength;
+                float distanceFromTarget = fabs(finalLength - targetLength);
+                if (errorState != Device::ErrorState::Nominal || distanceFromTarget>epsilonLength) {
+                    spdlog::trace("{}: Found failed actuator {}.", m_Identity, actuator->getIdentity());
+                    N_bad_act ++;
+                }
+            }
+        }
+        if (N_bad_act!=0)
+        {
+            spdlog::error("{}: Found {} failed actuators.", m_Identity, N_bad_act);
+        }
+        else
+        {
+            spdlog::info("{}: Found {} failed actuators.", m_Identity, N_bad_act);
+        }
+        spdlog::info("{}: Done! All motions completed for execute() method.", m_Identity);
 
         m_Xcalculated.setZero(); // reset calculated motion
         m_panelsToMove.clear();

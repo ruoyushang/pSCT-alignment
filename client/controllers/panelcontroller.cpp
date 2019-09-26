@@ -221,7 +221,24 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
             }
         }
         */
-        spdlog::debug("{}: PanelController::operate() : Successfully finished MoveDeltaLengths.\n", m_Identity);
+        // Wait for completion
+        spdlog::info("{}: Waiting for all motions to complete...", m_Identity);
+        UaThread::sleep(5);
+        bool stillMoving = true;
+        while (stillMoving) {
+            stillMoving = false;
+            Device::DeviceState state;
+            getState(state);
+            if (state == Device::DeviceState::Busy) {
+                spdlog::trace("{}: Panel {} is still busy...", m_Identity, getIdentity());
+                stillMoving = true;
+            } else {
+                spdlog::trace("{}: Panel {} is idle.", m_Identity, getIdentity());
+            }
+            UaThread::sleep(1);
+        }
+        spdlog::info("{}: Done! All motions completed for MoveDeltaLengths method.", m_Identity);
+
 
     } else if (offset == PAS_PanelType_MoveToLengths) {
         for (int i = 0; i < 6; i++) {
@@ -247,6 +264,25 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
             status = m_pClient->callMethodAsync(m_pClient->getDeviceNodeId(m_Identity), UaString("MoveToLengths"),
                                                 args);
         }
+
+        // Wait for completion
+        spdlog::info("{}: Waiting for all motions to complete...", m_Identity);
+        UaThread::sleep(5);
+        bool stillMoving = true;
+        while (stillMoving) {
+            stillMoving = false;
+            Device::DeviceState state;
+            getState(state);
+            if (state == Device::DeviceState::Busy) {
+                spdlog::trace("{}: Panel {} is still busy...", m_Identity, getIdentity());
+                stillMoving = true;
+            } else {
+                spdlog::trace("{}: Panel {} is idle.", m_Identity, getIdentity());
+            }
+            UaThread::sleep(1);
+        }
+        spdlog::info("{}: Done! All motions completed for MoveToLengths method.", m_Identity);
+
     } else if (offset == PAS_PanelType_MoveToCoords) {
         spdlog::debug(
             "{} : PanelController::operate() : Current panel coordinates (x, y ,z xRot, yRot, zRot):\n{} {} {} {} {} {}\n",
@@ -292,6 +328,25 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
             status = m_pClient->callMethodAsync(m_pClient->getDeviceNodeId(m_Identity), UaString("MoveToLengths"),
                                                 lengthArgs);
         }
+
+        // Wait for completion
+        spdlog::info("{}: Waiting for all motions to complete...", m_Identity);
+        UaThread::sleep(5);
+        bool stillMoving = true;
+        while (stillMoving) {
+            stillMoving = false;
+            Device::DeviceState state;
+            getState(state);
+            if (state == Device::DeviceState::Busy) {
+                spdlog::trace("{}: Panel {} is still busy...", m_Identity, getIdentity());
+                stillMoving = true;
+            } else {
+                spdlog::trace("{}: Panel {} is idle.", m_Identity, getIdentity());
+            }
+            UaThread::sleep(1);
+        }
+        spdlog::info("{}: Done! All motions completed for MoveToCoords method.", m_Identity);
+
     } else if (offset == PAS_PanelType_MoveDeltaCoords) {
 
         status = updateCoords();
@@ -351,6 +406,25 @@ UaStatus PanelController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
             status = m_pClient->callMethodAsync(m_pClient->getDeviceNodeId(m_Identity), UaString("MoveToLengths"),
                                                 lengthArgs);
         }
+
+        // Wait for completion
+        spdlog::info("{}: Waiting for all motions to complete...", m_Identity);
+        UaThread::sleep(5);
+        bool stillMoving = true;
+        while (stillMoving) {
+            stillMoving = false;
+            Device::DeviceState state;
+            getState(state);
+            if (state == Device::DeviceState::Busy) {
+                spdlog::trace("{}: Panel {} is still busy...", m_Identity, getIdentity());
+                stillMoving = true;
+            } else {
+                spdlog::trace("{}: Panel {} is idle.", m_Identity, getIdentity());
+            }
+            UaThread::sleep(1);
+        }
+        spdlog::info("{}: Done! All motions completed for MoveDeltaCoords method.", m_Identity);
+
     } else if (offset == PAS_PanelType_ReadPosition) {
         status = updateCoords(true);
     }
