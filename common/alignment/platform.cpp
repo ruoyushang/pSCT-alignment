@@ -268,6 +268,8 @@ bool Platform::loadCBCParameters() {
         sql::Connection *con;
         sql::Statement *stmt;
         sql::ResultSet *res;
+        sql::ResultSetMetaData *resmeta;
+
         driver = get_driver_instance();
         std::string dbAddress = "tcp://" + m_DBInfo.host + ":" + m_DBInfo.port;
         con = driver->connect(dbAddress, m_DBInfo.user, m_DBInfo.password);
@@ -280,7 +282,18 @@ bool Platform::loadCBCParameters() {
                 << " ORDER BY start_date DESC LIMIT 1";
         stmt->execute(stmtvar.str());
         res = stmt->getResultSet();
-        while (res->next())
+        
+	resmeta = res->getMetaData();
+        //check if number of results match what is expected. if not, set error(3)
+        if (resmeta->getColumnCount() != NUM_DB_CB_COLUMNS) {
+            spdlog::error(
+                "{} : Operable Error (14): Number of columns in DB table ({}) did not equal the number expected ({}). DB table appears to have an incorrect structure.",
+                m_Identity, resmeta->getColumnCount(), NUM_DB_CB_COLUMNS);
+            setError(14);
+            return false;
+            }
+        
+	if (res->next())
         {
             m_InternalTemperatureSlope = res->getDouble(5);
             m_InternalTemperatureOffset = res->getDouble(6);
@@ -314,6 +327,13 @@ bool Platform::loadCBCParameters() {
             m_SynchronousRectification = res->getInt(34);
             m_HighCurrent = res->getInt(35);
         }
+	else {
+            spdlog::error(
+                "{} : Operable Error (14): No calibration data found in the CBC Calibration Table.",
+                m_Identity);
+            setError(14);
+	    return false;
+	}
 
         delete res;
         delete stmt;
@@ -601,7 +621,7 @@ void Platform::disableSynchronousRectification()//public
 void Platform::turnOn() {
     spdlog::info("{} : Platform :: Turning on power to platform...", m_Identity);
     Device::CustomBusyLock lock = Device::CustomBusyLock(this);
-    m_pCBC->powerUp();
+//    m_pCBC->powerUp(); //brandon commented this out because it seemed unnecessary since cbc is already powering up when constructed.
     for (const auto& pMPES : m_MPES) {
     	pMPES->turnOn();
     }
@@ -829,7 +849,7 @@ void DummyPlatform::disableSynchronousRectification()//public
 }
 
 void DummyPlatform::turnOn() {
-    spdlog::info("{} : DummyPlatform::turnOff() : Turning on power to platform...", m_Identity);
+    spdlog::info("{} : DummyPlatform::turnOn() : Turning on power to platform...", m_Identity);
     Device::CustomBusyLock lock = Device::CustomBusyLock(this);
     for (const auto &pMPES : m_MPES) {
         pMPES->turnOn();

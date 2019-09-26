@@ -89,6 +89,8 @@ public:
                                                          DEFAULT_MM_PER_STEP);
 
     int EndstopSearchStepsize{15};
+    float m_VMin{0.593};
+    float m_VMax{3.06};
     float dV{(m_VMax - m_VMin) / (DEFAULT_STEPS_PER_REVOLUTION - 1)};
     float mmPerStep = DEFAULT_MM_PER_STEP;
     int RecordingInterval{(DEFAULT_STEPS_PER_REVOLUTION / 2) - 20};
@@ -129,6 +131,10 @@ protected:
 
     static constexpr const unsigned NUM_DB_HEADER_COLUMNS = 5; //id_increment, serial, start_date, rev, angle
     unsigned NUM_DB_COLUMNS{NUM_DB_HEADER_COLUMNS + getNumErrors()};
+    
+    const int NUM_DB_CALIBRATION_COLUMNS = 28;
+    
+    const int NUM_DB_PROFILE_COLUMNS = 5; //serial, start_date, end_date, angle, voltage
 
     Device::DBInfo m_DBInfo;
     bool m_keepStepping;
@@ -145,8 +151,6 @@ protected:
     Position m_CurrentPosition{50, 0};
     Position m_RetractStopPosition{103, 32};
     Position m_ExtendStopPosition{-3, 89};
-    float m_VMin{0.593};
-    float m_VMax{3.06};
     int m_HysteresisSteps{RecordingInterval - 10};
     float m_StdDevRemeasure{dV / 2.0f};
     int m_MaxVoltageMeasurementAttempts{20};

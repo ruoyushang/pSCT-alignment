@@ -125,6 +125,8 @@ protected:
 
     void checkActuatorStatus(int actuatorIdx);
 
+    const int NUM_DB_CB_COLUMNS = 36;
+
     virtual std::array<int, NUM_ACTS_PER_PLATFORM> __step(std::array<int, NUM_ACTS_PER_PLATFORM> inputSteps) = 0;
 
     std::array<float, NUM_ACTS_PER_PLATFORM> __measureLengths();
