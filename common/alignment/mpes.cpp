@@ -366,15 +366,21 @@ int DummyMPES::__updatePosition() {
     // Set internal position variable to dummy values
     std::random_device rd{};
     std::mt19937 generator{rd()};
+    double sleep_delta;
 
-    std::normal_distribution<float> xCentroidDistribution(m_Position.xNominal, 5.0);
-    std::normal_distribution<float> yCentroidDistribution(m_Position.yNominal, 5.0);
+    std::normal_distribution<float> sleepDistribution(7, 2.0);
+    sleep_delta = sleepDistribution(generator);
+    spdlog::info("sleeping {}", sleep_delta);
+    sleep(sleep_delta);
+
+    std::normal_distribution<float> xCentroidDistribution(m_Position.xNominal + sleep_delta, 5.0);
+    std::normal_distribution<float> yCentroidDistribution(m_Position.yNominal + sleep_delta, 5.0);
 
     m_Position.xCentroid = xCentroidDistribution(generator);
     m_Position.yCentroid = yCentroidDistribution(generator);
     m_Position.xSpotWidth = MPESBase::NOMINAL_SPOT_WIDTH;
     m_Position.ySpotWidth = MPESBase::NOMINAL_SPOT_WIDTH;
-    m_Position.cleanedIntensity = MPESBase::NOMINAL_INTENSITY;
+    m_Position.cleanedIntensity = MPESBase::NOMINAL_INTENSITY + sleep_delta * 2000;
 
     m_Position.exposure = 500.0;
     m_Position.timestamp = std::time(0);
