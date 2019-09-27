@@ -57,7 +57,10 @@
 #define PAS_MirrorType_AlignRing                     139
 #define PAS_MirrorType_SelectAll                     140
 #define PAS_MirrorType_TestActuators                 141
-#define PAS_MirrorType_Stop                          142
+#define PAS_MirrorType_TestSensors                   142
+#define PAS_MirrorType_CheckStatus                   143
+#define PAS_MirrorType_Stop                          144
+#define PAS_MirrorType_LoadDeltaCoords               145
 
 //----------------------------------------------------------//
 // Edge Type

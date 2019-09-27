@@ -2,7 +2,7 @@
 usage() { echo "Usage: $0  [-a (all)] [panel number(s)] [-h]" 1>&2; exit 1; }
 
 all=false
-screen_name="p2pas_client"
+screen_name="sim_client"
 extension=".ini"
 
 subclient_names=( "primary_upper" "primary_lower" "secondary" "other" )
@@ -100,13 +100,14 @@ for i in {0..3}; do
 done
 
 # Now start high-level client connecting to all lower-level panels
-# printf "Sleeping to give subclients time to start...\n"
-# sleep 30
+#printf "Sleeping to give subclients time to start...\n"
+
+#sleep 30
 
 printf "Starting top-level client...\n"
 
 client_name="client"
-port="48015"
+port="48010"
 config_filename="${client_name}${extension}"
 endpoint_addr="opc.tcp://10.0.1.13:$port"
 

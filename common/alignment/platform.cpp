@@ -32,7 +32,7 @@ const std::vector<Device::ErrorDefinition> PlatformBase::ERROR_DEFINITIONS = {
     {"Actuator 5 Fatal Error",                Device::ErrorState::FatalError},
     {"Actuator 6 Operable Error",             Device::ErrorState::OperableError},
     {"Actuator 6 Fatal Error",                Device::ErrorState::FatalError},
-    {"Attempt to move out of Software Range", Device::ErrorState::OperableError},
+    {"Attempt to move out of Software Range", Device::ErrorState::FatalError},
     {"DBInfo not set",                        Device::ErrorState::OperableError},
     {"MySQL Communication Error",             Device::ErrorState::OperableError}
 };
@@ -196,14 +196,13 @@ Device::ErrorState PlatformBase::getErrorState() {
 }
 
 void PlatformBase::unsetError(int errorCode) {
+    if (errorCode >= 0 && errorCode < 12) {
+        spdlog::info("{} : Clearing corresponding errors for Actuator {}.", m_Identity, (errorCode / 2) + 1);
+        m_Actuators.at(errorCode / 2)->clearErrors();
+    }
     if (m_Errors.at(errorCode)) {
         spdlog::info("{} : Unsetting Error {} ({})", m_Identity, errorCode,
                      getErrorCodeDefinition(errorCode).description);
-
-        if (errorCode >= 0 && errorCode < 12) {
-            spdlog::info("{} : Also clearing corresponding errors for Actuator {}.", (errorCode / 2) + 1);
-            m_Actuators.at(errorCode / 2)->clearErrors();
-        }
         m_Errors[errorCode] = false;
     }
 }
@@ -217,7 +216,7 @@ void PlatformBase::clearActuatorErrors() {
 
 void PlatformBase::clearPlatformErrors() {
     spdlog::info("{} : Clearing all Platform-level errors for Platform...", m_Identity);
-    for (int i = 12; i < getNumErrors(); i++) {
+    for (int i = 2 * PlatformBase::NUM_ACTS_PER_PLATFORM; i < getNumErrors(); i++) {
         unsetError(i);
     }
 }
@@ -269,6 +268,8 @@ bool Platform::loadCBCParameters() {
         sql::Connection *con;
         sql::Statement *stmt;
         sql::ResultSet *res;
+        sql::ResultSetMetaData *resmeta;
+
         driver = get_driver_instance();
         std::string dbAddress = "tcp://" + m_DBInfo.host + ":" + m_DBInfo.port;
         con = driver->connect(dbAddress, m_DBInfo.user, m_DBInfo.password);
@@ -281,7 +282,18 @@ bool Platform::loadCBCParameters() {
                 << " ORDER BY start_date DESC LIMIT 1";
         stmt->execute(stmtvar.str());
         res = stmt->getResultSet();
-        while (res->next())
+        
+	resmeta = res->getMetaData();
+        //check if number of results match what is expected. if not, set error(3)
+        if (resmeta->getColumnCount() != NUM_DB_CB_COLUMNS) {
+            spdlog::error(
+                "{} : Operable Error (14): Number of columns in DB table ({}) did not equal the number expected ({}). DB table appears to have an incorrect structure.",
+                m_Identity, resmeta->getColumnCount(), NUM_DB_CB_COLUMNS);
+            setError(14);
+            return false;
+            }
+        
+	if (res->next())
         {
             m_InternalTemperatureSlope = res->getDouble(5);
             m_InternalTemperatureOffset = res->getDouble(6);
@@ -315,6 +327,13 @@ bool Platform::loadCBCParameters() {
             m_SynchronousRectification = res->getInt(34);
             m_HighCurrent = res->getInt(35);
         }
+	else {
+            spdlog::error(
+                "{} : Operable Error (14): No calibration data found in the CBC Calibration Table.",
+                m_Identity);
+            setError(14);
+	    return false;
+	}
 
         delete res;
         delete stmt;
@@ -459,6 +478,9 @@ Platform::__step(std::array<int, PlatformBase::NUM_ACTS_PER_PLATFORM> inputSteps
     }
 
     m_pCBC->driver.disableAll();
+
+    spdlog::debug("{} : Platform::step() : Finished stepping.", m_Identity);
+
     return StepsRemaining;
 }
 
@@ -599,7 +621,7 @@ void Platform::disableSynchronousRectification()//public
 void Platform::turnOn() {
     spdlog::info("{} : Platform :: Turning on power to platform...", m_Identity);
     Device::CustomBusyLock lock = Device::CustomBusyLock(this);
-    m_pCBC->powerUp();
+//    m_pCBC->powerUp(); //brandon commented this out because it seemed unnecessary since cbc is already powering up when constructed.
     for (const auto& pMPES : m_MPES) {
     	pMPES->turnOn();
     }
@@ -827,7 +849,7 @@ void DummyPlatform::disableSynchronousRectification()//public
 }
 
 void DummyPlatform::turnOn() {
-    spdlog::info("{} : DummyPlatform::turnOff() : Turning on power to platform...", m_Identity);
+    spdlog::info("{} : DummyPlatform::turnOn() : Turning on power to platform...", m_Identity);
     Device::CustomBusyLock lock = Device::CustomBusyLock(this);
     for (const auto &pMPES : m_MPES) {
         pMPES->turnOn();

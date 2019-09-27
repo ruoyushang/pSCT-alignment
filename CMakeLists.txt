@@ -26,8 +26,5 @@ if (BUILD_EXAMPLES)
     add_subdirectory(sdk/examples/server_gettingstarted)
     add_subdirectory(sdk/examples/server_cpp_demo)
 endif()
-    #
-#add_subdirectory(server)
-#add_subdirectory(client)
 
 #add_executable(passerver server)

@@ -154,7 +154,20 @@ const std::map<OpcUa_UInt32, std::pair<std::string, std::vector<std::tuple<std::
                                                                                                UaNodeId(OpcUaId_String),
                                                                                                "Command to run (calculate, setAlignFrac, execute)."),
                                                                            }}},
+    {PAS_MirrorType_LoadDeltaCoords,             {"LoadDeltaCoords",             {
+                                                                               std::make_tuple("Load File Name",
+                                                                                               UaNodeId(OpcUaId_String),
+                                                                                               "Absolute path to .mirrorPos file to load position from."),
+                                                                               std::make_tuple("Align Fraction",
+                                                                                               UaNodeId(OpcUaId_Double),
+                                                                                               "Fraction of motion to carry out (between 0.0 and 1.0) from current position to loaded position."),
+                                                                               std::make_tuple("Command",
+                                                                                               UaNodeId(OpcUaId_String),
+                                                                                               "Command to run (calculate, setAlignFrac, execute)."),
+                                                                           }}},
     {PAS_MirrorType_TestActuators,             {"TestActuators",             {}}},
+    {PAS_MirrorType_TestSensors,             {"TestSensors",             {}}},
+    {PAS_MirrorType_CheckStatus,             {"CheckStatus",             {}}},
     {PAS_MirrorType_Stop,            {"Stop",            {}}}
 };
 

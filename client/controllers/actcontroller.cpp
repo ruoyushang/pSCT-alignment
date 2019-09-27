@@ -262,3 +262,11 @@ UaStatus ActController::operate(OpcUa_UInt32 offset, const UaVariantArray &args)
 
     return status;
 }
+
+Device::ErrorState ActController::getErrorState() {
+    UaVariant var;
+    int err;
+    getData(PAS_ACTType_ErrorState, var);
+    var.toInt32(err);
+    return static_cast<Device::ErrorState>(err);
+}

@@ -5,7 +5,7 @@ LOGLEVEL=${2-"info"}
 
 screen_name=pas_serv
 
-ip_address=$(mysql -h $CTADBHOST -P $CTADBPORT -u CTAreadonly --password=readCTAdb -D $CTAONLINEDB --execute="select mpcb_ip_address from Opt_MPMMapping where position=${pos}" | xargs echo -n | cut -d ' ' -f2)
+ip_address=$(mysql -h $MYSQL_HOST -P $MYSQL_PORT --user=CTAreadonly --password=readCTAdb -D $MYSQL_DATABASE --execute="select mpcb_ip_address from Opt_MPMMapping where position=${pos}" | xargs echo -n | cut -d ' ' -f2)
 
 # only create a new screen session if one with current name doesn't exist yet
 if ! screen -ls | grep -q $screen_name; then
@@ -14,9 +14,6 @@ if ! screen -ls | grep -q $screen_name; then
     # -S to name the session
     screen -c helper/pas_serv_screen.config -AdmS $screen_name
 fi
-
-#Start logging server currents
-./get_panel_current.sh $pos &
 
 # open a new window in the screen session named $screen_name, and title this window by the panel's position;
 # ssh into the panel right away

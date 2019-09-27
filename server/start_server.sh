@@ -5,10 +5,10 @@
 # NOTE: Requires the existence of a ServerConfig_template.xml file in the executable directory.
 # NOTE: Defaults to an executable directory of /home/root/pSCT-alignment/sdk/bin if not provided
 
-if [[ "$#" -ne 1 ]]; then
-    echo "Usage: `basename $0` <PANEL NUMBER> <SDK DIRECTORY PATH (optional)>"
-    exit 1;
-fi
+#if [[ "$#" -ne 1 ]]; then
+#    echo "Usage: `basename $0` <PANEL NUMBER> <LOG LEVEL (optional)> <SDK DIRECTORY PATH (optional)>"
+#    exit 1;
+#fi
 
 if [[ -n ${LOCALIP} ]]; then
     IP=${LOCALIP}
@@ -20,15 +20,13 @@ fi
 [[ -d $HOME/logs ]] || mkdir $HOME/logs
 
 PANEL_NUM=$1
-#EXECDIR=${2-"/home/root/pSCT-alignment/sdk/bin"}
-#TODO fix this to remove my local directory
-EXECDIR=${2-"/tmp/pSCT-alignment/sdk/bin"}
+LOGLEVEL=${2-"info"}
+EXECDIR=${3-"/home/root/opcua/sdk/bin"}
 
 # prepare config file -- set the IP in the template
 configtmplt=${EXECDIR}"/ServerConfig_template.xml"
 configfile=${configtmplt/_template/}
 cp ${configtmplt} ${configfile}
-#sed -i -e "s/__IP_ADDRESS__/${IP}/" ${configfile}
-sed -i -e "s/__IP_ADDRESS__/${IP}\:${PANEL_NUM}/" ${configfile}
+sed -i -e "s/__IP_ADDRESS__/${IP}/" ${configfile}
 
-${EXECDIR}/passerver ${PANEL_NUM}
+${EXECDIR}/passerver ${PANEL_NUM} -l ${LOGLEVEL}
