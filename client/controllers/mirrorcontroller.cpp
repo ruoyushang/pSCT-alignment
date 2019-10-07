@@ -539,7 +539,19 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
 
         savePosition(saveFilePath);
         setState(Device::DeviceState::On);
-    } else if (offset == PAS_MirrorType_AlignSequentialRecursive) {
+    } 
+    else if (offset == PAS_MirrorType_SaveAlignmentOffset) {
+        setState(Device::DeviceState::Busy);
+        // read out all individual positions
+        // and get global mirror coordinates
+        spdlog::info("{} : MirrorController::operate() : Calling saveAlignmentOffset()...", m_Identity);
+        updateCoords(false);
+        std::string saveFilePath = UaString(args[0].Value.String).toUtf8();        
+
+        saveAlignmentOffset(saveFilePath);
+        setState(Device::DeviceState::On);
+    } 
+    else if (offset == PAS_MirrorType_AlignSequentialRecursive) {
         // make sure the arguments make sense -- we are supposed
         // to get an edge position and a direction. The type has
         // already been validated by the caller, but we need to
@@ -2116,6 +2128,61 @@ UaStatus MirrorController::savePosition(const std::string &saveFilePath) {
     }
     f.close();
     spdlog::info("{}: Done writing Mirror position to file {}.", m_Identity, saveFilePath);
+
+    return OpcUa_Good;
+}
+
+UaStatus MirrorController::saveAlignmentOffset(const std::string &saveFilePath) {
+    spdlog::info("{}: Attempting to write alignment offset to file {}...", m_Identity, saveFilePath);
+
+    //Check if file already exists
+    struct stat buf{};
+    if (stat(saveFilePath.c_str(), &buf) != -1) {
+        spdlog::error(
+            "{}: File {} already exists. Please select a different path, or manually delete/move/rename the file in your system.",
+            m_Identity, saveFilePath);
+        return OpcUa_Bad;
+    }
+
+    // Create output file stream
+    std::ofstream f(saveFilePath);
+
+    if (f.bad()) {
+        spdlog::error("{}: Cannot write to file at {}. Aborting...", m_Identity, saveFilePath);
+        f.close();
+        return OpcUa_Bad;
+    }
+
+    // Place mirror name/Type and
+    // other information at top of file
+    f << "Mirror: " << m_Identity << std::endl;
+    std::time_t now = std::time(0);
+    f << "Timestamp: " << std::ctime(&now) << std::endl;
+    f << SAVEFILE_DELIMITER << std::endl;
+
+    std::vector<std::shared_ptr<MPESController>> alignMPES;
+    for (int mpesSerial : m_selectedMPES) {
+        std::shared_ptr<MPESController> mpes = std::dynamic_pointer_cast<MPESController>(
+            m_ChildrenSerialMap.at(PAS_MPESType).at(mpesSerial));
+        if (mpes->isVisible())
+            alignMPES.push_back(mpes);
+    }
+    UaVariant vtmp;
+    Eigen::VectorXd curRead(2 * alignMPES.size());
+    Eigen::VectorXd targetRead(2 * alignMPES.size());
+    for (int m = 0; m < (int) alignMPES.size(); m++) {
+        alignMPES.at(m)->getData(PAS_MPESType_xCentroidAvg, vtmp);
+        vtmp.toDouble(curRead(m * 2));
+        alignMPES.at(m)->getData(PAS_MPESType_yCentroidAvg, vtmp);
+        vtmp.toDouble(curRead(m * 2 + 1));
+        targetRead.segment(2 * m, 2) = alignMPES.at(m)->getAlignedReadings()
+                                       - alignMPES.at(m)->getSystematicOffsets();
+        f << "MPES: " << alignMPES.at(m)->getIdentity() << std::endl;
+        f << curRead(m * 2)-targetRead(m * 2) << std::endl;
+        f << curRead(m * 2 + 1)-targetRead(m * 2 + 1) << std::endl;
+    }
+    f.close();
+    spdlog::info("{}: Done writing Mirror alignment to file {}.", m_Identity, saveFilePath);
 
     return OpcUa_Good;
 }
