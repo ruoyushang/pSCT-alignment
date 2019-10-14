@@ -621,7 +621,7 @@ void Platform::disableSynchronousRectification()//public
 void Platform::turnOn() {
     spdlog::info("{} : Platform :: Turning on power to platform...", m_Identity);
     Device::CustomBusyLock lock = Device::CustomBusyLock(this);
-//    m_pCBC->powerUp(); //brandon commented this out because it seemed unnecessary since cbc is already powering up when constructed.
+    m_pCBC->powerUp();
     for (const auto& pMPES : m_MPES) {
     	pMPES->turnOn();
     }
