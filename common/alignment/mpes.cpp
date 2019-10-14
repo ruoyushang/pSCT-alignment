@@ -257,8 +257,8 @@ int MPES::__updatePosition() {
 
         m_Position.xCentroid = m_pImageSet->SetData.xCentroid;
         m_Position.yCentroid = m_pImageSet->SetData.yCentroid;
-        m_Position.xSpotWidth = m_pImageSet->SetData.xCentroidSD;
-        m_Position.ySpotWidth = m_pImageSet->SetData.yCentroidSD;
+        m_Position.xSpotWidth = m_pImageSet->SetData.xSpotSD;
+        m_Position.ySpotWidth = m_pImageSet->SetData.ySpotSD;
         m_Position.cleanedIntensity = m_pImageSet->SetData.CleanedIntensity;
     }
 //TODO figure out how to respond to select_timeout issue here
