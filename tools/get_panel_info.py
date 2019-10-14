@@ -85,7 +85,7 @@ class pSCTDB_readonly:
         self.connect()
         for p_ in panels:
             print("====")
-            query = "select mpcb_id, mpcb_ip_address, pedb_channel from Opt_MPMMapping where position = {}".format(p_)
+            query = "select mpcb_id, mpcb_ip_address, pedb_channel from Opt_MPMMapping where position = {} and end_date is NULL".format(p_)
             nentries=self.cur.execute(query)
             for i, row in enumerate(self.cur):
                 #ips.append(row[0])
