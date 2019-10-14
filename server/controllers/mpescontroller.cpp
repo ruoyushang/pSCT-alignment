@@ -34,8 +34,8 @@
 //TODO refactor all the pNodeManager here so that operate() can fire event. Monitor this event with Client.
 
 
-MPESController::MPESController(Device::Identity identity, std::shared_ptr<PlatformBase> pPlatform)
-    : PasController::PasController(std::move(identity), std::move(pPlatform), 5000) {
+MPESController::MPESController(Device::Identity identity, std::shared_ptr<PlatformBase> pPlatform, std::shared_ptr<PasNodeManager> pNodeManager)
+    : PasController::PasController(std::move(identity), std::move(pPlatform), std::move(pNodeManager), 5000) {
     try {
         // get the nominal aligned readings and response matrices from DB
         /* BEGIN DATABASE HACK */
@@ -255,6 +255,7 @@ UaStatus MPESController::operate(OpcUa_UInt32 offset, const UaVariantArray &args
             spdlog::info("{} : MPESController calling read()", m_Identity);
             if (_getDeviceState() == Device::DeviceState::On && _getErrorState() != Device::ErrorState::FatalError) {
                 status = read();
+                MPESController::UpdateEvent();
             } else {
                 spdlog::error("{} : MPES is off/in fatal error state, unable to read.", m_Identity);
                 status = OpcUa_BadInvalidState;
@@ -294,4 +295,49 @@ UaStatus MPESController::read() {
     m_pPlatform->getMPESbyIdentity(m_Identity)->updatePosition();
     m_LastUpdateTime = TIME::now();
     return status;
+}
+
+UaStatus MPESController::UpdateEvent() {
+    MPESBase::Position data = m_pPlatform->getMPESbyIdentity(m_Identity)->getPosition();
+    spdlog::debug("Getting info");
+
+    spdlog::debug("Namespace index: {}",m_pNodeManager->getNameSpaceIndex());
+    // Create event
+    MPESEventTypeData eventData(m_pNodeManager->getNameSpaceIndex());
+
+//        // Handle ControllerEventType specific fields
+//        auto pUserData = (PasUserData *) getUserData();
+
+//        // CleanedIntensity
+//        UaVariant varValue;
+//        OpcUa_Double value;
+//        m_pCommIf->getDeviceData(PAS_MPESType_CleanedIntensity, pUserData->DeviceId(), pUserData->variableOffset(), varValue);
+//        varValue.toDouble(value);
+//        eventData.m_CleanedIntensity.setDouble(value);
+
+//        // State
+//        Device::DeviceState state;
+//        m_pCommIf->getDeviceState(PAS_MPESEventType_State, pUserData->DeviceId(), state);
+//        eventData.m_State.setDouble(value);
+
+
+    spdlog::debug("Filling eventData");
+    eventData.m_xCentroidAvg.setDouble(data.xCentroid);
+    eventData.m_yCentroidAvg.setDouble(data.yCentroid);
+    eventData.m_xCentroidSpotWidth.setDouble(data.xSpotWidth);
+    eventData.m_yCentroidSpotWidth.setDouble(data.ySpotWidth);
+    eventData.m_CleanedIntensity.setDouble(data.cleanedIntensity);
+//    Device::ErrorState errorState = _getErrorState();
+//    eventData.m_State.setInt16(errorState);
+
+    // Fill all default event fields
+//    eventData.m_SourceNode.setNodeId(m_Identity.eAddress.);
+    eventData.m_SourceName.setString(m_Identity.eAddress.c_str());
+    eventData.m_Severity.setUInt16(500);
+    // Set timestamps and unique EventId
+    eventData.prepareNewEvent(UaDateTime::now(), UaDateTime::now(), UaByteString());
+    // Fire the event
+    spdlog::debug("Firing event.");
+    m_pNodeManager->fireEvent(&eventData);
+    spdlog::debug("Event fired");
 }

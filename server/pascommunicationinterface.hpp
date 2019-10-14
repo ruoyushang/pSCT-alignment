@@ -17,6 +17,8 @@
 #include "common/opcua/passervertypeids.hpp"
 #include "common/utilities/DBConfig.hpp"
 
+#include "server/pasnodemanager.hpp"
+
 #include <map>
 #include <memory>
 #include <string>
@@ -111,6 +113,8 @@ public:
     /// @brief Map of OPC UA type ID to device type name for all device types supported by the server.
     static const std::map<OpcUa_UInt32, std::string> deviceTypes;
 
+    void setpNodeManager(PasNodeManager *pNodeManager);
+
 private:
 
     /// @brief Position number of the panel. Used for device database lookup.
@@ -121,6 +125,8 @@ private:
 
     /// @brief Pointer to the platform object used by all devices to interface with the hardware.
     std::shared_ptr<PlatformBase> m_platform;
+
+    std::shared_ptr<PasNodeManager> m_pNodeManager;
 };
 
 #endif //SERVER_PASCOMMUNICATIONINTERFACE_HPP

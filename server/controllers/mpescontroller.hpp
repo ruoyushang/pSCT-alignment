@@ -17,6 +17,7 @@
 
 #include "common/alignment/device.hpp"
 #include "common/alignment/platform.hpp"
+#include "server/pasnodemanager.hpp"
 
 #include "common/opcua/pascominterfacecommon.hpp"
 
@@ -28,7 +29,7 @@ public:
     /// @brief Instantiate an MPES device controller object.
     /// @param ID The integer index of the device within its type.
     /// @param pPlatform Platform object used to interface with hardware.
-    MPESController(Device::Identity identity, std::shared_ptr<PlatformBase> pPlatform);
+    MPESController(Device::Identity identity, std::shared_ptr<PlatformBase> pPlatform,  std::shared_ptr<PasNodeManager> pNodeManager);
 
     /// @brief Initialize the MPES by setting its exposure.
     /// #return 0 on success, -1 on failure.
@@ -65,6 +66,7 @@ private:
 
     /// @brief Update the MPES position data.
     UaStatus read();
+    UaStatus UpdateEvent();
 };
 
 #endif //SERVER_MPESCONTROLLER_HPP

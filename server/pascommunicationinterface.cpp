@@ -207,7 +207,7 @@ UaStatus PasCommunicationInterface::initialize() {
                 spdlog::info("Added Panel controller with identity {}", identity);
             } else if (pair.first == PAS_MPESType) {
                 pController = std::dynamic_pointer_cast<PasControllerCommon>(
-                    std::make_shared<MPESController>(identity, m_platform));
+                    std::make_shared<MPESController>(identity, m_platform, m_pNodeManager));
                 spdlog::info("Added MPES controller with identity {}", identity);
             } else if (pair.first == PAS_ACTType) {
                 pController = std::dynamic_pointer_cast<PasControllerCommon>(
@@ -325,4 +325,8 @@ UaStatus PasCommunicationInterface::operateDevice(
     catch (std::out_of_range &e) {
         return OpcUa_BadInvalidArgument;
     }
+}
+
+void PasCommunicationInterface::setpNodeManager(PasNodeManager *pNodeManager){
+    m_pNodeManager = static_cast<shared_ptr<PasNodeManager>>(pNodeManager);
 }

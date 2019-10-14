@@ -41,6 +41,7 @@ PasNodeManager::PasNodeManager() : PasNodeManagerCommon() {
 /// the unique ptr and instantiating a new unique pointer.
 UaStatus PasNodeManager::setCommunicationInterface(std::unique_ptr<PasCommunicationInterface> &pCommIf) {
     spdlog::debug("PasNodeManager: Setting communication interface");
+    pCommIf->setpNodeManager(this);
     m_pCommIf = std::unique_ptr<PasComInterfaceCommon>(
             pCommIf.release()); // Note that we need to release the original unique pointer and make a new unique pointer
 
