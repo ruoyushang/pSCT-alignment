@@ -62,6 +62,7 @@
 #define PAS_MirrorType_Stop                          144
 #define PAS_MirrorType_LoadDeltaCoords               145
 #define PAS_MirrorType_SaveAlignmentOffset           146
+#define PAS_MirrorType_LoadAlignmentOffset           147
 
 //----------------------------------------------------------//
 // Edge Type

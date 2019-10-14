@@ -156,62 +156,65 @@ def FindEdgeSensorPosition(mpes_id):
     w_radius, w_phase, w_phase_width = FindPanelPosition(w_panel)
     if list(w_panel)[0] == "1":  # primary
         if list(w_panel)[2] == "1":  # inner
-            if port == "3":
+            if position == "3":
                 return w_radius + 0.75 , w_phase - 0.375*w_phase_width
-            if port == "4":
+            if position == "4":
                 return w_radius + 0.75 , w_phase + 0.125*w_phase_width
-            if port == "2":
+            if position == "2":
                 return w_radius + 0.5 , w_phase - 0.5*w_phase_width
-            if port == "1":
+            if position == "1":
                 return w_radius - 0.5 , w_phase - 0.5*w_phase_width
-            if port == "5":
+            if position == "5":
                 return w_radius + 0.0 , w_phase + 0.5*w_phase_width
         if list(w_panel)[2] == "2":  # outer
-            if port == "2":
+            if position == "2":
                 return w_radius - 0.75 , w_phase + 0.25*w_phase_width
-            if port == "3":
+            if position == "3":
                 return w_radius - 0.5 , w_phase - 0.5*w_phase_width
-            if port == "4":
+            if position == "4":
                 return w_radius + 0.5 , w_phase - 0.5*w_phase_width
-            if port == "1":
+            if position == "1":
                 return w_radius + 0.0 , w_phase + 0.5*w_phase_width
     if list(w_panel)[0] == "2":  # secondary
         if list(w_panel)[2] == "1":  # inner
-            if port == "4":
+            if position == "4":
                 return w_radius + 0.75 , w_phase - 0.125*w_phase_width
-            if port == "3":
+            if position == "3":
                 return w_radius + 0.75 , w_phase + 0.375*w_phase_width
-            if port == "2":
+            if position == "2":
                 return w_radius + 0.5 , w_phase + 0.5*w_phase_width
-            if port == "1":
+            if position == "1":
                 return w_radius - 0.5 , w_phase + 0.5*w_phase_width
-            if port == "5":
+            if position == "5":
                 return w_radius + 0.0 , w_phase - 0.5*w_phase_width
         if list(w_panel)[2] == "2":  # outer
-            if port == "2":
+            if position == "2":
                 return w_radius - 0.75 , w_phase - 0.25*w_phase_width
-            if port == "4":
+            if position == "4":
                 return w_radius + 0.5 , w_phase + 0.5*w_phase_width
-            if port == "3":
+            if position == "3":
                 return w_radius - 0.5 , w_phase + 0.5*w_phase_width
-            if port == "1":
+            if position == "1":
                 return w_radius + 0.0 , w_phase - 0.5*w_phase_width
 
+    print 'MPES %s is missing'%(mpes_id)
+    print 'w_panel %s, position %s'%(w_panel,position)
     return 0, 0
 
 def PlotMisalignment(misalignment, zmax=1.0, outfilename="misalignment.png"):
 
     all_misalignments = {}
+    misalignment_array = np.empty([])
     for sensor in range(0,len(misalignment[0])):
         mpes_id = misalignment[0][sensor]
         misalign = 0.
         misalign += pow(misalignment[1][sensor],2)
         misalign += pow(misalignment[2][sensor],2)
         misalign = pix2mm*pow(misalign,0.5)
+        misalignment_array = np.append(misalignment_array, misalign)
         radius, phase = FindEdgeSensorPosition(mpes_id)
         coor_x = radius * np.cos(phase)
         coor_y = radius * np.sin(phase)
-        print 'misalign = %s'%(misalign)
         all_misalignments.update({mpes_id: {"misalignment": misalign, "coor_x": coor_x, "coor_y": coor_y}})
 
     fig, ax = plt.subplots(figsize=(6, 5), ncols=1)
@@ -225,7 +228,7 @@ def PlotMisalignment(misalignment, zmax=1.0, outfilename="misalignment.png"):
             marker = 'o'
             if all_misalignments[sensor]["misalignment"] <= 0:
                 marker = '+'
-            if all_misalignments[sensor]["misalignment"] > 1:
+            if all_misalignments[sensor]["misalignment"] > zmax:
                 edge = 'red'
             else:
                 edge = 'face'
@@ -241,26 +244,42 @@ def PlotMisalignment(misalignment, zmax=1.0, outfilename="misalignment.png"):
         ax.set_xticklabels([])
         #plt.tightlayout()
         plt.savefig(outfilename)
+
+        plt.figure(figsize=(8, 3))
+        plt.hist(misalignment_array, bins=30)
+        plt.xlabel("Misalignment [mm]")
+        plt.tight_layout()
+        plt.savefig(outfilename.split('.')[0]+"_hist.png")
+
     except UnboundLocalError:
         print("No MPES found")
+
+    print '%s is created.'%(outfilename.split('.')[0]+"_hist.png")
+    print '%s is created.'%(outfilename)
     return ax
 
 
 if __name__ == "__main__":
 
+    parser = argparse.ArgumentParser(description="Analyze MPES misalignments file to plot misalignment and histogram.")
+
+    output_folder = "alignment_plots"
 
     if len(sys.argv) == 2:
         outputfilename = sys.argv[1]
+        plot_name = outputfilename.split('/')[len(outputfilename.split('/'))-1].strip('.png')
         misalignment = read_misalignment(outputfilename)
-        PlotMisalignment(misalignment, 1., "misalignment.png")
+        PlotMisalignment(misalignment, 1., "%s/misalignment_%s.png"%(output_folder,plot_name))
     if len(sys.argv) == 3:
         outputfilename_1 = sys.argv[1]
+        plot_name_1 = outputfilename_1.split('/')[len(outputfilename_1.split('/'))-1].strip('.png')
         misalignment_1 = read_misalignment(outputfilename_1)
         print 'file1 chi2 = %s'%(get_misalignment_chi2(misalignment_1))
         outputfilename_2 = sys.argv[2]
+        plot_name_2 = outputfilename_2.split('/')[len(outputfilename_2.split('/'))-1].strip('.png')
         misalignment_2 = read_misalignment(outputfilename_2)
         print 'file2 chi2 = %s'%(get_misalignment_chi2(misalignment_2))
         misalignment = diff_misalignment(misalignment_1,misalignment_2)
         print 'diff chi2 = %s'%(get_misalignment_chi2(misalignment))
-        PlotMisalignment(misalignment, 1., "diff_misalignment.png")
+        PlotMisalignment(misalignment, 0.75, "%s/diff_%s_%s.png"%(output_folder,plot_name_1,plot_name_2))
 

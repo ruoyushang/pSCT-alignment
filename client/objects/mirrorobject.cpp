@@ -148,6 +148,11 @@ const std::map<OpcUa_UInt32, std::pair<std::string, std::vector<std::tuple<std::
                                                                                                UaNodeId(OpcUaId_String),
                                                                                                "Absolute path to .mirrorPos file to save alignment to.")
                                                                            }}},
+    {PAS_MirrorType_LoadAlignmentOffset,             {"LoadAlignmentOffset",             {
+                                                                               std::make_tuple("Load File Name",
+                                                                                               UaNodeId(OpcUaId_String),
+                                                                                               "Absolute path to .mirrorPos file to save alignment to.")
+                                                                           }}},
     {PAS_MirrorType_LoadPosition,             {"LoadPosition",             {
                                                                                std::make_tuple("Load File Name",
                                                                                                UaNodeId(OpcUaId_String),

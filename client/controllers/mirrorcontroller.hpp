@@ -118,6 +118,8 @@ private:
 
     UaStatus __calculateLoadDeltaCoords(const std::string &loadFilePath);
 
+    UaStatus __calculateLoadAlignmentOffset(const std::string &loadFilePath);
+
     UaStatus testActuators(float moveDistance = 0.4, float epsilonLength = 0.016);
 
     // mirror coords -- x/y/z, xRot, yRot, zRot

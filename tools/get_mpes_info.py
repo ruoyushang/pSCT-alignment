@@ -66,7 +66,7 @@ class pSCTDB_readonly:
     
     def query_mpes(self, mpes_id, verbose=True):
         self.connect()
-        q = "select * from Opt_MPESMapping where serial_number = {}".format(mpes_id)
+        q = "select * from Opt_MPESMapping where serial_number = {} and end_date is NULL".format(mpes_id)
         nentries=self.cur.execute(q)
         for i, row in enumerate(self.cur):
             print("MPES {}".format(mpes_id))
