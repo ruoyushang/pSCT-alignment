@@ -43,6 +43,7 @@ void MPESImage::analyze(int thresh)
     int nSat = 0;
     int SatPoint = 255;
 
+    bool working_image = false;
 
     for(int i = 0; i < this->rows; i++)
     {
@@ -51,6 +52,9 @@ void MPESImage::analyze(int thresh)
 		{
 			pixel = this->at<Vec3b>(i, j);
 			pixelintensity = (pixel.val[0] + pixel.val[1] + pixel.val[2]) / 3.;
+			if (pixelintensity != 0){
+			    working_image = true;
+			}
 			intensity += pixelintensity;
 			if ((int)pixelintensity > thresh) 
 			{
@@ -110,7 +114,16 @@ void MPESImage::analyze(int thresh)
     time_t t = time(0);
     double mjd = ((t)/86400.0)+40587.;
     data.MJD = mjd;
-   
+
+    if (!working_image){
+        data.CleanedIntensity = -2;
+        data.xCentroid = -2;
+        data.yCentroid = -2;
+        data.xSpotSD = -2;
+        data.ySpotSD = -2;
+        data.Intensity = -2;
+        data.nSat = -2;
+    }
     datavec.push_back(data);
 }
 
