@@ -22,7 +22,7 @@ else:
 try:
     import pymysql
 
-    query_= "select serial_number from Opt_MPESMapping where w_position=2 and (w_panel like \"%22\" or  w_panel like \"%24\") ; "
+    query_= "select serial_number from Opt_MPESMapping where w_position=2 and ( (w_panel like \"1%22\" or  w_panel like \"1%24\" or w_panel like \"1%26\" or  w_panel like \"1%28\") or (w_panel like \"2%22\" or  w_panel like \"2%24\") ) and end_date is NULL;  "
     testDB = pSCTDB_readonly(this_db)
     testDB.connect()
     nentries = testDB.cur.execute(query_)
@@ -35,8 +35,31 @@ try:
     print(mpeses_port6_airquote)
 except:
     print("Failed to connect to DB {}".format(this_db))
-    mpeses_port6_airquote = np.array([10043,10050,10192,10183,10074,10032,10337,10247,10124,10142,10167,10085,
-                                      10164,10342,10225,10113,10323,10333], dtype=int)
+    mpeses_port6_airquote = np.array([10043,
+                                      10297,
+                                      10208,
+                                      10281,
+                                      10268,
+                                      10192,
+                                      10183,
+                                      10074,
+                                      10032,
+                                      10329,
+                                      10320,
+                                      10337,
+                                      10247,
+                                      10121,
+                                      10127,
+                                      10124,
+                                      10142,
+                                      10167,
+                                      10085,
+                                      10342,
+                                      10225,
+                                      10113,
+                                      10323,
+                                      10333],dtype=int)
+
 
 print(mpeses_port6_airquote)
 
@@ -165,7 +188,7 @@ def FindEdgeSensorPosition(edge_id, port):
     return 0, 0
 
 
-def read_misalignment(inputfilename="logs/p2pasclient_log_20190703184623.txt", out_text="mpes_readings_new.txt", zmax=0.8):
+def read_misalignment(inputfilename="logs/p2pasclient_log_20190703184623.txt", out_text="mpes_readings_new.txt", zmax=1.0):
     #KNOWN_BAD_SENSORS = [10332, 10358, 10152, 10146]  # permanent dead
 
     outputfile = open(inputfilename, "r")
