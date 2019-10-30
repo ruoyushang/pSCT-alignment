@@ -32,7 +32,7 @@ def query_disable_old_sensor(old_sensor,table, comment):
         set_part=" SET end_date = \"{}\", comment = {} ".format(end_date,comment)
     elif table == "Opt_MPESConfigurationAndCalibration":
         set_part=" SET end_date = \"{}\" ".format(end_date)
-    identifier = " WHERE serial_number={} ;".format(old_sensor)
+    identifier = " WHERE serial_number={} and start_date != \"{}\";".format(old_sensor, end_date)
     query = execute_part_str + table + set_part + identifier
     return query
 
@@ -145,7 +145,7 @@ if __name__ == '__main__':
     parser.add_argument('l_panel')
     parser.add_argument('position')
     parser.add_argument('port')
-    parser.add_argument('-T', '--targetCentroid',dest="target", nargs=2,type=int, help="Target centroid values for newly calibrated sensors, done in situ.")
+    parser.add_argument('-T', '--targetCentroid',dest="target", nargs=2,type=float, help="Target centroid values for newly calibrated sensors, done in situ.")
 
     parser.add_argument('-H', '--host', default=os.getenv('MYSQL_HOST'), help="Host for DB", type=str)
     args = parser.parse_args()

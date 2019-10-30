@@ -31,7 +31,7 @@ printf "Reading from database...\n"
     while read -r position;
     do
          PANELS+=($position)
-    done < <(mysql --user=${MYSQL_USER} --password=${MYSQL_PASSWORD} --database=${MYSQL_DATABASE} --host=${MYSQL_HOST} --port=${MYSQL_PORT}-ss -e "SELECT position FROM Opt_MPMMapping")
+    done < <(mysql --user=${MYSQL_USER} --password=${MYSQL_PASSWORD} --database=${MYSQL_DATABASE} --host=${MYSQL_HOST} --port=${MYSQL_PORT} -ss -e "SELECT position FROM Opt_MPMMapping")
 else
     PANELS=("$@")
 fi
@@ -101,14 +101,14 @@ done
 
 # Now start high-level client connecting to all lower-level panels
 # printf "Sleeping to give subclients time to start...\n"
-# sleep 30
+sleep 90
 
 printf "Starting top-level client...\n"
 
 client_name="client"
-port="48015"
+port="48010"
 config_filename="${client_name}${extension}"
-endpoint_addr="opc.tcp://10.0.1.13:$port"
+endpoint_addr="opc.tcp://$IP_ADDRESS:$port"
 
 screen -S ${screen_name} -X screen -t ${client_name}
 screen -S ${screen_name} -p ${client_name} -X stuff $"cp ../client/TemplateClientConfig${extension} ${config_filename}\n"
