@@ -246,14 +246,15 @@ const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean>> 
                                           OpcUa_False)},
     {PAS_MPESType_Error1, std::make_tuple("[1] [Fatal] Failed to read data, possible select timeout.",
                                           UaVariant(false), OpcUa_False)},
-    {PAS_MPESType_Error2, std::make_tuple("[2] [Fatal] Intensity of the image is insufficient to process or it is absent.", UaVariant(false), OpcUa_False)},
-    {PAS_MPESType_Error3, std::make_tuple("[3] [Fatal] Intensity of the image is too bright to produce reliable measurement. Likely cause: no tube or no lid.",
+    {PAS_MPESType_Error2, std::make_tuple("[2] [Fatal] Intensity of the image is insufficient to process confidently.", UaVariant(false), OpcUa_False)},
+    {PAS_MPESType_Error3, std::make_tuple("[3] [Fatal] Intensity of the image is too bright to process confidently. Likely cause: no tube or no lid.",
                                           UaVariant(false), OpcUa_False)},
-    {PAS_MPESType_Error4, std::make_tuple("[4] [Operable] Intensity of the image is bright to perform calculations but the spot width is extensively large > 20px.", UaVariant(false),
+    {PAS_MPESType_Error4, std::make_tuple("[4] [Operable] Intensity of the image is bright to perform calculations but the spot width is extensively large >20px.", UaVariant(false),
                                           OpcUa_False)},
     {PAS_MPESType_Error5, std::make_tuple("[5] [Operable] Image is severely uneven. Likely due to being in the reflection region, too close to webcam edges, or a bad laser. More than 30% deviation.",
                                           UaVariant(false), OpcUa_False)},
     {PAS_MPESType_Error6, std::make_tuple("[6] [Operable] Image is mildly uneven. More than 20% but less than 30% deviation", UaVariant(false), OpcUa_False)},
+    {PAS_MPESType_Error7, std::make_tuple("[7] [Fatal] Intensity of the image is zero, no pixels pass threshold value.", UaVariant(false), OpcUa_False)},
 };
 
 const std::map<OpcUa_UInt32, std::pair<std::string, std::vector<std::tuple<std::string, UaNodeId, std::string>>>> MPESObject::METHODS = {

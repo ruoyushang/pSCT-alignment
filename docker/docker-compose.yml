@@ -19,7 +19,7 @@ services:
       context: .
       dockerfile: Dockerfile
     volumes:
-      - /InstalledTools/alignment/:/app
+      - ~/Documents/InstalledTools/alignment/:/app
     ports:
       - "3022:22"
       - "9999:9999"

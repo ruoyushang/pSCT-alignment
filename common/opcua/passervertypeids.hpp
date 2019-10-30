@@ -249,8 +249,8 @@
 #define PAS_MPESEventType_State                     10001
 #define PAS_MPESEventType_xCentroidAvg              10002
 #define PAS_MPESEventType_yCentroidAvg              10003
-#define PAS_MPESEventType_xCentroidSD               10004
-#define PAS_MPESEventType_yCentroidSD               10005
+#define PAS_MPESEventType_xCentroidSpotWidth        10004
+#define PAS_MPESEventType_yCentroidSpotWidth        10005
 #define PAS_MPESEventType_CleanedIntensity          10006
 /************************************************************/
 
