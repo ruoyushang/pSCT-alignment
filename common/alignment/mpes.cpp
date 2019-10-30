@@ -243,7 +243,6 @@ int MPES::__setExposure() {
         m_pDevice->SetExposure(tempExposure);
     }
     else{
-        m_pDevice->SetExposure(tempExposure);
         spdlog::info("Normal exit from do-while loop. Intensity and exposure within the bound.");
     }
 
