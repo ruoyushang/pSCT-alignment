@@ -211,6 +211,7 @@ def PlotMisalignment(misalignment, zmax=1.0, outfilename="misalignment.png"):
         misalign += pow(misalignment[1][sensor],2)
         misalign += pow(misalignment[2][sensor],2)
         misalign = pix2mm*pow(misalign,0.5)
+        print '%s, %s'%(mpes_id,misalign)
         misalignment_array = np.append(misalignment_array, misalign)
         radius, phase = FindEdgeSensorPosition(mpes_id)
         coor_x = radius * np.cos(phase)
@@ -246,7 +247,7 @@ def PlotMisalignment(misalignment, zmax=1.0, outfilename="misalignment.png"):
         plt.savefig(outfilename)
 
         plt.figure(figsize=(8, 3))
-        plt.hist(misalignment_array, bins=30)
+        plt.hist(misalignment_array, bins=20, range=[0, 2])
         plt.xlabel("Misalignment [mm]")
         plt.tight_layout()
         plt.savefig(outfilename.split('.')[0]+"_hist.png")

@@ -723,6 +723,25 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
                 m_Identity, edge->getIdentity(), os.str());
         }
         spdlog::info("{}: Done reading sensors.", m_Identity);
+
+        int N_bad_mpes = 0;
+        for (auto mpes : getChildren(PAS_MPESType)) {
+            if (m_selectedMPES.find(mpes->getIdentity().serialNumber) != m_selectedMPES.end()) {
+                if (mpes->getErrorState() == Device::ErrorState::FatalError) {
+                    N_bad_mpes += 1;
+                    spdlog::error("{}: Failed to read.", mpes->getIdentity());
+                }
+            }
+        };
+        if (N_bad_mpes!=0)
+        {
+            spdlog::error("{}: Found {} failed sensors.", m_Identity, N_bad_mpes);
+        }
+        else
+        {
+            spdlog::info("{}: Found {} failed sensors.", m_Identity, N_bad_mpes);
+        }
+
     } else if (offset == PAS_MirrorType_SelectAll) {
         spdlog::info("{} : MirrorController::operate() : Calling selectAll()...", m_Identity);
         m_selectedPanels.clear();
@@ -2531,11 +2550,11 @@ UaStatus MirrorController::__setAlignFrac(double alignFrac) {
     if (alignFrac < 0.)
     {
         spdlog::info("Mirror {}: alignFrac<0, apply alignment constraints", m_Identity);
-        if (abs(alignFrac)!=1.) 
-        {
-            spdlog::error("Mirror {}: alignFrac!=-1, frac can only be -1. for alignment with constraints.", m_Identity);
-            return OpcUa_BadInvalidArgument;
-        }
+        //if (abs(alignFrac)!=1.) 
+        //{
+        //    spdlog::error("Mirror {}: alignFrac!=-1, frac can only be -1. for alignment with constraints.", m_Identity);
+        //    return OpcUa_BadInvalidArgument;
+        //}
     }
 
     if (m_Xcalculated.isZero(0)) {
@@ -2552,8 +2571,10 @@ UaStatus MirrorController::__setAlignFrac(double alignFrac) {
 
     // here we set alignment constraints for the panels
     bool setConstraints = false;
-    const int N_panels_to_constrain = 16;
-    double list_panels_to_constrain[N_panels_to_constrain] = {1111,1112,1113,1114,1211,1212,1213,1214,1311,1312,1313,1314,1411,1412,1413,1414};
+    //const int N_panels_to_constrain = 16;
+    //double list_panels_to_constrain[N_panels_to_constrain] = {1111,1112,1113,1114,1211,1212,1213,1214,1311,1312,1313,1314,1411,1412,1413,1414};
+    const int N_panels_to_constrain = 32;
+    double list_panels_to_constrain[N_panels_to_constrain] = {1121, 1122, 1123, 1124, 1125, 1126, 1127, 1128, 1221, 1222, 1223, 1224, 1225, 1226, 1227, 1228, 1321, 1322, 1323, 1324, 1325, 1326, 1327, 1328, 1421, 1422, 1423, 1424, 1425, 1426, 1427, 1428};
     if (alignFrac < 0.) setConstraints = true;
     if (setConstraints) 
     {
@@ -2590,14 +2611,20 @@ UaStatus MirrorController::__setAlignFrac(double alignFrac) {
             {
                 if (list_panels_to_constrain[i]==panelId.position) is_a_panel_to_constrain = true;
             }
-            if (is_a_panel_to_constrain)
+            if (setConstraints && is_a_panel_to_constrain)
             {
-                //spdlog::info("Panel {}: fix Tz at {} mm.", panelId, currentCoordinates[2]);
-                //targetCoordinates[2] = currentCoordinates[2]; // Tz
+                spdlog::info("Panel {}: fix Tx at {} mm.", panelId, currentCoordinates[0]);
+                targetCoordinates[0] = currentCoordinates[0]; // Tx
+                spdlog::info("Panel {}: fix Ty at {} mm.", panelId, currentCoordinates[1]);
+                targetCoordinates[1] = currentCoordinates[1]; // Ty
+                spdlog::info("Panel {}: fix Tz at {} mm.", panelId, currentCoordinates[2]);
+                targetCoordinates[2] = currentCoordinates[2]; // Tz
                 spdlog::info("Panel {}: fix Rx at {} mm.", panelId, currentCoordinates[3]);
                 targetCoordinates[3] = currentCoordinates[3]; // Rx
                 spdlog::info("Panel {}: fix Ry at {} mm.", panelId, currentCoordinates[4]);
                 targetCoordinates[4] = currentCoordinates[4]; // Ry
+                spdlog::info("Panel {}: fix Rz at {} mm.", panelId, currentCoordinates[5]);
+                targetCoordinates[5] = currentCoordinates[5]; // Rz
             }
 
             // find actuator lengths needed
