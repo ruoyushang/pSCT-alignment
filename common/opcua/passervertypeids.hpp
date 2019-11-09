@@ -63,6 +63,8 @@
 #define PAS_MirrorType_LoadDeltaCoords               145
 #define PAS_MirrorType_SaveAlignmentOffset           146
 #define PAS_MirrorType_LoadAlignmentOffset           147
+#define PAS_MirrorType_SelectedTzFixedPanels         148
+#define PAS_MirrorType_SelectedRxRyFixedPanels       149
 
 //----------------------------------------------------------//
 // Edge Type

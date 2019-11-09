@@ -83,12 +83,14 @@ private:
     double m_safetyRadius = 60.0;
 
     std::set<unsigned> m_selectedPanels;
+    std::set<unsigned> m_selectedTzFixedPanels;
+    std::set<unsigned> m_selectedRxRyFixedPanels;
     std::set<int> m_selectedMPES;
     std::set<std::string> m_selectedEdges;
 
     // helper method to process the selected children string and convert it into a set
     // of vector indices
-    void parseAndSetSelection(const std::string &selectionString, unsigned deviceType);
+    void parseAndSetSelection(const std::string &selectionString, unsigned deviceType, int usage_type);
 
     unsigned getPanelIndex(unsigned position);
     unsigned getMPESIndex(int serialNumber);

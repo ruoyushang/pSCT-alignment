@@ -303,6 +303,28 @@ UaStatus MirrorController::getData(OpcUa_UInt32 offset, UaVariant &value)
         }
         s += "]";
         value.setString(s.c_str());
+    } else if (offset == PAS_MirrorType_SelectedTzFixedPanels) {
+        std::vector<unsigned> v(m_selectedTzFixedPanels.begin(), m_selectedTzFixedPanels.end());
+        std::string s = "[";
+        for (int i = 0; i < (int)(v.size()); i++) {
+            s += std::to_string(v[i]);
+            if (i != (int)(v.size() - 1)) {
+                s += ", ";
+            }
+        }
+        s += "]";
+        value.setString(s.c_str());
+    } else if (offset == PAS_MirrorType_SelectedRxRyFixedPanels) {
+        std::vector<unsigned> v(m_selectedRxRyFixedPanels.begin(), m_selectedRxRyFixedPanels.end());
+        std::string s = "[";
+        for (int i = 0; i < (int)(v.size()); i++) {
+            s += std::to_string(v[i]);
+            if (i != (int)(v.size() - 1)) {
+                s += ", ";
+            }
+        }
+        s += "]";
+        value.setString(s.c_str());
     } else if (offset == PAS_MirrorType_SelectedMPES) {
         std::vector<int> v(m_selectedMPES.begin(), m_selectedMPES.end());
         std::string s = "[";
@@ -359,13 +381,19 @@ UaStatus MirrorController::setData(OpcUa_UInt32 offset, UaVariant value)
         }
     } else if (offset == PAS_MirrorType_SelectedEdges) {
         std::string selectionString = value.toString().toUtf8();
-        parseAndSetSelection(selectionString, PAS_EdgeType);
+        parseAndSetSelection(selectionString, PAS_EdgeType, 0);
     } else if (offset == PAS_MirrorType_SelectedPanels) {
         std::string selectionString = value.toString().toUtf8();
-        parseAndSetSelection(selectionString, PAS_PanelType);
+        parseAndSetSelection(selectionString, PAS_PanelType, 0);
+    } else if (offset == PAS_MirrorType_SelectedTzFixedPanels) {
+        std::string selectionString = value.toString().toUtf8();
+        parseAndSetSelection(selectionString, PAS_PanelType, 1);
+    } else if (offset == PAS_MirrorType_SelectedRxRyFixedPanels) {
+        std::string selectionString = value.toString().toUtf8();
+        parseAndSetSelection(selectionString, PAS_PanelType, 2);
     } else if (offset == PAS_MirrorType_SelectedMPES) {
         std::string selectionString = value.toString().toUtf8();
-        parseAndSetSelection(selectionString, PAS_MPESType);
+        parseAndSetSelection(selectionString, PAS_MPESType, 0);
     } else
         return OpcUa_BadInvalidArgument;
 
@@ -745,6 +773,8 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
     } else if (offset == PAS_MirrorType_SelectAll) {
         spdlog::info("{} : MirrorController::operate() : Calling selectAll()...", m_Identity);
         m_selectedPanels.clear();
+        m_selectedTzFixedPanels.clear();
+        m_selectedRxRyFixedPanels.clear();
         for (const auto &panel : getChildren(PAS_PanelType)) {
             m_selectedPanels.insert((unsigned) panel->getIdentity().position);
         }
@@ -1556,7 +1586,7 @@ UaStatus MirrorController::alignSequential(const std::string &startEdge, const s
     return status;
 }
 
-void MirrorController::parseAndSetSelection(const std::string &selectionString, unsigned deviceType) {
+void MirrorController::parseAndSetSelection(const std::string &selectionString, unsigned deviceType, int usage_type) {
     // process a separated string and find the panels or edges described by it
     // pad by a space from the right so we don't hit the end of the line without a delimiter
  
@@ -1582,7 +1612,7 @@ void MirrorController::parseAndSetSelection(const std::string &selectionString, 
     }
 
     // add all the items to the selected children set of indices
-    if (deviceType == PAS_PanelType) { // expect a list of panel positions
+    if (deviceType == PAS_PanelType && usage_type==0) { // expect a list of panel positions
         m_selectedPanels.clear();
         unsigned curpos;
         std::ostringstream os;
@@ -1590,6 +1620,40 @@ void MirrorController::parseAndSetSelection(const std::string &selectionString, 
             curpos = stoi(item);
             if (m_ChildrenPositionMap.at(deviceType).count(curpos) > 0) {
                 m_selectedPanels.insert(curpos);
+                os << "Added Panel with position " << curpos << "." << std::endl;
+            }
+            else {
+                os << "Unable to find Panel with position " << curpos << ". Skipping..." << std::endl;
+            }
+        }
+        os << std::endl;
+        spdlog::info("{}: Selecting panels (positions):\n{}\n", m_Identity, os.str());
+    }
+    else if (deviceType == PAS_PanelType && usage_type==1) { // expect a list of panel positions
+        m_selectedTzFixedPanels.clear();
+        unsigned curpos;
+        std::ostringstream os;
+        for (const std::string &item : strList) {
+            curpos = stoi(item);
+            if (m_ChildrenPositionMap.at(deviceType).count(curpos) > 0) {
+                m_selectedTzFixedPanels.insert(curpos);
+                os << "Added Panel with position " << curpos << "." << std::endl;
+            }
+            else {
+                os << "Unable to find Panel with position " << curpos << ". Skipping..." << std::endl;
+            }
+        }
+        os << std::endl;
+        spdlog::info("{}: Selecting panels (positions):\n{}\n", m_Identity, os.str());
+    }
+    else if (deviceType == PAS_PanelType && usage_type==2) { // expect a list of panel positions
+        m_selectedRxRyFixedPanels.clear();
+        unsigned curpos;
+        std::ostringstream os;
+        for (const std::string &item : strList) {
+            curpos = stoi(item);
+            if (m_ChildrenPositionMap.at(deviceType).count(curpos) > 0) {
+                m_selectedRxRyFixedPanels.insert(curpos);
                 os << "Added Panel with position " << curpos << "." << std::endl;
             }
             else {
@@ -2573,8 +2637,33 @@ UaStatus MirrorController::__setAlignFrac(double alignFrac) {
     bool setConstraints = false;
     //const int N_panels_to_constrain = 16;
     //double list_panels_to_constrain[N_panels_to_constrain] = {1111,1112,1113,1114,1211,1212,1213,1214,1311,1312,1313,1314,1411,1412,1413,1414};
-    const int N_panels_to_constrain = 32;
-    double list_panels_to_constrain[N_panels_to_constrain] = {1121, 1122, 1123, 1124, 1125, 1126, 1127, 1128, 1221, 1222, 1223, 1224, 1225, 1226, 1227, 1228, 1321, 1322, 1323, 1324, 1325, 1326, 1327, 1328, 1421, 1422, 1423, 1424, 1425, 1426, 1427, 1428};
+    //const int N_panels_to_constrain = 32;
+    //double list_panels_to_constrain[N_panels_to_constrain] = {1121, 1122, 1123, 1124, 1125, 1126, 1127, 1128, 1221, 1222, 1223, 1224, 1225, 1226, 1227, 1228, 1321, 1322, 1323, 1324, 1325, 1326, 1327, 1328, 1421, 1422, 1423, 1424, 1425, 1426, 1427, 1428};
+    double list_panels_to_constrain_Tz[48];
+    for (int pnl = 0; pnl<48; pnl++)
+    {
+        list_panels_to_constrain_Tz[pnl] = 0;
+    }
+    double list_panels_to_constrain_RxRy[48];
+    for (int pnl = 0; pnl<48; pnl++)
+    {
+        list_panels_to_constrain_RxRy[pnl] = 0;
+    }
+
+    Device::Identity panel_Id;
+    int N_panels_to_constrain_Tz = 0;
+    for (unsigned panelPos : m_selectedTzFixedPanels) {
+        int pos = (int)panelPos;
+        list_panels_to_constrain_Tz[N_panels_to_constrain_Tz] = pos;
+        N_panels_to_constrain_Tz += 1;
+    }
+    int N_panels_to_constrain_RxRy = 0;
+    for (unsigned panelPos : m_selectedRxRyFixedPanels) {
+        int pos = (int)panelPos;
+        list_panels_to_constrain_RxRy[N_panels_to_constrain_RxRy] = pos;
+        N_panels_to_constrain_RxRy += 1;
+    }
+
     if (alignFrac < 0.) setConstraints = true;
     if (setConstraints) 
     {
@@ -2607,9 +2696,23 @@ UaStatus MirrorController::__setAlignFrac(double alignFrac) {
 
             // updated the target coordinates with constraints
             bool is_a_panel_to_constrain = false;
-            for (int i=0; i < N_panels_to_constrain; i++)
+            for (int i=0; i < N_panels_to_constrain_Tz; i++)
             {
-                if (list_panels_to_constrain[i]==panelId.position) is_a_panel_to_constrain = true;
+                if (list_panels_to_constrain_Tz[i]==panelId.position)
+                {
+                    spdlog::info("Panel {}: fix Tz at {} mm.", panelId, currentCoordinates[2]);
+                    targetCoordinates[2] = currentCoordinates[2]; // Tz
+                }
+            }
+            for (int i=0; i < N_panels_to_constrain_RxRy; i++)
+            {
+                if (list_panels_to_constrain_RxRy[i]==panelId.position)
+                {
+                    spdlog::info("Panel {}: fix Rx at {} mm.", panelId, currentCoordinates[3]);
+                    targetCoordinates[3] = currentCoordinates[3]; // Rx
+                    spdlog::info("Panel {}: fix Ry at {} mm.", panelId, currentCoordinates[4]);
+                    targetCoordinates[4] = currentCoordinates[4]; // Ry
+                }
             }
             if (setConstraints && is_a_panel_to_constrain)
             {
@@ -2617,12 +2720,6 @@ UaStatus MirrorController::__setAlignFrac(double alignFrac) {
                 targetCoordinates[0] = currentCoordinates[0]; // Tx
                 spdlog::info("Panel {}: fix Ty at {} mm.", panelId, currentCoordinates[1]);
                 targetCoordinates[1] = currentCoordinates[1]; // Ty
-                spdlog::info("Panel {}: fix Tz at {} mm.", panelId, currentCoordinates[2]);
-                targetCoordinates[2] = currentCoordinates[2]; // Tz
-                spdlog::info("Panel {}: fix Rx at {} mm.", panelId, currentCoordinates[3]);
-                targetCoordinates[3] = currentCoordinates[3]; // Rx
-                spdlog::info("Panel {}: fix Ry at {} mm.", panelId, currentCoordinates[4]);
-                targetCoordinates[4] = currentCoordinates[4]; // Ry
                 spdlog::info("Panel {}: fix Rz at {} mm.", panelId, currentCoordinates[5]);
                 targetCoordinates[5] = currentCoordinates[5]; // Rz
             }
