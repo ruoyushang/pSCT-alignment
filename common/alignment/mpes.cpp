@@ -26,7 +26,7 @@ const std::vector<Device::ErrorDefinition> MPESBase::ERROR_DEFINITIONS = {
     {"Intensity of the image is insufficient to process confidently.",                              Device::ErrorState::FatalError},//error 2
     {"Intensity of the image is too bright to produce reliable measurement. Likely cause: no tube or no lid.",             Device::ErrorState::FatalError},//error 3
     {"Intensity of the image is bright to perform calculations but the spot width is extensively large > 20px.",      Device::ErrorState::OperableError},//error 4
-    {"Image is severely uneven. Likely due to being in the reflection region, too close to webcam edges, or a bad laser. More than 30% deviation.",Device::ErrorState::OperableError},//error 5
+    {"Image is severely uneven. Likely due to being in the reflection region, too close to webcam edges, or a bad laser. More than 30% deviation.",Device::ErrorState::FatalError},//error 5
     {"Image is mildly uneven. More than 20% but less than 30% deviation.",                                           Device::ErrorState::OperableError},//error 6
     {"Intensity of the image is zero, no pixels pass threshold value.",Device::ErrorState::FatalError}//error 7,
 };
@@ -172,8 +172,10 @@ int MPES::__setExposure() {
 
     m_pDevice->SetTolerance(INTENSITY_RATIO_TOLERANCE);
 
-    int tempExposure= m_pDevice->GetExposure();
+    int currentExposure;
+    int tempExposure = m_pDevice->GetExposure();
     bool tryExtremeExposure = true ;
+    bool ratio_error = false;
 
     do{
         spdlog::info("Trying read() again to maintain inside constraints");
@@ -181,17 +183,25 @@ int MPES::__setExposure() {
         unsetError(5);
         unsetError(6);
 
-        spdlog::warn("Condition 1: {} <= {} * {}/{} = {}",m_Position.cleanedIntensity, m_pDevice->GetTargetIntensity(), tempExposure,std::to_string(MAX_EXPOSURE),std::to_string(m_pDevice->GetTargetIntensity() * ((float)tempExposure/MAX_EXPOSURE)));
-        spdlog::warn("Condition 2: {} >= {} * {}/{} = {}",m_Position.cleanedIntensity, m_pDevice->GetTargetIntensity(), tempExposure,std::to_string(MIN_EXPOSURE),std::to_string(m_pDevice->GetTargetIntensity() * ((float)tempExposure/MIN_EXPOSURE)));
+        currentExposure = m_pDevice->GetExposure();
+        if (std::abs(m_Position.xSpotWidth / m_Position.ySpotWidth - 1) > 0.40) {
+            spdlog::error("Image is severely uneven and outside physical expectations. Exiting setExposure loop.");
+            ratio_error = true;
+            break;
+        }
+
+        spdlog::info("Condition 1: {} <= {} * {}/{} = {}",m_Position.cleanedIntensity, m_pDevice->GetTargetIntensity(), currentExposure,std::to_string(MAX_EXPOSURE),std::to_string(m_pDevice->GetTargetIntensity() * ((float)tempExposure/MAX_EXPOSURE)));
+        spdlog::info("Condition 2: {} >= {} * {}/{} = {}",m_Position.cleanedIntensity, m_pDevice->GetTargetIntensity(), currentExposure,std::to_string(MIN_EXPOSURE),std::to_string(m_pDevice->GetTargetIntensity() * ((float)tempExposure/MIN_EXPOSURE)));
 
         __updatePosition();
 
-        spdlog::warn("After updating position: ");
-        spdlog::warn("Condition 1: {} <= {} * {}/{} = {}",m_Position.cleanedIntensity, m_pDevice->GetTargetIntensity(), tempExposure,std::to_string(MAX_EXPOSURE),std::to_string(m_pDevice->GetTargetIntensity() * ((float)tempExposure/MAX_EXPOSURE)));
-        spdlog::warn("Condition 2: {} >= {} * {}/{} = {}",m_Position.cleanedIntensity, m_pDevice->GetTargetIntensity(), tempExposure,std::to_string(MIN_EXPOSURE),std::to_string(m_pDevice->GetTargetIntensity() * ((float)tempExposure/MIN_EXPOSURE)));
+
+        spdlog::info("After updating position: ");
+        spdlog::info("Condition 1: {} <= {} * {}/{} = {}",m_Position.cleanedIntensity, m_pDevice->GetTargetIntensity(), currentExposure,std::to_string(MAX_EXPOSURE),std::to_string(m_pDevice->GetTargetIntensity() * ((float)tempExposure/MAX_EXPOSURE)));
+        spdlog::info("Condition 2: {} >= {} * {}/{} = {}",m_Position.cleanedIntensity, m_pDevice->GetTargetIntensity(), currentExposure,std::to_string(MIN_EXPOSURE),std::to_string(m_pDevice->GetTargetIntensity() * ((float)tempExposure/MIN_EXPOSURE)));
 
         spdlog::info("{} : MPES::setExposure() : Intensity {} ({}). Exposure: {}.", m_Identity, m_Position.cleanedIntensity,
-                      m_pDevice->GetTargetIntensity(), m_pDevice->GetExposure());
+                      m_pDevice->GetTargetIntensity(), currentExposure);
 
         tempExposure = m_pDevice->GetExposure();
 
@@ -203,7 +213,7 @@ int MPES::__setExposure() {
             } else {
                 m_pDevice->SetExposure((int) ((float) tempExposure * PRECISION));
             }
-            spdlog::warn("Image is too dim, resetting exposure up to {}",m_pDevice->GetExposure());
+            spdlog::warn("Image is too dim, resetting exposure up to {}, from {} ",m_pDevice->GetExposure(), currentExposure);
         }
         // Case 2: intensity is greater than target (or is totally bright, e.g. tube open), divide exposure by precision and try again.
         else if (m_Position.cleanedIntensity >=(m_pDevice->GetTargetIntensity() * ((float)tempExposure/MIN_EXPOSURE))) {
@@ -215,13 +225,13 @@ int MPES::__setExposure() {
             else
             {
                 m_pDevice->SetExposure((int)((float)tempExposure / PRECISION));
-                spdlog::warn("Image is too bright, resetting exposure up to {}",m_pDevice->GetExposure());
+                spdlog::warn("Image is too bright, resetting exposure up to {}, from {}",m_pDevice->GetExposure(), currentExposure);
             }
         }
         // Case 3: normal operation, just increment to get closer to target.
         else {
             m_pDevice->SetExposure((int)((float)tempExposure * (m_pDevice->GetTargetIntensity() / m_Position.cleanedIntensity )));
-            spdlog::info("Normal operation, incrementing exposure up to {}",m_pDevice->GetExposure());
+            spdlog::info("Normal operation, incrementing exposure up to {} from {}",m_pDevice->GetExposure(), currentExposure);
         }
     }
     while (((m_Position.cleanedIntensity < (m_pDevice->GetTargetIntensity()/PRECISION)) || (m_Position.cleanedIntensity > (m_pDevice->GetTargetIntensity() * PRECISION))) && (m_pDevice->GetExposure() <= MAX_EXPOSURE ) && (m_pDevice->GetExposure() >= MIN_EXPOSURE));
@@ -243,7 +253,9 @@ int MPES::__setExposure() {
         m_pDevice->SetExposure(tempExposure);
     }
     else{
-        spdlog::info("Normal exit from do-while loop. Intensity and exposure within the bound.");
+        if (! ratio_error) {
+            spdlog::info("Normal exit from do-while loop. Intensity and exposure within the bound.");
+        }
     }
 
     spdlog::info("{} : MPES::setExposure() : Done.", m_Identity);
@@ -262,7 +274,7 @@ int MPES::__updatePosition() {
     m_Position.exposure = -3;
 
     // read sensor
-    if (int(m_pImageSet->Capture()) != -3) {
+    if (int(m_pImageSet->Capture()) > 0) {
         if (m_Calibrate) {
             m_pImageSet->Matrix_Transform();
             m_pImageSet->Calibrate2D();
@@ -300,12 +312,12 @@ int MPES::__updatePosition() {
         spdlog::warn("{}: [3] [Fatal] Intensity of the image is too bright to process confidently. Likely cause: no tube or no lid.", m_Identity.serialNumber);
     }
 
-    if (std::abs(m_Position.xSpotWidth / m_Position.ySpotWidth - 1) > 0.30) {
-        spdlog::warn("{}: [5] [Operable] Image is severely uneven. Likely due to being in the reflection region, too close to webcam edges, or a bad laser. More than 30% deviation.", m_Identity.serialNumber);
+    if (std::abs(m_Position.xSpotWidth / m_Position.ySpotWidth - 1) > 0.40) {
+        spdlog::warn("{}: [5] [Fatal] Image is severely uneven. Likely due to being in the reflection region, too close to webcam edges, or a bad laser. More than 40% deviation.", m_Identity.serialNumber);
         setError(5);
     }
     else if (std::abs(m_Position.xSpotWidth / m_Position.ySpotWidth - 1) > 0.20) {
-        spdlog::error("{}: [6] [Operable] Image is mildly uneven. More than 20% but less than 30% deviation", m_Identity.serialNumber);
+        spdlog::error("{}: [6] [Operable] Image is mildly uneven. More than 20% but less than 40% deviation", m_Identity.serialNumber);
         setError(6);
     }
 
