@@ -251,9 +251,9 @@ const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean>> 
                                           UaVariant(false), OpcUa_False)},
     {PAS_MPESType_Error4, std::make_tuple("[4] [Operable] Intensity of the image is bright to perform calculations but the spot width is extensively large >20px.", UaVariant(false),
                                           OpcUa_False)},
-    {PAS_MPESType_Error5, std::make_tuple("[5] [Operable] Image is severely uneven. Likely due to being in the reflection region, too close to webcam edges, or a bad laser. More than 30% deviation.",
+    {PAS_MPESType_Error5, std::make_tuple("[5] [Fatal] Image is severely uneven. Likely due to being in the reflection region, too close to webcam edges, or a bad laser. More than 40% deviation.",
                                           UaVariant(false), OpcUa_False)},
-    {PAS_MPESType_Error6, std::make_tuple("[6] [Operable] Image is mildly uneven. More than 20% but less than 30% deviation", UaVariant(false), OpcUa_False)},
+    {PAS_MPESType_Error6, std::make_tuple("[6] [Operable] Image is mildly uneven. More than 20% but less than 40% deviation", UaVariant(false), OpcUa_False)},
     {PAS_MPESType_Error7, std::make_tuple("[7] [Fatal] Intensity of the image is zero, no pixels pass threshold value.", UaVariant(false), OpcUa_False)},
 };
 
