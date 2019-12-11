@@ -262,7 +262,7 @@ int MPES::__updatePosition() {
     m_Position.exposure = -3;
 
     // read sensor
-    if (m_pImageSet->Capture()) {
+    if (int(m_pImageSet->Capture()) != -3) {
         if (m_Calibrate) {
             m_pImageSet->Matrix_Transform();
             m_pImageSet->Calibrate2D();

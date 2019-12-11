@@ -225,19 +225,23 @@ def PlotMisalignment(misalignment, zmax=1.0, outfilename="misalignment.png"):
     else:
         s=20
     try:
+        labels = ''
         for sensor in all_misalignments:
             marker = 'o'
             if all_misalignments[sensor]["misalignment"] <= 0:
                 marker = '+'
             if all_misalignments[sensor]["misalignment"] > zmax:
                 edge = 'red'
+                labels = '%s'%(sensor)
             else:
                 edge = 'face'
+                labels = ''
             if zmax is None:
                 zmax=3
             scatter = ax.scatter(all_misalignments[sensor]["coor_x"], all_misalignments[sensor]["coor_y"],
                                  label=str(sensor), c=all_misalignments[sensor]["misalignment"], cmap='viridis',
                                  marker=marker, edgecolors=edge, vmin=0, vmax=zmax, s=s)
+            ax.annotate(labels, (all_misalignments[sensor]["coor_x"], all_misalignments[sensor]["coor_y"]))
         cb = fig.colorbar(scatter, ax=ax)
         cb.set_label("Misalignment [mm]")
         ax.axis('off')
@@ -247,7 +251,8 @@ def PlotMisalignment(misalignment, zmax=1.0, outfilename="misalignment.png"):
         plt.savefig(outfilename)
 
         plt.figure(figsize=(8, 3))
-        plt.hist(misalignment_array, bins=20, range=[0, 2])
+        plt.hist(misalignment_array, bins=20)
+        #plt.hist(misalignment_array, bins=20, range=[0, 2])
         plt.xlabel("Misalignment [mm]")
         plt.tight_layout()
         plt.savefig(outfilename.split('.')[0]+"_hist.png")
@@ -270,7 +275,7 @@ if __name__ == "__main__":
         outputfilename = sys.argv[1]
         plot_name = outputfilename.split('/')[len(outputfilename.split('/'))-1].strip('.png')
         misalignment = read_misalignment(outputfilename)
-        PlotMisalignment(misalignment, 1., "%s/misalignment_%s.png"%(output_folder,plot_name))
+        PlotMisalignment(misalignment, 4., "%s/misalignment_%s.png"%(output_folder,plot_name))
     if len(sys.argv) == 3:
         outputfilename_1 = sys.argv[1]
         plot_name_1 = outputfilename_1.split('/')[len(outputfilename_1.split('/'))-1].strip('.png')

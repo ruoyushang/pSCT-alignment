@@ -44,6 +44,10 @@ const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, O
                                                        Ua_AccessLevel_CurrentRead | Ua_AccessLevel_CurrentWrite)},
     {PAS_MirrorType_SelectedPanels,    std::make_tuple("SelectedPanels", UaVariant(""), OpcUa_False,
                                                        Ua_AccessLevel_CurrentRead | Ua_AccessLevel_CurrentWrite)},
+    {PAS_MirrorType_SelectedTzFixedPanels,    std::make_tuple("SelectedTzFixedPanels", UaVariant(""), OpcUa_False,
+                                                       Ua_AccessLevel_CurrentRead | Ua_AccessLevel_CurrentWrite)},
+    {PAS_MirrorType_SelectedRxRyFixedPanels,    std::make_tuple("SelectedRxRyFixedPanels", UaVariant(""), OpcUa_False,
+                                                       Ua_AccessLevel_CurrentRead | Ua_AccessLevel_CurrentWrite)},
     {PAS_MirrorType_SelectedEdges,     std::make_tuple("SelectedEdges", UaVariant(""), OpcUa_False,
                                                        Ua_AccessLevel_CurrentRead | Ua_AccessLevel_CurrentWrite)},
 };
