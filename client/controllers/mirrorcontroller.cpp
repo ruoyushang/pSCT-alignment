@@ -482,6 +482,7 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
             }
             else if (offset == PAS_MirrorType_LoadAlignmentOffset) {
                 std::string saveFilePath = UaString(args[0].Value.String).toUtf8();
+                spdlog::info("Calling calculateLoadAlignmentOffset...");
                 status = __calculateLoadAlignmentOffset(saveFilePath);
             }
 
@@ -526,6 +527,7 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
             }
             else if (offset == PAS_MirrorType_LoadAlignmentOffset) {
                 alignFrac = args[1].Value.Double;
+                spdlog::info("Calling setAlignFrac...");
             }
             __setAlignFrac(alignFrac);
             alignFrac = abs(alignFrac);
@@ -1815,7 +1817,7 @@ Eigen::MatrixXd MirrorController::__computeSystematicsMatrix(unsigned pos1, unsi
     return res;
 }
 
-UaStatus MirrorController::__calculateAlignSector() {
+UaStatus MirrorController::__calculateAlignSector(int align_mode) {
     UaStatus status;
     // make sure there are some selected sensors
     if (m_selectedPanels.empty()) {
@@ -1922,8 +1924,15 @@ UaStatus MirrorController::__calculateAlignSector() {
         vtmp.toDouble(curRead(m * 2));
         alignMPES.at(m)->getData(PAS_MPESType_yCentroidAvg, vtmp);
         vtmp.toDouble(curRead(m * 2 + 1));
+        if (align_mode==0)
+        {
         targetRead.segment(2 * m, 2) = alignMPES.at(m)->getAlignedReadings()
                                        - alignMPES.at(m)->getSystematicOffsets();
+        }
+        else
+        {
+        targetRead.segment(2 * m, 2) = alignMPES.at(m)->getAlignedReadings() + alignMPES.at(m)->m_OpticsOffsets;
+        }
 
         for (int p = 0; p < (int) panelsToMove.size(); p++) {
             auto panelSide = alignMPES.at(m)->getPanelSide(panelsToMove.at(p)->getIdentity().position);
@@ -2262,8 +2271,9 @@ UaStatus MirrorController::saveAlignmentOffset(const std::string &saveFilePath) 
     for (int mpesSerial : m_selectedMPES) {
         std::shared_ptr<MPESController> mpes = std::dynamic_pointer_cast<MPESController>(
             m_ChildrenSerialMap.at(PAS_MPESType).at(mpesSerial));
-        if (mpes->isVisible())
-            alignMPES.push_back(mpes);
+        //if (mpes->isVisible())
+        //    alignMPES.push_back(mpes);
+        alignMPES.push_back(mpes);
     }
     UaVariant vtmp;
     Eigen::VectorXd curRead(2 * alignMPES.size());
@@ -2278,6 +2288,7 @@ UaStatus MirrorController::saveAlignmentOffset(const std::string &saveFilePath) 
         f << "MPES: " << alignMPES.at(m)->getIdentity() << std::endl;
         f << curRead(m * 2)-targetRead(m * 2) << std::endl;
         f << curRead(m * 2 + 1)-targetRead(m * 2 + 1) << std::endl;
+        f << SAVEFILE_DELIMITER << std::endl;
     }
     f.close();
     spdlog::info("{}: Done writing Mirror alignment to file {}.", m_Identity, saveFilePath);
@@ -2568,11 +2579,14 @@ UaStatus MirrorController::__calculateLoadAlignmentOffset(const std::string &loa
     Device::Identity sensorId;
     int i = 0;
 
+    spdlog::info("Parsing sensor readings from the file...");
     while (infile.peek() != EOF) {
         getline(infile, line);
         s = line.find("(");
         e = line.find(")");
         sensorId = Device::parseIdentity(line.substr(s , e - s + 2));
+        spdlog::info("Found MPES {}", sensorId);
+        spdlog::info(" SAVEFILE_DELIMITER is {}", SAVEFILE_DELIMITER);
         i = 0;
         while (getline(infile, line) && line != SAVEFILE_DELIMITER) {
             alignmentOffset(i) = std::stod(line);
@@ -2582,6 +2596,7 @@ UaStatus MirrorController::__calculateLoadAlignmentOffset(const std::string &loa
         spdlog::info("{}: Found offset for MPES {}:\n{}\n", m_Identity, sensorId, alignmentOffset);
     }
 
+    spdlog::info("saving aligned readings to vectors...");
     std::vector<std::shared_ptr<MPESController>> alignMPES;
     for (int mpesSerial : m_selectedMPES) {
         std::shared_ptr<MPESController> mpes = std::dynamic_pointer_cast<MPESController>(
@@ -2596,7 +2611,8 @@ UaStatus MirrorController::__calculateLoadAlignmentOffset(const std::string &loa
         }
     }
 
-    status = __calculateAlignSector();
+    spdlog::info("calling calculateAlignSector...");
+    status = __calculateAlignSector(1);
 
     return status;
 }

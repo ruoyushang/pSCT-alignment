@@ -108,7 +108,7 @@ private:
     // Align all edges fron need_alignment starting at start_idx and  moving in the direction dir
     UaStatus alignSequential(const std::string &startEdge, const std::string &EndEdge, unsigned dir);
 
-    UaStatus __calculateAlignSector();
+    UaStatus __calculateAlignSector(int align_mode=0);
 
     UaStatus __calculateAlignRing(int fixPanel);
 
