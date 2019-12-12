@@ -131,6 +131,7 @@ int MPESImageSet::Capture()
             {
                 capturedimage.analyze(iThresh);
                 if (int(capturedimage.datavec.data()->CleanedIntensity) == -2) {
+                    spdlog::warn("Cam_{}: CleanedIntensity == -2",device->GetID() );
                     datasetvec.push_back(capturedimage.datavec);
                     break;
                 }
@@ -149,8 +150,15 @@ int MPESImageSet::Capture()
                     imwrite(imagefile, capturedimage);
                 }
                 capturedimage.analyze(iThresh);
-                datasetvec.push_back(capturedimage.datavec);
-                sleep(device->GetLapse()); 
+                if (int(capturedimage.datavec.data()->CleanedIntensity) == -2) {
+                    spdlog::warn("Cam_{}: CleanedIntensity == -2",device->GetID() );
+                    datasetvec.push_back(capturedimage.datavec);
+                    break;
+                }
+                else{
+                    datasetvec.push_back(capturedimage.datavec);
+                    sleep(device->GetLapse());
+                }
             }
         }
         capture.release();
