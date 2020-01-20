@@ -103,6 +103,7 @@ public:
 
 private:
     static const std::map<std::string, std::string> SUBCLIENTS;
+    static const std::map<std::string, std::string> CCDs;
 
     std::string m_Mode;
 

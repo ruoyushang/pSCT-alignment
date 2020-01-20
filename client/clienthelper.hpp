@@ -65,7 +65,7 @@ private:
     UaStatus recurseAddressSpace(const UaNodeId& nodeToBrowse, OpcUa_UInt32 maxReferencesToReturn);
 
     static void printBrowseResults(const OpcUa_ReferenceDescription &referenceDescription);
-    void addDevices(const OpcUa_ReferenceDescription& eferenceDescription);
+    void addDevices(const OpcUa_ReferenceDescription& referenceDescription);
 
     // variables
     std::shared_ptr<PasNodeManager> m_pNodeManager;

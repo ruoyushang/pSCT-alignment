@@ -23,6 +23,11 @@ const std::map<std::string, std::string> Configuration::SUBCLIENTS = {
     {"other",         "opc.tcp://127.0.0.1:48014"}
 };
 
+const std::map<std::string, std::string> Configuration::CCDs = {
+        {"11","common/globalalignment/ccd/50mm-nosn.dat"},
+        {"12","common/globalalignment/ccd/50mm-nosn2.dat"},
+};
+
 
 Configuration::Configuration(std::string mode) : m_Mode(std::move(mode)), m_bAutomaticReconnect(OpcUa_True),
                                                  m_bRetryInitialConnect(OpcUa_True)
@@ -70,7 +75,7 @@ UaStatus Configuration::loadConnectionConfiguration(const UaString& sConfigurati
     value = pSettings->value("DiscoveryURL", UaString("opc.tcp://172.17.0.201:48010"));
 #endif
     m_discoveryUrl = value.toString();
-    value = pSettings->value("PositionerURL", UaString("opc.tcp://127.0.0.1:4840"));
+    value = pSettings->value("PositionerURL", UaString("opc.tcp://172.17.3.3:4840"));
     m_positionerUrl = value.toString();
 
     // Read NamespaceArray
@@ -237,6 +242,25 @@ UaStatus Configuration::loadDeviceConfiguration(const std::vector<std::string> &
             }
 
         }
+
+        // Get CCDs for GAS
+        Device::Identity CCDId;
+        for (auto v : CCDs)
+        {
+            std::cout << v.first << " :: " << v.second << std::endl;
+            CCDId.serialNumber = std::stoi(v.first);
+            CCDId.position = std::stoi(v.first);
+            std::string port = std::to_string(std::stoi(v.first));
+            CCDId.eAddress = v.second;
+            CCDId.name = std::string("CCD_") + std::to_string(CCDId.serialNumber);
+
+            m_DeviceIdentities[PAS_CCDType].insert(CCDId);
+            spdlog::info("Configuration::loadDeviceConfiguration(): added CCD {} to device list.", CCDId);
+
+            m_DeviceSerialMap[PAS_CCDType][CCDId.serialNumber] = CCDId;
+            m_DeviceNameMap[CCDId.name] = CCDId;
+        }
+
     }
     catch (sql::SQLException &e) {
         spdlog::error("# ERR: SQLException in {}"
