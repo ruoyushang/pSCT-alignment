@@ -3,6 +3,7 @@
 
 #include <memory>
 #include <sstream>
+#include <objects/ccdobject.hpp>
 
 #include "uaserver/opcua_analogitemtype.h"
 
@@ -542,229 +543,132 @@ UaStatus PasNodeManager::amendTypeNodes()
     UA_ASSERT(addStatus.isGood());
 
     /**************************************************************
-     * Create the CCD Type
-     **************************************************************/
+    * Create the CCD Type
+    **************************************************************/
     // Add ObjectType "CCDType"
-    pCCDType = new UaObjectTypeSimple("CCDType", UaNodeId(PAS_CCDType, getNameSpaceIndex()), m_defaultLocaleId, OpcUa_True);
+    pCCDType = new UaObjectTypeSimple(
+            "CCDType",    // Used as string in browse name and display name
+            UaNodeId(PAS_CCDType, getNameSpaceIndex()), // Numeric NodeId for types
+            m_defaultLocaleId,   // Defaul LocaleId for UaLocalizedText strings
+            OpcUa_True);         // Abstract object type -> can not be instantiated
     // Add new node to address space by creating a reference from BaseObjectType to this new node
     addStatus = addNodeAndReference(OpcUaId_BaseObjectType, pCCDType, OpcUaId_HasSubtype);
     UA_ASSERT(addStatus.isGood());
 
     /***************************************************************
-    * Create the CCD Type Instance declaration
-    ***************************************************************/
-    // Add Variable "State" as BaseDataVariable
-    defaultValue.setUInt32(0);
-    pDataItem = new OpcUa::DataItemType(UaNodeId(PAS_CCDType_State, getNameSpaceIndex()), "State",
-                                        getNameSpaceIndex(), defaultValue, Ua_AccessLevel_CurrentRead, this);
-    // Set Modelling Rule to Mandatory
-    pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
-    addStatus = addNodeAndReference(pCCDType, pDataItem, OpcUaId_HasComponent);
-    UA_ASSERT(addStatus.isGood());
+     * Create the CCD Type Instance declaration
+     ***************************************************************/
+    // Register all variables
+    for (auto v : CCDObject::VARIABLES) {
+        pDataItem = new OpcUa::DataItemType(UaNodeId(v.first, getNameSpaceIndex()),
+                                            std::get<0>(v.second).c_str(), getNameSpaceIndex(), std::get<1>(v.second),
+                                            std::get<3>(v.second), this);
+        pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
+        addStatus = addNodeAndReference(pCCDType, pDataItem, OpcUaId_HasComponent);
+        UA_ASSERT(addStatus.isGood());
+    }
 
-    // Add Variable "xFromLED" as DataItem
-    defaultValue.setDouble(0);
-    pDataItem = new OpcUa::DataItemType(UaNodeId(PAS_CCDType_xFromLED, getNameSpaceIndex()), "xFromLED",
-                                        getNameSpaceIndex(), defaultValue, Ua_AccessLevel_CurrentRead, this);
-    pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
-    addStatus = addNodeAndReference(pCCDType, pDataItem, OpcUaId_HasComponent);
-    UA_ASSERT(addStatus.isGood());
+    // Register all error variables
+    for (auto v : CCDObject::ERRORS) {
+        pDataItem = new OpcUa::DataItemType(UaNodeId(v.first, getNameSpaceIndex()),
+                                            std::get<0>(v.second).c_str(), getNameSpaceIndex(), std::get<1>(v.second),
+                                            Ua_AccessLevel_CurrentRead, this);
+        //pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Optional);
+        addStatus = addNodeAndReference(pCCDType, pDataItem, OpcUaId_HasComponent);
+        UA_ASSERT(addStatus.isGood());
+    }
 
-    // Add Variable "yFromLED" as DataItem
-    defaultValue.setDouble(0);
-    pDataItem = new OpcUa::DataItemType(UaNodeId(PAS_CCDType_yFromLED, getNameSpaceIndex()), "yFromLED",
-                                        getNameSpaceIndex(), defaultValue, Ua_AccessLevel_CurrentRead, this);
-    pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
-    addStatus = addNodeAndReference(pCCDType, pDataItem, OpcUaId_HasComponent);
-    UA_ASSERT(addStatus.isGood());
+    // Register all methods
+    for (auto m : CCDObject::METHODS) {
+        pMethod = new OpcUa::BaseMethod(UaNodeId(m.first, getNameSpaceIndex()), m.second.first.c_str(),
+                                        getNameSpaceIndex());
+        pMethod->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
+        addStatus = addNodeAndReference(pCCDType, pMethod, OpcUaId_HasComponent);
+        UA_ASSERT(addStatus.isGood());
 
-    // Add Variable "zFromLED" as DataItem
-    defaultValue.setDouble(0);
-    pDataItem = new OpcUa::DataItemType(UaNodeId(PAS_CCDType_zFromLED, getNameSpaceIndex()), "zFromLED",
-                                        getNameSpaceIndex(), defaultValue, Ua_AccessLevel_CurrentRead, this);
-    pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
-    addStatus = addNodeAndReference(pCCDType, pDataItem, OpcUaId_HasComponent);
-    UA_ASSERT(addStatus.isGood());
-
-    // Add Variable "psiFromLED" as DataItem
-    defaultValue.setDouble(0);
-    pDataItem = new OpcUa::DataItemType(UaNodeId(PAS_CCDType_psiFromLED, getNameSpaceIndex()), "psiFromLED",
-                                        getNameSpaceIndex(), defaultValue, Ua_AccessLevel_CurrentRead, this);
-    pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
-    addStatus = addNodeAndReference(pCCDType, pDataItem, OpcUaId_HasComponent);
-    UA_ASSERT(addStatus.isGood());
-
-    // Add Variable "thetaFromLED" as DataItem
-    defaultValue.setDouble(0);
-    pDataItem = new OpcUa::DataItemType(UaNodeId(PAS_CCDType_thetaFromLED, getNameSpaceIndex()), "thetaFromLED",
-                                        getNameSpaceIndex(), defaultValue, Ua_AccessLevel_CurrentRead, this);
-    pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
-    addStatus = addNodeAndReference(pCCDType, pDataItem, OpcUaId_HasComponent);
-    UA_ASSERT(addStatus.isGood());
-
-    // Add Variable "phiFromLED" as DataItem
-    defaultValue.setDouble(0);
-    pDataItem = new OpcUa::DataItemType(UaNodeId(PAS_CCDType_phiFromLED, getNameSpaceIndex()), "phiFromLED",
-                                        getNameSpaceIndex(), defaultValue, Ua_AccessLevel_CurrentRead, this);
-    pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
-    addStatus = addNodeAndReference(pCCDType, pDataItem, OpcUaId_HasComponent);
-    UA_ASSERT(addStatus.isGood());
-
-    // Add Variable "xNominal" as DataItem
-    defaultValue.setDouble(0);
-    pDataItem = new OpcUa::DataItemType(UaNodeId(PAS_CCDType_xNominal, getNameSpaceIndex()), "xNominal",
-                                        getNameSpaceIndex(), defaultValue, Ua_AccessLevel_CurrentRead | Ua_AccessLevel_CurrentWrite, this);
-    pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
-    addStatus = addNodeAndReference(pCCDType, pDataItem, OpcUaId_HasComponent);
-    UA_ASSERT(addStatus.isGood());
-
-    // Add Variable "yNominal" as DataItem
-    defaultValue.setDouble(0);
-    pDataItem = new OpcUa::DataItemType(UaNodeId(PAS_CCDType_yNominal, getNameSpaceIndex()), "yNominal",
-                                        getNameSpaceIndex(), defaultValue, Ua_AccessLevel_CurrentRead | Ua_AccessLevel_CurrentWrite, this);
-    pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
-    addStatus = addNodeAndReference(pCCDType, pDataItem, OpcUaId_HasComponent);
-    UA_ASSERT(addStatus.isGood());
-
-    // Add Variable "zNominal" as DataItem
-    defaultValue.setDouble(0);
-    pDataItem = new OpcUa::DataItemType(UaNodeId(PAS_CCDType_zNominal, getNameSpaceIndex()), "zNominal",
-                                        getNameSpaceIndex(), defaultValue, Ua_AccessLevel_CurrentRead | Ua_AccessLevel_CurrentWrite, this);
-    pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
-    addStatus = addNodeAndReference(pCCDType, pDataItem, OpcUaId_HasComponent);
-    UA_ASSERT(addStatus.isGood());
-
-    // Add Variable "psiNominal" as DataItem
-    defaultValue.setDouble(0);
-    pDataItem = new OpcUa::DataItemType(UaNodeId(PAS_CCDType_psiNominal, getNameSpaceIndex()), "psiNominal",
-                                        getNameSpaceIndex(), defaultValue, Ua_AccessLevel_CurrentRead | Ua_AccessLevel_CurrentWrite, this);
-    pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
-    addStatus = addNodeAndReference(pCCDType, pDataItem, OpcUaId_HasComponent);
-    UA_ASSERT(addStatus.isGood());
-
-    // Add Variable "thetaNominal" as DataItem
-    defaultValue.setDouble(0);
-    pDataItem = new OpcUa::DataItemType(UaNodeId(PAS_CCDType_thetaNominal, getNameSpaceIndex()), "thetaNominal",
-                                        getNameSpaceIndex(), defaultValue, Ua_AccessLevel_CurrentRead | Ua_AccessLevel_CurrentWrite, this);
-    pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
-    addStatus = addNodeAndReference(pCCDType, pDataItem, OpcUaId_HasComponent);
-    UA_ASSERT(addStatus.isGood());
-
-    // Add Variable "phiNominal" as DataItem
-    defaultValue.setDouble(0);
-    pDataItem = new OpcUa::DataItemType(UaNodeId(PAS_CCDType_phiNominal, getNameSpaceIndex()), "phiNominal",
-                                        getNameSpaceIndex(), defaultValue, Ua_AccessLevel_CurrentRead | Ua_AccessLevel_CurrentWrite, this);
-    pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
-    addStatus = addNodeAndReference(pCCDType, pDataItem, OpcUaId_HasComponent);
-    UA_ASSERT(addStatus.isGood());
-
-
-    // Add Method "Start"
-    pMethod = new OpcUa::BaseMethod(UaNodeId(PAS_CCDType_Start, getNameSpaceIndex()), "Start", getNameSpaceIndex());
-    pMethod->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
-    addStatus = addNodeAndReference(pCCDType, pMethod, OpcUaId_HasComponent);
-    UA_ASSERT(addStatus.isGood());
-
-    // Add Method "Stop"
-    pMethod = new OpcUa::BaseMethod(UaNodeId(PAS_CCDType_Stop, getNameSpaceIndex()), "Stop", getNameSpaceIndex());
-    pMethod->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
-    addStatus = addNodeAndReference(pCCDType, pMethod, OpcUaId_HasComponent);
-    UA_ASSERT(addStatus.isGood());
-
-    // Add Method "Read"
-    pMethod = new OpcUa::BaseMethod(UaNodeId(PAS_CCDType_Read, getNameSpaceIndex()), "Read", getNameSpaceIndex());
-    pMethod->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
-    addStatus = addNodeAndReference(pCCDType, pMethod, OpcUaId_HasComponent);
-    UA_ASSERT(addStatus.isGood());
-
+        // Add arguments
+        pPropertyArg = new UaPropertyMethodArgument(
+                UaNodeId((std::to_string(m.first) + "_" + m.second.first + "_args").c_str(),
+                         getNameSpaceIndex()), // NodeId of the property
+                Ua_AccessLevel_CurrentRead,             // Access level of the property
+                m.second.second.size(),                                      // Number of arguments
+                UaPropertyMethodArgument::INARGUMENTS); // IN arguments
+        for (size_t i = 0; i < m.second.second.size(); i++) {
+            pPropertyArg->setArgument(
+                    (OpcUa_UInt32) i,                       // Index of the argument
+                    std::get<0>(m.second.second[i]).c_str(),   // Name of the argument
+                    std::get<1>(m.second.second[i]),// Data type of the argument
+                    -1,                      // Array rank of the argument
+                    nullarray,               // Array dimensions of the argument
+                    UaLocalizedText("en", (std::get<2>(m.second.second[i])).c_str())); // Description
+        }
+        addStatus = addNodeAndReference(pMethod, pPropertyArg, OpcUaId_HasProperty);
+        UA_ASSERT(addStatus.isGood());
+    }
 
     /**************************************************************
-     * Create the Positioner Type
-     **************************************************************/
+    * Create the Positioner Type
+    **************************************************************/
     // Add ObjectType "PositionerType"
-    UaObjectTypeSimple* pPositionerType = new UaObjectTypeSimple("PositionerType", UaNodeId(GLOB_PositionerType, getNameSpaceIndex()), m_defaultLocaleId, OpcUa_True);
+    UaObjectTypeSimple* pPositionerType = new UaObjectTypeSimple(
+            "PositionerType",    // Used as string in browse name and display name
+            UaNodeId(GLOB_PositionerType, getNameSpaceIndex()), // Numeric NodeId for types
+            m_defaultLocaleId,   // Defaul LocaleId for UaLocalizedText strings
+            OpcUa_True);         // Abstract object type -> can not be instantiated
     // Add new node to address space by creating a reference from BaseObjectType to this new node
     addStatus = addNodeAndReference(OpcUaId_BaseObjectType, pPositionerType, OpcUaId_HasSubtype);
     UA_ASSERT(addStatus.isGood());
 
     /***************************************************************
-    * Create the Positioner Type Instance declaration
-    ***************************************************************/
-    // Add Variable "isMoving" as BaseDataVariable
-    defaultValue.setBool(0);
-    pDataItem = new OpcUa::DataItemType(UaNodeId(GLOB_PositionerType_isMoving, getNameSpaceIndex()), "isMoving",
-                                        getNameSpaceIndex(), defaultValue, Ua_AccessLevel_CurrentRead, this);
-    // Set Modelling Rule to Mandatory
-    pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
-    addStatus = addNodeAndReference(pPositionerType, pDataItem, OpcUaId_HasComponent);
-    UA_ASSERT(addStatus.isGood());
+     * Create the Positioner Type Instance declaration
+     ***************************************************************/
+    // Register all variables
+    for (auto v : PositionerObject::VARIABLES) {
+        pDataItem = new OpcUa::DataItemType(UaNodeId(v.first, getNameSpaceIndex()),
+                                            std::get<0>(v.second).c_str(), getNameSpaceIndex(), std::get<1>(v.second),
+                                            std::get<3>(v.second), this);
+        pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
+        addStatus = addNodeAndReference(pPositionerType, pDataItem, OpcUaId_HasComponent);
+        UA_ASSERT(addStatus.isGood());
+    }
 
-    // Add Variable "curAz" as BaseDataVariable
-    defaultValue.setFloat(0);
-    pDataItem = new OpcUa::DataItemType(UaNodeId(GLOB_PositionerType_curAz, getNameSpaceIndex()), "curAz",
-                                        getNameSpaceIndex(), defaultValue, Ua_AccessLevel_CurrentRead, this);
-    // Set Modelling Rule to Mandatory
-    pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
-    addStatus = addNodeAndReference(pPositionerType, pDataItem, OpcUaId_HasComponent);
-    UA_ASSERT(addStatus.isGood());
+    // Register all error variables
+    for (auto v : PositionerObject::ERRORS) {
+        pDataItem = new OpcUa::DataItemType(UaNodeId(v.first, getNameSpaceIndex()),
+                                            std::get<0>(v.second).c_str(), getNameSpaceIndex(), std::get<1>(v.second),
+                                            Ua_AccessLevel_CurrentRead, this);
+        //pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Optional);
+        addStatus = addNodeAndReference(pPositionerType, pDataItem, OpcUaId_HasComponent);
+        UA_ASSERT(addStatus.isGood());
+    }
 
-    // Add Variable "curEl" as BaseDataVariable
-    pDataItem = new OpcUa::DataItemType(UaNodeId(GLOB_PositionerType_curEl, getNameSpaceIndex()), "curEl",
-                                        getNameSpaceIndex(), defaultValue, Ua_AccessLevel_CurrentRead, this);
-    // Set Modelling Rule to Mandatory
-    pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
-    addStatus = addNodeAndReference(pPositionerType, pDataItem, OpcUaId_HasComponent);
-    UA_ASSERT(addStatus.isGood());
+    // Register all methods
+    for (auto m : PositionerObject::METHODS) {
+        pMethod = new OpcUa::BaseMethod(UaNodeId(m.first, getNameSpaceIndex()), m.second.first.c_str(),
+                                        getNameSpaceIndex());
+        pMethod->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
+        addStatus = addNodeAndReference(pPositionerType, pMethod, OpcUaId_HasComponent);
+        UA_ASSERT(addStatus.isGood());
 
-    // Add Variable "curAz" as BaseDataVariable
-    defaultValue.setFloat(0);
-    pDataItem = new OpcUa::DataItemType(UaNodeId(GLOB_PositionerType_inAz, getNameSpaceIndex()), "inAz",
-                                        getNameSpaceIndex(), defaultValue, Ua_AccessLevel_CurrentRead | Ua_AccessLevel_CurrentWrite, this);
-    // Set Modelling Rule to Mandatory
-    pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
-    addStatus = addNodeAndReference(pPositionerType, pDataItem, OpcUaId_HasComponent);
-    UA_ASSERT(addStatus.isGood());
-
-    // Add Variable "curEl" as BaseDataVariable
-    pDataItem = new OpcUa::DataItemType(UaNodeId(GLOB_PositionerType_inEl, getNameSpaceIndex()), "inEl",
-                                        getNameSpaceIndex(), defaultValue, Ua_AccessLevel_CurrentRead | Ua_AccessLevel_CurrentWrite, this);
-    // Set Modelling Rule to Mandatory
-    pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
-    addStatus = addNodeAndReference(pPositionerType, pDataItem, OpcUaId_HasComponent);
-    UA_ASSERT(addStatus.isGood());
-
-    defaultValue.setInt16(0);
-    pDataItem = new OpcUa::DataItemType(UaNodeId(GLOB_PositionerType_EnergyLevel, getNameSpaceIndex()), "EnergyLevel",
-                                        getNameSpaceIndex(), defaultValue, Ua_AccessLevel_CurrentRead, this);
-    // Set Modelling Rule to Mandatory
-    pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
-    addStatus = addNodeAndReference(pPositionerType, pDataItem, OpcUaId_HasComponent);
-    UA_ASSERT(addStatus.isGood());
-
-    // Add Method "ToggleEnergyLevel"
-    pMethod = new OpcUa::BaseMethod(UaNodeId(GLOB_PositionerType_SetEnergy, getNameSpaceIndex()), "ToggleEnergyLevel", getNameSpaceIndex());
-    pMethod->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
-    addStatus = addNodeAndReference(pPositionerType, pMethod, OpcUaId_HasComponent);
-    UA_ASSERT(addStatus.isGood());
-
-    // Add Method "Init"
-    pMethod = new OpcUa::BaseMethod(UaNodeId(GLOB_PositionerType_Initialize, getNameSpaceIndex()), "InitializeDrives",
-                                    getNameSpaceIndex());
-    pMethod->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
-    addStatus = addNodeAndReference(pPositionerType, pMethod, OpcUaId_HasComponent);
-    UA_ASSERT(addStatus.isGood());
-
-    // Add Method "MoveTo"
-    pMethod = new OpcUa::BaseMethod(UaNodeId(GLOB_PositionerType_Move, getNameSpaceIndex()), "MoveTo", getNameSpaceIndex());
-    pMethod->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
-    addStatus = addNodeAndReference(pPositionerType, pMethod, OpcUaId_HasComponent);
-    UA_ASSERT(addStatus.isGood());
-
-    // Add Method "Stop"
-    pMethod = new OpcUa::BaseMethod(UaNodeId(GLOB_PositionerType_Stop, getNameSpaceIndex()), "Stop", getNameSpaceIndex());
-    pMethod->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
-    addStatus = addNodeAndReference(pPositionerType, pMethod, OpcUaId_HasComponent);
-    UA_ASSERT(addStatus.isGood());
+        // Add arguments
+        pPropertyArg = new UaPropertyMethodArgument(
+                UaNodeId((std::to_string(m.first) + "_" + m.second.first + "_args").c_str(),
+                         getNameSpaceIndex()), // NodeId of the property
+                Ua_AccessLevel_CurrentRead,             // Access level of the property
+                m.second.second.size(),                                      // Number of arguments
+                UaPropertyMethodArgument::INARGUMENTS); // IN arguments
+        for (size_t i = 0; i < m.second.second.size(); i++) {
+            pPropertyArg->setArgument(
+                    (OpcUa_UInt32) i,                       // Index of the argument
+                    std::get<0>(m.second.second[i]).c_str(),   // Name of the argument
+                    std::get<1>(m.second.second[i]),// Data type of the argument
+                    -1,                      // Array rank of the argument
+                    nullarray,               // Array dimensions of the argument
+                    UaLocalizedText("en", (std::get<2>(m.second.second[i])).c_str())); // Description
+        }
+        addStatus = addNodeAndReference(pMethod, pPropertyArg, OpcUaId_HasProperty);
+        UA_ASSERT(addStatus.isGood());
+    }
 
     return ret;
 }
