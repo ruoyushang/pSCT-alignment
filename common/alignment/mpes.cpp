@@ -19,6 +19,7 @@ const int MPESBase::DEFAULT_IMAGES_TO_CAPTURE = 9;
 const std::string MPESBase::DEFAULT_IMAGES_SAVE_DIR_PATH = "/home/root/mpesimages";
 const std::string MPESBase::MATRIX_CONSTANTS_DIR_PATH = "/home/root/mpesCalibration/";
 const std::string MPESBase::CAL2D_CONSTANTS_DIR_PATH = "/home/root/mpesCalibration/";
+const std::string MPESBase::BACKUP_IMAGE_FILEPATH = "doxygen/cta_logo.png";
 
 const std::vector<Device::ErrorDefinition> MPESBase::ERROR_DEFINITIONS = {
     {"Bad connection. No device found",                                                                            Device::ErrorState::FatalError},//error 0
@@ -287,6 +288,7 @@ int MPES::__updatePosition() {
         m_Position.xSpotWidth = m_pImageSet->SetData.xSpotSD;
         m_Position.ySpotWidth = m_pImageSet->SetData.ySpotSD;
         m_Position.cleanedIntensity = m_pImageSet->SetData.CleanedIntensity;
+        m_Position.last_img = getLastImage();
     }
     if (int(m_Position.cleanedIntensity) == -1 ){
         // Real image possible, but no pixels pass threshold
@@ -421,6 +423,7 @@ int DummyMPES::__updatePosition() {
     m_Position.xSpotWidth = MPESBase::NOMINAL_SPOT_WIDTH;
     m_Position.ySpotWidth = MPESBase::NOMINAL_SPOT_WIDTH;
     m_Position.cleanedIntensity = MPESBase::NOMINAL_INTENSITY;
+    m_Position.last_img = MPESBase::BACKUP_IMAGE_FILEPATH;
 
     m_Position.exposure = 500.0;
     m_Position.timestamp = std::time(0);

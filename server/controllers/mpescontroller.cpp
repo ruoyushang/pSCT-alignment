@@ -162,6 +162,10 @@ UaStatus MPESController::getData(OpcUa_UInt32 offset, UaVariant &value) {
                 spdlog::trace("{} : Read Timestamp value => ({})", m_Identity, std::ctime(&position.timestamp));
                 value.setString(UaString(std::ctime(&position.timestamp)));
                 break;
+            case PAS_MPESType_ImagePath:
+                spdlog::trace("{} : Read ImagePath value => ({})", m_Identity, position.last_img);
+                value.setString(UaString(position.last_img.c_str()));
+                break;
             case PAS_MPESType_ErrorState: {
                 Device::ErrorState errorState = _getErrorState();
                 spdlog::trace("{} : Read ErrorState value => ({})", m_Identity, Device::errorStateNames.at(errorState));

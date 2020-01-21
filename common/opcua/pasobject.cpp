@@ -239,6 +239,8 @@ const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, O
                                                     Ua_AccessLevel_CurrentRead)},
     {PAS_MPESType_ErrorState,       std::make_tuple("ErrorState", UaVariant(0), OpcUa_False,
                                                         Ua_AccessLevel_CurrentRead)},
+    {PAS_MPESType_ImagePath,       std::make_tuple("ImagePath", UaVariant("") , OpcUa_False,
+                                                    Ua_AccessLevel_CurrentRead)},
 };
 
 const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean>> MPESObject::ERRORS = {

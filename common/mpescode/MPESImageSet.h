@@ -38,6 +38,7 @@ class MPESImageSet
         float nsat[200];
         void makeArrays();
         const char * dir;
+        std::string last_img;
         bool m_Calibrated;
         bool verbosity; /// Bool to print all results to stderr.
 

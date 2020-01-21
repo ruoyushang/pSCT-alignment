@@ -200,6 +200,10 @@ UaStatus MPESController::getData(OpcUa_UInt32 offset, UaVariant &value) {
                 status = m_pClient->read({m_pClient->getDeviceNodeId(m_Identity) + "." + "Timestamp"}, &value);
                 spdlog::trace("{} : Read Timestamp value => ({})", m_Identity, value.toString().toUtf8());
                 break;
+            case PAS_MPESType_ImagePath:
+                status = m_pClient->read({m_pClient->getDeviceNodeId(m_Identity) + "." + "ImagePath"}, &value);
+                spdlog::trace("{} : Read ImagePath value => ({})", m_Identity, value.toString().toUtf8());
+                break;
             default:
                 status = OpcUa_BadInvalidArgument;
                 break;
@@ -283,7 +287,8 @@ UaStatus MPESController::operate(OpcUa_UInt32 offset, const UaVariantArray &args
             "ySpotWidth (nominal): {} ({})\n"
             "Cleaned Intensity (nominal): {} ({})\n"
             "Exposure: {}\n"
-            "Timestamp: {}\n",
+            "Timestamp: {}\n"
+            "ImagePath: {}\n",
             m_Identity,
             data.xCentroid, data.xNominal,
             data.yCentroid, data.yNominal,
@@ -291,7 +296,8 @@ UaStatus MPESController::operate(OpcUa_UInt32 offset, const UaVariantArray &args
             data.ySpotWidth, std::to_string(MPESBase::NOMINAL_SPOT_WIDTH),
             data.cleanedIntensity, std::to_string(MPESBase::NOMINAL_INTENSITY),
             data.exposure,
-            std::ctime(&data.timestamp));
+            std::ctime(&data.timestamp),
+            data.last_img);
 
 
         if (m_Mode == "client") { // Record readings to database
@@ -425,11 +431,12 @@ MPESBase::Position MPESController::getPosition() {
         "xCentroidNominal",
         "yCentroidNominal",
         "Exposure",
-        "RawTimestamp"
+        "RawTimestamp",
+        "ImagePath"
     };
     std::transform(varstoread.begin(), varstoread.end(), varstoread.begin(),
                    [this](std::string &str) { return m_pClient->getDeviceNodeId(m_Identity) + "." + str; });
-    UaVariant valstoread[9];
+    UaVariant valstoread[10];
 
     status = m_pClient->read(varstoread, &valstoread[0]);
 
@@ -447,6 +454,8 @@ MPESBase::Position MPESController::getPosition() {
     valstoread[6].toFloat(data.yNominal);
     valstoread[7].toInt32(data.exposure);
     valstoread[8].toInt64(data.timestamp);
+    UaString last_image = UaString(data.last_img.c_str());
+    valstoread[9].setString(last_image);
 
     return data;
 }
