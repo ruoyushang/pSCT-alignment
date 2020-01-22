@@ -83,12 +83,14 @@ private:
     double m_safetyRadius = 60.0;
 
     std::set<unsigned> m_selectedPanels;
+    std::set<unsigned> m_selectedTzFixedPanels;
+    std::set<unsigned> m_selectedRxRyFixedPanels;
     std::set<int> m_selectedMPES;
     std::set<std::string> m_selectedEdges;
 
     // helper method to process the selected children string and convert it into a set
     // of vector indices
-    void parseAndSetSelection(const std::string &selectionString, unsigned deviceType);
+    void parseAndSetSelection(const std::string &selectionString, unsigned deviceType, int usage_type);
 
     unsigned getPanelIndex(unsigned position);
     unsigned getMPESIndex(int serialNumber);
@@ -101,11 +103,12 @@ private:
     UaStatus readPositionAll(bool print=true);
 
     UaStatus savePosition(const std::string &saveFilePath);
+    UaStatus saveAlignmentOffset(const std::string &saveFilePath);
 
     // Align all edges fron need_alignment starting at start_idx and  moving in the direction dir
     UaStatus alignSequential(const std::string &startEdge, const std::string &EndEdge, unsigned dir);
 
-    UaStatus __calculateAlignSector();
+    UaStatus __calculateAlignSector(int align_mode=0);
 
     UaStatus __calculateAlignRing(int fixPanel);
 
@@ -116,6 +119,8 @@ private:
     UaStatus __calculateLoadPosition(const std::string &loadFilePath);
 
     UaStatus __calculateLoadDeltaCoords(const std::string &loadFilePath);
+
+    UaStatus __calculateLoadAlignmentOffset(const std::string &loadFilePath);
 
     UaStatus testActuators(float moveDistance = 0.4, float epsilonLength = 0.016);
 

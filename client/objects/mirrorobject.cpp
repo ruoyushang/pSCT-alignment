@@ -44,6 +44,10 @@ const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, O
                                                        Ua_AccessLevel_CurrentRead | Ua_AccessLevel_CurrentWrite)},
     {PAS_MirrorType_SelectedPanels,    std::make_tuple("SelectedPanels", UaVariant(""), OpcUa_False,
                                                        Ua_AccessLevel_CurrentRead | Ua_AccessLevel_CurrentWrite)},
+    {PAS_MirrorType_SelectedTzFixedPanels,    std::make_tuple("SelectedTzFixedPanels", UaVariant(""), OpcUa_False,
+                                                       Ua_AccessLevel_CurrentRead | Ua_AccessLevel_CurrentWrite)},
+    {PAS_MirrorType_SelectedRxRyFixedPanels,    std::make_tuple("SelectedRxRyFixedPanels", UaVariant(""), OpcUa_False,
+                                                       Ua_AccessLevel_CurrentRead | Ua_AccessLevel_CurrentWrite)},
     {PAS_MirrorType_SelectedEdges,     std::make_tuple("SelectedEdges", UaVariant(""), OpcUa_False,
                                                        Ua_AccessLevel_CurrentRead | Ua_AccessLevel_CurrentWrite)},
 };
@@ -142,6 +146,22 @@ const std::map<OpcUa_UInt32, std::pair<std::string, std::vector<std::tuple<std::
                                                                                std::make_tuple("Save File Name",
                                                                                                UaNodeId(OpcUaId_String),
                                                                                                "Absolute path to .mirrorPos file to save position to.")
+                                                                           }}},
+    {PAS_MirrorType_SaveAlignmentOffset,             {"SaveAlignmentOffset",             {
+                                                                               std::make_tuple("Save File Name",
+                                                                                               UaNodeId(OpcUaId_String),
+                                                                                               "Absolute path to .mirrorPos file to save alignment to.")
+                                                                           }}},
+    {PAS_MirrorType_LoadAlignmentOffset,             {"LoadAlignmentOffset",             {
+                                                                               std::make_tuple("Load File Name",
+                                                                                               UaNodeId(OpcUaId_String),
+                                                                                               "Absolute path to .mirrorPos file to load position from."),
+                                                                               std::make_tuple("Align Fraction",
+                                                                                               UaNodeId(OpcUaId_Double),
+                                                                                               "Fraction of motion to carry out (between 0.0 and 1.0) from current position to loaded position."),
+                                                                               std::make_tuple("Command",
+                                                                                               UaNodeId(OpcUaId_String),
+                                                                                               "Command to run (calculate, setAlignFrac, execute)."),
                                                                            }}},
     {PAS_MirrorType_LoadPosition,             {"LoadPosition",             {
                                                                                std::make_tuple("Load File Name",

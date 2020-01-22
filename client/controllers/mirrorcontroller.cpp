@@ -303,6 +303,28 @@ UaStatus MirrorController::getData(OpcUa_UInt32 offset, UaVariant &value)
         }
         s += "]";
         value.setString(s.c_str());
+    } else if (offset == PAS_MirrorType_SelectedTzFixedPanels) {
+        std::vector<unsigned> v(m_selectedTzFixedPanels.begin(), m_selectedTzFixedPanels.end());
+        std::string s = "[";
+        for (int i = 0; i < (int)(v.size()); i++) {
+            s += std::to_string(v[i]);
+            if (i != (int)(v.size() - 1)) {
+                s += ", ";
+            }
+        }
+        s += "]";
+        value.setString(s.c_str());
+    } else if (offset == PAS_MirrorType_SelectedRxRyFixedPanels) {
+        std::vector<unsigned> v(m_selectedRxRyFixedPanels.begin(), m_selectedRxRyFixedPanels.end());
+        std::string s = "[";
+        for (int i = 0; i < (int)(v.size()); i++) {
+            s += std::to_string(v[i]);
+            if (i != (int)(v.size() - 1)) {
+                s += ", ";
+            }
+        }
+        s += "]";
+        value.setString(s.c_str());
     } else if (offset == PAS_MirrorType_SelectedMPES) {
         std::vector<int> v(m_selectedMPES.begin(), m_selectedMPES.end());
         std::string s = "[";
@@ -359,13 +381,19 @@ UaStatus MirrorController::setData(OpcUa_UInt32 offset, UaVariant value)
         }
     } else if (offset == PAS_MirrorType_SelectedEdges) {
         std::string selectionString = value.toString().toUtf8();
-        parseAndSetSelection(selectionString, PAS_EdgeType);
+        parseAndSetSelection(selectionString, PAS_EdgeType, 0);
     } else if (offset == PAS_MirrorType_SelectedPanels) {
         std::string selectionString = value.toString().toUtf8();
-        parseAndSetSelection(selectionString, PAS_PanelType);
+        parseAndSetSelection(selectionString, PAS_PanelType, 0);
+    } else if (offset == PAS_MirrorType_SelectedTzFixedPanels) {
+        std::string selectionString = value.toString().toUtf8();
+        parseAndSetSelection(selectionString, PAS_PanelType, 1);
+    } else if (offset == PAS_MirrorType_SelectedRxRyFixedPanels) {
+        std::string selectionString = value.toString().toUtf8();
+        parseAndSetSelection(selectionString, PAS_PanelType, 2);
     } else if (offset == PAS_MirrorType_SelectedMPES) {
         std::string selectionString = value.toString().toUtf8();
-        parseAndSetSelection(selectionString, PAS_MPESType);
+        parseAndSetSelection(selectionString, PAS_MPESType, 0);
     } else
         return OpcUa_BadInvalidArgument;
 
@@ -388,7 +416,8 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
      * ********************************************************/
     if (offset == PAS_MirrorType_MoveToCoords || offset == PAS_MirrorType_MoveDeltaCoords ||
         offset == PAS_MirrorType_AlignSector || offset == PAS_MirrorType_LoadPosition ||
-        offset == PAS_MirrorType_AlignRing || offset == PAS_MirrorType_LoadDeltaCoords) {
+        offset == PAS_MirrorType_AlignRing || offset == PAS_MirrorType_LoadDeltaCoords 
+        || offset == PAS_MirrorType_LoadAlignmentOffset) {
 
         std::string command;
 
@@ -411,6 +440,10 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
         }
         else if (offset == PAS_MirrorType_LoadDeltaCoords) {
             spdlog::info("{} : MirrorController::operate() : Calling loadDeltaCoords()...", m_Identity);
+            command = UaString(args[2].Value.String).toUtf8();
+        }
+        else if (offset == PAS_MirrorType_LoadAlignmentOffset) {
+            spdlog::info("{} : MirrorController::operate() : Calling loadAlignmentOffset()...", m_Identity);
             command = UaString(args[2].Value.String).toUtf8();
         }
 
@@ -446,6 +479,11 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
             else if (offset == PAS_MirrorType_LoadDeltaCoords) {
                 std::string saveFilePath = UaString(args[0].Value.String).toUtf8();
                 status = __calculateLoadDeltaCoords(saveFilePath);
+            }
+            else if (offset == PAS_MirrorType_LoadAlignmentOffset) {
+                std::string saveFilePath = UaString(args[0].Value.String).toUtf8();
+                spdlog::info("Calling calculateLoadAlignmentOffset...");
+                status = __calculateLoadAlignmentOffset(saveFilePath);
             }
 
             if (status.isBad()) {
@@ -487,6 +525,10 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
             else if (offset == PAS_MirrorType_LoadDeltaCoords) {
                 alignFrac = args[1].Value.Double;
             }
+            else if (offset == PAS_MirrorType_LoadAlignmentOffset) {
+                alignFrac = args[1].Value.Double;
+                spdlog::info("Calling setAlignFrac...");
+            }
             __setAlignFrac(alignFrac);
             alignFrac = abs(alignFrac);
         } else if (command == "execute") {
@@ -503,6 +545,9 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
                 alignFrac = args[1].Value.Double;
             }
             else if (offset == PAS_MirrorType_LoadDeltaCoords) {
+                alignFrac = args[1].Value.Double;
+            }
+            else if (offset == PAS_MirrorType_LoadAlignmentOffset) {
                 alignFrac = args[1].Value.Double;
             }
             alignFrac = abs(alignFrac);
@@ -539,7 +584,19 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
 
         savePosition(saveFilePath);
         setState(Device::DeviceState::On);
-    } else if (offset == PAS_MirrorType_AlignSequentialRecursive) {
+    } 
+    else if (offset == PAS_MirrorType_SaveAlignmentOffset) {
+        setState(Device::DeviceState::Busy);
+        // read out all individual positions
+        // and get global mirror coordinates
+        spdlog::info("{} : MirrorController::operate() : Calling saveAlignmentOffset()...", m_Identity);
+        updateCoords(false);
+        std::string saveFilePath = UaString(args[0].Value.String).toUtf8();        
+
+        saveAlignmentOffset(saveFilePath);
+        setState(Device::DeviceState::On);
+    } 
+    else if (offset == PAS_MirrorType_AlignSequentialRecursive) {
         // make sure the arguments make sense -- we are supposed
         // to get an edge position and a direction. The type has
         // already been validated by the caller, but we need to
@@ -696,9 +753,30 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
                 m_Identity, edge->getIdentity(), os.str());
         }
         spdlog::info("{}: Done reading sensors.", m_Identity);
+
+        int N_bad_mpes = 0;
+        for (auto mpes : getChildren(PAS_MPESType)) {
+            if (m_selectedMPES.find(mpes->getIdentity().serialNumber) != m_selectedMPES.end()) {
+                if (mpes->getErrorState() == Device::ErrorState::FatalError) {
+                    N_bad_mpes += 1;
+                    spdlog::error("{}: Failed to read.", mpes->getIdentity());
+                }
+            }
+        };
+        if (N_bad_mpes!=0)
+        {
+            spdlog::error("{}: Found {} failed sensors.", m_Identity, N_bad_mpes);
+        }
+        else
+        {
+            spdlog::info("{}: Found {} failed sensors.", m_Identity, N_bad_mpes);
+        }
+
     } else if (offset == PAS_MirrorType_SelectAll) {
         spdlog::info("{} : MirrorController::operate() : Calling selectAll()...", m_Identity);
         m_selectedPanels.clear();
+        m_selectedTzFixedPanels.clear();
+        m_selectedRxRyFixedPanels.clear();
         for (const auto &panel : getChildren(PAS_PanelType)) {
             m_selectedPanels.insert((unsigned) panel->getIdentity().position);
         }
@@ -1510,7 +1588,7 @@ UaStatus MirrorController::alignSequential(const std::string &startEdge, const s
     return status;
 }
 
-void MirrorController::parseAndSetSelection(const std::string &selectionString, unsigned deviceType) {
+void MirrorController::parseAndSetSelection(const std::string &selectionString, unsigned deviceType, int usage_type) {
     // process a separated string and find the panels or edges described by it
     // pad by a space from the right so we don't hit the end of the line without a delimiter
  
@@ -1536,7 +1614,7 @@ void MirrorController::parseAndSetSelection(const std::string &selectionString, 
     }
 
     // add all the items to the selected children set of indices
-    if (deviceType == PAS_PanelType) { // expect a list of panel positions
+    if (deviceType == PAS_PanelType && usage_type==0) { // expect a list of panel positions
         m_selectedPanels.clear();
         unsigned curpos;
         std::ostringstream os;
@@ -1544,6 +1622,40 @@ void MirrorController::parseAndSetSelection(const std::string &selectionString, 
             curpos = stoi(item);
             if (m_ChildrenPositionMap.at(deviceType).count(curpos) > 0) {
                 m_selectedPanels.insert(curpos);
+                os << "Added Panel with position " << curpos << "." << std::endl;
+            }
+            else {
+                os << "Unable to find Panel with position " << curpos << ". Skipping..." << std::endl;
+            }
+        }
+        os << std::endl;
+        spdlog::info("{}: Selecting panels (positions):\n{}\n", m_Identity, os.str());
+    }
+    else if (deviceType == PAS_PanelType && usage_type==1) { // expect a list of panel positions
+        m_selectedTzFixedPanels.clear();
+        unsigned curpos;
+        std::ostringstream os;
+        for (const std::string &item : strList) {
+            curpos = stoi(item);
+            if (m_ChildrenPositionMap.at(deviceType).count(curpos) > 0) {
+                m_selectedTzFixedPanels.insert(curpos);
+                os << "Added Panel with position " << curpos << "." << std::endl;
+            }
+            else {
+                os << "Unable to find Panel with position " << curpos << ". Skipping..." << std::endl;
+            }
+        }
+        os << std::endl;
+        spdlog::info("{}: Selecting panels (positions):\n{}\n", m_Identity, os.str());
+    }
+    else if (deviceType == PAS_PanelType && usage_type==2) { // expect a list of panel positions
+        m_selectedRxRyFixedPanels.clear();
+        unsigned curpos;
+        std::ostringstream os;
+        for (const std::string &item : strList) {
+            curpos = stoi(item);
+            if (m_ChildrenPositionMap.at(deviceType).count(curpos) > 0) {
+                m_selectedRxRyFixedPanels.insert(curpos);
                 os << "Added Panel with position " << curpos << "." << std::endl;
             }
             else {
@@ -1705,7 +1817,7 @@ Eigen::MatrixXd MirrorController::__computeSystematicsMatrix(unsigned pos1, unsi
     return res;
 }
 
-UaStatus MirrorController::__calculateAlignSector() {
+UaStatus MirrorController::__calculateAlignSector(int align_mode) {
     UaStatus status;
     // make sure there are some selected sensors
     if (m_selectedPanels.empty()) {
@@ -1812,8 +1924,15 @@ UaStatus MirrorController::__calculateAlignSector() {
         vtmp.toDouble(curRead(m * 2));
         alignMPES.at(m)->getData(PAS_MPESType_yCentroidAvg, vtmp);
         vtmp.toDouble(curRead(m * 2 + 1));
+        if (align_mode==0)
+        {
         targetRead.segment(2 * m, 2) = alignMPES.at(m)->getAlignedReadings()
                                        - alignMPES.at(m)->getSystematicOffsets();
+        }
+        else
+        {
+        targetRead.segment(2 * m, 2) = alignMPES.at(m)->getAlignedReadings() + alignMPES.at(m)->m_OpticsOffsets;
+        }
 
         for (int p = 0; p < (int) panelsToMove.size(); p++) {
             auto panelSide = alignMPES.at(m)->getPanelSide(panelsToMove.at(p)->getIdentity().position);
@@ -2120,6 +2239,63 @@ UaStatus MirrorController::savePosition(const std::string &saveFilePath) {
     return OpcUa_Good;
 }
 
+UaStatus MirrorController::saveAlignmentOffset(const std::string &saveFilePath) {
+    spdlog::info("{}: Attempting to write alignment offset to file {}...", m_Identity, saveFilePath);
+
+    //Check if file already exists
+    struct stat buf{};
+    if (stat(saveFilePath.c_str(), &buf) != -1) {
+        spdlog::error(
+            "{}: File {} already exists. Please select a different path, or manually delete/move/rename the file in your system.",
+            m_Identity, saveFilePath);
+        return OpcUa_Bad;
+    }
+
+    // Create output file stream
+    std::ofstream f(saveFilePath);
+
+    if (f.bad()) {
+        spdlog::error("{}: Cannot write to file at {}. Aborting...", m_Identity, saveFilePath);
+        f.close();
+        return OpcUa_Bad;
+    }
+
+    // Place mirror name/Type and
+    // other information at top of file
+    f << "Mirror: " << m_Identity << std::endl;
+    std::time_t now = std::time(0);
+    f << "Timestamp: " << std::ctime(&now) << std::endl;
+    f << SAVEFILE_DELIMITER << std::endl;
+
+    std::vector<std::shared_ptr<MPESController>> alignMPES;
+    for (int mpesSerial : m_selectedMPES) {
+        std::shared_ptr<MPESController> mpes = std::dynamic_pointer_cast<MPESController>(
+            m_ChildrenSerialMap.at(PAS_MPESType).at(mpesSerial));
+        //if (mpes->isVisible())
+        //    alignMPES.push_back(mpes);
+        alignMPES.push_back(mpes);
+    }
+    UaVariant vtmp;
+    Eigen::VectorXd curRead(2 * alignMPES.size());
+    Eigen::VectorXd targetRead(2 * alignMPES.size());
+    for (int m = 0; m < (int) alignMPES.size(); m++) {
+        alignMPES.at(m)->getData(PAS_MPESType_xCentroidAvg, vtmp);
+        vtmp.toDouble(curRead(m * 2));
+        alignMPES.at(m)->getData(PAS_MPESType_yCentroidAvg, vtmp);
+        vtmp.toDouble(curRead(m * 2 + 1));
+        targetRead.segment(2 * m, 2) = alignMPES.at(m)->getAlignedReadings()
+                                       - alignMPES.at(m)->getSystematicOffsets();
+        f << "MPES: " << alignMPES.at(m)->getIdentity() << std::endl;
+        f << curRead(m * 2)-targetRead(m * 2) << std::endl;
+        f << curRead(m * 2 + 1)-targetRead(m * 2 + 1) << std::endl;
+        f << SAVEFILE_DELIMITER << std::endl;
+    }
+    f.close();
+    spdlog::info("{}: Done writing Mirror alignment to file {}.", m_Identity, saveFilePath);
+
+    return OpcUa_Good;
+}
+
 UaStatus MirrorController::__calculateLoadPosition(const std::string &loadFilePath) {
     UaStatus status;
 
@@ -2349,6 +2525,99 @@ UaStatus MirrorController::__calculateLoadDeltaCoords(const std::string &loadFil
     return status;
 }
 
+UaStatus MirrorController::__calculateLoadAlignmentOffset(const std::string &loadFilePath) {
+    UaStatus status;
+
+    spdlog::info("{}: Attempting to load Alignment offset from file {}...", m_Identity, loadFilePath);
+
+    //Check if file already exists
+    struct stat buf{};
+    if (stat(loadFilePath.c_str(), &buf) == -1) {
+        spdlog::error("{}: File {} not found. Please make sure the selected file path is valid.", m_Identity,
+                      loadFilePath);
+        return OpcUa_Bad;
+    }
+
+    std::ostringstream os;
+
+    // Open file stream
+    std::ifstream infile(loadFilePath);
+    if (infile.bad()) {
+        spdlog::error("{}: File {} cannot be read. Please check it and try again.", m_Identity, loadFilePath);
+        return OpcUa_Bad;
+    }
+
+    // Check to make sure it matches this mirror
+    std::string line;
+    getline(infile, line);
+    unsigned s = line.find("(");
+    unsigned e = line.find(")");
+    Device::Identity mirrorId = Device::parseIdentity(line.substr(s, e - s + 2));
+
+    if (mirrorId != m_Identity) {
+        spdlog::error(
+            "{}: Mirror Identity indicated in file ({}) does not match the Identity of this mirror ({}). Cannot load alignment offset.",
+            m_Identity, mirrorId, m_Identity);
+        return OpcUa_Bad;
+    }
+
+    // Print Mirror Info
+    std::map<Device::Identity, Eigen::VectorXd> sensorOffsets;
+    while (getline(infile, line) && (line != SAVEFILE_DELIMITER)) {
+        os << line << std::endl;
+    }
+    spdlog::info("{}: Mirror Info:\n Mirror Identity: {}\n{}", m_Identity, m_Identity, os.str());
+
+    Eigen::VectorXd X(m_pChildren.at(PAS_PanelType).size() * 6);
+    Eigen::VectorXd deltaActLengths(6);
+    Eigen::VectorXd alignmentOffset(2);
+    Eigen::VectorXd currentActLengths(6);
+    std::vector<std::shared_ptr<PanelController>> panelsToMove;
+    unsigned j = 0;
+
+    // Parse all sensor offsets
+    Device::Identity sensorId;
+    int i = 0;
+
+    spdlog::info("Parsing sensor readings from the file...");
+    while (infile.peek() != EOF) {
+        getline(infile, line);
+        s = line.find("(");
+        e = line.find(")");
+        sensorId = Device::parseIdentity(line.substr(s , e - s + 2));
+        spdlog::info("Found MPES {}", sensorId);
+        spdlog::info(" SAVEFILE_DELIMITER is {}", SAVEFILE_DELIMITER);
+        i = 0;
+        while (getline(infile, line) && line != SAVEFILE_DELIMITER) {
+            alignmentOffset(i) = std::stod(line);
+            i++;
+        }
+        sensorOffsets[sensorId] = alignmentOffset;
+        spdlog::info("{}: Found offset for MPES {}:\n{}\n", m_Identity, sensorId, alignmentOffset);
+    }
+
+    spdlog::info("saving aligned readings to vectors...");
+    std::vector<std::shared_ptr<MPESController>> alignMPES;
+    for (int mpesSerial : m_selectedMPES) {
+        std::shared_ptr<MPESController> mpes = std::dynamic_pointer_cast<MPESController>(
+            m_ChildrenSerialMap.at(PAS_MPESType).at(mpesSerial));
+        if (mpes->isVisible())
+            alignMPES.push_back(mpes);
+    }
+    for (int m = 0; m < (int) alignMPES.size(); m++) {
+        sensorId = alignMPES.at(m)->getIdentity();
+        if (sensorOffsets.find(sensorId) != sensorOffsets.end()) {
+            alignMPES.at(m)->m_OpticsOffsets = sensorOffsets[sensorId];
+        }
+    }
+
+    spdlog::info("calling calculateAlignSector...");
+    status = __calculateAlignSector(1);
+
+    return status;
+}
+
+
 UaStatus MirrorController::__setAlignFrac(double alignFrac) {
     UaStatus status;
     
@@ -2361,11 +2630,11 @@ UaStatus MirrorController::__setAlignFrac(double alignFrac) {
     if (alignFrac < 0.)
     {
         spdlog::info("Mirror {}: alignFrac<0, apply alignment constraints", m_Identity);
-        if (abs(alignFrac)!=1.) 
-        {
-            spdlog::error("Mirror {}: alignFrac!=-1, frac can only be -1. for alignment with constraints.", m_Identity);
-            return OpcUa_BadInvalidArgument;
-        }
+        //if (abs(alignFrac)!=1.) 
+        //{
+        //    spdlog::error("Mirror {}: alignFrac!=-1, frac can only be -1. for alignment with constraints.", m_Identity);
+        //    return OpcUa_BadInvalidArgument;
+        //}
     }
 
     if (m_Xcalculated.isZero(0)) {
@@ -2382,6 +2651,35 @@ UaStatus MirrorController::__setAlignFrac(double alignFrac) {
 
     // here we set alignment constraints for the panels
     bool setConstraints = false;
+    //const int N_panels_to_constrain = 16;
+    //double list_panels_to_constrain[N_panels_to_constrain] = {1111,1112,1113,1114,1211,1212,1213,1214,1311,1312,1313,1314,1411,1412,1413,1414};
+    //const int N_panels_to_constrain = 32;
+    //double list_panels_to_constrain[N_panels_to_constrain] = {1121, 1122, 1123, 1124, 1125, 1126, 1127, 1128, 1221, 1222, 1223, 1224, 1225, 1226, 1227, 1228, 1321, 1322, 1323, 1324, 1325, 1326, 1327, 1328, 1421, 1422, 1423, 1424, 1425, 1426, 1427, 1428};
+    double list_panels_to_constrain_Tz[48];
+    for (int pnl = 0; pnl<48; pnl++)
+    {
+        list_panels_to_constrain_Tz[pnl] = 0;
+    }
+    double list_panels_to_constrain_RxRy[48];
+    for (int pnl = 0; pnl<48; pnl++)
+    {
+        list_panels_to_constrain_RxRy[pnl] = 0;
+    }
+
+    Device::Identity panel_Id;
+    int N_panels_to_constrain_Tz = 0;
+    for (unsigned panelPos : m_selectedTzFixedPanels) {
+        int pos = (int)panelPos;
+        list_panels_to_constrain_Tz[N_panels_to_constrain_Tz] = pos;
+        N_panels_to_constrain_Tz += 1;
+    }
+    int N_panels_to_constrain_RxRy = 0;
+    for (unsigned panelPos : m_selectedRxRyFixedPanels) {
+        int pos = (int)panelPos;
+        list_panels_to_constrain_RxRy[N_panels_to_constrain_RxRy] = pos;
+        N_panels_to_constrain_RxRy += 1;
+    }
+
     if (alignFrac < 0.) setConstraints = true;
     if (setConstraints) 
     {
@@ -2411,11 +2709,37 @@ UaStatus MirrorController::__setAlignFrac(double alignFrac) {
             m_pStewartPlatform->ComputeStewart(targetActLengths.data());
             for (int i = 0; i < 6; i++)
                 targetCoordinates[i] = m_pStewartPlatform->GetPanelCoords()[i];
+
             // updated the target coordinates with constraints
-            spdlog::info("Panel {}: fix Tz at {} mm.", panelId, currentCoordinates[2]);
-            targetCoordinates[2] = currentCoordinates[2]; // Tz
-            //targetCoordinates[3] = currentCoordinates[3]; // Rx
-            //targetCoordinates[4] = currentCoordinates[4]; // Ry
+            bool is_a_panel_to_constrain = false;
+            for (int i=0; i < N_panels_to_constrain_Tz; i++)
+            {
+                if (list_panels_to_constrain_Tz[i]==panelId.position)
+                {
+                    spdlog::info("Panel {}: fix Tz at {} mm.", panelId, currentCoordinates[2]);
+                    targetCoordinates[2] = currentCoordinates[2]; // Tz
+                }
+            }
+            for (int i=0; i < N_panels_to_constrain_RxRy; i++)
+            {
+                if (list_panels_to_constrain_RxRy[i]==panelId.position)
+                {
+                    spdlog::info("Panel {}: fix Rx at {} mm.", panelId, currentCoordinates[3]);
+                    targetCoordinates[3] = currentCoordinates[3]; // Rx
+                    spdlog::info("Panel {}: fix Ry at {} mm.", panelId, currentCoordinates[4]);
+                    targetCoordinates[4] = currentCoordinates[4]; // Ry
+                }
+            }
+            if (setConstraints && is_a_panel_to_constrain)
+            {
+                spdlog::info("Panel {}: fix Tx at {} mm.", panelId, currentCoordinates[0]);
+                targetCoordinates[0] = currentCoordinates[0]; // Tx
+                spdlog::info("Panel {}: fix Ty at {} mm.", panelId, currentCoordinates[1]);
+                targetCoordinates[1] = currentCoordinates[1]; // Ty
+                spdlog::info("Panel {}: fix Rz at {} mm.", panelId, currentCoordinates[5]);
+                targetCoordinates[5] = currentCoordinates[5]; // Rz
+            }
+
             // find actuator lengths needed
             m_pStewartPlatform->ComputeActsFromPanel(targetCoordinates);
             spdlog::info("Panel {}: currentCoordinates: {}, {}, {}, {}, {}, {}", panelId, currentCoordinates[0], currentCoordinates[1], currentCoordinates[2], currentCoordinates[3], currentCoordinates[4], currentCoordinates[5]);

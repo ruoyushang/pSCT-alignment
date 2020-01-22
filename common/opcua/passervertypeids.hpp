@@ -61,6 +61,10 @@
 #define PAS_MirrorType_CheckStatus                   143
 #define PAS_MirrorType_Stop                          144
 #define PAS_MirrorType_LoadDeltaCoords               145
+#define PAS_MirrorType_SaveAlignmentOffset           146
+#define PAS_MirrorType_LoadAlignmentOffset           147
+#define PAS_MirrorType_SelectedTzFixedPanels         148
+#define PAS_MirrorType_SelectedRxRyFixedPanels       149
 
 //----------------------------------------------------------//
 // Edge Type
@@ -216,6 +220,8 @@
 #define PAS_CCDType_psiNominal                      3111
 #define PAS_CCDType_thetaNominal                    3112
 #define PAS_CCDType_phiNominal                      3113
+#define PAS_CCDType_Serial                          3114
+#define PAS_CCDType_Name                            3115
 #define PAS_CCDType_ErrorState                      3101
 #define PAS_CCDType_Start                           3121
 #define PAS_CCDType_Stop                            3122

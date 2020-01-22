@@ -75,26 +75,28 @@ UaStatus PasCommunicationInterface::initializeCCDs()
     // currently, only GAS CCDs need to be intialized.
     // find what's on the network and compare it to what's expected
 
-    // arv_update_device_list();
+    arv_update_device_list();
     unsigned n_ccds = 0; // arv_get_n_devices();
 
-    std::string serial;
-    std::string ip;
-    std::map<std::string, std::string> serial2ip;
-    for (unsigned i = 0; i < n_ccds; i++) {
-        serial = "0"; //arv_get_device_serial_nbr(i);
-        ip = "0.0.0.0"; //arv_get_device_address(i);
-        serial2ip[serial] = ip;
-    }
+//    std::string serial;
+//    std::string ip;
+//    std::map<std::string, std::string> serial2ip;
+//    for (unsigned i = 0; i < n_ccds; i++) {
+//        serial = "0"; //arv_get_device_serial_nbr(i);
+//        ip = "0.0.0.0"; //arv_get_device_address(i);
+//        serial2ip[serial] = ip;
+//    }
+    spdlog::info("PasCommunicationInterface::Initialize(): setting up CCD connection.");
 
     try {
         for (const auto &identity : m_pConfiguration->getDevices(PAS_CCDType)) {
+            spdlog::info("{}",identity);
             try {
-                if (serial2ip.at(std::to_string(identity.serialNumber)) != identity.eAddress) {
-                    spdlog::warn(
-                        "PasCommunicationInterface::Initialize(): mismatch in recorded config and actual IP assignment. {} is assigned {}, but actually obtained {}.",
-                        identity.serialNumber, identity.eAddress, serial2ip[std::to_string(identity.serialNumber)]);
-                }
+//                if (serial2ip.at(std::to_string(identity.serialNumber)) != identity.eAddress) {
+//                    spdlog::warn(
+//                        "PasCommunicationInterface::Initialize(): mismatch in recorded config and actual IP assignment. {} is assigned {}, but actually obtained {}.",
+//                        identity.serialNumber, identity.eAddress, serial2ip[std::to_string(identity.serialNumber)]);
+//                }
                 addDevice(nullptr, PAS_CCDType, identity);
             }
             catch (std::out_of_range &e) {

@@ -127,6 +127,15 @@ int MPESImageSet::Capture()
         {
             MPESImage capturedimage;
             capture >> capturedimage;
+            if (img == 0)
+            {
+                capturedimage.analyze(iThresh);
+                if (int(capturedimage.datavec.data()->CleanedIntensity) == -2) {
+                    spdlog::warn("Cam_{}: CleanedIntensity == -2",device->GetID() );
+                    datasetvec.push_back(capturedimage.datavec);
+                    break;
+                }
+            }
             time_t t = time(0);
             struct tm *now = localtime(&t);
             char imagefile[200];
@@ -141,8 +150,15 @@ int MPESImageSet::Capture()
                     imwrite(imagefile, capturedimage);
                 }
                 capturedimage.analyze(iThresh);
-                datasetvec.push_back(capturedimage.datavec);
-                sleep(device->GetLapse()); 
+                if (int(capturedimage.datavec.data()->CleanedIntensity) == -2) {
+                    spdlog::warn("Cam_{}: CleanedIntensity == -2",device->GetID() );
+                    datasetvec.push_back(capturedimage.datavec);
+                    break;
+                }
+                else{
+                    datasetvec.push_back(capturedimage.datavec);
+                    sleep(device->GetLapse());
+                }
             }
         }
         capture.release();
@@ -152,7 +168,7 @@ int MPESImageSet::Capture()
     ignored = 0;
     for (vector<vector<MPESImageData> >::iterator it = datasetvec.begin(); it != datasetvec.end();)
     {
-        if(!(it->at(0).CleanedIntensity>0))
+        if(int(it->at(0).CleanedIntensity) == -1)
         {
             it=datasetvec.erase(it);
             ignored++;
@@ -160,8 +176,7 @@ int MPESImageSet::Capture()
         else
             it++;
     }
-//TODO figure out how to respond to select_timeout issue here.
-//Proposal: Add own timer here, say 1-3s per image, and trigger my own select timeout.
+
     if(ignored)
     {
         fprintf(stderr,"%i images ignored because of unphysical results.",ignored);

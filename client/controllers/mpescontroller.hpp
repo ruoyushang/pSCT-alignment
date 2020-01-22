@@ -50,6 +50,7 @@ public:
 
     Eigen::Vector2d getAlignedReadings();
     const Eigen::Vector2d &getSystematicOffsets() const { return m_SystematicOffsets; }
+    const Eigen::Vector2d &getOpticsOffsets() const { return m_OpticsOffsets; }
 
     MPESBase::Position getPosition();
 
@@ -66,6 +67,7 @@ private:
     std::map<char, Eigen::Matrix<double, 2, 6> > m_ResponseMatMap;
     // systematic offsets
     Eigen::Vector2d m_SystematicOffsets;
+    Eigen::Vector2d m_OpticsOffsets;
     // which side the panel is on { panel position -> side ('w' or 'l')
     std::map<unsigned, char> m_PanelSideMap;
 };
