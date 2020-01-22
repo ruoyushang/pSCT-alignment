@@ -23,7 +23,7 @@ class MPESBase : public Device
 public:
     struct Position {
         Position() : xCentroid(-1), yCentroid(-1), xSpotWidth(-1), ySpotWidth(-1), cleanedIntensity(0), xNominal(-1),
-                     yNominal(-1), exposure(-1), timestamp(-1) {}
+                     yNominal(-1), exposure(-1), timestamp(-1), last_img("") {}
 
         float xCentroid;
         float yCentroid;
@@ -34,6 +34,7 @@ public:
         float yNominal;
         int exposure;
         std::time_t timestamp;
+        std::string last_img;
     };
 
     static const std::vector<Device::ErrorDefinition> ERROR_DEFINITIONS;
@@ -51,6 +52,7 @@ public:
 
     int getPortNumber() const { return std::stoi(m_Identity.eAddress); };
     int getSerialNumber() const { return m_Identity.serialNumber; };
+    std::string getLastImage() const { return m_Position.last_img; };
 
     bool initialize() override;
 
@@ -68,6 +70,7 @@ public:
     static const std::string MATRIX_CONSTANTS_DIR_PATH;
     static const std::string CAL2D_CONSTANTS_DIR_PATH;
     static const std::string DEFAULT_IMAGES_SAVE_DIR_PATH;
+    static const std::string BACKUP_IMAGE_FILEPATH;
 
 
     static constexpr float NOMINAL_INTENSITY = kNOMINAL_INTENSITY; // default was 150,000.

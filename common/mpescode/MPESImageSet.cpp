@@ -148,6 +148,7 @@ int MPESImageSet::Capture()
             {
                 if (img > imagesToCapture + reject_img - save_img){
                     imwrite(imagefile, capturedimage);
+                    last_img = imagefile;
                 }
                 capturedimage.analyze(iThresh);
                 if (int(capturedimage.datavec.data()->CleanedIntensity) == -2) {
