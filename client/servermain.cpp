@@ -153,7 +153,7 @@ int OpcMain(const char *szAppPath, const std::vector<std::string> &serverList, c
         spdlog::info("Finished loading Configuration...");
 
         // Create and initialize communication interface.
-        std::shared_ptr<PasCommunicationInterface> pCommIf = std::make_shared<PasCommunicationInterface>();
+        std::shared_ptr<PasClientCommunicationInterface> pCommIf = std::make_shared<PasClientCommunicationInterface>();
         pCommIf->setConfiguration(pClientConfiguration);
         // this initializes the CCD controllers (which only exist in the top-level client)
         if (mode == "client") {

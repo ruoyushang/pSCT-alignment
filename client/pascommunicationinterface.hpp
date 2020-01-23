@@ -25,15 +25,15 @@
 
 class PasController;
 
-class PasCommunicationInterface: public PasComInterfaceCommon
+class PasClientCommunicationInterface: public PasComInterfaceCommon
 {
-    UA_DISABLE_COPY(PasCommunicationInterface);
+    UA_DISABLE_COPY(PasClientCommunicationInterface);
 public:
 
     /* construction / destruction */
-    PasCommunicationInterface();
+    PasClientCommunicationInterface();
 
-    ~PasCommunicationInterface() override;
+    ~PasClientCommunicationInterface() override;
 
     UaStatus initialize() override;
 

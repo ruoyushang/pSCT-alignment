@@ -12,13 +12,13 @@ class PasObjectFactory
     ~PasObjectFactory() = default;
 
     static PasObject *Create(
-        unsigned deviceType,
-        const UaString& name,
-        const UaNodeId& newNodeId,
-        const UaString& defaultLocaleId,
-        PasNodeManager *pNodeManager,
-        const Device::Identity &identity,
-        PasCommunicationInterface *pCommIf);
+            unsigned deviceType,
+            const UaString& name,
+            const UaNodeId& newNodeId,
+            const UaString& defaultLocaleId,
+            PasNodeManager *pNodeManager,
+            const Device::Identity &identity,
+            PasClientCommunicationInterface *pCommIf);
 };
 
 #endif

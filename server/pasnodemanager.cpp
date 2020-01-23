@@ -37,9 +37,9 @@ PasNodeManager::PasNodeManager() : PasNodeManagerCommon() {
     spdlog::debug("Created Node manager with NameSpaceIndex = {}", getNameSpaceIndex());
 }
 
-/// @details Takes ownership of the heap-allocated PasCommunicationInterface by calling release on
+/// @details Takes ownership of the heap-allocated PasServerCommunicationInterface by calling release on
 /// the unique ptr and instantiating a new unique pointer.
-UaStatus PasNodeManager::setCommunicationInterface(std::unique_ptr<PasCommunicationInterface> &pCommIf) {
+UaStatus PasNodeManager::setCommunicationInterface(std::unique_ptr<PasServerCommunicationInterface> &pCommIf) {
     spdlog::debug("PasNodeManager: Setting communication interface");
     pCommIf->setpNodeManager(this);
     m_pCommIf = std::unique_ptr<PasComInterfaceCommon>(
@@ -49,7 +49,7 @@ UaStatus PasNodeManager::setCommunicationInterface(std::unique_ptr<PasCommunicat
 }
 
 /// @details Creates all default and custom type nodes. Creates folders for MPES and Actuators.
-/// Gets counts of devices from the PasCommunicationInterface and creates the corresponding object
+/// Gets counts of devices from the PasServerCommunicationInterface and creates the corresponding object
 /// OPC UA nodes and references in the server.
 UaStatus PasNodeManager::afterStartUp()
 {
@@ -94,11 +94,11 @@ UaStatus PasNodeManager::afterStartUp()
     // Note that only the Communication Interface knows what types and numbers of devices we have
     OpcUa_UInt32 deviceType;
     UaString deviceName;
-    for (const auto &pair : PasCommunicationInterface::deviceTypes) {
+    for (const auto &pair : PasServerCommunicationInterface::deviceTypes) {
         deviceType = pair.first;
         deviceTypeName = pair.second;
         spdlog::debug("Creating {} OPC UA device objects...", deviceTypeName);
-        validDeviceIdentities = dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->getValidDeviceIdentities(
+        validDeviceIdentities = dynamic_cast<PasServerCommunicationInterface *>(m_pCommIf.get())->getValidDeviceIdentities(
                 deviceType);
 
         for (const auto &identity : validDeviceIdentities) {
@@ -128,7 +128,7 @@ UaStatus PasNodeManager::afterStartUp()
                 deviceName = UaString((deviceTypeName + "_" + std::to_string(identity.position)).c_str());
                 spdlog::debug("Creating OPC UA panel object with identity {}...", identity);
                 pObject = new PanelObject(deviceName, UaNodeId(deviceName, getNameSpaceIndex()), m_defaultLocaleId,
-                                          this, identity, dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get()));
+                                          this, identity, dynamic_cast<PasServerCommunicationInterface *>(m_pCommIf.get()));
             } else if (deviceType == PAS_PSDType) {
                 deviceName = UaString((deviceTypeName + "_" + std::to_string(identity.serialNumber)).c_str());
                 spdlog::debug("Creating OPC UA PSD object with identity {}...", identity);
@@ -179,7 +179,7 @@ UaStatus PasNodeManager::afterStartUp()
     // Loop through all created objects and add as children of the panel
     for (auto p : pChildObjects) {
         deviceType = p->typeDefinitionId().identifierNumeric();
-        deviceTypeName = PasCommunicationInterface::deviceTypes.at(p->typeDefinitionId().identifierNumeric());
+        deviceTypeName = PasServerCommunicationInterface::deviceTypes.at(p->typeDefinitionId().identifierNumeric());
 
         //If folder doesn't already exist, create a folder for each object type and add the folder to the DevicesByType folder
         if (pChildFolders.find(deviceType) == pChildFolders.end()) {

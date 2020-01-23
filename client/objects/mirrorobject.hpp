@@ -20,15 +20,15 @@ class MirrorObject : public PasObject
     UA_DISABLE_COPY(MirrorObject);
 public:
     MirrorObject(
-        const UaString& name,
-        const UaNodeId& newNodeId,
-        const UaString& defaultLocaleId,
-        PasNodeManager* pNodeManager,
-        Device::Identity identity,
-        PasCommunicationInterface *pCommIf) : PasObject(name, newNodeId, defaultLocaleId,
-                                                        dynamic_cast<PasNodeManagerCommon *>(pNodeManager),
-                                                        std::move(identity),
-                                                        dynamic_cast<PasComInterfaceCommon *>(pCommIf)) { initialize(); }
+            const UaString& name,
+            const UaNodeId& newNodeId,
+            const UaString& defaultLocaleId,
+            PasNodeManager* pNodeManager,
+            Device::Identity identity,
+            PasClientCommunicationInterface *pCommIf) : PasObject(name, newNodeId, defaultLocaleId,
+                                                                  dynamic_cast<PasNodeManagerCommon *>(pNodeManager),
+                                                                  std::move(identity),
+                                                                  dynamic_cast<PasComInterfaceCommon *>(pCommIf)) { initialize(); }
 
     UaNodeId typeDefinitionId() const override { return UaNodeId(PAS_MirrorType, browseName().namespaceIndex()); }
 

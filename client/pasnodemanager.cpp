@@ -58,7 +58,7 @@ void PasNodeManager::createClients() {
     }
 }
 
-void PasNodeManager::setCommunicationInterface(std::shared_ptr<PasCommunicationInterface> &pCommIf)
+void PasNodeManager::setCommunicationInterface(std::shared_ptr<PasClientCommunicationInterface> &pCommIf)
 {
     spdlog::debug("PasNodeManager:: Setting communication interface...");
     pCommIf->setpNodeManager(this);
@@ -105,8 +105,8 @@ UaStatus PasNodeManager::afterStartUp()
             id.eAddress = positioner_address.toUtf8();
             id.name = "Positioner";
             // add the positioner to the comm interface
-            dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->addDevice(m_pPositioner, GLOB_PositionerType,
-                                                                                  id);
+            dynamic_cast<PasClientCommunicationInterface *>(m_pCommIf.get())->addDevice(m_pPositioner, GLOB_PositionerType,
+                                                                                        id);
             spdlog::info("PasNodeManager::afterStartUp(): Connected to positioner and added corresponding controller.");
             ret=m_pPositioner->subscribe();
             if (ret.isGood()){
@@ -119,16 +119,16 @@ UaStatus PasNodeManager::afterStartUp()
 
         // Create all relevant mirror controllers
         spdlog::info("PasNodeManager::afterStartUp(): Creating all required mirror controllers...");
-        dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->addMirrorControllers();
+        dynamic_cast<PasClientCommunicationInterface *>(m_pCommIf.get())->addMirrorControllers();
 
         // Create all relevant edge controllers
         spdlog::info("PasNodeManager::afterStartUp(): Creating all required edge controllers...");
-        dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->addEdgeControllers();
+        dynamic_cast<PasClientCommunicationInterface *>(m_pCommIf.get())->addEdgeControllers();
     }
 
     // Finish controller initialization by adding parent-child relationships for all controllers
     spdlog::info("PasNodeManager::afterStartUp(): Finalizing all controller parent-child relationships...");
-    dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->addParentChildRelations();
+    dynamic_cast<PasClientCommunicationInterface *>(m_pCommIf.get())->addParentChildRelations();
 
     spdlog::info("PasNodeManager::afterStartUp(): Now creating all OPC UA objects and folders...\n");
 
@@ -152,9 +152,9 @@ UaStatus PasNodeManager::afterStartUp()
     UA_ASSERT(ret.isGood());
 
     // Locate Positioner device
-    OpcUa_UInt32 posCount = dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->getDeviceCount(GLOB_PositionerType);
+    OpcUa_UInt32 posCount = dynamic_cast<PasClientCommunicationInterface *>(m_pCommIf.get())->getDeviceCount(GLOB_PositionerType);
     if (posCount == 1) {
-     Device::Device::Identity identity = dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->getValidDeviceIdentities(GLOB_PositionerType).at(0);
+     Device::Device::Identity identity = dynamic_cast<PasClientCommunicationInterface *>(m_pCommIf.get())->getValidDeviceIdentities(GLOB_PositionerType).at(0);
         sDeviceName = UaString(identity.name.c_str());
 
         spdlog::info("PasNodeManager::afterStartUp(): Creating positioner OPC UA object...");
@@ -162,7 +162,7 @@ UaStatus PasNodeManager::afterStartUp()
         PositionerObject *pPositioner = new PositionerObject(sDeviceName,
                                                              UaNodeId(sDeviceName, getNameSpaceIndex()),
                                                              m_defaultLocaleId, this, identity,
-                                                             dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get()));
+                                                             dynamic_cast<PasClientCommunicationInterface *>(m_pCommIf.get()));
         ret = addNodeAndReference(OpcUaId_ObjectsFolder, pPositioner, OpcUaId_Organizes);
         UA_ASSERT(ret.isGood());
         ret = addUaReference(pPositioner->nodeId(), pPositioner->typeDefinitionId(), OpcUaId_HasTypeDefinition);
@@ -178,17 +178,17 @@ UaStatus PasNodeManager::afterStartUp()
 
     // First create all nodes and add object type references
     // Also add to device folder
-    for (auto it=PasCommunicationInterface::deviceTypeNames.begin(); it!=PasCommunicationInterface::deviceTypeNames.end(); ++it) {
+    for (auto it=PasClientCommunicationInterface::deviceTypeNames.begin(); it != PasClientCommunicationInterface::deviceTypeNames.end(); ++it) {
         deviceType = it->first;
 
         spdlog::info("PasNodeManager::afterStartUp(): Creating {} objects...\n", it->second);
-        for (const auto &deviceId : dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->getValidDeviceIdentities(
+        for (const auto &deviceId : dynamic_cast<PasClientCommunicationInterface *>(m_pCommIf.get())->getValidDeviceIdentities(
             deviceType)) {
             sDeviceName = UaString(deviceId.name.c_str());
-            pController = dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->getDeviceFromId(deviceType, deviceId);
+            pController = dynamic_cast<PasClientCommunicationInterface *>(m_pCommIf.get())->getDeviceFromId(deviceType, deviceId);
             //If folder doesn't already exist, create a folder for each object type and add the folder to the DevicesByType folder
             if ( pDeviceFolders.find(deviceType) == pDeviceFolders.end() ) {
-                deviceName = PasCommunicationInterface::deviceTypeNames[deviceType];
+                deviceName = PasClientCommunicationInterface::deviceTypeNames[deviceType];
                 folderName = deviceName + "Folder";
                 pDeviceFolders[deviceType] = new UaFolder(UaString(folderName.c_str()), UaNodeId(UaString(folderName.c_str()), getNameSpaceIndex()), m_defaultLocaleId);
                 ret = addNodeAndReference(pDevicesByTypeFolder, pDeviceFolders[deviceType], OpcUaId_Organizes);
@@ -197,7 +197,7 @@ UaStatus PasNodeManager::afterStartUp()
             // Create object
             pObject = PasObjectFactory::Create(deviceType, sDeviceName, UaNodeId(sDeviceName, getNameSpaceIndex()),
                                                m_defaultLocaleId, this, deviceId,
-                                               dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get()));
+                                               dynamic_cast<PasClientCommunicationInterface *>(m_pCommIf.get()));
 
             // Create node
             ret = addUaNode(pObject);
@@ -238,7 +238,7 @@ UaStatus PasNodeManager::afterStartUp()
             std::string temp;
             std::ostringstream os(temp);
             os << "Parent: " << pController->getIdentity() << std::endl;
-            for (const auto &devType: PasCommunicationInterface::deviceTypeNames) {
+            for (const auto &devType: PasClientCommunicationInterface::deviceTypeNames) {
                 deviceType = devType.first;
                 deviceName = devType.second;
                 try {
@@ -686,21 +686,21 @@ OpcUa_Int32 PasNodeManager::Panic()
 {
     UaStatus status;
 
-    for (const auto &id : dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->getValidDeviceIdentities(
+    for (const auto &id : dynamic_cast<PasClientCommunicationInterface *>(m_pCommIf.get())->getValidDeviceIdentities(
         PAS_ACTType)) {
         if (status.isGood()) {
             spdlog::info("Will try turning off {}", id.eAddress.c_str());
-            status = dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->getDeviceFromId(PAS_ACTType, id)->operate(PAS_ACTType_TurnOff);
+            status = dynamic_cast<PasClientCommunicationInterface *>(m_pCommIf.get())->getDeviceFromId(PAS_ACTType, id)->operate(PAS_ACTType_TurnOff);
         } else
             spdlog::info("Problem turning off {}", id.eAddress.c_str());
     }
 
     sleep(3);
-    for (const auto &id : dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->getValidDeviceIdentities(
+    for (const auto &id : dynamic_cast<PasClientCommunicationInterface *>(m_pCommIf.get())->getValidDeviceIdentities(
         PAS_ACTType)) {
         if (status.isGood()) {
             spdlog::info("Will try turning on {} again", id.eAddress.c_str());
-            status = dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->getDeviceFromId(PAS_ACTType, id)->operate(PAS_ACTType_TurnOn);
+            status = dynamic_cast<PasClientCommunicationInterface *>(m_pCommIf.get())->getDeviceFromId(PAS_ACTType, id)->operate(PAS_ACTType_TurnOn);
         } else
             spdlog::info("Problem turning on {}", id.eAddress.c_str());
     }

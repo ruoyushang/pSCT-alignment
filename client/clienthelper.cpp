@@ -521,7 +521,7 @@ void Client::addDevices(const OpcUa_ReferenceDescription& referenceDescription)
             try {
                 Device::Identity deviceId = m_pConfiguration->getDeviceByName(
                     UaString(referenceDescription.BrowseName.Name).toUtf8());
-                ((PasCommunicationInterface *) m_pNodeManager->getComInterface().get())->addDevice(
+                ((PasClientCommunicationInterface *) m_pNodeManager->getComInterface().get())->addDevice(
                     this, type, deviceId, m_mode);
                 m_DeviceNodeIdMap[deviceId] = std::string(sTemp);
             }

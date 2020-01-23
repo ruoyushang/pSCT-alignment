@@ -12,7 +12,8 @@
 #include "common/opcua/passervertypeids.hpp"
 
 class PasNodeManager;
-class PasCommunicationInterface;
+class PasServerCommunicationInterface;
+class PasClientCommunicationInterface;
 class PasNodeManagerCommon;
 class PasComInterfaceCommon;
 class UaMethodGeneric;

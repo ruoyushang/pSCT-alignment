@@ -28,15 +28,15 @@ class PlatformBase;
 class PasController;
 
 /// @brief Server communication interface to organize and interact with device controllers.
-class PasCommunicationInterface : public PasComInterfaceCommon {
-    UA_DISABLE_COPY(PasCommunicationInterface); // Disables copy construction and copy assignment
+class PasServerCommunicationInterface : public PasComInterfaceCommon {
+    UA_DISABLE_COPY(PasServerCommunicationInterface); // Disables copy construction and copy assignment
 public:
 
     /// @brief Instantiate a communication interface object.
-    PasCommunicationInterface() : m_panelNum(-1), m_cbcID(-1) {};
+    PasServerCommunicationInterface() : m_panelNum(-1), m_cbcID(-1) {};
 
     /// @brief Destroy a communication interface object.
-    ~PasCommunicationInterface() override;
+    ~PasServerCommunicationInterface() override;
 
     /// @brief Initialize all device controllers using information from the database.
     /// @return OPC UA status code indicating success/failure.

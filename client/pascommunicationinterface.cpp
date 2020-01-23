@@ -34,13 +34,13 @@
 #include "common/utilities/spdlog/fmt/ostr.h"
 
 /* ----------------------------------------------------------------------------
-    Begin Class    PasCommunicationInterface
+    Begin Class    PasClientCommunicationInterface
     constructors / destructors
 -----------------------------------------------------------------------------*/
 // initialize the image directory path
-//const char *PasCommunicationInterface::m_imageDir = "/home/root/opcua/sdk/mpesServer/testimages/";
+//const char *PasClientCommunicationInterface::m_imageDir = "/home/root/opcua/sdk/mpesServer/testimages/";
 
-std::map<OpcUa_UInt32, std::string> PasCommunicationInterface::deviceTypeNames{
+std::map<OpcUa_UInt32, std::string> PasClientCommunicationInterface::deviceTypeNames{
     {PAS_MirrorType, "Mirror"},
     {PAS_PanelType, "Panel"},
     {PAS_EdgeType, "Edge"},
@@ -50,25 +50,25 @@ std::map<OpcUa_UInt32, std::string> PasCommunicationInterface::deviceTypeNames{
     {PAS_PSDType, "PSD"}
 };
 
-PasCommunicationInterface::PasCommunicationInterface() :
+PasClientCommunicationInterface::PasClientCommunicationInterface() :
     m_pConfiguration(nullptr),
     m_stop(OpcUa_False)
 {
 }
 
-PasCommunicationInterface::~PasCommunicationInterface()
+PasClientCommunicationInterface::~PasClientCommunicationInterface()
 {
     m_stop = OpcUa_True; // Signal Thread to stop
-    spdlog::info("Closed and cleaned up PasCommunicationInterface");
+    spdlog::info("Closed and cleaned up PasClientCommunicationInterface");
 }
 
-UaStatus PasCommunicationInterface::initialize()
+UaStatus PasClientCommunicationInterface::initialize()
 {
     initializeCCDs();
     return OpcUa_Good;
 }
 
-UaStatus PasCommunicationInterface::initializeCCDs()
+UaStatus PasClientCommunicationInterface::initializeCCDs()
 {
     // initialize devices communicating directly with the Alignment server (p2pasclient)
 
@@ -86,7 +86,7 @@ UaStatus PasCommunicationInterface::initializeCCDs()
 //        ip = "0.0.0.0"; //arv_get_device_address(i);
 //        serial2ip[serial] = ip;
 //    }
-    spdlog::info("PasCommunicationInterface::Initialize(): setting up CCD connection.");
+    spdlog::info("PasClientCommunicationInterface::Initialize(): setting up CCD connection.");
 
     try {
         for (const auto &identity : m_pConfiguration->getDevices(PAS_CCDType)) {
@@ -94,33 +94,33 @@ UaStatus PasCommunicationInterface::initializeCCDs()
             try {
 //                if (serial2ip.at(std::to_string(identity.serialNumber)) != identity.eAddress) {
 //                    spdlog::warn(
-//                        "PasCommunicationInterface::Initialize(): mismatch in recorded config and actual IP assignment. {} is assigned {}, but actually obtained {}.",
+//                        "PasClientCommunicationInterface::Initialize(): mismatch in recorded config and actual IP assignment. {} is assigned {}, but actually obtained {}.",
 //                        identity.serialNumber, identity.eAddress, serial2ip[std::to_string(identity.serialNumber)]);
 //                }
                 addDevice(nullptr, PAS_CCDType, identity);
             }
             catch (std::out_of_range &e) {
                 spdlog::warn(
-                    "PasCommunicationInterface::Initialize(): CCD {} with assigned IP {} isn't found on the network. Check your connection and try again. Skipping...",
+                    "PasClientCommunicationInterface::Initialize(): CCD {} with assigned IP {} isn't found on the network. Check your connection and try again. Skipping...",
                     identity.serialNumber, identity.eAddress);
             }
         }
     }
     catch (std::out_of_range &e) {
-        spdlog::warn("PasCommunicationInterface::Initialize(): no CCD configurations found.");
+        spdlog::warn("PasClientCommunicationInterface::Initialize(): no CCD configurations found.");
     }
 
     return OpcUa_Good;
 }
 
 /* ----------------------------------------------------------------------------
-    Class        PasCommunicationInterface
+    Class        PasClientCommunicationInterface
     Method       addDevice
     Description  add a device of specified type
 -----------------------------------------------------------------------------*/
 const Device::Identity
-PasCommunicationInterface::addDevice(Client *pClient, OpcUa_UInt32 deviceType,
-                                     const Device::Identity &identity, std::string mode)
+PasClientCommunicationInterface::addDevice(Client *pClient, OpcUa_UInt32 deviceType,
+                                           const Device::Identity &identity, std::string mode)
 {
     // check if object already exists -- this way, passing the same object multiple times won't
     // actually add it multiple times
@@ -128,7 +128,7 @@ PasCommunicationInterface::addDevice(Client *pClient, OpcUa_UInt32 deviceType,
 
     // Found existing copy of device
     if (m_pControllers.count(deviceType) > 0 && m_pControllers.at(deviceType).count(identity) > 0) {
-        //spdlog::debug("PasCommunicationInterface::addDevice() : Device {} already exists. Moving on...", identity);
+        //spdlog::debug("PasClientCommunicationInterface::addDevice() : Device {} already exists. Moving on...", identity);
         return identity;
     } else { // Didn't find existing copy, create new one
         std::shared_ptr<PasController> pController;
@@ -166,14 +166,14 @@ PasCommunicationInterface::addDevice(Client *pClient, OpcUa_UInt32 deviceType,
 
         m_pControllers[deviceType][identity] = pController;
 
-        spdlog::info("PasCommunicationInterface::addDevice() Added {} with identity {}.",
-                  PasCommunicationInterface::deviceTypeNames[deviceType], identity);
+        spdlog::info("PasClientCommunicationInterface::addDevice() Added {} with identity {}.",
+                     PasClientCommunicationInterface::deviceTypeNames[deviceType], identity);
 
         return identity;
     }
 }
 
-void PasCommunicationInterface::addEdgeControllers() {
+void PasClientCommunicationInterface::addEdgeControllers() {
     for (const auto &edgeId : m_pConfiguration->getDevices(PAS_EdgeType)) {
         bool addEdge = true;
         // Check if all panels in edge exist
@@ -196,7 +196,7 @@ void PasCommunicationInterface::addEdgeControllers() {
     }
 }
 
-void PasCommunicationInterface::addMirrorControllers() {
+void PasClientCommunicationInterface::addMirrorControllers() {
     for (const auto &mirrorId : m_pConfiguration->getDevices(PAS_MirrorType)) {
         bool addMirror = false;
         // Check if at least one panel in the mirror exists
@@ -219,7 +219,7 @@ void PasCommunicationInterface::addMirrorControllers() {
     }
 }
 
-void PasCommunicationInterface::addParentChildRelations() {
+void PasClientCommunicationInterface::addParentChildRelations() {
     for (const auto &t : m_pControllers) {
         for (const auto &device : m_pControllers.at(t.first)) {
             Device::Identity childIdentity = device.first;
@@ -243,11 +243,11 @@ void PasCommunicationInterface::addParentChildRelations() {
 }
 
 /* ----------------------------------------------------------------------------
-    Class        PasCommunicationInterface
+    Class        PasClientCommunicationInterface
     Method       getDeviceState
     Description  Get Device status.
 -----------------------------------------------------------------------------*/
-UaStatus PasCommunicationInterface::getDeviceState(
+UaStatus PasClientCommunicationInterface::getDeviceState(
     OpcUa_UInt32 deviceType,
     const Device::Identity &identity,
     Device::DeviceState &state) {
@@ -257,11 +257,11 @@ UaStatus PasCommunicationInterface::getDeviceState(
     return OpcUa_BadInvalidArgument;
 }
 /* ----------------------------------------------------------------------------
-    Class        PasCommunicationInterface
+    Class        PasClientCommunicationInterface
     Method       setSensorState
     Description  Set Sensor status.
 -----------------------------------------------------------------------------*/
-UaStatus PasCommunicationInterface::setDeviceState(
+UaStatus PasClientCommunicationInterface::setDeviceState(
     OpcUa_UInt32 deviceType,
     const Device::Identity &identity,
     Device::DeviceState state) {
@@ -271,11 +271,11 @@ UaStatus PasCommunicationInterface::setDeviceState(
     return OpcUa_BadInvalidArgument;
 }
 /* ----------------------------------------------------------------------------
-    Class        PasCommunicationInterface
+    Class        PasClientCommunicationInterface
     Method       getDeviceData
     Description  Get Sensor data.
 -----------------------------------------------------------------------------*/
-UaStatus PasCommunicationInterface::getDeviceData(
+UaStatus PasClientCommunicationInterface::getDeviceData(
         OpcUa_UInt32 deviceType,
         const Device::Identity &identity,
         OpcUa_UInt32 offset,
@@ -286,11 +286,11 @@ UaStatus PasCommunicationInterface::getDeviceData(
     return OpcUa_BadInvalidArgument;
 }
 /* ----------------------------------------------------------------------------
-    Class        PasCommunicationInterface
+    Class        PasClientCommunicationInterface
     Method       setSensorData
     Description  Set Sensor data.
 -----------------------------------------------------------------------------*/
-UaStatus PasCommunicationInterface::setDeviceData(
+UaStatus PasClientCommunicationInterface::setDeviceData(
         OpcUa_UInt32 type,
         const Device::Identity &identity,
         OpcUa_UInt32 offset,
@@ -307,20 +307,20 @@ UaStatus PasCommunicationInterface::setDeviceData(
     return status;
 }
 /* ----------------------------------------------------------------------------
-    Class        PasCommunicationInterface
+    Class        PasClientCommunicationInterface
     Method       setPNodeManager
     Description  Set pNodemanager
 -----------------------------------------------------------------------------*/
-void PasCommunicationInterface::setpNodeManager(PasNodeManager *pNodeManager){
+void PasClientCommunicationInterface::setpNodeManager(PasNodeManager *pNodeManager){
     m_pNodeManager = pNodeManager;
 }
 
 /* ----------------------------------------------------------------------------
-    Class        PasCommunicationInterface
+    Class        PasClientCommunicationInterface
     Method       OperateDevice
     Description  Run a method on a device.
 -----------------------------------------------------------------------------*/
-UaStatus PasCommunicationInterface::operateDevice(
+UaStatus PasClientCommunicationInterface::operateDevice(
         OpcUa_UInt32 type, const Device::Identity &identity,
         OpcUa_UInt32 offset, const UaVariantArray &args)
 {
@@ -330,12 +330,12 @@ UaStatus PasCommunicationInterface::operateDevice(
     return OpcUa_BadInvalidArgument;
 }
 /* ----------------------------------------------------------------------------
-    Class        PasCommunicationInterface
+    Class        PasClientCommunicationInterface
     Method       getDeviceFromId
     Description  Return a device with the specified id.
 -----------------------------------------------------------------------------*/
-std::shared_ptr<PasController> PasCommunicationInterface::getDeviceFromId(OpcUa_UInt32 type,
-                                                                          const Device::Identity &identity)
+std::shared_ptr<PasController> PasClientCommunicationInterface::getDeviceFromId(OpcUa_UInt32 type,
+                                                                                const Device::Identity &identity)
 {
     try {
         return std::dynamic_pointer_cast<PasController>(m_pControllers.at(type).at(identity));
@@ -346,6 +346,6 @@ std::shared_ptr<PasController> PasCommunicationInterface::getDeviceFromId(OpcUa_
     }
 }
 /* ----------------------------------------------------------------------------
-    End Class     PasCommunicationInterface
+    End Class     PasClientCommunicationInterface
     constructors / destructors
 ------------------------------------------- ---------------------------------*/

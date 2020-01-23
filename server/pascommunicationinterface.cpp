@@ -35,21 +35,21 @@
 #include "cppconn/statement.h"
 #include <cppconn/exception.h>
 
-const std::map<OpcUa_UInt32, std::string> PasCommunicationInterface::deviceTypes = {
+const std::map<OpcUa_UInt32, std::string> PasServerCommunicationInterface::deviceTypes = {
         {PAS_PanelType, "Panel"},
         {PAS_MPESType,  "MPES"},
         {PAS_ACTType,   "ACT"},
         {PAS_PSDType,   "PSD"}
 };
 
-PasCommunicationInterface::~PasCommunicationInterface() {
+PasServerCommunicationInterface::~PasServerCommunicationInterface() {
     spdlog::info("Closing and cleaning up communication interface...");
 }
 
 /// @details Uses DB login info from environment to access the device database and retrieve
 /// all device mappings and positions. Then, initializes all corresponding controllers, adds all MPES to the platform object,
 /// and attaches all actuator controllers to the corresponding panel controller.
-UaStatus PasCommunicationInterface::initialize() {
+UaStatus PasServerCommunicationInterface::initialize() {
     UaStatus status;
 
     /// @remark DB login in uses variables preconfigured in MPCB environment variables.
@@ -264,7 +264,7 @@ UaStatus PasCommunicationInterface::initialize() {
     return status;
 }
 
-UaStatus PasCommunicationInterface::getDeviceState(
+UaStatus PasServerCommunicationInterface::getDeviceState(
     OpcUa_UInt32 deviceType,
     const Device::Identity &identity,
     Device::DeviceState &state) {
@@ -276,7 +276,7 @@ UaStatus PasCommunicationInterface::getDeviceState(
     }
 }
 
-UaStatus PasCommunicationInterface::setDeviceState(
+UaStatus PasServerCommunicationInterface::setDeviceState(
     OpcUa_UInt32 deviceType,
     const Device::Identity &identity,
     Device::DeviceState state) {
@@ -288,7 +288,7 @@ UaStatus PasCommunicationInterface::setDeviceState(
     }
 }
 
-UaStatus PasCommunicationInterface::getDeviceData(
+UaStatus PasServerCommunicationInterface::getDeviceData(
     OpcUa_UInt32 deviceType,
     const Device::Identity &identity,
     OpcUa_UInt32 offset,
@@ -301,7 +301,7 @@ UaStatus PasCommunicationInterface::getDeviceData(
     }
 }
 
-UaStatus PasCommunicationInterface::setDeviceData(
+UaStatus PasServerCommunicationInterface::setDeviceData(
     OpcUa_UInt32 deviceType,
     const Device::Identity &identity,
     OpcUa_UInt32 offset,
@@ -314,7 +314,7 @@ UaStatus PasCommunicationInterface::setDeviceData(
     }
 }
 
-UaStatus PasCommunicationInterface::operateDevice(
+UaStatus PasServerCommunicationInterface::operateDevice(
     OpcUa_UInt32 deviceType,
     const Device::Identity &identity,
     OpcUa_UInt32 offset,
@@ -327,6 +327,6 @@ UaStatus PasCommunicationInterface::operateDevice(
     }
 }
 
-void PasCommunicationInterface::setpNodeManager(PasNodeManager *pNodeManager){
+void PasServerCommunicationInterface::setpNodeManager(PasNodeManager *pNodeManager){
     m_pNodeManager = static_cast<shared_ptr<PasNodeManager>>(pNodeManager);
 }

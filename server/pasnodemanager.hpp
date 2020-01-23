@@ -11,7 +11,7 @@
 
 #include "common/opcua/pasnodemanagercommon.hpp"
 
-class PasCommunicationInterface;
+class PasServerCommunicationInterface;
 
 /// @brief Class for initializing and managing all OPC UA nodes in the server.
 class PasNodeManager : public PasNodeManagerCommon {
@@ -30,7 +30,7 @@ public:
 
     /// @brief Set the communication interface to use for operating/reading devices.
     /// @param pCommIf Pointer to the communication interface.
-    UaStatus setCommunicationInterface(std::unique_ptr<PasCommunicationInterface> &pCommIf);
+    UaStatus setCommunicationInterface(std::unique_ptr<PasServerCommunicationInterface> &pCommIf);
 
 private:
     /// @brief Add a custom type definition node for the Panel type.

@@ -33,18 +33,18 @@ public:
     /// nodes and references.
     /// @param identity Identity object describing the positioner's serial,
     /// location, IP address, etc.
-    /// @param pCommIf Pointer to a PasCommunicationInterface which controls
+    /// @param pCommIf Pointer to a PasClientCommunicationInterface which controls
     /// device operation/reading.
     PositionerObject(
-        const UaString &name,
-        const UaNodeId &newNodeId,
-        const UaString &defaultLocaleId,
-        PasNodeManager *pNodeManager,
-        Device::Identity identity,
-        PasCommunicationInterface *pCommIf) : PasObject(name, newNodeId, defaultLocaleId,
-                                                        dynamic_cast<PasNodeManagerCommon *>(pNodeManager),
-                                                        std::move(identity),
-                                                        dynamic_cast<PasComInterfaceCommon *>(pCommIf)) { initialize(); }
+            const UaString &name,
+            const UaNodeId &newNodeId,
+            const UaString &defaultLocaleId,
+            PasNodeManager *pNodeManager,
+            Device::Identity identity,
+            PasClientCommunicationInterface *pCommIf) : PasObject(name, newNodeId, defaultLocaleId,
+                                                                  dynamic_cast<PasNodeManagerCommon *>(pNodeManager),
+                                                                  std::move(identity),
+                                                                  dynamic_cast<PasComInterfaceCommon *>(pCommIf)) { initialize(); }
 
     /// @brief Method returning the UaNodeId for the Positioner object type
     /// definition node.

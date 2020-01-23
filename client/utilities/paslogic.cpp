@@ -8,18 +8,18 @@
 
 #define TIME __timeStamp()
 
-PasLogic::PasLogic(std::shared_ptr<PasCommunicationInterface> pCommIf) : m_pCommIf{std::move(pCommIf)},
-                                                                         m_terminate{false},
-                                                                         m_aligned(false),
-                                                                         m_kPSDDistance{514.61},
-                                                                         m_kMisalignmentCriterion{0.3},
-                                                                         m_kAngularScale{StewartPlatform::kMirrorDistance,
+PasLogic::PasLogic(std::shared_ptr<PasClientCommunicationInterface> pCommIf) : m_pCommIf{std::move(pCommIf)},
+                                                                               m_terminate{false},
+                                                                               m_aligned(false),
+                                                                               m_kPSDDistance{514.61},
+                                                                               m_kMisalignmentCriterion{0.3},
+                                                                               m_kAngularScale{StewartPlatform::kMirrorDistance,
                                                                          m_kPSDDistance},
-                                                                         m_nominalPSDReadings{0., 0., 0., 0.},
-                                                                         m_secondaryAligned{false},
-                                                                         m_kInitTime{std::chrono::system_clock::now()},
-                                                                         m_logstream{"paslogic.log", std::ofstream::app},
-                                                                         tee{m_logstream}
+                                                                               m_nominalPSDReadings{0., 0., 0., 0.},
+                                                                               m_secondaryAligned{false},
+                                                                               m_kInitTime{std::chrono::system_clock::now()},
+                                                                               m_logstream{"paslogic.log", std::ofstream::app},
+                                                                               tee{m_logstream}
 {
     // doing just OPT
     m_SP.SetPanelType(StewartPlatform::PanelType::OPT);

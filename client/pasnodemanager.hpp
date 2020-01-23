@@ -11,7 +11,7 @@
 #include "common/opcua/pasnodemanagercommon.hpp"
 
 
-class PasCommunicationInterface;
+class PasClientCommunicationInterface;
 class Configuration;
 class Client;
 
@@ -36,9 +36,9 @@ public:
 
     void createClients();
 
-    /// @brief Setter method to set the PasCommunicationInterface object.
-    /// @param pCommIf Pointer to a new PasCommunicationInterface object.
-    void setCommunicationInterface(std::shared_ptr<PasCommunicationInterface> &pCommIf);
+    /// @brief Setter method to set the PasClientCommunicationInterface object.
+    /// @param pCommIf Pointer to a new PasClientCommunicationInterface object.
+    void setCommunicationInterface(std::shared_ptr<PasClientCommunicationInterface> &pCommIf);
 
     /// @brief Method to get locale ID indicating the region/language.
     /// @return A locale ID string indicating the region/language.

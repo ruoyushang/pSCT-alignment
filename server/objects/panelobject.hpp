@@ -38,18 +38,18 @@ public:
     /// nodes and references.
     /// @param identity Identity object describing the panel's serial,
     /// location, IP address, etc.
-    /// @param pCommIf Pointer to a PasCommunicationInterface which controls
+    /// @param pCommIf Pointer to a PasServerCommunicationInterface which controls
     /// device operation/reading.
     PanelObject(
-        const UaString &name,
-        const UaNodeId &newNodeId,
-        const UaString &defaultLocaleId,
-        PasNodeManager *pNodeManager,
-        Device::Identity identity,
-        PasCommunicationInterface *pCommIf) : PasObject(name, newNodeId, defaultLocaleId,
-                                                        dynamic_cast<PasNodeManagerCommon *>(pNodeManager),
-                                                        std::move(identity),
-                                                        dynamic_cast<PasComInterfaceCommon *>(pCommIf)) { initialize(); }
+            const UaString &name,
+            const UaNodeId &newNodeId,
+            const UaString &defaultLocaleId,
+            PasNodeManager *pNodeManager,
+            Device::Identity identity,
+            PasServerCommunicationInterface *pCommIf) : PasObject(name, newNodeId, defaultLocaleId,
+                                                                  dynamic_cast<PasNodeManagerCommon *>(pNodeManager),
+                                                                  std::move(identity),
+                                                                  dynamic_cast<PasComInterfaceCommon *>(pCommIf)) { initialize(); }
 
     /// @brief Return the UaNodeId for the Panel object type definition node.
     /// @return The UaNodeId uniquely identifying the Panel object type node.

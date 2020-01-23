@@ -41,7 +41,7 @@ class tee_device
 class PasLogic : public UaThread
 {
 public :
-    explicit PasLogic(std::shared_ptr<PasCommunicationInterface> pCommIf);
+    explicit PasLogic(std::shared_ptr<PasClientCommunicationInterface> pCommIf);
     ~PasLogic() override = default;
 
     void run() override;
@@ -53,7 +53,7 @@ public :
 
 private:
     // this is to get all the data from our devices
-    std::shared_ptr<PasCommunicationInterface> m_pCommIf;
+    std::shared_ptr<PasClientCommunicationInterface> m_pCommIf;
 
     // this tells when to stop!
     bool m_terminate;
