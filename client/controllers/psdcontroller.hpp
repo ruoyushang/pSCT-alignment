@@ -12,7 +12,7 @@ public:
     friend MirrorController;
 
     // construction / destruction
-    PSDController(Device::Identity identity, Client *pClient, PasNodeManager * pNodeManager);
+    PSDController(Device::Identity identity, Client *pClient, PasClientNodeManager * pNodeManager);
 
     // Get Controller status and data
     UaStatus getState(Device::DeviceState &state) override;

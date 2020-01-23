@@ -327,6 +327,6 @@ UaStatus PasServerCommunicationInterface::operateDevice(
     }
 }
 
-void PasServerCommunicationInterface::setpNodeManager(PasNodeManager *pNodeManager){
-    m_pNodeManager = static_cast<shared_ptr<PasNodeManager>>(pNodeManager);
+void PasServerCommunicationInterface::setpNodeManager(PasServerNodeManager *pNodeManager){
+    m_pNodeManager = static_cast<shared_ptr<PasServerNodeManager>>(pNodeManager);
 }

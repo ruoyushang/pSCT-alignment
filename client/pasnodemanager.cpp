@@ -26,22 +26,22 @@
 #include "common/utilities/spdlog/fmt/ostr.h"
 
 
-PasNodeManager::PasNodeManager(std::shared_ptr<Configuration> pConfiguration, std::string mode)
+PasClientNodeManager::PasClientNodeManager(std::shared_ptr<Configuration> pConfiguration, std::string mode)
     : PasNodeManagerCommon(), m_Mode(std::move(mode)), m_pConfiguration(std::move(pConfiguration)),
       m_pPositioner(nullptr) {
-    spdlog::debug("PasNodeManager:: Creating new Node Manager...");
+    spdlog::debug("PasClientNodeManager:: Creating new Node Manager...");
     m_pPositioner = new Client(this);
     m_pPositioner->setConfiguration(m_pConfiguration);
 
     createClients();
 }
 
-PasNodeManager::~PasNodeManager()
+PasClientNodeManager::~PasClientNodeManager()
 {
-    spdlog::debug("PasNodeManager:: Cleaning up...");
+    spdlog::debug("PasClientNodeManager:: Cleaning up...");
 }
 
-void PasNodeManager::createClients() {
+void PasClientNodeManager::createClients() {
     unsigned numServers = 0;
 
     // Create as many clients as needed (the number of servers)
@@ -51,21 +51,21 @@ void PasNodeManager::createClients() {
         numServers = m_pConfiguration->getDevices(PAS_PanelType).size();
     }
 
-    spdlog::info("PasNodeManager:: Attempting to create {} clients...", numServers);
+    spdlog::info("PasClientNodeManager:: Attempting to create {} clients...", numServers);
     for (OpcUa_UInt32 i = 0; i < numServers; i++) {
         m_pClients.push_back(new Client(this));
         m_pClients.back()->setConfiguration(m_pConfiguration);
     }
 }
 
-void PasNodeManager::setCommunicationInterface(std::shared_ptr<PasClientCommunicationInterface> &pCommIf)
+void PasClientNodeManager::setCommunicationInterface(std::shared_ptr<PasClientCommunicationInterface> &pCommIf)
 {
-    spdlog::debug("PasNodeManager:: Setting communication interface...");
+    spdlog::debug("PasClientNodeManager:: Setting communication interface...");
     pCommIf->setpNodeManager(this);
     m_pCommIf = pCommIf;
 }
 
-UaStatus PasNodeManager::afterStartUp()
+UaStatus PasClientNodeManager::afterStartUp()
 {
     UaStatus ret;
     
@@ -75,7 +75,7 @@ UaStatus PasNodeManager::afterStartUp()
     UA_ASSERT(ret.isGood());
 
     // connect to each server
-    spdlog::info("PasNodeManager::afterStartUp(): Connecting to all servers...");
+    spdlog::info("PasClientNodeManager::afterStartUp(): Connecting to all servers...");
     unsigned client = 0;
     for (const auto &address : m_pConfiguration->getServerAddresses()) {
         m_pClients.at(client)->setAddress(address);
@@ -83,20 +83,20 @@ UaStatus PasNodeManager::afterStartUp()
         if (ret.isGood()) {
             // add controllers for other devices in each server (this will only include ACT, MPES, and PSD controllers)
             ret = m_pClients.at(client)->browseAndAddDevices();
-            spdlog::info("PasNodeManager::afterStartUp(): Successfully connected to server at {} and created all controllers.",address.toUtf8());
+            spdlog::info("PasClientNodeManager::afterStartUp(): Successfully connected to server at {} and created all controllers.",address.toUtf8());
             ret = m_pClients.at(client)->subscribe();
             if (ret.isGood()){
-                spdlog::info("PasNodeManager::afterStartUp(): subscribed to clients.");
+                spdlog::info("PasClientNodeManager::afterStartUp(): subscribed to clients.");
             }
         } else
-            spdlog::warn("PasNodeManager::afterStartUp(): Failed to connect to server at {}. Moving on...", address.toUtf8());
+            spdlog::warn("PasClientNodeManager::afterStartUp(): Failed to connect to server at {}. Moving on...", address.toUtf8());
 
         ++client;
     }
 
     if (m_Mode == "client") {
         // connect to positioner
-        spdlog::info("PasNodeManager::afterStartUp(): Attempting to create controller for positioner...");
+        spdlog::info("PasClientNodeManager::afterStartUp(): Attempting to create controller for positioner...");
         Device::Device::Identity id;
         UaString positioner_address = m_pConfiguration->getPositionerUrl();
         m_pPositioner->setAddress(positioner_address);
@@ -107,30 +107,30 @@ UaStatus PasNodeManager::afterStartUp()
             // add the positioner to the comm interface
             dynamic_cast<PasClientCommunicationInterface *>(m_pCommIf.get())->addDevice(m_pPositioner, GLOB_PositionerType,
                                                                                         id);
-            spdlog::info("PasNodeManager::afterStartUp(): Connected to positioner and added corresponding controller.");
+            spdlog::info("PasClientNodeManager::afterStartUp(): Connected to positioner and added corresponding controller.");
             ret=m_pPositioner->subscribe();
             if (ret.isGood()){
-                spdlog::info("PasNodeManager::afterStartUp(): subscribed to positioner.");
+                spdlog::info("PasClientNodeManager::afterStartUp(): subscribed to positioner.");
             }
         } else {
-            spdlog::warn("PasNodeManager::afterStartUp(): Failed to connect to positioner server at {}. Moving on...",
+            spdlog::warn("PasClientNodeManager::afterStartUp(): Failed to connect to positioner server at {}. Moving on...",
                          m_pConfiguration->getPositionerUrl().toUtf8());
         }
 
         // Create all relevant mirror controllers
-        spdlog::info("PasNodeManager::afterStartUp(): Creating all required mirror controllers...");
+        spdlog::info("PasClientNodeManager::afterStartUp(): Creating all required mirror controllers...");
         dynamic_cast<PasClientCommunicationInterface *>(m_pCommIf.get())->addMirrorControllers();
 
         // Create all relevant edge controllers
-        spdlog::info("PasNodeManager::afterStartUp(): Creating all required edge controllers...");
+        spdlog::info("PasClientNodeManager::afterStartUp(): Creating all required edge controllers...");
         dynamic_cast<PasClientCommunicationInterface *>(m_pCommIf.get())->addEdgeControllers();
     }
 
     // Finish controller initialization by adding parent-child relationships for all controllers
-    spdlog::info("PasNodeManager::afterStartUp(): Finalizing all controller parent-child relationships...");
+    spdlog::info("PasClientNodeManager::afterStartUp(): Finalizing all controller parent-child relationships...");
     dynamic_cast<PasClientCommunicationInterface *>(m_pCommIf.get())->addParentChildRelations();
 
-    spdlog::info("PasNodeManager::afterStartUp(): Now creating all OPC UA objects and folders...\n");
+    spdlog::info("PasClientNodeManager::afterStartUp(): Now creating all OPC UA objects and folders...\n");
 
     UaFolder *pFolder = nullptr;
     PasObject *pObject = nullptr;
@@ -157,7 +157,7 @@ UaStatus PasNodeManager::afterStartUp()
      Device::Device::Identity identity = dynamic_cast<PasClientCommunicationInterface *>(m_pCommIf.get())->getValidDeviceIdentities(GLOB_PositionerType).at(0);
         sDeviceName = UaString(identity.name.c_str());
 
-        spdlog::info("PasNodeManager::afterStartUp(): Creating positioner OPC UA object...");
+        spdlog::info("PasClientNodeManager::afterStartUp(): Creating positioner OPC UA object...");
         //Create a folder for the positioner and add the folder to the ObjectsFolder
         PositionerObject *pPositioner = new PositionerObject(sDeviceName,
                                                              UaNodeId(sDeviceName, getNameSpaceIndex()),
@@ -174,14 +174,14 @@ UaStatus PasNodeManager::afterStartUp()
     }
 
     spdlog::info(
-        "PasNodeManager::afterStartUp(): Creating all other OPC UA device objects and adding to DevicesByType...");
+        "PasClientNodeManager::afterStartUp(): Creating all other OPC UA device objects and adding to DevicesByType...");
 
     // First create all nodes and add object type references
     // Also add to device folder
     for (auto it=PasClientCommunicationInterface::deviceTypeNames.begin(); it != PasClientCommunicationInterface::deviceTypeNames.end(); ++it) {
         deviceType = it->first;
 
-        spdlog::info("PasNodeManager::afterStartUp(): Creating {} objects...\n", it->second);
+        spdlog::info("PasClientNodeManager::afterStartUp(): Creating {} objects...\n", it->second);
         for (const auto &deviceId : dynamic_cast<PasClientCommunicationInterface *>(m_pCommIf.get())->getValidDeviceIdentities(
             deviceType)) {
             sDeviceName = UaString(deviceId.name.c_str());
@@ -224,7 +224,7 @@ UaStatus PasNodeManager::afterStartUp()
 
     UaString objectName;
 
-    spdlog::info("PasNodeManager::afterStartUp(): Adding all parent-child references between objects...\n\n");
+    spdlog::info("PasClientNodeManager::afterStartUp(): Adding all parent-child references between objects...\n\n");
 
     // Loop through all created objects and add references to children
     for (const auto &device : pDeviceObjects) {
@@ -266,7 +266,7 @@ UaStatus PasNodeManager::afterStartUp()
         }
     }
 
-    spdlog::info("PasNodeManager::afterStartUp(): Creating device tree...");
+    spdlog::info("PasClientNodeManager::afterStartUp(): Creating device tree...");
 
     // Add folder for device tree to Objects folder
     UaFolder *pDeviceTreeFolder = new UaFolder("DeviceTree", UaNodeId("DeviceTree", getNameSpaceIndex()), m_defaultLocaleId);
@@ -285,7 +285,7 @@ UaStatus PasNodeManager::afterStartUp()
     return ret;
 }
 
-UaStatus PasNodeManager::beforeShutDown()
+UaStatus PasClientNodeManager::beforeShutDown()
 {
     UaStatus ret;
 
@@ -302,7 +302,7 @@ UaStatus PasNodeManager::beforeShutDown()
     return ret;
 }
 
-UaStatus PasNodeManager::amendTypeNodes()
+UaStatus PasClientNodeManager::amendTypeNodes()
 {
     UaStatus ret;
     UaStatus addStatus;
@@ -682,7 +682,7 @@ UaStatus PasNodeManager::amendTypeNodes()
     return ret;
 }
 
-OpcUa_Int32 PasNodeManager::Panic()
+OpcUa_Int32 PasClientNodeManager::Panic()
 {
     UaStatus status;
 

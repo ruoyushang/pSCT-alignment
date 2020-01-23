@@ -33,14 +33,14 @@
 #include "common/utilities/spdlog/fmt/ostr.h"
 
 
-PasNodeManager::PasNodeManager() : PasNodeManagerCommon() {
+PasServerNodeManager::PasServerNodeManager() : PasNodeManagerCommon() {
     spdlog::debug("Created Node manager with NameSpaceIndex = {}", getNameSpaceIndex());
 }
 
 /// @details Takes ownership of the heap-allocated PasServerCommunicationInterface by calling release on
 /// the unique ptr and instantiating a new unique pointer.
-UaStatus PasNodeManager::setCommunicationInterface(std::unique_ptr<PasServerCommunicationInterface> &pCommIf) {
-    spdlog::debug("PasNodeManager: Setting communication interface");
+UaStatus PasServerNodeManager::setCommunicationInterface(std::unique_ptr<PasServerCommunicationInterface> &pCommIf) {
+    spdlog::debug("PasServerNodeManager: Setting communication interface");
     pCommIf->setpNodeManager(this);
     m_pCommIf = std::unique_ptr<PasComInterfaceCommon>(
             pCommIf.release()); // Note that we need to release the original unique pointer and make a new unique pointer
@@ -51,13 +51,13 @@ UaStatus PasNodeManager::setCommunicationInterface(std::unique_ptr<PasServerComm
 /// @details Creates all default and custom type nodes. Creates folders for MPES and Actuators.
 /// Gets counts of devices from the PasServerCommunicationInterface and creates the corresponding object
 /// OPC UA nodes and references in the server.
-UaStatus PasNodeManager::afterStartUp()
+UaStatus PasServerNodeManager::afterStartUp()
 {
     UaStatus ret;
     spdlog::debug("Creating OPC UA nodes for all devices found in communication interface...");
 
     // NOTE: These naked pointers are safe, as the destructor of NodeManagerBase, from which
-    // PasNodeManagerCommon and PasNodeManager inherit, will destroy all nodes (which are registered with
+    // PasNodeManagerCommon and PasServerNodeManager inherit, will destroy all nodes (which are registered with
     // addNode or addNodeandReference)
 
     PasObject *pObject;
@@ -210,7 +210,7 @@ UaStatus PasNodeManager::afterStartUp()
     return ret;
 }
 
-UaStatus PasNodeManager::beforeShutDown()
+UaStatus PasServerNodeManager::beforeShutDown()
 {
     spdlog::debug("Shutting down pasNodeManager...");
     UaStatus ret;
@@ -219,7 +219,7 @@ UaStatus PasNodeManager::beforeShutDown()
 
 /// @details Adds a type node (instance declaration) for the custom Panel type with all
 /// associated properties, variables, and methods.
-UaStatus PasNodeManager::amendTypeNodes()
+UaStatus PasServerNodeManager::amendTypeNodes()
 {
     UaStatus status;
 

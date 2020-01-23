@@ -22,7 +22,7 @@ public:
             const UaString &name,
             const UaNodeId &newNodeId,
             const UaString &defaultLocaleId,
-            PasNodeManager *pNodeManager,
+            PasClientNodeManager *pNodeManager,
             Device::Identity identity,
             PasClientCommunicationInterface *pCommIf) : PasObject(name, newNodeId, defaultLocaleId,
                                                                   dynamic_cast<PasNodeManagerCommon *>(pNodeManager),

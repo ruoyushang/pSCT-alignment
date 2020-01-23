@@ -162,7 +162,7 @@ int OpcMain(const char *szAppPath, const std::vector<std::string> &serverList, c
         }
 
         // Create instance of the node manager that invokes client calls
-        auto pNodeManagerClient = new PasNodeManager(pClientConfiguration, mode);
+        auto pNodeManagerClient = new PasClientNodeManager(pClientConfiguration, mode);
         pNodeManagerClient->setCommunicationInterface(pCommIf);
 
         // add the node manager

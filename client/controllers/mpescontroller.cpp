@@ -14,7 +14,7 @@
 #include "common/utilities/spdlog/spdlog.h"
 #include "common/utilities/spdlog/fmt/ostr.h"
 
-MPESController::MPESController(Device::Identity identity, Client *pClient, PasNodeManager * pNodeManager, std::string mode) : PasController(
+MPESController::MPESController(Device::Identity identity, Client *pClient, PasClientNodeManager * pNodeManager, std::string mode) : PasController(
     std::move(identity), pClient, pNodeManager), m_Mode(mode)
 {
     // get the nominal aligned readings and response matrices from DB

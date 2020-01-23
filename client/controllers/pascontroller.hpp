@@ -23,14 +23,14 @@
 
 
 class Client;
-class PasNodeManager;
+class PasClientNodeManager;
 
 class PasController : public PasControllerCommon
 {
     UA_DISABLE_COPY(PasController);
 public:
     /* construction / destruction */
-    PasController( Device::Identity identity, Client *pClient, PasNodeManager *pNodeManager, int updateInterval = 0)
+    PasController(Device::Identity identity, Client *pClient, PasClientNodeManager *pNodeManager, int updateInterval = 0)
         : PasControllerCommon(std::move(identity),
                               updateInterval),
           m_pClient(pClient),
@@ -38,7 +38,7 @@ public:
 
 protected:
     Client *m_pClient;
-    PasNodeManager *m_pNodeManager;
+    PasClientNodeManager *m_pNodeManager;
 };
 
 
@@ -47,7 +47,7 @@ protected:
 class PasCompositeController : public PasController
 {
     public:
-    PasCompositeController(Device::Identity identity, Client *pClient, PasNodeManager *pNodeManager, int updateInterval = 0) :
+    PasCompositeController(Device::Identity identity, Client *pClient, PasClientNodeManager *pNodeManager, int updateInterval = 0) :
         PasController( std::move(identity), pClient, pNodeManager, updateInterval) {}
 
     ~PasCompositeController() override = default;

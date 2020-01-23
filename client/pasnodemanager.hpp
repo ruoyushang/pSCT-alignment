@@ -1,6 +1,6 @@
 /**
  * @file pasnodemanager.h
- * @brief Header file for PasNodeManager class.
+ * @brief Header file for PasClientNodeManager class.
  */
 
 #ifndef __PASNODEMANAGER_H__
@@ -16,14 +16,14 @@ class Configuration;
 class Client;
 
 /// @brief Node manager class
-class PasNodeManager : public PasNodeManagerCommon
+class PasClientNodeManager : public PasNodeManagerCommon
 {
-    UA_DISABLE_COPY(PasNodeManager);
+    UA_DISABLE_COPY(PasClientNodeManager);
 public:
-    /// @brief Constructor for a PasNodeManager object.
-    explicit PasNodeManager(std::shared_ptr<Configuration> pConfiguration, std::string mode = "subclient");
-    /// @brief Destructor for a PasNodeManager object.
-    ~PasNodeManager() override;
+    /// @brief Constructor for a PasClientNodeManager object.
+    explicit PasClientNodeManager(std::shared_ptr<Configuration> pConfiguration, std::string mode = "subclient");
+    /// @brief Destructor for a PasClientNodeManager object.
+    ~PasClientNodeManager() override;
 
     /// @brief Initialization method called after startup to add objects and
     /// folders to the OPC UA node graph.

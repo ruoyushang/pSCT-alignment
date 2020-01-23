@@ -16,7 +16,7 @@ class PasObjectFactory
             const UaString& name,
             const UaNodeId& newNodeId,
             const UaString& defaultLocaleId,
-            PasNodeManager *pNodeManager,
+            PasClientNodeManager *pNodeManager,
             const Device::Identity &identity,
             PasClientCommunicationInterface *pCommIf);
 };

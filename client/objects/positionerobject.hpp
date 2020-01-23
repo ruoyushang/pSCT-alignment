@@ -29,7 +29,7 @@ public:
     /// @param newNodeId Node id for the object node.
     /// @param defaultLocaleId String indicating the session's locale id/
     /// language setting (i.e. "en" for English).
-    /// @param pNodeManager Pointer  PasNodeManager to control the creation of OPC UA
+    /// @param pNodeManager Pointer  PasClientNodeManager to control the creation of OPC UA
     /// nodes and references.
     /// @param identity Identity object describing the positioner's serial,
     /// location, IP address, etc.
@@ -39,7 +39,7 @@ public:
             const UaString &name,
             const UaNodeId &newNodeId,
             const UaString &defaultLocaleId,
-            PasNodeManager *pNodeManager,
+            PasClientNodeManager *pNodeManager,
             Device::Identity identity,
             PasClientCommunicationInterface *pCommIf) : PasObject(name, newNodeId, defaultLocaleId,
                                                                   dynamic_cast<PasNodeManagerCommon *>(pNodeManager),

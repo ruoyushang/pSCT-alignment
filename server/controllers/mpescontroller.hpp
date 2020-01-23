@@ -29,7 +29,7 @@ public:
     /// @brief Instantiate an MPES device controller object.
     /// @param ID The integer index of the device within its type.
     /// @param pPlatform Platform object used to interface with hardware.
-    MPESController(Device::Identity identity, std::shared_ptr<PlatformBase> pPlatform,  std::shared_ptr<PasNodeManager> pNodeManager);
+    MPESController(Device::Identity identity, std::shared_ptr<PlatformBase> pPlatform,  std::shared_ptr<PasServerNodeManager> pNodeManager);
 
     /// @brief Initialize the MPES by setting its exposure.
     /// #return 0 on success, -1 on failure.

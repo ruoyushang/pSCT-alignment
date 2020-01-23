@@ -23,7 +23,7 @@ public:
     friend MirrorController;
 
     /* construction / destruction */
-    MPESController(Device::Identity identity, Client *pClient, PasNodeManager * pNodeManager, std::string mode = "client");
+    MPESController(Device::Identity identity, Client *pClient, PasClientNodeManager * pNodeManager, std::string mode = "client");
 
     /* Get Controller status and data */
     UaStatus getState(Device::DeviceState &state) override;

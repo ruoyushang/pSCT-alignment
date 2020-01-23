@@ -22,7 +22,7 @@
 #include "common/utilities/spdlog/fmt/ostr.h"
 
 
-CCDController::CCDController(Device::Identity identity, PasNodeManager * pNodeManager) : PasController(std::move(identity), nullptr, pNodeManager, 1000) {
+CCDController::CCDController(Device::Identity identity, PasClientNodeManager * pNodeManager) : PasController(std::move(identity), nullptr, pNodeManager, 1000) {
     spdlog::trace("{} : Creating CCD controller... ", m_Identity);
 #ifndef SIMMODE  
     m_pCCD = std::unique_ptr<GASCCD>(new GASCCD());

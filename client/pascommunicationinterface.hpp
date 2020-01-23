@@ -50,7 +50,7 @@ public:
 
     void addEdgeControllers();
 
-    void setpNodeManager(PasNodeManager *pNodeManager);
+    void setpNodeManager(PasClientNodeManager *pNodeManager);
 
     void addParentChildRelations();
 
@@ -90,7 +90,7 @@ public:
 private:
     std::shared_ptr<Configuration> m_pConfiguration;
     OpcUa_Boolean m_stop;
-    PasNodeManager * m_pNodeManager;
+    PasClientNodeManager * m_pNodeManager;
 };
 
 #endif // #ifndef __PASCOMMUNICATIONINTERFACE_H__

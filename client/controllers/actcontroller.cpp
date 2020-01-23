@@ -20,7 +20,7 @@
 #include "common/utilities/spdlog/spdlog.h"
 #include "common/utilities/spdlog/fmt/ostr.h"
 
-ActController::ActController(Device::Identity identity, Client *pClient, PasNodeManager *pNodeManager) : PasController(
+ActController::ActController(Device::Identity identity, Client *pClient, PasClientNodeManager *pNodeManager) : PasController(
     std::move(identity), pClient, pNodeManager) {
 }
 

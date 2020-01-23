@@ -34,7 +34,7 @@
 //TODO refactor all the pNodeManager here so that operate() can fire event. Monitor this event with Client.
 
 
-MPESController::MPESController(Device::Identity identity, std::shared_ptr<PlatformBase> pPlatform, std::shared_ptr<PasNodeManager> pNodeManager)
+MPESController::MPESController(Device::Identity identity, std::shared_ptr<PlatformBase> pPlatform, std::shared_ptr<PasServerNodeManager> pNodeManager)
     : PasController::PasController(std::move(identity), std::move(pPlatform), std::move(pNodeManager), 5000) {
     try {
         // get the nominal aligned readings and response matrices from DB

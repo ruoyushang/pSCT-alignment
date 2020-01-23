@@ -21,11 +21,11 @@
 
 #define _DEBUG_ 1
 
-Client::Client(PasNodeManager *pNodeManager, std::string mode) : m_mode(std::move(mode)),
-                                                                 m_pNodeManager(pNodeManager),
-                                                                 m_pConfiguration(nullptr),
-                                                                 m_serverStatus(UaClientSdk::UaClient::ServerStatus::Disconnected),
-                                                                 m_TransactionId(0) {
+Client::Client(PasClientNodeManager *pNodeManager, std::string mode) : m_mode(std::move(mode)),
+                                                                       m_pNodeManager(pNodeManager),
+                                                                       m_pConfiguration(nullptr),
+                                                                       m_serverStatus(UaClientSdk::UaClient::ServerStatus::Disconnected),
+                                                                       m_TransactionId(0) {
     m_pSession = std::unique_ptr<UaClientSdk::UaSession>(new UaClientSdk::UaSession());
     m_pSubscription = std::unique_ptr<Subscription>(new Subscription(m_pConfiguration));
     m_pDatabase = std::unique_ptr<Database>(new Database());

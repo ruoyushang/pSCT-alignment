@@ -20,7 +20,7 @@ public:
     friend PanelController;
 
     // construction / destruction
-    ActController(Device::Identity identity, Client *pClient, PasNodeManager *pNodeManager);
+    ActController(Device::Identity identity, Client *pClient, PasClientNodeManager *pNodeManager);
 
     // Get Controller status and data
     UaStatus getState(Device::DeviceState &state) override;

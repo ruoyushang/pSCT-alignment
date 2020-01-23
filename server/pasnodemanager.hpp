@@ -14,11 +14,11 @@
 class PasServerCommunicationInterface;
 
 /// @brief Class for initializing and managing all OPC UA nodes in the server.
-class PasNodeManager : public PasNodeManagerCommon {
-    UA_DISABLE_COPY(PasNodeManager); // Disables copy construction and copy assignment
+class PasServerNodeManager : public PasNodeManagerCommon {
+    UA_DISABLE_COPY(PasServerNodeManager); // Disables copy construction and copy assignment
 public:
-    /// @brief Instantiate a PasNodeManager object.
-    PasNodeManager();
+    /// @brief Instantiate a PasServerNodeManager object.
+    PasServerNodeManager();
 
     /// @brief Create OPC UA nodes and folders for all devices in the server.
     /// @return OPC UA status code indicating success or failure.

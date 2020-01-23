@@ -14,13 +14,13 @@
 #include "client/utilities/callback.hpp"
 
 class Configuration;
-class PasNodeManager;
+class PasClientNodeManager;
 
 class Client : public callback
 {
     UA_DISABLE_COPY(Client);
 public:
-    explicit Client(PasNodeManager *pNodeManager, std::string mode = "subclient");
+    explicit Client(PasClientNodeManager *pNodeManager, std::string mode = "subclient");
 
     ~Client() override = default;
 
@@ -70,7 +70,7 @@ private:
     void addDevices(const OpcUa_ReferenceDescription& referenceDescription);
 
     // variables
-    std::shared_ptr<PasNodeManager> m_pNodeManager;
+    std::shared_ptr<PasClientNodeManager> m_pNodeManager;
     std::unique_ptr<UaClientSdk::UaSession> m_pSession;
     std::unique_ptr<Subscription> m_pSubscription;
     std::shared_ptr<Configuration> m_pConfiguration;

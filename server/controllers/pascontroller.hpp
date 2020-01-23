@@ -18,10 +18,12 @@
 #include "common/opcua/pascominterfacecommon.hpp"
 #include "common/opcua/pascontrollercommon.hpp"
 #include "common/alignment/device.hpp"
+#include "server/pasnodemanager.hpp"
 
 //TODO refactor all the pNodeManager here so that operate() can fire event. Monitor this event with Client.
 
 class PlatformBase;
+class PasServerNodeManager;
 
 /// @brief Class representing a generic device controller.
 class PasController : public PasControllerCommon {
@@ -30,6 +32,7 @@ public:
     /// @brief Instantiate a PasController object with a Platform object.
     /// @param ID The device index within its type.
     /// @param pPlatform Pointer to the platform object used to interface with the hardware.
+    /// @param pNodeManager Pointer to the pNodeManager object used to interface with the server.
     /// @param updateInterval Update interval in milliseconds.
     explicit PasController(Device::Identity identity,
                            std::shared_ptr<PlatformBase> pPlatform = std::shared_ptr<PlatformBase>(nullptr),

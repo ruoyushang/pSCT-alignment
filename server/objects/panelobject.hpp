@@ -44,7 +44,7 @@ public:
             const UaString &name,
             const UaNodeId &newNodeId,
             const UaString &defaultLocaleId,
-            PasNodeManager *pNodeManager,
+            PasServerNodeManager *pNodeManager,
             Device::Identity identity,
             PasServerCommunicationInterface *pCommIf) : PasObject(name, newNodeId, defaultLocaleId,
                                                                   dynamic_cast<PasNodeManagerCommon *>(pNodeManager),

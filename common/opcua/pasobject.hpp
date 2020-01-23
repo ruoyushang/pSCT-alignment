@@ -11,7 +11,8 @@
 #include "common/alignment/device.hpp"
 #include "common/opcua/passervertypeids.hpp"
 
-class PasNodeManager;
+class PasClientNodeManager;
+class PasServerNodeManager;
 class PasServerCommunicationInterface;
 class PasClientCommunicationInterface;
 class PasNodeManagerCommon;

@@ -96,8 +96,8 @@ int OpcServerMain(const std::string &szAppPath, const std::string &configFilePat
         UA_ASSERT(status.isGood());
 
         spdlog::info("Creating Node Manager...");
-        std::unique_ptr<PasNodeManager> pNodeManager = std::unique_ptr<PasNodeManager>(
-                new PasNodeManager()); // Create Node Manager for the server
+        std::unique_ptr<PasServerNodeManager> pNodeManager = std::unique_ptr<PasServerNodeManager>(
+                new PasServerNodeManager()); // Create Node Manager for the server
         status = pNodeManager->setCommunicationInterface(pCommIf); // set its communication interface
         pServer->addNodeManager(pNodeManager.release()); // Add node manager to server
 
