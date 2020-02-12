@@ -20,10 +20,8 @@ endif ()
 
 if (BUILD_EXAMPLES)
     add_subdirectory(sdk/examples/client_cpp_sdk)
-    add_subdirectory(sdk/examples/client_gettingstarted)
 
     add_subdirectory(sdk/examples/server_sdk_tutorial)
-    add_subdirectory(sdk/examples/server_gettingstarted)
     add_subdirectory(sdk/examples/server_cpp_demo)
 endif()
 
