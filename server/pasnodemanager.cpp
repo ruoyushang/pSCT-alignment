@@ -33,20 +33,32 @@
 #include "common/utilities/spdlog/fmt/ostr.h"
 
 
-PasServerNodeManager::PasServerNodeManager() : PasNodeManagerCommon() {
+PasServerNodeManager::PasServerNodeManager() : PasNodeManagerCommon()
+{
     spdlog::debug("Created Node manager with NameSpaceIndex = {}", getNameSpaceIndex());
+
+    m_pCommIf = std::make_shared<PasServerCommunicationInterface>();
+    spdlog::debug("Adding pNodeManager to pCommIf");
+    m_pCommIf->setPasServerNodeManager((std::shared_ptr<PasServerNodeManager>) this);
+
+//#if SUPPORT_Historical_Access
+//    spdlog::debug("Trying to create the HistoryManager responsible for this NodeManager");
+//    // Create the HistoryManager responsible for this NodeManager
+//    m_pHistoryManagerCache = new HistoryManagerCache;
+//    // Register the HistoryManager with the NodeManager base class
+//    setHistoryManager(m_pHistoryManagerCache);
+//#endif // SUPPORT_Historical_Access
 }
 
-/// @details Takes ownership of the heap-allocated PasServerCommunicationInterface by calling release on
-/// the unique ptr and instantiating a new unique pointer.
-UaStatus PasServerNodeManager::setCommunicationInterface(std::unique_ptr<PasServerCommunicationInterface> &pCommIf) {
-    spdlog::debug("PasServerNodeManager: Setting communication interface");
-    pCommIf->setpNodeManager(this);
-    m_pCommIf = std::unique_ptr<PasComInterfaceCommon>(
-            pCommIf.release()); // Note that we need to release the original unique pointer and make a new unique pointer
-
-    return OpcUa_Good;
+PasServerNodeManager::~PasServerNodeManager()
+{
+//#if SUPPORT_Historical_Access
+//    setHistoryManager(NULL);
+//    delete m_pHistoryManagerCache;
+//#endif // SUPPORT_Historical_Access
+//    delete m_pCommIf; // cannot delete shared_ptr.
 }
+
 
 /// @details Creates all default and custom type nodes. Creates folders for MPES and Actuators.
 /// Gets counts of devices from the PasServerCommunicationInterface and creates the corresponding object
@@ -123,7 +135,8 @@ UaStatus PasServerNodeManager::afterStartUp()
                 deviceName = UaString((deviceTypeName + "_" + std::to_string(identity.serialNumber)).c_str());
                 spdlog::debug("Creating OPC UA MPES object with identity {}...", identity);
                 pObject = new MPESObject(deviceName, UaNodeId(deviceName, getNameSpaceIndex()), m_defaultLocaleId,
-                                         dynamic_cast<PasNodeManagerCommon *>(this), identity, m_pCommIf.get());
+                                         dynamic_cast<PasNodeManagerCommon *>(this), identity,dynamic_cast<PasComInterfaceCommon *>(m_pCommIf.get()));
+                (dynamic_cast<PasNodeManagerCommon *>(this))->__updatepCommIf(std::dynamic_pointer_cast<PasComInterfaceCommon>(m_pCommIf));
             } else if (deviceType == PAS_PanelType) {
                 deviceName = UaString((deviceTypeName + "_" + std::to_string(identity.position)).c_str());
                 spdlog::debug("Creating OPC UA panel object with identity {}...", identity);
@@ -278,3 +291,176 @@ UaStatus PasServerNodeManager::amendTypeNodes()
 
     return status;
 }
+
+
+void PasServerNodeManager::setPanelNumber(int panelNumber)
+{
+    m_panelNum = panelNumber;
+    spdlog::debug("Setting panel number {} for pCommIf", m_panelNum);
+    m_pCommIf->setPanelNumber(m_panelNum);
+    spdlog::debug("Set panel number {}", m_pCommIf->getPanelNumber());
+    UaStatus status;
+    status = m_pCommIf->initialize();
+    if (status.isGood()){
+        spdlog::debug("Initialized pCommIf");
+    }
+    else{
+        spdlog::warn("Could not initialize pCommIf");
+    }
+}
+
+// SamplingOnRequestExample change begin
+/** Overwrite of base class function to get informed by NodeManagerBase about a change in monitoring
+ */
+ /*
+void PasServerNodeManager::variableCacheMonitoringChanged(UaVariableCache* pVariable, TransactionType transactionType)
+{
+    // Just make sure only handle the right variables
+    if ( pVariable->valueHandling() != (UaVariable_Value_CacheIsSource | UaVariable_Value_CacheIsUpdatedOnRequest) )
+    {
+        return;
+    }
+
+    // Get fastest requested sampling interval requested by a client
+    // Can be used to change polling rate to device if fastest rate changed
+    OpcUa_Double fastedRequestedRate = pVariable->getMinSamplingInterval();
+    OpcUa_ReferenceParameter(fastedRequestedRate);
+    // This is not used in this example
+
+    if ( (transactionType == IOManager::TransactionMonitorBegin) && (pVariable->signalCount() == 1) )
+    {
+        // The first monitored item was created for variable (pVariable)
+        // Lock access to variable list
+        UaMutexLocker lock(&m_mutexMonitoredVariables);
+
+        // Add to map and set changed flag
+        m_mapMonitoredVariables[pVariable] = pVariable;
+        m_changedMonitoredVariables = true;
+        // Increment reference counter for the entry in the map
+        pVariable->addReference();
+    }
+    else if ( (transactionType == IOManager::TransactionMonitorStop) && (pVariable->signalCount() == 0) )
+    {
+        // The last monitored item was removed for variable (pVariable)
+        // Lock access to variable list
+        UaMutexLocker lock(&m_mutexMonitoredVariables);
+
+        // Add to map and set changed flag
+        std::map<UaVariableCache*, UaVariableCache*>::iterator it = m_mapMonitoredVariables.find(pVariable);
+        if ( it != m_mapMonitoredVariables.end() )
+        {
+            m_mapMonitoredVariables.erase(it);
+            m_changedMonitoredVariables = true;
+            // Decrement reference counter since we removed the entry from the map
+            pVariable->releaseReference();
+        }
+    }
+}
+
+/** Main method of worker thread for internal sampling
+ */
+ /*
+void PasServerNodeManager::run()
+{
+    UaStatus     ret;
+    OpcUa_UInt32 i;
+    OpcUa_UInt32 count;
+    OpcUa_DateTime nullTime;
+    OpcUa_DateTime_Initialize(&nullTime);
+
+    std::map<UaVariableCache*, UaVariableCache*>::iterator it;
+
+    spdlog::debug("Begin worker thread for pNodeManager");
+
+    while ( m_stopThread == false )
+    {
+        // Lock access to variable list
+        UaMutexLocker lock(&m_mutexMonitoredVariables);
+        // Check if the list was changed
+        if ( m_changedMonitoredVariables )
+        {
+            // Update list for sampling
+            // First release reference for all variables in array
+            count = m_arrayMonitoredVariables.length();
+            for ( i=0; i<count; i++ )
+            {
+                // Check if the variable is still used
+                it = m_mapMonitoredVariables.find((UaVariableCache*)m_arrayMonitoredVariables[i]);
+                if ( it == m_mapMonitoredVariables.end() )
+                {
+                    // Change value of variable to bad status BadWaitingForInitialData - it is not longer used
+                    // This makes sure we do not deliver an old value when the monitoring is activated later for this variable
+                    UaDataValue badStatusValue;
+                    badStatusValue.setStatusCode(OpcUa_BadWaitingForInitialData);
+                    m_arrayMonitoredVariables[i]->setValue(NULL, badStatusValue, OpcUa_False);
+                }
+                // Decrement reference counter for the variable - we removed it from the list
+                m_arrayMonitoredVariables[i]->releaseReference();
+            }
+            // And clear old array
+            m_arrayMonitoredVariables.clear();
+
+            // Create the new array and increment reference counter for added variables
+            it = m_mapMonitoredVariables.begin();
+            m_arrayMonitoredVariables.create((OpcUa_UInt32) m_mapMonitoredVariables.size());
+            count = m_arrayMonitoredVariables.length();
+            for ( i=0; i<count; i++ )
+            {
+                m_arrayMonitoredVariables[i] = it->first;
+                // Increment reference counter - it was added to the list
+                m_arrayMonitoredVariables[i]->addReference();
+                it++;
+            }
+
+            // Reset the change flag
+            m_changedMonitoredVariables = false;
+        }
+        lock.unlock();
+
+        // Check if we have anything to sample
+        if ( m_arrayMonitoredVariables.length() > 0 )
+        {
+            UaDataValueArray results;
+            count = m_arrayMonitoredVariables.length();
+
+            // Call readValues to update variable values
+            ret = readValues(m_arrayMonitoredVariables, results);
+            if ( ret.isGood() )
+            {
+                // Update values
+                for ( i=0; i<count; i++ )
+                {
+                    // The Read sets a new source timestamp
+                    // -> we should only update source timestamp after a write
+                    // -> or after value change (detected and set by UaVariable::setValue()
+                    PasUserData* pUserData = (PasUserData*)m_arrayMonitoredVariables[i]->getUserData();
+                    if ( pUserData && pUserData->updateTimestamp() != OpcUa_False )
+                    {
+                        // Reset update flag and keep source timestamp from read
+                        pUserData->setUpdateTimestamp(OpcUa_False);
+                    }
+                    else
+                    {
+                        // Reset source timestamp to do the check for change in UaVariable::setValue()
+                        results[i].setSourceTimestamp(nullTime);
+                    }
+                    m_arrayMonitoredVariables[i]->setValue(NULL, results[i], OpcUa_True);
+                }
+            }
+            else
+            {
+                // Set bad status for all variables
+                UaDataValue badStatusValue;
+                badStatusValue.setStatusCode(ret.statusCode());
+                for ( i=0; i<count; i++ )
+                {
+                    m_arrayMonitoredVariables[i]->setValue(NULL, badStatusValue, OpcUa_True);
+                }
+            }
+        }
+
+        UaThread::msleep(500);
+    }
+}
+// SamplingOnRequestExample change end
+*/

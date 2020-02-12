@@ -88,18 +88,10 @@ int OpcServerMain(const std::string &szAppPath, const std::string &configFilePat
             endpoints[0]->setEndpointUrl(sEndpointUrl, false);
         }
 
-        spdlog::info("Creating Communication Interface...");
-        std::unique_ptr<PasServerCommunicationInterface> pCommIf = std::unique_ptr<PasServerCommunicationInterface>(
-                new PasServerCommunicationInterface()); // Initialize communication interface
-        pCommIf->setPanelNumber(std::stoi(panelNumber));
-        status = pCommIf->initialize();
-        UA_ASSERT(status.isGood());
-
         spdlog::info("Creating Node Manager...");
-        std::unique_ptr<PasServerNodeManager> pNodeManager = std::unique_ptr<PasServerNodeManager>(
-                new PasServerNodeManager()); // Create Node Manager for the server
-        status = pNodeManager->setCommunicationInterface(pCommIf); // set its communication interface
-        pServer->addNodeManager(pNodeManager.release()); // Add node manager to server
+        std::shared_ptr<PasServerNodeManager> pNodeManager = std::make_shared<PasServerNodeManager>(); // Create Node Manager for the server
+        pNodeManager->setPanelNumber(std::stoi(panelNumber));
+        pServer->addNodeManager(pNodeManager.get()); // Add node manager to server
 
         if (pServer->start() == 0) {
             spdlog::info(

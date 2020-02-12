@@ -10,6 +10,7 @@
 #include "uabase/statuscode.h"
 
 #include "common/opcua/pasnodemanagercommon.hpp"
+#include "common/opcua/pasobject.hpp"
 
 class PasServerCommunicationInterface;
 
@@ -20,6 +21,9 @@ public:
     /// @brief Instantiate a PasServerNodeManager object.
     PasServerNodeManager();
 
+    /// @brief Destroy a PasServerNodeManager object.
+    ~PasServerNodeManager() override;
+
     /// @brief Create OPC UA nodes and folders for all devices in the server.
     /// @return OPC UA status code indicating success or failure.
     UaStatus afterStartUp() override;
@@ -28,14 +32,26 @@ public:
     /// @return OPC UA status code indicating success or failure.
     UaStatus beforeShutDown() override;
 
-    /// @brief Set the communication interface to use for operating/reading devices.
-    /// @param pCommIf Pointer to the communication interface.
-    UaStatus setCommunicationInterface(std::unique_ptr<PasServerCommunicationInterface> &pCommIf);
+    /// @brief Set the panel number used when retreiving information from the database.
+    /// @param panelNumber Position number of the panel for this server.
+    void setPanelNumber(int panelNumber);
+
+//    // SamplingOnRequestExample change begin
+//    // Added: Overwrite of function variableCacheMonitoringChanged() to get informed by NodeManagerBase
+//    void variableCacheMonitoringChanged(UaVariableCache* pVariable, TransactionType transactionType);
+//    // Added: Main function for worker thread used to execute the sampling
+//    void run();
+//    // SamplingOnRequestExample change end
 
 private:
     /// @brief Add a custom type definition node for the Panel type.
     /// @return OPC UA status code indicating success or failure.
     UaStatus amendTypeNodes();
+
+    /// @brief Position number of the panel. Used for device database lookup.
+    int m_panelNum;
+
+    std::shared_ptr<PasServerCommunicationInterface> m_pCommIf;
 };
 
 #endif //SERVER_PASNODEMANAGER_HPP

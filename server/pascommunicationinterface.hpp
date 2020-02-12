@@ -25,7 +25,7 @@
 #include <vector>
 
 class PlatformBase;
-class PasController;
+class PasControllerServer;
 
 /// @brief Server communication interface to organize and interact with device controllers.
 class PasServerCommunicationInterface : public PasComInterfaceCommon {
@@ -33,7 +33,7 @@ class PasServerCommunicationInterface : public PasComInterfaceCommon {
 public:
 
     /// @brief Instantiate a communication interface object.
-    PasServerCommunicationInterface() : m_panelNum(-1), m_cbcID(-1) {};
+    PasServerCommunicationInterface() ;
 
     /// @brief Destroy a communication interface object.
     ~PasServerCommunicationInterface() override;
@@ -45,6 +45,7 @@ public:
     /// @brief Set the panel number used when retreiving information from the database.
     /// @param panelNumber Position number of the panel for this server.
     void setPanelNumber(int panelNumber) { m_panelNum = panelNumber; }
+    int getPanelNumber() { return m_panelNum ; }
 
     /// @brief Get the a pointer to the device controller for a specific device.
     /// @param deviceType OPC UA type ID for the desired device object type.
@@ -113,7 +114,8 @@ public:
     /// @brief Map of OPC UA type ID to device type name for all device types supported by the server.
     static const std::map<OpcUa_UInt32, std::string> deviceTypes;
 
-    void setpNodeManager(PasServerNodeManager *pNodeManager);
+    void setPasServerNodeManager(std::shared_ptr<PasServerNodeManager> pNodeManager);
+    std::shared_ptr<PasServerNodeManager> getPasServerNodeManager() { return m_pNodeManager;}
 
 private:
 
