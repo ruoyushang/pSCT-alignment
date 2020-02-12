@@ -300,7 +300,7 @@ UaStatus MPESController::operate(OpcUa_UInt32 offset, const UaVariantArray &args
             data.last_img);
 
 
-        if (m_Mode == "client") { // Record readings to database
+        if (m_Mode == "subclient") { // Record readings to database
             struct tm tstruct{};
             char buf[80];
             tstruct = *localtime(&data.timestamp);

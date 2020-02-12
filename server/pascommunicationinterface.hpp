@@ -16,6 +16,7 @@
 #include "common/opcua/pascominterfacecommon.hpp"
 #include "common/opcua/passervertypeids.hpp"
 #include "common/utilities/DBConfig.hpp"
+#include <common/simulatestewart/mathtools.hpp>
 
 #include "server/pasnodemanager.hpp"
 
