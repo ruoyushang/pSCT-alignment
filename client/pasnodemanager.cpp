@@ -61,7 +61,7 @@ void PasClientNodeManager::createClients() {
 void PasClientNodeManager::setCommunicationInterface(std::shared_ptr<PasClientCommunicationInterface> &pCommIf)
 {
     spdlog::debug("PasClientNodeManager:: Setting communication interface...");
-    pCommIf->setpNodeManager(this);
+    pCommIf->setPasClientNodeManager(this);
     m_pCommIf = pCommIf;
 }
 

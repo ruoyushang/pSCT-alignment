@@ -287,7 +287,7 @@ UaStatus MPESController::operate(OpcUa_UInt32 offset, const UaVariantArray &args
             "ySpotWidth (nominal): {} ({})\n"
             "Cleaned Intensity (nominal): {} ({})\n"
             "Exposure: {}\n"
-            "Timestamp: {}\n"
+            "Timestamp: {}"
             "ImagePath: {}\n",
             m_Identity,
             data.xCentroid, data.xNominal,
@@ -321,19 +321,6 @@ UaStatus MPESController::operate(OpcUa_UInt32 offset, const UaVariantArray &args
 
 //        // Handle ControllerEventType specific fields
 //        auto pUserData = (PasUserData *) getUserData();
-
-//        // CleanedIntensity
-//        UaVariant varValue;
-//        OpcUa_Double value;
-//        m_pCommIf->getDeviceData(PAS_MPESType_CleanedIntensity, pUserData->DeviceId(), pUserData->variableOffset(), varValue);
-//        varValue.toDouble(value);
-//        eventData.m_CleanedIntensity.setDouble(value);
-
-//        // State
-//        Device::DeviceState state;
-//        m_pCommIf->getDeviceState(PAS_MPESEventType_State, pUserData->DeviceId(), state);
-//        eventData.m_State.setDouble(value);
-
 
         eventData.m_xCentroidAvg.setDouble(data.xCentroid);
         eventData.m_yCentroidAvg.setDouble(data.yCentroid);

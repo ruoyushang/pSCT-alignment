@@ -18,7 +18,7 @@
 
 
 /// @brief Class representing a device controller for a Position Sensitive Device.
-class PSDController : public PasController
+class PSDController : public PasControllerServer
 {
     UA_DISABLE_COPY(PSDController);
 

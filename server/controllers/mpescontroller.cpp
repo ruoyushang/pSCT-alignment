@@ -34,8 +34,12 @@
 //TODO refactor all the pNodeManager here so that operate() can fire event. Monitor this event with Client.
 
 
-MPESController::MPESController(Device::Identity identity, std::shared_ptr<PlatformBase> pPlatform, std::shared_ptr<PasServerNodeManager> pNodeManager)
-    : PasController::PasController(std::move(identity), std::move(pPlatform), std::move(pNodeManager), 5000) {
+MPESController::MPESController(Device::Identity identity, std::shared_ptr<PlatformBase> pPlatform, const std::shared_ptr<PasServerNodeManager>& pNodeManager, const std::shared_ptr<PasServerCommunicationInterface>& pCommIf, int updateInterval )
+    : PasControllerServer::PasControllerServer(std::move(identity), std::move(pPlatform), pNodeManager, pCommIf, 5000)
+{
+    m_pCommIf = pCommIf;
+    m_pNodeManager = pNodeManager;
+
     try {
         // get the nominal aligned readings and response matrices from DB
         /* BEGIN DATABASE HACK */
@@ -259,7 +263,6 @@ UaStatus MPESController::operate(OpcUa_UInt32 offset, const UaVariantArray &args
             spdlog::info("{} : MPESController calling read()", m_Identity);
             if (_getDeviceState() == Device::DeviceState::On && _getErrorState() != Device::ErrorState::FatalError) {
                 status = read();
-                MPESController::UpdateEvent();
             } else {
                 spdlog::error("{} : MPES is off/in fatal error state, unable to read.", m_Identity);
                 status = OpcUa_BadInvalidState;
@@ -297,51 +300,50 @@ UaStatus MPESController::read() {
     //UaMutexLocker lock(&m_mutex);
     spdlog::trace("{} : Updating MPES position data (reading webcam) ... ", m_Identity);
     m_pPlatform->getMPESbyIdentity(m_Identity)->updatePosition();
-    m_LastUpdateTime = TIME::now();
-    return status;
-}
-
-UaStatus MPESController::UpdateEvent() {
     MPESBase::Position data = m_pPlatform->getMPESbyIdentity(m_Identity)->getPosition();
-    spdlog::debug("Getting info");
+    spdlog::info(
+            "Reading MPES {}:\n"
+            "x (nominal): {} ({})\n"
+            "y (nominal): {} ({})\n"
+            "xSpotWidth (nominal): {} ({})\n"
+            "ySpotWidth (nominal): {} ({})\n"
+            "Cleaned Intensity (nominal): {} ({})\n"
+            "Exposure: {}\n"
+            "Timestamp: {}"
+            "ImagePath: {}",
+            m_Identity,
+            data.xCentroid, data.xNominal,
+            data.yCentroid, data.yNominal,
+            data.xSpotWidth, std::to_string(MPESBase::NOMINAL_SPOT_WIDTH),
+            data.ySpotWidth, std::to_string(MPESBase::NOMINAL_SPOT_WIDTH),
+            data.cleanedIntensity, std::to_string(MPESBase::NOMINAL_INTENSITY),
+            data.exposure,
+            std::ctime(&data.timestamp),
+            data.last_img);
+    m_LastUpdateTime = TIME::now();
 
-    spdlog::debug("Namespace index: {}",m_pNodeManager->getNameSpaceIndex());
     // Create event
     MPESEventTypeData eventData(m_pNodeManager->getNameSpaceIndex());
 
-//        // Handle ControllerEventType specific fields
-//        auto pUserData = (PasUserData *) getUserData();
-
-//        // CleanedIntensity
-//        UaVariant varValue;
-//        OpcUa_Double value;
-//        m_pCommIf->getDeviceData(PAS_MPESType_CleanedIntensity, pUserData->DeviceId(), pUserData->variableOffset(), varValue);
-//        varValue.toDouble(value);
-//        eventData.m_CleanedIntensity.setDouble(value);
-
-//        // State
-//        Device::DeviceState state;
-//        m_pCommIf->getDeviceState(PAS_MPESEventType_State, pUserData->DeviceId(), state);
-//        eventData.m_State.setDouble(value);
-
-
-    spdlog::debug("Filling eventData");
     eventData.m_xCentroidAvg.setDouble(data.xCentroid);
     eventData.m_yCentroidAvg.setDouble(data.yCentroid);
     eventData.m_xCentroidSpotWidth.setDouble(data.xSpotWidth);
     eventData.m_yCentroidSpotWidth.setDouble(data.ySpotWidth);
     eventData.m_CleanedIntensity.setDouble(data.cleanedIntensity);
-//    Device::ErrorState errorState = _getErrorState();
-//    eventData.m_State.setInt16(errorState);
+    Device::ErrorState errorState = _getErrorState();
+    eventData.m_State.setInt32(static_cast<int>(errorState));
 
-    // Fill all default event fields
-//    eventData.m_SourceNode.setNodeId(m_Identity.eAddress.);
-    eventData.m_SourceName.setString(m_Identity.eAddress.c_str());
+//     Fill all default event fields
+    eventData.m_SourceNode.setNodeId(UaNodeId(PAS_MPESType, m_pNodeManager->getNameSpaceIndex()));
+    UaString deviceName = UaString(("MPES_" + std::to_string(m_Identity.serialNumber)).c_str());
+    eventData.m_SourceName.setString(deviceName);
     eventData.m_Severity.setUInt16(500);
-    // Set timestamps and unique EventId
+
+    // Set timestamps and unique Even   tId
     eventData.prepareNewEvent(UaDateTime::now(), UaDateTime::now(), UaByteString());
+
     // Fire the event
-    spdlog::debug("Firing event.");
+    spdlog::debug("{}: Firing event.", m_Identity);
     m_pNodeManager->fireEvent(&eventData);
-    spdlog::debug("Event fired");
+    return status;
 }

@@ -163,6 +163,7 @@ void GASPSD::setBlocking(int fd, int should_block) {
 }
 
 void GASPSD::setCalibration() {
+    spdlog::debug("Setting calibration");
     // Current unused
 }
 

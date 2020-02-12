@@ -50,7 +50,7 @@ public:
 
     void addEdgeControllers();
 
-    void setpNodeManager(PasClientNodeManager *pNodeManager);
+    void setPasClientNodeManager(PasClientNodeManager *pNodeManager);
 
     void addParentChildRelations();
 

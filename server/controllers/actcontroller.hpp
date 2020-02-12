@@ -20,13 +20,13 @@
 
 
 /// @brief Class representing an actuator device controller.
-class ActController : public PasController {
+class ActController : public PasControllerServer {
     UA_DISABLE_COPY(ActController); // Disables copy construction and copy assignment.
 public:
     /// @brief Instantiate an actuator device controller object.
     /// @param ID The integer index of the device within its type.
     /// @param pPlatform Pointer to platform object used to interface directly with hardware.
-    ActController(Device::Identity identity, std::shared_ptr<PlatformBase> pPlatform) : PasController(
+    ActController(Device::Identity identity, std::shared_ptr<PlatformBase> pPlatform) : PasControllerServer(
         std::move(identity),
         std::move(
                                                                                                       pPlatform)) {}

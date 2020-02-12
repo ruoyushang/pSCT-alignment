@@ -26,29 +26,41 @@ class PlatformBase;
 class PasServerNodeManager;
 
 /// @brief Class representing a generic device controller.
-class PasController : public PasControllerCommon {
-    UA_DISABLE_COPY(PasController); // Disables copy construction and copy assignment.
+class PasControllerServer : public PasControllerCommon {
+    UA_DISABLE_COPY(PasControllerServer); // Disables copy construction and copy assignment.
 public:
-    /// @brief Instantiate a PasController object with a Platform object.
+    /// @brief Instantiate a PasControllerServer object with a Platform object.
     /// @param ID The device index within its type.
     /// @param pPlatform Pointer to the platform object used to interface with the hardware.
     /// @param pNodeManager Pointer to the pNodeManager object used to interface with the server.
+    /// @param pCommIf Pointer to the pCommIf object used to communicate with the device.
     /// @param updateInterval Update interval in milliseconds.
-    explicit PasController(Device::Identity identity,
-                           std::shared_ptr<PlatformBase> pPlatform = std::shared_ptr<PlatformBase>(nullptr),
-                           int updateInterval = 0) : PasControllerCommon(std::move(identity), updateInterval),
+    explicit PasControllerServer(Device::Identity identity,
+                                 std::shared_ptr<PlatformBase> pPlatform = std::shared_ptr<PlatformBase>(nullptr),
+                                 const std::shared_ptr<PasServerNodeManager>& pNodeManager = std::shared_ptr<PasServerNodeManager>(),
+                                 const std::shared_ptr<PasServerCommunicationInterface>& pCommIf = std::shared_ptr<PasServerCommunicationInterface>(),
+                                 int updateInterval = 0) : PasControllerCommon(std::move(identity), updateInterval),
                                                      m_pPlatform(std::move(pPlatform)) {}
 
-    /// @brief Instantiate a PasController object without a Platform object.
+    /// @brief Instantiate a PasControllerServer object without a Platform object.
     /// @param ID The device index within its type.
     /// @param updateInterval Update interval in milliseconds.
-    PasController(Device::Identity identity, int updateInterval) : PasController(std::move(identity),
-                                                                                 std::shared_ptr<PlatformBase>(nullptr),
-                                                                                 updateInterval) {}
+    PasControllerServer(Device::Identity identity, int updateInterval) : PasControllerServer(std::move(identity),
+                                                                                             std::shared_ptr<PlatformBase>(nullptr),
+                                                                                             std::shared_ptr<PasServerNodeManager>(),
+                                                                                             std::shared_ptr<PasServerCommunicationInterface>(),
+                                                                                             updateInterval) {}
 
 protected:
     /// @brief Pointer to the Platform object used to interface with hardware.
     std::shared_ptr<PlatformBase> m_pPlatform;
+    std::shared_ptr<PasServerNodeManager> m_pNodeManager;
+    std::shared_ptr<PasServerCommunicationInterface> m_pCommIf;
+
+//private:
+//#if SUPPORT_Event_Subscription_Server_Facet
+//    OpcUa::OffNormalAlarmType* m_pStateOffNormalAlarm;
+//#endif // SUPPORT_Event_Subscription_Server_Facet
 };
 
 #endif //SERVER_PASCONTROLLER_HPP

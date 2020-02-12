@@ -42,6 +42,10 @@ const std::map<OpcUa_UInt32, std::string> PasServerCommunicationInterface::devic
         {PAS_PSDType,   "PSD"}
 };
 
+PasServerCommunicationInterface::PasServerCommunicationInterface(): m_panelNum(-1), m_cbcID(-1) {
+    spdlog::info("Creating PasServerCommunicationInterface...");
+}
+
 PasServerCommunicationInterface::~PasServerCommunicationInterface() {
     spdlog::info("Closing and cleaning up communication interface...");
 }
@@ -180,6 +184,16 @@ UaStatus PasServerCommunicationInterface::initialize() {
 
     allDevices[PAS_PSDType] = {};
 
+    if ((m_panelNum == 1001) | (m_panelNum == 2001)){
+        Device::Identity psdId;
+        psdId.serialNumber = m_panelNum;
+        psdId.position = (int) SCTMath::Mirror(m_panelNum);
+        psdId.eAddress = std::to_string(0);
+        psdId.name = std::string("PSD") + std::to_string(psdId.serialNumber);
+        mpesIdentities.push_back(psdId);
+        allDevices[PAS_PSDType].push_back(psdId);
+    }
+
     for (const auto &pair: allDevices) {
         int expectedDevices;
         if (pair.first == PAS_PanelType) {
@@ -189,7 +203,12 @@ UaStatus PasServerCommunicationInterface::initialize() {
         } else if (pair.first == PAS_ACTType) {
             expectedDevices = actuatorIdentities.size();
         } else if (pair.first == PAS_PSDType) {
-            expectedDevices = 0;
+            if ((m_panelNum == 1001) | (m_panelNum == 2001)){
+                expectedDevices = 1;
+            }
+            else{
+                expectedDevices = 0;
+            }
         }
 
         spdlog::info("Expecting {} {} hardware interfaces...", expectedDevices, deviceTypes.at(pair.first));
@@ -207,7 +226,7 @@ UaStatus PasServerCommunicationInterface::initialize() {
                 spdlog::info("Added Panel controller with identity {}", identity);
             } else if (pair.first == PAS_MPESType) {
                 pController = std::dynamic_pointer_cast<PasControllerCommon>(
-                    std::make_shared<MPESController>(identity, m_platform, m_pNodeManager));
+                    std::make_shared<MPESController>(identity, m_platform, m_pNodeManager, (std::shared_ptr<PasServerCommunicationInterface>) this, 0));
                 spdlog::info("Added MPES controller with identity {}", identity);
             } else if (pair.first == PAS_ACTType) {
                 pController = std::dynamic_pointer_cast<PasControllerCommon>(
@@ -327,6 +346,7 @@ UaStatus PasServerCommunicationInterface::operateDevice(
     }
 }
 
-void PasServerCommunicationInterface::setpNodeManager(PasServerNodeManager *pNodeManager){
-    m_pNodeManager = static_cast<shared_ptr<PasServerNodeManager>>(pNodeManager);
+void PasServerCommunicationInterface::setPasServerNodeManager(std::shared_ptr<PasServerNodeManager> pNodeManager){
+    spdlog::debug("Adding to pNodeManager");
+    m_pNodeManager = std::move(pNodeManager);
 }

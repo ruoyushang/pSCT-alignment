@@ -17,19 +17,25 @@
 
 #include "common/alignment/device.hpp"
 #include "common/alignment/platform.hpp"
-#include "server/pasnodemanager.hpp"
-
+#include "common/opcua/pasobject.hpp"
 #include "common/opcua/pascominterfacecommon.hpp"
+
+#include "server/pascommunicationinterface.hpp"
+#include "server/pasnodemanager.hpp"
 
 
 /// @brief Class representing a mirror panel edge sensor device controller.
-class MPESController : public PasController {
+class MPESController : public PasControllerServer {
     UA_DISABLE_COPY(MPESController); // Disables copy construction and copy assignment
 public:
     /// @brief Instantiate an MPES device controller object.
     /// @param ID The integer index of the device within its type.
     /// @param pPlatform Platform object used to interface with hardware.
-    MPESController(Device::Identity identity, std::shared_ptr<PlatformBase> pPlatform,  std::shared_ptr<PasServerNodeManager> pNodeManager);
+    MPESController(Device::Identity identity,
+                   std::shared_ptr<PlatformBase> pPlatform,
+                   const std::shared_ptr<PasServerNodeManager>& pNodeManager,
+                   const std::shared_ptr<PasServerCommunicationInterface>& pCommIf,
+                   int updateInterval);
 
     /// @brief Initialize the MPES by setting its exposure.
     /// #return 0 on success, -1 on failure.
@@ -66,7 +72,6 @@ private:
 
     /// @brief Update the MPES position data.
     UaStatus read();
-    UaStatus UpdateEvent();
 };
 
 #endif //SERVER_MPESCONTROLLER_HPP

@@ -311,7 +311,7 @@ UaStatus PasClientCommunicationInterface::setDeviceData(
     Method       setPNodeManager
     Description  Set pNodemanager
 -----------------------------------------------------------------------------*/
-void PasClientCommunicationInterface::setpNodeManager(PasClientNodeManager *pNodeManager){
+void PasClientCommunicationInterface::setPasClientNodeManager(PasClientNodeManager *pNodeManager){
     m_pNodeManager = pNodeManager;
 }
 

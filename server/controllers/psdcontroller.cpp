@@ -29,7 +29,7 @@
 //TODO refactor all the pNodeManager here so that operate() can fire event. Monitor this event with Client.
 /// @details By default, sets the update interval to 500 ms. Creates a new GASPSD object,
 /// sets its port, and initializes. Sets its state to On.
-PSDController::PSDController(Device::Identity identity) : PasController(std::move(identity), 500)
+PSDController::PSDController(Device::Identity identity) : PasControllerServer(std::move(identity), 500)
 {
     spdlog::trace("{} : Creating PSD hardware interface... ", m_Identity);
 #ifndef SIMMODE
