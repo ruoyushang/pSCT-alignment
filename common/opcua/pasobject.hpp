@@ -104,16 +104,16 @@ public:
     inline OpcUa_UInt32 DeviceType() const { return m_Type; }
     /** Returns the variable offset in the device. */
     inline OpcUa_UInt32 variableOffset() const { return m_variableOffset; }
-//    /** Update timestamp flag after write. */
-//    inline OpcUa_UInt32 updateTimestamp() const { return m_updateTimestamp; }
-//    inline void setUpdateTimestamp(OpcUa_Boolean updateTimestamp) { m_updateTimestamp = updateTimestamp; }
+    /** Update timestamp flag after write. */
+    inline OpcUa_UInt32 updateTimestamp() const { return m_updateTimestamp; }
+    inline void setUpdateTimestamp(OpcUa_Boolean updateTimestamp) { m_updateTimestamp = updateTimestamp; }
 
 private:
     OpcUa_Boolean m_isState;
     OpcUa_UInt32  m_Type;
     Device::Identity m_Identity;
     OpcUa_UInt32  m_variableOffset;
-//    OpcUa_Boolean m_updateTimestamp;
+    OpcUa_Boolean m_updateTimestamp;
 };
 
 

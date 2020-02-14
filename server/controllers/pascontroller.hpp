@@ -57,10 +57,9 @@ protected:
     std::shared_ptr<PasServerNodeManager> m_pNodeManager;
     std::shared_ptr<PasServerCommunicationInterface> m_pCommIf;
 
-//private:
-//#if SUPPORT_Event_Subscription_Server_Facet
-//    OpcUa::OffNormalAlarmType* m_pStateOffNormalAlarm;
-//#endif // SUPPORT_Event_Subscription_Server_Facet
+#if SUPPORT_Event_Subscription_Server_Facet
+    OpcUa::OffNormalAlarmType* m_pStateOffNormalAlarm;
+#endif // SUPPORT_Event_Subscription_Server_Facet
 };
 
 #endif //SERVER_PASCONTROLLER_HPP

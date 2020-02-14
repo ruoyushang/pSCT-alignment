@@ -49,6 +49,13 @@ public:
     /// @return Integer status indicator.
     OpcUa_Int32 Panic();
 
+    // SamplingOnRequestExample change begin
+    // Added: Overwrite of function variableCacheMonitoringChanged() to get informed by NodeManagerBase
+    void variableCacheMonitoringChanged(UaVariableCache* pVariable, TransactionType transactionType);
+    // Added: Main function for worker thread used to execute the sampling
+    void run();
+    // SamplingOnRequestExample change end
+
 private:
     std::string m_Mode;
     /// @brief Adds all custom type nodes for device object types.

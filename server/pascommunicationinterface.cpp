@@ -279,7 +279,10 @@ UaStatus PasServerCommunicationInterface::initialize() {
         }
     }
 
-    // start(); // start the thread managed by this object
+    // SamplingOnRequestExample change begin
+    // Added: Start worker thread
+    m_pNodeManager->start();
+    // SamplingOnRequestExample change end
     return status;
 }
 

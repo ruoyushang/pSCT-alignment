@@ -41,22 +41,21 @@ PasServerNodeManager::PasServerNodeManager() : PasNodeManagerCommon()
     spdlog::debug("Adding pNodeManager to pCommIf");
     m_pCommIf->setPasServerNodeManager((std::shared_ptr<PasServerNodeManager>) this);
 
-//#if SUPPORT_Historical_Access
-//    spdlog::debug("Trying to create the HistoryManager responsible for this NodeManager");
-//    // Create the HistoryManager responsible for this NodeManager
-//    m_pHistoryManagerCache = new HistoryManagerCache;
-//    // Register the HistoryManager with the NodeManager base class
-//    setHistoryManager(m_pHistoryManagerCache);
-//#endif // SUPPORT_Historical_Access
+    spdlog::debug("Trying to create the HistoryManager responsible for this NodeManager");
+#if SUPPORT_Historical_Access
+    // Create the HistoryManager responsible for this NodeManager
+    m_pHistoryManagerCache = new HistoryManagerCache;
+    // Register the HistoryManager with the NodeManager base class
+    setHistoryManager(m_pHistoryManagerCache);
+#endif // SUPPORT_Historical_Access
 }
 
 PasServerNodeManager::~PasServerNodeManager()
 {
-//#if SUPPORT_Historical_Access
-//    setHistoryManager(NULL);
-//    delete m_pHistoryManagerCache;
-//#endif // SUPPORT_Historical_Access
-//    delete m_pCommIf; // cannot delete shared_ptr.
+#if SUPPORT_Historical_Access
+    setHistoryManager(NULL);
+    delete m_pHistoryManagerCache;
+#endif // SUPPORT_Historical_Access
 }
 
 
@@ -312,7 +311,7 @@ void PasServerNodeManager::setPanelNumber(int panelNumber)
 // SamplingOnRequestExample change begin
 /** Overwrite of base class function to get informed by NodeManagerBase about a change in monitoring
  */
- /*
+
 void PasServerNodeManager::variableCacheMonitoringChanged(UaVariableCache* pVariable, TransactionType transactionType)
 {
     // Just make sure only handle the right variables
@@ -359,7 +358,7 @@ void PasServerNodeManager::variableCacheMonitoringChanged(UaVariableCache* pVari
 
 /** Main method of worker thread for internal sampling
  */
- /*
+
 void PasServerNodeManager::run()
 {
     UaStatus     ret;
@@ -463,4 +462,3 @@ void PasServerNodeManager::run()
     }
 }
 // SamplingOnRequestExample change end
-*/

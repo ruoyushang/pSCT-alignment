@@ -710,3 +710,158 @@ OpcUa_Int32 PasClientNodeManager::Panic()
 
     return -1;
 }
+
+// SamplingOnRequestExample change begin
+/** Overwrite of base class function to get informed by NodeManagerBase about a change in monitoring
+ */
+
+void PasClientNodeManager::variableCacheMonitoringChanged(UaVariableCache* pVariable, TransactionType transactionType)
+{
+    // Just make sure only handle the right variables
+    if ( pVariable->valueHandling() != (UaVariable_Value_CacheIsSource | UaVariable_Value_CacheIsUpdatedOnRequest) )
+    {
+        return;
+    }
+
+    // Get fastest requested sampling interval requested by a client
+    // Can be used to change polling rate to device if fastest rate changed
+    OpcUa_Double fastedRequestedRate = pVariable->getMinSamplingInterval();
+    OpcUa_ReferenceParameter(fastedRequestedRate);
+    // This is not used in this example
+
+    if ( (transactionType == IOManager::TransactionMonitorBegin) && (pVariable->signalCount() == 1) )
+    {
+        // The first monitored item was created for variable (pVariable)
+        // Lock access to variable list
+        UaMutexLocker lock(&m_mutexMonitoredVariables);
+
+        // Add to map and set changed flag
+        m_mapMonitoredVariables[pVariable] = pVariable;
+        m_changedMonitoredVariables = true;
+        // Increment reference counter for the entry in the map
+        pVariable->addReference();
+    }
+    else if ( (transactionType == IOManager::TransactionMonitorStop) && (pVariable->signalCount() == 0) )
+    {
+        // The last monitored item was removed for variable (pVariable)
+        // Lock access to variable list
+        UaMutexLocker lock(&m_mutexMonitoredVariables);
+
+        // Add to map and set changed flag
+        std::map<UaVariableCache*, UaVariableCache*>::iterator it = m_mapMonitoredVariables.find(pVariable);
+        if ( it != m_mapMonitoredVariables.end() )
+        {
+            m_mapMonitoredVariables.erase(it);
+            m_changedMonitoredVariables = true;
+            // Decrement reference counter since we removed the entry from the map
+            pVariable->releaseReference();
+        }
+    }
+}
+
+/** Main method of worker thread for internal sampling
+ */
+
+void PasClientNodeManager::run()
+{
+    UaStatus     ret;
+    OpcUa_UInt32 i;
+    OpcUa_UInt32 count;
+    OpcUa_DateTime nullTime;
+    OpcUa_DateTime_Initialize(&nullTime);
+
+    std::map<UaVariableCache*, UaVariableCache*>::iterator it;
+
+    spdlog::debug("Begin worker thread for pNodeManager");
+
+    while ( m_stopThread == false )
+    {
+        // Lock access to variable list
+        UaMutexLocker lock(&m_mutexMonitoredVariables);
+        // Check if the list was changed
+        if ( m_changedMonitoredVariables )
+        {
+            // Update list for sampling
+            // First release reference for all variables in array
+            count = m_arrayMonitoredVariables.length();
+            for ( i=0; i<count; i++ )
+            {
+                // Check if the variable is still used
+                it = m_mapMonitoredVariables.find((UaVariableCache*)m_arrayMonitoredVariables[i]);
+                if ( it == m_mapMonitoredVariables.end() )
+                {
+                    // Change value of variable to bad status BadWaitingForInitialData - it is not longer used
+                    // This makes sure we do not deliver an old value when the monitoring is activated later for this variable
+                    UaDataValue badStatusValue;
+                    badStatusValue.setStatusCode(OpcUa_BadWaitingForInitialData);
+                    m_arrayMonitoredVariables[i]->setValue(NULL, badStatusValue, OpcUa_False);
+                }
+                // Decrement reference counter for the variable - we removed it from the list
+                m_arrayMonitoredVariables[i]->releaseReference();
+            }
+            // And clear old array
+            m_arrayMonitoredVariables.clear();
+
+            // Create the new array and increment reference counter for added variables
+            it = m_mapMonitoredVariables.begin();
+            m_arrayMonitoredVariables.create((OpcUa_UInt32) m_mapMonitoredVariables.size());
+            count = m_arrayMonitoredVariables.length();
+            for ( i=0; i<count; i++ )
+            {
+                m_arrayMonitoredVariables[i] = it->first;
+                // Increment reference counter - it was added to the list
+                m_arrayMonitoredVariables[i]->addReference();
+                it++;
+            }
+
+            // Reset the change flag
+            m_changedMonitoredVariables = false;
+        }
+        lock.unlock();
+
+        // Check if we have anything to sample
+        if ( m_arrayMonitoredVariables.length() > 0 )
+        {
+            UaDataValueArray results;
+            count = m_arrayMonitoredVariables.length();
+
+            // Call readValues to update variable values
+            ret = readValues(m_arrayMonitoredVariables, results);
+            if ( ret.isGood() )
+            {
+                // Update values
+                for ( i=0; i<count; i++ )
+                {
+                    // The Read sets a new source timestamp
+                    // -> we should only update source timestamp after a write
+                    // -> or after value change (detected and set by UaVariable::setValue()
+                    PasUserData* pUserData = (PasUserData*)m_arrayMonitoredVariables[i]->getUserData();
+                    if ( pUserData && pUserData->updateTimestamp() != OpcUa_False )
+                    {
+                        // Reset update flag and keep source timestamp from read
+                        pUserData->setUpdateTimestamp(OpcUa_False);
+                    }
+                    else
+                    {
+                        // Reset source timestamp to do the check for change in UaVariable::setValue()
+                        results[i].setSourceTimestamp(nullTime);
+                    }
+                    m_arrayMonitoredVariables[i]->setValue(NULL, results[i], OpcUa_True);
+                }
+            }
+            else
+            {
+                // Set bad status for all variables
+                UaDataValue badStatusValue;
+                badStatusValue.setStatusCode(ret.statusCode());
+                for ( i=0; i<count; i++ )
+                {
+                    m_arrayMonitoredVariables[i]->setValue(NULL, badStatusValue, OpcUa_True);
+                }
+            }
+        }
+
+        UaThread::msleep(500);
+    }
+}
+// SamplingOnRequestExample change end

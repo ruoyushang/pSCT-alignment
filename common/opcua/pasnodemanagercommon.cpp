@@ -185,19 +185,19 @@ UaStatus PasNodeManagerCommon::OnAcknowledge(
     return OpcUa_Good;
 }
 
-//void PasNodeManagerCommon::startLogging()
-//{
-//#if SUPPORT_Historical_Access
-//    m_pHistoryManagerCache->startLogging();
-//#endif // SUPPORT_Historical_Access
-//}
-//
-//void PasNodeManagerCommon::stopLogging()
-//{
-//#if SUPPORT_Historical_Access
-//    m_pHistoryManagerCache->stopLogging();
-//#endif // SUPPORT_Historical_Access
-//}
+void PasNodeManagerCommon::startLogging()
+{
+#if SUPPORT_Historical_Access
+    m_pHistoryManagerCache->startLogging();
+#endif // SUPPORT_Historical_Access
+}
+
+void PasNodeManagerCommon::stopLogging()
+{
+#if SUPPORT_Historical_Access
+    m_pHistoryManagerCache->stopLogging();
+#endif // SUPPORT_Historical_Access
+}
 
 UaStatus PasNodeManagerCommon::createTypeNodes()
 {
