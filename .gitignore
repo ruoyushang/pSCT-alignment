@@ -50,3 +50,4 @@ sdk/bin
 # DB files
 *.sql
 !init.sql
+tools/alignment_plots

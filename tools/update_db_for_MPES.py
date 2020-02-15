@@ -153,7 +153,7 @@ if __name__ == '__main__':
     # print(args.host)
     testDB = pSCTDB_readonly(args.host)
 
-    print("\tNew MPES: {}\n\tOld MPES: {}\n\tw_panel: {}\n\tl_panel: {}\n\tposition: {}\n\tport: {}".format(args.newMPES, args.oldMPES, args.w_panel, args.l_panel, args.position, args.port))
+    print("\033[0m \tNew MPES: {}\n\tOld MPES: {}\n\tw_panel: {}\n\tl_panel: {}\n\tposition: {}\n\tport: {}".format(args.newMPES, args.oldMPES, args.w_panel, args.l_panel, args.position, args.port))
 
     print("Target coords: {}".format(args.target))
     print("\n")
@@ -161,9 +161,15 @@ if __name__ == '__main__':
     print("Inserting {} into Opt_MPESConfigurationAndCalibration, using {} calibration constants".format(args.newMPES, args.oldMPES))
     print("\n")
     print("Printing out commands for you to insert into DB. Confirm the following lines first, then copy/paste into the database.")
-    print("##############################################################")
+    print("\033[0m##############################################################")
     print("################## Commands to copy ##########################")
     print("##############################################################")
+
+    print("\n")
+    print("\033[0;31m##############################################################")
+    print("\033[0;31m!!! If the MPES was not replaced, DO NOT update the mapping table, \ni.e., only copy and paste line 2, 3, and 5 \nwhich update Opt_MPESConfigurationAndCalibration!!!")
+    print("\033[0;31m##############################################################")
+    print("\033[0m")
 
     mpes_add_res = testDB.add_new_sensor(args.newMPES, args.oldMPES, args.w_panel, args.l_panel, args.position, args.port,args.target)
 

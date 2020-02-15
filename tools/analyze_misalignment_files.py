@@ -238,8 +238,25 @@ def PlotMisalignment(misalignment, zmax=1.0, outfilename="misalignment.png"):
                 labels = ''
             if zmax is None:
                 zmax=3
+
+            import matplotlib as mpl
+            #cmap=plt.cm.viridis
+            cmap=plt.cm.jet
+            cmaplist = [cmap(i) for i in range(cmap.N)]
+            # force the first color entry to be grey
+            cmaplist[0] = (.5, .5, .5, 1.0)
+
+            # create the new map
+            cmap = mpl.colors.LinearSegmentedColormap.from_list(
+                        'Custom cmap', cmaplist, cmap.N)
+
+            # define the bins and normalize
+            bounds=[-99,0,1,2,3,99]
+            norm = mpl.colors.BoundaryNorm(bounds, cmap.N)
+
             scatter = ax.scatter(all_misalignments[sensor]["coor_x"], all_misalignments[sensor]["coor_y"],
-                                 label=str(sensor), c=all_misalignments[sensor]["misalignment"], cmap='viridis',
+                                 #label=str(sensor), c=all_misalignments[sensor]["misalignment"], cmap='viridis',
+                                 label=str(sensor), c=all_misalignments[sensor]["misalignment"], cmap=cmap, norm=norm,
                                  marker=marker, edgecolors=edge, vmin=0, vmax=zmax, s=s)
             ax.annotate(labels, (all_misalignments[sensor]["coor_x"], all_misalignments[sensor]["coor_y"]))
         cb = fig.colorbar(scatter, ax=ax)
@@ -256,6 +273,14 @@ def PlotMisalignment(misalignment, zmax=1.0, outfilename="misalignment.png"):
         plt.xlabel("Misalignment [mm]")
         plt.tight_layout()
         plt.savefig(outfilename.split('.')[0]+"_hist.png")
+
+        print("Total number of MPESs read attempted: {}".format(misalignment_array.shape[0]))
+        print("Total number of MPESs read successfully: {}".format(misalignment_array[misalignment_array>0].shape[0]))
+        print("Excluding non-readable MPES from calculations below")
+        print("Mean {} std {}".format(np.mean(misalignment_array[misalignment_array>0]), np.std(misalignment_array[misalignment_array>0])))
+        selected_array = misalignment_array[misalignment_array>0] # only count non-negative sensors, i.e. no errors
+        total_chi2mm = np.sum(selected_array[selected_array<1e10]**2) # only count under 3mm sensors
+        print("Total misalignment chi^2 = {} mm^2 for {} MPESs.".format(total_chi2mm, misalignment_array[misalignment_array>0].shape[0]))
 
     except UnboundLocalError:
         print("No MPES found")
@@ -275,7 +300,7 @@ if __name__ == "__main__":
         outputfilename = sys.argv[1]
         plot_name = outputfilename.split('/')[len(outputfilename.split('/'))-1].strip('.png')
         misalignment = read_misalignment(outputfilename)
-        PlotMisalignment(misalignment, 4., "%s/misalignment_%s.png"%(output_folder,plot_name))
+        PlotMisalignment(misalignment, 3., "%s/misalignment_%s.png"%(output_folder,plot_name))
     if len(sys.argv) == 3:
         outputfilename_1 = sys.argv[1]
         plot_name_1 = outputfilename_1.split('/')[len(outputfilename_1.split('/'))-1].strip('.png')
