@@ -65,6 +65,7 @@ UaStatus CCDController::setState(Device::DeviceState state) {
 UaStatus CCDController::getData(OpcUa_UInt32 offset, UaVariant &value) {
     UaStatus status;
     //UaMutexLocker lock(&m_mutex);
+    //TODO need to update this to be better, like the other controllers. Is there where segFault happens?
     int dataoffset = offset - PAS_CCDType_xFromLED;
     if (dataoffset >= 6)
         return OpcUa_BadInvalidArgument;

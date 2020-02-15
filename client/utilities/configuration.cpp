@@ -197,6 +197,8 @@ UaStatus Configuration::loadDeviceConfiguration(const std::vector<std::string> &
                              panelId.position, actId.serialNumber);
             }
 
+            //TODO: Need to handle optical tables, which have no MPES - this will lead to seg fault due to the empty mapping
+
             // get the panel's mpes and add them to all the needed maps
             query = "SELECT serial_number, w_position, port, l_panel FROM Opt_MPESMapping WHERE end_date is NULL and w_panel=" + std::to_string(panelId.position);
             sql_stmt->execute(query);
