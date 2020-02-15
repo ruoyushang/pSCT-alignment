@@ -7,11 +7,8 @@ import os
 #included_panels = [1111, 1112, 1113, 1114, 1121, 1122, 1123, 1124, 1125, 1126, 1127, 1128, 1211, 1212, 1213, 1214, 1221, 1222, 1223, 1224, 1225, 1226, 1227, 1228, 1311, 1312, 1313, 1314, 1321, 1322, 1323, 1324, 1325, 1326, 1327, 1328, 1411, 1412, 1413, 1414, 1421, 1422, 1423, 1424, 1425, 1426, 1427, 1428] # all
 #included_panels = [1111, 1112, 1113, 1114, 1211, 1212, 1213, 1214, 1311, 1312, 1313, 1314, 1411, 1412, 1413, 1414] # only inner ring
 included_panels = [1121, 1122, 1123, 1124, 1125, 1126, 1127, 1128, 1221, 1222, 1223, 1224, 1225, 1226, 1227, 1228, 1321, 1322, 1323, 1324, 1325, 1326, 1327, 1328, 1421, 1422, 1423, 1424, 1425, 1426, 1427, 1428] # only outter ring
-#included_panels = [1121, 1122, 1123, 1124, 1125, 1126, 1222, 1223, 1224, 1225, 1226, 1227, 1228, 1321, 1322, 1323, 1324, 1325, 1326, 1327, 1328, 1421, 1422, 1423, 1424, 1425, 1426, 1427, 1428] # only outter ring, fix 1127, 1128, 1221
-#included_panels = [1111, 1112, 1113, 1121, 1122, 1123, 1124, 1125, 1126, 1127, 1128, 1211, 1212, 1214, 1221, 1222, 1223, 1224, 1225, 1226, 1227, 1228, 1311, 1312, 1314, 1321, 1322, 1323, 1324, 1325, 1326, 1327, 1328, 1411, 1412, 1413, 1421, 1422, 1423, 1424, 1425, 1426, 1427, 1428] # fix 1114, 1213, 1313, 1414
-#included_panels = [1111, 1112, 1113, 1121, 1122, 1123, 1124, 1125, 1126, 1211, 1212, 1214, 1222, 1223, 1224, 1225, 1226, 1227, 1228, 1311, 1312, 1314, 1321, 1322, 1323, 1324, 1325, 1326, 1327, 1328, 1411, 1412, 1413, 1421, 1422, 1423, 1424, 1425, 1426, 1427, 1428] # fix 1114, 1213, 1313, 1414, 1127, 1128, 1221
-#included_panels = [1111, 1112, 1113, 1121, 1122, 1123, 1124, 1125, 1126, 1127, 1128, 1211, 1212, 1213, 1214, 1221, 1222, 1223, 1224, 1225, 1226, 1227, 1228, 1311, 1313, 1314, 1321, 1322, 1323, 1324, 1325, 1326, 1327, 1328, 1411, 1413, 1414, 1421, 1422, 1423, 1424, 1425, 1426, 1427, 1428] # fix 1114, 1312, 1412
-#included_panels = [1111, 1112, 1113, 1121, 1122, 1123, 1124, 1125, 1126, 1211, 1212, 1213, 1214, 1223, 1224, 1225, 1226, 1227, 1228, 1311, 1313, 1314, 1321, 1322, 1323, 1324, 1325, 1326, 1327, 1328, 1411, 1413, 1414, 1421, 1422, 1423, 1424, 1425, 1426, 1427, 1428] # fix 1114, 1312, 1412, 1127,1128, 1221, 1222
+#included_panels = [1121, 1123, 1125, 1127, 1221, 1223, 1225, 1227, 1321, 1323, 1325, 1327, 1421, 1423, 1425, 1427] # only outter ring odd
+#included_panels = [1122, 1124, 1126, 1128, 1222, 1224, 1226, 1228, 1322, 1324, 1326, 1328, 1422, 1424, 1426, 1428] # only outter ring even
 
 #included_panels = [1312,1322] # no.2
 #included_panels = [1213,1225,1214] # no.3
@@ -20,22 +17,24 @@ included_panels = [1121, 1122, 1123, 1124, 1125, 1126, 1127, 1128, 1221, 1222, 1
 #included_panels = [1425,1426,1427,1413] # for 10343 and 10205 calibration
 
 KNOWN_BAD_SENSORS=[] # permanent dead
-KNOWN_BAD_SENSORS+=[10031] # calibrated
-KNOWN_BAD_SENSORS+=[10323] # calibrated
-KNOWN_BAD_SENSORS+=[10344] # calibrated
-KNOWN_BAD_SENSORS+=[10047] # calibrated
+#KNOWN_BAD_SENSORS+=[10031] # calibrated
+#KNOWN_BAD_SENSORS+=[10323] # calibrated
+#KNOWN_BAD_SENSORS+=[10344] # calibrated
+#KNOWN_BAD_SENSORS+=[10047] # calibrated
+#KNOWN_BAD_SENSORS+=[10187] # calibrated
 KNOWN_BAD_SENSORS+=[10046] # needs calibration
-KNOWN_BAD_SENSORS+=[10187] # calibrated
+KNOWN_BAD_SENSORS+=[10003] # needs calibration
 KNOWN_BAD_SENSORS+=[10343,10030] # calibrated, but keep tracking it
 #KNOWN_BAD_SENSORS+=[10281] # did not initialize
 
 KNOWN_BAD_SENSORS+=[10005] # edge aligned, do not move. need clockangle adjust
 KNOWN_BAD_SENSORS+=[10029] # usb port swapped. not calibrated yet.
-KNOWN_BAD_SENSORS+=[10290,10181] # did not initialize (frequently happen during Sep trip)
-KNOWN_BAD_SENSORS+=[10205] # suspect: has a large misalignment
+KNOWN_BAD_SENSORS+=[10009] # needs calibration
+#KNOWN_BAD_SENSORS+=[10181] # did not initialize
+KNOWN_BAD_SENSORS+=[10008] # needs calibration
 KNOWN_BAD_SENSORS+=[10013,10016] # suspects, largely misaligned
-#KNOWN_BAD_SENSORS+=[10090] # select timeout causes panel 1222 dropping out - Now obselete, 10090 replaced by 10003. 
-KNOWN_BAD_SENSORS+=[10003]
+
+KNOWN_BAD_SENSORS+=[10177] # laser intensity too low
 
 def print_query_db_MPESes(panels, KNOWN_BAD_SENSORS=[], verbose=True):
     str1_ = ""
