@@ -79,7 +79,7 @@ UaStatus Configuration::loadConnectionConfiguration(const UaString& sConfigurati
     value = pSettings->value("DiscoveryURL", UaString("opc.tcp://172.17.0.201:48010"));
 #endif
     m_discoveryUrl = value.toString();
-    value = pSettings->value("PositionerURL", UaString("opc.tcp://172.17.3.3:4840"));
+    value = pSettings->value("PositionerURL", UaString("opc.tcp://127.0.0.1:4840"));
     m_positionerUrl = value.toString();
 
     // Read NamespaceArray
