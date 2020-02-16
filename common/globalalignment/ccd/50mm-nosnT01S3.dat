@@ -51,7 +51,7 @@ LED8Y=0
 LED8Z=0
 TEMP=3
 #PX and FL in m, LENSFL is printed Focal Length
-PIXSIZE=5E-4
+PIXSIZE=2.2E-6
 LENSFL=35E-3
 #LENS scaling factor (LENSFL*LENSSCALE = actual focal length of lens)
 LENSSCALE=1.019342857;

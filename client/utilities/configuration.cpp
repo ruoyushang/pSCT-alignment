@@ -24,12 +24,12 @@ const std::map<std::string, std::string> Configuration::SUBCLIENTS = {
 };
 
 const std::map<std::string, std::string> Configuration::CCDs = {
-        {"11","/home/ctauser/repos/bryan/pSCT-alignment/common/globalalignment/ccd/50mm-nosn11.dat"},
-        {"12","/home/ctauser/repos/bryan/pSCT-alignment/common/globalalignment/ccd/50mm-nosn12.dat"},
-        {"13","/home/ctauser/repos/bryan/pSCT-alignment/common/globalalignment/ccd/50mm-nosn13.dat"},
-        {"21","/home/ctauser/repos/bryan/pSCT-alignment/common/globalalignment/ccd/50mm-nosn21.dat"},
-        {"22","/home/ctauser/repos/bryan/pSCT-alignment/common/globalalignment/ccd/50mm-nosn22.dat"},
-        {"23","/home/ctauser/repos/bryan/pSCT-alignment/common/globalalignment/ccd/50mm-nosn23.dat"}
+        {"T01S1","/home/ctauser/repos/bryan/pSCT-alignment/common/globalalignment/ccd/50mm-nosnT01S1.dat"},
+        {"T01S2","/home/ctauser/repos/bryan/pSCT-alignment/common/globalalignment/ccd/50mm-nosnT01S2.dat"},
+        {"T01S3","/home/ctauser/repos/bryan/pSCT-alignment/common/globalalignment/ccd/50mm-nosnT01S3.dat"},
+        {"T01P1","/home/ctauser/repos/bryan/pSCT-alignment/common/globalalignment/ccd/50mm-nosnT01P1.dat"},
+        {"T01P2","/home/ctauser/repos/bryan/pSCT-alignment/common/globalalignment/ccd/50mm-nosnT01P2.dat"},
+        {"T01P3","/home/ctauser/repos/bryan/pSCT-alignment/common/globalalignment/ccd/50mm-nosnT01P3.dat"}
 };
 
 

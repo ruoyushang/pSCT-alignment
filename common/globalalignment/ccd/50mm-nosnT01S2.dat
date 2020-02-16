@@ -52,9 +52,9 @@ LED8Z=0
 TEMP=2
 #PX and FL in m, LENSFL is printed Focal Length
 PIXSIZE=2.2E-6
-LENSFL=50E-3
+LENSFL=35E-3
 #LENS scaling factor (LENSFL*LENSSCALE = actual focal length of lens)
-LENSSCALE=1789.0/1849.0;
+LENSSCALE=1.019885714;
 #hardware address of given camera (not used, yet)
 CCDMAC=00:07:48:a5:c5:d5
 #upper and lower bounds used to determine the rotation/position of mirror (0,0,0 is the camera, with z-axis pointing from the camera)

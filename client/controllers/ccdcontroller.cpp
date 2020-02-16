@@ -147,10 +147,12 @@ UaStatus CCDController::operate(OpcUa_UInt32 offset, const UaVariantArray &args)
             status = read();
             break;
         case PAS_CCDType_Start:
+            spdlog::warn("{} : CCDController calling start() - Does nothing for now", m_Identity);
             spdlog::trace("{} : CCDController calling start()", m_Identity);
             status = OpcUa_BadInvalidArgument;
             break;
         case PAS_CCDType_Stop:
+            spdlog::warn("{} : CCDController calling start() - Does nothing for now", m_Identity);
             spdlog::trace("{} : CCDController calling stop()", m_Identity);
             status = OpcUa_BadInvalidArgument;
             break;
