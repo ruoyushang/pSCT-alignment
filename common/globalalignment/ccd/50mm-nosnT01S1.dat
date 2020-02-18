@@ -60,7 +60,7 @@ CCDMAC=00:07:48:a5:c5:e6
 #upper and lower bounds used to determine the rotation/position of mirror (0,0,0 is the camera, with z-axis pointing from the camera)
 LEDUBXPOS=1000.0
 LEDUBYPOS=1000.0
-LEDUBZPOS=10000.0
+LEDUBZPOS=12000.0
 LEDUBXROT=0.2
 LEDUBYROT=0.2
 LEDUBZROT=3.1415
