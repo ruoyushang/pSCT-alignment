@@ -65,22 +65,51 @@ UaStatus CCDController::setState(Device::DeviceState state) {
 UaStatus CCDController::getData(OpcUa_UInt32 offset, UaVariant &value) {
     UaStatus status;
     //UaMutexLocker lock(&m_mutex);
-    //TODO need to update this to be better, like the other controllers. Is there where segFault happens?
-    int dataoffset = offset - PAS_CCDType_xFromLED;
-    if (dataoffset >= 6)
-        return OpcUa_BadInvalidArgument;
 
     if (__expired())
         status = read();
 
-    if (!m_updated)
-        value.setDouble(0.);
-    else
-        value.setDouble(*(static_cast<const double *>(m_pCCD->getOutput() + dataoffset)));
-
-    double temp;
-    value.toDouble(temp);
-    spdlog::trace("{} : Read data... offset=> {} value => ({})", m_Identity, offset, temp);
+    switch (offset){
+        case PAS_CCDType_xFromLED:
+            status = m_pClient->read({m_pClient->getDeviceNodeId(m_Identity) + "." + "x"}, &value);
+            double xval;
+            value.toDouble(xval);
+            spdlog::trace("{} : Read x value => ({})", m_Identity, xval);
+            break;
+        case PAS_CCDType_yFromLED:
+            status = m_pClient->read({m_pClient->getDeviceNodeId(m_Identity) + "." + "y"}, &value);
+            double yval;
+            value.toDouble(yval);
+            spdlog::trace("{} : Read y value => ({})", m_Identity, yval);
+            break;
+        case PAS_CCDType_zFromLED:
+            status = m_pClient->read({m_pClient->getDeviceNodeId(m_Identity) + "." + "z"}, &value);
+            double zval;
+            value.toDouble(zval);
+            spdlog::trace("{} : Read z value => ({})", m_Identity, zval);
+            break;
+        case PAS_CCDType_thetaFromLED:
+            status = m_pClient->read({m_pClient->getDeviceNodeId(m_Identity) + "." + "theta"}, &value);
+            double theta;
+            value.toDouble(theta);
+            spdlog::trace("{} : Read theta value => ({})", m_Identity, theta);
+            break;
+        case PAS_CCDType_phiFromLED:
+            status = m_pClient->read({m_pClient->getDeviceNodeId(m_Identity) + "." + "phi"}, &value);
+            double phi;
+            value.toDouble(phi);
+            spdlog::trace("{} : Read phi value => ({})", m_Identity, phi);
+            break;
+        case PAS_CCDType_psiFromLED:
+            status = m_pClient->read({m_pClient->getDeviceNodeId(m_Identity) + "." + "psi"}, &value);
+            double psi;
+            value.toDouble(psi);
+            spdlog::trace("{} : Read psi value => ({})", m_Identity, psi);
+            break;
+        default:
+            status = OpcUa_BadInvalidArgument;
+            break;
+    }
 
     return OpcUa_Good;
 }
