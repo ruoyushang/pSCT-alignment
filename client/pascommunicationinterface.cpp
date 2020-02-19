@@ -47,7 +47,8 @@ std::map<OpcUa_UInt32, std::string> PasCommunicationInterface::deviceTypeNames{
     {PAS_MPESType, "MPES"},
     {PAS_ACTType, "ACT"},
     {PAS_CCDType, "CCD"},
-    {PAS_PSDType, "PSD"}
+    {PAS_PSDType, "PSD"},
+    {GLOB_PositionerType, "Positioner"}
 };
 
 PasCommunicationInterface::PasCommunicationInterface() :
@@ -157,8 +158,6 @@ PasCommunicationInterface::addDevice(Client *pClient, OpcUa_UInt32 deviceType,
         else {
             return identity;
         }
-
-        //TODO what happens here with positioner, which doesn't have initialize()?
 
         // Initialize this controller or return if unable to do so for whatever reason
         if (!pController->initialize()) {
