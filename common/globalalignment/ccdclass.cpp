@@ -129,6 +129,8 @@ bool GASCCD::initialize()
     //make the string camera_name -> char* char_camera_name
     const char * char_camera_name = fLEDsIn.CCDNAME.empty() ? NULL : fLEDsIn.CCDNAME.c_str();
 
+    int errorTries(0);
+
     while (!pfCamera || !pfCamera->isReady()) {
         //attempt to initialize camera
         std::this_thread::sleep_for(std::chrono::milliseconds(200));
@@ -138,9 +140,15 @@ bool GASCCD::initialize()
                     "GASCCD::initialize(): Camera [" + fLEDsIn.CCDNAME + "] reports not ready. Trying again...\n";
             spdlog::warn(strout);
 
+            errorTries++;
+
             if(fLEDsIn.VERBOSE) {
                 logout << strout;
             }
+
+        if (errorTries > 5){
+            return false;
+        }
 
             continue;
         }
