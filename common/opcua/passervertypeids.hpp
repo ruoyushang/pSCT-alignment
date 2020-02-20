@@ -226,6 +226,8 @@
 #define PAS_CCDType_Start                           3121
 #define PAS_CCDType_Stop                            3122
 #define PAS_CCDType_Read                            3123
+#define PAS_CCDType_TurnOn                          3124
+#define PAS_CCDType_TurnOff                         3125
 //----------------------------------------------------------//
 // PSD Type
 #define PAS_PSDType                                 3200

@@ -126,7 +126,7 @@ void GASCCD::turnOn() {
 }
 
 void GASCCD::turnOff() {
-    spdlog::info("{} : GASCCD :: Turning off power to platform...", m_Identity.name);
+    spdlog::info("{} : GASCCD :: Turning off power to CCD...", m_Identity.name);
     Device::CustomBusyLock lock = Device::CustomBusyLock(this);
     pfCamera.reset();
     m_On = false;

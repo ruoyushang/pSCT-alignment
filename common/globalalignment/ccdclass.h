@@ -49,8 +49,8 @@ class GASCCD: public Device
     virtual bool update();
 
     void turnOn() override ;
-    void turnOff() override = 0;
-    bool isOn() override = 0;
+    void turnOff() override;
+    bool isOn() override;
 
     Device::ErrorState getErrorState() override;
 
@@ -61,7 +61,7 @@ protected:
     std::unique_ptr<AravisCamera> pfCamera;
     std::string fAddress;
     std::string fConfigFile;
-    bool m_On;
+    bool m_On{};
 
 };
 
