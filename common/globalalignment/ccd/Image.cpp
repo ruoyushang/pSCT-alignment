@@ -48,7 +48,7 @@ void Image::saveFITSImage() {
            long naxes[2] = {imgWidth, imgHeight};
            pFits.reset(new CCfits::FITS(fileName, BYTE_IMG, 2, naxes));
        } catch (CCfits::FITS::CantCreate) {
-           cout << "Error saving FITS image! A FITS file could not be opened for writing." << endl;
+           spdlog::warn("Error saving FITS image! A FITS file could not be opened for writing.");
            return;
        }
 
@@ -124,7 +124,7 @@ void Image::saveFITSImage(const LEDinputs* li, const char strTime[16]) {
        long naxes[2] = {imgWidth, imgHeight};
        pFits.reset(new CCfits::FITS(fileName, BYTE_IMG, 2, naxes));
     } catch (CCfits::FITS::CantCreate) {
-       cout << "Error saving FITS image! A FITS file could not be opened for writing." << endl;
+       spdlog::warn("Error saving FITS image! A FITS file could not be opened for writing.");
        return;
     }
 
@@ -168,7 +168,7 @@ void Image::savefilteredFITSImage() {
            long naxes[2] = {imgWidth, imgHeight};
            pFits.reset(new CCfits::FITS(fileName, BYTE_IMG, 2, naxes));
        } catch (CCfits::FITS::CantCreate) {
-           cout << "Error saving FITS image! A FITS file could not be opened for writing." << endl;
+           spdlog::warn("Error saving FITS image! A FITS file could not be opened for writing.");
            return;
        }
 
@@ -198,7 +198,7 @@ void Image::savefilteredFITSImage(const LEDoutputs* lo, const char strTime[16]) 
            long naxes[2] = {imgWidth, imgHeight};
            pFits.reset(new CCfits::FITS(fileName, BYTE_IMG, 2, naxes));
        } catch (CCfits::FITS::CantCreate) {
-           cout << "Error saving FITS image! A FITS file could not be opened for writing." << endl;
+           spdlog::warn("Error saving FITS image! A FITS file could not be opened for writing.");
            return;
        }
 

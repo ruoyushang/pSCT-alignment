@@ -63,7 +63,7 @@ vector<unsigned char> AravisCamera::captureFrame() {
 	ArvBuffer* buffer = arv_stream_timeout_pop_buffer(stream, 2000000);
 	
 	if(buffer == NULL)
-		std::cout << "IMAGE BUFFER IS NULL" << std::endl;
+		spdlog::warn("IMAGE BUFFER IS NULL");
 
 	/*
 	 * ArvBufferStatus:
@@ -80,21 +80,21 @@ vector<unsigned char> AravisCamera::captureFrame() {
 
 
 	if(arv_buffer_get_status(buffer)==ARV_BUFFER_STATUS_UNKNOWN)
-		std::cout << "AravisCamera: ARV_BUFFER_STATUS_UNKNOWN" << std::endl;
+		spdlog::info( "AravisCamera: ARV_BUFFER_STATUS_UNKNOWN");
 	if(arv_buffer_get_status(buffer)==ARV_BUFFER_STATUS_CLEARED)
-		std::cout << "AravisCamera: ARV_BUFFER_STATUS_CLEARED" << std::endl;
+        spdlog::info("AravisCamera: ARV_BUFFER_STATUS_CLEARED");
 	if(arv_buffer_get_status(buffer)==ARV_BUFFER_STATUS_TIMEOUT)
-		std::cout << "AravisCamera: ARV_BUFFER_STATUS_TIMEOUT" << std::endl;
+        spdlog::info("AravisCamera: ARV_BUFFER_STATUS_TIMEOUT");
 	if(arv_buffer_get_status(buffer)==ARV_BUFFER_STATUS_MISSING_PACKETS)
-		std::cout << "AravisCamera: ARV_BUFFER_STATUS_MISSING_PACKETS" << std::endl;
+        spdlog::info("AravisCamera: ARV_BUFFER_STATUS_MISSING_PACKETS");
 	if(arv_buffer_get_status(buffer)==ARV_BUFFER_STATUS_WRONG_PACKET_ID)
-		std::cout << "AravisCamera: ARV_BUFFER_STATUS_WRONG_PACKET_ID" << std::endl;
+        spdlog::info("AravisCamera: ARV_BUFFER_STATUS_WRONG_PACKET_ID");
 	if(arv_buffer_get_status(buffer)==ARV_BUFFER_STATUS_SIZE_MISMATCH)
-		std::cout << "AravisCamera: ARV_BUFFER_STATUS_SIZE_MISMATCH" << std::endl;
+        spdlog::info("AravisCamera: ARV_BUFFER_STATUS_SIZE_MISMATCH");
 	if(arv_buffer_get_status(buffer)==ARV_BUFFER_STATUS_FILLING)
-		std::cout << "AravisCamera: ARV_BUFFER_STATUS_FILLING" << std::endl;
+        spdlog::info("AravisCamera: ARV_BUFFER_STATUS_FILLING");
 	if(arv_buffer_get_status(buffer)==ARV_BUFFER_STATUS_ABORTED)
-		std::cout << "AravisCamera: ARV_BUFFER_STATUS_ABORTED" << std::endl;
+        spdlog::info("AravisCamera: ARV_BUFFER_STATUS_ABORTED");
 
 
 	// make sure we have a valid frame
@@ -111,7 +111,7 @@ vector<unsigned char> AravisCamera::captureFrame() {
 		image.assign((guint8 *)thedata, (guint8 *)thedata + thesize);
 	}
     else{
-		std::cout << "AravisCamera: Buffer cleared" << std::endl;
+		spdlog::info("AravisCamera: Buffer cleared");
         image.clear();
         return image;
 	}

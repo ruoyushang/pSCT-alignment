@@ -25,9 +25,9 @@
 CCDController::CCDController(Device::Identity identity) : PasController(std::move(identity), nullptr, 1000) {
     spdlog::trace("{} : Creating CCD controller... ", m_Identity);
 #ifndef SIMMODE  
-    m_pCCD = std::unique_ptr<GASCCD>(new GASCCD());
+    m_pCCD = std::unique_ptr<GASCCD>(new GASCCD(m_Identity));
 #else 
-    m_pCCD = std::unique_ptr<GASCCD>(new DummyGASCCD());
+    m_pCCD = std::unique_ptr<GASCCD>(new DummyGASCCD(m_Identity));
 #endif
     m_pCCD->setConfig(m_Identity.eAddress);
     spdlog::trace("{} : Initializing CCD controller... ", m_Identity);
@@ -202,7 +202,7 @@ UaStatus CCDController::read(bool print) {
     //UaMutexLocker lock(&m_mutex);
 
     if (m_State == Device::DeviceState::On) {
-        spdlog::trace("{} : Reading CCD...", m_Identity);
+        spdlog::trace("{} : Reading CCD...", m_Identity.name);
         m_pCCD->update();
         m_updated = true;
 
@@ -218,7 +218,7 @@ UaStatus CCDController::read(bool print) {
         return OpcUa_Good;
     } else {
         m_updated = false;
-        spdlog::error("{} : CCD is off, cannot read.", m_Identity);
+        spdlog::error("{} : CCD is off, cannot read.", m_Identity.name);
         return OpcUa_Bad;
     }
 }

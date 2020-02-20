@@ -51,22 +51,15 @@ FitLED::FitLED(LEDoutputs* lo): ledsin(lo->inleds), ledsout(lo){
 
 //	nlopt::result result = opt.optimize(x, minf);
 
-	double** c = moveled(x); 
-/*
-	cout << "result =" << result << endl;
-	cout << "minf =" << minf << endl;
-	cout << "x =" << x[0] << endl;
-	cout << "y =" << x[1] << endl;
-	cout << "z =" << x[2] << endl;
-	cout << "psi =" << x[3]*180.0/PI << endl;
-	cout << "theta =" << x[4]*180.0/PI << endl;
-	cout << "phi =" << x[5]*180.0/PI << endl;
-*/
-	cout << "min offset: " << minf << endl;
-	cout << "led offsets (ledpos - best guess)" << endl;
+	double** c = moveled(x);
+
+	spdlog::info( "min offset: {}", minf);
+	spdlog::info("led offsets (ledpos - best guess)");
 	
 	for(int i=0; i<ledsin->NLED; i++)
-		if(ledsout->LEDSPRESENT[i]) cout << "LED #" << i+1 << ": " << ledsfound[i][0]-c[i][0] << ", " << ledsfound[i][1]-c[i][1] << endl;
+		if(ledsout->LEDSPRESENT[i]) {
+		    spdlog::info("LED # {}: {}, {}", i+1, ledsfound[i][0]-c[i][0], ledsfound[i][1]-c[i][1]);
+		}
 	for(int i =0; i<NSPACEPARAM; i++)
 		ledsout->SPACE[i]=x[i];
 }

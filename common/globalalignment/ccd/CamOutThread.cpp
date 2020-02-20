@@ -45,10 +45,10 @@ bool CamOutThread::cycle(LEDoutputs *pLEDsout)
     vector<unsigned char> theFrame = pfCamera->captureFrame();
     //troubleshoot a missing frame
     if(theFrame.size()==0) {
-        cout << "CamOutThread: frame not received, resending request" << endl;
+        spdlog::warn("CamOutThread: frame not received, resending request");
         theFrame = pfCamera->captureFrame();
         while(theFrame.size()==0) {// troubleshoot missing frame again and again...
-            cout << "... trying again (frame not received)" << endl;
+            spdlog::warn("... trying again (frame not received)");
             theFrame = pfCamera->captureFrame();
         }
     } // end if empty frame
@@ -81,9 +81,9 @@ bool CamOutThread::cycle(LEDoutputs *pLEDsout)
     if(pfLEDsin->SAVEIMAGE == true)
         theImage.savefilteredFITSImage(pLEDsout,strTime);
     //print the current LED positions
-    cout << "TIME: " << strTime << endl;
+    spdlog::info("TIME: {}",strTime);
     for(size_t i =0; i< theCentroids.size(); i++) {
-        cout << theCentroids[i].pX() << ", " << theCentroids[i].pY() << endl;
+        spdlog::info("{}, {}", theCentroids[i].pX(), theCentroids[i].pY() );
     }
     
     // attempt solid body fit

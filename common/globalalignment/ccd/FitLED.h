@@ -2,6 +2,9 @@
 #include <nlopt.hpp>
 #include <iostream>
 
+//spdlog
+#include "common/utilities/spdlog/spdlog.h"
+#include "common/utilities/spdlog/fmt/ostr.h"
 
 // universal scope objective function for the optimization of LED detection
 double f_ledfit(const std::vector<double> &x, std::vector<double> &grad, void* f_data);

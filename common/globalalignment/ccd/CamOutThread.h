@@ -16,7 +16,11 @@
 
 // needed for waiting
 #include <chrono>
-#include <thread> 
+#include <thread>
+
+//spdlog
+#include "common/utilities/spdlog/spdlog.h"
+#include "common/utilities/spdlog/fmt/ostr.h"
 
 class CamOutThread{
         public:

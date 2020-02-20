@@ -132,12 +132,12 @@ void StarDetect::detect_stars() {
             bool dir = true; // true = horizontal shift, false = vertical shift
 
             if(ledsin->VERBOSE ==true){
-                cout << "StarDetect: Starting search for LED#" << i << endl;
+                spdlog::info("StarDetect: Starting search for LED# {}",i);
             }
             while(!foundit){
                 if(ledsin->VERBOSE ==true)
                     {
-                    cout << "StarDetect: Searching for LED#" << i << " at (" << cx << "," << cy << ")" << endl;
+                    spdlog::info("StarDetect: Searching for LED# {} at ({}, {})", i ,cx, cy );
                     }
                 if(image.pixels()[image.width()*cy+cx] > threshold){
                     StarList.push_back(ImageStar(image,ledsin));
@@ -168,7 +168,7 @@ void StarDetect::detect_stars() {
                         if(cx == image.width()) errmsg = "cx == image.width()";
                         if(cy == image.height()) errmsg = "cy == image.height()";
                         errmsg += ", CP: (" +to_string(cx)+","+to_string(cy)+"), length = "+to_string(length)+".";
-                        cout << "StarDetect: FINDING FAILURE (Reason: LED#=" << i+1 << ", " << errmsg << ")" << endl;
+                        spdlog::warn( "StarDetect: FINDING FAILURE (Reason: LED#={}, {})", i+1 , errmsg);
                         ledsout->LEDSPRESENT[i]=false;
                         break;
                     }
@@ -210,6 +210,10 @@ void StarDetect::detect_stars() {
                 }
     }
 
-    if (static_cast<int>(StarList.size()) == ledsin->NLED) ledsout->LEDSMATCH = true;
-    else { cout << "StarDetect: MATCHING WARNING. Number of LEDs is different than expected." << endl; }
+    if (static_cast<int>(StarList.size()) == ledsin->NLED) {
+        ledsout->LEDSMATCH = true;
+    }
+    else {
+        spdlog::warn("StarDetect: MATCHING WARNING. Number of LEDs is different than expected.");
+    }
 }

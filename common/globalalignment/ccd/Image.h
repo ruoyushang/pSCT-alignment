@@ -9,6 +9,10 @@
 #include "common/globalalignment/ccd/LEDinputs.h"
 #include "common/globalalignment/ccd/LEDoutputs.h"
 
+//spdlog
+#include "common/utilities/spdlog/spdlog.h"
+#include "common/utilities/spdlog/fmt/ostr.h"
+
 class Image {
 public:
     // Constructor & Destructor

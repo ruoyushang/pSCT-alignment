@@ -13,16 +13,25 @@
 #include <memory>
 #include <string>
 
-class GASCCD
+class GASCCD: public Device
 {
     public:
-    GASCCD() :
+    GASCCD(Device::Identity identity) :
         pfLEDsOut(nullptr),
         pfCamThread(nullptr),
         pfCamera(nullptr),
-        fConfigFile("") {}
+        fConfigFile(""),
+        Device::Device(std::move(identity)){}
 
     ~GASCCD() = default;
+
+    static const std::vector<Device::ErrorDefinition> ERROR_DEFINITIONS;
+
+    Device::ErrorDefinition getErrorCodeDefinition(int errorCode)  {
+        return GASCCD::ERROR_DEFINITIONS.at(errorCode);
+    }
+
+    int getNumErrors() override { return GASCCD::ERROR_DEFINITIONS.size(); }
 
     virtual bool initialize();
 
@@ -39,20 +48,30 @@ class GASCCD
 
     virtual bool update();
 
+    void turnOn() override ;
+    void turnOff() override = 0;
+    bool isOn() override = 0;
+
+    Device::ErrorState getErrorState() override;
+
 protected:
     std::unique_ptr<LEDoutputs> pfLEDsOut;
-        LEDinputs fLEDsIn;
+    LEDinputs fLEDsIn;
     std::unique_ptr<CamOutThread> pfCamThread;
     std::unique_ptr<AravisCamera> pfCamera;
-        std::string fAddress;
-        std::string fConfigFile;
+    std::string fAddress;
+    std::string fConfigFile;
+    bool m_On;
+
 };
 
 class DummyGASCCD : public GASCCD {
 public:
-    DummyGASCCD() : GASCCD(), m_Data() {}
+    DummyGASCCD(Device::Identity identity) : GASCCD(std::move(identity)), m_Data() {}
 
     ~DummyGASCCD() = default;
+
+    int getNumErrors() override { return GASCCD::ERROR_DEFINITIONS.size(); }
 
     bool initialize() override;
 
@@ -65,6 +84,10 @@ public:
     int getSerial() const override;
 
     bool update() override;
+
+    void turnOn() override;
+    void turnOff() override;
+    bool isOn() override;
 
 private:
     double m_Data[6];

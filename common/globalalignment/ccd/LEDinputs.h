@@ -18,6 +18,10 @@
 #include <iostream>
 #include <fstream>
 
+//spdlog
+#include "common/utilities/spdlog/spdlog.h"
+#include "common/utilities/spdlog/fmt/ostr.h"
+
 struct LEDinputs {
 
     //default values set to Lab testing camera
@@ -77,14 +81,16 @@ struct LEDinputs {
     void printall()
     {
         // need to add all parameters in an easy to read format.
-        std::cout << "CCDNAME=" << CCDNAME << std::endl;
-        std::cout << "CCDACTIVE=" << CCDACTIVE << std::endl;
-        std::cout << "CCDGAIN=" << CCDGAIN << std::endl;
-        std::cout << "CCDEXP=" << CCDEXP << " (microsec)" << std::endl;
-        std::cout << "CCDHEIGHT=" << CCDHEIGHT << " (px)" << std::endl;
-        std::cout << "CCDWIDTH=" << CCDWIDTH << " (px)" << std::endl;
-        std::cout << "NLED=" << NLED << std::endl;
-        for(int i = 0; i<NLED; i++) std::cout << "LED" << i+1 << "CCD=(" << LEDCCD[i][0] << "," << LEDCCD[i][1] << ")" << std::endl;
+        spdlog::info("CCDNAME={}", CCDNAME);
+        spdlog::info("CCDACTIVE={}", CCDACTIVE);
+        spdlog::info("CCDGAIN={}", CCDGAIN);
+        spdlog::info("CCDEXP={} (microsec)", CCDEXP);
+        spdlog::info("CCDHEIGHT={} (px)", CCDHEIGHT);
+        spdlog::info("CCDWIDTH={} (px)", CCDWIDTH);
+        spdlog::info("NLED={}", NLED);
+        for(int i = 0; i<NLED; i++) {
+            spdlog::info("LED {} CCD=({},{})", i+1, LEDCCD[i][0], LEDCCD[i][1]);
+        }
 
     }
 

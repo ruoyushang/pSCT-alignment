@@ -8,6 +8,9 @@
 #include <iostream>
 #include <iterator>
 
+//spdlog
+#include "common/utilities/spdlog/spdlog.h"
+#include "common/utilities/spdlog/fmt/ostr.h"
 
 class AravisCamera {
 public:

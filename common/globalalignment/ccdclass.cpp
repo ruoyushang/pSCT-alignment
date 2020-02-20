@@ -14,6 +14,10 @@
 #include <chrono>
 
 
+const std::vector<Device::ErrorDefinition> GASCCD::ERROR_DEFINITIONS = {
+        {"Bad connection. No device found",                                                                           Device::ErrorState::FatalError},//error 0
+        };
+
 void GASCCD::setConfig(string config)
 {
     fConfigFile = config;
@@ -110,6 +114,28 @@ void GASCCD::setConfig(string config)
     fin.close();
 }
 
+void GASCCD::turnOn() {
+    if (isBusy() || isOn()) {
+        spdlog::error("{} : GASCCD::turnOn() : Busy, cannot turn on CCD.", m_Identity.name);
+        return;
+    }
+    Device::CustomBusyLock lock = Device::CustomBusyLock(this);
+    pfCamera.reset();
+    initialize();
+    m_On = true;
+}
+
+void GASCCD::turnOff() {
+    spdlog::info("{} : GASCCD :: Turning off power to platform...", m_Identity.name);
+    Device::CustomBusyLock lock = Device::CustomBusyLock(this);
+    pfCamera.reset();
+    m_On = false;
+}
+
+bool GASCCD::isOn() {
+    return m_On;
+}
+
 bool GASCCD::initialize()
 {
     // Print out all the params if needed
@@ -147,6 +173,7 @@ bool GASCCD::initialize()
             }
 
         if (errorTries > 5){
+            setError(0);
             return false;
         }
 
@@ -201,7 +228,7 @@ bool GASCCD::initialize()
 }
 
 bool GASCCD::update() {
-    if (pfCamera->isReady()) {
+    if (getDeviceState() == DeviceState::On && pfCamera->isReady()) {
         return pfCamThread->cycle(pfLEDsOut.get());
     } else {
         return false;
@@ -211,6 +238,10 @@ bool GASCCD::update() {
 void GASCCD::setNominalValues(int offset, double value)
 {
     // Does nothing at the moment
+}
+
+Device::ErrorState GASCCD::getErrorState() {
+    return Device::getErrorState();
 }
 
 void DummyGASCCD::setConfig(string config) {
@@ -244,4 +275,21 @@ std::string DummyGASCCD::getName() const {
 int DummyGASCCD::getSerial() const {
     return 0;
 }
+void DummyGASCCD::turnOn() {
+    if (isBusy()) {
+        spdlog::error("{} : GASCCD::turnOn() : Busy, cannot turn on CCD.", m_Identity.name);
+        return;
+    }
+    Device::CustomBusyLock lock = Device::CustomBusyLock(this);
+    m_On = true;
+}
 
+void DummyGASCCD::turnOff() {
+    spdlog::info("{} : GASCCD :: Turning off power to platform...", m_Identity.name);
+    Device::CustomBusyLock lock = Device::CustomBusyLock(this);
+    m_On = false;
+}
+
+bool DummyGASCCD::isOn() {
+    return m_On;
+}
