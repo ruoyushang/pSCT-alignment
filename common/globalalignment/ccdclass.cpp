@@ -116,11 +116,12 @@ void GASCCD::setConfig(string config)
 
 void GASCCD::turnOn() {
     if (isBusy() || isOn()) {
-        spdlog::error("{} : GASCCD::turnOn() : Busy, cannot turn on CCD.", m_Identity.name);
+        spdlog::warn("{} : GASCCD::turnOn() : Busy, cannot turn on CCD.", m_Identity.name);
         return;
     }
     Device::CustomBusyLock lock = Device::CustomBusyLock(this);
     pfCamera.reset();
+    pfCamThread.reset();
     initialize();
     m_On = true;
 }
@@ -129,6 +130,7 @@ void GASCCD::turnOff() {
     spdlog::info("{} : GASCCD :: Turning off power to CCD...", m_Identity.name);
     Device::CustomBusyLock lock = Device::CustomBusyLock(this);
     pfCamera.reset();
+    pfCamThread.reset();
     m_On = false;
 }
 

@@ -137,7 +137,7 @@ void StarDetect::detect_stars() {
             while(!foundit){
                 if(ledsin->VERBOSE ==true)
                     {
-                    spdlog::info("StarDetect: Searching for LED# {} at ({}, {})", i ,cx, cy );
+                    spdlog::debug("StarDetect: Searching for LED# {} at ({}, {})", i ,cx, cy );
                     }
                 if(image.pixels()[image.width()*cy+cx] > threshold){
                     StarList.push_back(ImageStar(image,ledsin));

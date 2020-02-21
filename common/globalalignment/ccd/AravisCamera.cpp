@@ -80,21 +80,21 @@ vector<unsigned char> AravisCamera::captureFrame() {
 
 
 	if(arv_buffer_get_status(buffer)==ARV_BUFFER_STATUS_UNKNOWN)
-		spdlog::info( "AravisCamera: ARV_BUFFER_STATUS_UNKNOWN");
+		spdlog::warn( "AravisCamera: ARV_BUFFER_STATUS_UNKNOWN");
 	if(arv_buffer_get_status(buffer)==ARV_BUFFER_STATUS_CLEARED)
-        spdlog::info("AravisCamera: ARV_BUFFER_STATUS_CLEARED");
+        spdlog::warn("AravisCamera: ARV_BUFFER_STATUS_CLEARED");
 	if(arv_buffer_get_status(buffer)==ARV_BUFFER_STATUS_TIMEOUT)
-        spdlog::info("AravisCamera: ARV_BUFFER_STATUS_TIMEOUT");
+        spdlog::warn("AravisCamera: ARV_BUFFER_STATUS_TIMEOUT");
 	if(arv_buffer_get_status(buffer)==ARV_BUFFER_STATUS_MISSING_PACKETS)
-        spdlog::info("AravisCamera: ARV_BUFFER_STATUS_MISSING_PACKETS");
+        spdlog::warn("AravisCamera: ARV_BUFFER_STATUS_MISSING_PACKETS");
 	if(arv_buffer_get_status(buffer)==ARV_BUFFER_STATUS_WRONG_PACKET_ID)
-        spdlog::info("AravisCamera: ARV_BUFFER_STATUS_WRONG_PACKET_ID");
+        spdlog::warn("AravisCamera: ARV_BUFFER_STATUS_WRONG_PACKET_ID");
 	if(arv_buffer_get_status(buffer)==ARV_BUFFER_STATUS_SIZE_MISMATCH)
-        spdlog::info("AravisCamera: ARV_BUFFER_STATUS_SIZE_MISMATCH");
+        spdlog::warn("AravisCamera: ARV_BUFFER_STATUS_SIZE_MISMATCH");
 	if(arv_buffer_get_status(buffer)==ARV_BUFFER_STATUS_FILLING)
-        spdlog::info("AravisCamera: ARV_BUFFER_STATUS_FILLING");
+        spdlog::warn("AravisCamera: ARV_BUFFER_STATUS_FILLING");
 	if(arv_buffer_get_status(buffer)==ARV_BUFFER_STATUS_ABORTED)
-        spdlog::info("AravisCamera: ARV_BUFFER_STATUS_ABORTED");
+        spdlog::warn("AravisCamera: ARV_BUFFER_STATUS_ABORTED");
 
 
 	// make sure we have a valid frame
@@ -111,7 +111,7 @@ vector<unsigned char> AravisCamera::captureFrame() {
 		image.assign((guint8 *)thedata, (guint8 *)thedata + thesize);
 	}
     else{
-		spdlog::info("AravisCamera: Buffer cleared");
+		spdlog::debug("AravisCamera: Buffer cleared");
         image.clear();
         return image;
 	}
