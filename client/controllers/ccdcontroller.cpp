@@ -187,13 +187,17 @@ UaStatus CCDController::operate(OpcUa_UInt32 offset, const UaVariantArray &args)
             break;
         case PAS_CCDType_TurnOn:
             spdlog::info("{} : CCDController calling turnOn()", m_Identity);
-            status = m_pClient->callMethod(m_pClient->getDeviceNodeId(m_Identity), UaString("TurnOn"));
+            m_pCCD->turnOn();
+            status = OpcUa_Good;
+            break;
         case PAS_CCDType_TurnOff:
             spdlog::info("{} : CCDController calling turnOff()", m_Identity);
-            status = m_pClient->callMethod(m_pClient->getDeviceNodeId(m_Identity), UaString("TurnOff"));
+            m_pCCD->turnOff();
+            break;
         default:
             spdlog::error("{} : Invalid method call with offset {}", m_Identity, offset);
             status = OpcUa_BadInvalidArgument;
+            break;
     }
 
     return status;
