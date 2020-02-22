@@ -71,38 +71,38 @@ UaStatus CCDController::getData(OpcUa_UInt32 offset, UaVariant &value) {
 
     switch (offset){
         case PAS_CCDType_xFromLED:
-            status = m_pClient->read({m_pClient->getDeviceNodeId(m_Identity) + "." + "x"}, &value);
             double xval;
+            xval = *m_pCCD->getOutput();
             value.toDouble(xval);
             spdlog::trace("{} : Read x value => ({})", m_Identity, xval);
             break;
         case PAS_CCDType_yFromLED:
-            status = m_pClient->read({m_pClient->getDeviceNodeId(m_Identity) + "." + "y"}, &value);
             double yval;
+            yval = *(m_pCCD->getOutput() + 1);
             value.toDouble(yval);
             spdlog::trace("{} : Read y value => ({})", m_Identity, yval);
             break;
         case PAS_CCDType_zFromLED:
-            status = m_pClient->read({m_pClient->getDeviceNodeId(m_Identity) + "." + "z"}, &value);
             double zval;
+            zval = *(m_pCCD->getOutput() + 2);
             value.toDouble(zval);
             spdlog::trace("{} : Read z value => ({})", m_Identity, zval);
             break;
         case PAS_CCDType_thetaFromLED:
-            status = m_pClient->read({m_pClient->getDeviceNodeId(m_Identity) + "." + "theta"}, &value);
             double theta;
+            theta = *(m_pCCD->getOutput() + 4);
             value.toDouble(theta);
             spdlog::trace("{} : Read theta value => ({})", m_Identity, theta);
             break;
         case PAS_CCDType_phiFromLED:
-            status = m_pClient->read({m_pClient->getDeviceNodeId(m_Identity) + "." + "phi"}, &value);
             double phi;
+            phi = *(m_pCCD->getOutput() + 5);
             value.toDouble(phi);
             spdlog::trace("{} : Read phi value => ({})", m_Identity, phi);
             break;
         case PAS_CCDType_psiFromLED:
-            status = m_pClient->read({m_pClient->getDeviceNodeId(m_Identity) + "." + "psi"}, &value);
             double psi;
+            psi = *(m_pCCD->getOutput() + 3);
             value.toDouble(psi);
             spdlog::trace("{} : Read psi value => ({})", m_Identity, psi);
             break;

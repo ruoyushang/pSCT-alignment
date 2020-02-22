@@ -278,7 +278,7 @@ int DummyGASCCD::getSerial() const {
     return 0;
 }
 void DummyGASCCD::turnOn() {
-    if (isBusy()) {
+    if (isBusy() || isOn()) {
         spdlog::error("{} : GASCCD::turnOn() : Busy, cannot turn on CCD.", m_Identity.name);
         return;
     }
@@ -287,7 +287,7 @@ void DummyGASCCD::turnOn() {
 }
 
 void DummyGASCCD::turnOff() {
-    spdlog::info("{} : GASCCD :: Turning off power to platform...", m_Identity.name);
+    spdlog::info("{} : GASCCD :: Turning off power to CCD...", m_Identity.name);
     Device::CustomBusyLock lock = Device::CustomBusyLock(this);
     m_On = false;
 }

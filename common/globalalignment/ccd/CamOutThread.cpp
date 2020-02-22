@@ -43,13 +43,19 @@ bool CamOutThread::cycle(LEDoutputs *pLEDsout)
 //
     // save the current camera frame to a vector
     vector<unsigned char> theFrame = pfCamera->captureFrame();
+    int troubleshoot_tries(0);
     //troubleshoot a missing frame
     if(theFrame.size()==0) {
         spdlog::warn("CamOutThread: frame not received, resending request");
         theFrame = pfCamera->captureFrame();
         while(theFrame.size()==0) {// troubleshoot missing frame again and again...
-            spdlog::warn("... trying again (frame not received)");
+            spdlog::warn("... trying again up to 5 times (frame not received)");
             theFrame = pfCamera->captureFrame();
+            troubleshoot_tries++;
+            if (troubleshoot_tries>5){
+                spdlog::warn("Did not succeed in capturing frame after 5 tries. Ending cycle.");
+                return false;
+            }
         }
     } // end if empty frame
     
