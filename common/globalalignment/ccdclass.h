@@ -13,21 +13,20 @@
 #include <memory>
 #include <string>
 
-class GASCCD: public Device
-{
-    public:
+class GASCCD : public Device {
+public:
     GASCCD(Device::Identity identity) :
-        pfLEDsOut(nullptr),
-        pfCamThread(nullptr),
-        pfCamera(nullptr),
-        fConfigFile(""),
-        Device::Device(std::move(identity)){}
+            pfLEDsOut(nullptr),
+            pfCamThread(nullptr),
+            pfCamera(nullptr),
+            fConfigFile(""),
+            Device::Device(std::move(identity)) {}
 
     ~GASCCD() = default;
 
     static const std::vector<Device::ErrorDefinition> ERROR_DEFINITIONS;
 
-    Device::ErrorDefinition getErrorCodeDefinition(int errorCode)  {
+    Device::ErrorDefinition getErrorCodeDefinition(int errorCode) {
         return GASCCD::ERROR_DEFINITIONS.at(errorCode);
     }
 
@@ -38,7 +37,8 @@ class GASCCD: public Device
     virtual void setConfig(string config);
 
     virtual const double *getOutput() { return &(pfLEDsOut->SPACE[0]); };
-        void setNominalValues(int offset, double value);
+
+    void setNominalValues(int offset, double value);
 
     virtual std::string getName() const { return fLEDsIn.CCDNAME; };
 
@@ -48,8 +48,10 @@ class GASCCD: public Device
 
     virtual bool update();
 
-    void turnOn() override ;
+    void turnOn() override;
+
     void turnOff() override;
+
     bool isOn() override;
 
     Device::ErrorState getErrorState() override;
@@ -86,7 +88,9 @@ public:
     bool update() override;
 
     void turnOn() override;
+
     void turnOff() override;
+
     bool isOn() override;
 
 private:
