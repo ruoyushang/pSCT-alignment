@@ -22,18 +22,20 @@
 #include "common/utilities/spdlog/spdlog.h"
 #include "common/utilities/spdlog/fmt/ostr.h"
 
-class CamOutThread{
-        public:
-            CamOutThread() : pfCamera(nullptr), imgWidth(0), imgHeight(0), pfLEDsin(nullptr) {}
-            CamOutThread(AravisCamera *camera, const LEDinputs* li);
-            ~CamOutThread();
+class CamOutThread {
+public:
+    CamOutThread() : pfCamera(nullptr), imgWidth(0), imgHeight(0), pfLEDsin(nullptr) {}
 
-            bool cycle(LEDoutputs *pLEDsout);
-	
-	private:
-                AravisCamera *pfCamera;
-		int imgWidth, imgHeight;
-		const LEDinputs *pfLEDsin;
-		const double PI  = 3.141592653589793238463;
-	
+    CamOutThread(AravisCamera *camera, const LEDinputs *li);
+
+    ~CamOutThread();
+
+    bool cycle(LEDoutputs *pLEDsout);
+
+private:
+    AravisCamera *pfCamera;
+    int imgWidth, imgHeight;
+    const LEDinputs *pfLEDsin;
+    const double PI = 3.141592653589793238463;
+
 };
