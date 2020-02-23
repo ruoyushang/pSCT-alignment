@@ -194,7 +194,7 @@ UaStatus PasNodeManager::afterStartUp()
             ret = addUaNode(pObject);
             UA_ASSERT(ret.isGood());
             // Add object type reference
-            // TODO seg fault happens here when Positioner IP is set - it seems Positioner tries to go through this loop.
+
             ret = addUaReference(pObject->nodeId(), pObject->typeDefinitionId(), OpcUaId_HasTypeDefinition);
             UA_ASSERT(ret.isGood());
 

@@ -212,11 +212,11 @@ UaStatus CCDController::read(bool print) {
     //UaMutexLocker lock(&m_mutex);
 
     if (m_State == Device::DeviceState::On) {
-        spdlog::trace("{} : Reading CCD...", m_Identity.name);
-        m_pCCD->update();
-        m_updated = true;
+        spdlog::trace("{} : Updating CCD...", m_Identity.name);
+        m_updated = m_pCCD->update();
 
         if (print) {
+            spdlog::info("{} : CCD results...", m_Identity.name);
             spdlog::info("x (nominal): {} ({})", *m_pCCD->getOutput(), *(m_pCCD->getOutput() + 6));
             spdlog::info("y (nominal): {} ({})", *(m_pCCD->getOutput() + 1), *(m_pCCD->getOutput() + 7));
             spdlog::info("z (nominal): {} ({})", *(m_pCCD->getOutput() + 2), *(m_pCCD->getOutput() + 8));

@@ -15,7 +15,7 @@
 
 
 const std::vector<Device::ErrorDefinition> GASCCD::ERROR_DEFINITIONS = {
-        {"Bad connection. No device found",                                                                           Device::ErrorState::FatalError},//error 0
+        {"Bad connection. No device found", Device::ErrorState::FatalError},//error 0
         };
 
 void GASCCD::setConfig(string config)
@@ -140,6 +140,7 @@ bool GASCCD::isOn() {
 
 bool GASCCD::initialize()
 {
+    m_Errors.assign(getNumErrors(), false);
     // Print out all the params if needed
     std::ofstream logout;
     if (fLEDsIn.VERBOSE) {
@@ -174,10 +175,10 @@ bool GASCCD::initialize()
                 logout << strout;
             }
 
-        if (errorTries > 5){
-            setError(0);
-            return false;
-        }
+            if (errorTries > 5){
+                setError(0);
+                return false;
+            }
 
             continue;
         }
@@ -252,6 +253,7 @@ void DummyGASCCD::setConfig(string config) {
 }
 
 bool DummyGASCCD::initialize() {
+    m_Errors.assign(getNumErrors(), false);
     spdlog::debug("DummyGASCCD :: initialize() - should do nothing");
     return true;
 }

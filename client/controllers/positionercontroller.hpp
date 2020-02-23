@@ -21,7 +21,6 @@ public:
         std::move(identity),
         pClient), m_Data() {
     }
-    // TODO does this need initialize()?
 
     /* Get Controller status and data */
     UaStatus getState(Device::DeviceState &state) override;

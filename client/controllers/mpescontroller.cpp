@@ -259,7 +259,7 @@ UaStatus MPESController::operate(OpcUa_UInt32 offset, const UaVariantArray &args
         
         if (m_Mode == "subclient") {
             MPESBase::Position position = getPosition();
-            //TODO correct this condition to be the same as setExposure while conditions.
+
             if (((position.cleanedIntensity < (MPESBase::NOMINAL_INTENSITY/MPESBase::PRECISION)) or (position.cleanedIntensity > (MPESBase::NOMINAL_INTENSITY * MPESBase::PRECISION)))) {
                 spdlog::warn(
                     "{} : The image intensity ({}) differs from the nominal value ({}) by more than {}%. Will readjust exposure now.",
