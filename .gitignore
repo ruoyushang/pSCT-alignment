@@ -30,6 +30,10 @@
 .vs
 .idea
 
+#Image files
+*.fits
+*.raw
+
 # Doxygen-generated files
 doxygen/html
 doxygen/latex
