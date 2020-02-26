@@ -6,12 +6,14 @@ using namespace std;
 
 // Constructor
 Image::Image(unsigned char *frame) : imgWidth(2592), imgHeight(1944) {
+    spdlog::trace("New Image from constructor");
     pixel_array = new unsigned char[imgWidth * imgHeight];
     for (int i = 0; i < imgWidth * imgHeight; i++)
         pixel_array[i] = frame[i];
 }
 
 Image::Image(std::vector<unsigned char> frame) : imgWidth(2592), imgHeight(1944) {
+    spdlog::trace("New Image from constructor");
     pixel_array = new unsigned char[imgWidth * imgHeight];
     for (int i = 0; i < imgWidth * imgHeight; i++)
         pixel_array[i] = frame[i];
@@ -243,4 +245,18 @@ void Image::savefilteredFITSImage(const LEDoutputs *lo, const char strTime[16]) 
 Image::~Image() {
     delete[] pixel_array;
     pixel_array = nullptr;
+    spdlog::trace("pixel_array destroyed");
+}
+
+Image::Image(const Image& that):imgWidth(2592), imgHeight(1944){
+    spdlog::trace("New Image from copy");
+    pixel_array = that.pixel_array;
+}
+
+Image& Image::operator =(const Image& that){
+    spdlog::trace("New Image from assignment");
+    if(this != &that){
+        this->pixel_array = that.pixel_array;
+    }
+    return * this;
 }

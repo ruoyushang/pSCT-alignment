@@ -17,6 +17,10 @@ class AravisCamera {
 public:
     AravisCamera(const char *device_id = NULL);
 
+    AravisCamera(const AravisCamera& that);
+
+    AravisCamera & operator=(const AravisCamera& that);
+
     ~AravisCamera();
 
     bool isReady();

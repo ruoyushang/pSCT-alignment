@@ -26,12 +26,11 @@ CamOutThread::CamOutThread(AravisCamera *camera, const LEDinputs *li) :
         pfLEDsin(li) {
 }
 
-CamOutThread::~CamOutThread() {
-}
+CamOutThread::~CamOutThread() = default;
 
 bool CamOutThread::cycle(LEDoutputs *pLEDsout) {
 //Timestamp
-    time_t t = time(NULL);
+    time_t t = time(nullptr);
     struct tm *theTime = gmtime(&t);
     char strTime[16];
     strftime(strTime, 16, "%Y%m%d%H%M%S", theTime);
@@ -39,13 +38,15 @@ bool CamOutThread::cycle(LEDoutputs *pLEDsout) {
 //Take and save picture
 //
     // save the current camera frame to a vector
+    spdlog::trace("Status of stream: {}",pfCamera->isReady());
     vector<unsigned char> theFrame = pfCamera->captureFrame();
+    spdlog::trace("Frame captured");
     int troubleshoot_tries(0);
     //troubleshoot a missing frame
-    if (theFrame.size() == 0) {
+    if (theFrame.empty()) {
         spdlog::warn("CamOutThread: frame not received, resending request");
         theFrame = pfCamera->captureFrame();
-        while (theFrame.size() == 0) {// troubleshoot missing frame again and again...
+        while (theFrame.empty()) {// troubleshoot missing frame again and again...
             spdlog::warn("... trying again up to 5 times (frame not received)");
             theFrame = pfCamera->captureFrame();
             troubleshoot_tries++;
@@ -55,13 +56,13 @@ bool CamOutThread::cycle(LEDoutputs *pLEDsout) {
             }
         }
     } // end if empty frame
-
+    spdlog::trace("Frame not empty, moving to create Image.");
     //save the frame to the Image class
     Image theImage(theFrame);
 
     //save to disk
     //save to disk
-    if (pfLEDsin->SAVEIMAGE == true) {
+    if (pfLEDsin->SAVEIMAGE) {
         if (pfLEDsin->SAVEFORMAT == "fits")
             theImage.saveFITSImage(pfLEDsin, strTime);
         if (pfLEDsin->SAVEFORMAT == "raw")
@@ -78,15 +79,17 @@ bool CamOutThread::cycle(LEDoutputs *pLEDsout) {
     //create our basic output struct
     strcpy(pLEDsout->TIME, strTime);
     vector<ImageStar> theCentroids;
+    spdlog::trace("Made ImageStar object.");
     // find the stars
     StarDetect theDetector = StarDetect(theImage, theCentroids, pLEDsout);
+    spdlog::trace("Made StarDetect object.");
     // save filtered image
-    if (pfLEDsin->SAVEIMAGE == true)
+    if (pfLEDsin->SAVEIMAGE)
         theImage.savefilteredFITSImage(pLEDsout, strTime);
     //print the current LED positions
     spdlog::info("TIME: {}", strTime);
-    for (size_t i = 0; i < theCentroids.size(); i++) {
-        spdlog::info("{}, {}", theCentroids[i].pX(), theCentroids[i].pY());
+    for (auto & theCentroid : theCentroids) {
+        spdlog::info("{}, {}", theCentroid.pX(), theCentroid.pY());
     }
 
     // attempt solid body fit

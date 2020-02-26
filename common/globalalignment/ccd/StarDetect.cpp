@@ -31,7 +31,9 @@ void StarDetect::ed_filter() {
 
 // perform morphological dilation on eroded map
 // this puts back the pixels on the edges of surviving groups
+    spdlog::trace("npix: {}",npix);
     vector<unsigned char> dimg(npix, 0); // eroded image, initial to False
+    spdlog::trace("dimg empty?: {}",dimg.empty());
     for (int x = 1; x < nxpix; x++) { // loop over x coordinate, not including edges
         for (int y = 1; y < nypix; y++) { // loop over y coordinate, not including edges
             int i = x + y * nxpix; // location of element x, y of image
@@ -41,6 +43,7 @@ void StarDetect::ed_filter() {
                 dimg[i] = 1; // mark pixel as in a group
         }
     }
+    spdlog::trace("Finished dimg loop");
 
 //save just stars from the original image (set all non-saved pixels to 0)
     for (int x = 0; x <= nxpix; x++) { // loop over x coordinate, including edges
@@ -50,6 +53,7 @@ void StarDetect::ed_filter() {
                 image.pixels()[i] = 0; // erase background pixels
         }
     }
+    spdlog::trace("End ed_filter");
 } // end ed_filter()
 
 void StarDetect::__get_neighbors(int pixnum, int neighbors[8]) {
@@ -114,6 +118,7 @@ void StarDetect::find_threshold() {
 // Method to automatically detect stars in an image
 void StarDetect::detect_stars() {
     // add stars using known nearby positions if there are known LEDs
+    spdlog::trace("Began detect_stars()");
     if (ledsin->NLED > 0) {
         for (int i = 0; i < ledsin->NLED; i++) {
             //make cursor the known point

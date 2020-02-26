@@ -231,7 +231,7 @@ bool GASCCD::initialize()
 }
 
 bool GASCCD::update() {
-    if (getDeviceState() == DeviceState::On && pfCamera->isReady()) {
+    if ( pfCamera->isReady()) {
         return pfCamThread->cycle(pfLEDsOut.get());
     } else {
         return false;
@@ -261,7 +261,7 @@ bool DummyGASCCD::initialize() {
 bool DummyGASCCD::update() {
     std::uniform_real_distribution<double> coordDistribution(0, 1000);
     std::default_random_engine re(std::chrono::system_clock::now().time_since_epoch().count());
-
+    sleep(3);
     for (int i = 0; i < 6; i++)
         m_Data[i] = coordDistribution(re);
 
