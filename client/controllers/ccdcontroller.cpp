@@ -218,7 +218,7 @@ UaStatus CCDController::read(bool print) {
             spdlog::error("{} : CCD is off, cannot read.", m_Identity.name);
             return OpcUa_Bad;
         }
-        GASCCD::Position m_Position = m_pCCD->getPosition();
+        //GASCCD::Position m_Position = m_pCCD->getPosition();
 
         if (print) {
             spdlog::info("{} : CCD results...", m_Identity.name);
