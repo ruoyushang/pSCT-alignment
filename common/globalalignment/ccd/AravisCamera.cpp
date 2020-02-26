@@ -7,6 +7,7 @@ using std::vector;
 AravisCamera::AravisCamera(const char *device_id) :
         cameraIsReady(false), imgWidth(2592), imgHeight(1944), nBuffers(10) {
 
+    spdlog::trace("New Camera from constructor");
     // initialize glib
     arv_g_type_init();
 
@@ -46,9 +47,28 @@ AravisCamera::~AravisCamera() {
         stream = nullptr;
         camera = nullptr;
     }
+    spdlog::trace("stream and camera destroyed");
+}
+
+AravisCamera::AravisCamera(const AravisCamera& that) : imgWidth(2592), imgHeight(1944), nBuffers(10) {
+    spdlog::trace("New Camera from copy");
+    cameraIsReady = that.cameraIsReady;
+    stream = that.stream;
+    camera = that.camera;
+}
+
+AravisCamera& AravisCamera::operator =(const AravisCamera& that){
+    spdlog::trace("New Camera from assignment");
+    if(this != &that){
+        this->camera = that.camera;
+        this->stream = that.stream;
+    }
+    return * this;
 }
 
 bool AravisCamera::isReady() {
+    spdlog::trace("Camera is ready? {}", cameraIsReady);
+    spdlog::trace("Stream null? {}",stream==NULL);
     return cameraIsReady;
 }
 

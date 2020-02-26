@@ -35,6 +35,10 @@ public:
 
     ~Image();
 
+    Image(const Image& that);
+
+    Image &operator=(const Image& that);
+
     // Accessor methods
     int width() { return imgWidth; }
 

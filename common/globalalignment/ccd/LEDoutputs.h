@@ -19,5 +19,7 @@ struct LEDoutputs {
     bool LEDSMATCH = false;
     char TIME[16]{0};
 
-    LEDoutputs(const LEDinputs *inl) : inleds(inl) {}
+    LEDoutputs(const LEDinputs *inl) : inleds(inl) {
+        spdlog::trace("Created LEDoutputs");
+    }
 };
