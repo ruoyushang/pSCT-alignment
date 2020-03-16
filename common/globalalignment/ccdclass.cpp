@@ -175,7 +175,7 @@ bool GASCCD::initialize()
                 logout << strout;
             }
 
-            if (errorTries > 5){
+            if (errorTries > 3){
                 setError(0);
                 return false;
             }
@@ -236,6 +236,17 @@ bool GASCCD::update() {
     } else {
         return false;
     }
+}
+
+GASCCD::Position GASCCD::getPosition(){
+    m_pPosition.x = *(getOutput());
+    m_pPosition.y = *(getOutput()+1);
+    m_pPosition.z = *(getOutput()+2);
+    m_pPosition.psi = *(getOutput()+3);
+    m_pPosition.theta = *(getOutput()+4);
+    m_pPosition.phi = *(getOutput()+5);
+
+    return m_pPosition;
 }
 
 void GASCCD::setNominalValues(int offset, double value)

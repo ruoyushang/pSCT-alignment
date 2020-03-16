@@ -72,37 +72,37 @@ UaStatus CCDController::getData(OpcUa_UInt32 offset, UaVariant &value) {
     switch (offset){
         case PAS_CCDType_xFromLED:
             double xval;
-            xval = *m_pCCD->getOutput();
+            xval = m_pCCD->m_pPosition.x;
             value.toDouble(xval);
             spdlog::trace("{} : Read x value => ({})", m_Identity, xval);
             break;
         case PAS_CCDType_yFromLED:
             double yval;
-            yval = *(m_pCCD->getOutput() + 1);
+            yval = m_pCCD->m_pPosition.y;
             value.toDouble(yval);
             spdlog::trace("{} : Read y value => ({})", m_Identity, yval);
             break;
         case PAS_CCDType_zFromLED:
             double zval;
-            zval = *(m_pCCD->getOutput() + 2);
+            zval = m_pCCD->m_pPosition.z;
             value.toDouble(zval);
             spdlog::trace("{} : Read z value => ({})", m_Identity, zval);
             break;
         case PAS_CCDType_thetaFromLED:
             double theta;
-            theta = *(m_pCCD->getOutput() + 4);
+            theta = m_pCCD->m_pPosition.theta;
             value.toDouble(theta);
             spdlog::trace("{} : Read theta value => ({})", m_Identity, theta);
             break;
         case PAS_CCDType_phiFromLED:
             double phi;
-            phi = *(m_pCCD->getOutput() + 5);
+            phi = m_pCCD->m_pPosition.phi;
             value.toDouble(phi);
             spdlog::trace("{} : Read phi value => ({})", m_Identity, phi);
             break;
         case PAS_CCDType_psiFromLED:
             double psi;
-            psi = *(m_pCCD->getOutput() + 3);
+            psi = m_pCCD->m_pPosition.psi;
             value.toDouble(psi);
             spdlog::trace("{} : Read psi value => ({})", m_Identity, psi);
             break;
@@ -218,17 +218,29 @@ UaStatus CCDController::read(bool print) {
             spdlog::error("{} : CCD is off, cannot read.", m_Identity.name);
             return OpcUa_Bad;
         }
-        GASCCD::Position m_Position = m_pCCD->getPosition();
+        GASCCD::Position m_pPosition = m_pCCD->getPosition();
 
         if (print) {
-            spdlog::info("{} : CCD results...", m_Identity.name);
-            spdlog::info("x (nominal): {} ({})", *m_pCCD->getOutput(), *(m_pCCD->getOutput() + 6));
-            spdlog::info("y (nominal): {} ({})", *(m_pCCD->getOutput() + 1), *(m_pCCD->getOutput() + 7));
-            spdlog::info("z (nominal): {} ({})", *(m_pCCD->getOutput() + 2), *(m_pCCD->getOutput() + 8));
-            spdlog::info("psi (nominal): {} ({})", *(m_pCCD->getOutput() + 3), *(m_pCCD->getOutput() + 9));
-            spdlog::info("theta (nominal): {} ({})", *(m_pCCD->getOutput() + 4), *(m_pCCD->getOutput() + 10));
-            spdlog::info("phi (nominal): {} ({})", *(m_pCCD->getOutput() + 5), *(m_pCCD->getOutput() + 11));
+            spdlog::info("{} : CCD results...", m_pCCD->getIdentity().name);
+            spdlog::info("x: {}", m_pPosition.x);
+            spdlog::info("y: {}", m_pPosition.y);
+            spdlog::info("z: {}", m_pPosition.z);
+            spdlog::info("psi: {}", m_pPosition.psi);
+            spdlog::info("theta: {}", m_pPosition.theta);
+            spdlog::info("phi: {}", m_pPosition.phi);
         }
+        char buf[80];
+        time_t t = time(0);
+        struct tm *now = localtime(&t);
+        std::strftime(buf, sizeof(buf), "%Y-%m-%d %X", now);
+
+        UaString sql_stmt = UaString(
+                "%1, %2, %3, %4, %5, %6, %7, %8 \n").arg(buf).arg(m_pCCD->getIdentity().name.c_str()).arg(m_pPosition.x).arg(m_pPosition.y).arg(m_pPosition.z).arg(m_pPosition.psi).arg(m_pPosition.theta).arg(m_pPosition.phi);
+        std::ofstream sql_file("CCD_readings.txt", std::ios_base::app);
+        sql_file << sql_stmt.toUtf8();
+
+        spdlog::trace("{} : Recorded MPES measurement SQL statement into CCD_readings.txt file: {} ", m_Identity.name,
+                      sql_stmt.toUtf8());
 
         return OpcUa_Good;
     } else {

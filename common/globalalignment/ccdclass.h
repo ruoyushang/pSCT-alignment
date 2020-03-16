@@ -15,6 +15,17 @@
 
 class GASCCD : public Device {
 public:
+    struct Position {
+        Position() : x(-1), y(-1), z(-1), psi(-1), theta(-1), phi(-1) {}
+
+        double x;
+        double y;
+        double z;
+        double psi;
+        double theta;
+        double phi;
+    };
+
     GASCCD(Device::Identity identity) :
             pfLEDsOut(nullptr),
             pfCamThread(nullptr),
@@ -38,6 +49,8 @@ public:
 
     virtual const double *getOutput() { return &(pfLEDsOut->SPACE[0]); };
 
+    Position getPosition();
+
     void setNominalValues(int offset, double value);
 
     virtual std::string getName() const { return fLEDsIn.CCDNAME; };
@@ -56,6 +69,7 @@ public:
 
     Device::ErrorState getErrorState() override;
 
+    Position m_pPosition = Position(); //GASCCD values
 protected:
     std::unique_ptr<LEDoutputs> pfLEDsOut;
     LEDinputs fLEDsIn;
