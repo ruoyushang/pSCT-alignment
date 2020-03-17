@@ -25,6 +25,7 @@
 #include "client/controllers/panelcontroller.hpp"
 #include "client/controllers/pascontroller.hpp"
 #include "client/controllers/psdcontroller.hpp"
+#include "client/controllers/focalplanecontroller.hpp"
 
 #include "client/utilities/configuration.hpp"
 
@@ -47,7 +48,9 @@ std::map<OpcUa_UInt32, std::string> PasCommunicationInterface::deviceTypeNames{
     {PAS_MPESType, "MPES"},
     {PAS_ACTType, "ACT"},
     {PAS_CCDType, "CCD"},
-    {PAS_PSDType, "PSD"}
+    {PAS_PSDType, "PSD"},
+    {PAS_FocalPlaneType, "FocalPlane"},
+    {GLOB_PositionerType, "Positioner"}
 };
 
 PasCommunicationInterface::PasCommunicationInterface() :
@@ -78,23 +81,25 @@ UaStatus PasCommunicationInterface::initializeCCDs()
     // arv_update_device_list();
     unsigned n_ccds = 0; // arv_get_n_devices();
 
-    std::string serial;
-    std::string ip;
-    std::map<std::string, std::string> serial2ip;
-    for (unsigned i = 0; i < n_ccds; i++) {
-        serial = "0"; //arv_get_device_serial_nbr(i);
-        ip = "0.0.0.0"; //arv_get_device_address(i);
-        serial2ip[serial] = ip;
-    }
+//    std::string serial;
+//    std::string ip;
+//    std::map<std::string, std::string> serial2ip;
+//    for (unsigned i = 0; i < n_ccds; i++) {
+//        serial = "0"; //arv_get_device_serial_nbr(i);
+//        ip = "0.0.0.0"; //arv_get_device_address(i);
+//        serial2ip[serial] = ip;
+//    }
+    spdlog::info("PasCommunicationInterface::Initialize(): setting up CCD connection.");
 
     try {
         for (const auto &identity : m_pConfiguration->getDevices(PAS_CCDType)) {
+            spdlog::info("{}",identity);
             try {
-                if (serial2ip.at(std::to_string(identity.serialNumber)) != identity.eAddress) {
-                    spdlog::warn(
-                        "PasCommunicationInterface::Initialize(): mismatch in recorded config and actual IP assignment. {} is assigned {}, but actually obtained {}.",
-                        identity.serialNumber, identity.eAddress, serial2ip[std::to_string(identity.serialNumber)]);
-                }
+//                if (serial2ip.at(std::to_string(identity.serialNumber)) != identity.eAddress) {
+//                    spdlog::warn(
+//                        "PasCommunicationInterface::Initialize(): mismatch in recorded config and actual IP assignment. {} is assigned {}, but actually obtained {}.",
+//                        identity.serialNumber, identity.eAddress, serial2ip[std::to_string(identity.serialNumber)]);
+//                }
                 addDevice(nullptr, PAS_CCDType, identity);
             }
             catch (std::out_of_range &e) {
@@ -145,6 +150,8 @@ PasCommunicationInterface::addDevice(Client *pClient, OpcUa_UInt32 deviceType,
             pController = std::make_shared<CCDController>(identity);
         else if (deviceType == PAS_PSDType)
             pController = std::make_shared<PSDController>(identity, pClient);
+        else if (deviceType == PAS_FocalPlaneType)
+            pController = std::make_shared<FocalPlaneController>(identity, pClient);
         else if (deviceType == GLOB_PositionerType) {
 #if SIMMODE
             pController = std::dynamic_pointer_cast<PositionerController>(std::make_shared<DummyPositionerController>(identity));
@@ -191,6 +198,14 @@ void PasCommunicationInterface::addEdgeControllers() {
                 addDevice(nullptr, PAS_EdgeType, edgeId);
             }
         }
+    }
+}
+
+void PasCommunicationInterface::addFocalPlaneController() {
+    for (const auto &fpID:  m_pConfiguration->getDevices(PAS_FocalPlaneType)){
+        spdlog::debug("Adding Focal Plane device...");
+        spdlog::trace("Found ID: {}", fpID);
+        addDevice(nullptr, PAS_FocalPlaneType, fpID);
     }
 }
 

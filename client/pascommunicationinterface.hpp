@@ -50,6 +50,8 @@ public:
 
     void addEdgeControllers();
 
+    void addFocalPlaneController();
+
     void addParentChildRelations();
 
     /* Get device status and data */

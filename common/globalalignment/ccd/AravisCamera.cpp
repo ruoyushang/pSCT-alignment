@@ -11,13 +11,13 @@ AravisCamera::AravisCamera(const char* device_id) :
 
 	// initialize camera
 	camera = arv_camera_new(device_id);
-	
+
 	if(camera != NULL) {
 		// set camera parameters
 		cameraID = arv_camera_get_device_id(camera);
 		arv_camera_set_region(camera, 0, 0, imgWidth, imgHeight);
 		arv_camera_set_binning(camera, 0, 0);    // don't bin image
-		
+
 		// initialize stream
 		stream = arv_camera_create_stream(camera, NULL, NULL);
 
@@ -58,10 +58,10 @@ vector<unsigned char> AravisCamera::captureFrame() {
 
 	// send a trigger to the camera
 	arv_camera_software_trigger(camera);
-	
+
 	// try buffer retrievel or timeout after 2 second
 	ArvBuffer* buffer = arv_stream_timeout_pop_buffer(stream, 2000000);
-	
+
 	if(buffer == NULL)
 		std::cout << "IMAGE BUFFER IS NULL" << std::endl;
 

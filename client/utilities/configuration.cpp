@@ -70,7 +70,7 @@ UaStatus Configuration::loadConnectionConfiguration(const UaString& sConfigurati
     value = pSettings->value("DiscoveryURL", UaString("opc.tcp://172.17.0.201:48010"));
 #endif
     m_discoveryUrl = value.toString();
-    value = pSettings->value("PositionerURL", UaString("opc.tcp://127.0.0.1:4840"));
+    value = pSettings->value("PositionerURL", UaString("opc.tcp://172.17.3.3:4840"));
     m_positionerUrl = value.toString();
 
     // Read NamespaceArray
@@ -109,6 +109,7 @@ UaStatus Configuration::loadDeviceConfiguration(const std::vector<std::string> &
     std::string db_address = "tcp://" + db_ip + ":" + db_port;
 
     m_DeviceIdentities[PAS_PanelType] = {}; // initialize the list of panels to an empty one -- other devices don't need this
+    m_DeviceIdentities[PAS_FocalPlaneType] = {};
 
     try {
         sql::Driver *sql_driver = get_driver_instance();
@@ -216,27 +217,48 @@ UaStatus Configuration::loadDeviceConfiguration(const std::vector<std::string> &
                              panelId, mpesId);
             }
         }
-        //Get laser-side panel for all MPES
-        for (const auto &mpesId : m_DeviceIdentities.at(PAS_MPESType)) {
-            query = "SELECT l_panel FROM Opt_MPESMapping WHERE end_date is NULL and serial_number=" + std::to_string(mpesId.serialNumber);
-            sql_stmt->execute(query);
-            sql_results = sql_stmt->getResultSet();
-            while (sql_results->next()) {
-                int lPanelPosition = sql_results->getInt(1);
+        try {
+            spdlog::debug("Found {} MPES", m_DeviceIdentities.at(PAS_MPESType).size());
+            //Get laser-side panel for all MPES
+            for (const auto &mpesId : m_DeviceIdentities.at(PAS_MPESType)) {
+                query = "SELECT l_panel FROM Opt_MPESMapping WHERE end_date is NULL and serial_number=" + std::to_string(mpesId.serialNumber);
+                sql_stmt->execute(query);
+                sql_results = sql_stmt->getResultSet();
+                while (sql_results->next()) {
+                    int lPanelPosition = sql_results->getInt(1);
 
-                // get corresponding laser-side panel if it exists
-                if (m_PanelPositionMap.find(lPanelPosition) != m_PanelPositionMap.end()) {
-                    Device::Identity lPanelId = m_PanelPositionMap.at(lPanelPosition);
+                    // get corresponding laser-side panel if it exists
+                    if (m_PanelPositionMap.find(lPanelPosition) != m_PanelPositionMap.end()) {
+                        Device::Identity lPanelId = m_PanelPositionMap.at(lPanelPosition);
 
-                    m_MPES_SideMap[mpesId]["l"] = lPanelId;
-                    // Could optionally add laser-side panel as a parent here.
+                        m_MPES_SideMap[mpesId]["l"] = lPanelId;
+                        // Could optionally add laser-side panel as a parent here.
+                    }
+                    else {
+                        continue;
+                    }
                 }
-                else {
-                    continue;
-                }
+
             }
-
         }
+        catch (const std::out_of_range& oor) {
+            spdlog::warn("No MPES found: [Out of Range error: {}]", oor.what() );
+        }
+
+        // Get FocalPlane ID
+        Device::Identity FPId;
+        FPId.serialNumber = 37514083;
+        FPId.position = 1001;
+        std::string port = std::to_string(1);
+        FPId.eAddress = "172.17.1.193";
+        FPId.name = std::string("FocalPlane");
+
+        m_DeviceIdentities[PAS_FocalPlaneType].insert(FPId);
+        spdlog::info("Configuration::loadDeviceConfiguration(): added Focal Plane {} to device list.", FPId);
+
+        m_DeviceSerialMap[PAS_FocalPlaneType][FPId.serialNumber] = FPId;
+        m_DeviceNameMap[FPId.name] = FPId;
+
     }
     catch (sql::SQLException &e) {
         spdlog::error("# ERR: SQLException in {}"
@@ -442,45 +464,61 @@ bool Configuration::addMissingParents() {
         m_ChildMap[mirrorId][PAS_PanelType].insert(panelId);
         m_ParentMap[panelId][PAS_MirrorType].insert(mirrorId);
     }
-    for (const auto &mpesId : m_DeviceIdentities.at(PAS_MPESType)) {
-        if (m_ParentMap.at(mpesId).at(PAS_PanelType).size() != 1) {
-            spdlog::error(
-                "Configuration::createMissingParents(): MPES {} has {} parent panels (should only have 1). Aborting...",
-                mpesId, m_ParentMap.at(mpesId).at(PAS_PanelType).size());
-            return false;
-        }
-        Device::Identity w_panelId = *m_ParentMap.at(mpesId).at(PAS_PanelType).begin();
-
-        // add the edge as a parent only if the l_panel (and possibly third panel) are actually present
-        if (m_MPES_SideMap.at(mpesId).find("l") != m_MPES_SideMap.at(mpesId).end()) {
-            Device::Identity l_panelId = m_MPES_SideMap.at(mpesId).at("l");
-            Device::Identity edgeId;
-            std::vector<int> panelPositions{w_panelId.position, l_panelId.position};
-            int thirdPanelPosition = getThirdPanelPosition(w_panelId.position, l_panelId.position);
-
-            if (thirdPanelPosition > 0 &&
-                m_PanelPositionMap.find(thirdPanelPosition) != m_PanelPositionMap.end()) {
-                panelPositions.push_back(thirdPanelPosition);
+    for (const auto &mirrorId : m_DeviceIdentities.at(PAS_MirrorType)) {
+        for (const auto &fpId : m_DeviceIdentities.at(PAS_FocalPlaneType)){
+            if (m_DeviceIdentities[PAS_FocalPlaneType].find(fpId) == m_DeviceIdentities[PAS_FocalPlaneType].end()) {
+                spdlog::info("Configuration::addMissingParents(): Added focal plane {} to device list.", fpId);
+                m_DeviceIdentities[PAS_FocalPlaneType].insert(fpId);
             }
-            edgeId.eAddress = SCTMath::GetEdgeFromPanels(panelPositions);
-            edgeId.name = std::string("Edge_") + edgeId.eAddress;
-
-            if (m_DeviceIdentities[PAS_EdgeType].find(edgeId) == m_DeviceIdentities[PAS_EdgeType].end()) {
-                spdlog::info("Configuration::addMissingParents(): Added Edge {} to device list.", edgeId);
-                m_DeviceIdentities[PAS_EdgeType].insert(edgeId);
+            spdlog::info("Configuration::addMissingParents(): Added {} to device list and parent map.", fpId);
+            m_ChildMap[mirrorId][PAS_FocalPlaneType].insert(fpId);
+            m_ParentMap[fpId][PAS_MirrorType].insert(mirrorId);
+        }
+    }
+    try {
+        for (const auto &mpesId : m_DeviceIdentities.at(PAS_MPESType)) {
+            if (m_ParentMap.at(mpesId).at(PAS_PanelType).size() != 1) {
+                spdlog::error(
+                    "Configuration::createMissingParents(): MPES {} has {} parent panels (should only have 1). Aborting...",
+                    mpesId, m_ParentMap.at(mpesId).at(PAS_PanelType).size());
+                return false;
             }
-            m_ChildMap[edgeId][PAS_MPESType].insert(mpesId);
-            m_ParentMap[mpesId][PAS_EdgeType].insert(edgeId);
-        }
+            Device::Identity w_panelId = *m_ParentMap.at(mpesId).at(PAS_PanelType).begin();
 
-        // Add mirror as parent to all MPES
-        Device::Identity mirrorId = getMirrorId(w_panelId.position);
-        if (m_DeviceIdentities[PAS_MirrorType].find(mirrorId) == m_DeviceIdentities[PAS_MirrorType].end()) {
-            spdlog::info("Configuration::addMissingParents(): Added Mirror {} to device list.", mirrorId);
-            m_DeviceIdentities[PAS_MirrorType].insert(mirrorId);
+            // add the edge as a parent only if the l_panel (and possibly third panel) are actually present
+            if (m_MPES_SideMap.at(mpesId).find("l") != m_MPES_SideMap.at(mpesId).end()) {
+                Device::Identity l_panelId = m_MPES_SideMap.at(mpesId).at("l");
+                Device::Identity edgeId;
+                std::vector<int> panelPositions{w_panelId.position, l_panelId.position};
+                int thirdPanelPosition = getThirdPanelPosition(w_panelId.position, l_panelId.position);
+
+                if (thirdPanelPosition > 0 &&
+                    m_PanelPositionMap.find(thirdPanelPosition) != m_PanelPositionMap.end()) {
+                    panelPositions.push_back(thirdPanelPosition);
+                }
+                edgeId.eAddress = SCTMath::GetEdgeFromPanels(panelPositions);
+                edgeId.name = std::string("Edge_") + edgeId.eAddress;
+
+                if (m_DeviceIdentities[PAS_EdgeType].find(edgeId) == m_DeviceIdentities[PAS_EdgeType].end()) {
+                    spdlog::info("Configuration::addMissingParents(): Added Edge {} to device list.", edgeId);
+                    m_DeviceIdentities[PAS_EdgeType].insert(edgeId);
+                }
+                m_ChildMap[edgeId][PAS_MPESType].insert(mpesId);
+                m_ParentMap[mpesId][PAS_EdgeType].insert(edgeId);
+            }
+
+            // Add mirror as parent to all MPES
+            Device::Identity mirrorId = getMirrorId(w_panelId.position);
+            if (m_DeviceIdentities[PAS_MirrorType].find(mirrorId) == m_DeviceIdentities[PAS_MirrorType].end()) {
+                spdlog::info("Configuration::addMissingParents(): Added Mirror {} to device list.", mirrorId);
+                m_DeviceIdentities[PAS_MirrorType].insert(mirrorId);
+            }
+            m_ChildMap[mirrorId][PAS_MPESType].insert(mpesId);
+            m_ParentMap[mpesId][PAS_MirrorType].insert(mirrorId);
         }
-        m_ChildMap[mirrorId][PAS_MPESType].insert(mpesId);
-        m_ParentMap[mpesId][PAS_MirrorType].insert(mirrorId);
+    }
+    catch (const std::out_of_range& oor) {
+        spdlog::warn("No MPES found: [Out of Range error: {}]", oor.what() );
     }
     if (m_DeviceIdentities.find(PAS_EdgeType) != m_DeviceIdentities.end()) {
         for (const auto &edgeId : m_DeviceIdentities.at(PAS_EdgeType)) {
@@ -494,18 +532,23 @@ bool Configuration::addMissingParents() {
             m_ParentMap[edgeId][PAS_MirrorType].insert(mirrorId);
         }
     }
-    for (const auto &mpesId : m_DeviceIdentities.at(PAS_MPESType)) {
-        if (m_ParentMap.at(mpesId).find(PAS_EdgeType) != m_ParentMap.at(mpesId).end()) {
-            for (const auto &edgeParentId : m_ParentMap.at(mpesId).at(PAS_EdgeType)) {
-                //add the parent edges and panels as each others' parents
-                for (const auto &panelParentId : m_ParentMap.at(mpesId).at(PAS_PanelType)) {
-                    m_ChildMap[edgeParentId][PAS_PanelType].insert(panelParentId);
-                    m_ParentMap[panelParentId][PAS_EdgeType].insert(edgeParentId);
-                    m_ChildMap[panelParentId][PAS_EdgeType].insert(edgeParentId);
-                    m_ParentMap[edgeParentId][PAS_PanelType].insert(panelParentId);
+    try {
+        for (const auto &mpesId : m_DeviceIdentities.at(PAS_MPESType)) {
+            if (m_ParentMap.at(mpesId).find(PAS_EdgeType) != m_ParentMap.at(mpesId).end()) {
+                for (const auto &edgeParentId : m_ParentMap.at(mpesId).at(PAS_EdgeType)) {
+                    //add the parent edges and panels as each others' parents
+                    for (const auto &panelParentId : m_ParentMap.at(mpesId).at(PAS_PanelType)) {
+                        m_ChildMap[edgeParentId][PAS_PanelType].insert(panelParentId);
+                        m_ParentMap[panelParentId][PAS_EdgeType].insert(edgeParentId);
+                        m_ChildMap[panelParentId][PAS_EdgeType].insert(edgeParentId);
+                        m_ParentMap[edgeParentId][PAS_PanelType].insert(panelParentId);
+                    }
                 }
             }
         }
+    }
+    catch (const std::out_of_range& oor) {
+        spdlog::warn("No MPES found: [Out of Range error: {}]", oor.what() );
     }
 }
 

@@ -26,7 +26,7 @@ CCDController::CCDController(Device::Identity identity) : PasController(std::mov
     spdlog::trace("{} : Creating CCD controller... ", m_Identity);
 #ifndef SIMMODE  
     m_pCCD = std::unique_ptr<GASCCD>(new GASCCD());
-#else 
+#else
     m_pCCD = std::unique_ptr<GASCCD>(new DummyGASCCD());
 #endif
     m_pCCD->setConfig(m_Identity.eAddress);

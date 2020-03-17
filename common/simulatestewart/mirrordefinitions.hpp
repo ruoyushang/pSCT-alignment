@@ -72,7 +72,7 @@ namespace SCT {
                 {4.2909753*m, -0.2771281*m, 0.3494850*m}
             }
         };
-    };
+    }
 
     // secondary
     namespace Secondary {
@@ -114,8 +114,8 @@ namespace SCT {
                 {2.3321339*m, -0.2771281*m, 0.426331*m}
             }
         };
-    };
+    }
 
-};
+}
 
 #endif // #define __MIRRORDEFINITIONS_H__
