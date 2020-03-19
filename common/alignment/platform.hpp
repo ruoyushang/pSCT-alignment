@@ -77,6 +77,14 @@ public:
         return m_MPES.at(m_MPESIdentityMap.at(identity));
     }
 
+    int getPSDCount() const { return m_PSD.size(); }
+
+    std::unique_ptr<Device> &getPSD(int idx) { return m_PSD.at(idx); }
+
+    std::unique_ptr<Device> &getPSDbyIdentity(const Device::Identity &identity) {
+        return m_PSD.at(m_PSDIdentityMap.at(identity));
+    }
+
     // Actuator-related methods
     void probeEndStopAll(int direction);
 
@@ -144,6 +152,7 @@ protected:
     std::vector<std::unique_ptr<MPESBase>> m_PSD;
     std::array<std::unique_ptr<ActuatorBase>, NUM_ACTS_PER_PLATFORM> m_Actuators;
 
+    std::map<Device::Identity, int> m_PSDIdentityMap;
     std::map<Device::Identity, int> m_MPESIdentityMap;
     std::map<Device::Identity, int> m_ActuatorIdentityMap;
 
