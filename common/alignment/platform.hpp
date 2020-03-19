@@ -192,6 +192,8 @@ public:
      */
     bool addMPES(const Device::Identity &identity) override;
 
+    bool addPSD(const Device::Identity &identity) override;
+
     void turnOn() override;
 
     void turnOff() override;
