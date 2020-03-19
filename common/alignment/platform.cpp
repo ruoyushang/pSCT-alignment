@@ -626,9 +626,6 @@ void Platform::turnOn() {
     for (const auto& pMPES : m_MPES) {
     	pMPES->turnOn();
     }
-    for (const auto& pPSD : m_PSD) {
-    	pPSD->turnOn();
-    }
     for (const auto& pActuator : m_Actuators) {
     	pActuator->turnOn();
     }
@@ -674,7 +671,7 @@ bool Platform::addPSD(const Device::Identity &identity)
         return false;
     }
 
-    std::unique_ptr<GASPSD> newPSD = std::unique_ptr<GASPSD>(new GASPSD(m_pCBC, identity));
+    std::unique_ptr<GASPSD> newPSD = std::unique_ptr<GASPSD>(new GASPSD(identity));
     
     if (newPSD->initialize()) {
         m_PSD.push_back(std::move(newPSD));
