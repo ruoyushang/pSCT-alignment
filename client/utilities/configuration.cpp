@@ -215,6 +215,29 @@ UaStatus Configuration::loadDeviceConfiguration(const std::vector<std::string> &
                 spdlog::info("Configuration::loadDeviceConfiguration(): added Panel {} as w parent of MPES {}.",
                              panelId, mpesId);
             }
+
+            // get OT's PSD
+            if (panelId.position==1001 || panelId.position==2001)
+            {
+                Device::Identity psdId;
+                psdId.serialNumber = 1; // need to find it out!!!
+                psdId.position = 0;
+                psdId.eAddress = "10.0.1.100"; // need to find it out!!!
+                psdId.name = std::string("PSD_") + std::to_string(psdId.serialNumber);
+
+                // add to the list of devices
+                m_DeviceIdentities[PAS_PSDType].insert(psdId);
+                spdlog::info("Configuration::loadDeviceConfiguration(): added PSD {} to device list.", psdId);
+
+                m_DeviceSerialMap[PAS_PSDType][psdId.serialNumber] = psdId;
+                m_DeviceNameMap[psdId.name] = psdId;
+
+                // add the PSD and its panels to the parents map
+                m_ChildMap[panelId][PAS_PSDType].insert(psdId);
+                m_ParentMap[psdId][PAS_PanelType].insert(panelId);
+                spdlog::info("Configuration::loadDeviceConfiguration(): added Panel {} as parent of PSD {}.",
+                             panelId, psdId);
+            }
         }
         //Get laser-side panel for all MPES
         for (const auto &mpesId : m_DeviceIdentities.at(PAS_MPESType)) {

@@ -64,6 +64,7 @@ UaStatus PasCommunicationInterface::initialize() {
 
     std::array<Device::Identity, PlatformBase::NUM_ACTS_PER_PLATFORM> actuatorIdentities;
     std::vector <Device::Identity> mpesIdentities;
+    std::vector <Device::Identity> psdIdentities;
 
     spdlog::trace("Connecting to DB {} at {} with user {}", DbInfo.dbname, dbAddress, DbInfo.user);
     try {
@@ -140,6 +141,16 @@ UaStatus PasCommunicationInterface::initialize() {
     panelId.eAddress = std::to_string(0);
     panelId.position = m_panelNum;
 
+    if (panelId.position==1001 || panelId.position==2001)
+    {
+        Device::Identity psdId;
+        psdId.serialNumber = 1; // need to find it out!!!
+        psdId.position = 0;
+        psdId.eAddress = "10.0.1.100"; // need to find it out!!!
+        psdId.name = std::string("PSD_") + std::to_string(psdId.serialNumber);
+        psdIdentities.push_back(psdId);
+    }
+
 #ifdef SIMMODE
     spdlog::info("SIMMODE: Creating DummyPlatform object with identity {}...", panelId);
     m_platform = std::dynamic_pointer_cast<PlatformBase>(std::make_shared<DummyPlatform>(panelId, DbInfo));
@@ -160,6 +171,11 @@ UaStatus PasCommunicationInterface::initialize() {
     for (const auto &mpesId : mpesIdentities) {
         spdlog::info("Adding MPES hardware interface with identity {} as child of Platform ...", mpesId);
         m_platform->addMPES(mpesId);
+    }
+
+    for (const auto &psdId : psdIdentities) {
+        spdlog::info("Adding PSD hardware interface with identity {} as child of Platform ...", mpesId);
+        m_platform->addPSD(psdId);
     }
 
     // initialize expected devices
@@ -189,7 +205,7 @@ UaStatus PasCommunicationInterface::initialize() {
         } else if (pair.first == PAS_ACTType) {
             expectedDevices = actuatorIdentities.size();
         } else if (pair.first == PAS_PSDType) {
-            expectedDevices = 0;
+            expectedDevices = psdIdentities.size();
         }
 
         spdlog::info("Expecting {} {} hardware interfaces...", expectedDevices, deviceTypes.at(pair.first));
@@ -255,6 +271,15 @@ UaStatus PasCommunicationInterface::initialize() {
             std::shared_ptr <MPESController> pMPES = std::dynamic_pointer_cast<MPESController>(
                     getDevice(PAS_MPESType, mpesId));
             pPanel->addMPES(pMPES);
+        }
+        catch (...) {
+        }
+    }
+    for (const auto &psdId : psdIdentities) {
+        try {
+            std::shared_ptr <PSDController> pPSD = std::dynamic_pointer_cast<PSDController>(
+                    getDevice(PAS_PSDType, psdId));
+            pPanel->addPSD(pPSD);
         }
         catch (...) {
         }

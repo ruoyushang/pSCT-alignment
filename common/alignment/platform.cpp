@@ -625,6 +625,9 @@ void Platform::turnOn() {
     for (const auto& pMPES : m_MPES) {
     	pMPES->turnOn();
     }
+    for (const auto& pPSD : m_PSD) {
+    	pPSD->turnOn();
+    }
     for (const auto& pActuator : m_Actuators) {
     	pActuator->turnOn();
     }
@@ -656,6 +659,29 @@ bool Platform::addMPES(const Device::Identity &identity)
     }
     else {
         spdlog::warn("{} : Platform::addMPES() : Failed to initialize MPES {} at USB {}.", m_Identity, identity,
+                     identity.eAddress);
+        return false;
+    }
+}
+
+bool Platform::addPSD(const Device::Identity &identity)
+{
+    spdlog::info("{} : Platform::addPSD() : Adding PSD {} at USB {}.", m_Identity, identity, identity.eAddress);
+    if (identity.serialNumber < 0 || std::stoi(identity.eAddress) < 0) {
+        spdlog::error("{} : Platform::addPSD() : Failed to add PSD {}, invalid USB/serial number.", m_Identity,
+                      identity);
+        return false;
+    }
+
+    std::unique_ptr<PSD> newPSD = std::unique_ptr<PSD>(new PSD(m_pCBC, identity));
+    
+    if (newPSD->initialize()) {
+        m_PSD.push_back(std::move(newPSD));
+        m_PSDIdentityMap.insert(std::make_pair(identity, m_PSD.size() - 1));
+        return true;
+    }
+    else {
+        spdlog::warn("{} : Platform::addPSD() : Failed to initialize PSD {} at USB {}.", m_Identity, identity,
                      identity.eAddress);
         return false;
     }
@@ -854,6 +880,9 @@ void DummyPlatform::turnOn() {
     for (const auto &pMPES : m_MPES) {
         pMPES->turnOn();
     }
+    for (const auto &pPSD : m_PSD) {
+        pPSD->turnOn();
+    }
     for (const auto &pActuator : m_Actuators) {
         pActuator->turnOn();
     }
@@ -899,6 +928,28 @@ bool DummyPlatform::addMPES(const Device::Identity &identity) {
         return true;
     } else {
         spdlog::warn("{} : DummyPlatform::addMPES() : Failed to initialize DummyMPES {} at USB {}.", m_Identity,
+                     identity, identity.eAddress);
+        return false;
+    }
+}
+
+bool DummyPlatform::addPSD(const Device::Identity &identity) {
+    spdlog::info("{} : DummyPlatform::addPSD() : Adding DummyPSD {} at USB {}.", m_Identity, identity,
+                 identity.eAddress);
+    if (identity.serialNumber < 0 || std::stoi(identity.eAddress) < 0) {
+        spdlog::error("{} : DummyPlatform::addPSD() : Failed to add DummyPSD {}, invalid USB/serial number.",
+                      m_Identity, identity);
+        return false;
+    }
+
+    std::unique_ptr<PSD> newPSD = std::unique_ptr<PSD>(new DummyPSD(identity));
+
+    if (newPSD->initialize()) {
+        m_PSD.push_back(std::move(newPSD));
+        m_PSDIdentityMap.insert(std::make_pair(identity, m_PSD.size() - 1));
+        return true;
+    } else {
+        spdlog::warn("{} : DummyPlatform::addPSD() : Failed to initialize DummyPSD {} at USB {}.", m_Identity,
                      identity, identity.eAddress);
         return false;
     }
