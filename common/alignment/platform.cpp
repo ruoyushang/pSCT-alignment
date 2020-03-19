@@ -878,9 +878,6 @@ void DummyPlatform::turnOn() {
     for (const auto &pMPES : m_MPES) {
         pMPES->turnOn();
     }
-    for (const auto &pPSD : m_PSD) {
-        pPSD->turnOn();
-    }
     for (const auto &pActuator : m_Actuators) {
         pActuator->turnOn();
     }
