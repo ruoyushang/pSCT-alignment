@@ -105,6 +105,8 @@ public:
     virtual bool addMPES(const Device::Identity &identity) = 0;
     MPESBase::Position readMPES(int idx);
 
+    virtual bool addPSD(const Device::Identity &identity) = 0;
+
     virtual void emergencyStop();
 
     bool isOn() override;
@@ -246,6 +248,8 @@ public:
      In the Sim mode, MPES are added regardlessly.
      */
     bool addMPES(const Device::Identity &identity) override;
+
+    bool addPSD(const Device::Identity &identity) override;
 
     void emergencyStop() override;
 
