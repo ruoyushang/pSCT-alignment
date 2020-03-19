@@ -673,7 +673,7 @@ bool Platform::addPSD(const Device::Identity &identity)
         return false;
     }
 
-    std::unique_ptr<Device> newPSD = std::unique_ptr<Device>(new Device(m_pCBC, identity));
+    std::unique_ptr<GASPSD> newPSD = std::unique_ptr<GASPSD>(new GASPSD(m_pCBC, identity));
     
     if (newPSD->initialize()) {
         m_PSD.push_back(std::move(newPSD));
@@ -942,7 +942,7 @@ bool DummyPlatform::addPSD(const Device::Identity &identity) {
         return false;
     }
 
-    std::unique_ptr<Device> newPSD = std::unique_ptr<Device>(new DummyPSD(identity));
+    std::unique_ptr<GASPSD> newPSD = std::unique_ptr<GASPSD>(new DummyPSD(identity));
 
     if (newPSD->initialize()) {
         m_PSD.push_back(std::move(newPSD));

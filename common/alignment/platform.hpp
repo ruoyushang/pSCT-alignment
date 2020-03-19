@@ -141,7 +141,7 @@ protected:
     float m_CalibrationTemperature = 0.0;
 
     std::vector<std::unique_ptr<MPESBase>> m_MPES;
-    std::vector<std::unique_ptr<MPESBase>> m_PSD;
+    std::vector<std::unique_ptr<GASPSD>> m_PSD;
     std::array<std::unique_ptr<ActuatorBase>, NUM_ACTS_PER_PLATFORM> m_Actuators;
 
     std::map<Device::Identity, int> m_PSDIdentityMap;
