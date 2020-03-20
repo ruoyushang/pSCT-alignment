@@ -18,6 +18,7 @@
 
 #include "server/controllers/actcontroller.hpp"
 #include "server/controllers/mpescontroller.hpp"
+#include "server/controllers/psdcontroller.hpp"
 
 #include "common/utilities/spdlog/spdlog.h"
 #include "common/utilities/spdlog/fmt/ostr.h"

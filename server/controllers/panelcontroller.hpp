@@ -20,6 +20,8 @@
 
 #include "server/controllers/actcontroller.hpp"
 #include "server/controllers/pascontroller.hpp"
+#include "server/controllers/mpescontroller.hpp"
+#include "server/controllers/psdcontroller.hpp"
 
 class ActController;
 
