@@ -77,6 +77,8 @@ public:
     /// @param pActuator A pointer to an MPES controller.
     void addMPES(const std::shared_ptr<MPESController> &pMPES);
 
+    void addPSD(const std::shared_ptr<PSDController> &pPSD);
+
 private:
     Device::ErrorState _getErrorState() { return m_pPlatform->getErrorState(); }
 
