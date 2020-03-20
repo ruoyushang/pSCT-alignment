@@ -174,7 +174,7 @@ UaStatus PasCommunicationInterface::initialize() {
     }
 
     for (const auto &psdId : psdIdentities) {
-        spdlog::info("Adding PSD hardware interface with identity {} as child of Platform ...", mpesId);
+        spdlog::info("Adding PSD hardware interface with identity {} as child of Platform ...", psdId);
         m_platform->addPSD(psdId);
     }
 
