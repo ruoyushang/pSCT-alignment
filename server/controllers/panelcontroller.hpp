@@ -91,6 +91,8 @@ private:
 
     /// @brief A vector of all MPES controllers belonging to this panel.
     std::vector<std::shared_ptr<MPESController>> m_pMPES;
+
+    std::vector<std::shared_ptr<PSDController>> m_pPSD;
 };
 
 #endif //SERVER_PANELCONTROLLER_HPP
