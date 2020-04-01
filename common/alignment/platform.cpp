@@ -939,7 +939,7 @@ bool DummyPlatform::addPSD(const Device::Identity &identity) {
 
     std::unique_ptr<GASPSD> newPSD = std::unique_ptr<GASPSD>(new DummyGASPSD(identity));
 
-    if (newPSD->initialize()) {
+    if (newPSD->initialize() == 0) {
         m_PSD.push_back(std::move(newPSD));
         m_PSDIdentityMap.insert(std::make_pair(identity, m_PSD.size() - 1));
         return true;

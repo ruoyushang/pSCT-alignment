@@ -141,16 +141,6 @@ UaStatus PasCommunicationInterface::initialize() {
     panelId.eAddress = std::to_string(0);
     panelId.position = m_panelNum;
 
-    if (panelId.position==1001 || panelId.position==2001)
-    {
-        Device::Identity psdId;
-        psdId.serialNumber = 1; // need to find it out!!!
-        psdId.position = 0;
-        psdId.eAddress = "10.0.1.100"; // need to find it out!!!
-        psdId.name = std::string("PSD_") + std::to_string(psdId.serialNumber);
-        psdIdentities.push_back(psdId);
-    }
-
 #ifdef SIMMODE
     spdlog::info("SIMMODE: Creating DummyPlatform object with identity {}...", panelId);
     m_platform = std::dynamic_pointer_cast<PlatformBase>(std::make_shared<DummyPlatform>(panelId, DbInfo));
@@ -194,7 +184,17 @@ UaStatus PasCommunicationInterface::initialize() {
         allDevices[PAS_MPESType].push_back(m_platform->getMPES(i)->getIdentity());
     }
 
-    allDevices[PAS_PSDType] = {};
+    if (panelId.position==1001 || panelId.position==2001)
+    {
+        Device::Identity psdId;
+        psdId.serialNumber = panelId.position; // need to find it out!!!
+        psdId.position = 0;
+        psdId.eAddress = "10.0.1.100"; // need to find it out!!!
+        psdId.name = std::string("PSD_") + std::to_string(psdId.serialNumber);
+        psdIdentities.push_back(psdId);
+
+        allDevices[PAS_PSDType].push_back(psdId);
+    }
 
     for (const auto &pair: allDevices) {
         int expectedDevices;
