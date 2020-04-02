@@ -941,6 +941,7 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
         };
 
         for (const auto &panel : m_pChildren.at(PAS_PanelType)) {
+            spdlog::debug("Checking panels...");
             auto panelController = std::dynamic_pointer_cast<PanelController>(panel);
             if (panelController->getDeviceState() != normalDeviceStates.at(PAS_PanelType)) {
                 badDeviceStates[panelController->getIdentity()] = panelController->getDeviceState();
@@ -958,6 +959,7 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
             }
             // Get actuator errors
             for (const auto &act : panelController->getChildren(PAS_ACTType)) {
+                spdlog::debug("Checking actuators...");
                 auto actuatorController = std::dynamic_pointer_cast<ActController>(act);
                 if (actuatorController->getDeviceState() != normalDeviceStates.at(PAS_ACTType)) {
                     badDeviceStates[actuatorController->getIdentity()] = actuatorController->getDeviceState();
@@ -976,23 +978,29 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
                 }
             }
             // Get MPES errors
-            for (const auto &mpes : panelController->getChildren(PAS_MPESType)) {
-                auto mpesController = std::dynamic_pointer_cast<MPESController>(mpes);
-                if (mpesController->getDeviceState() != normalDeviceStates.at(PAS_MPESType)) {
-                    badDeviceStates[mpesController->getIdentity()] = mpesController->getDeviceState();
-                }
-                if (mpesController->getErrorState() != Device::ErrorState::Nominal) {
-                    for (auto pair : MPESObject::ERRORS) {
-                        UaVariant var;
-                        mpesController->getData(pair.first, var);
-                        unsigned char errorVal;
-                        var.toBool(errorVal);
-                        if (errorVal == OpcUa_True) {
-                            deviceErrors[mpesController->getIdentity()].push_back(
-                                    std::get<0>(pair.second));
+            try {
+                for (const auto &mpes : panelController->getChildren(PAS_MPESType)) {
+                    spdlog::debug("Checking MPES...");
+                    auto mpesController = std::dynamic_pointer_cast<MPESController>(mpes);
+                    if (mpesController->getDeviceState() != normalDeviceStates.at(PAS_MPESType)) {
+                        badDeviceStates[mpesController->getIdentity()] = mpesController->getDeviceState();
+                    }
+                    if (mpesController->getErrorState() != Device::ErrorState::Nominal) {
+                        for (auto pair : MPESObject::ERRORS) {
+                            UaVariant var;
+                            mpesController->getData(pair.first, var);
+                            unsigned char errorVal;
+                            var.toBool(errorVal);
+                            if (errorVal == OpcUa_True) {
+                                deviceErrors[mpesController->getIdentity()].push_back(
+                                        std::get<0>(pair.second));
+                            }
                         }
                     }
                 }
+            }
+            catch (const std::out_of_range& oor) {
+                spdlog::warn("Out of Range error: ({}), No MPES found on this panel.",oor.what());
             }
         }
 
@@ -1062,29 +1070,34 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
             auto panelController = std::dynamic_pointer_cast<PanelController>(panel);
             auto panelId = panelController->getIdentity();
             
-            for (const auto &mpes : panelController->getChildren(PAS_MPESType)) {
-                auto mpesController = std::dynamic_pointer_cast<MPESController>(mpes);
-                auto mpesId = mpesController->getIdentity();
-                if ((deviceErrors.find(mpesId) != deviceErrors.end()) ||
-                    (badDeviceStates.find(mpesId) != badDeviceStates.end())) {
+            try {
+                for (const auto &mpes : panelController->getChildren(PAS_MPESType)) {
+                    auto mpesController = std::dynamic_pointer_cast<MPESController>(mpes);
+                    auto mpesId = mpesController->getIdentity();
+                    if ((deviceErrors.find(mpesId) != deviceErrors.end()) ||
+                        (badDeviceStates.find(mpesId) != badDeviceStates.end())) {
 
-                    os << panelId << " : " << mpesId << " : " << std::endl;
-                    os << "\tDevice State: ";
-                    if (badDeviceStates.find(mpesId) == badDeviceStates.end()) {
-                        os << Device::deviceStateNames.at(normalDeviceStates.at(PAS_MPESType)) << " [Normal]" << std::endl;
-                    }
-                    else {
-                        os << Device::deviceStateNames.at(badDeviceStates.at(mpesId)) << " [WARNING: Abnormal. Should be " << Device::deviceStateNames.at(normalDeviceStates.at(PAS_MPESType)) << "]" << std::endl;
-                    }
-                    os << "\tError State: " << Device::errorStateNames.at(mpesController->getErrorState()) << std::endl;
-                    if (deviceErrors.find(mpesId) != deviceErrors.end()) {
-                        os << "\tDevice Errors:" << std::endl;
-                        for (auto errorString : deviceErrors.at(mpesId)) {
-                            os << "\t\t" << errorString << std::endl;
+                        os << panelId << " : " << mpesId << " : " << std::endl;
+                        os << "\tDevice State: ";
+                        if (badDeviceStates.find(mpesId) == badDeviceStates.end()) {
+                            os << Device::deviceStateNames.at(normalDeviceStates.at(PAS_MPESType)) << " [Normal]" << std::endl;
                         }
+                        else {
+                            os << Device::deviceStateNames.at(badDeviceStates.at(mpesId)) << " [WARNING: Abnormal. Should be " << Device::deviceStateNames.at(normalDeviceStates.at(PAS_MPESType)) << "]" << std::endl;
+                        }
+                        os << "\tError State: " << Device::errorStateNames.at(mpesController->getErrorState()) << std::endl;
+                        if (deviceErrors.find(mpesId) != deviceErrors.end()) {
+                            os << "\tDevice Errors:" << std::endl;
+                            for (auto errorString : deviceErrors.at(mpesId)) {
+                                os << "\t\t" << errorString << std::endl;
+                            }
+                        }
+                        os << std::endl << std::endl;
                     }
-                    os << std::endl << std::endl;
                 }
+            }
+            catch (const std::out_of_range& oor) {
+                spdlog::warn("Out of Range error: ({}), No MPES found on this panel.",oor.what());
             }
         }
 
