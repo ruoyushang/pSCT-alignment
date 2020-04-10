@@ -118,6 +118,7 @@ UaStatus Configuration::loadDeviceConfiguration(const std::vector<std::string> &
     std::string db_address = "tcp://" + db_ip + ":" + db_port;
 
     m_DeviceIdentities[PAS_PanelType] = {}; // initialize the list of panels to an empty one -- other devices don't need this
+    m_DeviceIdentities[PAS_FocalPlaneType] = {};
 
     try {
         sql::Driver *sql_driver = get_driver_instance();
@@ -294,6 +295,20 @@ UaStatus Configuration::loadDeviceConfiguration(const std::vector<std::string> &
             m_DeviceSerialMap[PAS_CCDType][CCDId.serialNumber] = CCDId;
             m_DeviceNameMap[CCDId.name] = CCDId;
         }
+
+        // Get FocalPlane ID
+        Device::Identity FPId;
+        FPId.serialNumber = 37514083;
+        FPId.position = 1001;
+        std::string port = std::to_string(1);
+        FPId.eAddress = "172.17.1.193";
+        FPId.name = std::string("FocalPlane");
+
+        m_DeviceIdentities[PAS_FocalPlaneType].insert(FPId);
+        spdlog::info("Configuration::loadDeviceConfiguration(): added Focal Plane {} to device list.", FPId);
+
+        m_DeviceSerialMap[PAS_FocalPlaneType][FPId.serialNumber] = FPId;
+        m_DeviceNameMap[FPId.name] = FPId;
 
     }
     catch (sql::SQLException &e) {
@@ -513,6 +528,17 @@ bool Configuration::addMissingParents() {
             catch (const std::out_of_range& oor) {
                 spdlog::warn("No PSD found");
             }
+        }
+    }
+    for (const auto &mirrorId : m_DeviceIdentities.at(PAS_MirrorType)) {
+        for (const auto &fpId : m_DeviceIdentities.at(PAS_FocalPlaneType)){
+            if (m_DeviceIdentities[PAS_FocalPlaneType].find(fpId) == m_DeviceIdentities[PAS_FocalPlaneType].end()) {
+                spdlog::info("Configuration::addMissingParents(): Added focal plane {} to device list.", fpId);
+                m_DeviceIdentities[PAS_FocalPlaneType].insert(fpId);
+            }
+            spdlog::info("Configuration::addMissingParents(): Added {} to device list and parent map.", fpId);
+            m_ChildMap[mirrorId][PAS_FocalPlaneType].insert(fpId);
+            m_ParentMap[fpId][PAS_MirrorType].insert(mirrorId);
         }
     }
     try {

@@ -251,6 +251,28 @@
 #define PAS_PSDType_Error4                          3255
 
 //----------------------------------------------------------//
+//
+// Focal Plane Type
+#define PAS_FocalPlaneType                            3300
+// Instance declaration
+#define PAS_FocalPlaneType_State                      3301
+#define PAS_FocalPlaneType_ErrorState                 3302
+#define PAS_FocalPlaneType_ImageFile                  3304
+#define PAS_FocalPlaneType_Verbosity                  3305
+#define PAS_FocalPlaneType_DETECT_MINAREA             3306
+#define PAS_FocalPlaneType_THRESH                     3307
+#define PAS_FocalPlaneType_DEBLEND_MINCONT            3308
+#define PAS_FocalPlaneType_SEARCH_XS                  3309
+#define PAS_FocalPlaneType_SEARCH_YS                  3310
+#define PAS_FocalPlaneType_AnalyzeSinglePanelImage    3321
+#define PAS_FocalPlaneType_AnalyzePatternImage        3322
+#define PAS_FocalPlaneType_SavePanelMotion            3323
+#define PAS_FocalPlaneType_Pattern2Center             3324
+#define PAS_FocalPlaneType_Center2Pattern             3325
+#define PAS_FocalPlaneType_Panel2Center               3326
+#define PAS_FocalPlaneType_Panel2Pattern              3327
+//----------------------------------------------------------//
+//
 
 /************************************************************
  MPESEventType and its event field properties

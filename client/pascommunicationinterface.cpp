@@ -25,6 +25,7 @@
 #include "client/controllers/panelcontroller.hpp"
 #include "client/controllers/pascontroller.hpp"
 #include "client/controllers/psdcontroller.hpp"
+#include "client/controllers/focalplanecontroller.hpp"
 
 #include "client/utilities/configuration.hpp"
 
@@ -48,6 +49,7 @@ std::map<OpcUa_UInt32, std::string> PasCommunicationInterface::deviceTypeNames{
     {PAS_ACTType, "ACT"},
     {PAS_CCDType, "CCD"},
     {PAS_PSDType, "PSD"},
+    {PAS_FocalPlaneType, "FocalPlane"},
     {GLOB_PositionerType, "Positioner"}
 };
 
@@ -148,6 +150,8 @@ PasCommunicationInterface::addDevice(Client *pClient, OpcUa_UInt32 deviceType,
             pController = std::make_shared<CCDController>(identity);
         else if (deviceType == PAS_PSDType)
             pController = std::make_shared<PSDController>(identity, pClient);
+        else if (deviceType == PAS_FocalPlaneType)
+            pController = std::make_shared<FocalPlaneController>(identity, pClient);
         else if (deviceType == GLOB_PositionerType) {
 #if SIMMODE
             pController = std::dynamic_pointer_cast<PositionerController>(std::make_shared<DummyPositionerController>(identity));
@@ -194,6 +198,14 @@ void PasCommunicationInterface::addEdgeControllers() {
                 addDevice(nullptr, PAS_EdgeType, edgeId);
             }
         }
+    }
+}
+
+void PasCommunicationInterface::addFocalPlaneController() {
+    for (const auto &fpID:  m_pConfiguration->getDevices(PAS_FocalPlaneType)){
+        spdlog::debug("Adding Focal Plane device...");
+        spdlog::trace("Found ID: {}", fpID);
+        addDevice(nullptr, PAS_FocalPlaneType, fpID);
     }
 }
 
