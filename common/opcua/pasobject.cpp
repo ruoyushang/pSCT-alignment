@@ -205,8 +205,13 @@ OpcUa::DataItemType* PasObject::addVariable(PasNodeManagerCommon *pNodeManager, 
     // Store information needed to access device
     PasUserData* pUserData = new PasUserData(isState, ParentType, m_Identity, VarType);
     pDataItem->setUserData(pUserData);
-    // Change value handling to get read and write calls to the node manager
-    pDataItem->setValueHandling(UaVariable_Value_Cache);
+    // Set value handling to handle sampling on request
+    pDataItem->setValueHandling(UaVariable_Value_CacheIsSource | UaVariable_Value_CacheIsUpdatedOnRequest);
+    // Change value of variable to bad status BadWaitingForInitialData
+    // This makes sure we do not deliver an old value before we update the cache with internal monitoring
+    UaDataValue badStatusValue;
+    badStatusValue.setStatusCode(OpcUa_BadWaitingForInitialData);
+    pDataItem->setValue(NULL, badStatusValue, OpcUa_False);
 
     return pDataItem;
 }
