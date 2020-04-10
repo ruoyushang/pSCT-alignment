@@ -28,16 +28,17 @@
 
 /// @details By default, sets the update interval to 500 ms. Creates a new GASPSD object,
 /// sets its port, and initializes. Sets its state to On.
-PSDController::PSDController(Device::Identity identity) : PasController(std::move(identity), 500)
+PSDController::PSDController(Device::Identity identity, std::shared_ptr<PlatformBase> pPlatform)
+        : PasController::PasController(std::move(identity),std::move(pPlatform), 500)
 {
     spdlog::trace("{} : Creating PSD hardware interface... ", m_Identity);
-#ifndef SIMMODE
-    m_pPSD = std::unique_ptr<GASPSD>(new GASPSD(identity));
-#else
-    m_pPSD = std::unique_ptr<GASPSD>(new DummyGASPSD(identity));
-#endif
-    spdlog::trace("{} : Initializing PSD hardware interface... ", m_Identity);
-    m_pPSD->initialize();
+}
+
+/// @details Initialize this PSD.
+bool PSDController::initialize() {
+    spdlog::info("{} : Initializing PSD...", m_Identity);
+
+    return true;
 }
 
 /// @details Locks the shared mutex while retrieving the state.
@@ -70,7 +71,7 @@ UaStatus PSDController::getData(OpcUa_UInt32 offset, UaVariant &value)
         status = read();
       }
 
-    value.setDouble(m_pPSD->getOutput(offset));
+    value.setDouble(m_pPlatform->getPSDbyIdentity(m_Identity)->getOutput(offset));
 
     double temp;
     value.toDouble(temp);
@@ -106,11 +107,12 @@ UaStatus PSDController::operate(OpcUa_UInt32 offset, const UaVariantArray &args)
 UaStatus PSDController::read()
 {
     //UaMutexLocker lock(&m_mutex);
+    spdlog::debug("{}: errorState(): {}", m_Identity, int(_getErrorState()));
 
     if (_getErrorState() == Device::ErrorState::Nominal || _getErrorState() == Device::ErrorState::OperableError)
     {
         spdlog::trace("{} : Updating PSD data and lastUpdateTime... ", m_Identity);
-        m_pPSD->update();
+        m_pPlatform->getPSDbyIdentity(m_Identity)->update();
         m_LastUpdateTime = std::chrono::system_clock::now();
         return OpcUa_Good;
     }

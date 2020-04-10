@@ -78,6 +78,14 @@ public:
         return m_MPES.at(m_MPESIdentityMap.at(identity));
     }
 
+    int getPSDCount() const { return m_PSD.size(); }
+
+    std::unique_ptr<GASPSD> &getPSD(int idx) { return m_PSD.at(idx); }
+
+    std::unique_ptr<GASPSD> &getPSDbyIdentity(const Device::Identity &identity) {
+        return m_PSD.at(m_PSDIdentityMap.at(identity));
+    }
+
     // Actuator-related methods
     void probeEndStopAll(int direction);
 

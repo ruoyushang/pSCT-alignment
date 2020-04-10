@@ -35,6 +35,7 @@ PasLogic::PasLogic(std::shared_ptr<PasCommunicationInterface> pCommIf) : m_pComm
 
 void PasLogic::run()
 {
+    spdlog::debug("Trying to run PasLogic");
     while (__PSDmisaligned(0, false) || __PSDmisaligned(1, false)) {
         for (int ot = 0; ot < 2; ot++) {
             tee << TIME << "--- PasLogic: Initial Alignment of OT" << ot+1 << " ---" << std::endl;
@@ -179,10 +180,14 @@ bool PasLogic::__PSDmisaligned(unsigned PSDno, bool verbose)
 void PasLogic::__readPSD(double readings[4])
 {
     UaVariant val;
-    for (OpcUa_UInt32 i = 0; i < 4; i++) {
-        UaStatus status = m_pCommIf->getDeviceData(PAS_PSDType, m_psdId, PAS_PSDType_x1 + i, val);
-        UA_ASSERT(status.isGood());
-        val.toDouble(readings[i]);
+    UaVariantArray args;
+    UaStatus status = m_pCommIf->operateDevice(PAS_PSDType, m_psdId, PAS_PSDType_Read, args);
+    if (status.isGood()){
+        for (OpcUa_UInt32 i = 0; i < 4; i++) {
+            status = m_pCommIf->getDeviceData(PAS_PSDType, m_psdId, PAS_PSDType_x1 + i, val);
+            UA_ASSERT(status.isGood());
+            val.toDouble(readings[i]);
+        }
     }
 }
 

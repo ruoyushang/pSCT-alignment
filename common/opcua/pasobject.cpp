@@ -350,6 +350,12 @@ const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, O
 };
 
 const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean>> PSDObject::ERRORS = {
+        {PAS_PSDType_Error0,  std::make_tuple("[0] [Fatal] Error opening port.", UaVariant(false), OpcUa_False)},
+        {PAS_PSDType_Error1,  std::make_tuple("[0] [Fatal] Error from tcgetattr.", UaVariant(false), OpcUa_False)},
+        {PAS_PSDType_Error2,  std::make_tuple("[0] [Fatal] Error from tcsetattrr.", UaVariant(false), OpcUa_False)},
+        {PAS_PSDType_Error3,  std::make_tuple("[0] [Fatal] Error from tggetattr.", UaVariant(false), OpcUa_False)},
+        {PAS_PSDType_Error4,  std::make_tuple("[0] [Fatal] Error setting term attributes.", UaVariant(false), OpcUa_False)},
+
 };
 
 const std::map<OpcUa_UInt32, std::pair<std::string, std::vector<std::tuple<std::string, UaNodeId, std::string>>>> PSDObject::METHODS = {

@@ -470,6 +470,21 @@ bool Configuration::addMissingParents() {
         }
         m_ChildMap[mirrorId][PAS_PanelType].insert(panelId);
         m_ParentMap[panelId][PAS_MirrorType].insert(mirrorId);
+        if (panelId.position==1001 || panelId.position==2001){
+            try {
+                for (const auto &psdId : m_DeviceIdentities.at(PAS_PSDType)) {
+                    if (psdId.serialNumber == panelId.position) {
+                        spdlog::trace("Found that {} associated with {}", panelId, psdId);
+                        m_ChildMap[panelId][PAS_PSDType].insert(psdId);
+                        m_ParentMap[psdId][PAS_PanelType].insert(panelId);
+                    } else {
+                    }
+                }
+            }
+            catch (const std::out_of_range& oor) {
+                spdlog::warn("No PSD found");
+            }
+        }
     }
     try {
         for (const auto &mpesId : m_DeviceIdentities.at(PAS_MPESType)) {

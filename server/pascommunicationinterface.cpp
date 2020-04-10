@@ -230,7 +230,7 @@ UaStatus PasCommunicationInterface::initialize() {
                     std::make_shared<ActController>(identity, m_platform));
                 spdlog::info("Added Actuator controller with identity {}", identity);
             }
-#ifndef _AMD64
+#if ( !defined(_AMD64) || defined(SIMMODE))
             else if (pair.first == PAS_PSDType) {
                 pController = std::dynamic_pointer_cast<PasControllerCommon>(std::make_shared<PSDController>(identity));
                 spdlog::info("Added PSD controller with identity {}", identity);
