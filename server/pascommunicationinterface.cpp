@@ -232,7 +232,8 @@ UaStatus PasCommunicationInterface::initialize() {
             }
 #if ( !defined(_AMD64) || defined(SIMMODE))
             else if (pair.first == PAS_PSDType) {
-                pController = std::dynamic_pointer_cast<PasControllerCommon>(std::make_shared<PSDController>(identity));
+                pController = std::dynamic_pointer_cast<PasControllerCommon>(
+                        std::make_shared<PSDController>(identity, m_platform));
                 spdlog::info("Added PSD controller with identity {}", identity);
             }
 #endif

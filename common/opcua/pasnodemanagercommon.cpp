@@ -429,96 +429,69 @@ UaStatus PasNodeManagerCommon::createTypeNodes()
     }
 
     /**************************************************************
-     * Create the PSD Type and instance decalaration
+     * Create the PSD Type
      **************************************************************/
-    pPSDType = new UaObjectTypeSimple("PSDType", UaNodeId(PAS_PSDType, getNameSpaceIndex()),
-            m_defaultLocaleId, OpcUa_True);
+    // Add ObjectType "PSDType"
+    pPSDType = new UaObjectTypeSimple(
+            "PSDType",    // Used as string in browse name and display name
+            UaNodeId(PAS_PSDType, getNameSpaceIndex()), // Numeric NodeId for types
+            m_defaultLocaleId,   // Defaul LocaleId for UaLocalizedText strings
+            OpcUa_True);         // Abstract object type -> can not be instantiated
     // Add new node to address space by creating a reference from BaseObjectType to this new node
     addStatus = addNodeAndReference(OpcUaId_BaseObjectType, pPSDType, OpcUaId_HasSubtype);
     UA_ASSERT(addStatus.isGood());
 
-    // add the variables to the type
-    defaultValue.setUInt32(0);
-    pDataItem = new OpcUa::DataItemType(
-            UaNodeId(PAS_PSDType_State, getNameSpaceIndex()), "State", getNameSpaceIndex(),
-            defaultValue, Ua_AccessLevel_CurrentRead, this);
-    // Set Modelling Rule to Mandatory
-    pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
-    addStatus = addNodeAndReference(pPSDType, pDataItem, OpcUaId_HasComponent);
-    UA_ASSERT(addStatus.isGood());
+    /***************************************************************
+     * Create the ACT Type Instance declaration
+     ***************************************************************/
 
-    defaultValue.setDouble(0);
-    pDataItem = new OpcUa::DataItemType(
-            UaNodeId(PAS_PSDType_x1, getNameSpaceIndex()), "x1", getNameSpaceIndex(),
-            defaultValue, Ua_AccessLevel_CurrentRead, this);
-    // Set Modelling Rule to Mandatory
-    pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
-    addStatus = addNodeAndReference(pPSDType, pDataItem, OpcUaId_HasComponent);
-    UA_ASSERT(addStatus.isGood());
+    // Register all variables
+    for (auto v : PSDObject::VARIABLES) {
+        pDataItem = new OpcUa::DataItemType(UaNodeId(v.first, getNameSpaceIndex()),
+                                            std::get<0>(v.second).c_str(), getNameSpaceIndex(), std::get<1>(v.second),
+                                            std::get<3>(v.second), this);
+        pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
+        addStatus = addNodeAndReference(pPSDType, pDataItem, OpcUaId_HasComponent);
+        UA_ASSERT(addStatus.isGood());
+    }
 
-    pDataItem = new OpcUa::DataItemType(
-            UaNodeId(PAS_PSDType_y1, getNameSpaceIndex()), "y1", getNameSpaceIndex(),
-            defaultValue, Ua_AccessLevel_CurrentRead, this);
-    // Set Modelling Rule to Mandatory
-    pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
-    addStatus = addNodeAndReference(pPSDType, pDataItem, OpcUaId_HasComponent);
-    UA_ASSERT(addStatus.isGood());
+    // Register all error variables
+    for (auto v : PSDObject::ERRORS) {
+        pDataItem = new OpcUa::DataItemType(UaNodeId(v.first, getNameSpaceIndex()),
+                                            std::get<0>(v.second).c_str(), getNameSpaceIndex(), std::get<1>(v.second),
+                                            Ua_AccessLevel_CurrentRead, this);
+        //pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Optional);
+        addStatus = addNodeAndReference(pPSDType, pDataItem, OpcUaId_HasComponent);
+        UA_ASSERT(addStatus.isGood());
+    }
 
-    pDataItem = new OpcUa::DataItemType(
-            UaNodeId(PAS_PSDType_x2, getNameSpaceIndex()), "x2", getNameSpaceIndex(),
-            defaultValue, Ua_AccessLevel_CurrentRead, this);
-    // Set Modelling Rule to Mandatory
-    pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
-    addStatus = addNodeAndReference(pPSDType, pDataItem, OpcUaId_HasComponent);
-    UA_ASSERT(addStatus.isGood());
+    // Register all methods
+    for (auto m : PSDObject::METHODS) {
+        pMethod = new OpcUa::BaseMethod(UaNodeId(m.first, getNameSpaceIndex()), m.second.first.c_str(),
+                                        getNameSpaceIndex());
+        pMethod->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
+        addStatus = addNodeAndReference(pPSDType, pMethod, OpcUaId_HasComponent);
+        UA_ASSERT(addStatus.isGood());
 
-    pDataItem = new OpcUa::DataItemType(
-            UaNodeId(PAS_PSDType_y2, getNameSpaceIndex()), "y2", getNameSpaceIndex(),
-            defaultValue, Ua_AccessLevel_CurrentRead, this);
-    // Set Modelling Rule to Mandatory
-    pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
-    addStatus = addNodeAndReference(pPSDType, pDataItem, OpcUaId_HasComponent);
-    UA_ASSERT(addStatus.isGood());
-
-    pDataItem = new OpcUa::DataItemType(
-            UaNodeId(PAS_PSDType_dx1, getNameSpaceIndex()), "dx1", getNameSpaceIndex(),
-            defaultValue, Ua_AccessLevel_CurrentRead, this);
-    // Set Modelling Rule to Mandatory
-    pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
-    addStatus = addNodeAndReference(pPSDType, pDataItem, OpcUaId_HasComponent);
-    UA_ASSERT(addStatus.isGood());
-
-    pDataItem = new OpcUa::DataItemType(
-            UaNodeId(PAS_PSDType_dy1, getNameSpaceIndex()), "dy1", getNameSpaceIndex(),
-            defaultValue, Ua_AccessLevel_CurrentRead, this);
-    // Set Modelling Rule to Mandatory
-    pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
-    addStatus = addNodeAndReference(pPSDType, pDataItem, OpcUaId_HasComponent);
-    UA_ASSERT(addStatus.isGood());
-
-    pDataItem = new OpcUa::DataItemType(
-            UaNodeId(PAS_PSDType_dx2, getNameSpaceIndex()), "dx2", getNameSpaceIndex(),
-            defaultValue, Ua_AccessLevel_CurrentRead, this);
-    // Set Modelling Rule to Mandatory
-    pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
-    addStatus = addNodeAndReference(pPSDType, pDataItem, OpcUaId_HasComponent);
-    UA_ASSERT(addStatus.isGood());
-
-    pDataItem = new OpcUa::DataItemType(
-            UaNodeId(PAS_PSDType_dy2, getNameSpaceIndex()), "dy2", getNameSpaceIndex(),
-            defaultValue, Ua_AccessLevel_CurrentRead, this);
-    // Set Modelling Rule to Mandatory
-    pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
-    addStatus = addNodeAndReference(pPSDType, pDataItem, OpcUaId_HasComponent);
-    UA_ASSERT(addStatus.isGood());
-
-    pDataItem = new OpcUa::DataItemType(
-            UaNodeId(PAS_PSDType_Temp, getNameSpaceIndex()), "Temperature", getNameSpaceIndex(),
-            defaultValue, Ua_AccessLevel_CurrentRead, this);
-    // Set Modelling Rule to Mandatory
-    pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
-    addStatus = addNodeAndReference(pPSDType, pDataItem, OpcUaId_HasComponent);
-    UA_ASSERT(addStatus.isGood());
+        // Add arguments
+        pPropertyArg = new UaPropertyMethodArgument(
+                UaNodeId((std::to_string(m.first) + "_" + m.second.first + "_args").c_str(),
+                         getNameSpaceIndex()), // NodeId of the property
+                Ua_AccessLevel_CurrentRead,             // Access level of the property
+                m.second.second.size(),                                      // Number of arguments
+                UaPropertyMethodArgument::INARGUMENTS); // IN arguments
+        for (size_t i = 0; i < m.second.second.size(); i++) {
+            pPropertyArg->setArgument(
+                    (OpcUa_UInt32) i,                       // Index of the argument
+                    std::get<0>(m.second.second[i]).c_str(),   // Name of the argument
+                    std::get<1>(m.second.second[i]),// Data type of the argument
+                    -1,                      // Array rank of the argument
+                    nullarray,               // Array dimensions of the argument
+                    UaLocalizedText("en", (std::get<2>(m.second.second[i])).c_str())); // Description
+        }
+        addStatus = addNodeAndReference(pMethod, pPropertyArg, OpcUaId_HasProperty);
+        UA_ASSERT(addStatus.isGood());
+    }
 
     return ret;
 }
