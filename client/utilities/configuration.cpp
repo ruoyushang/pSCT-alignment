@@ -519,15 +519,6 @@ bool Configuration::addMissingParents() {
         for (const auto &mpesId : m_DeviceIdentities.at(PAS_MPESType)) {
             if (m_ParentMap.at(mpesId).at(PAS_PanelType).size() != 1) {
                 spdlog::error(
-                        "Configuration::createMissingParents(): MPES {} has {} parent panels (should only have 1). Aborting...",
-                        mpesId, m_ParentMap.at(mpesId).at(PAS_PanelType).size());
-                return false;
-            }
-            Device::Identity w_panelId = *m_ParentMap.at(mpesId).at(PAS_PanelType).begin();
-    try {
-        for (const auto &mpesId : m_DeviceIdentities.at(PAS_MPESType)) {
-            if (m_ParentMap.at(mpesId).at(PAS_PanelType).size() != 1) {
-                spdlog::error(
                     "Configuration::createMissingParents(): MPES {} has {} parent panels (should only have 1). Aborting...",
                     mpesId, m_ParentMap.at(mpesId).at(PAS_PanelType).size());
                 return false;
