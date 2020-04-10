@@ -64,6 +64,7 @@ UaStatus PasCommunicationInterface::initialize() {
 
     std::array<Device::Identity, PlatformBase::NUM_ACTS_PER_PLATFORM> actuatorIdentities;
     std::vector <Device::Identity> mpesIdentities;
+    std::vector <Device::Identity> psdIdentities;
 
     spdlog::trace("Connecting to DB {} at {} with user {}", DbInfo.dbname, dbAddress, DbInfo.user);
     try {
@@ -162,6 +163,11 @@ UaStatus PasCommunicationInterface::initialize() {
         m_platform->addMPES(mpesId);
     }
 
+    for (const auto &psdId : psdIdentities) {
+        spdlog::info("Adding PSD hardware interface with identity {} as child of Platform ...", psdId);
+        m_platform->addPSD(psdId);
+    }
+
     // initialize expected devices
     spdlog::info(
         "Initializing all hardware interfaces (Platform, ACT, MPES) and creating corresponding controllers...");
@@ -178,7 +184,17 @@ UaStatus PasCommunicationInterface::initialize() {
         allDevices[PAS_MPESType].push_back(m_platform->getMPES(i)->getIdentity());
     }
 
-    allDevices[PAS_PSDType] = {};
+    if (panelId.position==1001 || panelId.position==2001)
+    {
+        Device::Identity psdId;
+        psdId.serialNumber = panelId.position; // need to find it out!!!
+        psdId.position = 0;
+        psdId.eAddress = "10.0.1.100"; // need to find it out!!!
+        psdId.name = std::string("PSD_") + std::to_string(psdId.serialNumber);
+        psdIdentities.push_back(psdId);
+
+        allDevices[PAS_PSDType].push_back(psdId);
+    }
 
     for (const auto &pair: allDevices) {
         int expectedDevices;
@@ -189,7 +205,7 @@ UaStatus PasCommunicationInterface::initialize() {
         } else if (pair.first == PAS_ACTType) {
             expectedDevices = actuatorIdentities.size();
         } else if (pair.first == PAS_PSDType) {
-            expectedDevices = 0;
+            expectedDevices = psdIdentities.size();
         }
 
         spdlog::info("Expecting {} {} hardware interfaces...", expectedDevices, deviceTypes.at(pair.first));
@@ -214,9 +230,10 @@ UaStatus PasCommunicationInterface::initialize() {
                     std::make_shared<ActController>(identity, m_platform));
                 spdlog::info("Added Actuator controller with identity {}", identity);
             }
-#ifndef _AMD64
+#if ( !defined(_AMD64) || defined(SIMMODE))
             else if (pair.first == PAS_PSDType) {
-                pController = std::dynamic_pointer_cast<PasControllerCommon>(std::make_shared<PSDController>(identity));
+                pController = std::dynamic_pointer_cast<PasControllerCommon>(
+                        std::make_shared<PSDController>(identity, m_platform));
                 spdlog::info("Added PSD controller with identity {}", identity);
             }
 #endif
@@ -255,6 +272,15 @@ UaStatus PasCommunicationInterface::initialize() {
             std::shared_ptr <MPESController> pMPES = std::dynamic_pointer_cast<MPESController>(
                     getDevice(PAS_MPESType, mpesId));
             pPanel->addMPES(pMPES);
+        }
+        catch (...) {
+        }
+    }
+    for (const auto &psdId : psdIdentities) {
+        try {
+            std::shared_ptr <PSDController> pPSD = std::dynamic_pointer_cast<PSDController>(
+                    getDevice(PAS_PSDType, psdId));
+            pPanel->addPSD(pPSD);
         }
         catch (...) {
         }

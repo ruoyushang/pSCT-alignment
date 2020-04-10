@@ -15,6 +15,7 @@
 #include "common/alignment/device.hpp"
 #include "common/alignment/mpes.hpp"
 #include "common/alignment/actuator.hpp"
+#include "common/globalalignment/psdclass.h"
 
 class PlatformBase : public Device
 {
@@ -77,6 +78,14 @@ public:
         return m_MPES.at(m_MPESIdentityMap.at(identity));
     }
 
+    int getPSDCount() const { return m_PSD.size(); }
+
+    std::unique_ptr<GASPSD> &getPSD(int idx) { return m_PSD.at(idx); }
+
+    std::unique_ptr<GASPSD> &getPSDbyIdentity(const Device::Identity &identity) {
+        return m_PSD.at(m_PSDIdentityMap.at(identity));
+    }
+
     // Actuator-related methods
     void probeEndStopAll(int direction);
 
@@ -104,6 +113,8 @@ public:
      */
     virtual bool addMPES(const Device::Identity &identity) = 0;
     MPESBase::Position readMPES(int idx);
+
+    virtual bool addPSD(const Device::Identity &identity) = 0;
 
     virtual void emergencyStop();
 
@@ -139,8 +150,10 @@ protected:
     float m_CalibrationTemperature = 0.0;
 
     std::vector<std::unique_ptr<MPESBase>> m_MPES;
+    std::vector<std::unique_ptr<GASPSD>> m_PSD;
     std::array<std::unique_ptr<ActuatorBase>, NUM_ACTS_PER_PLATFORM> m_Actuators;
 
+    std::map<Device::Identity, int> m_PSDIdentityMap;
     std::map<Device::Identity, int> m_MPESIdentityMap;
     std::map<Device::Identity, int> m_ActuatorIdentityMap;
 
@@ -190,6 +203,8 @@ public:
      In the Sim mode, MPES are added regardlessly.
      */
     bool addMPES(const Device::Identity &identity) override;
+
+    bool addPSD(const Device::Identity &identity) override;
 
     void turnOn() override;
 
@@ -243,6 +258,8 @@ public:
      In the Sim mode, MPES are added regardlessly.
      */
     bool addMPES(const Device::Identity &identity) override;
+
+    bool addPSD(const Device::Identity &identity) override;
 
     void emergencyStop() override;
 

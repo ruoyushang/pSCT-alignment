@@ -224,6 +224,29 @@ UaStatus Configuration::loadDeviceConfiguration(const std::vector<std::string> &
                 spdlog::info("Configuration::loadDeviceConfiguration(): added Panel {} as w parent of MPES {}.",
                              panelId, mpesId);
             }
+
+            // get OT's PSD
+            if (panelId.position==1001 || panelId.position==2001)
+            {
+                Device::Identity psdId;
+                psdId.serialNumber = panelId.position; // need to find it out!!!
+                psdId.position = 0;
+                psdId.eAddress = "10.0.1.100"; // need to find it out!!!
+                psdId.name = std::string("PSD_") + std::to_string(psdId.serialNumber);
+
+                // add to the list of devices
+                m_DeviceIdentities[PAS_PSDType].insert(psdId);
+                spdlog::info("Configuration::loadDeviceConfiguration(): added PSD {} to device list.", psdId);
+
+                m_DeviceSerialMap[PAS_PSDType][psdId.serialNumber] = psdId;
+                m_DeviceNameMap[psdId.name] = psdId;
+
+                // add the PSD and its panels to the parents map
+                m_ChildMap[panelId][PAS_PSDType].insert(psdId);
+                m_ParentMap[psdId][PAS_PanelType].insert(panelId);
+                spdlog::info("Configuration::loadDeviceConfiguration(): added Panel {} as parent of PSD {}.",
+                             panelId, psdId);
+            }
         }
         try {
             spdlog::debug("Found {} MPES", m_DeviceIdentities.at(PAS_MPESType).size());
@@ -476,7 +499,31 @@ bool Configuration::addMissingParents() {
         }
         m_ChildMap[mirrorId][PAS_PanelType].insert(panelId);
         m_ParentMap[panelId][PAS_MirrorType].insert(mirrorId);
+        if (panelId.position==1001 || panelId.position==2001){
+            try {
+                for (const auto &psdId : m_DeviceIdentities.at(PAS_PSDType)) {
+                    if (psdId.serialNumber == panelId.position) {
+                        spdlog::trace("Found that {} associated with {}", panelId, psdId);
+                        m_ChildMap[panelId][PAS_PSDType].insert(psdId);
+                        m_ParentMap[psdId][PAS_PanelType].insert(panelId);
+                    } else {
+                    }
+                }
+            }
+            catch (const std::out_of_range& oor) {
+                spdlog::warn("No PSD found");
+            }
+        }
     }
+    try {
+        for (const auto &mpesId : m_DeviceIdentities.at(PAS_MPESType)) {
+            if (m_ParentMap.at(mpesId).at(PAS_PanelType).size() != 1) {
+                spdlog::error(
+                        "Configuration::createMissingParents(): MPES {} has {} parent panels (should only have 1). Aborting...",
+                        mpesId, m_ParentMap.at(mpesId).at(PAS_PanelType).size());
+                return false;
+            }
+            Device::Identity w_panelId = *m_ParentMap.at(mpesId).at(PAS_PanelType).begin();
     try {
         for (const auto &mpesId : m_DeviceIdentities.at(PAS_MPESType)) {
             if (m_ParentMap.at(mpesId).at(PAS_PanelType).size() != 1) {
@@ -520,8 +567,8 @@ bool Configuration::addMissingParents() {
         }
     }
     catch (const std::out_of_range& oor) {
-        spdlog::warn("No MPES found: [Out of Range error: {}]", oor.what() );
-    }
+            spdlog::warn("Out of Range error: ({}), No MPES found on this panel.",oor.what());
+        }
     if (m_DeviceIdentities.find(PAS_EdgeType) != m_DeviceIdentities.end()) {
         for (const auto &edgeId : m_DeviceIdentities.at(PAS_EdgeType)) {
             // Add mirror as parent to all edges
@@ -550,8 +597,9 @@ bool Configuration::addMissingParents() {
         }
     }
     catch (const std::out_of_range& oor) {
-        spdlog::warn("No MPES found: [Out of Range error: {}]", oor.what() );
+        spdlog::warn("Out of Range error: ({}), No MPES found on this panel.",oor.what());
     }
+
 }
 
 Device::Identity Configuration::getMirrorId(int mirrorNum) {
