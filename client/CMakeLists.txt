@@ -113,6 +113,7 @@ FILE(GLOB P2PAS_SRC
     "${COMMON_CODE_DIR}/globalalignment/ccdclass.cpp"
     "${COMMON_CODE_DIR}/globalalignment/ccd/*.cpp"
     "${COMMON_CODE_DIR}/utilities/*.cpp"
+    "${COMMON_CODE_DIR}/alignment/focalplane.cpp"
     "${COMMON_CODE_DIR}/alignment/device.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/*.hpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/controllers/*.hpp"
@@ -123,8 +124,10 @@ FILE(GLOB P2PAS_SRC
     "${COMMON_CODE_DIR}/simulatestewart/mathtools.h"
     "${COMMON_CODE_DIR}/globalalignment/ccdclass.h"
     "${COMMON_CODE_DIR}/globalalignment/ccd/*.h"
+    "${COMMON_CODE_DIR}/globalalignment/ccd/*.hpp"
     "${COMMON_CODE_DIR}/utilities/*.cpp"
     "${COMMON_CODE_DIR}/alignment/device.hpp"
+    "${COMMON_CODE_DIR}/alignment/focalplane.hpp"
     )
 
 if ( SIMMODE )

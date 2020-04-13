@@ -20,6 +20,8 @@
 
 #include "server/controllers/actcontroller.hpp"
 #include "server/controllers/pascontroller.hpp"
+#include "server/controllers/mpescontroller.hpp"
+#include "server/controllers/psdcontroller.hpp"
 
 class ActController;
 
@@ -77,6 +79,8 @@ public:
     /// @param pActuator A pointer to an MPES controller.
     void addMPES(const std::shared_ptr<MPESController> &pMPES);
 
+    void addPSD(const std::shared_ptr<PSDController> &pPSD);
+
 private:
     Device::ErrorState _getErrorState() { return m_pPlatform->getErrorState(); }
 
@@ -87,6 +91,8 @@ private:
 
     /// @brief A vector of all MPES controllers belonging to this panel.
     std::vector<std::shared_ptr<MPESController>> m_pMPES;
+
+    std::vector<std::shared_ptr<PSDController>> m_pPSD;
 };
 
 #endif //SERVER_PANELCONTROLLER_HPP

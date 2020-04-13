@@ -9,9 +9,13 @@
 
 #include "client/objects/opttableobject.hpp"
 #include "client/objects/mirrorobject.hpp"
+#include "client/objects/globalalignmentobject.hpp"
+#include "client/objects/opticalalignmentobject.hpp"
 #include "client/objects/panelobject.hpp"
 #include "client/objects/edgeobject.hpp"
 #include "client/objects/ccdobject.hpp"
+#include "client/objects/positionerobject.hpp"
+#include "client/objects/focalplaneobject.hpp"
 #include "client/pascommunicationinterface.hpp"
 #include "client/pasnodemanager.hpp"
 
@@ -27,6 +31,10 @@ PasObject* PasObjectFactory::Create(
 {
     switch (deviceType)
     {
+        case PAS_GlobalAlignmentType:
+            return new GlobalAlignmentObject(name, newNodeId, defaultLocaleId, pNodeManager, identity, pCommIf);
+        case PAS_OpticalAlignmentType:
+            return new OpticalAlignmentObject(name, newNodeId, defaultLocaleId, pNodeManager, identity, pCommIf);
         case PAS_MirrorType:
             return new MirrorObject(name, newNodeId, defaultLocaleId, pNodeManager, identity, pCommIf);
         case PAS_ACTType:
@@ -39,8 +47,12 @@ PasObject* PasObjectFactory::Create(
             return new EdgeObject(name, newNodeId, defaultLocaleId, pNodeManager, identity, pCommIf);
         case PAS_PSDType:
             return new PSDObject(name, newNodeId, defaultLocaleId, dynamic_cast<PasNodeManagerCommon *>(pNodeManager), identity, dynamic_cast<PasComInterfaceCommon *>(pCommIf));
+        case PAS_FocalPlaneType:
+            return new FocalPlaneObject(name, newNodeId, defaultLocaleId, pNodeManager, identity, pCommIf);
         case PAS_CCDType:
             return new CCDObject(name, newNodeId, defaultLocaleId, dynamic_cast<PasNodeManagerCommon *>(pNodeManager), identity, dynamic_cast<PasComInterfaceCommon *>(pCommIf));
+        case GLOB_PositionerType:
+            return new PositionerObject(name, newNodeId, defaultLocaleId, pNodeManager, identity, pCommIf);
         default:
             return nullptr;
     }

@@ -125,26 +125,23 @@ UaStatus PositionerController::setData(
 {
     UaStatus status;
     std::string varToWrite;
+    std::vector<std::string> varstowrite;
 
     switch (offset) {
         case GLOB_PositionerType_inAz:
             varToWrite = "in_position.az";
+            varstowrite = {"ns=2;s=Application.USERVARGLOBAL_OPCUA." + varToWrite};
+            value.setFloat(m_Data.inAz);
+            spdlog::trace("{} : Setting inAz value => ({})", m_Identity, m_Data.inAz);
             break;
         case GLOB_PositionerType_inEl:
             varToWrite = "in_position.el";
+            varstowrite = {"ns=2;s=Application.USERVARGLOBAL_OPCUA." + varToWrite};
+            value.setFloat(m_Data.inEl);
+            spdlog::trace("{} : Setting inEl value => ({})", m_Identity, m_Data.inEl);
             break;
         default:
             return OpcUa_BadInvalidArgument;
-    }
-
-    std::vector<std::string> varstowrite{"ns=2;s=Application.USERVARGLOBAL_OPCUA." + varToWrite};
-
-    if (offset == GLOB_PositionerType_inAz) {
-        value.setFloat(m_Data.inAz);
-        spdlog::trace("{} : Setting inAz value => ({})", m_Identity, m_Data.inAz);
-    } else if (offset == GLOB_PositionerType_inEl) {
-        value.setFloat(m_Data.inEl);
-        spdlog::trace("{} : Setting inEl value => ({})", m_Identity, m_Data.inEl);
     }
 
     status = m_pClient->write(varstowrite, &value);

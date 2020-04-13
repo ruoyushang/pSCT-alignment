@@ -1,4 +1,5 @@
 #pragma once
+
 #include <arv.h>
 #include <cstdio>
 #include <cstddef>
@@ -8,38 +9,59 @@
 #include <iostream>
 #include <iterator>
 
+//spdlog
+#include "common/utilities/spdlog/spdlog.h"
+#include "common/utilities/spdlog/fmt/ostr.h"
 
 class AravisCamera {
 public:
-	AravisCamera(const char* device_id = NULL);
-	~AravisCamera();
-	bool isReady();
+    AravisCamera(const char *device_id = NULL);
 
-	std::vector<unsigned char> captureFrame();
+    AravisCamera(const AravisCamera& that);
 
-	// getters
-	int px() { return imgWidth; }
-	int py() { return imgHeight; }
-	std::string getID();
-	int getPayload();
-	int getGain();
-	double getExposure();
-        double getFrameRate();
-	int getPixelDepth();
+    AravisCamera & operator=(const AravisCamera& that);
 
-	// setters
-	bool setGain(int gain);
-	bool setExposure(double exposure_us);
-	void setGainAuto(bool useAuto = true, bool continuous = true);
-	void setExposureAuto(bool useAuto = true, bool continuous = true);
-	bool setFrameRate(double rate_hz);
-	bool setPixelDepth(int depth);
+    ~AravisCamera();
+
+    bool isReady();
+
+    std::vector<unsigned char> captureFrame();
+
+    // getters
+    int px() { return imgWidth; }
+
+    int py() { return imgHeight; }
+
+    std::string getID();
+
+    int getPayload();
+
+    int getGain();
+
+    double getExposure();
+
+    double getFrameRate();
+
+    int getPixelDepth();
+
+    // setters
+    bool setGain(int gain);
+
+    bool setExposure(double exposure_us);
+
+    void setGainAuto(bool useAuto = true, bool continuous = true);
+
+    void setExposureAuto(bool useAuto = true, bool continuous = true);
+
+    bool setFrameRate(double rate_hz);
+
+    bool setPixelDepth(int depth);
 
 private:
-	bool cameraIsReady;
-	ArvCamera* camera;
-	ArvStream* stream;
-	std::string cameraID;
-	const int imgWidth, imgHeight, nBuffers;
-	int payload, pixelDepth;
+    bool cameraIsReady;
+    ArvCamera *camera;
+    ArvStream *stream;
+    std::string cameraID;
+    const int imgWidth, imgHeight, nBuffers;
+    int payload, pixelDepth;
 };

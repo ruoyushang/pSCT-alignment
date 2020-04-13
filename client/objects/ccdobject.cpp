@@ -48,5 +48,7 @@ const std::map <OpcUa_UInt32, std::pair<std::string, std::vector < std::tuple < 
 CCDObject::METHODS = {
         {PAS_CCDType_Start, {"Start", {}}},
         {PAS_CCDType_Read,  {"Read",  {}}},
-        {PAS_CCDType_Stop,  {"Stop",  {}}}
+        {PAS_CCDType_Stop,  {"Stop",  {}}},
+        {PAS_CCDType_TurnOn,  {"TurnOn",  {}}},
+        {PAS_CCDType_TurnOff,  {"TurnOff",  {}}}
 };

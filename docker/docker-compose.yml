@@ -13,15 +13,20 @@ services:
       - "3306:3306"
     volumes:
       - "./init:/docker-entrypoint-initdb.d"
+    networks:
+      default:
+        ipv4_address: 172.19.10.10
   alignment.docker:
     container_name: main
     build:
       context: .
       dockerfile: Dockerfile
     volumes:
-      - ~/Documents/InstalledTools/alignment/:/app
+      - ~/Documents/InstalledTools.nosync/alignment/:/app
     ports:
       - "3022:22"
+      - "2221:2221"
+      - "2001:2001"
       - "9999:9999"
       - "7777:7777"
       - "48010:48010"
@@ -33,3 +38,13 @@ services:
       - seccomp:unconfined
     cap_add:
       - SYS_PTRACE
+    networks:
+      default:
+        ipv4_address: 172.19.10.15
+networks:
+  default:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.19.10.0/24

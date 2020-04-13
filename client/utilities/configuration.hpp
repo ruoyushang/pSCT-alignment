@@ -103,7 +103,7 @@ public:
 
 private:
     static const std::map<std::string, std::string> SUBCLIENTS;
-    static const std::map<std::string, std::string> CCDs;
+    static const std::map<int, std::tuple<std::string, std::string>> CCDs;
 
     std::string m_Mode;
 
@@ -139,6 +139,9 @@ private:
     bool addMissingParents();
 
     Device::Identity getMirrorId(int mirrorNum);
+
+    Device::Identity getGlobalAlignmentId();
+    Device::Identity getOpticalAlignmentId();
 
     int getThirdPanelPosition(int wPanelPosition, int lPanelPosition);
 

@@ -228,6 +228,8 @@
 #define PAS_CCDType_Start                           3121
 #define PAS_CCDType_Stop                            3122
 #define PAS_CCDType_Read                            3123
+#define PAS_CCDType_TurnOn                          3124
+#define PAS_CCDType_TurnOff                         3125
 //----------------------------------------------------------//
 // PSD Type
 #define PAS_PSDType                                 3200
@@ -244,7 +246,58 @@
 #define PAS_PSDType_Temp                            3210
 #define PAS_PSDType_ErrorState                      3211
 #define PAS_PSDType_Read                            3220
+#define PAS_PSDType_Error0                          3251
+#define PAS_PSDType_Error1                          3252
+#define PAS_PSDType_Error2                          3253
+#define PAS_PSDType_Error3                          3254
+#define PAS_PSDType_Error4                          3255
+
 //----------------------------------------------------------//
+//
+// Focal Plane Type
+#define PAS_FocalPlaneType                            3300
+// Instance declaration
+#define PAS_FocalPlaneType_State                      3301
+#define PAS_FocalPlaneType_ErrorState                 3302
+#define PAS_FocalPlaneType_ImageFile                  3304
+#define PAS_FocalPlaneType_Verbosity                  3305
+#define PAS_FocalPlaneType_DETECT_MINAREA             3306
+#define PAS_FocalPlaneType_THRESH                     3307
+#define PAS_FocalPlaneType_DEBLEND_MINCONT            3308
+#define PAS_FocalPlaneType_SEARCH_XS                  3309
+#define PAS_FocalPlaneType_SEARCH_YS                  3310
+#define PAS_FocalPlaneType_AnalyzeSinglePanelImage    3321
+#define PAS_FocalPlaneType_AnalyzePatternImage        3322
+#define PAS_FocalPlaneType_SavePanelMotion            3323
+#define PAS_FocalPlaneType_Pattern2Center             3324
+#define PAS_FocalPlaneType_Center2Pattern             3325
+#define PAS_FocalPlaneType_Panel2Center               3326
+#define PAS_FocalPlaneType_Panel2Pattern              3327
+//----------------------------------------------------------//
+//
+// Global Alignment Type
+#define PAS_GlobalAlignmentType                            3400
+// Instance declaration
+#define PAS_GlobalAlignmentType_State                      3401
+#define PAS_GlobalAlignmentType_ErrorState                 3402
+#define PAS_GlobalAlignmentType_StartPSDTrack              3403
+#define PAS_GlobalAlignmentType_StopPSDTrack               3404
+
+//----------------------------------------------------------//
+//
+// Optical Alignment Type
+#define PAS_OpticalAlignmentType                            3500
+// Instance declaration
+#define PAS_OpticalAlignmentType_State                      3501
+#define PAS_OpticalAlignmentType_ErrorState                 3502
+#define PAS_OpticalAlignmentType_MoveFocusToPattern         3503
+#define PAS_OpticalAlignmentType_MovePatternToFocus         3504
+#define PAS_OpticalAlignmentType_MoveForCalibration         3505
+#define PAS_OpticalAlignmentType_GetResponseMatrix          3506
+#define PAS_OpticalAlignmentType_CalibrateFirstOrderCorr    3507
+//----------------------------------------------------------//
+//
+
 
 /************************************************************
  MPESEventType and its event field properties

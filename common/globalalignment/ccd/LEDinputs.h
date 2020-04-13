@@ -18,6 +18,10 @@
 #include <iostream>
 #include <fstream>
 
+//spdlog
+#include "common/utilities/spdlog/spdlog.h"
+#include "common/utilities/spdlog/fmt/ostr.h"
+
 struct LEDinputs {
 
     //default values set to Lab testing camera
@@ -34,34 +38,45 @@ struct LEDinputs {
     double PIXSIZE = 2.2E-6; //m
     std::string CCDMAC = "00074805579C";
     std::string CCDSN = "02410108";
-    double CCDPOS[6] {0}; // CCD position on optical table (unused)
+    double CCDPOS[6]{0}; // CCD position on optical table (unused)
     //Lens details
     double LENSFL = 50E-3; //m
     double LENSSCALE = 1.0;
     std::string LENSSN = "";
     //Panel details
     int NLED = 6;
-    double LEDCCD[8][2] = {{1421.68, -197.88},{849.961, -197.123},{849.23, -767.432},{1427.38, -768.4},
-           {847.921, -1333.06},{1433.88, -1332.21},{0,0},{0,0}}; // [led#][x,y] in CCD (0,0 is upper left)
-    double LED[8][3] = {{-199.76, 204.52, 0.0},  {-199.4, 0.0, 0.0},  {0.0, 0.0, 0.0},
-           {0.0, 204.52, 0.0},{200.6, 0.0, 0.0},{200.76, 204.52, 0.0},{0,0,0},{0,0,0}};
+    double LEDCCD[8][2] = {{1421.68, -197.88},
+                           {849.961, -197.123},
+                           {849.23,  -767.432},
+                           {1427.38, -768.4},
+                           {847.921, -1333.06},
+                           {1433.88, -1332.21},
+                           {0,       0},
+                           {0,       0}}; // [led#][x,y] in CCD (0,0 is upper left)
+    double LED[8][3] = {{-199.76, 204.52, 0.0},
+                        {-199.4,  0.0,    0.0},
+                        {0.0,     0.0,    0.0},
+                        {0.0,     204.52, 0.0},
+                        {200.6,   0.0,    0.0},
+                        {200.76,  204.52, 0.0},
+                        {0,       0,      0},
+                        {0,       0,      0}};
     //Bounds of the panel rotation
-    double LEDUB[6] = {1000.0,1000.0,10000.0,0.2,0.2,3.1415}; //[x,y,z,xrot,yrot,zrot]
-    double LEDLB[6] = {-1000.0,-1000.0,0,-0.2,-0.2,-1.0*3.1415}; //[x,y,z,xrot,yrot,zrot]
+    double LEDUB[6] = {1000.0, 1000.0, 10000.0, 0.2, 0.2, 3.1415}; //[x,y,z,xrot,yrot,zrot]
+    double LEDLB[6] = {-1000.0, -1000.0, 0, -0.2, -0.2, -1.0 * 3.1415}; //[x,y,z,xrot,yrot,zrot]
     //Other values
     double THRESHOLD = 2.0; // multiplicity above mean image value used for erosion/dilation and led detection
-    int TEMP = 1; 
+    int TEMP = 1;
 
 // END DATABASE 'MIRROR'
-    
+
 // Other parameters 
     bool VERBOSE = false;
     bool SAVEIMAGE = false;
     bool CAPTUREONLY = false;
     std::string SAVEFORMAT = "fits";
 
-    void printall(std::ofstream &fout)
-    {
+    void printall(std::ofstream &fout) {
         // need to add all parameters in an easy to read format.
         fout << "CCDNAME=" << CCDNAME << std::endl;
         fout << "CCDACTIVE=" << CCDACTIVE << std::endl;
@@ -70,21 +85,23 @@ struct LEDinputs {
         fout << "CCDHEIGHT=" << CCDHEIGHT << " (px)" << std::endl;
         fout << "CCDWIDTH=" << CCDWIDTH << " (px)" << std::endl;
         fout << "NLED=" << NLED << std::endl;
-        for(int i = 0; i<NLED; i++) fout << "LED" << i+1 << "CCD=(" << LEDCCD[i][0] << "," << LEDCCD[i][1] << ")" << std::endl;
+        for (int i = 0; i < NLED; i++)
+            fout << "LED" << i + 1 << "CCD=(" << LEDCCD[i][0] << "," << LEDCCD[i][1] << ")" << std::endl;
 
     }
 
-    void printall()
-    {
+    void printall() {
         // need to add all parameters in an easy to read format.
-        std::cout << "CCDNAME=" << CCDNAME << std::endl;
-        std::cout << "CCDACTIVE=" << CCDACTIVE << std::endl;
-        std::cout << "CCDGAIN=" << CCDGAIN << std::endl;
-        std::cout << "CCDEXP=" << CCDEXP << " (microsec)" << std::endl;
-        std::cout << "CCDHEIGHT=" << CCDHEIGHT << " (px)" << std::endl;
-        std::cout << "CCDWIDTH=" << CCDWIDTH << " (px)" << std::endl;
-        std::cout << "NLED=" << NLED << std::endl;
-        for(int i = 0; i<NLED; i++) std::cout << "LED" << i+1 << "CCD=(" << LEDCCD[i][0] << "," << LEDCCD[i][1] << ")" << std::endl;
+        spdlog::info("CCDNAME={}", CCDNAME);
+        spdlog::info("CCDACTIVE={}", CCDACTIVE);
+        spdlog::info("CCDGAIN={}", CCDGAIN);
+        spdlog::info("CCDEXP={} (microsec)", CCDEXP);
+        spdlog::info("CCDHEIGHT={} (px)", CCDHEIGHT);
+        spdlog::info("CCDWIDTH={} (px)", CCDWIDTH);
+        spdlog::info("NLED={}", NLED);
+        for (int i = 0; i < NLED; i++) {
+            spdlog::info("LED {} CCD=({},{})", i + 1, LEDCCD[i][0], LEDCCD[i][1]);
+        }
 
     }
 

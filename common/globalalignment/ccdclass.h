@@ -13,23 +13,45 @@
 #include <memory>
 #include <string>
 
-class GASCCD
-{
-    public:
-    GASCCD() :
-        pfLEDsOut(nullptr),
-        pfCamThread(nullptr),
-        pfCamera(nullptr),
-        fConfigFile("") {}
+class GASCCD : public Device {
+public:
+    struct Position {
+        Position() : x(-1), y(-1), z(-1), psi(-1), theta(-1), phi(-1) {}
+
+        double x;
+        double y;
+        double z;
+        double psi;
+        double theta;
+        double phi;
+    };
+
+    GASCCD(Device::Identity identity) :
+            pfLEDsOut(nullptr),
+            pfCamThread(nullptr),
+            pfCamera(nullptr),
+            fConfigFile(""),
+            Device::Device(std::move(identity)) {}
 
     ~GASCCD() = default;
+
+    static const std::vector<Device::ErrorDefinition> ERROR_DEFINITIONS;
+
+    Device::ErrorDefinition getErrorCodeDefinition(int errorCode) {
+        return GASCCD::ERROR_DEFINITIONS.at(errorCode);
+    }
+
+    int getNumErrors() override { return GASCCD::ERROR_DEFINITIONS.size(); }
 
     virtual bool initialize();
 
     virtual void setConfig(string config);
 
     virtual const double *getOutput() { return &(pfLEDsOut->SPACE[0]); };
-        void setNominalValues(int offset, double value);
+
+    Position getPosition();
+
+    void setNominalValues(int offset, double value);
 
     virtual std::string getName() const { return fLEDsIn.CCDNAME; };
 
@@ -39,20 +61,33 @@ class GASCCD
 
     virtual bool update();
 
+    void turnOn() override;
+
+    void turnOff() override;
+
+    bool isOn() override;
+
+    Device::ErrorState getErrorState() override;
+
+    Position m_pPosition = Position(); //GASCCD values
 protected:
     std::unique_ptr<LEDoutputs> pfLEDsOut;
-        LEDinputs fLEDsIn;
+    LEDinputs fLEDsIn;
     std::unique_ptr<CamOutThread> pfCamThread;
     std::unique_ptr<AravisCamera> pfCamera;
-        std::string fAddress;
-        std::string fConfigFile;
+    std::string fAddress;
+    std::string fConfigFile;
+    bool m_On{};
+
 };
 
 class DummyGASCCD : public GASCCD {
 public:
-    DummyGASCCD() : GASCCD(), m_Data() {}
+    DummyGASCCD(Device::Identity identity) : GASCCD(std::move(identity)), m_Data() {}
 
     ~DummyGASCCD() = default;
+
+    int getNumErrors() override { return GASCCD::ERROR_DEFINITIONS.size(); }
 
     bool initialize() override;
 
@@ -65,6 +100,12 @@ public:
     int getSerial() const override;
 
     bool update() override;
+
+    void turnOn() override;
+
+    void turnOff() override;
+
+    bool isOn() override;
 
 private:
     double m_Data[6];

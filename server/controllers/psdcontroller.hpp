@@ -13,6 +13,7 @@
 
 #include "common/alignment/device.hpp"
 #include "common/globalalignment/psdclass.h"
+#include "common/alignment/platform.hpp"
 
 #include "server/controllers/pascontroller.hpp"
 
@@ -25,7 +26,11 @@ class PSDController : public PasController
 public:
     /// @brief Instantiate a position sensitive device controller.
     /// @param ID The device ID (index) used to identify it within its parent panel/platform.
-    explicit PSDController(Device::Identity identity);
+    PSDController(Device::Identity identity, std::shared_ptr<PlatformBase> pPlatform);
+
+    /// @brief Initialize the PSD.
+    /// #return 0 on success, -1 on failure.
+    bool initialize() override;
 
     /// @brief Get the device's state.
     /// @param state Variable to store the retrieved state value.
@@ -60,7 +65,6 @@ private:
 
     Device::DeviceState _getDeviceState() { return Device::DeviceState::On; }
     /// @brief Pointer to the GASPSD object interfacing directly with thee PSD hardware.
-    std::unique_ptr<GASPSD> m_pPSD;
 
     /// @brief Read all sensors and update internal data variables
     /// @return OPC UA status code indicating success or failure.

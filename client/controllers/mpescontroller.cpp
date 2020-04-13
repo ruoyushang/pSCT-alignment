@@ -270,7 +270,7 @@ UaStatus MPESController::operate(OpcUa_UInt32 offset, const UaVariantArray &args
         if (m_Mode == "subclient") {
             spdlog::trace("Reading again under subclient");
             MPESBase::Position position = getPosition();
-            //TODO correct this condition to be the same as setExposure while conditions.
+
             if (((position.cleanedIntensity < (MPESBase::NOMINAL_INTENSITY/MPESBase::PRECISION)) or (position.cleanedIntensity > (MPESBase::NOMINAL_INTENSITY * MPESBase::PRECISION)))) {
                 spdlog::warn(
                     "{} : The image intensity ({}) differs from the nominal value ({}) by more than {}%. Will readjust exposure now.",
@@ -309,7 +309,7 @@ UaStatus MPESController::operate(OpcUa_UInt32 offset, const UaVariantArray &args
             std::ctime(&data.timestamp));
 
 
-        if (m_Mode == "client") { // Record readings to database
+        if (m_Mode == "subclient") { // Record readings to database
             struct tm tstruct{};
             char buf[80];
             tstruct = *localtime(&data.timestamp);
