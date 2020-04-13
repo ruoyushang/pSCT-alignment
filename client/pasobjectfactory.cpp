@@ -9,6 +9,8 @@
 
 #include "client/objects/opttableobject.hpp"
 #include "client/objects/mirrorobject.hpp"
+#include "client/objects/globalalignmentobject.hpp"
+#include "client/objects/opticalalignmentobject.hpp"
 #include "client/objects/panelobject.hpp"
 #include "client/objects/edgeobject.hpp"
 #include "client/objects/ccdobject.hpp"
@@ -29,6 +31,10 @@ PasObject* PasObjectFactory::Create(
 {
     switch (deviceType)
     {
+        case PAS_GlobalAlignmentType:
+            return new GlobalAlignmentObject(name, newNodeId, defaultLocaleId, pNodeManager, identity, pCommIf);
+        case PAS_OpticalAlignmentType:
+            return new OpticalAlignmentObject(name, newNodeId, defaultLocaleId, pNodeManager, identity, pCommIf);
         case PAS_MirrorType:
             return new MirrorObject(name, newNodeId, defaultLocaleId, pNodeManager, identity, pCommIf);
         case PAS_ACTType:

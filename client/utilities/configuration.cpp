@@ -118,7 +118,6 @@ UaStatus Configuration::loadDeviceConfiguration(const std::vector<std::string> &
     std::string db_address = "tcp://" + db_ip + ":" + db_port;
 
     m_DeviceIdentities[PAS_PanelType] = {}; // initialize the list of panels to an empty one -- other devices don't need this
-    m_DeviceIdentities[PAS_FocalPlaneType] = {};
 
     try {
         sql::Driver *sql_driver = get_driver_instance();
@@ -309,6 +308,22 @@ UaStatus Configuration::loadDeviceConfiguration(const std::vector<std::string> &
 
         m_DeviceSerialMap[PAS_FocalPlaneType][FPId.serialNumber] = FPId;
         m_DeviceNameMap[FPId.name] = FPId;
+
+        // Get GlobalAlignment ID
+        Device::Identity GAId = getGlobalAlignmentId();
+        m_DeviceIdentities[PAS_GlobalAlignmentType].insert(GAId);
+        spdlog::info("Configuration::loadDeviceConfiguration(): added Global Alignment {} to device list.", GAId);
+
+        m_DeviceSerialMap[PAS_GlobalAlignmentType][GAId.serialNumber] = GAId;
+        m_DeviceNameMap[GAId.name] = GAId;
+
+        // Get OpticalAlignment ID
+        Device::Identity OAId = getOpticalAlignmentId();
+        m_DeviceIdentities[PAS_OpticalAlignmentType].insert(OAId);
+        spdlog::info("Configuration::loadDeviceConfiguration(): added Optical Alignment {} to device list.", OAId);
+
+        m_DeviceSerialMap[PAS_OpticalAlignmentType][OAId.serialNumber] = OAId;
+        m_DeviceNameMap[OAId.name] = OAId;
 
     }
     catch (sql::SQLException &e) {
@@ -505,6 +520,32 @@ UaStatus Configuration::updateNamespaceIndexes(const UaStringArray& namespaceArr
 }
 
 bool Configuration::addMissingParents() {
+    for (const auto &GAId : m_DeviceIdentities.at(PAS_GlobalAlignmentType)){
+        for (const auto &OAId : m_DeviceIdentities.at(PAS_OpticalAlignmentType)){
+            for (const auto &ccdId : m_DeviceIdentities.at(PAS_CCDType)) {
+                for (const auto &fpId : m_DeviceIdentities.at(PAS_FocalPlaneType)) {
+                    for (const auto &psdId : m_DeviceIdentities.at(PAS_PSDType)) {
+                        m_ChildMap[GAId][PAS_CCDType].insert(ccdId);
+                        m_ChildMap[GAId][PAS_FocalPlaneType].insert(fpId);
+                        m_ChildMap[GAId][PAS_PSDType].insert(psdId);
+                        m_ChildMap[GAId][PAS_OpticalAlignmentType].insert(OAId);
+                        m_ParentMap[ccdId][PAS_GlobalAlignmentType].insert(GAId);
+                        m_ParentMap[fpId][PAS_GlobalAlignmentType].insert(GAId);
+                        m_ParentMap[psdId][PAS_GlobalAlignmentType].insert(GAId);
+                        m_ParentMap[OAId][PAS_GlobalAlignmentType].insert(GAId);
+
+                        m_ChildMap[OAId][PAS_CCDType].insert(ccdId);
+                        m_ChildMap[OAId][PAS_FocalPlaneType].insert(fpId);
+                        m_ChildMap[OAId][PAS_PSDType].insert(psdId);
+                        m_ParentMap[ccdId][PAS_OpticalAlignmentType].insert(OAId);
+                        m_ParentMap[fpId][PAS_OpticalAlignmentType].insert(OAId);
+                        m_ParentMap[psdId][PAS_OpticalAlignmentType].insert(OAId);
+                    }
+                }
+            }
+        }
+    }
+
     for (const auto &panelId : m_DeviceIdentities.at(PAS_PanelType)) {
         // Add mirror as parent to all panels
         Device::Identity mirrorId = getMirrorId(panelId.position);
@@ -636,6 +677,24 @@ Device::Identity Configuration::getMirrorId(int mirrorNum) {
     }
 
     return mirrorId;
+}
+
+Device::Identity Configuration::getGlobalAlignmentId() {
+    Device::Identity globalAlignmentId;
+    globalAlignmentId.position = 0;
+    globalAlignmentId.serialNumber = 0;
+    globalAlignmentId.eAddress = std::to_string(0);
+    globalAlignmentId.name = "GlobalAlignment";
+    return globalAlignmentId;
+}
+
+Device::Identity Configuration::getOpticalAlignmentId() {
+    Device::Identity opticalAlignmentId;
+    opticalAlignmentId.position = 0;
+    opticalAlignmentId.serialNumber = 0;
+    opticalAlignmentId.eAddress = std::to_string(0);
+    opticalAlignmentId.name = "OpticalAlignment";
+    return opticalAlignmentId;
 }
 
 int Configuration::getThirdPanelPosition(int wPanelPosition, int lPanelPosition) {

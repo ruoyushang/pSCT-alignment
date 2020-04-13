@@ -441,7 +441,9 @@ void Client::addDevices(const OpcUa_ReferenceDescription& referenceDescription)
                                                         {PAS_PSDType,   "PSD"},
                                                         {PAS_PanelType, "Panel"},
                                                         {PAS_CCDType, "CCD"},
-                                                        {PAS_FocalPlaneType, "FocalPlane"}};
+                                                        {PAS_FocalPlaneType, "FocalPlane"},
+                                                        {PAS_GlobalAlignmentType, "GlobalAlignment"},
+                                                        {PAS_OpticalAlignmentType, "OpticalAlignment"}};
     OpcUa_UInt32 type;
     std::string name;
     for (const auto& it_typeNameMap : typeNamesMap) {

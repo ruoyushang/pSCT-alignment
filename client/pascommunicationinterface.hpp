@@ -52,6 +52,9 @@ public:
 
     void addFocalPlaneController();
 
+    void addGlobalAlignmentController();
+    void addOpticalAlignmentController();
+
     void addParentChildRelations();
 
     /* Get device status and data */

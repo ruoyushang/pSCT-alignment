@@ -19,6 +19,8 @@
 #include "client/objects/opttableobject.hpp"
 #include "client/objects/positionerobject.hpp"
 #include "client/objects/focalplaneobject.hpp"
+#include "client/objects/globalalignmentobject.hpp"
+#include "client/objects/opticalalignmentobject.hpp"
 #include "client/pascommunicationinterface.hpp"
 #include "client/pasobjectfactory.hpp"
 #include "client/utilities/configuration.hpp"
@@ -116,6 +118,14 @@ UaStatus PasNodeManager::afterStartUp()
         // Create all relevant edge controllers
         spdlog::info("PasNodeManager::afterStartUp(): Creating all required edge controllers...");
         dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->addEdgeControllers();
+
+        // Adding GlobalAlignment controller
+        spdlog::info("PasNodeManager::afterStartUp(): Adding global alignment controller...");
+        dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->addGlobalAlignmentController();
+
+        // Adding OpticalAlignment controller
+        spdlog::info("PasNodeManager::afterStartUp(): Adding optical alignment controller...");
+        dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->addOpticalAlignmentController();
 
         // Adding FocalPlane controller
         spdlog::info("PasNodeManager::afterStartUp(): Adding focal plane controller...");
@@ -241,17 +251,32 @@ UaStatus PasNodeManager::afterStartUp()
                 try {
                     pChildren = dynamic_cast<PasCompositeController *>(pController.get())->getChildren(deviceType);
                     if (!pChildren.empty()) {
-                        os << deviceName << std::endl;
-                        pFolder = new UaFolder(UaString(deviceName.c_str()), UaNodeId(objectName + UaString(deviceName.c_str()), getNameSpaceIndex()), m_defaultLocaleId);
-                        ret = addNodeAndReference(pObject->nodeId(), pFolder, OpcUaId_HasComponent);
-                        UA_ASSERT(ret.isGood());
-                        for ( auto &child : pChildren) {
-                            os << child->getIdentity() << std::endl;
-                            ret = addUaReference(pFolder->nodeId(), pDeviceObjects[child]->nodeId(), OpcUaId_HasComponent);
+                        if (pChildren.size() > 1){
+                            os << deviceName << std::endl;
+                            pFolder = new UaFolder(UaString(deviceName.c_str()), UaNodeId(objectName + UaString(deviceName.c_str()), getNameSpaceIndex()), m_defaultLocaleId);
+                            ret = addNodeAndReference(pObject->nodeId(), pFolder, OpcUaId_HasComponent);
                             UA_ASSERT(ret.isGood());
-                            // Remove any child from the list of root devices
-                            pRootDevices.erase(child);
+                            for ( auto &child : pChildren) {
+                                os << child->getIdentity() << std::endl;
+                                ret = addUaReference(pFolder->nodeId(), pDeviceObjects[child]->nodeId(), OpcUaId_HasComponent);
+                                UA_ASSERT(ret.isGood());
+                                // Remove any child from the list of root devices
+                                pRootDevices.erase(child);
+                            }
                         }
+                        else{
+                            os << deviceName << std::endl;
+                            for ( auto &child : pChildren) {
+                                os << child->getIdentity() << std::endl;
+                                ret = addUaReference(pObject->nodeId(), pDeviceObjects[child]->nodeId(), OpcUaId_HasComponent);
+                                UA_ASSERT(ret.isGood());
+                                // Remove any child from the list of root devices
+                                pRootDevices.erase(child);
+                            }
+                        }
+                    }
+                    else{
+                        spdlog::debug("pChildren is empty for {}({})",deviceName, deviceType);
                     }
                 }
                 catch (...) {
@@ -311,6 +336,8 @@ UaStatus PasNodeManager::amendTypeNodes()
     UaObjectTypeSimple *pOptTableType = nullptr;
     UaObjectTypeSimple *pCCDType = nullptr;
     UaObjectTypeSimple *pFocalPlaneType = nullptr;
+    UaObjectTypeSimple *pOpticalAlignmentType = nullptr;
+    UaObjectTypeSimple *pGlobalAlignmentType = nullptr;
     OpcUa::DataItemType*         pDataItem;
     // Method helpers
     OpcUa::BaseMethod *pMethod = nullptr;
@@ -691,7 +718,7 @@ UaStatus PasNodeManager::amendTypeNodes()
 
 
     /***************************************************************
-     * Create the Mirror Type Instance declaration
+     * Create the Focal Plane Type Instance declaration
      ***************************************************************/
     // Register all variables
     for (auto v : FocalPlaneObject::VARIABLES) {
@@ -719,6 +746,136 @@ UaStatus PasNodeManager::amendTypeNodes()
                                         getNameSpaceIndex());
         pMethod->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
         addStatus = addNodeAndReference(pFocalPlaneType, pMethod, OpcUaId_HasComponent);
+        UA_ASSERT(addStatus.isGood());
+
+        // Add arguments
+        pPropertyArg = new UaPropertyMethodArgument(
+                UaNodeId((std::to_string(m.first) + "_" + m.second.first + "_args").c_str(),
+                         getNameSpaceIndex()), // NodeId of the property
+                Ua_AccessLevel_CurrentRead,             // Access level of the property
+                m.second.second.size(),                                      // Number of arguments
+                UaPropertyMethodArgument::INARGUMENTS); // IN arguments
+        for (size_t i = 0; i < m.second.second.size(); i++) {
+            pPropertyArg->setArgument(
+                    (OpcUa_UInt32) i,                       // Index of the argument
+                    std::get<0>(m.second.second[i]).c_str(),   // Name of the argument
+                    std::get<1>(m.second.second[i]),// Data type of the argument
+                    -1,                      // Array rank of the argument
+                    nullarray,               // Array dimensions of the argument
+                    UaLocalizedText("en", (std::get<2>(m.second.second[i])).c_str())); // Description
+        }
+        addStatus = addNodeAndReference(pMethod, pPropertyArg, OpcUaId_HasProperty);
+        UA_ASSERT(addStatus.isGood());
+    }
+
+    /**************************************************************
+    * Create the Optical Alignment Type
+    **************************************************************/
+    // Add ObjectType "OpticalAlignmentType"
+    pOpticalAlignmentType = new UaObjectTypeSimple(
+            "OpticalAlignmentType",    // Used as string in browse name and display name
+            UaNodeId(PAS_FocalPlaneType, getNameSpaceIndex()), // Numeric NodeId for types
+            m_defaultLocaleId,   // Defaul LocaleId for UaLocalizedText strings
+            OpcUa_True);         // Abstract object type -> can not be instantiated
+    // Add new node to address space by creating a reference from BaseObjectType to this new node
+    addStatus = addNodeAndReference(OpcUaId_BaseObjectType, pOpticalAlignmentType, OpcUaId_HasSubtype);
+    UA_ASSERT(addStatus.isGood());
+
+
+    /***************************************************************
+     * Create the Optical Alignment Type Instance declaration
+     ***************************************************************/
+    // Register all variables
+    for (auto v : OpticalAlignmentObject::VARIABLES) {
+        pDataItem = new OpcUa::DataItemType(UaNodeId(v.first, getNameSpaceIndex()),
+                                            std::get<0>(v.second).c_str(), getNameSpaceIndex(), std::get<1>(v.second),
+                                            std::get<3>(v.second), this);
+        pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
+        addStatus = addNodeAndReference(pOpticalAlignmentType, pDataItem, OpcUaId_HasComponent);
+        UA_ASSERT(addStatus.isGood());
+    }
+
+    // Register all error variables
+    for (auto v : OpticalAlignmentObject::ERRORS) {
+        pDataItem = new OpcUa::DataItemType(UaNodeId(v.first, getNameSpaceIndex()),
+                                            std::get<0>(v.second).c_str(), getNameSpaceIndex(), std::get<1>(v.second),
+                                            Ua_AccessLevel_CurrentRead, this);
+        //pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Optional);
+        addStatus = addNodeAndReference(pOpticalAlignmentType, pDataItem, OpcUaId_HasComponent);
+        UA_ASSERT(addStatus.isGood());
+    }
+
+    // Register all methods
+    for (auto m : OpticalAlignmentObject::METHODS) {
+        pMethod = new OpcUa::BaseMethod(UaNodeId(m.first, getNameSpaceIndex()), m.second.first.c_str(),
+                                        getNameSpaceIndex());
+        pMethod->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
+        addStatus = addNodeAndReference(pOpticalAlignmentType, pMethod, OpcUaId_HasComponent);
+        UA_ASSERT(addStatus.isGood());
+
+        // Add arguments
+        pPropertyArg = new UaPropertyMethodArgument(
+                UaNodeId((std::to_string(m.first) + "_" + m.second.first + "_args").c_str(),
+                         getNameSpaceIndex()), // NodeId of the property
+                Ua_AccessLevel_CurrentRead,             // Access level of the property
+                m.second.second.size(),                                      // Number of arguments
+                UaPropertyMethodArgument::INARGUMENTS); // IN arguments
+        for (size_t i = 0; i < m.second.second.size(); i++) {
+            pPropertyArg->setArgument(
+                    (OpcUa_UInt32) i,                       // Index of the argument
+                    std::get<0>(m.second.second[i]).c_str(),   // Name of the argument
+                    std::get<1>(m.second.second[i]),// Data type of the argument
+                    -1,                      // Array rank of the argument
+                    nullarray,               // Array dimensions of the argument
+                    UaLocalizedText("en", (std::get<2>(m.second.second[i])).c_str())); // Description
+        }
+        addStatus = addNodeAndReference(pMethod, pPropertyArg, OpcUaId_HasProperty);
+        UA_ASSERT(addStatus.isGood());
+    }
+
+    /**************************************************************
+    * Create the Global Alignment Type
+    **************************************************************/
+    // Add ObjectType "GlobalAlignmentType"
+    pGlobalAlignmentType = new UaObjectTypeSimple(
+            "GlobalAlignmentType",    // Used as string in browse name and display name
+            UaNodeId(PAS_FocalPlaneType, getNameSpaceIndex()), // Numeric NodeId for types
+            m_defaultLocaleId,   // Defaul LocaleId for UaLocalizedText strings
+            OpcUa_True);         // Abstract object type -> can not be instantiated
+    // Add new node to address space by creating a reference from BaseObjectType to this new node
+    addStatus = addNodeAndReference(OpcUaId_BaseObjectType, pGlobalAlignmentType, OpcUaId_HasSubtype);
+    UA_ASSERT(addStatus.isGood());
+
+
+    /***************************************************************
+     * Create the Global Alignment Type Instance declaration
+     ***************************************************************/
+    // Register all variables
+    for (auto v : GlobalAlignmentObject::VARIABLES) {
+        pDataItem = new OpcUa::DataItemType(UaNodeId(v.first, getNameSpaceIndex()),
+                                            std::get<0>(v.second).c_str(), getNameSpaceIndex(), std::get<1>(v.second),
+                                            std::get<3>(v.second), this);
+        pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
+        addStatus = addNodeAndReference(pGlobalAlignmentType, pDataItem, OpcUaId_HasComponent);
+        UA_ASSERT(addStatus.isGood());
+    }
+
+    // Register all error variables
+    for (auto v : GlobalAlignmentObject::ERRORS) {
+        pDataItem = new OpcUa::DataItemType(UaNodeId(v.first, getNameSpaceIndex()),
+                                            std::get<0>(v.second).c_str(), getNameSpaceIndex(), std::get<1>(v.second),
+                                            Ua_AccessLevel_CurrentRead, this);
+        //pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Optional);
+        addStatus = addNodeAndReference(pGlobalAlignmentType, pDataItem, OpcUaId_HasComponent);
+        UA_ASSERT(addStatus.isGood());
+    }
+
+    // Register all methods
+    for (auto m : GlobalAlignmentObject::METHODS) {
+        pMethod = new OpcUa::BaseMethod(UaNodeId(m.first, getNameSpaceIndex()), m.second.first.c_str(),
+                                        getNameSpaceIndex());
+        pMethod->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
+        addStatus = addNodeAndReference(pGlobalAlignmentType, pMethod, OpcUaId_HasComponent);
         UA_ASSERT(addStatus.isGood());
 
         // Add arguments

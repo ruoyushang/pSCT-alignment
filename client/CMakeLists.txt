@@ -124,6 +124,7 @@ FILE(GLOB P2PAS_SRC
     "${COMMON_CODE_DIR}/simulatestewart/mathtools.h"
     "${COMMON_CODE_DIR}/globalalignment/ccdclass.h"
     "${COMMON_CODE_DIR}/globalalignment/ccd/*.h"
+    "${COMMON_CODE_DIR}/globalalignment/ccd/*.hpp"
     "${COMMON_CODE_DIR}/utilities/*.cpp"
     "${COMMON_CODE_DIR}/alignment/device.hpp"
     "${COMMON_CODE_DIR}/alignment/focalplane.hpp"

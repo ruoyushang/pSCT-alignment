@@ -26,6 +26,8 @@
 #include "client/controllers/pascontroller.hpp"
 #include "client/controllers/psdcontroller.hpp"
 #include "client/controllers/focalplanecontroller.hpp"
+#include "client/controllers/opticalalignmentcontroller.hpp"
+#include "client/controllers/globalalignmentcontroller.hpp"
 
 #include "client/utilities/configuration.hpp"
 
@@ -50,6 +52,8 @@ std::map<OpcUa_UInt32, std::string> PasCommunicationInterface::deviceTypeNames{
     {PAS_CCDType, "CCD"},
     {PAS_PSDType, "PSD"},
     {PAS_FocalPlaneType, "FocalPlane"},
+    {PAS_OpticalAlignmentType, "OpticalAlignment"},
+    {PAS_GlobalAlignmentType, "GlobalAlignment"},
     {GLOB_PositionerType, "Positioner"}
 };
 
@@ -152,6 +156,10 @@ PasCommunicationInterface::addDevice(Client *pClient, OpcUa_UInt32 deviceType,
             pController = std::make_shared<PSDController>(identity, pClient);
         else if (deviceType == PAS_FocalPlaneType)
             pController = std::make_shared<FocalPlaneController>(identity, pClient);
+        else if (deviceType == PAS_GlobalAlignmentType)
+            pController = std::make_shared<GlobalAlignmentController>(identity, pClient);
+        else if (deviceType == PAS_OpticalAlignmentType)
+            pController = std::make_shared<OpticalAlignmentController>(identity, pClient);
         else if (deviceType == GLOB_PositionerType) {
 #if SIMMODE
             pController = std::dynamic_pointer_cast<PositionerController>(std::make_shared<DummyPositionerController>(identity));
@@ -197,6 +205,37 @@ void PasCommunicationInterface::addEdgeControllers() {
             if (addEdge) {
                 addDevice(nullptr, PAS_EdgeType, edgeId);
             }
+        }
+    }
+}
+
+void PasCommunicationInterface::addOpticalAlignmentController() {
+    for (const auto &oaID:  m_pConfiguration->getDevices(PAS_OpticalAlignmentType)){
+        spdlog::debug("Adding Optical Alignment device...");
+        spdlog::trace("Found ID: {}", oaID);
+        addDevice(nullptr, PAS_OpticalAlignmentType, oaID);
+    }
+}
+
+void PasCommunicationInterface::addGlobalAlignmentController() {
+    for (const auto &gaID:  m_pConfiguration->getDevices(PAS_GlobalAlignmentType)){
+        bool addGA = false;
+        spdlog::debug("Adding Global Alignment device...");
+        spdlog::trace("Found ID: {}", gaID);
+        for (const auto &ccdId : m_pConfiguration->getChildren(gaID).at(PAS_CCDType)) {
+            if (m_pControllers.at(PAS_CCDType).find(ccdId) !=
+                m_pControllers.at(PAS_CCDType).end()) {
+                // Child panel found
+                addGA = true;
+                break;
+            }
+        }
+        if (addGA) {
+            addDevice(nullptr, PAS_GlobalAlignmentType, gaID);
+        } else {
+            spdlog::warn(
+                    "Could not find any CCD children of GA {} (likely server failed to connect). GA controller not created...",
+                    gaID);
         }
     }
 }

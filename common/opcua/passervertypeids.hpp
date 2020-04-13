@@ -273,6 +273,29 @@
 #define PAS_FocalPlaneType_Panel2Pattern              3327
 //----------------------------------------------------------//
 //
+// Global Alignment Type
+#define PAS_GlobalAlignmentType                            3400
+// Instance declaration
+#define PAS_GlobalAlignmentType_State                      3401
+#define PAS_GlobalAlignmentType_ErrorState                 3402
+#define PAS_GlobalAlignmentType_StartPSDTrack              3403
+#define PAS_GlobalAlignmentType_StopPSDTrack               3404
+
+//----------------------------------------------------------//
+//
+// Optical Alignment Type
+#define PAS_OpticalAlignmentType                            3500
+// Instance declaration
+#define PAS_OpticalAlignmentType_State                      3501
+#define PAS_OpticalAlignmentType_ErrorState                 3502
+#define PAS_OpticalAlignmentType_MoveFocusToPattern         3503
+#define PAS_OpticalAlignmentType_MovePatternToFocus         3504
+#define PAS_OpticalAlignmentType_MoveForCalibration         3505
+#define PAS_OpticalAlignmentType_GetResponseMatrix          3506
+#define PAS_OpticalAlignmentType_CalibrateFirstOrderCorr    3507
+//----------------------------------------------------------//
+//
+
 
 /************************************************************
  MPESEventType and its event field properties

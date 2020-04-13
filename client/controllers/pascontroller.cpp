@@ -46,6 +46,9 @@ void PasCompositeController::addChild(OpcUa_UInt32 deviceType, const std::shared
             m_ChildrenSerialMap[deviceType][id.serialNumber] = pController;
             m_ChildrenEaddressMap[deviceType][id.eAddress] = pController;
             m_ChildrenPositionMap[deviceType][id.position] = pController;
+        } else{
+            spdlog::debug("{}: PasCompositeController::addChild(): Did not add child with ID {}.", m_Identity,
+                         pController->getIdentity());
         }
     }
 }

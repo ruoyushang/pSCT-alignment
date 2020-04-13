@@ -140,6 +140,9 @@ private:
 
     Device::Identity getMirrorId(int mirrorNum);
 
+    Device::Identity getGlobalAlignmentId();
+    Device::Identity getOpticalAlignmentId();
+
     int getThirdPanelPosition(int wPanelPosition, int lPanelPosition);
 
     std::map<std::string, std::string> m_Subclients;
