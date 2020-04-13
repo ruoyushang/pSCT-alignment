@@ -96,6 +96,7 @@
 #define PAS_MPESType_Timestamp                      1113
 #define PAS_MPESType_RawTimestamp                   1114
 #define PAS_MPESType_ImagePath                      1115
+#define PAS_MPESType_nSat                           1116
 #define PAS_MPESType_TurnOn                         1151
 #define PAS_MPESType_TurnOff                        1152
 #define PAS_MPESType_Read                           1153

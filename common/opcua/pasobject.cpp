@@ -231,6 +231,8 @@ const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, O
                                                         Ua_AccessLevel_CurrentRead)},
     {PAS_MPESType_yCentroidNominal, std::make_tuple("yCentroidNominal", UaVariant(0.0), OpcUa_False,
                                                         Ua_AccessLevel_CurrentRead)},
+    {PAS_MPESType_nSat, std::make_tuple("nSat", UaVariant(0.0), OpcUa_False,
+                                        Ua_AccessLevel_CurrentRead)},
     {PAS_MPESType_Exposure,         std::make_tuple("Exposure", UaVariant(0), OpcUa_False,
                                                     Ua_AccessLevel_CurrentRead)},
     {PAS_MPESType_Timestamp,        std::make_tuple("Timestamp", UaVariant(""), OpcUa_False,
@@ -239,7 +241,7 @@ const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, O
                                                     Ua_AccessLevel_CurrentRead)},
     {PAS_MPESType_ErrorState,       std::make_tuple("ErrorState", UaVariant(0), OpcUa_False,
                                                         Ua_AccessLevel_CurrentRead)},
-    {PAS_MPESType_ImagePath,       std::make_tuple("ImagePath", UaVariant("") , OpcUa_False,
+    {PAS_MPESType_ImagePath,       std::make_tuple("ImagePath", UaVariant("somePath") , OpcUa_False,
                                                     Ua_AccessLevel_CurrentRead)},
 };
 

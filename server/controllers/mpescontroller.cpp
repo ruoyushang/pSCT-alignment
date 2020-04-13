@@ -130,6 +130,10 @@ UaStatus MPESController::getData(OpcUa_UInt32 offset, UaVariant &value) {
                 spdlog::trace("{} : Read ySpotWidth value => ({})", m_Identity, position.ySpotWidth);
                 value.setFloat(position.ySpotWidth);
                 break;
+            case PAS_MPESType_nSat:
+                spdlog::trace("{} : Read nSat value => ({})", m_Identity, position.nSat);
+                value.setFloat(position.nSat);
+                break;
             case PAS_MPESType_CleanedIntensity:
                 spdlog::trace("{} : Read CleanedIntensity value => ({})", m_Identity, position.cleanedIntensity);
                 value.setFloat(position.cleanedIntensity);

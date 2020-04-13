@@ -273,6 +273,7 @@ int MPES::__updatePosition() {
     m_Position.cleanedIntensity = -3.;
     m_Position.timestamp = -3;
     m_Position.exposure = -3;
+    m_Position.nSat = -3;
 
     // read sensor
     if (int(m_pImageSet->Capture()) > 0) {
@@ -288,8 +289,9 @@ int MPES::__updatePosition() {
         m_Position.xSpotWidth = m_pImageSet->SetData.xSpotSD;
         m_Position.ySpotWidth = m_pImageSet->SetData.ySpotSD;
         m_Position.cleanedIntensity = m_pImageSet->SetData.CleanedIntensity;
-        m_Position.last_img = getLastImage();
+        m_Position.nSat = m_pImageSet->SetData.nSat;
     }
+    m_Position.last_img = getLastImage();
     if (int(m_Position.cleanedIntensity) == -1 ){
         // Real image possible, but no pixels pass threshold
         setError(7);
@@ -424,6 +426,7 @@ int DummyMPES::__updatePosition() {
     m_Position.ySpotWidth = MPESBase::NOMINAL_SPOT_WIDTH;
     m_Position.cleanedIntensity = MPESBase::NOMINAL_INTENSITY;
     m_Position.last_img = MPESBase::BACKUP_IMAGE_FILEPATH;
+    m_Position.nSat = 0;
 
     m_Position.exposure = 500.0;
     m_Position.timestamp = std::time(0);

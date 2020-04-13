@@ -190,6 +190,12 @@ UaStatus MPESController::getData(OpcUa_UInt32 offset, UaVariant &value) {
                 value.toInt32(exposure);
                 spdlog::trace("{} : Read Exposure value => ({})", m_Identity, exposure);
                 break;
+            case PAS_MPESType_nSat:
+                status = m_pClient->read({m_pClient->getDeviceNodeId(m_Identity) + "." + "nSat"}, &value);
+                int nSat;
+                value.toInt32(nSat);
+                spdlog::trace("{} : Read nSat value => ({})", m_Identity, nSat);
+                break;
             case PAS_MPESType_RawTimestamp:
                 status = m_pClient->read({m_pClient->getDeviceNodeId(m_Identity) + "." + "RawTimestamp"}, &value);
                 long timestamp;
@@ -262,6 +268,7 @@ UaStatus MPESController::operate(OpcUa_UInt32 offset, const UaVariantArray &args
         MPESBase::Position data = getPosition();
         
         if (m_Mode == "subclient") {
+            spdlog::trace("Reading again under subclient");
             MPESBase::Position position = getPosition();
             //TODO correct this condition to be the same as setExposure while conditions.
             if (((position.cleanedIntensity < (MPESBase::NOMINAL_INTENSITY/MPESBase::PRECISION)) or (position.cleanedIntensity > (MPESBase::NOMINAL_INTENSITY * MPESBase::PRECISION)))) {
@@ -287,8 +294,9 @@ UaStatus MPESController::operate(OpcUa_UInt32 offset, const UaVariantArray &args
             "ySpotWidth (nominal): {} ({})\n"
             "Cleaned Intensity (nominal): {} ({})\n"
             "Exposure: {}\n"
-            "Timestamp: {}\n"
-            "ImagePath: {}\n",
+            "nSat: {}\n"
+            "ImagePath: {}\n"
+            "Timestamp: {}\n",
             m_Identity,
             data.xCentroid, data.xNominal,
             data.yCentroid, data.yNominal,
@@ -296,8 +304,9 @@ UaStatus MPESController::operate(OpcUa_UInt32 offset, const UaVariantArray &args
             data.ySpotWidth, std::to_string(MPESBase::NOMINAL_SPOT_WIDTH),
             data.cleanedIntensity, std::to_string(MPESBase::NOMINAL_INTENSITY),
             data.exposure,
-            std::ctime(&data.timestamp),
-            data.last_img);
+            data.nSat,
+            data.last_img,
+            std::ctime(&data.timestamp));
 
 
         if (m_Mode == "client") { // Record readings to database
@@ -305,6 +314,8 @@ UaStatus MPESController::operate(OpcUa_UInt32 offset, const UaVariantArray &args
             char buf[80];
             tstruct = *localtime(&data.timestamp);
             strftime(buf, sizeof(buf), "%Y-%m-%d %X", &tstruct);
+
+            spdlog::trace("Updating MPES_readings.sql");
 
             UaString sql_stmt = UaString(
                 "INSERT INTO Opt_MPESReadings (date, serial_number, xcoord, ycoord, x_SpotWidth, y_SpotWidth, intensity) VALUES  ('%1', '%2', '%3', '%4', '%5', '%6', '%7' );\n").arg(
@@ -422,6 +433,7 @@ Eigen::Vector2d MPESController::getAlignedReadings() {
 MPESBase::Position MPESController::getPosition() {
     UaStatus status;
 
+    spdlog::trace("Trying to update position");
     std::vector<std::string> varstoread{
         "xCentroidAvg",
         "yCentroidAvg",
@@ -431,12 +443,13 @@ MPESBase::Position MPESController::getPosition() {
         "xCentroidNominal",
         "yCentroidNominal",
         "Exposure",
+        "nSat",
         "RawTimestamp",
         "ImagePath"
     };
     std::transform(varstoread.begin(), varstoread.end(), varstoread.begin(),
                    [this](std::string &str) { return m_pClient->getDeviceNodeId(m_Identity) + "." + str; });
-    UaVariant valstoread[10];
+    UaVariant valstoread[11];
 
     status = m_pClient->read(varstoread, &valstoread[0]);
 
@@ -453,9 +466,12 @@ MPESBase::Position MPESController::getPosition() {
     valstoread[5].toFloat(data.xNominal);
     valstoread[6].toFloat(data.yNominal);
     valstoread[7].toInt32(data.exposure);
-    valstoread[8].toInt64(data.timestamp);
-    UaString last_image = UaString(data.last_img.c_str());
-    valstoread[9].setString(last_image);
+    valstoread[8].toInt32(data.nSat);
+    valstoread[9].toInt64(data.timestamp);
+
+    data.last_img = valstoread[10].toString().toUtf8();
+//    UaString last_image = UaString(data.last_img.c_str());
+//    valstoread[10].setString(last_image);
 
     return data;
 }
