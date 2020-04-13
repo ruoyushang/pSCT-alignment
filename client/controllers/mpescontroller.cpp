@@ -468,10 +468,7 @@ MPESBase::Position MPESController::getPosition() {
     valstoread[7].toInt32(data.exposure);
     valstoread[8].toInt32(data.nSat);
     valstoread[9].toInt64(data.timestamp);
-
     data.last_img = valstoread[10].toString().toUtf8();
-//    UaString last_image = UaString(data.last_img.c_str());
-//    valstoread[10].setString(last_image);
 
     return data;
 }
