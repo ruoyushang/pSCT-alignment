@@ -521,25 +521,35 @@ UaStatus Configuration::updateNamespaceIndexes(const UaStringArray& namespaceArr
 
 bool Configuration::addMissingParents() {
     for (const auto &GAId : m_DeviceIdentities.at(PAS_GlobalAlignmentType)){
+        spdlog::trace("Looping thru GlobalAlignment") ;
         for (const auto &OAId : m_DeviceIdentities.at(PAS_OpticalAlignmentType)){
+            spdlog::trace("Looping thru OpticalAlignment");
             for (const auto &ccdId : m_DeviceIdentities.at(PAS_CCDType)) {
+                spdlog::trace("Looping thru CCDs");
                 for (const auto &fpId : m_DeviceIdentities.at(PAS_FocalPlaneType)) {
-                    for (const auto &psdId : m_DeviceIdentities.at(PAS_PSDType)) {
-                        m_ChildMap[GAId][PAS_CCDType].insert(ccdId);
-                        m_ChildMap[GAId][PAS_FocalPlaneType].insert(fpId);
-                        m_ChildMap[GAId][PAS_PSDType].insert(psdId);
-                        m_ChildMap[GAId][PAS_OpticalAlignmentType].insert(OAId);
-                        m_ParentMap[ccdId][PAS_GlobalAlignmentType].insert(GAId);
-                        m_ParentMap[fpId][PAS_GlobalAlignmentType].insert(GAId);
-                        m_ParentMap[psdId][PAS_GlobalAlignmentType].insert(GAId);
-                        m_ParentMap[OAId][PAS_GlobalAlignmentType].insert(GAId);
+                    spdlog::trace("Looping thru FocalPlane");
+                    try {
+                        for (const auto &psdId : m_DeviceIdentities.at(PAS_PSDType)) {
+                            spdlog::trace("Looping thru PSDs");
+                            m_ChildMap[GAId][PAS_CCDType].insert(ccdId);
+                            m_ChildMap[GAId][PAS_FocalPlaneType].insert(fpId);
+                            m_ChildMap[GAId][PAS_PSDType].insert(psdId);
+                            m_ChildMap[GAId][PAS_OpticalAlignmentType].insert(OAId);
+                            m_ParentMap[ccdId][PAS_GlobalAlignmentType].insert(GAId);
+                            m_ParentMap[fpId][PAS_GlobalAlignmentType].insert(GAId);
+                            m_ParentMap[psdId][PAS_GlobalAlignmentType].insert(GAId);
+                            m_ParentMap[OAId][PAS_GlobalAlignmentType].insert(GAId);
 
-                        m_ChildMap[OAId][PAS_CCDType].insert(ccdId);
-                        m_ChildMap[OAId][PAS_FocalPlaneType].insert(fpId);
-                        m_ChildMap[OAId][PAS_PSDType].insert(psdId);
-                        m_ParentMap[ccdId][PAS_OpticalAlignmentType].insert(OAId);
-                        m_ParentMap[fpId][PAS_OpticalAlignmentType].insert(OAId);
-                        m_ParentMap[psdId][PAS_OpticalAlignmentType].insert(OAId);
+                            m_ChildMap[OAId][PAS_CCDType].insert(ccdId);
+                            m_ChildMap[OAId][PAS_FocalPlaneType].insert(fpId);
+                            m_ChildMap[OAId][PAS_PSDType].insert(psdId);
+                            m_ParentMap[ccdId][PAS_OpticalAlignmentType].insert(OAId);
+                            m_ParentMap[fpId][PAS_OpticalAlignmentType].insert(OAId);
+                            m_ParentMap[psdId][PAS_OpticalAlignmentType].insert(OAId);
+                        }
+                    }
+                    catch (const std::out_of_range& oor) {
+                        spdlog::warn("Out of Range error: ({}), No PSD found on this selection.",oor.what());
                     }
                 }
             }
