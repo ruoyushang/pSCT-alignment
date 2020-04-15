@@ -127,17 +127,99 @@ UaStatus OpticalAlignmentController::operate(OpcUa_UInt32 offset, const UaVarian
 {
     UaStatus status;
     //UaMutexLocker lock(&m_mutex);
+    spdlog::trace("Offset: {}", offset);
+    if (m_State == Device::DeviceState::Busy) {
+        spdlog::error("{} : OpticalAlignmentController::operate() : Device is busy, method call aborted.", m_Identity);
+        return OpcUa_BadInvalidState;
+    }
 
-//    if (m_State == Device::DeviceState::Busy && offset != PAS_MirrorType_Stop) {
-//        spdlog::error("{} : OpticalAlignmentController::operate() : Device is busy, method call aborted.", m_Identity);
-//        return OpcUa_BadInvalidState;
-//    }
+    switch (offset) {
+        case PAS_OpticalAlignmentType_CalibrateFirstOrderCorr: {
+            spdlog::info("OpticalAlignmentController::operate() :  Calling CalibrateFirstOrderCorr...");
 
-//    if (offset == ...){
-//        ...
-//    } else {
-//        status = OpcUa_BadNotImplemented;
-//    }
+            /*
+             * Pseudocode for first order calibration strategy. This strategy corrects motion from pattern to focal point per panel
+             *
+
+             loadPatternImageParameters() //get best (human derived) parameters to analyze image for this ring that label panels properly.  This should come from focalplaneimage object.
+
+             args[0] = target_coordinates_center_x // [x,y]
+             args[1] = target_coordinates_center_y // [x,y]
+             args[2] = show_plot //bool
+             args[3] = offset_limit // float, in pixels. Max distance to target position
+
+             map <int panel, set(float x,float y) > coordinates_per_panel;
+             map <int panel, eigen actuator_lengths(6) > m_corrected_actuator_lengths_per_panel;
+
+             image_filepath = captureSingleImage();
+             coordinates_per_panel = analyzeImagePatternAutomatically(image_filepath,show_plot);
+
+             for panel_item in coordinates_per_panel {
+                image_filepath = captureSingleImage();
+                coordinates_per_panel = analyzeImagePatternAutomatically(image_filepath, show_plot);
+
+                int panel = panel_item.first;
+                set panel_coordinates = panel_item.second;
+
+                actuator_deltas = eigen.empty(6);
+                total_actuator_deltas = eigen.empty(6);
+
+                image_delta_x = panel_coordinates.X - target_coordinates_center_x;
+                image_delta_y = panel_coordinates.Y - target_coordinates_center_y;
+
+                distance_panel_to_target = math.sqrt(image_delta_x**2+image_delta_y**2);
+
+                // while statement to repeat motion/analysis until panel reaches target within offset_limit.
+                while (distance_panel_to_target > offset_limit) {
+                    {
+                    actuator_deltas = calculateActuatorMotion(panel, imageDeltaX, imageDeltaY);
+                    panel->moveDeltaLength(actuator_deltas);
+
+                    image_filepath = captureSingleImage();
+                    panel_coordinates = analyzeImageSinglePanelAutomatically(image_filepath,show_plot);
+
+                    image_delta_x = panel_coordinates.X - target_coordinates_center_x;
+                    image_delta_y = panel_coordinates.Y - target_coordinates_center_y;
+
+                    total_actuator_deltas += actuator_deltas;
+
+                    distance_panel_to_target = math.sqrt(image_delta_x**2+image_delta_y**2);
+                    }
+                m_corrected_actuator_lengths_per_panel.find(panel) = total_actuator_deltas;
+                }
+            save(m_corrected_actuator_lengths_per_panel) //save these corrected values to file/DB. Also use elsewhere here during this session.
+
+            */
+            status = OpcUa_Good;
+            break;
+        }
+        case PAS_OpticalAlignmentType_MoveFocusToPattern: {
+            spdlog::info("OpticalAlignmentController::operate() :  Calling MoveFocusToPattern...");
+
+            status = OpcUa_Good;
+            break;
+        }
+        case PAS_OpticalAlignmentType_MovePatternToFocus: {
+            spdlog::info("OpticalAlignmentController::operate() :  Calling MovePatternToFocus...");
+
+            status = OpcUa_Good;
+            break;
+        }
+        case PAS_OpticalAlignmentType_MoveForCalibration: {
+            spdlog::info("OpticalAlignmentController::operate() :  Calling MoveForCalibration...");
+
+            status = OpcUa_Good;
+            break;
+        }
+        case PAS_OpticalAlignmentType_GetResponseMatrix: {
+            spdlog::info("OpticalAlignmentController::operate() :  Calling GetResponseMatrix...");
+
+            status = OpcUa_Good;
+            break;
+        }
+        default:
+            status = OpcUa_BadInvalidArgument;
+    }
 
     return status;
 }
