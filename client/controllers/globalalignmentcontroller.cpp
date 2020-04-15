@@ -127,17 +127,30 @@ UaStatus GlobalAlignmentController::operate(OpcUa_UInt32 offset, const UaVariant
 {
     UaStatus status;
     //UaMutexLocker lock(&m_mutex);
+    spdlog::trace("Offset: {}", offset);
+    if (m_State == Device::DeviceState::Busy) {
+        spdlog::error("{} : GlobalAlignmentController::operate() : Device is busy, method call aborted.", m_Identity);
+        return OpcUa_BadInvalidState;
+    }
 
-//    if (m_State == Device::DeviceState::Busy && offset != PAS_MirrorType_Stop) {
-//        spdlog::error("{} : GlobalAlignmentController::operate() : Device is busy, method call aborted.", m_Identity);
-//        return OpcUa_BadInvalidState;
-//    }
+    switch (offset) {
+        case PAS_GlobalAlignmentType_StartPSDTrack: {
+            spdlog::info("GlobalAlignmentController::operate() :  Calling StartPSDTracking...");
 
-//    if (offset == ...){
-//        ...
-//    } else {
-//        status = OpcUa_BadNotImplemented;
-//    }
+            //pLogic->start();
+            status = OpcUa_Good;
+            break;
+        }
+        case PAS_GlobalAlignmentType_StopPSDTrack: {
+            spdlog::info("GlobalAlignmentController::operate() :  Calling StopPSDTracking...");
+
+            //pLogic->stop();
+            status = OpcUa_Good;
+            break;
+        }
+        default:
+            status = OpcUa_BadInvalidArgument;
+    }
 
     return status;
 }
