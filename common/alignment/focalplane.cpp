@@ -73,6 +73,8 @@ std::string focalplane::analyzePatternCommand() {
               + " --ring_frac " + std::to_string(m_RingFrac)
               + " -p " + m_PatternCenter
               + " --ring_tol " + std::to_string(m_RingTol)
+              + " --min_dist " + std::to_string(m_MinDist)
+              + " --phase_offset_rad " + std::to_string(m_PhaseOffsetRad)
               ;
 
     if (m_verbosity) {
@@ -138,4 +140,21 @@ std::string focalplane::getResponseMatrixPatternFast() {
 
 std::string focalplane::getResponseMatrixSinglePanel() {
     return std::string();
+}
+
+std::string focalplane::exec(const char* cmd) {
+    char buffer[128];
+    std::string result = "";
+    FILE* pipe = popen(cmd, "r");
+    if (!pipe) throw std::runtime_error("popen() failed!");
+    try {
+        while (fgets(buffer, sizeof buffer, pipe) != NULL) {
+            result += buffer;
+        }
+    } catch (...) {
+        pclose(pipe);
+        throw;
+    }
+    pclose(pipe);
+    return result;
 }

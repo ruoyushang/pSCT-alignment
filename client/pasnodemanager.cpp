@@ -485,7 +485,6 @@ UaStatus PasNodeManager::amendTypeNodes()
     addStatus = addNodeAndReference(OpcUaId_BaseObjectType, pMirrorType, OpcUaId_HasSubtype);
     UA_ASSERT(addStatus.isGood());
 
-
     /***************************************************************
      * Create the Mirror Type Instance declaration
      ***************************************************************/
@@ -716,7 +715,6 @@ UaStatus PasNodeManager::amendTypeNodes()
     addStatus = addNodeAndReference(OpcUaId_BaseObjectType, pFocalPlaneType, OpcUaId_HasSubtype);
     UA_ASSERT(addStatus.isGood());
 
-
     /***************************************************************
      * Create the Focal Plane Type Instance declaration
      ***************************************************************/
@@ -750,19 +748,19 @@ UaStatus PasNodeManager::amendTypeNodes()
 
         // Add arguments
         pPropertyArg = new UaPropertyMethodArgument(
-                UaNodeId((std::to_string(m.first) + "_" + m.second.first + "_args").c_str(),
-                         getNameSpaceIndex()), // NodeId of the property
-                Ua_AccessLevel_CurrentRead,             // Access level of the property
-                m.second.second.size(),                                      // Number of arguments
-                UaPropertyMethodArgument::INARGUMENTS); // IN arguments
+            UaNodeId((std::to_string(m.first) + "_" + m.second.first + "_args").c_str(),
+                     getNameSpaceIndex()), // NodeId of the property
+            Ua_AccessLevel_CurrentRead,             // Access level of the property
+            m.second.second.size(),                                      // Number of arguments
+            UaPropertyMethodArgument::INARGUMENTS); // IN arguments
         for (size_t i = 0; i < m.second.second.size(); i++) {
             pPropertyArg->setArgument(
-                    (OpcUa_UInt32) i,                       // Index of the argument
-                    std::get<0>(m.second.second[i]).c_str(),   // Name of the argument
-                    std::get<1>(m.second.second[i]),// Data type of the argument
-                    -1,                      // Array rank of the argument
-                    nullarray,               // Array dimensions of the argument
-                    UaLocalizedText("en", (std::get<2>(m.second.second[i])).c_str())); // Description
+                (OpcUa_UInt32) i,                       // Index of the argument
+                std::get<0>(m.second.second[i]).c_str(),   // Name of the argument
+                std::get<1>(m.second.second[i]),// Data type of the argument
+                -1,                      // Array rank of the argument
+                nullarray,               // Array dimensions of the argument
+                UaLocalizedText("en", (std::get<2>(m.second.second[i])).c_str())); // Description
         }
         addStatus = addNodeAndReference(pMethod, pPropertyArg, OpcUaId_HasProperty);
         UA_ASSERT(addStatus.isGood());
@@ -774,13 +772,12 @@ UaStatus PasNodeManager::amendTypeNodes()
     // Add ObjectType "OpticalAlignmentType"
     pOpticalAlignmentType = new UaObjectTypeSimple(
             "OpticalAlignmentType",    // Used as string in browse name and display name
-            UaNodeId(PAS_FocalPlaneType, getNameSpaceIndex()), // Numeric NodeId for types
+            UaNodeId(PAS_OpticalAlignmentType, getNameSpaceIndex()), // Numeric NodeId for types
             m_defaultLocaleId,   // Defaul LocaleId for UaLocalizedText strings
             OpcUa_True);         // Abstract object type -> can not be instantiated
     // Add new node to address space by creating a reference from BaseObjectType to this new node
     addStatus = addNodeAndReference(OpcUaId_BaseObjectType, pOpticalAlignmentType, OpcUaId_HasSubtype);
     UA_ASSERT(addStatus.isGood());
-
 
     /***************************************************************
      * Create the Optical Alignment Type Instance declaration
@@ -815,19 +812,19 @@ UaStatus PasNodeManager::amendTypeNodes()
 
         // Add arguments
         pPropertyArg = new UaPropertyMethodArgument(
-                UaNodeId((std::to_string(m.first) + "_" + m.second.first + "_args").c_str(),
-                         getNameSpaceIndex()), // NodeId of the property
-                Ua_AccessLevel_CurrentRead,             // Access level of the property
-                m.second.second.size(),                                      // Number of arguments
-                UaPropertyMethodArgument::INARGUMENTS); // IN arguments
+            UaNodeId((std::to_string(m.first) + "_" + m.second.first + "_args").c_str(),
+                     getNameSpaceIndex()), // NodeId of the property
+            Ua_AccessLevel_CurrentRead,             // Access level of the property
+            m.second.second.size(),                                      // Number of arguments
+            UaPropertyMethodArgument::INARGUMENTS); // IN arguments
         for (size_t i = 0; i < m.second.second.size(); i++) {
             pPropertyArg->setArgument(
-                    (OpcUa_UInt32) i,                       // Index of the argument
-                    std::get<0>(m.second.second[i]).c_str(),   // Name of the argument
-                    std::get<1>(m.second.second[i]),// Data type of the argument
-                    -1,                      // Array rank of the argument
-                    nullarray,               // Array dimensions of the argument
-                    UaLocalizedText("en", (std::get<2>(m.second.second[i])).c_str())); // Description
+                (OpcUa_UInt32) i,                       // Index of the argument
+                std::get<0>(m.second.second[i]).c_str(),   // Name of the argument
+                std::get<1>(m.second.second[i]),// Data type of the argument
+                -1,                      // Array rank of the argument
+                nullarray,               // Array dimensions of the argument
+                UaLocalizedText("en", (std::get<2>(m.second.second[i])).c_str())); // Description
         }
         addStatus = addNodeAndReference(pMethod, pPropertyArg, OpcUaId_HasProperty);
         UA_ASSERT(addStatus.isGood());
@@ -838,14 +835,13 @@ UaStatus PasNodeManager::amendTypeNodes()
     **************************************************************/
     // Add ObjectType "GlobalAlignmentType"
     pGlobalAlignmentType = new UaObjectTypeSimple(
-            "GlobalAlignmentType",    // Used as string in browse name and display name
-            UaNodeId(PAS_FocalPlaneType, getNameSpaceIndex()), // Numeric NodeId for types
-            m_defaultLocaleId,   // Defaul LocaleId for UaLocalizedText strings
-            OpcUa_True);         // Abstract object type -> can not be instantiated
+        "GlobalAlignmentType",    // Used as string in browse name and display name
+        UaNodeId(PAS_GlobalAlignmentType, getNameSpaceIndex()), // Numeric NodeId for types
+        m_defaultLocaleId,   // Defaul LocaleId for UaLocalizedText strings
+        OpcUa_True);         // Abstract object type -> can not be instantiated
     // Add new node to address space by creating a reference from BaseObjectType to this new node
     addStatus = addNodeAndReference(OpcUaId_BaseObjectType, pGlobalAlignmentType, OpcUaId_HasSubtype);
     UA_ASSERT(addStatus.isGood());
-
 
     /***************************************************************
      * Create the Global Alignment Type Instance declaration
@@ -880,19 +876,19 @@ UaStatus PasNodeManager::amendTypeNodes()
 
         // Add arguments
         pPropertyArg = new UaPropertyMethodArgument(
-                UaNodeId((std::to_string(m.first) + "_" + m.second.first + "_args").c_str(),
-                         getNameSpaceIndex()), // NodeId of the property
-                Ua_AccessLevel_CurrentRead,             // Access level of the property
-                m.second.second.size(),                                      // Number of arguments
-                UaPropertyMethodArgument::INARGUMENTS); // IN arguments
+            UaNodeId((std::to_string(m.first) + "_" + m.second.first + "_args").c_str(),
+                     getNameSpaceIndex()), // NodeId of the property
+            Ua_AccessLevel_CurrentRead,             // Access level of the property
+            m.second.second.size(),                                      // Number of arguments
+            UaPropertyMethodArgument::INARGUMENTS); // IN arguments
         for (size_t i = 0; i < m.second.second.size(); i++) {
             pPropertyArg->setArgument(
-                    (OpcUa_UInt32) i,                       // Index of the argument
-                    std::get<0>(m.second.second[i]).c_str(),   // Name of the argument
-                    std::get<1>(m.second.second[i]),// Data type of the argument
-                    -1,                      // Array rank of the argument
-                    nullarray,               // Array dimensions of the argument
-                    UaLocalizedText("en", (std::get<2>(m.second.second[i])).c_str())); // Description
+                (OpcUa_UInt32) i,                       // Index of the argument
+                std::get<0>(m.second.second[i]).c_str(),   // Name of the argument
+                std::get<1>(m.second.second[i]),// Data type of the argument
+                -1,                      // Array rank of the argument
+                nullarray,               // Array dimensions of the argument
+                UaLocalizedText("en", (std::get<2>(m.second.second[i])).c_str())); // Description
         }
         addStatus = addNodeAndReference(pMethod, pPropertyArg, OpcUaId_HasProperty);
         UA_ASSERT(addStatus.isGood());

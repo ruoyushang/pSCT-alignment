@@ -15,7 +15,9 @@
 
 
 const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, OpcUa_Byte>> GlobalAlignmentObject::VARIABLES = {
-        {PAS_OptTableType_State, std::make_tuple("State", UaVariant(0), OpcUa_True, Ua_AccessLevel_CurrentRead)},
+        {PAS_GlobalAlignmentType_State, std::make_tuple("State", UaVariant(0), OpcUa_True, Ua_AccessLevel_CurrentRead)},
+        {PAS_GlobalAlignmentType_ErrorState, std::make_tuple("ErrorState", UaVariant(0), OpcUa_True, Ua_AccessLevel_CurrentRead)},
+        {PAS_GlobalAlignmentType_Tracking, std::make_tuple("Tracking", UaVariant(0), OpcUa_True, Ua_AccessLevel_CurrentRead)},
 };
 
 const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean>> GlobalAlignmentObject::ERRORS = {

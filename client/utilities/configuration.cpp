@@ -521,9 +521,9 @@ UaStatus Configuration::updateNamespaceIndexes(const UaStringArray& namespaceArr
 
 bool Configuration::addMissingParents() {
     for (const auto &GAId : m_DeviceIdentities.at(PAS_GlobalAlignmentType)){
-        spdlog::trace("Looping thru GlobalAlignment") ;
+        spdlog::trace("Looping thru GlobalAlignment for GAS devices") ;
         for (const auto &OAId : m_DeviceIdentities.at(PAS_OpticalAlignmentType)){
-            spdlog::trace("Looping thru OpticalAlignment");
+            spdlog::trace("Looping thru OpticalAlignment for GAS devices");
             for (const auto &ccdId : m_DeviceIdentities.at(PAS_CCDType)) {
                 spdlog::trace("Looping thru CCDs");
                 for (const auto &fpId : m_DeviceIdentities.at(PAS_FocalPlaneType)) {
@@ -579,6 +579,19 @@ bool Configuration::addMissingParents() {
             catch (const std::out_of_range& oor) {
                 spdlog::warn("No PSD found");
             }
+        }
+        else{
+            for (const auto &GAId : m_DeviceIdentities.at(PAS_GlobalAlignmentType)) {
+                spdlog::trace("Looping thru GlobalAlignment for panels");
+                m_ChildMap[GAId][PAS_PanelType].insert(panelId);
+                m_ParentMap[panelId][PAS_GlobalAlignmentType].insert(GAId);
+            }
+            for (const auto &OAId : m_DeviceIdentities.at(PAS_OpticalAlignmentType)) {
+                spdlog::trace("Looping thru OpticalAlignment for panels");
+                m_ChildMap[OAId][PAS_PanelType].insert(panelId);
+                m_ParentMap[panelId][PAS_OpticalAlignmentType].insert(OAId);
+            }
+
         }
     }
     for (const auto &mirrorId : m_DeviceIdentities.at(PAS_MirrorType)) {

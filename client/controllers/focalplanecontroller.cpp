@@ -9,7 +9,7 @@
 
 FocalPlaneController::FocalPlaneController(Device::Identity identity, Client *pClient)
         : PasCompositeController(std::move(identity), nullptr, 0) {
-    m_pFP = std::unique_ptr<focalplane>(new focalplane(m_Identity));
+    m_pFP = std::shared_ptr<focalplane>(new focalplane(m_Identity));
     spdlog::debug("Created Focal Plane controller.");
 }
 
@@ -95,6 +95,48 @@ UaStatus FocalPlaneController::getData(OpcUa_UInt32 offset, UaVariant &value) {
             spdlog::trace("{} : Read Search_Ys value => ({})", m_Identity, search_Ys);
             break;
         }
+        case PAS_FocalPlaneType_PatternRadius: {
+            OpcUa_Double valDouble;
+            valDouble = m_pFP->m_PatternRadius;
+            value.setDouble(valDouble);
+            spdlog::trace("{} : Read PatternRadius value => ({})", m_Identity, valDouble);
+            break;
+        }
+        case PAS_FocalPlaneType_PhaseOffsetRad: {
+            OpcUa_Double valDouble;
+            valDouble = m_pFP->m_PhaseOffsetRad;
+            value.setDouble(valDouble);
+            spdlog::trace("{} : Read PhaseOffsetRad value => ({})", m_Identity, valDouble);
+            break;
+        }
+        case PAS_FocalPlaneType_RingFrac: {
+            OpcUa_Double valDouble;
+            valDouble = m_pFP->m_RingFrac;
+            value.setDouble(valDouble);
+            spdlog::trace("{} : Read RingFrac value => ({})", m_Identity, valDouble);
+            break;
+        }
+        case PAS_FocalPlaneType_RingTol: {
+            OpcUa_Double valDouble;
+            valDouble = m_pFP->m_RingTol;
+            value.setDouble(valDouble);
+            spdlog::trace("{} : Read RingTol value => ({})", m_Identity, valDouble);
+            break;
+        }
+        case PAS_FocalPlaneType_MinDist: {
+            OpcUa_Double valDouble;
+            valDouble = m_pFP->m_MinDist;
+            value.setDouble(valDouble);
+            spdlog::trace("{} : Read MinDist value => ({})", m_Identity, valDouble);
+            break;
+        }
+        case PAS_FocalPlaneType_PatternCenter: {
+            std::string PatternCenter;
+            PatternCenter = m_pFP->m_PatternCenter;
+            value.setString(PatternCenter.c_str());
+            spdlog::trace("{} : Read Search_Ys value => ({})", m_Identity, PatternCenter);
+            break;
+        }
         default:
             status = OpcUa_BadInvalidArgument;
             break;
@@ -161,7 +203,7 @@ UaStatus FocalPlaneController::setData(OpcUa_UInt32 offset, UaVariant value) {
             break;
         }
         default:
-            status = OpcUa_BadNotWritable;
+            return OpcUa_BadNotWritable;
             break;
     }
 
@@ -187,6 +229,11 @@ UaStatus FocalPlaneController::operate(OpcUa_UInt32 offset, const UaVariantArray
 
                 spdlog::trace("Calling focal plane command:");
                 spdlog::info(command);
+
+                std::string ret;
+                ret = m_pFP->exec(command.c_str());
+                spdlog::info(ret);
+
                 status = OpcUa_Good;
             }
             else{
@@ -211,6 +258,10 @@ UaStatus FocalPlaneController::operate(OpcUa_UInt32 offset, const UaVariantArray
 
                 spdlog::trace("Calling focal plane command:");
                 spdlog::info(command);
+                std::string ret;
+                ret = m_pFP->exec(command.c_str());
+                spdlog::info(ret);
+
                 status = OpcUa_Good;
             }
             else{
@@ -240,6 +291,10 @@ UaStatus FocalPlaneController::operate(OpcUa_UInt32 offset, const UaVariantArray
 
             spdlog::trace("Calling calc motion command:");
             spdlog::info(command);
+            std::string ret;
+            ret = m_pFP->exec(command.c_str());
+            spdlog::info(ret);
+
             status = OpcUa_Good;
             break;
         }
@@ -254,6 +309,10 @@ UaStatus FocalPlaneController::operate(OpcUa_UInt32 offset, const UaVariantArray
 
             spdlog::trace("Calling calc motion command:");
             spdlog::info(command);
+            std::string ret;
+            ret = m_pFP->exec(command.c_str());
+            spdlog::info(ret);
+
             status = OpcUa_Good;
             break;
         }
@@ -268,6 +327,10 @@ UaStatus FocalPlaneController::operate(OpcUa_UInt32 offset, const UaVariantArray
 
             spdlog::trace("Calling calc motion command:");
             spdlog::info(command);
+            std::string ret;
+            ret = m_pFP->exec(command.c_str());
+            spdlog::info(ret);
+
             status = OpcUa_Good;
             break;
         }
@@ -282,6 +345,10 @@ UaStatus FocalPlaneController::operate(OpcUa_UInt32 offset, const UaVariantArray
 
             spdlog::trace("Calling calc motion command:");
             spdlog::info(command);
+            std::string ret;
+            ret = m_pFP->exec(command.c_str());
+            spdlog::info(ret);
+
             status = OpcUa_Good;
             break;
         }

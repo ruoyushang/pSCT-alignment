@@ -78,6 +78,8 @@ public:
     double m_RingFrac;
     double m_MinDist;
 
+    std::string exec(const char* cmd);
+
 protected:
     std::string m_pModPath = "";
     std::string m_pFocalPlane_PY = "focal_plane.py";

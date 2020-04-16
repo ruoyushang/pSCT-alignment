@@ -266,6 +266,13 @@
 #define PAS_FocalPlaneType_DEBLEND_MINCONT            3308
 #define PAS_FocalPlaneType_SEARCH_XS                  3309
 #define PAS_FocalPlaneType_SEARCH_YS                  3310
+#define PAS_FocalPlaneType_PatternRadius              3311
+#define PAS_FocalPlaneType_PhaseOffsetRad             3312
+#define PAS_FocalPlaneType_RingFrac                   3313
+#define PAS_FocalPlaneType_MinDist                    3314
+#define PAS_FocalPlaneType_PatternCenter              3315
+#define PAS_FocalPlaneType_RingTol                    3316
+
 #define PAS_FocalPlaneType_AnalyzeSinglePanelImage    3321
 #define PAS_FocalPlaneType_AnalyzePatternImage        3322
 #define PAS_FocalPlaneType_SavePanelMotion            3323
@@ -282,6 +289,7 @@
 #define PAS_GlobalAlignmentType_ErrorState                 3402
 #define PAS_GlobalAlignmentType_StartPSDTrack              3403
 #define PAS_GlobalAlignmentType_StopPSDTrack               3404
+#define PAS_GlobalAlignmentType_Tracking                   3405
 
 //----------------------------------------------------------//
 //
@@ -295,6 +303,7 @@
 #define PAS_OpticalAlignmentType_MoveForCalibration         3505
 #define PAS_OpticalAlignmentType_GetResponseMatrix          3506
 #define PAS_OpticalAlignmentType_CalibrateFirstOrderCorr    3507
+#define PAS_OpticalAlignmentType_ImageParamSet              3508
 //----------------------------------------------------------//
 //
 

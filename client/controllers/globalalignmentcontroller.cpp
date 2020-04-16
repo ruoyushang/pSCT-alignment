@@ -39,7 +39,7 @@ GlobalAlignmentController::GlobalAlignmentController(Device::Identity identity, 
         std::move(identity), nullptr,
         10000){
     // define possible children and initialize the selected children string
-    m_ChildrenTypes = {PAS_OpticalAlignmentType, PAS_CCDType, PAS_OptTableType, PAS_PSDType};
+    m_ChildrenTypes = {PAS_OpticalAlignmentType, PAS_CCDType, PAS_OptTableType, PAS_PSDType, PAS_PanelType};
 
     // make sure things update on the first boot up
     // duration takes seconds -- hence the conversion with the 1/1000 ratio
@@ -76,7 +76,7 @@ UaStatus GlobalAlignmentController::getState(Device::DeviceState &state)
 {
     //UaMutexLocker lock(&m_mutex);
     Device::DeviceState s;
-    std::vector<unsigned> deviceTypesToCheck = {PAS_MPESType};
+    std::vector<unsigned> deviceTypesToCheck = {PAS_CCDType, PAS_OpticalAlignmentType, PAS_PSDType, PAS_FocalPlaneType};
     for (auto devType : deviceTypesToCheck) {
         for (const auto &child : getChildren(devType)) {
             child->getState(s);
@@ -102,12 +102,18 @@ UaStatus GlobalAlignmentController::getData(OpcUa_UInt32 offset, UaVariant &valu
 {
     //UaMutexLocker lock(&m_mutex);
 
-//    UaStatus status;
-//    if (offset...)
-//    else
-//    {
-//        status = OpcUa_BadInvalidArgument;
-//    }
+    UaStatus status;
+    switch (offset) {
+        case PAS_GlobalAlignmentType_Tracking: {
+            bool verbosity;
+            verbosity = true;
+            value.setBool(verbosity);
+            spdlog::trace("{} : Read Tracking value => ({})", m_Identity, verbosity);
+            break;
+        }
+        default:
+            return OpcUa_BadInvalidArgument;
+    }
     return OpcUa_Good;
 }
 

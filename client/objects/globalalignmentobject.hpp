@@ -25,7 +25,7 @@ public:
                                                             std::move(identity),
                                                             dynamic_cast<PasComInterfaceCommon *>(pCommIf)) { initialize(); }
 
-    UaNodeId typeDefinitionId() const override { return UaNodeId(PAS_OptTableType, browseName().namespaceIndex()); }
+    UaNodeId typeDefinitionId() const override { return UaNodeId(PAS_GlobalAlignmentType, browseName().namespaceIndex()); }
 
     const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, OpcUa_Byte>>
     getVariableDefs() override { return GlobalAlignmentObject::VARIABLES; }

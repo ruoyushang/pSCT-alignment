@@ -17,7 +17,7 @@ const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, O
                                                        Ua_AccessLevel_CurrentRead | Ua_AccessLevel_CurrentWrite)},
         {PAS_FocalPlaneType_Verbosity, std::make_tuple("Verbosity", UaVariant(OpcUa_False), OpcUa_False,
                                                        Ua_AccessLevel_CurrentRead | Ua_AccessLevel_CurrentWrite)},
-        {PAS_FocalPlaneType_DETECT_MINAREA, std::make_tuple("DETECT_MINAREA", UaVariant(30) , OpcUa_False,
+        {PAS_FocalPlaneType_DETECT_MINAREA, std::make_tuple("DETECT_MINAREA", UaVariant(30.0) , OpcUa_False,
                                                             Ua_AccessLevel_CurrentRead | Ua_AccessLevel_CurrentWrite)},
         {PAS_FocalPlaneType_THRESH, std::make_tuple("THRESH", UaVariant(6), OpcUa_False,
                                                     Ua_AccessLevel_CurrentRead | Ua_AccessLevel_CurrentWrite)},
@@ -26,7 +26,18 @@ const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, O
         {PAS_FocalPlaneType_SEARCH_XS, std::make_tuple("SEARCH_XS", UaVariant("0 0"), OpcUa_False,
                                                        Ua_AccessLevel_CurrentRead | Ua_AccessLevel_CurrentWrite)},
         {PAS_FocalPlaneType_SEARCH_YS, std::make_tuple("SEARCH_YS", UaVariant(""), OpcUa_False,
-                                                       Ua_AccessLevel_CurrentRead | Ua_AccessLevel_CurrentWrite)}
+                                                       Ua_AccessLevel_CurrentRead | Ua_AccessLevel_CurrentWrite)},
+        {PAS_FocalPlaneType_PatternRadius, std::make_tuple("PatternRadius", UaVariant(0), OpcUa_False,
+                                                       Ua_AccessLevel_CurrentRead)},
+        {PAS_FocalPlaneType_PhaseOffsetRad, std::make_tuple("PhaseOffsetRad", UaVariant(0), OpcUa_False,
+                                                           Ua_AccessLevel_CurrentRead)},
+        {PAS_FocalPlaneType_RingFrac, std::make_tuple("RingFrac", UaVariant(0), OpcUa_False,
+                                                            Ua_AccessLevel_CurrentRead)},
+        {PAS_FocalPlaneType_MinDist, std::make_tuple("MinDist", UaVariant(0), OpcUa_False,
+                                                      Ua_AccessLevel_CurrentRead)},
+        {PAS_FocalPlaneType_PatternCenter, std::make_tuple("PatternCenter", UaVariant("1910 1010"), OpcUa_False,
+                                                     Ua_AccessLevel_CurrentRead)},
+        {PAS_FocalPlaneType_RingTol, std::make_tuple("RingTol", UaVariant(0.1), OpcUa_False, Ua_AccessLevel_CurrentRead)}
 };
 
 const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean>> FocalPlaneObject::ERRORS = {

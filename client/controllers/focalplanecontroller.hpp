@@ -26,8 +26,10 @@ public:
 
     UaStatus operate(OpcUa_UInt32 offset, const UaVariantArray &args = UaVariantArray()) override;
 
+    std::shared_ptr<focalplane> getFP() {return m_pFP; };
+
 private:
-    std::unique_ptr<focalplane> m_pFP ;
+    std::shared_ptr<focalplane> m_pFP ;
 };
 
 #endif //ALIGNMENT_FOCALPLANECONTROLLER_HPP
