@@ -6,7 +6,7 @@
 #include "client/controllers/pascontroller.hpp"
 #include "common/alignment/focalplane.hpp"
 
-class FocalPlaneController : public PasCompositeController {
+class FocalPlaneController : public PasController {
     UA_DISABLE_COPY(FocalPlaneController);
 
 public:

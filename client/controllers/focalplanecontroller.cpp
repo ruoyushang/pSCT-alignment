@@ -8,7 +8,7 @@
 #include "common/utilities/spdlog/fmt/ostr.h"
 
 FocalPlaneController::FocalPlaneController(Device::Identity identity, Client *pClient)
-        : PasCompositeController(std::move(identity), nullptr, 0) {
+        : PasController(std::move(identity), pClient, 500) {
     m_pFP = std::shared_ptr<focalplane>(new focalplane(m_Identity));
     spdlog::debug("Created Focal Plane controller.");
 }
@@ -61,9 +61,9 @@ UaStatus FocalPlaneController::getData(OpcUa_UInt32 offset, UaVariant &value) {
             break;
         }
         case PAS_FocalPlaneType_DETECT_MINAREA: {
-            OpcUa_Int16 detect_minArea;
+            double detect_minArea;
             detect_minArea = m_pFP->m_imgAnalysisParams.m_DetectMinArea;
-            value.toInt16(detect_minArea);
+            value.setDouble(detect_minArea);
             spdlog::trace("{} : Read detect_minArea value => ({})", m_Identity, detect_minArea);
             break;
         }
@@ -175,8 +175,8 @@ UaStatus FocalPlaneController::setData(OpcUa_UInt32 offset, UaVariant value) {
             break;
         }
         case PAS_FocalPlaneType_DETECT_MINAREA: {
-            OpcUa_Int16 val;
-            value.toInt16(val);
+            double val;
+            value.toDouble(val);
             m_pFP->m_imgAnalysisParams.m_DetectMinArea = val;
             spdlog::trace("{} : Setting DetectMinArea value... value => ({})", m_Identity, val);
             break;
@@ -208,7 +208,7 @@ UaStatus FocalPlaneController::setData(OpcUa_UInt32 offset, UaVariant value) {
     }
 
 
-    return OpcUa_BadNotWritable;
+    return OpcUa_Good;
 }
 
 UaStatus FocalPlaneController::operate(OpcUa_UInt32 offset, const UaVariantArray &args) {
