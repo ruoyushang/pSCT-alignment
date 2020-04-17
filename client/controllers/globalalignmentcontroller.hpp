@@ -30,6 +30,7 @@ protected:
 
 private:
     std::string m_Mode;
+    OpcUa_Boolean m_tracking;
 
 };
 

@@ -76,7 +76,7 @@ UaStatus GlobalAlignmentController::getState(Device::DeviceState &state)
 {
     //UaMutexLocker lock(&m_mutex);
     Device::DeviceState s;
-    std::vector<unsigned> deviceTypesToCheck = {PAS_CCDType, PAS_OpticalAlignmentType, PAS_PSDType, PAS_FocalPlaneType};
+    std::vector<unsigned> deviceTypesToCheck = {PAS_CCDType, PAS_OpticalAlignmentType, PAS_PSDType, PAS_PanelType};
     for (auto devType : deviceTypesToCheck) {
         for (const auto &child : getChildren(devType)) {
             child->getState(s);
@@ -105,10 +105,10 @@ UaStatus GlobalAlignmentController::getData(OpcUa_UInt32 offset, UaVariant &valu
     UaStatus status;
     switch (offset) {
         case PAS_GlobalAlignmentType_Tracking: {
-            bool verbosity;
-            verbosity = true;
-            value.setBool(verbosity);
-            spdlog::trace("{} : Read Tracking value => ({})", m_Identity, verbosity);
+            bool tracking;
+            tracking = m_tracking;
+            value.setBool(tracking);
+            spdlog::trace("{} : Read Tracking value => ({})", m_Identity, tracking);
             break;
         }
         default:
@@ -144,6 +144,7 @@ UaStatus GlobalAlignmentController::operate(OpcUa_UInt32 offset, const UaVariant
             spdlog::info("GlobalAlignmentController::operate() :  Calling StartPSDTracking...");
 
             //pLogic->start();
+            m_tracking = OpcUa_True;
             status = OpcUa_Good;
             break;
         }
@@ -151,6 +152,7 @@ UaStatus GlobalAlignmentController::operate(OpcUa_UInt32 offset, const UaVariant
             spdlog::info("GlobalAlignmentController::operate() :  Calling StopPSDTracking...");
 
             //pLogic->stop();
+            m_tracking = OpcUa_False;
             status = OpcUa_Good;
             break;
         }
