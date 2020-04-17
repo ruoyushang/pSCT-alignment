@@ -120,7 +120,7 @@ UaStatus CCDController::getData(OpcUa_UInt32 offset, UaVariant &value) {
     Description  Set Controller data.
 -----------------------------------------------------------------------------*/
 UaStatus CCDController::setData(OpcUa_UInt32 offset, UaVariant value) {
-    UaStatus status;
+    UaStatus status = OpcUa_Good;
 
     double val;
     int nominalOffset;
@@ -158,7 +158,7 @@ UaStatus CCDController::setData(OpcUa_UInt32 offset, UaVariant value) {
 
     spdlog::trace("{} : Setting nominal value... offset=> {} value => ({})", m_Identity, nominalOffset, val);
 
-    return OpcUa_BadNotWritable;
+    return status;
 }
 
 /* ----------------------------------------------------------------------------
@@ -178,12 +178,12 @@ UaStatus CCDController::operate(OpcUa_UInt32 offset, const UaVariantArray &args)
         case PAS_CCDType_Start:
             spdlog::warn("{} : CCDController calling start() - Does nothing for now", m_Identity);
             spdlog::trace("{} : CCDController calling start()", m_Identity);
-            status = OpcUa_BadInvalidArgument;
+            status = OpcUa_Good;
             break;
         case PAS_CCDType_Stop:
             spdlog::warn("{} : CCDController calling start() - Does nothing for now", m_Identity);
             spdlog::trace("{} : CCDController calling stop()", m_Identity);
-            status = OpcUa_BadInvalidArgument;
+            status = OpcUa_Good;
             break;
         case PAS_CCDType_TurnOn:
             spdlog::info("{} : CCDController calling turnOn()", m_Identity);
@@ -193,6 +193,7 @@ UaStatus CCDController::operate(OpcUa_UInt32 offset, const UaVariantArray &args)
         case PAS_CCDType_TurnOff:
             spdlog::info("{} : CCDController calling turnOff()", m_Identity);
             m_pCCD->turnOff();
+            status = OpcUa_Good;
             break;
         default:
             spdlog::error("{} : Invalid method call with offset {}", m_Identity, offset);

@@ -48,7 +48,7 @@ MirrorController::MirrorController(Device::Identity identity, std::string mode)
     10000),
       m_Mode(mode), m_pSurface(nullptr) {
     // define possible children and initialize the selected children string
-    m_ChildrenTypes = {PAS_PanelType, PAS_EdgeType, PAS_MPESType};
+    m_ChildrenTypes = {PAS_PanelType, PAS_EdgeType, PAS_MPESType, PAS_FocalPlaneType};
 
     // define coordinate vectors -- these are of size 6
     m_curCoords = Eigen::VectorXd(6);
