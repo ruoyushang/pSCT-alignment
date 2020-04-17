@@ -1,6 +1,6 @@
+#include <algorithm>
 #include "opticalalignmentcontroller.hpp"
 
-#include <algorithm>
 #include <chrono>
 #include <cmath>
 #include <deque>
@@ -75,7 +75,7 @@ UaStatus OpticalAlignmentController::getState(Device::DeviceState &state)
 {
     //UaMutexLocker lock(&m_mutex);
     Device::DeviceState s;
-    std::vector<unsigned> deviceTypesToCheck = {PAS_PanelType};
+    std::vector<unsigned> deviceTypesToCheck = {PAS_PanelType, PAS_FocalPlaneType};
     for (auto devType : deviceTypesToCheck) {
         for (const auto &child : getChildren(devType)) {
             child->getState(s);
@@ -164,55 +164,9 @@ UaStatus OpticalAlignmentController::operate(OpcUa_UInt32 offset, const UaVarian
             spdlog::debug("Minimum distance to target: {}", offset_limit);
             spdlog::debug("Show plots in between steps? {}", show_plot);
 
-            double image_delta_x;
-            double image_delta_y;
-            int panel;
-            double distance_panel_to_target;
+            calibrateFirstOrderCorrection(target_coordinates_center_x, target_coordinates_center_y, show_plot,
+                                          offset_limit);
 
-            Eigen::VectorXd deltaActLengths(6);
-            std::map <int , std::vector<double>> coordinates_per_panel;
-
-            std::vector<double> panel_coordinates;
-
-            Eigen::VectorXd actuator_deltas(6);
-            Eigen::VectorXd total_actuator_deltas(6);
-
-            std::string image_filepath = _captureSingleImage();
-            coordinates_per_panel = _analyzeImagePatternAutomatically(image_filepath, show_plot);
-
-            for (const auto& panel_item : coordinates_per_panel) {
-                image_filepath = _captureSingleImage();
-                coordinates_per_panel = _analyzeImagePatternAutomatically(image_filepath, show_plot);
-
-                panel = panel_item.first;
-                panel_coordinates = panel_item.second;
-
-                image_delta_x = panel_coordinates[0] - target_coordinates_center_x;
-                image_delta_y = panel_coordinates[1] - target_coordinates_center_y;
-
-                distance_panel_to_target = sqrt(image_delta_x*image_delta_x + image_delta_y*image_delta_y);
-
-                // while statement to repeat motion/analysis until panel reaches target within offset_limit.
-                while (distance_panel_to_target > offset_limit) {
-                    {
-                    actuator_deltas = _calculateActuatorMotion(panel, image_delta_x, image_delta_y);
-                    auto pPanel = std::dynamic_pointer_cast<PanelController>(m_ChildrenPositionMap.at(PAS_PanelType).at(panel));
-//                    pPanel->__moveDeltaLengths(actuator_deltas);
-
-                    image_filepath = _captureSingleImage();
-                    panel_coordinates = _analyzeImageSinglePanelAutomatically(image_filepath, show_plot);
-
-                    image_delta_x = panel_coordinates[0] - target_coordinates_center_x;
-                    image_delta_y = panel_coordinates[1] - target_coordinates_center_y;
-
-                    total_actuator_deltas += actuator_deltas;
-
-                    distance_panel_to_target = sqrt(image_delta_x*image_delta_x + image_delta_y*image_delta_y);
-                    }
-                m_corrected_actuator_lengths_per_panel.at(panel) = total_actuator_deltas;
-                }
-             }
-            _saveCorrections(m_corrected_actuator_lengths_per_panel); //save these corrected values to file/DB. Also use elsewhere here during this session.
             status = OpcUa_Good;
             break;
         }
@@ -247,6 +201,81 @@ UaStatus OpticalAlignmentController::operate(OpcUa_UInt32 offset, const UaVarian
     return status;
 }
 
+void OpticalAlignmentController::calibrateFirstOrderCorrection(double target_coordinates_center_x,
+                                                               double target_coordinates_center_y, bool show_plot,
+                                                               double offset_limit) {
+    double image_delta_x;
+    double image_delta_y;
+    int panel;
+    double distance_panel_to_target;
+
+    Eigen::VectorXd deltaCoords(6);
+    map <int , vector<double>> starting_coordinates_per_panel;
+    map <int , vector<double>> resampled_coordinates_per_panel;
+
+    vector<double> current_panel_coordinates;
+
+    Eigen::VectorXd curr_coords_deltas_for_panel(6);
+    Eigen::VectorXd total_coord_deltas(6);
+
+    string image_filepath = _captureSingleImage();
+    starting_coordinates_per_panel = _analyzeImagePatternAutomatically(image_filepath, show_plot);
+    resampled_coordinates_per_panel = starting_coordinates_per_panel;
+
+    spdlog::debug("Starting loop");
+    for (const auto& panel_item : starting_coordinates_per_panel) {
+        panel = panel_item.first;
+        current_panel_coordinates = panel_item.second;
+
+        spdlog::info("Capturing starting image for panel {}", panel);
+
+        image_filepath = _captureSingleImage();
+        resampled_coordinates_per_panel = _analyzeImagePatternAutomatically(image_filepath, show_plot);
+
+        image_delta_x = current_panel_coordinates[0] - target_coordinates_center_x;
+        image_delta_y = current_panel_coordinates[1] - target_coordinates_center_y;
+
+        distance_panel_to_target = sqrt(image_delta_x*image_delta_x + image_delta_y*image_delta_y);
+
+        spdlog::info("{}: Current coordinates ({},{}), {} from target.", panel, current_panel_coordinates[0], current_panel_coordinates[1], distance_panel_to_target);
+
+        // while statement to repeat motion/analysis until panel reaches target within offset_limit.
+        while (distance_panel_to_target > offset_limit) {
+            spdlog::info("Still far from target {} > {} ", distance_panel_to_target, offset_limit);
+
+            curr_coords_deltas_for_panel = _calculatePanelMotion(panel, image_delta_x, image_delta_y);
+            spdlog::info("{}: Found actuator deltas for this motion", panel);
+            try {
+                auto pPanel = dynamic_pointer_cast<PanelController>(m_ChildrenPositionMap.at(PAS_PanelType).at(panel));
+//                MirrorController::__calculateMoveDeltaCoords();
+//                pPanel->__moveDeltaLengths(curr_coords_deltas_for_panel);
+
+            }
+            catch (std::out_of_range oor){
+                spdlog::error("{}: Not found in controller list. Moving on to a different panel...", panel);
+                break;
+            }
+            spdlog::info("{}: Moved to new position", panel);
+
+            image_filepath = _captureSingleImage();
+            current_panel_coordinates = _analyzeImageSinglePanelAutomatically(image_filepath, show_plot);
+            spdlog::info("{}: Took new image and found new panel coordinate", panel);
+
+            image_delta_x = current_panel_coordinates[0] - target_coordinates_center_x;
+            image_delta_y = current_panel_coordinates[1] - target_coordinates_center_y;
+
+            total_coord_deltas += curr_coords_deltas_for_panel;
+
+            distance_panel_to_target = sqrt(image_delta_x*image_delta_x + image_delta_y*image_delta_y);
+            spdlog::info("{} Current coordinates ({},{}), {} from target.", panel, current_panel_coordinates[0], current_panel_coordinates[1], distance_panel_to_target);
+            }
+        m_corrected_coordinate_deltas_per_panel[panel] = total_coord_deltas;
+        spdlog::info("Completed calibration of panel {}. Moving on...",panel);
+    }
+    _saveCorrections(m_corrected_coordinate_deltas_per_panel); //save these corrected values to file/DB. Also use elsewhere here during this session.
+    spdlog::info("Completed calibration of all panels. ");
+}
+
 std::string OpticalAlignmentController::_captureSingleImage() {
     std::string filename = "";
     return filename;
@@ -254,13 +283,23 @@ std::string OpticalAlignmentController::_captureSingleImage() {
 
 std::map<int, std::vector<double>> OpticalAlignmentController::_analyzeImagePatternAutomatically(std::string image_filepath, bool plot) {
     string command;
+    m_focalPlaneImage.m_ImageFile = image_filepath;
     command = m_focalPlaneImage.analyzePatternCommand();
     spdlog::debug(command);
 
     string ret;
     ret = m_focalPlaneImage.exec(command.c_str());
     spdlog::info(ret);
-    return std::map<int, std::vector<double>>();
+
+    std::map<int, std::vector<double>> coordinate_map;
+
+#ifdef SIMMODE
+    coordinate_map = {
+            {2221, {1700.5,900.5}},
+            {2222, {1700.6,900.6}}
+    };
+#endif
+    return coordinate_map;
 }
 
 std::vector<double> OpticalAlignmentController::_analyzeImageSinglePanelAutomatically(std::string image_filepath, bool plot) {
@@ -272,11 +311,21 @@ std::vector<double> OpticalAlignmentController::_analyzeImageSinglePanelAutomati
     ret = m_focalPlaneImage.exec(command.c_str());
     spdlog::info(ret);
 
-    return std::vector<double>();
+    std::vector<double> panel_coordinates;
+
+#ifdef SIMMODE
+    panel_coordinates = {1700.9,900.9};
+#endif
+
+    return panel_coordinates;
 }
 
-Eigen::VectorXd OpticalAlignmentController::_calculateActuatorMotion(int panel, double x, double y) {
-    return Eigen::VectorXd();
+Eigen::VectorXd OpticalAlignmentController::_calculatePanelMotion(int panel, double x, double y) {
+    Eigen::VectorXd panel_motion_coords(6);
+#ifdef SIMMODE
+    panel_motion_coords << .1, .1 , .1, .1, .1, .1 ;
+#endif
+    return panel_motion_coords;
 }
 
 bool OpticalAlignmentController::_saveCorrections(std::map<int, Eigen::VectorXd> map) {
@@ -288,7 +337,7 @@ void OpticalAlignmentController::_loadPatternImageParameters() {
     UaVariant value;
 
     pController->getData(PAS_FocalPlaneType_DETECT_MINAREA, value);
-    value.toInt32(m_focalPlaneImage.m_imgAnalysisParams.m_DetectMinArea);
+    value.toDouble(m_focalPlaneImage.m_imgAnalysisParams.m_DetectMinArea);
     spdlog::trace("m_DetectMinArea: {}",m_focalPlaneImage.m_imgAnalysisParams.m_DetectMinArea);
     pController->getData(PAS_FocalPlaneType_DEBLEND_MINCONT, value);
     value.toDouble(m_focalPlaneImage.m_imgAnalysisParams.m_DeblendMinCont);

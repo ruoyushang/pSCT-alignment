@@ -224,7 +224,7 @@
 #define PAS_CCDType_phiNominal                      3113
 #define PAS_CCDType_Serial                          3114
 #define PAS_CCDType_Name                            3115
-#define PAS_CCDType_ErrorState                      3101
+#define PAS_CCDType_ErrorState                      3116
 #define PAS_CCDType_Start                           3121
 #define PAS_CCDType_Stop                            3122
 #define PAS_CCDType_Read                            3123

@@ -65,7 +65,7 @@ public:
     struct image_parameters {
         double m_DeblendMinCont = 0.01;
         int m_Thresh = 6;
-        int m_DetectMinArea = 30;
+        double m_DetectMinArea = 30;
         std::string m_SearchXs = "0 0";
         std::string m_SearchYs = "0 0";
     };

@@ -50,18 +50,23 @@ private:
 
     focalplane m_focalPlaneImage = focalplane(Device::Identity());
 
-    std::map <int, Eigen::VectorXd> m_corrected_actuator_lengths_per_panel;
+    std::map <int, Eigen::VectorXd> m_corrected_coordinate_deltas_per_panel;
 
     std::string _captureSingleImage();
 
     std::map<int, std::vector<double>> _analyzeImagePatternAutomatically(std::string image_filepath, bool plot);
     std::vector<double> _analyzeImageSinglePanelAutomatically(std::string image_filepath, bool plot);
 
-    Eigen::VectorXd _calculateActuatorMotion(int panel, double x, double y);
+    Eigen::VectorXd _calculatePanelMotion(int panel, double x, double y);
 
     bool _saveCorrections(std::map<int, Eigen::VectorXd> map);
 
     void _loadPatternImageParameters();
+
+    void
+    calibrateFirstOrderCorrection(double target_coordinates_center_x, double target_coordinates_center_y,
+                                  bool show_plot,
+                                  double offset_limit);
 };
 
 
