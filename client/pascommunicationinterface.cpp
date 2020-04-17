@@ -192,18 +192,27 @@ void PasCommunicationInterface::addEdgeControllers() {
         // Check if all panels in edge exist
         auto children = m_pConfiguration->getChildren(edgeId);
         if (children.find(PAS_PanelType) != children.end()) {
-            for (const auto &panelChildId : m_pConfiguration->getChildren(edgeId).at(PAS_PanelType)) {
-                if (m_pControllers.at(PAS_PanelType).find(panelChildId) ==
-                    m_pControllers.at(PAS_PanelType).end()) {
-                    // Child panel not found
-                    //std::debug("Could not find panel {} as child of Edge {} (likely server failed to connect). Edge controller not created...", panelChildId, edgeId);
-                    addEdge = false;
-                    break;
+            try {
+                for (const auto &panelChildId : m_pConfiguration->getChildren(edgeId).at(PAS_PanelType)) {
+                    if (m_pControllers.at(PAS_PanelType).find(panelChildId) ==
+                        m_pControllers.at(PAS_PanelType).end()) {
+                        // Child panel not found
+                        //std::debug("Could not find panel {} as child of Edge {} (likely server failed to connect). Edge controller not created...", panelChildId, edgeId);
+                        addEdge = false;
+                        break;
+                    }
                 }
             }
-
+            catch (std::out_of_range oor){
+                spdlog::warn("No Panels found.");
+                addEdge = false;
+            }
             if (addEdge) {
                 addDevice(nullptr, PAS_EdgeType, edgeId);
+            } else {
+                spdlog::warn(
+                        "Could not find any panel children of Edge {} (likely server failed to connect). Edge controllers not created...",
+                        edgeId);
             }
         }
     }
@@ -252,13 +261,18 @@ void PasCommunicationInterface::addMirrorControllers() {
     for (const auto &mirrorId : m_pConfiguration->getDevices(PAS_MirrorType)) {
         bool addMirror = false;
         // Check if at least one panel in the mirror exists
-        for (const auto &panelChildId : m_pConfiguration->getChildren(mirrorId).at(PAS_PanelType)) {
-            if (m_pControllers.at(PAS_PanelType).find(panelChildId) !=
-                m_pControllers.at(PAS_PanelType).end()) {
-                // Child panel found
-                addMirror = true;
-                break;
+        try {
+            for (const auto &panelChildId : m_pConfiguration->getChildren(mirrorId).at(PAS_PanelType)) {
+                if (m_pControllers.at(PAS_PanelType).find(panelChildId) !=
+                    m_pControllers.at(PAS_PanelType).end()) {
+                    // Child panel found
+                    addMirror = true;
+                    break;
+                }
             }
+        }
+        catch (std::out_of_range oor){
+            spdlog::warn("No Panels found.");
         }
 
         if (addMirror) {
