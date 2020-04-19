@@ -59,6 +59,9 @@ std::string focalplane::analyzeSinglePanelCommand() {
     if (m_verbosity) {
         command += " -v";
     }
+    if (m_show){
+        command += " --show";
+    }
 
     return command;
 }
@@ -79,6 +82,9 @@ std::string focalplane::analyzePatternCommand() {
 
     if (m_verbosity) {
         command += " -v";
+    }
+    if (m_show){
+        command += " --show";
     }
 
     return command;
@@ -157,4 +163,95 @@ std::string focalplane::exec(const char* cmd) {
     }
     pclose(pipe);
     return result;
+}
+std::string focalplane::getDatetimeFromRAWname(const std::string& raw_name){
+    std::string output;
+    spdlog::debug("Filename to get datetime string: \'{}\'", raw_name);
+    try {
+        const char *raw_literal_expr = R"rgx((\d{1,4})-(\d{1,2})-(\d{1,2})-(\d{1,2}):(\d{1,2}):(\d{1,2}))rgx";
+        spdlog::trace("Regex search pattern: {}", raw_literal_expr);
+
+        boost::regex expr(raw_literal_expr);
+        boost::smatch what;
+
+        if (boost::regex_search(raw_name, what, expr))
+        {
+            spdlog::trace("Found something during regex");
+            spdlog::trace("Response: {}", what[0].str());
+            for (int i = 1; i < (int) what.size(); i ++){
+                output += what[i] + "_";
+            }
+        }
+        else{
+            spdlog::warn("Nothing came out of regex search for this RAW image path.");
+        }
+    }
+    catch (const boost::regex_error& e) {
+        spdlog::error("Error for regex: {}", e.what());
+        if (e.code() == boost::regex_constants::error_brack) {
+            spdlog::error("The code was error_brack");
+        }
+        else if(e.code() == boost::regex_constants::error_escape){
+            spdlog::error("The code was error_escape");
+        }
+        else{
+            spdlog::error("Error code for regex: {}", e.code());
+        }
+    }
+    return output;
+}
+
+std::string focalplane::getCSVFilepathFromImageName(std::string image_filepath) {
+    char *dirc, *basec, *bname, *dname;
+    char *path = const_cast<char *>(image_filepath.c_str());
+
+    spdlog::trace("Path to decode: {} ", path);
+
+    dirc = strdup(path);
+    basec = strdup(path);
+    dname = dirname(dirc);
+    bname = basename(basec);
+
+    std::string s = bname;
+    std::string dir = m_data_dir;
+
+    std::string dt_match = getDatetimeFromRAWname(s);
+    spdlog::trace("Found a datetime string: {}",dt_match);
+    std::string image_filename_prefix = dir + "res_focal_plane_" + dt_match;
+    std::string final_path = image_filename_prefix + "ring_search_vvv.csv";
+
+    spdlog::debug("CSV path: {}", final_path);
+
+    return final_path;
+}
+
+std::vector<std::vector<std::string>> focalplane::getCSVData(std::string data_file) {
+    CSVReader reader(std::move(data_file));
+    std::vector<std::vector<std::string> > dataList = reader.getData();
+    return dataList;
+}
+
+std::map<int, std::vector<double>> focalplane::makePanelCoordinateMap(std::vector<std::vector<std::string>> dataList) {
+    std::map <int , std::vector<double>>  m_coordinates_per_panel;
+
+    int i = 0;
+    for (const std::vector<std::string> &line : dataList) {
+        if (i==0) {
+            i++;
+            continue;
+        }
+        else{
+            i++;
+        }
+        std::string panel = line[0];
+        std::string x_coord = line[2];
+        std::string y_coord = line[3];
+        spdlog::debug("{}: ({}, {})", panel, x_coord, y_coord);
+        int p = std::stoi(panel);
+        double x = std::stod(x_coord);
+        double y = std::stod(y_coord);
+        m_coordinates_per_panel[p] = {x, y};
+    }
+
+    return m_coordinates_per_panel;
 }

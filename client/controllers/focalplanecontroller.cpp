@@ -9,7 +9,7 @@
 
 FocalPlaneController::FocalPlaneController(Device::Identity identity, Client *pClient)
         : PasController(std::move(identity), pClient, 500) {
-    m_pFP = std::shared_ptr<focalplane>(new focalplane(m_Identity));
+    m_pFP = std::make_shared<focalplane>(m_Identity);
     spdlog::debug("Created Focal Plane controller.");
 }
 

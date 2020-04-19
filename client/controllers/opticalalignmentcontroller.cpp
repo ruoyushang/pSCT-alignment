@@ -218,7 +218,12 @@ void OpticalAlignmentController::calibrateFirstOrderCorrection(double target_coo
     Eigen::VectorXd curr_coords_deltas_for_panel(6);
     Eigen::VectorXd total_coord_deltas(6);
 
-    string image_filepath = _captureSingleImage();
+#ifdef SIMMODE
+    std::string image_filepath = "/app/focal_plane/data/The Imaging Source Europe GmbH-37514083-2592-1944-Mono8-2019-12-17-03:20:27.raw";
+    m_focalPlaneImage.setDataDir("/app/focal_plane/data/");
+#else
+    std::string image_filepath = _captureSingleImage();
+#endif
     starting_coordinates_per_panel = _analyzeImagePatternAutomatically(image_filepath, show_plot);
     resampled_coordinates_per_panel = starting_coordinates_per_panel;
 
@@ -226,10 +231,22 @@ void OpticalAlignmentController::calibrateFirstOrderCorrection(double target_coo
     for (const auto& panel_item : starting_coordinates_per_panel) {
         panel = panel_item.first;
         current_panel_coordinates = panel_item.second;
+        bool p_Controller_Exists =
+                m_ChildrenPositionMap.at(PAS_PanelType).find(panel) == m_ChildrenPositionMap.at(PAS_PanelType).end();
+        // TODO also check m_selectedPanels - set up the rest of code for that.
+        if (p_Controller_Exists){
+            spdlog::warn("{}: This panel not available. Moving on...", panel);
+            continue;
+        }
 
         spdlog::info("Capturing starting image for panel {}", panel);
 
+#ifdef SIMMODE
+        image_filepath = "/app/focal_plane/data/The Imaging Source Europe GmbH-37514083-2592-1944-Mono8-2019-12-17-03:20:27.raw";
+        m_focalPlaneImage.setDataDir("/app/focal_plane/data/");
+#else
         image_filepath = _captureSingleImage();
+#endif
         resampled_coordinates_per_panel = _analyzeImagePatternAutomatically(image_filepath, show_plot);
 
         image_delta_x = current_panel_coordinates[0] - target_coordinates_center_x;
@@ -246,18 +263,25 @@ void OpticalAlignmentController::calibrateFirstOrderCorrection(double target_coo
             curr_coords_deltas_for_panel = _calculatePanelMotion(panel, image_delta_x, image_delta_y);
             spdlog::info("{}: Found actuator deltas for this motion", panel);
             try {
+                // TODO Deal with panel motion in some secure way. Must get coordinate deltas from response matrix (not actuator delta lengths)
                 auto pPanel = dynamic_pointer_cast<PanelController>(m_ChildrenPositionMap.at(PAS_PanelType).at(panel));
+                pPanel->getActuatorLengths();
 //                MirrorController::__calculateMoveDeltaCoords();
 //                pPanel->__moveDeltaLengths(curr_coords_deltas_for_panel);
 
             }
             catch (std::out_of_range oor){
-                spdlog::error("{}: Not found in controller list. Moving on to a different panel...", panel);
+                spdlog::error("{}: Not found in controller list. Moving on to a different panel... ({})", panel, oor.what());
                 break;
             }
             spdlog::info("{}: Moved to new position", panel);
 
+#ifdef SIMMODE
+            image_filepath = "/app/focal_plane/data/The Imaging Source Europe GmbH-37514083-2592-1944-Mono8-2019-12-17-03:20:27.raw";
+            m_focalPlaneImage.setDataDir("/app/focal_plane/data/");
+#else
             image_filepath = _captureSingleImage();
+#endif
             current_panel_coordinates = _analyzeImageSinglePanelAutomatically(image_filepath, show_plot);
             spdlog::info("{}: Took new image and found new panel coordinate", panel);
 
@@ -277,6 +301,7 @@ void OpticalAlignmentController::calibrateFirstOrderCorrection(double target_coo
 }
 
 std::string OpticalAlignmentController::_captureSingleImage() {
+// TODO How to save image and collect the same time stamp?
     std::string filename = "";
     return filename;
 }
@@ -284,6 +309,7 @@ std::string OpticalAlignmentController::_captureSingleImage() {
 std::map<int, std::vector<double>> OpticalAlignmentController::_analyzeImagePatternAutomatically(std::string image_filepath, bool plot) {
     string command;
     m_focalPlaneImage.m_ImageFile = image_filepath;
+    m_focalPlaneImage.m_show = plot;
     command = m_focalPlaneImage.analyzePatternCommand();
     spdlog::debug(command);
 
@@ -291,25 +317,37 @@ std::map<int, std::vector<double>> OpticalAlignmentController::_analyzeImagePatt
     ret = m_focalPlaneImage.exec(command.c_str());
     spdlog::info(ret);
 
-    std::map<int, std::vector<double>> coordinate_map;
+    spdlog::debug("Loading output CSV file");
+    spdlog::trace("Getting csv filepath from {}.", m_focalPlaneImage.m_ImageFile);
+    string csv_file = m_focalPlaneImage.getCSVFilepathFromImageName(image_filepath);
+    spdlog::trace("Reading csv file {} ", csv_file);
+    std::vector<std::vector<std::string>> csv_results = m_focalPlaneImage.getCSVData(csv_file);
 
-#ifdef SIMMODE
-    coordinate_map = {
-            {2221, {1700.5,900.5}},
-            {2222, {1700.6,900.6}}
-    };
-#endif
+    spdlog::trace("Converting csv vectors to coordinate map");
+    std::map<int, std::vector<double>> coordinate_map = m_focalPlaneImage.makePanelCoordinateMap(csv_results);
+    
     return coordinate_map;
 }
 
 std::vector<double> OpticalAlignmentController::_analyzeImageSinglePanelAutomatically(std::string image_filepath, bool plot) {
     string command;
+    m_focalPlaneImage.m_ImageFile = image_filepath;
+    m_focalPlaneImage.m_show = plot;
     command = m_focalPlaneImage.analyzeSinglePanelCommand();
     spdlog::debug(command);
 
     string ret;
     ret = m_focalPlaneImage.exec(command.c_str());
     spdlog::info(ret);
+
+    spdlog::debug("Loading output CSV file");
+    spdlog::trace("Getting csv filepath.");
+    std::string csv_file = m_focalPlaneImage.getCSVFilepathFromImageName(image_filepath);
+    spdlog::trace("Reading csv file {} ", csv_file);
+    std::vector<std::vector<std::string>> csv_results = m_focalPlaneImage.getCSVData(csv_file);
+
+    spdlog::trace("Converting csv vectors to coordinate map");
+    std::map<int, std::vector<double>> coordinate_map = m_focalPlaneImage.makePanelCoordinateMap(csv_results);
 
     std::vector<double> panel_coordinates;
 

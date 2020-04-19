@@ -6,6 +6,9 @@
 #define ALIGNMENT_FOCALPLANE_HPP
 
 #include "common/alignment/device.hpp"
+#include "common/utilities/CSVReader.hpp"
+#include <boost/regex.hpp>
+#include <libgen.h>
 
 #include "spdlog/spdlog.h"
 
@@ -77,11 +80,23 @@ public:
     double m_RingTol;
     double m_RingFrac;
     double m_MinDist;
+    bool m_show = false;
 
     std::string exec(const char* cmd);
 
+    std::string getCSVFilepathFromImageName(std::string image_filepath);
+
+    std::vector<std::vector<std::string>> getCSVData(std::string data_file);
+
+    std::map<int, std::vector<double>> makePanelCoordinateMap(std::vector<std::vector<std::string>> dataList);
+
+    std::string getDatetimeFromRAWname(const std::string& raw_name);
+
+    void setDataDir(std::string data_dir) {m_data_dir = data_dir;};
+
 protected:
-    std::string m_pModPath = "";
+    std::string m_pModPath = "/home/ctauser/focal_plane/";
+    std::string m_data_dir = "/home/ctauser/focal_plane/data/";
     std::string m_pFocalPlane_PY = "focal_plane.py";
     std::string m_pFindMotionFocalPlane_PY = "find_motion_focal_plane.py";
     std::string m_pCalcMotion_PY = "calc_motion.py";
