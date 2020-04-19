@@ -274,7 +274,7 @@ UaStatus PasNodeManager::amendTypeNodes()
                                             Ua_AccessLevel_CurrentRead, this);
         //pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Optional);
         status = addNodeAndReference(pPanelType, pDataItem, OpcUaId_HasComponent);
-        UA_ASSERT(addStatus.isGood());
+        UA_ASSERT(status.isGood());
     }
 
     // Register all methods
