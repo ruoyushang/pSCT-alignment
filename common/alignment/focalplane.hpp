@@ -8,6 +8,7 @@
 #include "common/alignment/device.hpp"
 #include "common/utilities/CSVReader.hpp"
 #include <boost/regex.hpp>
+#include <utility>
 #include <libgen.h>
 
 #include "spdlog/spdlog.h"
@@ -25,9 +26,9 @@ public:
 
     std::string CalcMotionCenterToPattern(std::string &sector, std::string &respFile);
 
-    std::string CalcMotionSinglePanel2center(int panel, double current_x, double currentY);
+    std::string CalcMotionSinglePanel2center(int panel, double current_x, double currentY, std::string &respFile);
 
-    std::string CalcMotionSinglePanel2pattern(int panel, double currentX, double currentY);
+    std::string CalcMotionSinglePanel2pattern(int panel, double currentX, double currentY, std::string &respFile);
 
     std::string getResponseMatrixPatternFast();
 
@@ -82,17 +83,17 @@ public:
     double m_MinDist;
     bool m_show = false;
 
-    std::string exec(const char* cmd);
+    static std::string exec(const char* cmd);
 
     std::string getCSVFilepathFromImageName(std::string image_filepath);
 
-    std::vector<std::vector<std::string>> getCSVData(std::string data_file);
+    static std::vector<std::vector<std::string>> getCSVData(std::string data_file);
 
     std::map<int, std::vector<double>> makePanelCoordinateMap(std::vector<std::vector<std::string>> dataList);
 
-    std::string getDatetimeFromRAWname(const std::string& raw_name);
+    static std::string getDatetimeFromRAWname(const std::string& raw_name);
 
-    void setDataDir(std::string data_dir) {m_data_dir = data_dir;};
+    void setDataDir(std::string data_dir) {m_data_dir = std::move(data_dir);};
 
 protected:
     std::string m_pModPath = "/home/ctauser/focal_plane/";

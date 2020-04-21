@@ -19,6 +19,7 @@ const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean>> 
 
 const std::map<OpcUa_UInt32, std::pair<std::string, std::vector<std::tuple<std::string, UaNodeId, std::string>>>> OpticalAlignmentObject::METHODS = {
         {PAS_OpticalAlignmentType_GetResponseMatrix,       {"GetResponseMatrix",       {}}},
+        {PAS_OpticalAlignmentType_StopProcess,             {"StopProcessing",       {}}},
         {PAS_OpticalAlignmentType_MoveFocusToPattern,      {"MoveFocusToPattern",      {}}},
         {PAS_OpticalAlignmentType_MovePatternToFocus,      {"MovePatternToFocus",      {}}},
         {PAS_OpticalAlignmentType_CalibrateFirstOrderCorr, {"CalibrateFirstOrderCorr", {std::make_tuple("CenterX",
@@ -35,6 +36,10 @@ const std::map<OpcUa_UInt32, std::pair<std::string, std::vector<std::tuple<std::
                                                                                                std::make_tuple(
                                                                                                        "OffsetLimit",
                                                                                                        UaNodeId(OpcUaId_Double),
-                                                                                                       "Max pixel distance between current and target panel position.")}}},
+                                                                                                       "Max pixel distance between current and target panel position."),
+                                                                                               std::make_tuple(
+                        "RespFile",
+                        UaNodeId(OpcUaId_String),
+                        "Response Matrix file, in .yml format.")}}},
         {PAS_OpticalAlignmentType_MoveForCalibration,      {"MoveForCalibration",      {}}}
 };

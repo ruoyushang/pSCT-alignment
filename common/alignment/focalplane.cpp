@@ -116,11 +116,14 @@ std::string focalplane::CalcMotionCenterToPattern(std::string &sector, std::stri
     return command;
 }
 
-std::string focalplane::CalcMotionSinglePanel2center(int panel, double current_x, double currentY) {
+std::string
+focalplane::CalcMotionSinglePanel2center(int panel, double current_x, double currentY, std::string &respFile) {
     std::string command;
     command = m_pModPath + m_pCalcMotion_PY + " " + std::to_string(panel) + " -c "
               + " -x " + std::to_string(current_x)
-              + " -y " + std::to_string(currentY);
+              + " -y " + std::to_string(currentY)
+              + " --center_coord " + m_PatternCenter
+              + " --resp_file " + respFile;
     if (m_verbosity) {
         command += " -v";
     }
@@ -128,11 +131,13 @@ std::string focalplane::CalcMotionSinglePanel2center(int panel, double current_x
     return command;
 }
 
-std::string focalplane::CalcMotionSinglePanel2pattern(int panel, double currentX, double currentY) {
+std::string
+focalplane::CalcMotionSinglePanel2pattern(int panel, double currentX, double currentY, std::string &respFile) {
     std::string command;
     command = m_pModPath + m_pCalcMotion_PY + " " + std::to_string(panel) + " -p "
               + " -x " + std::to_string(currentX)
-              + " -y " + std::to_string(currentY);
+              + " -y " + std::to_string(currentY)
+              + " --resp_file " + respFile;
     if (m_verbosity) {
         command += " -v";
     }

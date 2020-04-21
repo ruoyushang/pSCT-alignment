@@ -15,10 +15,12 @@
 #include "client/controllers/pascontroller.hpp"
 #include "common/alignment/focalplane.hpp"
 
+#include "uathread.h"
+
 class MirrorController;
 class PanelController;
 
-class OpticalAlignmentController : public PasCompositeController {
+class OpticalAlignmentController : public PasCompositeController, UaThread {
     UA_DISABLE_COPY(OpticalAlignmentController);
 public:
     explicit OpticalAlignmentController(Device::Identity identity, Client *pClient);
@@ -40,11 +42,25 @@ public:
     // own implementation
     void addChild(OpcUa_UInt32 deviceType, const std::shared_ptr<PasController> &pController) override;
 
+    void run() override ;
+
 protected:
     //
 
 private:
     std::string m_Mode;
+
+    double m_target_coordinates_center_x;
+    double m_target_coordinates_center_y;
+    bool m_show_plot ;
+    double m_offset_limit;
+    std::string m_respFile;
+    bool m_processing = true;
+
+    void setTargetX(double x) {m_target_coordinates_center_x = x;};
+    void setTargetY(double y) {m_target_coordinates_center_y = y;};
+    void showPlot(bool show) {m_show_plot = show ;};
+    void setOffsetLimit(double offset) {m_offset_limit = offset;};
 
     std::set<unsigned> m_selectedPanels;
 
@@ -54,19 +70,18 @@ private:
 
     std::string _captureSingleImage();
 
-    std::map<int, std::vector<double>> _analyzeImagePatternAutomatically(std::string image_filepath, bool plot);
-    std::vector<double> _analyzeImageSinglePanelAutomatically(std::string image_filepath, bool plot);
+    std::map<int, std::vector<double>> _analyzeImagePatternAutomatically(const std::string& image_filepath, bool plot);
+    std::vector<double> _analyzeImageSinglePanelAutomatically(const std::string& image_filepath, bool plot);
 
-    Eigen::VectorXd _calculatePanelMotion(int panel, double x, double y);
+    Eigen::VectorXd _calculatePanelMotion(int panel, double x, double y, std::string respFile);
 
     bool _saveCorrections(std::map<int, Eigen::VectorXd> map);
 
     void _loadPatternImageParameters();
 
-    void
-    calibrateFirstOrderCorrection(double target_coordinates_center_x, double target_coordinates_center_y,
-                                  bool show_plot,
-                                  double offset_limit);
+    void calibrateFirstOrderCorrection();
+
+    bool _doSafePanelMotion(std::shared_ptr<PanelController> sharedPtr, Eigen::VectorXd matrix);
 };
 
 

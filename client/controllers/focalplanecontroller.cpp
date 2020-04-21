@@ -321,9 +321,10 @@ UaStatus FocalPlaneController::operate(OpcUa_UInt32 offset, const UaVariantArray
             int panel = args[0].Value.Int16;
             double x = args[1].Value.Double;
             double y = args[2].Value.Double;
+            std::string respFile = UaString(args[3].Value.String).toUtf8();
 
             std::string command;
-            command = m_pFP->CalcMotionSinglePanel2center(panel, x, y);
+            command = m_pFP->CalcMotionSinglePanel2center(panel, x, y, respFile);
 
             spdlog::trace("Calling calc motion command:");
             spdlog::info(command);
@@ -339,9 +340,10 @@ UaStatus FocalPlaneController::operate(OpcUa_UInt32 offset, const UaVariantArray
             int panel = args[0].Value.Int16;
             double x = args[1].Value.Double;
             double y = args[2].Value.Double;
+            std::string respFile = UaString(args[3].Value.String).toUtf8();
 
             std::string command;
-            command = m_pFP->CalcMotionSinglePanel2pattern(panel, x, y);
+            command = m_pFP->CalcMotionSinglePanel2pattern(panel, x, y, respFile);
 
             spdlog::trace("Calling calc motion command:");
             spdlog::info(command);

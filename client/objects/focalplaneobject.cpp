@@ -107,7 +107,11 @@ const std::map<OpcUa_UInt32, std::pair<std::string, std::vector<std::tuple<std::
                                                                                          std::make_tuple("Current Y",
                                                                                                          UaNodeId(
                                                                                                                  OpcUaId_Double),
-                                                                                                         "Current Y coordinate of panel")
+                                                                                                         "Current Y coordinate of panel"),
+                                                                                         std::make_tuple(
+                                                                                                 "RespFile",
+                                                                                                 UaNodeId(OpcUaId_String),
+                                                                                                 "Response Matrix file, in .yml format.")
                                                                                  }}},
         {PAS_FocalPlaneType_Panel2Pattern,           {"CalcPanelToPattern",      {std::make_tuple("panel",
                                                                                                   UaNodeId(
@@ -120,7 +124,11 @@ const std::map<OpcUa_UInt32, std::pair<std::string, std::vector<std::tuple<std::
                                                                                          std::make_tuple("Current Y",
                                                                                                          UaNodeId(
                                                                                                                  OpcUaId_Double),
-                                                                                                         "Current Y coordinate of panel")
+                                                                                                         "Current Y coordinate of panel"),
+                                                                                         std::make_tuple(
+                                                                                                 "RespFile",
+                                                                                                 UaNodeId(OpcUaId_String),
+                                                                                                 "Response Matrix file, in .yml format.")
                                                                                  }}},
 };
 

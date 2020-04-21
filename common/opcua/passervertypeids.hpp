@@ -304,6 +304,7 @@
 #define PAS_OpticalAlignmentType_GetResponseMatrix          3506
 #define PAS_OpticalAlignmentType_CalibrateFirstOrderCorr    3507
 #define PAS_OpticalAlignmentType_ImageParamSet              3508
+#define PAS_OpticalAlignmentType_StopProcess                3509
 //----------------------------------------------------------//
 //
 
