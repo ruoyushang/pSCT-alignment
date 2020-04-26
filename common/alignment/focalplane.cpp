@@ -55,7 +55,8 @@ std::string focalplane::analyzeSinglePanelCommand() {
               + " --DEBLEND_MINCONT " + std::to_string(m_imgAnalysisParams.m_DeblendMinCont)
               + " --THRESH " + std::to_string(m_imgAnalysisParams.m_Thresh)
               + " --search_xs " + m_imgAnalysisParams.m_SearchXs
-              + " --search_ys " + m_imgAnalysisParams.m_SearchYs;
+              + " --search_ys " + m_imgAnalysisParams.m_SearchYs
+              + " --datadir " + m_data_dir;
     if (m_verbosity) {
         command += " -v";
     }
@@ -78,7 +79,7 @@ std::string focalplane::analyzePatternCommand() {
               + " --ring_tol " + std::to_string(m_RingTol)
               + " --min_dist " + std::to_string(m_MinDist)
               + " --phase_offset_rad " + std::to_string(m_PhaseOffsetRad)
-              ;
+              + " --datadir " + m_data_dir;
 
     if (m_verbosity) {
         command += " -v";
@@ -154,7 +155,7 @@ std::string focalplane::getResponseMatrixSinglePanel() {
 }
 
 std::string focalplane::exec(const char* cmd) {
-    char buffer[128];
+    char buffer[1024];
     std::string result = "";
     FILE* pipe = popen(cmd, "r");
     if (!pipe) throw std::runtime_error("popen() failed!");
