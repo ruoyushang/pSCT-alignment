@@ -60,6 +60,13 @@ UaStatus FocalPlaneController::getData(OpcUa_UInt32 offset, UaVariant &value) {
             spdlog::trace("{} : Read Verbosity value => ({})", m_Identity, verbosity);
             break;
         }
+        case PAS_FocalPlaneType_Show: {
+            bool show;
+            show = m_pFP->m_show;
+            value.setBool(show);
+            spdlog::trace("{} : Read Show value => ({})", m_Identity, show);
+            break;
+        }
         case PAS_FocalPlaneType_DETECT_MINAREA: {
             double detect_minArea;
             detect_minArea = m_pFP->m_imgAnalysisParams.m_DetectMinArea;
@@ -165,6 +172,13 @@ UaStatus FocalPlaneController::setData(OpcUa_UInt32 offset, UaVariant value) {
             value.toBool(val);
             m_pFP->set_verbosity(val);
             spdlog::trace("{} : Setting Verbosity value... value => ({})", m_Identity, val);
+            break;
+        }
+        case PAS_FocalPlaneType_Show: {
+            OpcUa_Boolean val;
+            value.toBool(val);
+            m_pFP->m_show = val;
+            spdlog::trace("{} : Setting Show value... value => ({})", m_Identity, val);
             break;
         }
         case PAS_FocalPlaneType_DEBLEND_MINCONT: {

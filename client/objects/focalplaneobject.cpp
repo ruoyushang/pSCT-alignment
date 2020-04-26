@@ -17,6 +17,8 @@ const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, O
                                                        Ua_AccessLevel_CurrentRead | Ua_AccessLevel_CurrentWrite)},
         {PAS_FocalPlaneType_Verbosity, std::make_tuple("Verbosity", UaVariant(OpcUa_False), OpcUa_False,
                                                        Ua_AccessLevel_CurrentRead | Ua_AccessLevel_CurrentWrite)},
+        {PAS_FocalPlaneType_Show, std::make_tuple("Show", UaVariant(OpcUa_True), OpcUa_False,
+                                                       Ua_AccessLevel_CurrentRead | Ua_AccessLevel_CurrentWrite)},
         {PAS_FocalPlaneType_DETECT_MINAREA, std::make_tuple("DETECT_MINAREA", UaVariant(30) , OpcUa_False,
                                                             Ua_AccessLevel_CurrentRead | Ua_AccessLevel_CurrentWrite)},
         {PAS_FocalPlaneType_THRESH, std::make_tuple("THRESH", UaVariant(6), OpcUa_False,
