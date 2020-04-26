@@ -474,7 +474,7 @@ void OpticalAlignmentController::_loadPatternImageParameters() {
     UaVariant value;
 
     pController->getData(PAS_FocalPlaneType_DETECT_MINAREA, value);
-    value.toDouble(m_focalPlaneImage.m_imgAnalysisParams.m_DetectMinArea);
+    value.toInt32(m_focalPlaneImage.m_imgAnalysisParams.m_DetectMinArea);
     spdlog::trace("m_DetectMinArea: {}",m_focalPlaneImage.m_imgAnalysisParams.m_DetectMinArea);
     pController->getData(PAS_FocalPlaneType_DEBLEND_MINCONT, value);
     value.toDouble(m_focalPlaneImage.m_imgAnalysisParams.m_DeblendMinCont);
@@ -490,13 +490,13 @@ void OpticalAlignmentController::_loadPatternImageParameters() {
     spdlog::trace("m_Thresh: {}",m_focalPlaneImage.m_imgAnalysisParams.m_Thresh);
 
     pController->getData(PAS_FocalPlaneType_PatternRadius, value);
-    value.toDouble(m_focalPlaneImage.m_PatternRadius);
+    value.toInt32(m_focalPlaneImage.m_PatternRadius);
     pController->getData(PAS_FocalPlaneType_PhaseOffsetRad, value);
     value.toDouble(m_focalPlaneImage.m_PhaseOffsetRad);
     pController->getData(PAS_FocalPlaneType_RingFrac, value);
     value.toDouble(m_focalPlaneImage.m_RingFrac);
     pController->getData(PAS_FocalPlaneType_MinDist, value);
-    value.toDouble(m_focalPlaneImage.m_MinDist);
+    value.toInt32(m_focalPlaneImage.m_MinDist);
     pController->getData(PAS_FocalPlaneType_PatternCenter, value);
     m_focalPlaneImage.m_PatternCenter = value.toString().toUtf8();
     pController->getData(PAS_FocalPlaneType_RingTol, value);

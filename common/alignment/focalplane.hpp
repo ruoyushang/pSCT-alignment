@@ -69,18 +69,18 @@ public:
     struct image_parameters {
         double m_DeblendMinCont = 0.01;
         int m_Thresh = 6;
-        double m_DetectMinArea = 30;
+        int m_DetectMinArea = 30;
         std::string m_SearchXs = "0 0";
         std::string m_SearchYs = "0 0";
     };
 
     image_parameters m_imgAnalysisParams = image_parameters();
-    double m_PatternRadius;
+    int m_PatternRadius;
     std::string m_PatternCenter = "1913 1010";
     double m_PhaseOffsetRad;
     double m_RingTol;
     double m_RingFrac;
-    double m_MinDist;
+    int m_MinDist;
     bool m_show = false;
 
     static std::string exec(const char* cmd);
