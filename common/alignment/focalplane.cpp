@@ -155,7 +155,7 @@ std::string focalplane::getResponseMatrixSinglePanel() {
 }
 
 std::string focalplane::exec(const char* cmd) {
-    char buffer[1024];
+    char buffer[8192];
     std::string result = "";
     FILE* pipe = popen(cmd, "r");
     if (!pipe) throw std::runtime_error("popen() failed!");
