@@ -11,13 +11,15 @@
 const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, OpcUa_Byte>> OpticalAlignmentObject::VARIABLES = {
         {PAS_OpticalAlignmentType_State, std::make_tuple("State", UaVariant(0), OpcUa_True, Ua_AccessLevel_CurrentRead)},
         {PAS_OpticalAlignmentType_ErrorState, std::make_tuple("ErrorState", UaVariant(0), OpcUa_True, Ua_AccessLevel_CurrentRead)},
-        {PAS_OpticalAlignmentType_ImageParamSet, std::make_tuple("ImageParamSet", UaVariant(0), OpcUa_True, Ua_AccessLevel_CurrentRead | Ua_AccessLevel_CurrentWrite)}
+        {PAS_OpticalAlignmentType_ImageParamSet, std::make_tuple("ImageParamSet", UaVariant(0), OpcUa_True, Ua_AccessLevel_CurrentRead | Ua_AccessLevel_CurrentWrite)},
+        {PAS_OpticalAlignmentType_SelectedPanels,std::make_tuple("SelectedPanels", UaVariant(""), OpcUa_False, Ua_AccessLevel_CurrentRead | Ua_AccessLevel_CurrentWrite)}
 };
 
 const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean>> OpticalAlignmentObject::ERRORS = {
 };
 
 const std::map<OpcUa_UInt32, std::pair<std::string, std::vector<std::tuple<std::string, UaNodeId, std::string>>>> OpticalAlignmentObject::METHODS = {
+        {PAS_OpticalAlignmentType_SelectAll,               {"SelectAll",                {}}},
         {PAS_OpticalAlignmentType_GetResponseMatrix,       {"GetResponseMatrix",       {}}},
         {PAS_OpticalAlignmentType_StopProcess,             {"StopProcessing",       {}}},
         {PAS_OpticalAlignmentType_MoveFocusToPattern,      {"MoveFocusToPattern",      {}}},

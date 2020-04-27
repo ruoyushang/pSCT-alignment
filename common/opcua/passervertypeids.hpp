@@ -306,6 +306,8 @@
 #define PAS_OpticalAlignmentType_CalibrateFirstOrderCorr    3507
 #define PAS_OpticalAlignmentType_ImageParamSet              3508
 #define PAS_OpticalAlignmentType_StopProcess                3509
+#define PAS_OpticalAlignmentType_SelectAll                  3510
+#define PAS_OpticalAlignmentType_SelectedPanels             3511
 //----------------------------------------------------------//
 //
 

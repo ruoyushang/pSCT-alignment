@@ -68,6 +68,10 @@ private:
 
     std::map <int, Eigen::VectorXd> m_corrected_coordinate_deltas_per_panel;
 
+    // helper method to process the selected children string and convert it into a set
+    // of vector indices
+    void parseAndSetSelection(const std::string &selectionString, unsigned deviceType, int usage_type);
+
     std::string _captureSingleImage();
 
     std::map<int, std::vector<double>> _analyzeImagePatternAutomatically(const std::string& image_filepath, bool plot);

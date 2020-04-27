@@ -110,6 +110,20 @@ UaStatus OpticalAlignmentController::getData(OpcUa_UInt32 offset, UaVariant &val
             spdlog::trace("{} : Read Verbosity value => ({})", m_Identity, verbosity);
             break;
         }
+        case PAS_OpticalAlignmentType_SelectedPanels : {
+            std::vector<unsigned> v(m_selectedPanels.begin(), m_selectedPanels.end());
+            std::string s = "[";
+            for (int i = 0; i < (int)(v.size()); i++) {
+                s += std::to_string(v[i]);
+                if (i != (int)(v.size() - 1)) {
+                    s += ", ";
+                }
+            }
+            s += "]";
+            value.setString(s.c_str());
+            spdlog::trace("{} : Read SelectedPanels value => ({})", m_Identity, s.c_str());
+            break;
+        }
         default:
             return OpcUa_BadInvalidArgument;
     }
@@ -126,6 +140,12 @@ UaStatus OpticalAlignmentController::setData(OpcUa_UInt32 offset, UaVariant valu
             OpcUa_Boolean val;
             value.toBool(val);
             spdlog::trace("{} : Setting Verbosity value... value => ({})", m_Identity, val);
+            break;
+        }
+        case PAS_OpticalAlignmentType_SelectedPanels: {
+            std::string selectionString = value.toString().toUtf8();
+            spdlog::debug("{}: Adding {}", m_Identity, selectionString);
+            parseAndSetSelection(selectionString, PAS_PanelType, 0);
             break;
         }
         default:
@@ -192,6 +212,15 @@ UaStatus OpticalAlignmentController::operate(OpcUa_UInt32 offset, const UaVarian
             status = OpcUa_Good;
             break;
         }
+        case  PAS_OpticalAlignmentType_SelectAll: {
+            spdlog::info("OpticalAlignmentController::operate() : Calling SelectAll()...");
+            m_selectedPanels.clear();
+            for (const auto &panel : getChildren(PAS_PanelType)) {
+                spdlog::trace("Found panel: {}", panel->getIdentity().position);
+                m_selectedPanels.insert((unsigned) panel->getIdentity().position);
+            }
+            break;
+        }
         default:
             status = OpcUa_BadInvalidArgument;
     }
@@ -236,9 +265,10 @@ void OpticalAlignmentController::calibrateFirstOrderCorrection() {
             bool pController_exists =
                     m_ChildrenPositionMap.at(PAS_PanelType).find(panel) !=
                     m_ChildrenPositionMap.at(PAS_PanelType).end();
-            // TODO also check m_selectedPanels - set up the rest of code for that.
-            if (!pController_exists) {
-                spdlog::warn("{}: This panel not available. Moving on...", panel);
+            bool panel_selected = (m_selectedPanels.find(panel) != m_selectedPanels.end());
+
+            if (!pController_exists | !panel_selected) {
+                spdlog::warn("{}: This panel not available or selected. Moving on...", panel);
                 continue;
             }
 
@@ -519,4 +549,51 @@ void OpticalAlignmentController::run() {
     spdlog::debug("Show plots in between steps? {}", m_show_plot);
 
     calibrateFirstOrderCorrection();
+}
+
+void OpticalAlignmentController::parseAndSetSelection(const string &selectionString, unsigned int deviceType,
+                                                      int usage_type) {
+
+    // process a separated string and find the panels or edges described by it
+    // pad by a space from the right so we don't hit the end of the line without a delimiter
+
+    // Strip leading and trailing brackets if present
+    int front = 0;
+    int back = selectionString.size();
+    if (selectionString.front() == '[') {
+        front++;
+    }
+    if (selectionString.back() == ']') {
+        back--;
+    }
+
+    std::string inStr = selectionString.substr(front,back) + std::string(" ");
+    std::vector<std::string> strList;
+    // working with comma, space and semicolon
+    std::string delim = " ,;:\"\'{}";
+    size_t prev = 0, cur;
+    while ((cur = inStr.find_first_of(delim, prev)) != std::string::npos) {
+        if (cur > prev)
+            strList.push_back(inStr.substr(prev, cur-prev));
+        prev = cur + 1;
+    }
+
+    // add all the items to the selected children set of indices
+    if (deviceType == PAS_PanelType && usage_type==0) { // expect a list of panel positions
+        m_selectedPanels.clear();
+        unsigned curpos;
+        std::ostringstream os;
+        for (const std::string &item : strList) {
+            curpos = stoi(item);
+            if (m_ChildrenPositionMap.at(deviceType).count(curpos) > 0) {
+                m_selectedPanels.insert(curpos);
+                os << "Added Panel with position " << curpos << "." << std::endl;
+            }
+            else {
+                os << "Unable to find Panel with position " << curpos << ". Skipping..." << std::endl;
+            }
+        }
+        os << std::endl;
+        spdlog::info("{}: Selecting panels (positions):\n{}\n", m_Identity, os.str());
+    }
 }
