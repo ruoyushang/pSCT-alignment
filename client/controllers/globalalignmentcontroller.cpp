@@ -76,7 +76,7 @@ UaStatus GlobalAlignmentController::getState(Device::DeviceState &state)
 {
     //UaMutexLocker lock(&m_mutex);
     Device::DeviceState s;
-    std::vector<unsigned> deviceTypesToCheck = {PAS_CCDType, PAS_OpticalAlignmentType, PAS_PSDType, PAS_PanelType};
+    std::vector<unsigned> deviceTypesToCheck = {PAS_CCDType, PAS_OpticalAlignmentType, PAS_PSDType, PAS_PanelType, PAS_OptTableType};
     for (auto devType : deviceTypesToCheck) {
         for (const auto &child : getChildren(devType)) {
             child->getState(s);

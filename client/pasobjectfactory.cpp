@@ -11,6 +11,7 @@
 #include "client/objects/mirrorobject.hpp"
 #include "client/objects/globalalignmentobject.hpp"
 #include "client/objects/opticalalignmentobject.hpp"
+#include "client/objects/opttableobject.hpp"
 #include "client/objects/panelobject.hpp"
 #include "client/objects/edgeobject.hpp"
 #include "client/objects/ccdobject.hpp"
@@ -43,6 +44,8 @@ PasObject* PasObjectFactory::Create(
             return new MPESObject(name, newNodeId, defaultLocaleId, dynamic_cast<PasNodeManagerCommon *>(pNodeManager), identity, dynamic_cast<PasComInterfaceCommon *>(pCommIf));
         case PAS_PanelType:
             return new PanelObject(name, newNodeId, defaultLocaleId, pNodeManager, identity, pCommIf);
+        case PAS_OptTableType:
+            return new OptTableObject(name, newNodeId, defaultLocaleId, pNodeManager, identity, pCommIf);
         case PAS_EdgeType:
             return new EdgeObject(name, newNodeId, defaultLocaleId, pNodeManager, identity, pCommIf);
         case PAS_PSDType:

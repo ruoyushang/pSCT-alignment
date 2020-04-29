@@ -54,6 +54,7 @@ public:
 
     void addGlobalAlignmentController();
     void addOpticalAlignmentController();
+    void addOpticalTableController();
 
     void addParentChildRelations();
 

@@ -25,6 +25,7 @@
 #include "client/controllers/panelcontroller.hpp"
 #include "client/controllers/pascontroller.hpp"
 #include "client/controllers/psdcontroller.hpp"
+#include "client/controllers/opttablecontroller.hpp"
 #include "client/controllers/focalplanecontroller.hpp"
 #include "client/controllers/opticalalignmentcontroller.hpp"
 #include "client/controllers/globalalignmentcontroller.hpp"
@@ -54,6 +55,7 @@ std::map<OpcUa_UInt32, std::string> PasCommunicationInterface::deviceTypeNames{
     {PAS_FocalPlaneType, "FocalPlane"},
     {PAS_OpticalAlignmentType, "OpticalAlignment"},
     {PAS_GlobalAlignmentType, "GlobalAlignment"},
+    {PAS_OptTableType, "OpticalTable"},
     {GLOB_PositionerType, "Positioner"}
 };
 
@@ -160,6 +162,8 @@ PasCommunicationInterface::addDevice(Client *pClient, OpcUa_UInt32 deviceType,
             pController = std::make_shared<GlobalAlignmentController>(identity, pClient);
         else if (deviceType == PAS_OpticalAlignmentType)
             pController = std::make_shared<OpticalAlignmentController>(identity, pClient);
+        else if (deviceType == PAS_OptTableType)
+            pController = std::make_shared<OptTableController>(identity, pClient);
         else if (deviceType == GLOB_PositionerType) {
 #if SIMMODE
             pController = std::dynamic_pointer_cast<PositionerController>(std::make_shared<DummyPositionerController>(identity));
@@ -223,6 +227,14 @@ void PasCommunicationInterface::addOpticalAlignmentController() {
         spdlog::debug("Adding Optical Alignment device...");
         spdlog::trace("Found ID: {}", oaID);
         addDevice(nullptr, PAS_OpticalAlignmentType, oaID);
+    }
+}
+
+void PasCommunicationInterface::addOpticalTableController() {
+    for (const auto &optID:  m_pConfiguration->getDevices(PAS_OptTableType)){
+        spdlog::debug("Adding Optical Table device...");
+        spdlog::trace("Found ID: {}", optID);
+        addDevice(nullptr, PAS_OptTableType, optID);
     }
 }
 

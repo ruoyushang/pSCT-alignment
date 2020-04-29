@@ -228,9 +228,31 @@ UaStatus Configuration::loadDeviceConfiguration(const std::vector<std::string> &
             // get OT's PSD
             if (panelId.position==1001 || panelId.position==2001)
             {
+                // Optical Table
+                ////////////////////
+                Device::Identity OptTableId;
+                OptTableId.serialNumber = panelId.position; // need to find it out!!!
+                OptTableId.position = SCTMath::Mirror(panelId.position);
+                OptTableId.eAddress = "10.0.1.100"; // need to find it out!!!
+                OptTableId.name = std::string("OptTable_") + std::to_string(OptTableId.position);
+
+                // add to the list of devices
+                m_DeviceIdentities[PAS_OptTableType].insert(OptTableId);
+
+                m_DeviceSerialMap[PAS_OptTableType][OptTableId.serialNumber] = OptTableId;
+                m_DeviceNameMap[OptTableId.name] = OptTableId;
+
+                // add the Optical Table and its panels to the parents map
+                m_ChildMap[OptTableId][PAS_PanelType].insert(panelId);
+                m_ParentMap[panelId][PAS_OptTableType].insert(OptTableId);
+                spdlog::info("Configuration::loadDeviceConfiguration(): added Panel {} as parent of OptTable {}.",
+                             panelId, OptTableId);
+
+                // PSD
+                ////////////////////
                 Device::Identity psdId;
                 psdId.serialNumber = panelId.position; // need to find it out!!!
-                psdId.position = 0;
+                psdId.position = SCTMath::Mirror(panelId.position);
                 psdId.eAddress = "10.0.1.100"; // need to find it out!!!
                 psdId.name = std::string("PSD_") + std::to_string(psdId.serialNumber);
 
@@ -242,8 +264,8 @@ UaStatus Configuration::loadDeviceConfiguration(const std::vector<std::string> &
                 m_DeviceNameMap[psdId.name] = psdId;
 
                 // add the PSD and its panels to the parents map
-                m_ChildMap[panelId][PAS_PSDType].insert(psdId);
-                m_ParentMap[psdId][PAS_PanelType].insert(panelId);
+                m_ChildMap[OptTableId][PAS_PSDType].insert(psdId);
+                m_ParentMap[psdId][PAS_OptTableType].insert(OptTableId);
                 spdlog::info("Configuration::loadDeviceConfiguration(): added Panel {} as parent of PSD {}.",
                              panelId, psdId);
             }
@@ -568,16 +590,19 @@ bool Configuration::addMissingParents() {
         if (panelId.position==1001 || panelId.position==2001){
             try {
                 for (const auto &psdId : m_DeviceIdentities.at(PAS_PSDType)) {
-                    if (psdId.serialNumber == panelId.position) {
-                        spdlog::trace("Found that {} associated with {}", panelId, psdId);
-                        m_ChildMap[panelId][PAS_PSDType].insert(psdId);
-                        m_ParentMap[psdId][PAS_PanelType].insert(panelId);
-                    } else {
+                    for (const auto &OptId : m_DeviceIdentities.at(PAS_OptTableType)) {
+                        if ((psdId.serialNumber == panelId.position) && (psdId.serialNumber == OptId.position)) {
+                            spdlog::trace("Found that panel {}({}) associated with PSD {}({})", panelId.position, panelId, psdId.serialNumber, psdId);
+                            m_ChildMap[OptId][PAS_PSDType].insert(psdId);
+                            m_ParentMap[psdId][PAS_OptTableType].insert(OptId);
+                            m_ChildMap[OptId][PAS_PanelType].insert(panelId);
+                            m_ParentMap[panelId][PAS_OptTableType].insert(OptId);
+                        }
                     }
                 }
             }
             catch (const std::out_of_range& oor) {
-                spdlog::warn("No PSD found");
+                spdlog::warn("No PSD or OpticalTable found");
             }
         }
         else{
@@ -594,16 +619,23 @@ bool Configuration::addMissingParents() {
 
         }
     }
-    for (const auto &mirrorId : m_DeviceIdentities.at(PAS_MirrorType)) {
-        for (const auto &fpId : m_DeviceIdentities.at(PAS_FocalPlaneType)){
-            if (m_DeviceIdentities[PAS_FocalPlaneType].find(fpId) == m_DeviceIdentities[PAS_FocalPlaneType].end()) {
-                spdlog::info("Configuration::addMissingParents(): Added focal plane {} to device list.", fpId);
-                m_DeviceIdentities[PAS_FocalPlaneType].insert(fpId);
+    try {
+        for (const auto &GA : m_DeviceIdentities.at(PAS_GlobalAlignmentType)) {
+            for (const auto &OptTableId : m_DeviceIdentities.at(PAS_OptTableType)) {
+                if (m_DeviceIdentities[PAS_OptTableType].find(OptTableId) ==
+                    m_DeviceIdentities[PAS_OptTableType].end()) {
+                    spdlog::info("Configuration::addMissingParents(): Added Optical Table {} to device list.",
+                                 OptTableId);
+                    m_DeviceIdentities[PAS_OptTableType].insert(OptTableId);
+                }
+                spdlog::info("Configuration::addMissingParents(): Added {} to device list and parent map.", OptTableId);
+                m_ChildMap[GA][PAS_OptTableType].insert(OptTableId);
+                m_ParentMap[OptTableId][PAS_GlobalAlignmentType].insert(GA);
             }
-            spdlog::info("Configuration::addMissingParents(): Added {} to device list and parent map.", fpId);
-            m_ChildMap[mirrorId][PAS_FocalPlaneType].insert(fpId);
-            m_ParentMap[fpId][PAS_MirrorType].insert(mirrorId);
         }
+    }
+    catch (const std::out_of_range& oor) {
+        spdlog::warn("Out of Range error: ({}), No Optical Table found on this panel.",oor.what());
     }
     try {
         for (const auto &mpesId : m_DeviceIdentities.at(PAS_MPESType)) {
