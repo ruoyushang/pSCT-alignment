@@ -159,7 +159,7 @@ UaStatus OpticalAlignmentController::operate(OpcUa_UInt32 offset, const UaVarian
 {
     UaStatus status;
     //UaMutexLocker lock(&m_mutex);
-    spdlog::trace("Offset: {}", offset);
+
     if (m_State == Device::DeviceState::Busy) {
         spdlog::error("{} : OpticalAlignmentController::operate() : Device is busy, method call aborted.", m_Identity);
         return OpcUa_BadInvalidState;

@@ -106,7 +106,7 @@ UaStatus OptTableController::setState(Device::DeviceState state)
 UaStatus OptTableController::getData(OpcUa_UInt32 offset, UaVariant &value)
 {
     //UaMutexLocker lock(&m_mutex);
-
+//Todo: need to add data variables to collect
     UaStatus status;
     switch (offset) {
         case 1: {
@@ -126,7 +126,7 @@ UaStatus OptTableController::setData(OpcUa_UInt32 offset, UaVariant value)
 {
     //UaMutexLocker lock(&m_mutex);
     UaStatus status;
-
+//Todo: need to add data variables to set
     switch (offset) {
         case 1: {
             OpcUa_Boolean val;
@@ -151,7 +151,7 @@ UaStatus OptTableController::operate(OpcUa_UInt32 offset, const UaVariantArray &
 {
     UaStatus status;
     //UaMutexLocker lock(&m_mutex);
-    spdlog::trace("Offset: {}", offset);
+
     if (m_State == Device::DeviceState::Busy) {
         spdlog::error("{} : OptTableController::operate() : Device is busy, method call aborted.", m_Identity);
         return OpcUa_BadInvalidState;
@@ -161,12 +161,14 @@ UaStatus OptTableController::operate(OpcUa_UInt32 offset, const UaVariantArray &
         case PAS_OptTableType_Align: {
             spdlog::info("OptTableController::operate() :  Calling Align...");
 
+            //Todo need to create align method
             status = OpcUa_Good;
             break;
         }
         case PAS_OptTableType_FindMatrix: {
             spdlog::info("OptTableController::operate() :  Calling FindMatrix...");
 
+            //todo need to create FindMatrix method.
             status = OpcUa_Good;
             break;
         }

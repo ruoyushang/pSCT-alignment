@@ -542,6 +542,7 @@ UaStatus Configuration::updateNamespaceIndexes(const UaStringArray& namespaceArr
 }
 
 bool Configuration::addMissingParents() {
+    // This loop adds all devices to global and optical alignment children
     for (const auto &GAId : m_DeviceIdentities.at(PAS_GlobalAlignmentType)){
         spdlog::trace("Looping thru GlobalAlignment for GAS devices") ;
         for (const auto &OAId : m_DeviceIdentities.at(PAS_OpticalAlignmentType)){
@@ -578,6 +579,7 @@ bool Configuration::addMissingParents() {
         }
     }
 
+    // Loop thru all panels and add mirror parents
     for (const auto &panelId : m_DeviceIdentities.at(PAS_PanelType)) {
         // Add mirror as parent to all panels
         Device::Identity mirrorId = getMirrorId(panelId.position);
@@ -587,6 +589,11 @@ bool Configuration::addMissingParents() {
         }
         m_ChildMap[mirrorId][PAS_PanelType].insert(panelId);
         m_ParentMap[panelId][PAS_MirrorType].insert(mirrorId);
+        for (const auto &GAId : m_DeviceIdentities.at(PAS_GlobalAlignmentType)) {
+            spdlog::trace("Looping thru GlobalAlignment for panels");
+            m_ChildMap[GAId][PAS_PanelType].insert(panelId);
+            m_ParentMap[panelId][PAS_GlobalAlignmentType].insert(GAId);
+        }
         if (panelId.position==1001 || panelId.position==2001){
             try {
                 for (const auto &psdId : m_DeviceIdentities.at(PAS_PSDType)) {
@@ -602,23 +609,18 @@ bool Configuration::addMissingParents() {
                 }
             }
             catch (const std::out_of_range& oor) {
-                spdlog::warn("No PSD or OpticalTable found");
+                spdlog::warn("No PSD or OpticalTable found while checking positions 1001 or 2001");
             }
         }
         else{
-            for (const auto &GAId : m_DeviceIdentities.at(PAS_GlobalAlignmentType)) {
-                spdlog::trace("Looping thru GlobalAlignment for panels");
-                m_ChildMap[GAId][PAS_PanelType].insert(panelId);
-                m_ParentMap[panelId][PAS_GlobalAlignmentType].insert(GAId);
-            }
             for (const auto &OAId : m_DeviceIdentities.at(PAS_OpticalAlignmentType)) {
-                spdlog::trace("Looping thru OpticalAlignment for panels");
+                spdlog::trace("Looping thru OpticalAlignment for panels (skipping optical tables)");
                 m_ChildMap[OAId][PAS_PanelType].insert(panelId);
                 m_ParentMap[panelId][PAS_OpticalAlignmentType].insert(OAId);
             }
-
         }
     }
+    // Add optical table to Global alignment device child
     try {
         for (const auto &GA : m_DeviceIdentities.at(PAS_GlobalAlignmentType)) {
             for (const auto &OptTableId : m_DeviceIdentities.at(PAS_OptTableType)) {
@@ -637,6 +639,7 @@ bool Configuration::addMissingParents() {
     catch (const std::out_of_range& oor) {
         spdlog::warn("Out of Range error: ({}), No Optical Table found on this panel.",oor.what());
     }
+    // Add MPES to edge and mirror device children based on position.
     try {
         for (const auto &mpesId : m_DeviceIdentities.at(PAS_MPESType)) {
             if (m_ParentMap.at(mpesId).at(PAS_PanelType).size() != 1) {
@@ -682,6 +685,8 @@ bool Configuration::addMissingParents() {
     catch (const std::out_of_range& oor) {
             spdlog::warn("Out of Range error: ({}), No MPES found on this panel.",oor.what());
         }
+
+    // Add edge to mirror device children
     if (m_DeviceIdentities.find(PAS_EdgeType) != m_DeviceIdentities.end()) {
         for (const auto &edgeId : m_DeviceIdentities.at(PAS_EdgeType)) {
             // Add mirror as parent to all edges
@@ -694,6 +699,7 @@ bool Configuration::addMissingParents() {
             m_ParentMap[edgeId][PAS_MirrorType].insert(mirrorId);
         }
     }
+    // While looping thru MPES, add edge and panel parent/child of each other.
     try {
         for (const auto &mpesId : m_DeviceIdentities.at(PAS_MPESType)) {
             if (m_ParentMap.at(mpesId).find(PAS_EdgeType) != m_ParentMap.at(mpesId).end()) {
