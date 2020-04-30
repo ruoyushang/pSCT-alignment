@@ -339,6 +339,16 @@ UaStatus Configuration::loadDeviceConfiguration(const std::vector<std::string> &
         m_DeviceSerialMap[PAS_GlobalAlignmentType][GAId.serialNumber] = GAId;
         m_DeviceNameMap[GAId.name] = GAId;
 
+        // Get Positioner ID
+        Device::Identity positionerId = getPositionerId();
+        m_DeviceIdentities[GLOB_PositionerType].insert(GAId);
+        spdlog::info("Configuration::loadDeviceConfiguration(): added Positioner {} to device list.", positionerId);
+
+        m_DeviceSerialMap[GLOB_PositionerType][positionerId.serialNumber] = positionerId;
+        m_DeviceNameMap[positionerId.name] = positionerId;
+        m_ChildMap[GAId][GLOB_PositionerType].insert(positionerId);
+        m_ParentMap[positionerId][PAS_GlobalAlignmentType].insert(GAId);
+
         // Get OpticalAlignment ID
         Device::Identity OAId = getOpticalAlignmentId();
         m_DeviceIdentities[PAS_OpticalAlignmentType].insert(OAId);
@@ -756,6 +766,15 @@ Device::Identity Configuration::getOpticalAlignmentId() {
     opticalAlignmentId.eAddress = std::to_string(0);
     opticalAlignmentId.name = "OpticalAlignment";
     return opticalAlignmentId;
+}
+
+Device::Identity Configuration::getPositionerId() {
+    Device::Identity PositionerId;
+    PositionerId.position = -1;
+    PositionerId.serialNumber = -1;
+    PositionerId.eAddress = getPositionerUrl().toUtf8();
+    PositionerId.name = "Positioner";
+    return PositionerId;
 }
 
 int Configuration::getThirdPanelPosition(int wPanelPosition, int lPanelPosition) {

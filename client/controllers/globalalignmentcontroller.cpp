@@ -206,7 +206,6 @@ bool GlobalAlignmentController::__telescopeMoving()
 
     spdlog::debug("Getting positioner motion status.");
 
-    // TODO add positioner controller child.
     try {
         auto pController = m_pChildren[GLOB_PositionerType].at(0);
         UaStatus status = pController->getData(GLOB_PositionerType_isMoving, val);

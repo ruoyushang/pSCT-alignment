@@ -98,15 +98,17 @@ UaStatus PasNodeManager::afterStartUp()
         Device::Device::Identity id;
         UaString positioner_address = m_pConfiguration->getPositionerUrl();
         m_pPositioner->setAddress(positioner_address);
+        id.eAddress = positioner_address.toUtf8();
+        id.name = "Positioner";
         ret = m_pPositioner->connect();
         if (ret.isGood()) {
-            id.eAddress = positioner_address.toUtf8();
-            id.name = "Positioner";
             // add the positioner to the comm interface
             dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->addDevice(m_pPositioner, GLOB_PositionerType,
                                                                                   id);
             spdlog::info("PasNodeManager::afterStartUp(): Connected to positioner and added corresponding controller.");
         } else {
+            // add the positioner to the comm interface
+            dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->addDevice(m_pPositioner, GLOB_PositionerType, id);
             spdlog::warn("PasNodeManager::afterStartUp(): Failed to connect to positioner server at {}. Moving on...",
                          m_pConfiguration->getPositionerUrl().toUtf8());
         }
@@ -134,6 +136,10 @@ UaStatus PasNodeManager::afterStartUp()
         // Adding FocalPlane controller
         spdlog::info("PasNodeManager::afterStartUp(): Adding focal plane controller...");
         dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->addFocalPlaneController();
+
+        Device::Identity positionerID = dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->getValidDeviceIdentities(GLOB_PositionerType).at(0);
+        Device::Identity gaID = dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->getValidDeviceIdentities(PAS_GlobalAlignmentType).at(0);
+
     }
 
     // Finish controller initialization by adding parent-child relationships for all controllers

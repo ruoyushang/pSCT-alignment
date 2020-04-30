@@ -142,6 +142,7 @@ private:
 
     Device::Identity getGlobalAlignmentId();
     Device::Identity getOpticalAlignmentId();
+    Device::Identity getPositionerId();
 
     int getThirdPanelPosition(int wPanelPosition, int lPanelPosition);
 
