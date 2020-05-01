@@ -368,10 +368,24 @@ UaStatus FocalPlaneController::operate(OpcUa_UInt32 offset, const UaVariantArray
             status = OpcUa_Good;
             break;
         }
+        case PAS_FocalPlaneType_SaveImage: {
+            spdlog::info("FocalPlaneController::operate() :  Calling SaveImage...");
+
+            std::string imagepath;
+            imagepath = _captureSingleImage();
+            spdlog::info("Focal Plane Image path: {}", imagepath);
+        }
         default:
             status = OpcUa_BadInvalidArgument;
     }
 
     return status;
+}
+
+std::string FocalPlaneController::_captureSingleImage() {
+    std::string filename;
+    m_pFP->saveImage();
+    filename = m_pFP->get_image_file();
+    return filename;
 }
 

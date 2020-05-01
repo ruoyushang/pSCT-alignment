@@ -30,6 +30,8 @@ public:
 
 private:
     std::shared_ptr<focalplane> m_pFP ;
+
+    std::string _captureSingleImage();
 };
 
 #endif //ALIGNMENT_FOCALPLANECONTROLLER_HPP

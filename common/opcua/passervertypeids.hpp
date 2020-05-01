@@ -273,6 +273,7 @@
 #define PAS_FocalPlaneType_PatternCenter              3315
 #define PAS_FocalPlaneType_RingTol                    3316
 #define PAS_FocalPlaneType_Show                       3317
+#define PAS_FocalPlaneType_SaveImage                  3318
 
 #define PAS_FocalPlaneType_AnalyzeSinglePanelImage    3321
 #define PAS_FocalPlaneType_AnalyzePatternImage        3322

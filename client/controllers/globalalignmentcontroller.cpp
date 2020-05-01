@@ -216,10 +216,6 @@ bool GlobalAlignmentController::__telescopeMoving()
         spdlog::error("Positioner controller not found ({})", er.what());
     }
 
-#ifdef SIMMODE
-    isMoving = true;
-#endif
-
     return static_cast<bool>(isMoving);
 }
 
@@ -239,9 +235,6 @@ float GlobalAlignmentController::__telescopeEl()
     catch (std::out_of_range er){
         spdlog::error("Positioner controller not found ({})", er.what());
     }
-#ifdef SIMMODE
-    elevation = 60;
-#endif
 
     return elevation;
 }

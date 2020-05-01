@@ -5,6 +5,10 @@
 #ifndef ALIGNMENT_OPTTABLECONTROLLER_H
 #define ALIGNMENT_OPTTABLECONTROLLER_H
 
+#include <Eigen/Dense>
+
+#include "client/controllers/mirrorcontroller.hpp"
+#include "client/controllers/panelcontroller.hpp"
 #include "client/controllers/pascontroller.hpp"
 
 class OptTableController : public PasCompositeController {
@@ -37,6 +41,11 @@ private:
     std::set<unsigned> m_selectedPanels;
     std::set<unsigned> m_selectedPSD;
     OpcUa_Boolean m_tracking;
+
+    std::pair<Eigen::VectorXd, Eigen::VectorXd> __getCurrentReadings();
+
+    UaStatus findMatrix(UaVariantArray args);
+    UaStatus findSingleMatrix(unsigned panelIdx, double stepSize = 0.5);
 
 };
 

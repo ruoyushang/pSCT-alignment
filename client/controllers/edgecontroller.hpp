@@ -10,7 +10,7 @@ class EdgeController : public PasCompositeController {
     UA_DISABLE_COPY(EdgeController);
 
 public:
-    friend MirrorController;
+    friend class MirrorController;
 
     // construction / destruction
     explicit EdgeController(Device::Identity identity);

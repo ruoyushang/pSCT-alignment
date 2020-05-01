@@ -261,3 +261,8 @@ std::map<int, std::vector<double>> focalplane::makePanelCoordinateMap(std::vecto
 
     return m_coordinates_per_panel;
 }
+
+void focalplane::saveImage() {
+    // TODO How to save image and collect the same time stamp?
+    m_ImageFile = "";
+}

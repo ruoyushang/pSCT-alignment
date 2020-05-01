@@ -85,7 +85,7 @@ private:
 
     void calibrateFirstOrderCorrection();
 
-    bool _doSafePanelMotion(std::shared_ptr<PanelController> sharedPtr, Eigen::VectorXd matrix);
+    bool _doSafePanelMotion(std::shared_ptr<PanelController> pPanel, Eigen::VectorXd deltaCoords);
 };
 
 

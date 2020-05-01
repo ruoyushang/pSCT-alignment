@@ -185,30 +185,36 @@ UaStatus OpticalAlignmentController::operate(OpcUa_UInt32 offset, const UaVarian
         }
         case PAS_OpticalAlignmentType_StopProcess: {
             spdlog::info("OpticalAlignmentController::operate() :  Calling StopProcess...");
-            m_processing = running() == 0;
+            if (m_processing) {
+                m_processing = 0;
+            }
             break;
         }
         case PAS_OpticalAlignmentType_MoveFocusToPattern: {
             spdlog::info("OpticalAlignmentController::operate() :  Calling MoveFocusToPattern...");
 
+            // Todo implement this move for all panels selected from focus to pattern. Use calc_motion.py to get delta motion
             status = OpcUa_Good;
             break;
         }
         case PAS_OpticalAlignmentType_MovePatternToFocus: {
             spdlog::info("OpticalAlignmentController::operate() :  Calling MovePatternToFocus...");
 
+            // Todo implement this move for all panels selected from pattern to focus. Use calc_motion.py to get delta motion
             status = OpcUa_Good;
             break;
         }
         case PAS_OpticalAlignmentType_MoveForCalibration: {
             spdlog::info("OpticalAlignmentController::operate() :  Calling MoveForCalibration...");
 
+            // Todo implement this move for all panels. Use calc_motion.py to get delta motion. Motion should be +/- 1 in Rx and Ry, don't save automatically
             status = OpcUa_Good;
             break;
         }
         case PAS_OpticalAlignmentType_GetResponseMatrix: {
             spdlog::info("OpticalAlignmentController::operate() :  Calling GetResponseMatrix...");
 
+            // Todo Use calc_motion.py to get response matrix, with prior motions and 5 images
             status = OpcUa_Good;
             break;
         }
@@ -314,7 +320,7 @@ void OpticalAlignmentController::calibrateFirstOrderCorrection() {
 
             n_correction_tries = 0;
             // while statement to repeat motion/analysis until panel reaches target within m_offset_limit.
-            while (distance_panel_to_target > m_offset_limit) {
+            while ((distance_panel_to_target > m_offset_limit) & m_processing) {
                 if (n_correction_tries > 5 ) { break;}
                 spdlog::info("Still far from target {} > {} ", distance_panel_to_target, m_offset_limit);
 
@@ -322,7 +328,6 @@ void OpticalAlignmentController::calibrateFirstOrderCorrection() {
                                                                      m_respFile);
                 spdlog::info("{}: Found actuator deltas for this motion to target", panel);
                 try {
-                    // TODO Deal with panel motion in some secure way. Must get coordinate deltas from response matrix (not actuator delta lengths)
                     auto pPanel = dynamic_pointer_cast<PanelController>(
                             m_ChildrenPositionMap.at(PAS_PanelType).at(panel));
                     _doSafePanelMotion(pPanel, curr_coords_deltas_for_panel);
@@ -372,7 +377,6 @@ void OpticalAlignmentController::calibrateFirstOrderCorrection() {
             spdlog::info("{}: Found actuator deltas for this motion to target", panel);
 
             try {
-                // TODO Deal with panel motion in some secure way. Must get coordinate deltas from response matrix (not actuator delta lengths)
                 auto pPanel = dynamic_pointer_cast<PanelController>(
                         m_ChildrenPositionMap.at(PAS_PanelType).at(panel));
                 _doSafePanelMotion(pPanel, curr_coords_deltas_for_panel);
@@ -399,8 +403,8 @@ void OpticalAlignmentController::calibrateFirstOrderCorrection() {
 }
 
 std::string OpticalAlignmentController::_captureSingleImage() {
-// TODO How to save image and collect the same time stamp?
-    std::string filename = "";
+    m_focalPlaneImage.saveImage();
+    std::string filename = m_focalPlaneImage.get_image_file();
     return filename;
 }
 
@@ -535,8 +539,89 @@ void OpticalAlignmentController::_loadPatternImageParameters() {
 }
 
 bool
-OpticalAlignmentController::_doSafePanelMotion(std::shared_ptr<PanelController> sharedPtr, Eigen::VectorXd matrix) {
-    sleep(2);
+OpticalAlignmentController::_doSafePanelMotion(std::shared_ptr<PanelController> pPanel, Eigen::VectorXd deltaCoords) {
+    UaStatus status;
+    float deltaLength;
+    float targetLength;
+    Eigen::VectorXd deltaLengths(6);
+    Eigen::VectorXd targetLengths(6);
+
+    status = pPanel->updateCoords();
+
+    spdlog::debug(
+            "{} : PanelController::operate() : Current panel coordinates (x, y ,z xRot, yRot, zRot):\n{} {} {} {} {} {}\n",
+            m_Identity, pPanel->m_curCoords[0], pPanel->m_curCoords[1], pPanel->m_curCoords[2], pPanel->m_curCoords[3], pPanel->m_curCoords[4], pPanel->m_curCoords[5]);
+
+    double inputDeltaCoordinates[6];
+    for (int i = 0; i < 6; i++) {
+        inputDeltaCoordinates[i] = deltaCoords[i];
+    }
+    spdlog::debug(
+            "{} : PanelController::operate() : Delta panel coordinates (x, y ,z xRot, yRot, zRot):\n{} {} {} {} {} {}\n",
+            m_Identity, inputDeltaCoordinates[0], inputDeltaCoordinates[1], inputDeltaCoordinates[2],
+            inputDeltaCoordinates[3],
+            inputDeltaCoordinates[4], inputDeltaCoordinates[5]);
+
+    double targetCoordinates[6];
+    for (int i = 0; i < 6; i++) {
+        targetCoordinates[i] = pPanel->m_curCoords[i] + inputDeltaCoordinates[i];
+    }
+
+    spdlog::debug(
+            "{} : PanelController::operate() : Target panel coordinates (x, y ,z xRot, yRot, zRot):\n{} {} {} {} {} {}\n",
+            m_Identity, targetCoordinates[0], targetCoordinates[1], targetCoordinates[2], targetCoordinates[3],
+            targetCoordinates[4], targetCoordinates[5]);
+
+    // find actuator lengths needed
+    pPanel->m_SP.ComputeActsFromPanel(targetCoordinates);
+
+    UaVariantArray lengthArgs;
+    lengthArgs.create(6);
+    UaVariant val;
+
+    // Get actuator lengths for motion
+    for (int i = 0; i < 6; i++) {
+        targetLengths(i) = (float) pPanel->m_SP.GetActLengths()[i];
+        val.setFloat(targetLengths(i));
+        val.copyTo(&lengthArgs[i]);
+    }
+    spdlog::debug("{} : PanelController::operate() : Moving actuators to lengths:\n{}\n\n", m_Identity,
+                  targetLengths);
+
+    Eigen::VectorXd currentLengths;
+    status = pPanel->__getActuatorLengths(currentLengths);
+
+    if (status.isBad()) {
+        spdlog::error("{}: Unable to moveDeltaCoords, failed to get actauator lengths.", m_Identity);
+        return OpcUa_Bad;
+    }
+
+    deltaLengths = targetLengths - currentLengths;
+    if (pPanel->checkForCollision(deltaLengths)) {
+        return OpcUa_Bad;
+    } else {
+        status = m_pClient->callMethodAsync(m_pClient->getDeviceNodeId(m_Identity), UaString("MoveToLengths"), lengthArgs);
+    }
+
+    // Wait for completion
+    spdlog::info("{}: Waiting for all motions to complete...", m_Identity);
+    UaThread::sleep(5);
+    bool stillMoving = true;
+    while (stillMoving) {
+        stillMoving = false;
+        Device::DeviceState state;
+        getState(state);
+        if (state == Device::DeviceState::Busy) {
+            spdlog::trace("{}: Panel {} is still busy...", m_Identity, getIdentity());
+            stillMoving = true;
+        } else {
+            spdlog::trace("{}: Panel {} is idle.", m_Identity, getIdentity());
+        }
+        UaThread::sleep(1);
+    }
+    spdlog::info("{}: Done! All motions completed for MoveDeltaCoords method.", m_Identity);
+
+
 }
 
 void OpticalAlignmentController::run() {

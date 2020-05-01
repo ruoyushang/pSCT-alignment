@@ -12,6 +12,9 @@
 #include "common/simulatestewart/stewartplatform.hpp"
 
 #include "client/controllers/pascontroller.hpp"
+#include "client/controllers/opttablecontroller.hpp"
+#include "client/controllers/opticalalignmentcontroller.hpp"
+#include "client/controllers/globalalignmentcontroller.hpp"
 
 class AGeoAsphericDisk;
 
@@ -51,6 +54,9 @@ public:
 class MirrorController : public PasCompositeController {
     UA_DISABLE_COPY(MirrorController);
 public:
+    friend class OptTableController;
+    friend class OpticalAlignmentController;
+    friend class GlobalAlignmentController;
     explicit MirrorController(Device::Identity identity, std::string mode = "client");
 
     // initialize and precompute everything

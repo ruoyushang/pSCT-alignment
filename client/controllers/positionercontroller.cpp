@@ -235,32 +235,32 @@ UaStatus DummyPositionerController::getData(OpcUa_UInt32 offset, UaVariant &valu
 
     switch (offset) {
         case GLOB_PositionerType_isMoving:
-            value.toBool(m_Data.isMoving);
+            value.setBoolean(m_Data.isMoving);
             spdlog::trace("{} : DummyPositioner read isMoving value => ({})", m_Identity, m_Data.isMoving);
             status = OpcUa_Good;
             break;
         case GLOB_PositionerType_curAz:
-            value.toFloat(m_Data.curAz);
+            value.setFloat(m_Data.curAz);
             spdlog::trace("{} : DummyPositioner read curAz value => ({})", m_Identity, m_Data.curAz);
             status = OpcUa_Good;
             break;
         case GLOB_PositionerType_curEl:
-            value.toFloat(m_Data.curEl);
+            value.setFloat(m_Data.curEl);
             spdlog::trace("{} : DummyPositioner read curEl value => ({})", m_Identity, m_Data.curEl);
             status = OpcUa_Good;
             break;
         case GLOB_PositionerType_inAz:
-            value.toFloat(m_Data.inAz);
+            value.setFloat(m_Data.inAz);
             spdlog::trace("{} : DummyPositioner read inAz value => ({})", m_Identity, m_Data.inAz);
             status = OpcUa_Good;
             break;
         case GLOB_PositionerType_inEl:
-            value.toFloat(m_Data.inEl);
+            value.setFloat(m_Data.inEl);
             spdlog::trace("{} : DummyPositioner read inEl value => ({})", m_Identity, m_Data.inEl);
             status = OpcUa_Good;
             break;
         case GLOB_PositionerType_EnergyLevel:
-            value.toInt16(m_Data.energyLevel);
+            value.setInt16(m_Data.energyLevel);
             spdlog::trace("{} : DummyPositioner read EnergyLevel value => ({})", m_Identity, m_Data.energyLevel);
             status = OpcUa_Good;
             break;
@@ -284,12 +284,12 @@ UaStatus DummyPositionerController::setData(
 
     switch (offset) {
         case GLOB_PositionerType_inAz:
-            value.setFloat(m_Data.inAz);
+            value.toFloat(m_Data.inAz);
             spdlog::trace("{} : DummyPositioner setting inAz value => ({})", m_Identity, m_Data.inAz);
             status = OpcUa_Good;
             break;
         case GLOB_PositionerType_inEl:
-            value.setFloat(m_Data.inEl);
+            value.toFloat(m_Data.inEl);
             spdlog::trace("{} : DummyPositioner setting inEl value => ({})", m_Identity, m_Data.inEl);
             status = OpcUa_Good;
             break;
@@ -329,11 +329,11 @@ UaStatus DummyPositionerController::operate(OpcUa_UInt32 offset, const UaVariant
         case GLOB_PositionerType_Move:
             spdlog::info("{} : DummyPositionerController calling move()", m_Identity);
             m_State = Device::DeviceState::Busy;
-            m_Data.isMoving = true;
+            m_Data.isMoving = OpcUa_True;
             sleep(5);
             m_Data.curAz = m_Data.inAz;
             m_Data.curEl = m_Data.inEl;
-            m_Data.isMoving = false;
+            m_Data.isMoving = OpcUa_False;
             m_State = Device::DeviceState::On;
             status = OpcUa_Good;
             break;
@@ -366,10 +366,10 @@ void DummyPositionerController::run() {
 
         m_Data.curAz = curAzDistribution(generator);
         m_Data.curEl = curElDistribution(generator);
-        m_Data.isMoving = m_Data.isMoving == 0;
+        m_Data.isMoving = m_Data.isMoving == OpcUa_False;
         std::string buff;
-        buff = "Positioner";
-        if (m_Data.isMoving){
+        buff = "Positioner ";
+        if (m_Data.isMoving == OpcUa_True){
             buff += "is now moving";
         }
         else{
@@ -377,6 +377,6 @@ void DummyPositionerController::run() {
         }
         spdlog::debug(buff);
         buff.clear();
-        sleep(30);
+        sleep(15);
     }
 }

@@ -95,6 +95,8 @@ public:
 
     void setDataDir(std::string data_dir) {m_data_dir = std::move(data_dir);};
 
+    void saveImage();
+
 protected:
     std::string m_pModPath = "/home/ctauser/focal_plane/";
     std::string m_data_dir = "/home/ctauser/focal_plane/data/";

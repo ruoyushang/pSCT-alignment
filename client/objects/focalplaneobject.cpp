@@ -71,6 +71,7 @@ const std::map<OpcUa_UInt32, std::pair<std::string, std::vector<std::tuple<std::
                                                                                                          "Tolerance for how far to find panels between pattern positions. Default is 0.2"),
                                                                                  }}},
         {PAS_FocalPlaneType_AnalyzeSinglePanelImage, {"AnalyzeSinglePanelImage", {}}},
+        {PAS_FocalPlaneType_SaveImage,               {"SaveImage",               {}}},
         {PAS_FocalPlaneType_SavePanelMotion,         {"SavePanelMotions",        {}}},
         {PAS_FocalPlaneType_Pattern2Center,          {"CalcPatternToCenter",     {std::make_tuple("sector",
                                                                                                   UaNodeId(
