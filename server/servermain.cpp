@@ -91,7 +91,9 @@ int OpcServerMain(const std::string &szAppPath, const std::string &configFilePat
         spdlog::info("Creating Communication Interface...");
         std::unique_ptr<PasCommunicationInterface> pCommIf = std::unique_ptr<PasCommunicationInterface>(
                 new PasCommunicationInterface()); // Initialize communication interface
+        spdlog::trace("Set Panel Number {}", std::stoi(panelNumber));
         pCommIf->setPanelNumber(std::stoi(panelNumber));
+        spdlog::trace("Initializing pCommIf");
         status = pCommIf->initialize();
         UA_ASSERT(status.isGood());
 

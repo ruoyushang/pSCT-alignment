@@ -592,7 +592,7 @@ OpticalAlignmentController::_doSafePanelMotion(std::shared_ptr<PanelController> 
     status = pPanel->__getActuatorLengths(currentLengths);
 
     if (status.isBad()) {
-        spdlog::error("{}: Unable to moveDeltaCoords, failed to get actauator lengths.", m_Identity);
+        spdlog::error("{}: Unable to moveDeltaCoords, failed to get actuator lengths.", m_Identity);
         return OpcUa_Bad;
     }
 
@@ -600,7 +600,7 @@ OpticalAlignmentController::_doSafePanelMotion(std::shared_ptr<PanelController> 
     if (pPanel->checkForCollision(deltaLengths)) {
         return OpcUa_Bad;
     } else {
-        status = m_pClient->callMethodAsync(m_pClient->getDeviceNodeId(m_Identity), UaString("MoveToLengths"), lengthArgs);
+        status = pPanel->operate(PAS_PanelType_MoveToLengths, lengthArgs);
     }
 
     // Wait for completion
