@@ -1,4 +1,3 @@
 #!/bin/bash
 
-for i in {1..16}; do callps 0 PSoff $i; done
-
+for i in {0..17}; do callps 0 PSoff $i; done
