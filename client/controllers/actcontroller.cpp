@@ -216,6 +216,15 @@ UaStatus ActController::operate(OpcUa_UInt32 offset, const UaVariantArray &args)
                 spdlog::error(
                     "{} : ActController::getData() : Device is in a bad state (busy, off, error). MoveToLength call aborted. Check state and try again.",
                     m_Identity);
+                if (state == Device::DeviceState::Off){
+                    spdlog::debug("Device state is off");
+                }
+                else if (state == Device::DeviceState::Busy){
+                    spdlog::debug("Device state is busy");
+                }
+                if (errorState == Device::ErrorState::FatalError){
+                    spdlog::debug("Error state is fatal");
+                }
                 status = OpcUa_BadInvalidState;
             } else {
                 spdlog::info("{} : ActuatorController calling moveToLength() with target length {} mm", m_Identity,
