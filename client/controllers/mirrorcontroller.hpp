@@ -128,7 +128,7 @@ private:
 
     UaStatus __calculateLoadAlignmentOffset(const std::string &loadFilePath);
 
-    UaStatus testActuators(float moveDistance = 0.4, float epsilonLength = 0.016);
+    UaStatus testActuators(float moveDistance = 0.1, float epsilonLength = 0.016);
 
     // mirror coords -- x/y/z, xRot, yRot, zRot
     Eigen::VectorXd m_curCoords, m_curCoordsErr, m_sysOffsetsMPES;
