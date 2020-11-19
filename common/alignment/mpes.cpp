@@ -78,8 +78,9 @@ void MPESBase::turnOn() {
         return;
     }
     Device::CustomBusyLock lock = Device::CustomBusyLock(this);
-    __initialize();
-    __setExposure();
+    if (__initialize()) {
+        __setExposure();
+    }
 }
 
 #ifndef SIMMODE
@@ -374,6 +375,14 @@ bool DummyMPES::__initialize() {
     m_Errors.assign(getNumErrors(), false);
 
     m_On = true;
+    const double chance = 0.75; // this is the chance of getting true, between 0 and 1;
+    std::random_device rd;
+    std::mt19937 mt(rd());
+    std::bernoulli_distribution dist(chance);
+    bool result = dist(mt);
+    if (!result){
+        setError(0);
+    }
 
     std::ostringstream oss;
     oss << std::setfill('0') << std::setw(6) << getSerialNumber(); // pad serial number to 6 digits with zeros
@@ -397,11 +406,11 @@ bool DummyMPES::__initialize() {
         spdlog::debug("{} : Did not read calibration data -- using raw values.", m_Identity);
     }
 
-    spdlog::debug("{} : DummyMPES::initialize() : Done.", m_Identity);
+    spdlog::debug("{} : DummyMPES::initialize() attempted: Done.", m_Identity);
 
     // Load default
 
-    return true;
+    return result;
 }
 
 int DummyMPES::__setExposure() {

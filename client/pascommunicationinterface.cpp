@@ -178,7 +178,6 @@ PasCommunicationInterface::addDevice(Client *pClient, OpcUa_UInt32 deviceType,
         // Initialize this controller or return if unable to do so for whatever reason
         if (!pController->initialize()) {
             spdlog::error("Device {} failed to initialize.", identity);
-            return identity;
         }
 
         m_pControllers[deviceType][identity] = pController;

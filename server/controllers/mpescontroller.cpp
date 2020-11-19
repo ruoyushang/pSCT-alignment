@@ -101,9 +101,15 @@ UaStatus MPESController::setState(Device::DeviceState state) {
 }
 /// @details Sets exposure for this MPES.
 bool MPESController::initialize() {
-    spdlog::info("{} : Initializing MPES...", m_Identity);
+    spdlog::debug("{} : setExposure()...", m_Identity);
     m_pPlatform->getMPESbyIdentity(m_Identity)->setExposure();
-    return true;
+    Device::ErrorState errState = m_pPlatform->getMPESbyIdentity(m_Identity)->getErrorState();
+    if ((errState == Device::ErrorState::Nominal) | (errState == Device::ErrorState::OperableError)) {
+        return true;
+    }
+    else {
+        return false;
+    }
 }
 
 /// @details If the MPES has not been read yet, calls read before retrieving data. Locks the shared mutex while reading data.
