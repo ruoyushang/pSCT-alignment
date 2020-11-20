@@ -424,13 +424,16 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
         if (offset == PAS_MirrorType_MoveToCoords) {
             spdlog::info("{} : MirrorController::operate() : Calling moveToCoords()...", m_Identity);
             command = UaString(args[7].Value.String).toUtf8();
-        } else if (offset == PAS_MirrorType_MoveDeltaCoords) {
+        }
+        else if (offset == PAS_MirrorType_MoveDeltaCoords) {
             spdlog::info("{} : MirrorController::operate() : Calling moveDeltaCoords()...", m_Identity);
             command = UaString(args[7].Value.String).toUtf8();
-        } else if (offset == PAS_MirrorType_AlignSector) {
+        }
+        else if (offset == PAS_MirrorType_AlignSector) {
             spdlog::info("{} : MirrorController::operate() : Calling alignSector()...", m_Identity);
             command = UaString(args[1].Value.String).toUtf8();
-        } else if (offset == PAS_MirrorType_AlignRing) {
+        }
+        else if (offset == PAS_MirrorType_AlignRing) {
             spdlog::info("{} : MirrorController::operate() : Calling alignRing()...", m_Identity);
             command = UaString(args[2].Value.String).toUtf8();
         }
@@ -461,18 +464,22 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
                     UaVariant(args[i]).toDouble(targetMirrorCoords[i]);
                 }
                 status = __calculateMoveToCoords(targetMirrorCoords);
-            } else if (offset == PAS_MirrorType_MoveDeltaCoords) {
+            }
+            else if (offset == PAS_MirrorType_MoveDeltaCoords) {
                 Eigen::VectorXd deltaMirrorCoords(6);
                 for (int i = 0; i < 6; i++) {
                     UaVariant(args[i]).toDouble(deltaMirrorCoords[i]);
                 }
                 status = __calculateMoveDeltaCoords(deltaMirrorCoords);
-            } else if (offset == PAS_MirrorType_AlignSector) {
+            }
+            else if (offset == PAS_MirrorType_AlignSector) {
                 status = __calculateAlignSector();
-            } else if (offset == PAS_MirrorType_AlignRing) {
+            }
+            else if (offset == PAS_MirrorType_AlignRing) {
                 unsigned fixPanel = args[0].Value.UInt32;
                 status = __calculateAlignRing(fixPanel);
-            } else if (offset == PAS_MirrorType_LoadPosition) {
+            }
+            else if (offset == PAS_MirrorType_LoadPosition) {
                 std::string saveFilePath = UaString(args[0].Value.String).toUtf8();
                 status = __calculateLoadPosition(saveFilePath);
             }
@@ -509,17 +516,22 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
                     "{} : Calculation done! You should call the method again with command=setAlignFrac to set an align fraction and inspect the resulting motion + do safety checks.",
                     m_Identity);
 
-        } else if (command == "setAlignFrac") {
+        }
+        else if (command == "setAlignFrac") {
             double alignFrac;
             if (offset == PAS_MirrorType_MoveToCoords) {
                 alignFrac = args[6].Value.Double;
-            } else if (offset == PAS_MirrorType_MoveDeltaCoords) {
+            }
+            else if (offset == PAS_MirrorType_MoveDeltaCoords) {
                 alignFrac = args[6].Value.Double;
-            } else if (offset == PAS_MirrorType_AlignSector) {
+            }
+            else if (offset == PAS_MirrorType_AlignSector) {
                 alignFrac = args[0].Value.Double;
-            } else if (offset == PAS_MirrorType_AlignRing) {
+            }
+            else if (offset == PAS_MirrorType_AlignRing) {
                 alignFrac = args[1].Value.Double;
-            } else if (offset == PAS_MirrorType_LoadPosition) {
+            }
+            else if (offset == PAS_MirrorType_LoadPosition) {
                 alignFrac = args[1].Value.Double;
             }
             else if (offset == PAS_MirrorType_LoadDeltaCoords) {
@@ -531,17 +543,22 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
             }
             __setAlignFrac(alignFrac);
             alignFrac = abs(alignFrac);
-        } else if (command == "execute") {
+        }
+        else if (command == "execute") {
             double alignFrac;
             if (offset == PAS_MirrorType_MoveToCoords) {
                 alignFrac = args[6].Value.Double;
-            } else if (offset == PAS_MirrorType_MoveDeltaCoords) {
+            }
+            else if (offset == PAS_MirrorType_MoveDeltaCoords) {
                 alignFrac = args[6].Value.Double;
-            } else if (offset == PAS_MirrorType_AlignSector) {
+            }
+            else if (offset == PAS_MirrorType_AlignSector) {
                 alignFrac = args[0].Value.Double;
-            } else if (offset == PAS_MirrorType_AlignRing) {
+            }
+            else if (offset == PAS_MirrorType_AlignRing) {
                 alignFrac = args[1].Value.Double;
-            } else if (offset == PAS_MirrorType_LoadPosition) {
+            }
+            else if (offset == PAS_MirrorType_LoadPosition) {
                 alignFrac = args[1].Value.Double;
             }
             else if (offset == PAS_MirrorType_LoadDeltaCoords) {
@@ -558,7 +575,8 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
                 return OpcUa_BadInvalidArgument;
             }
             __moveSelectedPanels(offset, alignFrac);
-        } else {
+        }
+        else {
             spdlog::error(
                     "{} : Invalid command provided ({}), valid commands are 'calculate', 'setAlignFrac', 'execute'.",
                     m_Identity, command);
@@ -613,7 +631,8 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
         updateCoords(false);
         status = alignSequential(startEdge, endEdge, dir);
         setState(Device::DeviceState::On);
-    } else if (offset == PAS_MirrorType_ReadSensors) {
+    }
+    else if (offset == PAS_MirrorType_ReadSensors) {
         spdlog::info("{} : MirrorController::operate() : Calling readSensors()...", m_Identity);
         setState(Device::DeviceState::Busy);
         if (m_selectedEdges.empty()) {
@@ -644,7 +663,8 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
             spdlog::info("{}: Done reading sensors.", m_Identity);
         }
         setState(Device::DeviceState::On);
-    } else if (offset == PAS_MirrorType_ReadSensorsParallel) {
+    }
+    else if (offset == PAS_MirrorType_ReadSensorsParallel) {
         spdlog::info("{} : MirrorController::operate() : Calling readSensorsParallel()...", m_Identity);
 
         if (m_selectedMPES.empty()) {
@@ -653,15 +673,23 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
                 m_Identity);
             return OpcUa_Good;
         }
+        else{
+            spdlog::debug("{} : Sensors found in this mirror", m_Identity);
+        }
 
         std::map<std::shared_ptr<PanelController>, std::vector<std::shared_ptr<MPESController>>> MPESordering;
         for (auto it = getChildren(PAS_PanelType).begin(); it < getChildren(PAS_PanelType).end(); it++) {
             MPESordering[std::dynamic_pointer_cast<PanelController>(*it)] = std::vector<std::shared_ptr<MPESController>>();
-            for (const auto &mpes : std::dynamic_pointer_cast<PanelController>(*it)->getChildren(
-                PAS_MPESType)) {
-                if (m_selectedMPES.find(mpes->getIdentity().serialNumber) != m_selectedMPES.end()) {
-                    MPESordering[std::dynamic_pointer_cast<PanelController>(*it)].push_back(std::dynamic_pointer_cast<MPESController>(mpes));
+            try {
+                for (const auto &mpes : std::dynamic_pointer_cast<PanelController>(*it)->getChildren(
+                        PAS_MPESType)) {
+                    if (m_selectedMPES.find(mpes->getIdentity().serialNumber) != m_selectedMPES.end()) {
+                        MPESordering[std::dynamic_pointer_cast<PanelController>(*it)].push_back(std::dynamic_pointer_cast<MPESController>(mpes));
+                    }
                 }
+            }
+            catch (const std::out_of_range& oor) {
+                spdlog::warn("{}: No MPES found on this panel: [Out of Range error: {}]", std::dynamic_pointer_cast<PanelController>(*it)->getIdentity().position, oor.what() );
             }
         }
 
@@ -723,13 +751,18 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
         std::map<Device::Identity, MPESBase::Position> readings;
 
         for (auto it = getChildren(PAS_PanelType).begin(); it < getChildren(PAS_PanelType).end(); it++) {
-            for (const auto &mpes : std::dynamic_pointer_cast<PanelController>(*it)->getChildren(
-                PAS_MPESType)) {
-                if (m_selectedMPES.find(mpes->getIdentity().serialNumber) != m_selectedMPES.end()) {
-                    readings.insert(
-                        std::make_pair(mpes->getIdentity(), std::dynamic_pointer_cast<MPESController>(
-                            mpes)->getPosition()));
+            try {
+                for (const auto &mpes : std::dynamic_pointer_cast<PanelController>(*it)->getChildren(
+                        PAS_MPESType)) {
+                    if (m_selectedMPES.find(mpes->getIdentity().serialNumber) != m_selectedMPES.end()) {
+                        readings.insert(
+                                std::make_pair(mpes->getIdentity(), std::dynamic_pointer_cast<MPESController>(
+                                        mpes)->getPosition()));
+                    }
                 }
+            }
+            catch (const std::out_of_range& oor) {
+                spdlog::warn("{}: No MPES found on this panel: [Out of Range error: {}]", std::dynamic_pointer_cast<PanelController>(*it)->getIdentity().position, oor.what() );
             }
         }
 
@@ -772,7 +805,8 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
             spdlog::info("{}: Found {} failed sensors.", m_Identity, N_bad_mpes);
         }
 
-    } else if (offset == PAS_MirrorType_SelectAll) {
+    }
+    else if (offset == PAS_MirrorType_SelectAll) {
         spdlog::info("{} : MirrorController::operate() : Calling selectAll()...", m_Identity);
         m_selectedPanels.clear();
         m_selectedTzFixedPanels.clear();
@@ -790,10 +824,12 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
         for (const auto &mpes : getChildren(PAS_MPESType)) {
             m_selectedMPES.insert(mpes->getIdentity().serialNumber);
         }
-    } else if (offset == PAS_MirrorType_TestActuators) {
+    }
+    else if (offset == PAS_MirrorType_TestActuators) {
         spdlog::info("{} : MirrorController::operate() : Calling testActuators()...", m_Identity);
         status = testActuators();
-    } else if (offset == PAS_MirrorType_TestSensors) {
+    }
+    else if (offset == PAS_MirrorType_TestSensors) {
         spdlog::info("{} : MirrorController::operate() : Calling testSensors()...", m_Identity);
 
         if (m_selectedMPES.empty()) {
@@ -891,9 +927,14 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
         std::map<std::shared_ptr<PanelController>, std::vector<std::shared_ptr<MPESController>>> MPESordering;
         for (auto it = getChildren(PAS_PanelType).begin(); it < getChildren(PAS_PanelType).end(); it++) {
             MPESordering[std::dynamic_pointer_cast<PanelController>(*it)] = std::vector<std::shared_ptr<MPESController>>();
-            for (const auto &mpes : std::dynamic_pointer_cast<PanelController>(*it)->getChildren(
-                    PAS_MPESType)) {
-                MPESordering[std::dynamic_pointer_cast<PanelController>(*it)].push_back(std::dynamic_pointer_cast<MPESController>(mpes));
+            try {
+                for (const auto &mpes : std::dynamic_pointer_cast<PanelController>(*it)->getChildren(
+                        PAS_MPESType)) {
+                    MPESordering[std::dynamic_pointer_cast<PanelController>(*it)].push_back(std::dynamic_pointer_cast<MPESController>(mpes));
+                }
+            }
+            catch (const std::out_of_range& oor) {
+                spdlog::warn("{}: No MPES found for this panel: [Out of Range error: {}]", std::dynamic_pointer_cast<PanelController>(*it)->getIdentity().position, oor.what() );
             }
         }
 
@@ -908,9 +949,14 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
             auto panelController = std::dynamic_pointer_cast<PanelController>(*it);
             auto panelId = panelController->getIdentity();
             std::map<Device::Identity, std::shared_ptr<MPESController>> mpesIdMap;
-            for (const auto &mpes : panelController->getChildren(
-                    PAS_MPESType)) {
-                mpesIdMap[mpes->getIdentity()] = std::dynamic_pointer_cast<MPESController>(mpes);
+            try {
+                for (const auto &mpes : panelController->getChildren(
+                        PAS_MPESType)) {
+                    mpesIdMap[mpes->getIdentity()] = std::dynamic_pointer_cast<MPESController>(mpes);
+                }
+                }
+            catch (const std::out_of_range& oor) {
+                spdlog::warn("{}: No MPES found for this panel: [Out of Range error: {}]", std::dynamic_pointer_cast<PanelController>(*it)->getIdentity().position, oor.what() );
             }
 
             for (auto mpesId : allMPES.at(panelId)) {
@@ -928,7 +974,8 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
 
         spdlog::info("{}: MPES Status Summary:\n{}", m_Identity, os.str());
 
-    } else if (offset == PAS_MirrorType_CheckStatus) {
+    }
+    else if (offset == PAS_MirrorType_CheckStatus) {
         spdlog::info("{} : MirrorController::operate() : Calling checkStatus()...", m_Identity);
 
         std::map<Device::Identity, std::vector<std::string>> deviceErrors;
@@ -1103,7 +1150,8 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
 
         spdlog::info("{}: Error/Status Report:\n{}", m_Identity, os.str());
 
-    } else if (offset == PAS_MirrorType_Stop) {
+    }
+    else if (offset == PAS_MirrorType_Stop) {
         spdlog::warn(
             "{} : MirrorController::operate() : Calling stop(). Stopping motion of all edges and child panels...",
             m_Identity);
@@ -1111,7 +1159,8 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
             std::dynamic_pointer_cast<EdgeController>(pEdge)->operate(PAS_EdgeType_Stop);
         }
         setState(Device::DeviceState::Off); // Turn state off to stop all methods
-    } else {
+    }
+    else {
         return OpcUa_BadNotImplemented;
     }
 
@@ -1305,14 +1354,17 @@ UaStatus MirrorController::readPositionAll(bool print) {
 
         auto padCoordsActs = pPanel->getPadCoords();
         if (print) {
-            spdlog::info("{}: MirrorController::readPositionAll(): Panel frame pad coordinates:\n{}\n", m_Identity,
+            spdlog::info("{}: MirrorController::readPositionAll(): Panel {} frame pad coordinates:\n{}\n", m_Identity, pPanel->getIdentity().position,
                          padCoordsActs);
             // and transform this to the telescope reference frame:
             // these are pad coordinates in TRF as computed from actuator lengths
-            for (int i = 0; i < padCoordsActs.cols(); i++)
-                padCoordsActs.col(i) = __toTelRF(panelPos, padCoordsActs.col(i));
-            spdlog::info("{}: MirrorController::readPositionAll(): Telescope frame pad coordinates:\n{}\n\n\n\n", m_Identity,
-                         padCoordsActs);
+            if (SCTMath::Ring(pPanel->getIdentity().position) != 0) {
+                for (int i = 0; i < padCoordsActs.cols(); i++)
+                    padCoordsActs.col(i) = __toTelRF(panelPos, padCoordsActs.col(i));
+                spdlog::info("{}: MirrorController::readPositionAll(): Telescope frame pad coordinates:\n{}\n\n\n\n",
+                             m_Identity,
+                             padCoordsActs);
+            }
         }
     }
 
@@ -1346,6 +1398,9 @@ MirrorController::__calculateMoveDeltaCoords(const Eigen::VectorXd &deltaMirrorC
         auto pPanel = std::dynamic_pointer_cast<PanelController>(
             m_ChildrenPositionMap.at(PAS_PanelType).at(panelPos));
         positionNum = pPanel->getIdentity().position;
+        if (SCTMath::Ring(positionNum) == 0){
+            continue;
+        }
         // for this panel, we get PRF pad coords, transform them to TRF,
         // move them in TRF, transform back to PRF, and then compute new ACT lengths
         // based on the new pad coords. so simple!
@@ -1406,6 +1461,9 @@ MirrorController::__calculateMoveToCoords(const Eigen::VectorXd &targetMirrorCoo
 
     int j = 0;
     for (unsigned panelPos : m_selectedPanels) {
+        if (SCTMath::Ring(panelPos) == 0){
+            continue;
+        }
         auto pPanel = std::dynamic_pointer_cast<PanelController>(
             m_ChildrenPositionMap.at(PAS_PanelType).at(panelPos));
         positionNum = pPanel->getIdentity().position;
@@ -1721,6 +1779,7 @@ UaStatus MirrorController::updateCoords(bool print)
     // minimize chisq and get telescope coordinates
     auto minuit = new TMinuit(6); // 6 parameters for 6 telescope coords
     minuit->SetPrintLevel(-1); // suppress all output
+    spdlog::trace("Starting minimize chisq and get telescope coordinates");
     minuit->SetFCN(MirrorControllerCompute::getInstance(this).chiSqFCN);
     // mnparm implements parameter definition:
     // void mnparm(I index, S "name", D start, D step, D LoLim, D HiLim, I& errflag)
@@ -1854,8 +1913,13 @@ UaStatus MirrorController::__calculateAlignSector(int align_mode) {
     // grab all user specified panels to move and sensors to fit
     std::vector<std::shared_ptr<PanelController>> panelsToMove;
     std::vector<std::shared_ptr<MPESController>> alignMPES;
-    for (unsigned panelPos : m_selectedPanels)
-        panelsToMove.push_back(std::dynamic_pointer_cast<PanelController>(m_ChildrenPositionMap.at(PAS_PanelType).at(panelPos)));
+    for (unsigned panelPos : m_selectedPanels) {
+        if (SCTMath::Ring(panelPos) == 0) {
+            continue;
+        }
+        panelsToMove.push_back(
+                std::dynamic_pointer_cast<PanelController>(m_ChildrenPositionMap.at(PAS_PanelType).at(panelPos)));
+    }
     for (int mpesSerial : m_selectedMPES) {
         std::shared_ptr<MPESController> mpes = std::dynamic_pointer_cast<MPESController>(
             m_ChildrenSerialMap.at(PAS_MPESType).at(mpesSerial));
@@ -2378,7 +2442,7 @@ UaStatus MirrorController::__calculateLoadPosition(const std::string &loadFilePa
     }
 
     for (const auto &pPanel : m_pChildren.at(PAS_PanelType)) {
-        std::dynamic_pointer_cast<PanelController>(pPanel)->operate(PAS_PanelType_ReadPosition);
+        status = std::dynamic_pointer_cast<PanelController>(pPanel)->operate(PAS_PanelType_ReadPosition);
         panelId = std::dynamic_pointer_cast<PanelController>(pPanel)->getIdentity();
         if (status.isBad()) {
             spdlog::error("{}: Unable to load position, failed to read actuator lengths.", m_Identity);
@@ -2489,7 +2553,7 @@ UaStatus MirrorController::__calculateLoadDeltaCoords(const std::string &loadFil
     }
 
     for (const auto &pPanel : m_pChildren.at(PAS_PanelType)) {
-        std::dynamic_pointer_cast<PanelController>(pPanel)->operate(PAS_PanelType_ReadPosition);
+        status = std::dynamic_pointer_cast<PanelController>(pPanel)->operate(PAS_PanelType_ReadPosition);
         panelId = std::dynamic_pointer_cast<PanelController>(pPanel)->getIdentity();
         if (status.isBad()) {
             spdlog::error("{}: Unable to load position, failed to read actuator lengths.", m_Identity);
@@ -3039,6 +3103,9 @@ double MirrorController::chiSq(const Eigen::VectorXd &telDelta)
     for (unsigned panelPos : m_selectedPanels) {
         int pos = (int)panelPos;
         int ring = SCTMath::Ring(pos);
+        if (ring == 0){
+            continue;
+        }
 
         // go over all pads -- ChiSq is the squared difference between pad coordinates
         // as computed from actuator lengths and pad coordinates as computed from telescope
