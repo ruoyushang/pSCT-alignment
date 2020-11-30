@@ -21,3 +21,4 @@ screen -S $screen_name -X screen -t $pos ssh root@$ip_address
 sleep 1.5
 # start the commands we need in the newly created/named screen window; \n to simulate keypress
 screen -S $screen_name -p $pos -X stuff $"opcua/start_server.sh $pos $LOGLEVEL \n"
+#screen -S $screen_name -p $pos -X stuff $"journalctl -f -u passerver.service \n"
