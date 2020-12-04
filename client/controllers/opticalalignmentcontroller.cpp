@@ -188,6 +188,7 @@ UaStatus OpticalAlignmentController::operate(OpcUa_UInt32 offset, const UaVarian
             if (m_processing) {
                 m_processing = 0;
             }
+            status = OpcUa_Good;
             break;
         }
         case PAS_OpticalAlignmentType_MoveFocusToPattern: {
@@ -225,6 +226,7 @@ UaStatus OpticalAlignmentController::operate(OpcUa_UInt32 offset, const UaVarian
                 spdlog::trace("Found panel: {}", panel->getIdentity().position);
                 m_selectedPanels.insert((unsigned) panel->getIdentity().position);
             }
+            status = OpcUa_Good;
             break;
         }
         default:

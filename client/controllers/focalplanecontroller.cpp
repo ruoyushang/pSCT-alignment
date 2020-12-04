@@ -416,6 +416,9 @@ UaStatus FocalPlaneController::operate(OpcUa_UInt32 offset, const UaVariantArray
             std::string imagepath;
             imagepath = _captureSingleImage();
             spdlog::info("Focal Plane Image path: {}", imagepath);
+
+            status = OpcUa_Good;
+            break;
         }
         default:
             status = OpcUa_BadInvalidArgument;

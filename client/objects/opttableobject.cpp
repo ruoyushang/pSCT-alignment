@@ -22,7 +22,7 @@ const std::map<OpcUa_UInt32, std::pair<std::string, std::vector<std::tuple<std::
         {PAS_OptTableType_FindMatrix, {"FindMatrix", {       std::make_tuple("Step Size",
                                                                          UaNodeId(OpcUaId_Double),
                                                                          "Size of step to use when calculating response matrix (in mm)")}}},
-        {PAS_OptTableType_Align, {"Align",      {
+        {PAS_OptTableType_Align, {"Align",      { //#FIXME wrong set of method arguments - need to update
                                                         std::make_tuple("Panel To Move",
                                                                         UaNodeId(OpcUaId_UInt32),
                                                                         "Position # of the panel to move during alignment"),
