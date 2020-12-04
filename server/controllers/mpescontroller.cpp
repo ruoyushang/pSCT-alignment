@@ -101,9 +101,15 @@ UaStatus MPESController::setState(Device::DeviceState state) {
 }
 /// @details Sets exposure for this MPES.
 bool MPESController::initialize() {
-    spdlog::debug("{} : setExposure()...", m_Identity);
-    m_pPlatform->getMPESbyIdentity(m_Identity)->setExposure();
     Device::ErrorState errState = m_pPlatform->getMPESbyIdentity(m_Identity)->getErrorState();
+    if ((errState == Device::ErrorState::Nominal) | (errState == Device::ErrorState::OperableError)) {
+        spdlog::debug("{} : setExposure()...", m_Identity);
+        m_pPlatform->getMPESbyIdentity(m_Identity)->setExposure();
+    }
+    else {
+        return false;
+    }
+    errState = m_pPlatform->getMPESbyIdentity(m_Identity)->getErrorState();
     if ((errState == Device::ErrorState::Nominal) | (errState == Device::ErrorState::OperableError)) {
         return true;
     }
