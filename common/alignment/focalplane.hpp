@@ -74,7 +74,14 @@ public:
         std::string m_SearchYs = "0 0";
     };
 
+    struct capture_parameters {
+        int exposure = 500000;
+        double frame_rate = 10;
+        double gain = 15;
+    };
+
     image_parameters m_imgAnalysisParams = image_parameters();
+    capture_parameters m_captureParams = capture_parameters();
     int m_PatternRadius;
     std::string m_PatternCenter = "1913 1010";
     double m_PhaseOffsetRad;
@@ -95,7 +102,7 @@ public:
 
     void setDataDir(std::string data_dir) {m_data_dir = std::move(data_dir);};
 
-    void saveImage();
+    std::string saveImageCommand();
 
 protected:
     std::string m_pModPath = "/home/ctauser/focal_plane/";
@@ -103,6 +110,8 @@ protected:
     std::string m_pFocalPlane_PY = "focal_plane.py";
     std::string m_pFindMotionFocalPlane_PY = "find_motion_focal_plane.py";
     std::string m_pCalcMotion_PY = "calc_motion.py";
+    std::string m_pGet_focal_plane_image_PY = "get_focal_plane_image.py";
+    std::string m_pPicture_dir = "/home/ctauser/Pictures/Aravis/";
 };
 
 

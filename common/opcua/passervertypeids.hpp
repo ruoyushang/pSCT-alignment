@@ -282,6 +282,9 @@
 #define PAS_FocalPlaneType_Center2Pattern             3325
 #define PAS_FocalPlaneType_Panel2Center               3326
 #define PAS_FocalPlaneType_Panel2Pattern              3327
+#define PAS_FocalPlaneType_Exposure                   3328
+#define PAS_FocalPlaneType_FrameRate                  3329
+#define PAS_FocalPlaneType_Gain                       3330
 //----------------------------------------------------------//
 //
 // Global Alignment Type

@@ -262,7 +262,27 @@ std::map<int, std::vector<double>> focalplane::makePanelCoordinateMap(std::vecto
     return m_coordinates_per_panel;
 }
 
-void focalplane::saveImage() {
-    // TODO How to save image and collect the same time stamp?
-    m_ImageFile = "";
+std::string focalplane::saveImageCommand() {
+    std::string command;
+
+    std::time_t rawtime;
+    struct tm * timeinfo;
+    char buffer [80];
+    std::time (&rawtime);
+    timeinfo = std::localtime (&rawtime);
+    std::strftime(buffer, 80, "%Y-%m-%d-%H:%M:%S", timeinfo);
+
+    std::string time_stamp;
+    time_stamp = buffer;
+
+    std::string filename = "The Imaging Source Europe GmbH-37514083-2592-1944-Mono8-" + time_stamp + ".png";
+    set_image_file(m_pPicture_dir + filename);
+
+    command = m_pModPath + m_pGet_focal_plane_image_PY
+            + " -e " + std::to_string(m_captureParams.exposure)
+            + " -g " + std::to_string(m_captureParams.gain)
+            + " -f " + std::to_string(m_captureParams.frame_rate)
+            + " --data_outdir " + m_pPicture_dir
+            + " --data_outfile " + filename ;
+    return command;
 }

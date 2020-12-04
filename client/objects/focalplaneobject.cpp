@@ -39,7 +39,13 @@ const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, O
                                                       Ua_AccessLevel_CurrentRead)},
         {PAS_FocalPlaneType_PatternCenter, std::make_tuple("PatternCenter", UaVariant("1910 1010"), OpcUa_False,
                                                      Ua_AccessLevel_CurrentRead)},
-        {PAS_FocalPlaneType_RingTol, std::make_tuple("RingTol", UaVariant(0.1), OpcUa_False, Ua_AccessLevel_CurrentRead)}
+        {PAS_FocalPlaneType_RingTol, std::make_tuple("RingTol", UaVariant(0.1), OpcUa_False, Ua_AccessLevel_CurrentRead)},
+        {PAS_FocalPlaneType_Exposure, std::make_tuple("Exposure", UaVariant(500000), OpcUa_False,
+                                                       Ua_AccessLevel_CurrentRead | Ua_AccessLevel_CurrentWrite)},
+        {PAS_FocalPlaneType_Gain, std::make_tuple("Gain", UaVariant(15), OpcUa_False,
+                                                      Ua_AccessLevel_CurrentRead | Ua_AccessLevel_CurrentWrite)},
+        {PAS_FocalPlaneType_FrameRate, std::make_tuple("Frame Rate", UaVariant(10), OpcUa_False,
+                                                      Ua_AccessLevel_CurrentRead | Ua_AccessLevel_CurrentWrite)}
 };
 
 const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean>> FocalPlaneObject::ERRORS = {

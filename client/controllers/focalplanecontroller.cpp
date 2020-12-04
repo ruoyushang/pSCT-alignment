@@ -144,6 +144,27 @@ UaStatus FocalPlaneController::getData(OpcUa_UInt32 offset, UaVariant &value) {
             spdlog::trace("{} : Read Search_Ys value => ({})", m_Identity, PatternCenter);
             break;
         }
+        case PAS_FocalPlaneType_Exposure: {
+            OpcUa_Int valInt;
+            valInt = m_pFP->m_captureParams.exposure;
+            value.setDouble(valInt);
+            spdlog::trace("{} : Read Exposure value => ({})", m_Identity, valInt);
+            break;
+        }
+        case PAS_FocalPlaneType_FrameRate: {
+            OpcUa_Double valDouble;
+            valDouble = m_pFP->m_captureParams.frame_rate;
+            value.setDouble(valDouble);
+            spdlog::trace("{} : Read frame rate value => ({})", m_Identity, valDouble);
+            break;
+        }
+        case PAS_FocalPlaneType_Gain: {
+            OpcUa_Double valDouble;
+            valDouble = m_pFP->m_captureParams.gain;
+            value.setDouble(valDouble);
+            spdlog::trace("{} : Read gain value => ({})", m_Identity, valDouble);
+            break;
+        }
         default:
             status = OpcUa_BadInvalidArgument;
             break;
@@ -214,6 +235,27 @@ UaStatus FocalPlaneController::setData(OpcUa_UInt32 offset, UaVariant value) {
             val = value.toString().toUtf8();
             m_pFP->m_imgAnalysisParams.m_SearchYs = val;
             spdlog::trace("{} : Setting SearchYs value... value => ({})", m_Identity, val);
+            break;
+        }
+        case PAS_FocalPlaneType_Exposure: {
+            OpcUa_Int16 val;
+            value.toInt16(val);
+            m_pFP->m_captureParams.exposure = val;
+            spdlog::trace("{} : Setting Exposure value... value => ({})", m_Identity, val);
+            break;
+        }
+        case PAS_FocalPlaneType_FrameRate: {
+            OpcUa_Double val;
+            value.toDouble(val);
+            m_pFP->m_captureParams.frame_rate = val;
+            spdlog::trace("{} : Setting Frame Rate value... value => ({})", m_Identity, val);
+            break;
+        }
+        case PAS_FocalPlaneType_Gain: {
+            OpcUa_Double val;
+            value.toDouble(val);
+            m_pFP->m_captureParams.gain = val;
+            spdlog::trace("{} : Setting Gain value... value => ({})", m_Identity, val);
             break;
         }
         default:
@@ -384,7 +426,16 @@ UaStatus FocalPlaneController::operate(OpcUa_UInt32 offset, const UaVariantArray
 
 std::string FocalPlaneController::_captureSingleImage() {
     std::string filename;
-    m_pFP->saveImage();
+    std::string command;
+
+    command = m_pFP->saveImageCommand();
+
+    spdlog::trace("Calling saveImage command:");
+    spdlog::info(command);
+    std::string ret;
+    ret = m_pFP->exec(command.c_str());
+    spdlog::info(ret);
+
     filename = m_pFP->get_image_file();
     return filename;
 }

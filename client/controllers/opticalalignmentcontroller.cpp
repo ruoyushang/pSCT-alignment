@@ -403,7 +403,14 @@ void OpticalAlignmentController::calibrateFirstOrderCorrection() {
 }
 
 std::string OpticalAlignmentController::_captureSingleImage() {
-    m_focalPlaneImage.saveImage();
+    string command;
+    command = m_focalPlaneImage.saveImageCommand();
+    spdlog::debug(command);
+
+    string ret;
+    ret = focalplane::exec(command.c_str());
+    spdlog::info(ret);
+
     std::string filename = m_focalPlaneImage.get_image_file();
     return filename;
 }
