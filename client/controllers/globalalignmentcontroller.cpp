@@ -90,13 +90,18 @@ UaStatus GlobalAlignmentController::getState(Device::DeviceState &state)
     //UaMutexLocker lock(&m_mutex);
     Device::DeviceState s;
     std::vector<unsigned> deviceTypesToCheck = {PAS_CCDType, PAS_OpticalAlignmentType, PAS_PSDType, PAS_PanelType, PAS_OptTableType};
-    for (auto devType : deviceTypesToCheck) {
-        for (const auto &child : getChildren(devType)) {
-            child->getState(s);
-            if (s == Device::DeviceState::Busy) {
-                m_State = s;
+    try {
+        for (auto devType : deviceTypesToCheck) {
+            for (const auto &child : getChildren(devType)) {
+                child->getState(s);
+                if (s == Device::DeviceState::Busy) {
+                    m_State = s;
+                }
             }
         }
+    }
+    catch (const std::out_of_range& oor) {
+        spdlog::warn("Out of Range error: ({}), No child device found on this selection.",oor.what());
     }
     state = m_State;
     spdlog::trace("{} : Read device state => ({})", m_Identity, (int)state);

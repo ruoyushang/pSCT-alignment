@@ -56,7 +56,8 @@ std::string focalplane::analyzeSinglePanelCommand() {
               + " --THRESH " + std::to_string(m_imgAnalysisParams.m_Thresh)
               + " --search_xs " + m_imgAnalysisParams.m_SearchXs
               + " --search_ys " + m_imgAnalysisParams.m_SearchYs
-              + " --datadir " + m_data_dir;
+              + " --datadir " + m_data_dir
+              + " -s ";
     if (m_verbosity) {
         command += " -v";
     }

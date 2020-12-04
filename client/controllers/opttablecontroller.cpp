@@ -79,13 +79,18 @@ UaStatus OptTableController::getState(Device::DeviceState &state)
     //UaMutexLocker lock(&m_mutex);
     Device::DeviceState s;
     std::vector<unsigned> deviceTypesToCheck = {PAS_PSDType, PAS_PanelType};
-    for (auto devType : deviceTypesToCheck) {
-        for (const auto &child : getChildren(devType)) {
-            child->getState(s);
-            if (s == Device::DeviceState::Busy) {
-                m_State = s;
+    try {
+        for (auto devType : deviceTypesToCheck) {
+            for (const auto &child : getChildren(devType)) {
+                child->getState(s);
+                if (s == Device::DeviceState::Busy) {
+                    m_State = s;
+                }
             }
         }
+    }
+    catch (const std::out_of_range& oor) {
+        spdlog::warn("Out of Range error: ({}), No child device found on this selection.",oor.what());
     }
     state = m_State;
     spdlog::trace("{} : Read device state => ({})", m_Identity, (int)state);
@@ -104,42 +109,42 @@ UaStatus OptTableController::getData(OpcUa_UInt32 offset, UaVariant &value)
 {
     //UaMutexLocker lock(&m_mutex);
 //Todo: need to add data variables to collect
-    UaStatus status;
-    switch (offset) {
-        case 1: {
-            bool tracking;
-            tracking = m_tracking;
-            value.setBool(tracking);
-            spdlog::trace("{} : Read Tracking value => ({})", m_Identity, tracking);
-            break;
-        }
-        default:
-            return OpcUa_BadInvalidArgument;
-    }
+//    UaStatus status;
+//    switch (offset) {
+//        case : {
+//            bool tracking;
+//            tracking = m_tracking;
+//            value.setBool(tracking);
+//            spdlog::trace("{} : Read Tracking value => ({})", m_Identity, tracking);
+//            break;
+//        }
+//        default:
+//            return OpcUa_BadInvalidArgument;
+//    }
     return OpcUa_Good;
 }
 
 UaStatus OptTableController::setData(OpcUa_UInt32 offset, UaVariant value)
 {
     //UaMutexLocker lock(&m_mutex);
-    UaStatus status;
+//    UaStatus status;
 //Todo: need to add data variables to set
-    switch (offset) {
-        case 1: {
-            OpcUa_Boolean val;
-            value.toBool(val);
-            spdlog::trace("{} : Setting Verbosity value... value => ({})", m_Identity, val);
-            break;
-        }
-        case 2: {
-            std::string selectionString = value.toString().toUtf8();
-            spdlog::debug("{}: Adding {}", m_Identity, selectionString);
-//            parseAndSetSelection(selectionString, PAS_PanelType, 0);
-            break;
-        }
-        default:
-            return OpcUa_BadInvalidArgument;
-    }
+//    switch (offset) {
+//        case 1: {
+//            OpcUa_Boolean val;
+//            value.toBool(val);
+//            spdlog::trace("{} : Setting Verbosity value... value => ({})", m_Identity, val);
+//            break;
+//        }
+//        case 2: {
+//            std::string selectionString = value.toString().toUtf8();
+//            spdlog::debug("{}: Adding {}", m_Identity, selectionString);
+////            parseAndSetSelection(selectionString, PAS_PanelType, 0);
+//            break;
+//        }
+//        default:
+//            return OpcUa_BadInvalidArgument;
+//    }
 
     return OpcUa_Good;
 }
