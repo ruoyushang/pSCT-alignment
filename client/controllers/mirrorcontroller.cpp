@@ -1142,6 +1142,7 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
 }
 
 UaStatus MirrorController::testActuators(float moveDistance, float epsilonLength) {
+    //Run on ALL actuators, this includes optical table that is child of this mirror.
     UaStatus status;
 
     if (m_selectedPanels.empty()) {
@@ -1320,6 +1321,7 @@ UaStatus MirrorController::testActuators(float moveDistance, float epsilonLength
 };
 
 UaStatus MirrorController::readPositionAll(bool print) {
+    // Prints panel position of all panels (including OT if selectAll was called first). Calculates TelRF position for all but ignores OT if it is in the list.
     UaStatus status;
     
     for (unsigned panelPos : m_selectedPanels) {
@@ -1347,6 +1349,7 @@ UaStatus MirrorController::readPositionAll(bool print) {
 
 UaStatus
 MirrorController::__calculateMoveDeltaCoords(const Eigen::VectorXd &deltaMirrorCoords) {
+    // Ignores OT even if it is in the selectedPanels list.
     UaStatus status;
 
     spdlog::info(
@@ -1416,6 +1419,7 @@ MirrorController::__calculateMoveDeltaCoords(const Eigen::VectorXd &deltaMirrorC
 
 UaStatus
 MirrorController::__calculateMoveToCoords(const Eigen::VectorXd &targetMirrorCoords) {
+    // Ignores OT even if it is in the selectedPanels list.
     UaStatus status;
 
     Eigen::VectorXd deltaMirrorCoords(6);
@@ -1864,6 +1868,7 @@ Eigen::MatrixXd MirrorController::__computeSystematicsMatrix(unsigned pos1, unsi
 }
 
 UaStatus MirrorController::__calculateAlignSector(int align_mode) {
+    // Ignores OT even if it is in the selectedPanels list.
     UaStatus status;
     // make sure there are some selected sensors
     if (m_selectedPanels.empty()) {
@@ -2243,6 +2248,7 @@ UaStatus MirrorController::__calculateAlignRing(int fixPanel)
 }
 
 UaStatus MirrorController::savePosition(const std::string &saveFilePath) {
+    // Will save all panel positions, including OT, if it is a child of this mirror.
     spdlog::info("{}: Attempting to write Mirror position to file {}...", m_Identity, saveFilePath);
 
     //Check if file already exists
@@ -3065,6 +3071,7 @@ Eigen::Vector3d MirrorController::__moveInCurrentRF(const Eigen::Vector3d &in_ve
 /* ============== MINUIT INTERFACE ============== */
 double MirrorController::chiSq(const Eigen::VectorXd &telDelta)
 {
+    // Ignores OT even if it is in the selectedPanels list.
     // tel delta is a perturbation to the coordinates of the mirror
     double chiSq = 0.;
     // pad coordinates in TRF as computed from actuator lengths
