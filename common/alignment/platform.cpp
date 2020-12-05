@@ -649,13 +649,15 @@ bool Platform::addMPES(const Device::Identity &identity)
     }
 
     std::unique_ptr<MPES> newMPES = std::unique_ptr<MPES>(new MPES(m_pCBC, identity));
-    
-    m_MPES.push_back(std::move(newMPES));
-    m_MPESIdentityMap.insert(std::make_pair(identity, m_MPES.size() - 1));
+
     if (newMPES->initialize()) {
+        m_MPES.push_back(std::move(newMPES));
+        m_MPESIdentityMap.insert(std::make_pair(identity, m_MPES.size() - 1));
         return true;
     }
     else {
+        m_MPES.push_back(std::move(newMPES));
+        m_MPESIdentityMap.insert(std::make_pair(identity, m_MPES.size() - 1));
         spdlog::warn("{} : Platform::addMPES() : Failed to initialize MPES {} at USB {}.", m_Identity, identity,
                      identity.eAddress);
         return false;
