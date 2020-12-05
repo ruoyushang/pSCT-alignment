@@ -81,6 +81,9 @@ void MPESBase::turnOn() {
     if (__initialize()) {
         __setExposure();
     }
+    else {
+        spdlog::error("{} : MPES::turnOn() : Did not initialize after turnOn. Will not reset exposure.", m_Identity);
+    }
 }
 
 #ifndef SIMMODE
