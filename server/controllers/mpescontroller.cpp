@@ -103,9 +103,7 @@ UaStatus MPESController::setState(Device::DeviceState state) {
 bool MPESController::initialize() {
     spdlog::trace("{} : MPESController::initialize()", m_Identity);
     Device::ErrorState errState = m_pPlatform->getMPESbyIdentity(m_Identity)->getErrorState();
-    Device::DeviceState state = m_pPlatform->getMPESbyIdentity(m_Identity)->getDeviceState();
-    spdlog::trace("{} : Current state {}", m_Identity, static_cast<int>(state));
-    spdlog::trace("{} : Current errorState {}", m_Identity, static_cast<int>(errState));
+
     if ((errState == Device::ErrorState::Nominal) | (errState == Device::ErrorState::OperableError)) {
         spdlog::debug("{} : setExposure()...", m_Identity);
         m_pPlatform->getMPESbyIdentity(m_Identity)->setExposure();
