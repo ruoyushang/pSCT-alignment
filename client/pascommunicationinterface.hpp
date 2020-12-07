@@ -50,6 +50,12 @@ public:
 
     void addEdgeControllers();
 
+    void addFocalPlaneController();
+
+    void addGlobalAlignmentController();
+    void addOpticalAlignmentController();
+    void addOpticalTableController();
+
     void addParentChildRelations();
 
     /* Get device status and data */

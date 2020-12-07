@@ -5,6 +5,7 @@
 #include "uabase/uabase.h"
 #include "uabase/uamutex.h"
 
+#include "uathread.h"
 #include "common/alignment/device.hpp"
 
 #include "client/controllers/pascontroller.hpp"
@@ -47,7 +48,7 @@ private:
     } m_Data;
 };
 
-class DummyPositionerController : public PositionerController {
+class DummyPositionerController : public PositionerController, UaThread {
     UA_DISABLE_COPY(DummyPositionerController);
 
 public:
@@ -68,6 +69,8 @@ public:
 
     UaStatus operate(OpcUa_UInt32 offset, const UaVariantArray &args) override;
 
+    void run() override;
+
 private:
     struct Position {
         OpcUa_Float curAz;
@@ -79,6 +82,7 @@ private:
 
         Position() : curAz(0.0), curEl(0.0), inAz(0.0), inEl(0.0), energyLevel(0), isMoving(OpcUa_False) {}
     } m_Data;
+    bool m_cycling = true;
 };
 
 #endif//CLIENT_POSITIONERCONTROLLER_HPP

@@ -439,7 +439,13 @@ void Client::addDevices(const OpcUa_ReferenceDescription& referenceDescription)
     std::map<OpcUa_UInt32, std::string> typeNamesMap = {{PAS_MPESType,  "MPES"},
                                                         {PAS_ACTType,   "ACT"},
                                                         {PAS_PSDType,   "PSD"},
-                                                        {PAS_PanelType, "Panel"}};
+                                                        {PAS_PanelType, "Panel"},
+                                                        {PAS_CCDType, "CCD"},
+                                                        {PAS_FocalPlaneType, "FocalPlane"},
+                                                        {PAS_GlobalAlignmentType, "GlobalAlignment"},
+                                                        {PAS_OpticalAlignmentType, "OpticalAlignment"},
+                                                        {PAS_OptTableType, "OpticalTable"}
+    };
     OpcUa_UInt32 type;
     std::string name;
     for (const auto& it_typeNameMap : typeNamesMap) {

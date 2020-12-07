@@ -18,6 +18,7 @@
 
 #include "server/controllers/actcontroller.hpp"
 #include "server/controllers/mpescontroller.hpp"
+#include "server/controllers/psdcontroller.hpp"
 
 #include "common/utilities/spdlog/spdlog.h"
 #include "common/utilities/spdlog/fmt/ostr.h"
@@ -220,4 +221,10 @@ void PanelController::addMPES(const std::shared_ptr<MPESController> &pMPES) {
     m_pMPES.push_back(pMPES);
     spdlog::info("{} : Panel controller added MPES {} controller as MPES child {}...", m_Identity, pMPES->getIdentity(),
                  m_pMPES.size());
+}
+
+void PanelController::addPSD(const std::shared_ptr<PSDController> &pPSD) {
+    m_pPSD.push_back(pPSD);
+    spdlog::info("{} : Panel controller added PSD {} controller as PSD child {}...", m_Identity, pPSD->getIdentity(),
+                 m_pPSD.size());
 }

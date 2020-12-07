@@ -17,6 +17,7 @@
 #include "common/alignment/device.hpp"
 #include "common/alignment/mpes.hpp"
 #include "common/alignment/actuator.hpp"
+#include "common/globalalignment/psdclass.h"
 
 // Hardcoded
 const std::vector<Device::ErrorDefinition> PlatformBase::ERROR_DEFINITIONS = {
@@ -648,14 +649,41 @@ bool Platform::addMPES(const Device::Identity &identity)
     }
 
     std::unique_ptr<MPES> newMPES = std::unique_ptr<MPES>(new MPES(m_pCBC, identity));
-    
+
     if (newMPES->initialize()) {
         m_MPES.push_back(std::move(newMPES));
         m_MPESIdentityMap.insert(std::make_pair(identity, m_MPES.size() - 1));
         return true;
     }
     else {
+        m_MPES.push_back(std::move(newMPES));
+        m_MPESIdentityMap.insert(std::make_pair(identity, m_MPES.size() - 1));
         spdlog::warn("{} : Platform::addMPES() : Failed to initialize MPES {} at USB {}.", m_Identity, identity,
+                     identity.eAddress);
+        return false;
+    }
+}
+
+bool Platform::addPSD(const Device::Identity &identity)
+{
+    spdlog::info("{} : Platform::addPSD() : Adding PSD {} at USB {}.", m_Identity, identity, identity.eAddress);
+    if (identity.serialNumber < 0 || std::stoi(identity.eAddress) < 0) {
+        spdlog::error("{} : Platform::addPSD() : Failed to add PSD {}, invalid USB/serial number.", m_Identity,
+                      identity);
+        return false;
+    }
+
+    std::unique_ptr<GASPSD> newPSD = std::unique_ptr<GASPSD>(new GASPSD(identity));
+    
+    if (newPSD->initialize()) {
+        m_PSD.push_back(std::move(newPSD));
+        m_PSDIdentityMap.insert(std::make_pair(identity, m_PSD.size() - 1));
+        return true;
+    }
+    else {
+        m_PSD.push_back(std::move(newPSD));
+        m_PSDIdentityMap.insert(std::make_pair(identity, m_PSD.size() - 1));
+        spdlog::warn("{} : Platform::addPSD() : Failed to initialize PSD {} at USB {}.", m_Identity, identity,
                      identity.eAddress);
         return false;
     }
@@ -898,7 +926,33 @@ bool DummyPlatform::addMPES(const Device::Identity &identity) {
         m_MPESIdentityMap.insert(std::make_pair(identity, m_MPES.size() - 1));
         return true;
     } else {
+        m_MPES.push_back(std::move(newMPES));
+        m_MPESIdentityMap.insert(std::make_pair(identity, m_MPES.size() - 1));
         spdlog::warn("{} : DummyPlatform::addMPES() : Failed to initialize DummyMPES {} at USB {}.", m_Identity,
+                     identity, identity.eAddress);
+        return false;
+    }
+}
+
+bool DummyPlatform::addPSD(const Device::Identity &identity) {
+    spdlog::info("{} : DummyPlatform::addPSD() : Adding DummyGASPSD {} at USB {}.", m_Identity, identity,
+                 identity.eAddress);
+    if (identity.serialNumber < 0 || std::stoi(identity.eAddress) < 0) {
+        spdlog::error("{} : DummyPlatform::addPSD() : Failed to add DummyGASPSD {}, invalid USB/serial number.",
+                      m_Identity, identity);
+        return false;
+    }
+
+    std::unique_ptr<GASPSD> newPSD = std::unique_ptr<GASPSD>(new DummyGASPSD(identity));
+
+    if (newPSD->initialize() == 0) {
+        m_PSD.push_back(std::move(newPSD));
+        m_PSDIdentityMap.insert(std::make_pair(identity, m_PSD.size() - 1));
+        return true;
+    } else {
+        m_PSD.push_back(std::move(newPSD));
+        m_PSDIdentityMap.insert(std::make_pair(identity, m_PSD.size() - 1));
+        spdlog::warn("{} : DummyPlatform::addPSD() : Failed to initialize DummyGASPSD {} at USB {}.", m_Identity,
                      identity, identity.eAddress);
         return false;
     }

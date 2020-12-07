@@ -8,14 +8,20 @@
 #include "client/controllers/edgecontroller.hpp"
 #include "client/controllers/mirrorcontroller.hpp"
 #include "client/controllers/pascontroller.hpp"
+#include "client/controllers/opttablecontroller.hpp"
+#include "client/controllers/opticalalignmentcontroller.hpp"
+#include "client/controllers/globalalignmentcontroller.hpp"
 
 
 class PanelController : public PasCompositeController {
     UA_DISABLE_COPY(PanelController);
 
 public:
-    friend MirrorController; // for convenient access to internal methods for mirror computations
-    friend EdgeController; // access internal methods for compute
+    friend class MirrorController; // for convenient access to internal methods for mirror computations
+    friend class EdgeController; // access internal methods for compute
+    friend class OptTableController;
+    friend class OpticalAlignmentController;
+    friend class GlobalAlignmentController;
 
     // construction / destruction
     PanelController(Device::Identity identity, Client *pClient, std::string mode = "client");

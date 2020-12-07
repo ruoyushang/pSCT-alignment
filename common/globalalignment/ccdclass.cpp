@@ -14,6 +14,10 @@
 #include <chrono>
 
 
+const std::vector<Device::ErrorDefinition> GASCCD::ERROR_DEFINITIONS = {
+        {"Bad connection. No device found", Device::ErrorState::FatalError},//error 0
+        };
+
 void GASCCD::setConfig(string config)
 {
     fConfigFile = config;
@@ -110,8 +114,33 @@ void GASCCD::setConfig(string config)
     fin.close();
 }
 
+void GASCCD::turnOn() {
+    if (isBusy() || isOn()) {
+        spdlog::warn("{} : GASCCD::turnOn() : Busy, cannot turn on CCD.", m_Identity.name);
+        return;
+    }
+    Device::CustomBusyLock lock = Device::CustomBusyLock(this);
+    pfCamera.reset();
+    pfCamThread.reset();
+    initialize();
+    m_On = true;
+}
+
+void GASCCD::turnOff() {
+    spdlog::info("{} : GASCCD :: Turning off power to CCD...", m_Identity.name);
+    Device::CustomBusyLock lock = Device::CustomBusyLock(this);
+    pfCamera.reset();
+    pfCamThread.reset();
+    m_On = false;
+}
+
+bool GASCCD::isOn() {
+    return m_On;
+}
+
 bool GASCCD::initialize()
 {
+    m_Errors.assign(getNumErrors(), false);
     // Print out all the params if needed
     std::ofstream logout;
     if (fLEDsIn.VERBOSE) {
@@ -129,6 +158,8 @@ bool GASCCD::initialize()
     //make the string camera_name -> char* char_camera_name
     const char * char_camera_name = fLEDsIn.CCDNAME.empty() ? NULL : fLEDsIn.CCDNAME.c_str();
 
+    int errorTries(0);
+
     while (!pfCamera || !pfCamera->isReady()) {
         //attempt to initialize camera
         std::this_thread::sleep_for(std::chrono::milliseconds(200));
@@ -138,8 +169,15 @@ bool GASCCD::initialize()
                     "GASCCD::initialize(): Camera [" + fLEDsIn.CCDNAME + "] reports not ready. Trying again...\n";
             spdlog::warn(strout);
 
+            errorTries++;
+
             if(fLEDsIn.VERBOSE) {
                 logout << strout;
+            }
+
+            if (errorTries > 3){
+                setError(0);
+                return false;
             }
 
             continue;
@@ -193,16 +231,31 @@ bool GASCCD::initialize()
 }
 
 bool GASCCD::update() {
-    if (pfCamera->isReady()) {
+    if ( pfCamera->isReady()) {
         return pfCamThread->cycle(pfLEDsOut.get());
     } else {
         return false;
     }
 }
 
+GASCCD::Position GASCCD::getPosition(){
+    m_pPosition.x = *(getOutput());
+    m_pPosition.y = *(getOutput()+1);
+    m_pPosition.z = *(getOutput()+2);
+    m_pPosition.psi = *(getOutput()+3);
+    m_pPosition.theta = *(getOutput()+4);
+    m_pPosition.phi = *(getOutput()+5);
+
+    return m_pPosition;
+}
+
 void GASCCD::setNominalValues(int offset, double value)
 {
     // Does nothing at the moment
+}
+
+Device::ErrorState GASCCD::getErrorState() {
+    return Device::getErrorState();
 }
 
 void DummyGASCCD::setConfig(string config) {
@@ -211,6 +264,7 @@ void DummyGASCCD::setConfig(string config) {
 }
 
 bool DummyGASCCD::initialize() {
+    m_Errors.assign(getNumErrors(), false);
     spdlog::debug("DummyGASCCD :: initialize() - should do nothing");
     return true;
 }
@@ -218,7 +272,7 @@ bool DummyGASCCD::initialize() {
 bool DummyGASCCD::update() {
     std::uniform_real_distribution<double> coordDistribution(0, 1000);
     std::default_random_engine re(std::chrono::system_clock::now().time_since_epoch().count());
-
+    sleep(3);
     for (int i = 0; i < 6; i++)
         m_Data[i] = coordDistribution(re);
 
@@ -236,4 +290,21 @@ std::string DummyGASCCD::getName() const {
 int DummyGASCCD::getSerial() const {
     return 0;
 }
+void DummyGASCCD::turnOn() {
+    if (isBusy() || isOn()) {
+        spdlog::error("{} : GASCCD::turnOn() : Busy, cannot turn on CCD.", m_Identity.name);
+        return;
+    }
+    Device::CustomBusyLock lock = Device::CustomBusyLock(this);
+    m_On = true;
+}
 
+void DummyGASCCD::turnOff() {
+    spdlog::info("{} : GASCCD :: Turning off power to CCD...", m_Identity.name);
+    Device::CustomBusyLock lock = Device::CustomBusyLock(this);
+    m_On = false;
+}
+
+bool DummyGASCCD::isOn() {
+    return m_On;
+}

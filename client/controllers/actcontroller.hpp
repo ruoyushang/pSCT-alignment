@@ -17,7 +17,7 @@ class ActController : public PasController {
     UA_DISABLE_COPY(ActController);
 
 public:
-    friend PanelController;
+    friend class PanelController;
 
     // construction / destruction
     ActController(Device::Identity identity, Client *pClient);

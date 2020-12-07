@@ -25,6 +25,10 @@
 #include "client/controllers/panelcontroller.hpp"
 #include "client/controllers/pascontroller.hpp"
 #include "client/controllers/psdcontroller.hpp"
+#include "client/controllers/opttablecontroller.hpp"
+#include "client/controllers/focalplanecontroller.hpp"
+#include "client/controllers/opticalalignmentcontroller.hpp"
+#include "client/controllers/globalalignmentcontroller.hpp"
 
 #include "client/utilities/configuration.hpp"
 
@@ -47,7 +51,12 @@ std::map<OpcUa_UInt32, std::string> PasCommunicationInterface::deviceTypeNames{
     {PAS_MPESType, "MPES"},
     {PAS_ACTType, "ACT"},
     {PAS_CCDType, "CCD"},
-    {PAS_PSDType, "PSD"}
+    {PAS_PSDType, "PSD"},
+    {PAS_FocalPlaneType, "FocalPlane"},
+    {PAS_OpticalAlignmentType, "OpticalAlignment"},
+    {PAS_GlobalAlignmentType, "GlobalAlignment"},
+    {PAS_OptTableType, "OpticalTable"},
+    {GLOB_PositionerType, "Positioner"}
 };
 
 PasCommunicationInterface::PasCommunicationInterface() :
@@ -75,26 +84,28 @@ UaStatus PasCommunicationInterface::initializeCCDs()
     // currently, only GAS CCDs need to be intialized.
     // find what's on the network and compare it to what's expected
 
-    // arv_update_device_list();
+    arv_update_device_list();
     unsigned n_ccds = 0; // arv_get_n_devices();
 
-    std::string serial;
-    std::string ip;
-    std::map<std::string, std::string> serial2ip;
-    for (unsigned i = 0; i < n_ccds; i++) {
-        serial = "0"; //arv_get_device_serial_nbr(i);
-        ip = "0.0.0.0"; //arv_get_device_address(i);
-        serial2ip[serial] = ip;
-    }
+//    std::string serial;
+//    std::string ip;
+//    std::map<std::string, std::string> serial2ip;
+//    for (unsigned i = 0; i < n_ccds; i++) {
+//        serial = "0"; //arv_get_device_serial_nbr(i);
+//        ip = "0.0.0.0"; //arv_get_device_address(i);
+//        serial2ip[serial] = ip;
+//    }
+    spdlog::info("PasCommunicationInterface::Initialize(): setting up CCD connection.");
 
     try {
         for (const auto &identity : m_pConfiguration->getDevices(PAS_CCDType)) {
+            spdlog::info("{}",identity);
             try {
-                if (serial2ip.at(std::to_string(identity.serialNumber)) != identity.eAddress) {
-                    spdlog::warn(
-                        "PasCommunicationInterface::Initialize(): mismatch in recorded config and actual IP assignment. {} is assigned {}, but actually obtained {}.",
-                        identity.serialNumber, identity.eAddress, serial2ip[std::to_string(identity.serialNumber)]);
-                }
+//                if (serial2ip.at(std::to_string(identity.serialNumber)) != identity.eAddress) {
+//                    spdlog::warn(
+//                        "PasCommunicationInterface::Initialize(): mismatch in recorded config and actual IP assignment. {} is assigned {}, but actually obtained {}.",
+//                        identity.serialNumber, identity.eAddress, serial2ip[std::to_string(identity.serialNumber)]);
+//                }
                 addDevice(nullptr, PAS_CCDType, identity);
             }
             catch (std::out_of_range &e) {
@@ -145,6 +156,14 @@ PasCommunicationInterface::addDevice(Client *pClient, OpcUa_UInt32 deviceType,
             pController = std::make_shared<CCDController>(identity);
         else if (deviceType == PAS_PSDType)
             pController = std::make_shared<PSDController>(identity, pClient);
+        else if (deviceType == PAS_FocalPlaneType)
+            pController = std::make_shared<FocalPlaneController>(identity, pClient);
+        else if (deviceType == PAS_GlobalAlignmentType)
+            pController = std::make_shared<GlobalAlignmentController>(identity, pClient);
+        else if (deviceType == PAS_OpticalAlignmentType)
+            pController = std::make_shared<OpticalAlignmentController>(identity, pClient);
+        else if (deviceType == PAS_OptTableType)
+            pController = std::make_shared<OptTableController>(identity, pClient);
         else if (deviceType == GLOB_PositionerType) {
 #if SIMMODE
             pController = std::dynamic_pointer_cast<PositionerController>(std::make_shared<DummyPositionerController>(identity));
@@ -159,7 +178,6 @@ PasCommunicationInterface::addDevice(Client *pClient, OpcUa_UInt32 deviceType,
         // Initialize this controller or return if unable to do so for whatever reason
         if (!pController->initialize()) {
             spdlog::error("Device {} failed to initialize.", identity);
-            return identity;
         }
 
         m_pControllers[deviceType][identity] = pController;
@@ -177,20 +195,76 @@ void PasCommunicationInterface::addEdgeControllers() {
         // Check if all panels in edge exist
         auto children = m_pConfiguration->getChildren(edgeId);
         if (children.find(PAS_PanelType) != children.end()) {
-            for (const auto &panelChildId : m_pConfiguration->getChildren(edgeId).at(PAS_PanelType)) {
-                if (m_pControllers.at(PAS_PanelType).find(panelChildId) ==
-                    m_pControllers.at(PAS_PanelType).end()) {
-                    // Child panel not found
-                    //std::debug("Could not find panel {} as child of Edge {} (likely server failed to connect). Edge controller not created...", panelChildId, edgeId);
-                    addEdge = false;
-                    break;
+            try {
+                for (const auto &panelChildId : m_pConfiguration->getChildren(edgeId).at(PAS_PanelType)) {
+                    if (m_pControllers.at(PAS_PanelType).find(panelChildId) ==
+                        m_pControllers.at(PAS_PanelType).end()) {
+                        // Child panel not found
+                        //std::debug("Could not find panel {} as child of Edge {} (likely server failed to connect). Edge controller not created...", panelChildId, edgeId);
+                        addEdge = false;
+                        break;
+                    }
                 }
             }
-
+            catch (std::out_of_range oor){
+                spdlog::warn("No Panels found.");
+                addEdge = false;
+            }
             if (addEdge) {
                 addDevice(nullptr, PAS_EdgeType, edgeId);
+            } else {
+                spdlog::warn(
+                        "Could not find any panel children of Edge {} (likely server failed to connect). Edge controllers not created...",
+                        edgeId);
             }
         }
+    }
+}
+
+void PasCommunicationInterface::addOpticalAlignmentController() {
+    for (const auto &oaID:  m_pConfiguration->getDevices(PAS_OpticalAlignmentType)){
+        spdlog::debug("Adding Optical Alignment device...");
+        spdlog::trace("Found ID: {}", oaID);
+        addDevice(nullptr, PAS_OpticalAlignmentType, oaID);
+    }
+}
+
+void PasCommunicationInterface::addOpticalTableController() {
+    for (const auto &optID:  m_pConfiguration->getDevices(PAS_OptTableType)){
+        spdlog::debug("Adding Optical Table device...");
+        spdlog::trace("Found ID: {}", optID);
+        addDevice(nullptr, PAS_OptTableType, optID);
+    }
+}
+
+void PasCommunicationInterface::addGlobalAlignmentController() {
+    for (const auto &gaID:  m_pConfiguration->getDevices(PAS_GlobalAlignmentType)){
+        bool addGA = false;
+        spdlog::debug("Adding Global Alignment device...");
+        spdlog::trace("Found ID: {}", gaID);
+        for (const auto &ccdId : m_pConfiguration->getChildren(gaID).at(PAS_CCDType)) {
+            if (m_pControllers.at(PAS_CCDType).find(ccdId) !=
+                m_pControllers.at(PAS_CCDType).end()) {
+                // Child panel found
+                addGA = true;
+                break;
+            }
+        }
+        if (addGA) {
+            addDevice(nullptr, PAS_GlobalAlignmentType, gaID);
+        } else {
+            spdlog::warn(
+                    "Could not find any CCD children of GA {} (likely server failed to connect). GA controller not created...",
+                    gaID);
+        }
+    }
+}
+
+void PasCommunicationInterface::addFocalPlaneController() {
+    for (const auto &fpID:  m_pConfiguration->getDevices(PAS_FocalPlaneType)){
+        spdlog::debug("Adding Focal Plane device...");
+        spdlog::trace("Found ID: {}", fpID);
+        addDevice(nullptr, PAS_FocalPlaneType, fpID);
     }
 }
 
@@ -198,13 +272,18 @@ void PasCommunicationInterface::addMirrorControllers() {
     for (const auto &mirrorId : m_pConfiguration->getDevices(PAS_MirrorType)) {
         bool addMirror = false;
         // Check if at least one panel in the mirror exists
-        for (const auto &panelChildId : m_pConfiguration->getChildren(mirrorId).at(PAS_PanelType)) {
-            if (m_pControllers.at(PAS_PanelType).find(panelChildId) !=
-                m_pControllers.at(PAS_PanelType).end()) {
-                // Child panel found
-                addMirror = true;
-                break;
+        try {
+            for (const auto &panelChildId : m_pConfiguration->getChildren(mirrorId).at(PAS_PanelType)) {
+                if (m_pControllers.at(PAS_PanelType).find(panelChildId) !=
+                    m_pControllers.at(PAS_PanelType).end()) {
+                    // Child panel found
+                    addMirror = true;
+                    break;
+                }
             }
+        }
+        catch (std::out_of_range oor){
+            spdlog::warn("No Panels found.");
         }
 
         if (addMirror) {

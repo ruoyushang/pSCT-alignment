@@ -24,3 +24,5 @@ export MYSQL_HOST=mysql
 export MYSQL_PORT=3306
 
 export PATH=$PATH:$HOME/bin:${ROOTSYS}/bin:${MYSQL_DIR}/bin:
+export LOCALIP=`hostname -I`
+export LOCALIP="${LOCALIP%"${LOCALIP##*[![:space:]]}"}"

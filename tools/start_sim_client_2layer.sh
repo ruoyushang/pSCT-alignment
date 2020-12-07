@@ -78,7 +78,7 @@ for i in {0..3}; do
     client_name=${subclient_names[i]}
     port=${subclient_ports[i]}
     config_filename="${client_name}${extension}"
-    endpoint_addr="opc.tcp://127.0.0.1:$port"
+    endpoint_addr="opc.tcp://$LOCALIP:$port"
     subclient_array_name=${subclient_array_names[i]}[@]
     panel_list=("${!subclient_array_name}")
    
@@ -86,14 +86,15 @@ for i in {0..3}; do
 
     if [[ "${#panel_list[@]}" -ne "0" ]]; then
         config_filename="${client_name}${extension}"
-        endpoint_addr="opc.tcp://127.0.0.1:$port"
-        screen -S ${screen_name} -X screen -t ${client_name}
-        screen -S ${screen_name} -p ${client_name} -X stuff $"cp ../client/TemplateClientConfig${extension} ${config_filename}\n"
-        screen -S ${screen_name} -p ${client_name} -X stuff "sed -i s@URL_LOCATION@$endpoint_addr@g ${config_filename}\n"
+        endpoint_addr="opc.tcp://$LOCALIP:$port"
+        cp ../client/TemplateClientConfig${extension} ${config_filename}
+        sed -i "s@URL_LOCATION@${endpoint_addr}@g" ${config_filename}
         printf "Starting %s client at address %s.\n" "${client_name}" "${endpoint_addr}"
         abspath=$(realpath ${config_filename})
         clients_to_connect+="$client_name "
+        screen -S ${screen_name} -X screen -t ${client_name}
         screen -S ${screen_name} -p ${client_name} -X stuff $"../sdk/bin/p2pasclient ${panel_list[*]} -m subclient -c $abspath \n"
+        sleep 3
     else
         printf "No %s panels found. No subclient started. \n" "${client_name}"
     fi
@@ -102,14 +103,14 @@ done
 # Now start high-level client connecting to all lower-level panels
 #printf "Sleeping to give subclients time to start...\n"
 
-#sleep 30
+sleep 30
 
 printf "Starting top-level client...\n"
 
 client_name="client"
 port="48010"
 config_filename="${client_name}${extension}"
-endpoint_addr="opc.tcp://10.0.1.13:$port"
+endpoint_addr="$LOCALIP:$port"
 
 screen -S ${screen_name} -X screen -t ${client_name}
 screen -S ${screen_name} -p ${client_name} -X stuff $"cp ../client/TemplateClientConfig${extension} ${config_filename}\n"
@@ -118,4 +119,4 @@ printf "Starting %s client at address %s.\n" "${client_name}" "${endpoint_addr}"
 abspath=$(realpath ${config_filename})
 screen -S ${screen_name} -X stuff $"../sdk/bin/p2pasclient $clients_to_connect -m client -c $abspath\n"
 
-printf "Done! You will need to go to the screen session named $screen_name and manually start the top-level client in the tab named $client_name ."
+printf "Done! You will need to go to the screen session named $screen_name and manually start the top-level client in the tab named $client_name .\n"

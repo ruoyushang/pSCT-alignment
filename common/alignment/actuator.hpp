@@ -151,7 +151,7 @@ protected:
     Position m_CurrentPosition{50, 0};
     Position m_RetractStopPosition{103, 32};
     Position m_ExtendStopPosition{-3, 89};
-    int m_HysteresisSteps{RecordingInterval - 10};
+    int m_HysteresisSteps{RecordingInterval - 50};
     float m_StdDevRemeasure{dV / 2.0f};
     int m_MaxVoltageMeasurementAttempts{20};
     float m_StdDevMax{5.0f * dV};

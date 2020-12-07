@@ -6,4 +6,5 @@ LOGLEVEL=${2-"info"}
 for panel in `cat panel_lists/$list_name`; do
         ./sim_server.start $panel $LOGLEVEL
         echo ./sim_server.start $panel $LOGLEVEL
+	sleep 2
 done

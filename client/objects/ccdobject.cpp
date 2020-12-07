@@ -35,6 +35,10 @@ const std::map <OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, 
                                                    Ua_AccessLevel_CurrentRead)},
         {PAS_CCDType_phiNominal,   std::make_tuple("phiNominal", UaVariant(0.0), OpcUa_False,
                                                    Ua_AccessLevel_CurrentRead)},
+//        {PAS_CCDType_Serial,   std::make_tuple("Serial", UaVariant(""), OpcUa_False,
+//                                                   Ua_AccessLevel_CurrentRead)},
+//        {PAS_CCDType_Name,   std::make_tuple("Name", UaVariant(""), OpcUa_False,
+//                                               Ua_AccessLevel_CurrentRead)}
 };
 
 const std::map <OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean>> CCDObject::ERRORS = {
@@ -44,5 +48,7 @@ const std::map <OpcUa_UInt32, std::pair<std::string, std::vector < std::tuple < 
 CCDObject::METHODS = {
         {PAS_CCDType_Start, {"Start", {}}},
         {PAS_CCDType_Read,  {"Read",  {}}},
-        {PAS_CCDType_Stop,  {"Stop",  {}}}
+        {PAS_CCDType_Stop,  {"Stop",  {}}},
+        {PAS_CCDType_TurnOn,  {"TurnOn",  {}}},
+        {PAS_CCDType_TurnOff,  {"TurnOff",  {}}}
 };

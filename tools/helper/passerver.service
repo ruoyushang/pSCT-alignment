@@ -1,0 +1,15 @@
+[Unit]
+Description=OpcUA Passerver Service
+After=network.target default.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+Restart=always
+RestartSec=1
+User=root
+ExecStart=/home/root/opcua/start_server.sh
+EnvironmentFile=/etc/conf.d/passerver.env
+
+[Install]
+WantedBy=multi-user.target

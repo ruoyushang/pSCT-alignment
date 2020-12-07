@@ -6,14 +6,16 @@
 
 #include "common/alignment/device.hpp"
 
-class GASPSD
+class GASPSD : public virtual Device
 {
 public:
-    explicit GASPSD(Device::Identity identity) : m_Identity(std::move(identity)), m_fd(0),
+    explicit GASPSD(Device::Identity identity) : Device::Device(std::move(identity)), m_Identity(std::move(identity)), m_fd(0),
                                                  m_data() {} // nothing to do -- everything is set in initialize()
     ~GASPSD();
 
-    virtual int initialize();
+    static const std::vector<Device::ErrorDefinition> ERROR_DEFINITIONS;
+
+    virtual bool initialize();
 
     double getOutput(int offset) { return m_data[offset]; }
     void setNominalValues(int offset, double value);
@@ -25,6 +27,13 @@ public:
     std::string getPort() const { return m_Identity.eAddress; }
 
     virtual void update();
+
+    void turnOn() override;
+    void turnOff() override;
+    int getNumErrors() override { return GASPSD::ERROR_DEFINITIONS.size(); };
+    Device::ErrorDefinition getErrorCodeDefinition(int errorCode) override;
+    bool isOn() override;
+
 
 protected:
     Device::Identity m_Identity;
@@ -46,13 +55,14 @@ protected:
     std::ofstream m_logOutputStream;
 
     double m_data[9]; // x1, y1, x2, y2, dx1, dy1, dx2, dy2, temperature
+    bool m_On = false;
 };
 
-class DummyGASPSD : public GASPSD {
+class DummyGASPSD : public virtual GASPSD {
 public:
-    explicit DummyGASPSD(Device::Identity identity) : GASPSD(
-        std::move(identity)) {} // nothing to do -- everything is set in initialize()
-    int initialize() override;
+    explicit DummyGASPSD(Device::Identity identity) : Device(std::move(identity)),
+                                                      GASPSD(std::move(identity)) {} // nothing to do -- everything is set in initialize()
+    bool initialize() override;
 
     void update() override;
 

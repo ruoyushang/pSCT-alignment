@@ -10,6 +10,9 @@
 #include "client/controllers/edgecontroller.hpp"
 #include "client/controllers/mirrorcontroller.hpp"
 #include "client/controllers/pascontroller.hpp"
+#include "client/controllers/opttablecontroller.hpp"
+#include "client/controllers/opticalalignmentcontroller.hpp"
+#include "client/controllers/globalalignmentcontroller.hpp"
 
 #include "common/alignment/mpes.hpp"
 
@@ -18,8 +21,11 @@ class MPESController : public PasController {
     UA_DISABLE_COPY(MPESController);
 
 public:
-    friend EdgeController;
-    friend MirrorController;
+    friend class EdgeController;
+    friend class MirrorController;
+    friend class OptTableController;
+    friend class OpticalAlignmentController;
+    friend class GlobalAlignmentController;
 
     /* construction / destruction */
     MPESController(Device::Identity identity, Client *pClient, std::string mode = "client");

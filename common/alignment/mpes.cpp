@@ -19,6 +19,7 @@ const int MPESBase::DEFAULT_IMAGES_TO_CAPTURE = 9;
 const std::string MPESBase::DEFAULT_IMAGES_SAVE_DIR_PATH = "/home/root/mpesimages";
 const std::string MPESBase::MATRIX_CONSTANTS_DIR_PATH = "/home/root/mpesCalibration/";
 const std::string MPESBase::CAL2D_CONSTANTS_DIR_PATH = "/home/root/mpesCalibration/";
+const std::string MPESBase::BACKUP_IMAGE_FILEPATH = "doxygen/cta_logo.png";
 
 const std::vector<Device::ErrorDefinition> MPESBase::ERROR_DEFINITIONS = {
     {"Bad connection. No device found",                                                                            Device::ErrorState::FatalError},//error 0
@@ -77,8 +78,12 @@ void MPESBase::turnOn() {
         return;
     }
     Device::CustomBusyLock lock = Device::CustomBusyLock(this);
-    __initialize();
-    __setExposure();
+    if (__initialize()) {
+        __setExposure();
+    }
+    else {
+        spdlog::error("{} : MPES::turnOn() : Did not initialize after turnOn. Will not reset exposure.", m_Identity);
+    }
 }
 
 #ifndef SIMMODE
@@ -272,6 +277,7 @@ int MPES::__updatePosition() {
     m_Position.cleanedIntensity = -3.;
     m_Position.timestamp = -3;
     m_Position.exposure = -3;
+    m_Position.nSat = -3;
 
     // read sensor
     if (int(m_pImageSet->Capture()) > 0) {
@@ -287,7 +293,9 @@ int MPES::__updatePosition() {
         m_Position.xSpotWidth = m_pImageSet->SetData.xSpotSD;
         m_Position.ySpotWidth = m_pImageSet->SetData.ySpotSD;
         m_Position.cleanedIntensity = m_pImageSet->SetData.CleanedIntensity;
+        m_Position.nSat = m_pImageSet->SetData.nSat;
     }
+    m_Position.last_img = getLastImage();
     if (int(m_Position.cleanedIntensity) == -1 ){
         // Real image possible, but no pixels pass threshold
         setError(7);
@@ -370,6 +378,14 @@ bool DummyMPES::__initialize() {
     m_Errors.assign(getNumErrors(), false);
 
     m_On = true;
+    const double chance = 0.75; // this is the chance of getting true, between 0 and 1;
+    std::random_device rd;
+    std::mt19937 mt(rd());
+    std::bernoulli_distribution dist(chance);
+    bool result = dist(mt);
+    if (!result){
+        setError(0);
+    }
 
     std::ostringstream oss;
     oss << std::setfill('0') << std::setw(6) << getSerialNumber(); // pad serial number to 6 digits with zeros
@@ -393,11 +409,11 @@ bool DummyMPES::__initialize() {
         spdlog::debug("{} : Did not read calibration data -- using raw values.", m_Identity);
     }
 
-    spdlog::debug("{} : DummyMPES::initialize() : Done.", m_Identity);
+    spdlog::debug("{} : DummyMPES::initialize() attempted: Done.", m_Identity);
 
     // Load default
 
-    return true;
+    return result;
 }
 
 int DummyMPES::__setExposure() {
@@ -421,6 +437,8 @@ int DummyMPES::__updatePosition() {
     m_Position.xSpotWidth = MPESBase::NOMINAL_SPOT_WIDTH;
     m_Position.ySpotWidth = MPESBase::NOMINAL_SPOT_WIDTH;
     m_Position.cleanedIntensity = MPESBase::NOMINAL_INTENSITY;
+    m_Position.last_img = MPESBase::BACKUP_IMAGE_FILEPATH;
+    m_Position.nSat = 0;
 
     m_Position.exposure = 500.0;
     m_Position.timestamp = std::time(0);

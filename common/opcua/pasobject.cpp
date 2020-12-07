@@ -205,8 +205,13 @@ OpcUa::DataItemType* PasObject::addVariable(PasNodeManagerCommon *pNodeManager, 
     // Store information needed to access device
     PasUserData* pUserData = new PasUserData(isState, ParentType, m_Identity, VarType);
     pDataItem->setUserData(pUserData);
-    // Change value handling to get read and write calls to the node manager
-    pDataItem->setValueHandling(UaVariable_Value_Cache);
+    // Set value handling to handle sampling on request
+    pDataItem->setValueHandling(UaVariable_Value_CacheIsSource | UaVariable_Value_CacheIsUpdatedOnRequest);
+    // Change value of variable to bad status BadWaitingForInitialData
+    // This makes sure we do not deliver an old value before we update the cache with internal monitoring
+    UaDataValue badStatusValue;
+    badStatusValue.setStatusCode(OpcUa_BadWaitingForInitialData);
+    pDataItem->setValue(NULL, badStatusValue, OpcUa_False);
 
     return pDataItem;
 }
@@ -231,6 +236,8 @@ const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, O
                                                         Ua_AccessLevel_CurrentRead)},
     {PAS_MPESType_yCentroidNominal, std::make_tuple("yCentroidNominal", UaVariant(0.0), OpcUa_False,
                                                         Ua_AccessLevel_CurrentRead)},
+    {PAS_MPESType_nSat, std::make_tuple("nSat", UaVariant(0.0), OpcUa_False,
+                                        Ua_AccessLevel_CurrentRead)},
     {PAS_MPESType_Exposure,         std::make_tuple("Exposure", UaVariant(0), OpcUa_False,
                                                     Ua_AccessLevel_CurrentRead)},
     {PAS_MPESType_Timestamp,        std::make_tuple("Timestamp", UaVariant(""), OpcUa_False,
@@ -239,6 +246,8 @@ const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, O
                                                     Ua_AccessLevel_CurrentRead)},
     {PAS_MPESType_ErrorState,       std::make_tuple("ErrorState", UaVariant(0), OpcUa_False,
                                                         Ua_AccessLevel_CurrentRead)},
+    {PAS_MPESType_ImagePath,       std::make_tuple("ImagePath", UaVariant("somePath") , OpcUa_False,
+                                                    Ua_AccessLevel_CurrentRead)},
 };
 
 const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean>> MPESObject::ERRORS = {
@@ -314,12 +323,12 @@ const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean>> 
 };
 
 const std::map<OpcUa_UInt32, std::pair<std::string, std::vector<std::tuple<std::string, UaNodeId, std::string>>>> ACTObject::METHODS = {
-    {PAS_ACTType_TurnOn,          {"TurnOn",          {}}},
-    {PAS_ACTType_TurnOff,         {"TurnOff",         {}}},
-    {PAS_ACTType_MoveDeltaLength, {"MoveDeltaLength", {std::make_tuple("DeltaLength", UaNodeId(OpcUaId_Double),
-                                                                           "Desired change in length for the actuator (in mm).")}}},
-    {PAS_ACTType_MoveToLength,   {"MoveToLength",   {std::make_tuple("TargetLength", UaNodeId(OpcUaId_Double),
-                                                                     "Target length for the actuator to move to (in mm).")}}},
+//    {PAS_ACTType_TurnOn,          {"TurnOn",          {}}},
+//    {PAS_ACTType_TurnOff,         {"TurnOff",         {}}},
+//    {PAS_ACTType_MoveDeltaLength, {"MoveDeltaLength", {std::make_tuple("DeltaLength", UaNodeId(OpcUaId_Double),
+//                                                                           "Desired change in length for the actuator (in mm).")}}},
+//    {PAS_ACTType_MoveToLength,   {"MoveToLength",   {std::make_tuple("TargetLength", UaNodeId(OpcUaId_Double),
+//                                                                     "Target length for the actuator to move to (in mm).")}}},
     {PAS_ACTType_ForceRecover,   {"ForceRecover",   {}}},
     {PAS_ACTType_ClearError,     {"ClearError",     {     std::make_tuple("ErrorNum", UaNodeId(OpcUaId_Int32),
                                                                            "Number of error to clear")}}},
@@ -350,6 +359,12 @@ const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, O
 };
 
 const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean>> PSDObject::ERRORS = {
+        {PAS_PSDType_Error0,  std::make_tuple("[0] [Fatal] Error opening port.", UaVariant(false), OpcUa_False)},
+        {PAS_PSDType_Error1,  std::make_tuple("[0] [Fatal] Error from tcgetattr.", UaVariant(false), OpcUa_False)},
+        {PAS_PSDType_Error2,  std::make_tuple("[0] [Fatal] Error from tcsetattrr.", UaVariant(false), OpcUa_False)},
+        {PAS_PSDType_Error3,  std::make_tuple("[0] [Fatal] Error from tggetattr.", UaVariant(false), OpcUa_False)},
+        {PAS_PSDType_Error4,  std::make_tuple("[0] [Fatal] Error setting term attributes.", UaVariant(false), OpcUa_False)},
+
 };
 
 const std::map<OpcUa_UInt32, std::pair<std::string, std::vector<std::tuple<std::string, UaNodeId, std::string>>>> PSDObject::METHODS = {

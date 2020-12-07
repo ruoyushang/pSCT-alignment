@@ -48,7 +48,7 @@ MirrorController::MirrorController(Device::Identity identity, std::string mode)
     10000),
       m_Mode(mode), m_pSurface(nullptr) {
     // define possible children and initialize the selected children string
-    m_ChildrenTypes = {PAS_PanelType, PAS_EdgeType, PAS_MPESType};
+    m_ChildrenTypes = {PAS_PanelType, PAS_EdgeType, PAS_MPESType, PAS_FocalPlaneType};
 
     // define coordinate vectors -- these are of size 6
     m_curCoords = Eigen::VectorXd(6);
@@ -653,15 +653,23 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
                 m_Identity);
             return OpcUa_Good;
         }
+        else{
+            spdlog::debug("{} : Sensors found in this mirror", m_Identity);
+        }
 
         std::map<std::shared_ptr<PanelController>, std::vector<std::shared_ptr<MPESController>>> MPESordering;
         for (auto it = getChildren(PAS_PanelType).begin(); it < getChildren(PAS_PanelType).end(); it++) {
             MPESordering[std::dynamic_pointer_cast<PanelController>(*it)] = std::vector<std::shared_ptr<MPESController>>();
-            for (const auto &mpes : std::dynamic_pointer_cast<PanelController>(*it)->getChildren(
-                PAS_MPESType)) {
-                if (m_selectedMPES.find(mpes->getIdentity().serialNumber) != m_selectedMPES.end()) {
-                    MPESordering[std::dynamic_pointer_cast<PanelController>(*it)].push_back(std::dynamic_pointer_cast<MPESController>(mpes));
+            try {
+                for (const auto &mpes : std::dynamic_pointer_cast<PanelController>(*it)->getChildren(
+                        PAS_MPESType)) {
+                    if (m_selectedMPES.find(mpes->getIdentity().serialNumber) != m_selectedMPES.end()) {
+                        MPESordering[std::dynamic_pointer_cast<PanelController>(*it)].push_back(std::dynamic_pointer_cast<MPESController>(mpes));
+                    }
                 }
+            }
+            catch (const std::out_of_range& oor) {
+                spdlog::warn("{}: No MPES found on this panel: [Out of Range error: {}]", std::dynamic_pointer_cast<PanelController>(*it)->getIdentity().position, oor.what() );
             }
         }
 
@@ -723,13 +731,18 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
         std::map<Device::Identity, MPESBase::Position> readings;
 
         for (auto it = getChildren(PAS_PanelType).begin(); it < getChildren(PAS_PanelType).end(); it++) {
-            for (const auto &mpes : std::dynamic_pointer_cast<PanelController>(*it)->getChildren(
-                PAS_MPESType)) {
-                if (m_selectedMPES.find(mpes->getIdentity().serialNumber) != m_selectedMPES.end()) {
-                    readings.insert(
-                        std::make_pair(mpes->getIdentity(), std::dynamic_pointer_cast<MPESController>(
-                            mpes)->getPosition()));
+            try {
+                for (const auto &mpes : std::dynamic_pointer_cast<PanelController>(*it)->getChildren(
+                        PAS_MPESType)) {
+                    if (m_selectedMPES.find(mpes->getIdentity().serialNumber) != m_selectedMPES.end()) {
+                        readings.insert(
+                                std::make_pair(mpes->getIdentity(), std::dynamic_pointer_cast<MPESController>(
+                                        mpes)->getPosition()));
+                    }
                 }
+            }
+            catch (const std::out_of_range& oor) {
+                spdlog::warn("{}: No MPES found on this panel: [Out of Range error: {}]", std::dynamic_pointer_cast<PanelController>(*it)->getIdentity().position, oor.what() );
             }
         }
 
@@ -891,9 +904,14 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
         std::map<std::shared_ptr<PanelController>, std::vector<std::shared_ptr<MPESController>>> MPESordering;
         for (auto it = getChildren(PAS_PanelType).begin(); it < getChildren(PAS_PanelType).end(); it++) {
             MPESordering[std::dynamic_pointer_cast<PanelController>(*it)] = std::vector<std::shared_ptr<MPESController>>();
-            for (const auto &mpes : std::dynamic_pointer_cast<PanelController>(*it)->getChildren(
-                    PAS_MPESType)) {
-                MPESordering[std::dynamic_pointer_cast<PanelController>(*it)].push_back(std::dynamic_pointer_cast<MPESController>(mpes));
+            try {
+                for (const auto &mpes : std::dynamic_pointer_cast<PanelController>(*it)->getChildren(
+                        PAS_MPESType)) {
+                    MPESordering[std::dynamic_pointer_cast<PanelController>(*it)].push_back(std::dynamic_pointer_cast<MPESController>(mpes));
+                }
+            }
+            catch (const std::out_of_range& oor) {
+                spdlog::warn("{}: No MPES found for this panel: [Out of Range error: {}]", std::dynamic_pointer_cast<PanelController>(*it)->getIdentity().position, oor.what() );
             }
         }
 
@@ -908,9 +926,14 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
             auto panelController = std::dynamic_pointer_cast<PanelController>(*it);
             auto panelId = panelController->getIdentity();
             std::map<Device::Identity, std::shared_ptr<MPESController>> mpesIdMap;
-            for (const auto &mpes : panelController->getChildren(
-                    PAS_MPESType)) {
-                mpesIdMap[mpes->getIdentity()] = std::dynamic_pointer_cast<MPESController>(mpes);
+            try {
+                for (const auto &mpes : panelController->getChildren(
+                        PAS_MPESType)) {
+                    mpesIdMap[mpes->getIdentity()] = std::dynamic_pointer_cast<MPESController>(mpes);
+                }
+                }
+            catch (const std::out_of_range& oor) {
+                spdlog::warn("{}: No MPES found for this panel: [Out of Range error: {}]", std::dynamic_pointer_cast<PanelController>(*it)->getIdentity().position, oor.what() );
             }
 
             for (auto mpesId : allMPES.at(panelId)) {
@@ -941,6 +964,7 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
         };
 
         for (const auto &panel : m_pChildren.at(PAS_PanelType)) {
+            spdlog::debug("Checking panels...");
             auto panelController = std::dynamic_pointer_cast<PanelController>(panel);
             if (panelController->getDeviceState() != normalDeviceStates.at(PAS_PanelType)) {
                 badDeviceStates[panelController->getIdentity()] = panelController->getDeviceState();
@@ -958,6 +982,7 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
             }
             // Get actuator errors
             for (const auto &act : panelController->getChildren(PAS_ACTType)) {
+                spdlog::debug("Checking actuators...");
                 auto actuatorController = std::dynamic_pointer_cast<ActController>(act);
                 if (actuatorController->getDeviceState() != normalDeviceStates.at(PAS_ACTType)) {
                     badDeviceStates[actuatorController->getIdentity()] = actuatorController->getDeviceState();
@@ -976,23 +1001,29 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
                 }
             }
             // Get MPES errors
-            for (const auto &mpes : panelController->getChildren(PAS_MPESType)) {
-                auto mpesController = std::dynamic_pointer_cast<MPESController>(mpes);
-                if (mpesController->getDeviceState() != normalDeviceStates.at(PAS_MPESType)) {
-                    badDeviceStates[mpesController->getIdentity()] = mpesController->getDeviceState();
-                }
-                if (mpesController->getErrorState() != Device::ErrorState::Nominal) {
-                    for (auto pair : MPESObject::ERRORS) {
-                        UaVariant var;
-                        mpesController->getData(pair.first, var);
-                        unsigned char errorVal;
-                        var.toBool(errorVal);
-                        if (errorVal == OpcUa_True) {
-                            deviceErrors[mpesController->getIdentity()].push_back(
-                                    std::get<0>(pair.second));
+            try {
+                for (const auto &mpes : panelController->getChildren(PAS_MPESType)) {
+                    spdlog::debug("Checking MPES...");
+                    auto mpesController = std::dynamic_pointer_cast<MPESController>(mpes);
+                    if (mpesController->getDeviceState() != normalDeviceStates.at(PAS_MPESType)) {
+                        badDeviceStates[mpesController->getIdentity()] = mpesController->getDeviceState();
+                    }
+                    if (mpesController->getErrorState() != Device::ErrorState::Nominal) {
+                        for (auto pair : MPESObject::ERRORS) {
+                            UaVariant var;
+                            mpesController->getData(pair.first, var);
+                            unsigned char errorVal;
+                            var.toBool(errorVal);
+                            if (errorVal == OpcUa_True) {
+                                deviceErrors[mpesController->getIdentity()].push_back(
+                                        std::get<0>(pair.second));
+                            }
                         }
                     }
                 }
+            }
+            catch (const std::out_of_range& oor) {
+                spdlog::warn("Out of Range error: ({}), No MPES found on this panel.",oor.what());
             }
         }
 
@@ -1062,29 +1093,34 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
             auto panelController = std::dynamic_pointer_cast<PanelController>(panel);
             auto panelId = panelController->getIdentity();
             
-            for (const auto &mpes : panelController->getChildren(PAS_MPESType)) {
-                auto mpesController = std::dynamic_pointer_cast<MPESController>(mpes);
-                auto mpesId = mpesController->getIdentity();
-                if ((deviceErrors.find(mpesId) != deviceErrors.end()) ||
-                    (badDeviceStates.find(mpesId) != badDeviceStates.end())) {
+            try {
+                for (const auto &mpes : panelController->getChildren(PAS_MPESType)) {
+                    auto mpesController = std::dynamic_pointer_cast<MPESController>(mpes);
+                    auto mpesId = mpesController->getIdentity();
+                    if ((deviceErrors.find(mpesId) != deviceErrors.end()) ||
+                        (badDeviceStates.find(mpesId) != badDeviceStates.end())) {
 
-                    os << panelId << " : " << mpesId << " : " << std::endl;
-                    os << "\tDevice State: ";
-                    if (badDeviceStates.find(mpesId) == badDeviceStates.end()) {
-                        os << Device::deviceStateNames.at(normalDeviceStates.at(PAS_MPESType)) << " [Normal]" << std::endl;
-                    }
-                    else {
-                        os << Device::deviceStateNames.at(badDeviceStates.at(mpesId)) << " [WARNING: Abnormal. Should be " << Device::deviceStateNames.at(normalDeviceStates.at(PAS_MPESType)) << "]" << std::endl;
-                    }
-                    os << "\tError State: " << Device::errorStateNames.at(mpesController->getErrorState()) << std::endl;
-                    if (deviceErrors.find(mpesId) != deviceErrors.end()) {
-                        os << "\tDevice Errors:" << std::endl;
-                        for (auto errorString : deviceErrors.at(mpesId)) {
-                            os << "\t\t" << errorString << std::endl;
+                        os << panelId << " : " << mpesId << " : " << std::endl;
+                        os << "\tDevice State: ";
+                        if (badDeviceStates.find(mpesId) == badDeviceStates.end()) {
+                            os << Device::deviceStateNames.at(normalDeviceStates.at(PAS_MPESType)) << " [Normal]" << std::endl;
                         }
+                        else {
+                            os << Device::deviceStateNames.at(badDeviceStates.at(mpesId)) << " [WARNING: Abnormal. Should be " << Device::deviceStateNames.at(normalDeviceStates.at(PAS_MPESType)) << "]" << std::endl;
+                        }
+                        os << "\tError State: " << Device::errorStateNames.at(mpesController->getErrorState()) << std::endl;
+                        if (deviceErrors.find(mpesId) != deviceErrors.end()) {
+                            os << "\tDevice Errors:" << std::endl;
+                            for (auto errorString : deviceErrors.at(mpesId)) {
+                                os << "\t\t" << errorString << std::endl;
+                            }
+                        }
+                        os << std::endl << std::endl;
                     }
-                    os << std::endl << std::endl;
                 }
+            }
+            catch (const std::out_of_range& oor) {
+                spdlog::warn("Out of Range error: ({}), No MPES found on this panel.",oor.what());
             }
         }
 
@@ -1106,6 +1142,7 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
 }
 
 UaStatus MirrorController::testActuators(float moveDistance, float epsilonLength) {
+    //Run on ALL actuators, this includes optical table that is child of this mirror.
     UaStatus status;
 
     if (m_selectedPanels.empty()) {
@@ -1284,6 +1321,7 @@ UaStatus MirrorController::testActuators(float moveDistance, float epsilonLength
 };
 
 UaStatus MirrorController::readPositionAll(bool print) {
+    // Prints panel position of all panels (including OT if selectAll was called first). Calculates TelRF position for all but ignores OT if it is in the list.
     UaStatus status;
     
     for (unsigned panelPos : m_selectedPanels) {
@@ -1292,14 +1330,17 @@ UaStatus MirrorController::readPositionAll(bool print) {
 
         auto padCoordsActs = pPanel->getPadCoords();
         if (print) {
-            spdlog::info("{}: MirrorController::readPositionAll(): Panel frame pad coordinates:\n{}\n", m_Identity,
+            spdlog::info("{}: MirrorController::readPositionAll(): Panel {} frame pad coordinates:\n{}\n", m_Identity, pPanel->getIdentity().position,
                          padCoordsActs);
             // and transform this to the telescope reference frame:
             // these are pad coordinates in TRF as computed from actuator lengths
-            for (int i = 0; i < padCoordsActs.cols(); i++)
-                padCoordsActs.col(i) = __toTelRF(panelPos, padCoordsActs.col(i));
-            spdlog::info("{}: MirrorController::readPositionAll(): Telescope frame pad coordinates:\n{}\n\n\n\n", m_Identity,
-                         padCoordsActs);
+            if (SCTMath::Ring(pPanel->getIdentity().position) != 0) {
+                for (int i = 0; i < padCoordsActs.cols(); i++)
+                    padCoordsActs.col(i) = __toTelRF(panelPos, padCoordsActs.col(i));
+                spdlog::info("{}: MirrorController::readPositionAll(): Telescope frame pad coordinates:\n{}\n\n\n\n",
+                             m_Identity,
+                             padCoordsActs);
+            }
         }
     }
 
@@ -1308,6 +1349,7 @@ UaStatus MirrorController::readPositionAll(bool print) {
 
 UaStatus
 MirrorController::__calculateMoveDeltaCoords(const Eigen::VectorXd &deltaMirrorCoords) {
+    // Ignores OT even if it is in the selectedPanels list.
     UaStatus status;
 
     spdlog::info(
@@ -1333,6 +1375,9 @@ MirrorController::__calculateMoveDeltaCoords(const Eigen::VectorXd &deltaMirrorC
         auto pPanel = std::dynamic_pointer_cast<PanelController>(
             m_ChildrenPositionMap.at(PAS_PanelType).at(panelPos));
         positionNum = pPanel->getIdentity().position;
+        if (SCTMath::Ring(positionNum) == 0){
+            continue;
+        }
         // for this panel, we get PRF pad coords, transform them to TRF,
         // move them in TRF, transform back to PRF, and then compute new ACT lengths
         // based on the new pad coords. so simple!
@@ -1374,6 +1419,7 @@ MirrorController::__calculateMoveDeltaCoords(const Eigen::VectorXd &deltaMirrorC
 
 UaStatus
 MirrorController::__calculateMoveToCoords(const Eigen::VectorXd &targetMirrorCoords) {
+    // Ignores OT even if it is in the selectedPanels list.
     UaStatus status;
 
     Eigen::VectorXd deltaMirrorCoords(6);
@@ -1393,6 +1439,9 @@ MirrorController::__calculateMoveToCoords(const Eigen::VectorXd &targetMirrorCoo
 
     int j = 0;
     for (unsigned panelPos : m_selectedPanels) {
+        if (SCTMath::Ring(panelPos) == 0){
+            continue;
+        }
         auto pPanel = std::dynamic_pointer_cast<PanelController>(
             m_ChildrenPositionMap.at(PAS_PanelType).at(panelPos));
         positionNum = pPanel->getIdentity().position;
@@ -1708,6 +1757,7 @@ UaStatus MirrorController::updateCoords(bool print)
     // minimize chisq and get telescope coordinates
     auto minuit = new TMinuit(6); // 6 parameters for 6 telescope coords
     minuit->SetPrintLevel(-1); // suppress all output
+    spdlog::trace("Starting minimize chisq and get telescope coordinates");
     minuit->SetFCN(MirrorControllerCompute::getInstance(this).chiSqFCN);
     // mnparm implements parameter definition:
     // void mnparm(I index, S "name", D start, D step, D LoLim, D HiLim, I& errflag)
@@ -1818,6 +1868,7 @@ Eigen::MatrixXd MirrorController::__computeSystematicsMatrix(unsigned pos1, unsi
 }
 
 UaStatus MirrorController::__calculateAlignSector(int align_mode) {
+    // Ignores OT even if it is in the selectedPanels list.
     UaStatus status;
     // make sure there are some selected sensors
     if (m_selectedPanels.empty()) {
@@ -1841,8 +1892,13 @@ UaStatus MirrorController::__calculateAlignSector(int align_mode) {
     // grab all user specified panels to move and sensors to fit
     std::vector<std::shared_ptr<PanelController>> panelsToMove;
     std::vector<std::shared_ptr<MPESController>> alignMPES;
-    for (unsigned panelPos : m_selectedPanels)
-        panelsToMove.push_back(std::dynamic_pointer_cast<PanelController>(m_ChildrenPositionMap.at(PAS_PanelType).at(panelPos)));
+    for (unsigned panelPos : m_selectedPanels) {
+        if (SCTMath::Ring(panelPos) == 0) {
+            continue;
+        }
+        panelsToMove.push_back(
+                std::dynamic_pointer_cast<PanelController>(m_ChildrenPositionMap.at(PAS_PanelType).at(panelPos)));
+    }
     for (int mpesSerial : m_selectedMPES) {
         std::shared_ptr<MPESController> mpes = std::dynamic_pointer_cast<MPESController>(
             m_ChildrenSerialMap.at(PAS_MPESType).at(mpesSerial));
@@ -2192,6 +2248,7 @@ UaStatus MirrorController::__calculateAlignRing(int fixPanel)
 }
 
 UaStatus MirrorController::savePosition(const std::string &saveFilePath) {
+    // Will save all panel positions, including OT, if it is a child of this mirror.
     spdlog::info("{}: Attempting to write Mirror position to file {}...", m_Identity, saveFilePath);
 
     //Check if file already exists
@@ -2365,7 +2422,7 @@ UaStatus MirrorController::__calculateLoadPosition(const std::string &loadFilePa
     }
 
     for (const auto &pPanel : m_pChildren.at(PAS_PanelType)) {
-        std::dynamic_pointer_cast<PanelController>(pPanel)->operate(PAS_PanelType_ReadPosition);
+        status = std::dynamic_pointer_cast<PanelController>(pPanel)->operate(PAS_PanelType_ReadPosition);
         panelId = std::dynamic_pointer_cast<PanelController>(pPanel)->getIdentity();
         if (status.isBad()) {
             spdlog::error("{}: Unable to load position, failed to read actuator lengths.", m_Identity);
@@ -2476,7 +2533,7 @@ UaStatus MirrorController::__calculateLoadDeltaCoords(const std::string &loadFil
     }
 
     for (const auto &pPanel : m_pChildren.at(PAS_PanelType)) {
-        std::dynamic_pointer_cast<PanelController>(pPanel)->operate(PAS_PanelType_ReadPosition);
+        status = std::dynamic_pointer_cast<PanelController>(pPanel)->operate(PAS_PanelType_ReadPosition);
         panelId = std::dynamic_pointer_cast<PanelController>(pPanel)->getIdentity();
         if (status.isBad()) {
             spdlog::error("{}: Unable to load position, failed to read actuator lengths.", m_Identity);
@@ -3014,6 +3071,7 @@ Eigen::Vector3d MirrorController::__moveInCurrentRF(const Eigen::Vector3d &in_ve
 /* ============== MINUIT INTERFACE ============== */
 double MirrorController::chiSq(const Eigen::VectorXd &telDelta)
 {
+    // Ignores OT even if it is in the selectedPanels list.
     // tel delta is a perturbation to the coordinates of the mirror
     double chiSq = 0.;
     // pad coordinates in TRF as computed from actuator lengths
@@ -3026,6 +3084,9 @@ double MirrorController::chiSq(const Eigen::VectorXd &telDelta)
     for (unsigned panelPos : m_selectedPanels) {
         int pos = (int)panelPos;
         int ring = SCTMath::Ring(pos);
+        if (ring == 0){
+            continue;
+        }
 
         // go over all pads -- ChiSq is the squared difference between pad coordinates
         // as computed from actuator lengths and pad coordinates as computed from telescope

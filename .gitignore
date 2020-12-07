@@ -30,6 +30,10 @@
 .vs
 .idea
 
+#Image files
+*.fits
+*.raw
+
 # Doxygen-generated files
 doxygen/html
 doxygen/latex
@@ -50,3 +54,4 @@ sdk/bin
 # DB files
 *.sql
 !init.sql
+tools/alignment_plots

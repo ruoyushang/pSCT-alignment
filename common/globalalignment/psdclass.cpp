@@ -19,7 +19,15 @@ GASPSD::~GASPSD()
     m_logOutputStream.close();
 }
 
-int GASPSD::initialize()
+const std::vector<Device::ErrorDefinition> GASPSD::ERROR_DEFINITIONS = {
+        {"Error opening port.",Device::ErrorState::FatalError},//error 0
+        {"Error from tcgetattr.",Device::ErrorState::FatalError},//error 1
+        {"Error from tcsetattrr.",Device::ErrorState::FatalError},//error 2
+        {"Error from tggetattr.",Device::ErrorState::FatalError},//error 3
+        {"Error setting term attributes.",Device::ErrorState::FatalError}//error 4
+};
+
+bool GASPSD::initialize()
 {
     // set the calibration constants
     setCalibration();
@@ -27,6 +35,7 @@ int GASPSD::initialize()
     m_fd = open(getPort().c_str(), O_RDWR | O_NOCTTY | O_SYNC);
     if (m_fd < 0) {
         printf("error %d opening %s: %s", errno, getPort().c_str(), strerror(errno));
+        setError(0);
         return -1;
     }
 
@@ -104,6 +113,7 @@ int GASPSD::setInterfaceAttribs(int fd, int speed, int parity) {
     if (tcgetattr (fd, &tty) != 0)
     {
         printf ("error %d from tcgetattr", errno);
+        setError(1);
         return -1;
     }
 
@@ -137,6 +147,7 @@ int GASPSD::setInterfaceAttribs(int fd, int speed, int parity) {
     if (tcsetattr (fd, TCSANOW, &tty) != 0)
     {
         printf ("error %d from tcsetattr", errno);
+        setError(2);
         return -1;
     }
 
@@ -152,6 +163,7 @@ void GASPSD::setBlocking(int fd, int should_block) {
     if (tcgetattr (fd, &tty) != 0)
     {
         printf ("error %d from tggetattr", errno);
+        setError(3);
         return;
     }
 
@@ -160,13 +172,33 @@ void GASPSD::setBlocking(int fd, int should_block) {
 
     if (tcsetattr (fd, TCSANOW, &tty) != 0)
         printf ("error %d setting term attributes", errno);
+        setError(4);
 }
 
 void GASPSD::setCalibration() {
     // Current unused
 }
 
-int DummyGASPSD::initialize() {
+void GASPSD::turnOn() {
+    spdlog::info("{}: Turning on" ,m_Identity);
+    m_On = true;
+}
+
+void GASPSD::turnOff() {
+    spdlog::info("{}: Turning off", m_Identity);
+    m_On = false;
+}
+
+bool GASPSD::isOn() {
+    return m_On;
+}
+
+Device::ErrorDefinition GASPSD::getErrorCodeDefinition(int errorCode) {
+        return GASPSD::ERROR_DEFINITIONS.at(errorCode);
+    }
+
+bool DummyGASPSD::initialize() {
+    spdlog::debug("Initializing DummyGASPSD");
     // set the calibration constants
     setCalibration();
 

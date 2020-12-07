@@ -82,6 +82,13 @@ UaStatus PasNodeManager::afterStartUp()
     UA_ASSERT(ret.isGood());
     registerEventNotifier(OpcUaId_Server, pAreaMPESFolder->nodeId()); // Register event notifier tree
 
+    //Create alarm area folders for the PSD objects and add them to the Server object
+    UaAreaFolder *pAreaPSDFolder = new UaAreaFolder(
+            "Area", UaNodeId("AreaPSDEvents", getNameSpaceIndex()), m_defaultLocaleId);
+    ret = addNodeAndReference(OpcUaId_Server, pAreaPSDFolder, OpcUaId_HasNotifier);
+    UA_ASSERT(ret.isGood());
+    registerEventNotifier(OpcUaId_Server, pAreaPSDFolder->nodeId()); // Register event notifier tree
+
     // Add folder for devices by type
     spdlog::debug("Creating DevicesByType OPC UA folder object...");
     UaFolder *pDevicesByTypeFolder = new UaFolder("DevicesByType", UaNodeId("DevicesByType", getNameSpaceIndex()),
@@ -164,6 +171,13 @@ UaStatus PasNodeManager::afterStartUp()
                                      OpcUaId_HasNotifier); // Add HasNotifier reference from alarm area to controller object
                 UA_ASSERT(ret.isGood());
                 registerEventNotifier(pAreaMPESFolder->nodeId(), pObject->nodeId());
+            }
+
+            if (deviceType == PAS_PSDType) {
+                ret = addUaReference(pAreaPSDFolder, pObject,
+                                     OpcUaId_HasNotifier); // Add HasNotifier reference from alarm area to controller object
+                UA_ASSERT(ret.isGood());
+                registerEventNotifier(pAreaPSDFolder->nodeId(), pObject->nodeId());
             }
         }
     }
@@ -260,7 +274,7 @@ UaStatus PasNodeManager::amendTypeNodes()
                                             Ua_AccessLevel_CurrentRead, this);
         //pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Optional);
         status = addNodeAndReference(pPanelType, pDataItem, OpcUaId_HasComponent);
-        UA_ASSERT(addStatus.isGood());
+        UA_ASSERT(status.isGood());
     }
 
     // Register all methods

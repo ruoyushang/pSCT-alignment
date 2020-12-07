@@ -101,9 +101,27 @@ UaStatus MPESController::setState(Device::DeviceState state) {
 }
 /// @details Sets exposure for this MPES.
 bool MPESController::initialize() {
-    spdlog::info("{} : Initializing MPES...", m_Identity);
-    m_pPlatform->getMPESbyIdentity(m_Identity)->setExposure();
-    return true;
+    spdlog::trace("{} : MPESController::initialize()", m_Identity);
+    Device::ErrorState errState = m_pPlatform->getMPESbyIdentity(m_Identity)->getErrorState();
+
+    if ((errState == Device::ErrorState::Nominal) | (errState == Device::ErrorState::OperableError)) {
+        spdlog::debug("{} : setExposure()...", m_Identity);
+        m_pPlatform->getMPESbyIdentity(m_Identity)->setExposure();
+    }
+    else if (errState == Device::ErrorState::FatalError) {
+        spdlog::error("{} : In fatal state, not initializing... ", m_Identity);
+        return false;
+    }
+    else {
+        return false;
+    }
+    errState = m_pPlatform->getMPESbyIdentity(m_Identity)->getErrorState();
+    if ((errState == Device::ErrorState::Nominal) | (errState == Device::ErrorState::OperableError)) {
+        return true;
+    }
+    else {
+        return false;
+    }
 }
 
 /// @details If the MPES has not been read yet, calls read before retrieving data. Locks the shared mutex while reading data.
@@ -129,6 +147,10 @@ UaStatus MPESController::getData(OpcUa_UInt32 offset, UaVariant &value) {
             case PAS_MPESType_yCentroidSpotWidth:
                 spdlog::trace("{} : Read ySpotWidth value => ({})", m_Identity, position.ySpotWidth);
                 value.setFloat(position.ySpotWidth);
+                break;
+            case PAS_MPESType_nSat:
+                spdlog::trace("{} : Read nSat value => ({})", m_Identity, position.nSat);
+                value.setFloat(position.nSat);
                 break;
             case PAS_MPESType_CleanedIntensity:
                 spdlog::trace("{} : Read CleanedIntensity value => ({})", m_Identity, position.cleanedIntensity);
@@ -161,6 +183,10 @@ UaStatus MPESController::getData(OpcUa_UInt32 offset, UaVariant &value) {
             case PAS_MPESType_Timestamp:
                 spdlog::trace("{} : Read Timestamp value => ({})", m_Identity, std::ctime(&position.timestamp));
                 value.setString(UaString(std::ctime(&position.timestamp)));
+                break;
+            case PAS_MPESType_ImagePath:
+                spdlog::trace("{} : Read ImagePath value => ({})", m_Identity, position.last_img);
+                value.setString(UaString(position.last_img.c_str()));
                 break;
             case PAS_MPESType_ErrorState: {
                 Device::ErrorState errorState = _getErrorState();

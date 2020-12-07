@@ -68,6 +68,14 @@ else(NOT NLOPT_FOUND)
     message(WARNING "NLopt not found. You need NLopt for this program to work!")
 endif(NLOPT_FOUND)
 
+find_package(Boost 1.50.0 REQUIRED COMPONENTS
+        filesystem regex)
+if(Boost_FOUND)
+    include_directories(${Boost_INCLUDE_DIRS})
+else(Boost_FOUND)
+    message(WARNING "Boost not found. You need Boost for this program to work!")
+endif(Boost_FOUND)
+
 MESSAGE( STATUS "" )
 MESSAGE( STATUS "====================================" )
 MESSAGE( STATUS "Creating Makefile of ${PROJECT_NAME}" )
@@ -113,6 +121,7 @@ FILE(GLOB P2PAS_SRC
     "${COMMON_CODE_DIR}/globalalignment/ccdclass.cpp"
     "${COMMON_CODE_DIR}/globalalignment/ccd/*.cpp"
     "${COMMON_CODE_DIR}/utilities/*.cpp"
+    "${COMMON_CODE_DIR}/alignment/focalplane.cpp"
     "${COMMON_CODE_DIR}/alignment/device.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/*.hpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/controllers/*.hpp"
@@ -123,8 +132,10 @@ FILE(GLOB P2PAS_SRC
     "${COMMON_CODE_DIR}/simulatestewart/mathtools.h"
     "${COMMON_CODE_DIR}/globalalignment/ccdclass.h"
     "${COMMON_CODE_DIR}/globalalignment/ccd/*.h"
+    "${COMMON_CODE_DIR}/globalalignment/ccd/*.hpp"
     "${COMMON_CODE_DIR}/utilities/*.cpp"
     "${COMMON_CODE_DIR}/alignment/device.hpp"
+    "${COMMON_CODE_DIR}/alignment/focalplane.hpp"
     )
 
 if ( SIMMODE )
@@ -253,6 +264,9 @@ ELSE ()
 ENDIF ()
 
 TARGET_LINK_LIBRARIES(${PROJECT_NAME} PRIVATE spdlog::spdlog)
+if(Boost_FOUND)
+    target_link_libraries(${PROJECT_NAME} ${Boost_LIBRARIES})
+endif()
 
 ####################################### configure debug postfix #############################
 
