@@ -226,14 +226,19 @@ UaStatus Configuration::loadDeviceConfiguration(const std::vector<std::string> &
             }
 
             // get OT's PSD
-            if (panelId.position==1001 || panelId.position==2001)
+            if ((panelId.position==1001) || (panelId.position==2001))
             {
                 // Optical Table
                 ////////////////////
                 Device::Identity OptTableId;
                 OptTableId.serialNumber = panelId.position; // need to find it out!!!
                 OptTableId.position = SCTMath::Mirror(panelId.position);
-                OptTableId.eAddress = "10.0.1.100"; // need to find it out!!!
+                if (SCTMath::Mirror(panelId.position) == 1) {
+                    OptTableId.eAddress = "Primary";
+                }
+                else if (SCTMath::Mirror(panelId.position) == 2) {
+                    OptTableId.eAddress = "Secondary";
+                }
                 OptTableId.name = std::string("OptTable_") + std::to_string(OptTableId.position);
 
                 // add to the list of devices
@@ -253,7 +258,7 @@ UaStatus Configuration::loadDeviceConfiguration(const std::vector<std::string> &
                 Device::Identity psdId;
                 psdId.serialNumber = panelId.position; // need to find it out!!!
                 psdId.position = SCTMath::Mirror(panelId.position);
-                psdId.eAddress = "10.0.1.100"; // need to find it out!!!
+                psdId.eAddress = "/dev/ttyACM0"; // need to find it out!!! This is the port number
                 psdId.name = std::string("PSD_") + std::to_string(psdId.serialNumber);
 
                 // add to the list of devices

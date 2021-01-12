@@ -184,12 +184,12 @@ UaStatus PasCommunicationInterface::initialize() {
         allDevices[PAS_MPESType].push_back(m_platform->getMPES(i)->getIdentity());
     }
 
-    if (panelId.position==1001 || panelId.position==2001)
+    if ((panelId.position==1001) || (panelId.position==2001))
     {
         Device::Identity psdId;
         psdId.serialNumber = panelId.position; // need to find it out!!!
         psdId.position = 0;
-        psdId.eAddress = "10.0.1.100"; // need to find it out!!!
+        psdId.eAddress = "/dev/ttyACM0"; // need to find it out!!! This is the port number
         psdId.name = std::string("PSD_") + std::to_string(psdId.serialNumber);
         psdIdentities.push_back(psdId);
 
