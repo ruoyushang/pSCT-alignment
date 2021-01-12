@@ -12,7 +12,7 @@
 #include "uaserver/uaobjecttypes.h"
 
 #include "common/alignment/device.hpp"
-#include "common/globalalignment/psdclass.h"
+#include "common/globalalignment/psdclass.hpp"
 #include "common/alignment/platform.hpp"
 
 #include "server/controllers/pascontroller.hpp"

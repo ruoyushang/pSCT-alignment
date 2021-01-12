@@ -258,7 +258,7 @@ UaStatus Configuration::loadDeviceConfiguration(const std::vector<std::string> &
                 Device::Identity psdId;
                 psdId.serialNumber = panelId.position; // need to find it out!!!
                 psdId.position = SCTMath::Mirror(panelId.position);
-                psdId.eAddress = "/dev/ttyACM0"; // need to find it out!!! This is the port number
+                psdId.eAddress = "0"; // need to find it out!!! This is the port number
                 psdId.name = std::string("PSD_") + std::to_string(psdId.serialNumber);
 
                 // add to the list of devices

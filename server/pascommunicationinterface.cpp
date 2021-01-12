@@ -189,7 +189,7 @@ UaStatus PasCommunicationInterface::initialize() {
         Device::Identity psdId;
         psdId.serialNumber = panelId.position; // need to find it out!!!
         psdId.position = 0;
-        psdId.eAddress = "/dev/ttyACM0"; // need to find it out!!! This is the port number
+        psdId.eAddress = "0"; // need to find it out!!! This is the port number
         psdId.name = std::string("PSD_") + std::to_string(psdId.serialNumber);
         psdIdentities.push_back(psdId);
 

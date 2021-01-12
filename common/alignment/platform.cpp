@@ -17,7 +17,7 @@
 #include "common/alignment/device.hpp"
 #include "common/alignment/mpes.hpp"
 #include "common/alignment/actuator.hpp"
-#include "common/globalalignment/psdclass.h"
+#include "common/globalalignment/psdclass.hpp"
 
 // Hardcoded
 const std::vector<Device::ErrorDefinition> PlatformBase::ERROR_DEFINITIONS = {

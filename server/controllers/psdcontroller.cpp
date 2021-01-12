@@ -17,7 +17,7 @@
 
 #include "server/controllers/pascontroller.hpp"
 
-#include "common/globalalignment/psdclass.h"
+#include "common/globalalignment/psdclass.hpp"
 #include "common/opcua/pascominterfacecommon.hpp"
 #include "common/opcua/pasobject.hpp"
 #include "common/opcua/passervertypeids.hpp"

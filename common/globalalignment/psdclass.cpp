@@ -1,4 +1,4 @@
-#include "common/globalalignment/psdclass.h"
+#include "common/globalalignment/psdclass.hpp"
 #include <errno.h>
 #include <termios.h>
 #include <string.h>
@@ -29,12 +29,52 @@ const std::vector<Device::ErrorDefinition> GASPSD::ERROR_DEFINITIONS = {
 
 bool GASPSD::initialize()
 {
+#ifndef SIMMODE
+    spdlog::info("{} : GASPSD::initialize() : Initializing...", m_Identity);
+    // we toggle the usb port, checking the ACM devices when it's off and again when it's on.
+
+    m_Errors.assign(getNumErrors(), false);
+    int newACMDeviceId = -1;
+    int usb_port = -1;
+    for (int test_usb_port = 1; test_usb_port < 7; ++test_usb_port) {
+
+        m_pCBC->usb.disable(test_usb_port); // make sure our USB is off
+        std::set<int> oldACMDevices = getACMDevices(); // count ACM devices
+
+        m_pCBC->usb.enable(test_usb_port); // switch the usb back on and wait for the ACM device to show up
+        sleep(4);
+
+        std::set<int> newACMDevices = getACMDevices(); // check all ACM devices again
+
+        std::set<int> toggledDevices;
+        std::set_difference(newACMDevices.begin(), newACMDevices.end(), oldACMDevices.begin(), oldACMDevices.end(),
+                            std::inserter(toggledDevices, toggledDevices.begin()));
+
+        if (toggledDevices.size() == 1) {
+            newACMDeviceId = *toggledDevices.begin(); // get the only element in the set -- this is the new device ID
+            usb_port = test_usb_port;
+            break;
+        }
+    }
+    if (usb_port == -1){
+        spdlog::error("{} : GASPSD::initialize() : Found 0 ACM devices, should be exactly 1.", m_Identity);
+        setError(0); // fatal
+        return false;
+    }
+
+    spdlog::debug("GASPSD::initialize(): Detected new ACM device {} in port {}.", newACMDeviceId, usb_port);
+
+    std::string ACM_port = "/dev/ACM";
+    ACM_port += std::to_string(newACMDeviceId);
+
+#endif
+
     // set the calibration constants
     setCalibration();
 
-    m_fd = open(getPort().c_str(), O_RDWR | O_NOCTTY | O_SYNC);
+    m_fd = open(ACM_port.c_str(), O_RDWR | O_NOCTTY | O_SYNC);
     if (m_fd < 0) {
-        spdlog::error("error %d opening %s: %s", errno, getPort().c_str(), strerror(errno));
+        spdlog::error("error %d opening %s: %s", errno, ACM_port.c_str(), strerror(errno));
         setError(0);
         return -1;
     }
@@ -179,6 +219,35 @@ void GASPSD::setBlocking(int fd, int should_block) {
 void GASPSD::setCalibration() {
     // Current unused
 }
+
+
+std::set<int> GASPSD::getACMDevices() {
+    std::set<int> ACMDevices;
+
+    DIR *dir;
+    struct dirent *ent;
+
+    if ((dir = opendir("/dev")) != nullptr) { // Open /dev device directory in filesystem
+        /* print all the files and directories within directory */
+        while ((ent = readdir(dir)) != nullptr) {
+            std::string currentEntry = ent->d_name;
+            size_t pos;
+            std::string substringToFind = "ACM"; // Locate ACM devices (name including the string "ACM")
+            if ((pos = currentEntry.find(substringToFind)) != std::string::npos) { // Found ACM device
+                pos += substringToFind.length(); // go to immediately after the substring "ACM"
+                int deviceNumber = std::stoi(
+                        currentEntry.substr(pos)); // grab remaining part of device name to get the device number
+                ACMDevices.insert(deviceNumber);
+            }
+        }
+        closedir(dir);
+    } else {
+        ACMDevices = {-1}; // output signalling failure
+    }
+
+    return ACMDevices;
+}
+
 
 void GASPSD::turnOn() {
     spdlog::info("{}: Turning on" ,m_Identity);

@@ -15,7 +15,7 @@
 #include "common/alignment/device.hpp"
 #include "common/alignment/mpes.hpp"
 #include "common/alignment/actuator.hpp"
-#include "common/globalalignment/psdclass.h"
+#include "common/globalalignment/psdclass.hpp"
 
 class PlatformBase : public Device
 {

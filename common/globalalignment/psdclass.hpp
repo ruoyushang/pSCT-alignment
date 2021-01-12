@@ -3,6 +3,12 @@
 
 #include <fstream>
 #include <string>
+#include <set>
+#include <dirent.h>
+
+#ifndef SIMMODE
+#include "common/cbccode/cbc.hpp"
+#endif
 
 #include "common/alignment/device.hpp"
 
@@ -24,7 +30,7 @@ public:
 
     int getSerial() const { return m_Identity.serialNumber; }
 
-    std::string getPort() const { return m_Identity.eAddress; }
+    int getPort() const { return std::stoi(m_Identity.eAddress); }
 
     virtual void update();
 
@@ -43,6 +49,12 @@ protected:
     virtual void setBlocking(int fd, int should_block);
 
     virtual void setCalibration();
+
+    std::set<int> getACMDevices();
+
+#ifndef SIMMODE
+    std::shared_ptr<CBC> m_pCBC;
+#endif
 
     // calibration constants
     double m_AlphaNeg[4] = {-9.710132, 9.871400, -9.604298, 10.071177}; // {x1Neg, y1Neg, x2Neg, y2Neg}
