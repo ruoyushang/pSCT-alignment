@@ -34,7 +34,7 @@ bool GASPSD::initialize()
 
     m_fd = open(getPort().c_str(), O_RDWR | O_NOCTTY | O_SYNC);
     if (m_fd < 0) {
-        printf("error %d opening %s: %s", errno, getPort().c_str(), strerror(errno));
+        spdlog::error("error %d opening %s: %s", errno, getPort().c_str(), strerror(errno));
         setError(0);
         return -1;
     }
@@ -72,7 +72,7 @@ void GASPSD::update() {
                 buf[count] = tmp;
                 count += n;
             }
-            printf("%s\n", buf);
+            spdlog::info("%s\n", buf);
             count = 0;
         } while (buf[0] == '#');
 
@@ -112,7 +112,7 @@ int GASPSD::setInterfaceAttribs(int fd, int speed, int parity) {
     memset (&tty, 0, sizeof tty);
     if (tcgetattr (fd, &tty) != 0)
     {
-        printf ("error %d from tcgetattr", errno);
+        spdlog::error("error %d from tcgetattr", errno);
         setError(1);
         return -1;
     }
@@ -146,7 +146,7 @@ int GASPSD::setInterfaceAttribs(int fd, int speed, int parity) {
 
     if (tcsetattr (fd, TCSANOW, &tty) != 0)
     {
-        printf ("error %d from tcsetattr", errno);
+        spdlog::error("error %d from tcsetattr", errno);
         setError(2);
         return -1;
     }
@@ -162,7 +162,7 @@ void GASPSD::setBlocking(int fd, int should_block) {
     memset (&tty, 0, sizeof tty);
     if (tcgetattr (fd, &tty) != 0)
     {
-        printf ("error %d from tggetattr", errno);
+        spdlog::error("error %d from tggetattr", errno);
         setError(3);
         return;
     }
@@ -171,7 +171,7 @@ void GASPSD::setBlocking(int fd, int should_block) {
     tty.c_cc[VTIME] = 5;            // 0.5 seconds read timeout
 
     if (tcsetattr (fd, TCSANOW, &tty) != 0)
-        printf ("error %d setting term attributes", errno);
+        spdlog::error("error %d setting term attributes", errno);
         setError(4);
 }
 
