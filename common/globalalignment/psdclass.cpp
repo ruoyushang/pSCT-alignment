@@ -47,7 +47,7 @@ bool GASPSD::initialize()
 
     m_logOutputStream.open(m_logFilename);
 
-    return 0;
+    return true;
 }
 
 void GASPSD::update() {
@@ -170,9 +170,10 @@ void GASPSD::setBlocking(int fd, int should_block) {
     tty.c_cc[VMIN]  = should_block ? 1 : 0;
     tty.c_cc[VTIME] = 5;            // 0.5 seconds read timeout
 
-    if (tcsetattr (fd, TCSANOW, &tty) != 0)
+    if (tcsetattr (fd, TCSANOW, &tty) != 0) {
         spdlog::error("error %d setting term attributes", errno);
         setError(4);
+    }
 }
 
 void GASPSD::setCalibration() {
@@ -204,7 +205,7 @@ bool DummyGASPSD::initialize() {
 
     m_logOutputStream.open(m_logFilename);
 
-    return 0;
+    return true;
 }
 
 void DummyGASPSD::update() {
