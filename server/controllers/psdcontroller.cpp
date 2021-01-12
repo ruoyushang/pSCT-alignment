@@ -43,7 +43,7 @@ bool PSDController::initialize() {
 
 /// @details Locks the shared mutex while retrieving the state.
 UaStatus PSDController::getState(Device::DeviceState &state) {
-    UaMutexLocker lock(&m_Mutex);
+//    UaMutexLocker lock(&m_Mutex);
     state = _getDeviceState();
     spdlog::trace("{} : Read device state => ({})", m_Identity, Device::deviceStateNames.at(state));
     return OpcUa_Good;
@@ -62,20 +62,72 @@ UaStatus PSDController::getData(OpcUa_UInt32 offset, UaVariant &value)
     //UaMutexLocker lock(&m_mutex);
     UaStatus status;
 
-    int dataoffset = offset - PAS_PSDType_x1;
-    if ((dataoffset >= 9) || (dataoffset < 0)) { // GASPSD only has 9 data elements. In future this should not be hardcoded.
+    if (PSDObject::VARIABLES.find(offset) != PSDObject::VARIABLES.end()) {
+        if (__expired()) { // if cached value expired, update it
+            status = read();
+        }
+        switch (offset) {
+            double tmp;
+            case PAS_PSDType_x1:
+                spdlog::trace("{} : Read x1 value => ({})", m_Identity, tmp);
+                value.setDouble(m_pPlatform->getPSDbyIdentity(m_Identity)->getOutput(0));
+                break;
+            case PAS_PSDType_y1:
+                spdlog::trace("{} : Read y1 value => ({})", m_Identity, tmp);
+                value.setDouble(m_pPlatform->getPSDbyIdentity(m_Identity)->getOutput(1));
+                break;
+            case PAS_PSDType_x2:
+                spdlog::trace("{} : Read x2 value => ({})", m_Identity, tmp);
+                value.setDouble(m_pPlatform->getPSDbyIdentity(m_Identity)->getOutput(2));
+                break;
+            case PAS_PSDType_y2:
+                spdlog::trace("{} : Read y2 value => ({})", m_Identity, tmp);
+                value.setDouble(m_pPlatform->getPSDbyIdentity(m_Identity)->getOutput(3));
+                break;
+            case PAS_PSDType_dx1:
+                spdlog::trace("{} : Read dx1 value => ({})", m_Identity, tmp);
+                value.setDouble(m_pPlatform->getPSDbyIdentity(m_Identity)->getOutput(4));
+                break;
+            case PAS_PSDType_dy1:
+                spdlog::trace("{} : Read dy1 value => ({})", m_Identity, tmp);
+                value.setDouble(m_pPlatform->getPSDbyIdentity(m_Identity)->getOutput(5));
+                break;
+            case PAS_PSDType_dx2:
+                spdlog::trace("{} : Read dx2 value => ({})", m_Identity, tmp);
+                value.setDouble(m_pPlatform->getPSDbyIdentity(m_Identity)->getOutput(6));
+                break;
+            case PAS_PSDType_dy2:
+                spdlog::trace("{} : Read dy2 value => ({})", m_Identity, tmp);
+                value.setDouble(m_pPlatform->getPSDbyIdentity(m_Identity)->getOutput(7));
+                break;
+            case PAS_PSDType_Temp:
+                spdlog::trace("{} : Read Temp value => ({})", m_Identity, tmp);
+                value.setDouble(m_pPlatform->getPSDbyIdentity(m_Identity)->getOutput(8));
+                break;
+        }
+    }
+    else if (PSDObject::ERRORS.find(offset) != PSDObject::ERRORS.end()) {
+        return getError(offset,value);
+    } else {
         return OpcUa_BadInvalidArgument;
-      }
+    }
 
-    if (__expired()) { // if cached value expired, update it
-        status = read();
-      }
+    return status;
+}
 
-    value.setDouble(m_pPlatform->getPSDbyIdentity(m_Identity)->getOutput(offset));
+UaStatus PSDController::getError(OpcUa_UInt32 offset, UaVariant &value) {
+    //UaMutexLocker lock(&m_mutex);
+    UaStatus status;
+    bool errorStatus;
 
-    double temp;
-    value.toDouble(temp);
-    spdlog::trace("{} : Read data, offset=> {} value => ({})", m_Identity, offset, temp);
+    OpcUa_UInt32 errorNum = offset - PAS_PSDType_Error0;
+    if (errorNum >= 0 && errorNum < PSDObject::ERRORS.size()) {
+        errorStatus = m_pPlatform->getPSDbyIdentity(m_Identity)->getError(int(errorNum));
+        value.setBool(errorStatus);
+        spdlog::trace("{} : Read error {} value => ({})", m_Identity, errorNum, errorStatus);
+    } else {
+        status = OpcUa_BadInvalidArgument;
+    }
     return status;
 }
 

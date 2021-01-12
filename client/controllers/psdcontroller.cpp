@@ -82,6 +82,11 @@ UaStatus PSDController::operate(OpcUa_UInt32 offset, const UaVariantArray &args)
     UaStatus status;
     // UaMutexLocker lock(&m_mutex);
 
+    if (getDeviceState() == Device::DeviceState::Busy) {
+        spdlog::error("{} : GASPSD is busy, operate call failed.", m_Identity);
+        return OpcUa_BadInvalidState;
+    }
+
     if (offset == PAS_PSDType_Read) {
         spdlog::trace("{} : PSDController calling read()", m_Identity);
         status = read();
@@ -102,20 +107,21 @@ UaStatus PSDController::read() {
 
     UaStatus status;
 
-    std::vector<std::string> varstoread{"x1", "y1", "x2", "y2", "dx1", "dy1", "dx2", "dy2", "Temperature"};
-    UaVariant valstoread[9];
-
-    std::transform(varstoread.begin(), varstoread.end(), varstoread.begin(),
-                   [this](std::string &str) { return m_pClient->getDeviceNodeId(m_Identity) + "." + str; });
-
-    status = m_pClient->read(varstoread, &valstoread[0]);
-    if (!status.isGood())
-        return status;
-
-    for (unsigned i = 0; i < varstoread.size(); i++)
-        valstoread[i].toDouble(*(reinterpret_cast<OpcUa_Double *>(&m_data) + i));
-
+    status = m_pClient->callMethod(m_pClient->getDeviceNodeId(m_Identity), UaString("Read"), UaVariantArray());
     m_LastUpdateTime = TIME::now();
 
-    return OpcUa_Good;
+    if (!status.isGood()) {
+        spdlog::error("{} : PSDController::read() : Call to read PSD failed.", m_Identity);
+        return status;
+    }
+
+    return status;
+}
+
+Device::ErrorState PSDController::getErrorState() {
+    UaVariant var;
+    int err;
+    getData(PAS_PSDType_ErrorState, var);
+    var.toInt32(err);
+    return static_cast<Device::ErrorState>(err);
 }

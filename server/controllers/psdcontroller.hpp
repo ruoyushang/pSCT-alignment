@@ -54,6 +54,8 @@ public:
     /// @return OPC UA status code indicating success or failure.
     UaStatus setData(OpcUa_UInt32 offset, UaVariant value) override;
 
+    UaStatus getError(OpcUa_UInt32 offset, UaVariant &value);
+
     /// @brief Call a method on the PSD device.
     /// @param offset A number used to uniquely identify the method to call.
     /// @param args Array of method arguments as UaVariants.

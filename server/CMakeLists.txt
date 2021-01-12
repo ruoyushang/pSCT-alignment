@@ -157,19 +157,25 @@ if ( SIMMODE )
     file(GLOB PASSERVER_SRC
         ${PASSERVER_SRC}
         "${COMMON_CODE_DIR}/globalalignment/psdclass.cpp"
-        "${COMMON_CODE_DIR}/globalalignment/psdclass.h"
+        "${COMMON_CODE_DIR}/globalalignment/psdclass.hpp"
         )
 else ( SIMMODE )
     file(GLOB PASSERVER_SRC
         ${PASSERVER_SRC}
         "${COMMON_CODE_DIR}/globalalignment/psdclass.cpp"
         "${COMMON_CODE_DIR}/globalalignment/laserclass.cpp"
+        "${COMMON_CODE_DIR}/globalalignment/rangefinderclass.cpp"
         "${COMMON_CODE_DIR}/globalalignment/libpiusb.cpp"
-        "${COMMON_CODE_DIR}/globalalignment/psdclass.h"
+        "${COMMON_CODE_DIR}/globalalignment/psdclass.hpp"
         "${COMMON_CODE_DIR}/globalalignment/laserclass.h"
+        "${COMMON_CODE_DIR}/globalalignment/rangefinderclass.h"
         "${COMMON_CODE_DIR}/globalalignment/libpiusb.h"
-            "${COMMON_CODE_DIR}/cbccode/*.cpp"
-            "${COMMON_CODE_DIR}/cbccode/*.hpp"
+        "${COMMON_CODE_DIR}/globalalignment/piusb.hpp"
+        "${COMMON_CODE_DIR}/globalalignment/rangefinder/dls.cpp"
+        "${COMMON_CODE_DIR}/globalalignment/rangefinder/dls.hpp"
+        "${COMMON_CODE_DIR}/globalalignment/rangefinder/libdls.cpp"
+        "${COMMON_CODE_DIR}/cbccode/*.cpp"
+        "${COMMON_CODE_DIR}/cbccode/*.hpp"
     )
 endif ( SIMMODE )
 
@@ -185,10 +191,18 @@ else ( AMD64 )
         ${PASSERVER_SRC}
         "${COMMON_CODE_DIR}/globalalignment/psdclass.cpp"
         "${COMMON_CODE_DIR}/globalalignment/laserclass.cpp"
+        "${COMMON_CODE_DIR}/globalalignment/rangefinderclass.cpp"
         "${COMMON_CODE_DIR}/globalalignment/libpiusb.cpp"
-        "${COMMON_CODE_DIR}/globalalignment/psdclass.h"
+        "${COMMON_CODE_DIR}/globalalignment/psdclass.hpp"
         "${COMMON_CODE_DIR}/globalalignment/laserclass.h"
+        "${COMMON_CODE_DIR}/globalalignment/rangefinderclass.h"
         "${COMMON_CODE_DIR}/globalalignment/libpiusb.h"
+        "${COMMON_CODE_DIR}/globalalignment/piusb.hpp"
+        "${COMMON_CODE_DIR}/globalalignment/rangefinder/dls.cpp"
+        "${COMMON_CODE_DIR}/globalalignment/rangefinder/dls.hpp"
+        "${COMMON_CODE_DIR}/globalalignment/rangefinder/libdls.cpp"
+        "${COMMON_CODE_DIR}/cbccode/*.cpp"
+        "${COMMON_CODE_DIR}/cbccode/*.hpp"
     )
 endif ( AMD64 )
 
@@ -217,6 +231,7 @@ include_directories(${COMMON_CODE_DIR}/cbccode)
 include_directories(${COMMON_CODE_DIR}/opcua)
 include_directories(${COMMON_CODE_DIR}/alignment)
 include_directories(${COMMON_CODE_DIR}/globalalignment)
+include_directories(${COMMON_CODE_DIR}/globalalignment/rangefinder)
 include_directories(${COMMON_CODE_DIR}/utilities)
 include_directories(${COMMON_CODE_DIR}/utilities/spdlog)
 include_directories(${COMMON_CODE_DIR}/utilities/spdlog/sinks)

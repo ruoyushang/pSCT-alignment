@@ -42,6 +42,8 @@ public:
 
     PSDData getPSDposition() {return m_data;};
 
+    Device::ErrorState getErrorState() override;
+
 private:
     PSDData m_data;
 

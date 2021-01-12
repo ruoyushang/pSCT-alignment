@@ -163,6 +163,14 @@ UaStatus PasCommunicationInterface::initialize() {
         m_platform->addMPES(mpesId);
     }
 
+    if ((panelId.position==1001) || (panelId.position==2001)) {
+        Device::Identity psdId;
+        psdId.serialNumber = panelId.position; // need to find it out!!!
+        psdId.position = 0;
+        psdId.eAddress = "0"; // need to find it out!!! This is the port number
+        psdId.name = std::string("PSD_") + std::to_string(psdId.serialNumber);
+        psdIdentities.push_back(psdId);
+    }
     for (const auto &psdId : psdIdentities) {
         spdlog::info("Adding PSD hardware interface with identity {} as child of Platform ...", psdId);
         m_platform->addPSD(psdId);
@@ -229,14 +237,11 @@ UaStatus PasCommunicationInterface::initialize() {
                 pController = std::dynamic_pointer_cast<PasControllerCommon>(
                     std::make_shared<ActController>(identity, m_platform));
                 spdlog::info("Added Actuator controller with identity {}", identity);
-            }
-#if ( !defined(_AMD64) || defined(SIMMODE))
-            else if (pair.first == PAS_PSDType) {
+            } else if (pair.first == PAS_PSDType) {
                 pController = std::dynamic_pointer_cast<PasControllerCommon>(
                         std::make_shared<PSDController>(identity, m_platform));
                 spdlog::info("Added PSD controller with identity {}", identity);
             }
-#endif
             else {
                 spdlog::error("Invalid device type {} found", pair.first);
             }

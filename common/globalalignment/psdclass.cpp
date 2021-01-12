@@ -29,12 +29,12 @@ const std::vector<Device::ErrorDefinition> GASPSD::ERROR_DEFINITIONS = {
 
 bool GASPSD::initialize()
 {
-#ifndef SIMMODE
+    int newACMDeviceId = 0;
     spdlog::info("{} : GASPSD::initialize() : Initializing...", m_Identity);
     // we toggle the usb port, checking the ACM devices when it's off and again when it's on.
 
     m_Errors.assign(getNumErrors(), false);
-    int newACMDeviceId = -1;
+#ifndef SIMMODE
     int usb_port = -1;
     for (int test_usb_port = 1; test_usb_port < 7; ++test_usb_port) {
 
@@ -64,10 +64,11 @@ bool GASPSD::initialize()
 
     spdlog::debug("GASPSD::initialize(): Detected new ACM device {} in port {}.", newACMDeviceId, usb_port);
 
+    m_pCBC->usb.enable(usb_port);
+#endif
     std::string ACM_port = "/dev/ACM";
     ACM_port += std::to_string(newACMDeviceId);
 
-#endif
 
     // set the calibration constants
     setCalibration();
@@ -91,6 +92,7 @@ bool GASPSD::initialize()
 }
 
 void GASPSD::update() {
+    spdlog::debug("GASPSD::update()");
     if (m_fd >= 0) {
         char buf[110];
         char tmp = '\0';
@@ -278,6 +280,7 @@ bool DummyGASPSD::initialize() {
 }
 
 void DummyGASPSD::update() {
+    spdlog::debug("DummyGASPSD::update()");
     std::uniform_real_distribution<double> coordDistribution(0, 100);
     std::uniform_real_distribution<double> stddevDistribution(0, 1);
     std::normal_distribution<double> tempDistribution(20.0, 2.0);
