@@ -722,7 +722,7 @@ bool Platform::addRangefinder(const Device::Identity &identity) {
         return false;
     }
 
-    std::unique_ptr<GASRangefinder> newRangefinder = std::unique_ptr<GASRangefinder>(new GASRangefinder(identity));
+    std::unique_ptr<GASRangeFinder> newRangefinder = std::unique_ptr<GASRangeFinder>(new GASRangeFinder(identity));
     
     if (newRangefinder->initialize()) {
         m_Rangefinder.push_back(std::move(newRangefinder));
