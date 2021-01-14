@@ -1,5 +1,5 @@
-#ifndef _PSDCLASS_H_
-#define _PSDCLASS_H_
+#ifndef _PSDCLASS_HPP_
+#define _PSDCLASS_HPP_
 
 #include <fstream>
 #include <string>
@@ -15,7 +15,7 @@
 class GASPSD : public virtual Device
 {
 public:
-    explicit GASPSD(Device::Identity identity) : Device::Device(std::move(identity)), m_Identity(std::move(identity)), m_fd(0),
+    explicit GASPSD(Device::Identity identity) : Device::Device(std::move(identity)), m_fd(0),
                                                  m_data() {} // nothing to do -- everything is set in initialize()
     ~GASPSD();
 

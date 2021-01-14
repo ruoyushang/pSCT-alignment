@@ -12,11 +12,6 @@
 
 #define MAX_READ_SIZE 20
 
-#define DEBUG       0
-#define debug_print(fmt, ...) \
-            do { if (DEBUG) fprintf(stderr, fmt, __VA_ARGS__); } while (0)
-
-
 DLS::DLS()
 {
     userCalibrated_ = false;
@@ -151,7 +146,7 @@ int DLS::measureDistance () {
     if (userCalibrated_) {
         char write_data[] = "s0ug\r\n";
         serialWrite(write_data, sizeof(write_data)/sizeof(write_data[0]));
-        debug_print("%s\n", "User calibrated");
+        spdlog::trace("%s\n", "User calibrated");
     }
     else {
         char write_data[] = "s0g\r\n";
@@ -176,7 +171,7 @@ int DLS::rxData () {
     serialRead(read_data);
     int ret = 0;
 
-    //printf("Read data: %s", read_data);
+    //spdlog::error(("Read data: %s", read_data);
 
     // Check for error indicator (@) and parse error value.
     if (read_data[2]=='@') {
@@ -243,18 +238,18 @@ int DLS::setOutputFilter (int nsamples, int nspikes, int nerrors)
         nsamples = atoi (aa_str);
     if (nsamples > 32){
 	nsamples = 32;
-	fprintf(stderr, "WARNING: average set to max. value= 32 samples \n");}
+	spdlog::trace("WARNING: average set to max. value= 32 samples \n");}
     if (nspikes < 0)
         nspikes = atoi (bb_str);
     if (nerrors < 0)
         nerrors = atoi (cc_str);
 
-    debug_print("samples %i\n", nsamples);
-    debug_print("spikes %i\n", nspikes);
-    debug_print("errors %i\n", nerrors);
+    spdlog::trace("samples %i\n", nsamples);
+    spdlog::trace("spikes %i\n", nspikes);
+    spdlog::trace("errors %i\n", nerrors);
 
     if (2*nspikes+nerrors > 0.4 * nsamples) {
-        fprintf(stderr, "ERROR: Make sure that (2*nspikes + nerrors) <= 0.4 * nsamples\n");
+        spdlog::error("ERROR: Make sure that (2*nspikes + nerrors) <= 0.4 * nsamples\n");
         nspikes = atoi (bb_str);
         nerrors = atoi (cc_str);
         nsamples = atoi (aa_str);
@@ -287,7 +282,7 @@ int DLS::setOffset(int offset)
 {
     char write_data[] = "s0uof+xxxxxxxx\r\n";
     sprintf(write_data, "s0uof+%08i\r\n", offset);
-    debug_print("%s", write_data);
+    spdlog::trace("%s", write_data);
 
     serialWrite(write_data, sizeof(write_data)/sizeof(write_data[0]));
 
@@ -295,11 +290,11 @@ int DLS::setOffset(int offset)
     if (status < 0)
         printErrorMsg(status);
 
-    debug_print("%i", status);
+    spdlog::trace("%i", status);
 
     status |= saveConfiguration();
 
-    debug_print("%i", status);
+    spdlog::trace("%i", status);
 
     return(status);
 }
@@ -335,7 +330,7 @@ int DLS::setGain(float gain)
 
     char write_data[] = "s0uga+xxxxxxxx+yyyyyyyy\r\n";
     sprintf(write_data, "s0uga+%08i+%08i\r\n", gain_numer, gain_denom);
-    debug_print("%s\n", write_data);
+    spdlog::trace("%s\n", write_data);
     serialWrite(write_data, sizeof(write_data)/sizeof(write_data[0]));
 
     int status = rxData();
@@ -367,7 +362,7 @@ int DLS::setInterfaceAttribs (int speed, int parity)
     memset (&tty, 0, sizeof tty);
     if (tcgetattr (fd_, &tty) != 0)
     {
-        printf ("error %d from tcgetattr", errno);
+        spdlog::error("error %d from tcgetattr", errno);
         return -1;
     }
 
@@ -402,7 +397,7 @@ int DLS::setInterfaceAttribs (int speed, int parity)
 
     if (tcsetattr (fd_, TCSANOW, &tty) != 0)
     {
-        printf ("error %d from tcsetattr", errno);
+        spdlog::error("error %d from tcsetattr", errno);
         return -1;
     }
     return 0;
@@ -414,7 +409,7 @@ void DLS::setBlocking (int should_block)
     memset (&tty, 0, sizeof tty);
     if (tcgetattr (fd_, &tty) != 0)
     {
-        printf ("error %d from tggetattr", errno);
+        spdlog::error("error %d from tggetattr", errno);
         return;
     }
 
@@ -422,7 +417,7 @@ void DLS::setBlocking (int should_block)
     tty.c_cc[VTIME] = 5;            // 0.5 seconds read timeout
 
     if (tcsetattr (fd_, TCSANOW, &tty) != 0)
-        printf ("error %d setting term attributes", errno);
+        spdlog::error("error %d setting term attributes", errno);
 }
 
 int DLS::setFD (int fd)
@@ -472,7 +467,7 @@ void DLS::printErrorMsg (int err)
         case -361: sprintf(msg, "Configured measuring time is too long, set shorter time");                            break;
         default:   sprintf(msg, "Uh-oh, unknown error code.");  break;
     }
-    fprintf(stderr, "ERROR %i: %s\n", err, msg);
+    spdlog::error("ERROR %i: %s\n", err, msg);
 }
 
 int DLS::help () {

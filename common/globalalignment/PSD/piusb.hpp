@@ -1,6 +1,10 @@
 #ifndef PIUSB_H
 #define PIUSB_H
-#include "common/globalalignment/libusb.h"
+#include "common/globalalignment/PSD/libusb.h"
+
+#include "common/utilities/spdlog/spdlog.h"
+#include "common/utilities/spdlog/fmt/ostr.h"
+
 /*
  * Methods common to the Picard USB Communications
  * devices

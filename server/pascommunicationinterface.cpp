@@ -199,7 +199,6 @@ UaStatus PasCommunicationInterface::initialize() {
         psdId.position = 0;
         psdId.eAddress = "0"; // need to find it out!!! This is the port number
         psdId.name = std::string("PSD_") + std::to_string(psdId.serialNumber);
-        psdIdentities.push_back(psdId);
 
         allDevices[PAS_PSDType].push_back(psdId);
     }

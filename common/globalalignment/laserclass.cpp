@@ -1,5 +1,4 @@
 #include "common/globalalignment/laserclass.h"
-#include "common/globalalignment/piusb.hpp"
 
 void GASLaser::setState(bool state)
 {
@@ -21,4 +20,28 @@ void GASLaser::setPower(bool state)
     relay.setState(power, state);
 
     m_isPowered = state;
+}
+
+bool GASLaser::initialize() {
+    return true;
+}
+
+Device::ErrorDefinition GASLaser::getErrorCodeDefinition(int errorCode) {
+    return Device::ErrorDefinition();
+}
+
+int GASLaser::getNumErrors() {
+    return 0;
+}
+
+void GASLaser::turnOff() {
+
+}
+
+void GASLaser::turnOn() {
+
+}
+
+bool DummyGASLaser::initialize() {
+    return GASLaser::initialize();
 }
