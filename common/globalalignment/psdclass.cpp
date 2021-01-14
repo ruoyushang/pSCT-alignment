@@ -14,10 +14,6 @@
 #include "common/utilities/spdlog/spdlog.h"
 #include "common/utilities/spdlog/fmt/ostr.h"
 
-GASPSD::~GASPSD()
-{
-    m_logOutputStream.close();
-}
 
 const std::vector<Device::ErrorDefinition> GASPSDBase::ERROR_DEFINITIONS = {
         {"Error opening port.",Device::ErrorState::FatalError},//error 0
@@ -42,7 +38,7 @@ bool GASPSDBase::isOn() {
 }
 
 Device::ErrorDefinition GASPSDBase::getErrorCodeDefinition(int errorCode) {
-    return GASPSD::ERROR_DEFINITIONS.at(errorCode);
+    return GASPSDBase::ERROR_DEFINITIONS.at(errorCode);
 }
 
 void GASPSDBase::setCalibration() {
@@ -54,7 +50,12 @@ void GASPSDBase::setNominalValues(int offset, double value) {
 }
 
 
-//#ifndef SIMMODE
+#ifndef SIMMODE
+GASPSD::~GASPSD()
+{
+    m_logOutputStream.close();
+}
+
 bool GASPSD::initialize()
 {
     int newACMDeviceId = 0;
@@ -290,7 +291,7 @@ void GASPSD::turnOff() {
 }
 
 
-//#endif
+#endif
 
 bool DummyGASPSD::initialize() {
     spdlog::debug("Initializing DummyGASPSD");
