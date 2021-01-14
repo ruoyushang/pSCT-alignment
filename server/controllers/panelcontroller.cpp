@@ -223,8 +223,3 @@ void PanelController::addMPES(const std::shared_ptr<MPESController> &pMPES) {
                  m_pMPES.size());
 }
 
-void PanelController::addPSD(const std::shared_ptr<PSDController> &pPSD) {
-    m_pPSD.push_back(pPSD);
-    spdlog::info("{} : Panel controller added PSD {} controller as PSD child {}...", m_Identity, pPSD->getIdentity(),
-                 m_pPSD.size());
-}

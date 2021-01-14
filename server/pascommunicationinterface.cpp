@@ -280,15 +280,6 @@ UaStatus PasCommunicationInterface::initialize() {
         catch (...) {
         }
     }
-    for (const auto &psdId : psdIdentities) {
-        try {
-            std::shared_ptr <PSDController> pPSD = std::dynamic_pointer_cast<PSDController>(
-                    getDevice(PAS_PSDType, psdId));
-            pPanel->addPSD(pPSD);
-        }
-        catch (...) {
-        }
-    }
 
     // start(); // start the thread managed by this object
     return status;
