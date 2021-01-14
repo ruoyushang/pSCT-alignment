@@ -19,7 +19,7 @@ GASPSD::~GASPSD()
     m_logOutputStream.close();
 }
 
-const std::vector<Device::ErrorDefinition> GASPSD::ERROR_DEFINITIONS = {
+const std::vector<Device::ErrorDefinition> GASPSDBase::ERROR_DEFINITIONS = {
         {"Error opening port.",Device::ErrorState::FatalError},//error 0
         {"Error from tcgetattr.",Device::ErrorState::FatalError},//error 1
         {"Error from tcsetattrr.",Device::ErrorState::FatalError},//error 2
@@ -27,6 +27,34 @@ const std::vector<Device::ErrorDefinition> GASPSD::ERROR_DEFINITIONS = {
         {"Error setting term attributes.",Device::ErrorState::FatalError}//error 4
 };
 
+void GASPSDBase::turnOn() {
+    spdlog::info("{}: Turning on" ,m_Identity);
+    m_On = true;
+}
+
+void GASPSDBase::turnOff() {
+    spdlog::info("{}: Turning off", m_Identity);
+    m_On = false;
+}
+
+bool GASPSDBase::isOn() {
+    return m_On;
+}
+
+Device::ErrorDefinition GASPSDBase::getErrorCodeDefinition(int errorCode) {
+    return GASPSD::ERROR_DEFINITIONS.at(errorCode);
+}
+
+void GASPSDBase::setCalibration() {
+    spdlog::trace("GASPSD Calibrating");
+}
+
+void GASPSDBase::setNominalValues(int offset, double value) {
+    spdlog::trace("GASPSD setNominalValues - no effect ");
+}
+
+
+//#ifndef SIMMODE
 bool GASPSD::initialize()
 {
     int newACMDeviceId = 0;
@@ -34,7 +62,7 @@ bool GASPSD::initialize()
     // we toggle the usb port, checking the ACM devices when it's off and again when it's on.
 
     m_Errors.assign(getNumErrors(), false);
-#ifndef SIMMODE
+
     int usb_port = -1;
     for (int test_usb_port = 1; test_usb_port < 7; ++test_usb_port) {
 
@@ -65,7 +93,7 @@ bool GASPSD::initialize()
     spdlog::debug("GASPSD::initialize(): Detected new ACM device {} in port {}.", newACMDeviceId, usb_port);
 
     m_pCBC->usb.enable(usb_port);
-#endif
+
     std::string ACM_port = "/dev/ACM";
     ACM_port += std::to_string(newACMDeviceId);
 
@@ -146,7 +174,7 @@ void GASPSD::update() {
 
 void GASPSD::setNominalValues(int offset, double value)
 {
-    // Currently no effect
+    spdlog::trace("GASPSD setNominalValues - no effect.");
 }
 
 int GASPSD::setInterfaceAttribs(int fd, int speed, int parity) {
@@ -219,7 +247,7 @@ void GASPSD::setBlocking(int fd, int should_block) {
 }
 
 void GASPSD::setCalibration() {
-    // Current unused
+    spdlog::trace("GASPSD Calibrating - no effect.");
 }
 
 
@@ -261,13 +289,8 @@ void GASPSD::turnOff() {
     m_On = false;
 }
 
-bool GASPSD::isOn() {
-    return m_On;
-}
 
-Device::ErrorDefinition GASPSD::getErrorCodeDefinition(int errorCode) {
-        return GASPSD::ERROR_DEFINITIONS.at(errorCode);
-    }
+//#endif
 
 bool DummyGASPSD::initialize() {
     spdlog::debug("Initializing DummyGASPSD");

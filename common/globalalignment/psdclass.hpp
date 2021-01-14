@@ -6,25 +6,23 @@
 #include <set>
 #include <dirent.h>
 
-#ifndef SIMMODE
-#include "common/cbccode/cbc.hpp"
-#endif
-
 #include "common/alignment/device.hpp"
 
-class GASPSD : public virtual Device
+
+class GASPSDBase : public Device
 {
 public:
-    explicit GASPSD(Device::Identity identity) : Device::Device(std::move(identity)), m_fd(0),
+    explicit GASPSDBase(Device::Identity identity) : Device::Device(std::move(identity)),
                                                  m_data() {} // nothing to do -- everything is set in initialize()
-    ~GASPSD();
+    ~GASPSDBase() = default;
 
     static const std::vector<Device::ErrorDefinition> ERROR_DEFINITIONS;
 
-    virtual bool initialize();
+    bool initialize() override = 0;
 
     double getOutput(int offset) { return m_data[offset]; }
-    void setNominalValues(int offset, double value);
+
+    virtual void setNominalValues(int offset, double value);
 
     std::string getName() const { return m_Identity.name; }
 
@@ -32,27 +30,21 @@ public:
 
     int getPort() const { return std::stoi(m_Identity.eAddress); }
 
-    virtual void update();
+    virtual void update() = 0;
 
     void turnOn() override;
     void turnOff() override;
-    int getNumErrors() override { return GASPSD::ERROR_DEFINITIONS.size(); };
+    int getNumErrors() override { return GASPSDBase::ERROR_DEFINITIONS.size(); };
     Device::ErrorDefinition getErrorCodeDefinition(int errorCode) override;
     bool isOn() override;
 
 
 protected:
-    virtual int setInterfaceAttribs(int fd, int spede, int parity);
+    virtual int setInterfaceAttribs(int fd, int speed, int parity) = 0;
 
-    virtual void setBlocking(int fd, int should_block);
+    virtual void setBlocking(int fd, int should_block) = 0;
 
     virtual void setCalibration();
-
-    std::set<int> getACMDevices();
-
-#ifndef SIMMODE
-    std::shared_ptr<CBC> m_pCBC;
-#endif
 
     // calibration constants
     double m_AlphaNeg[4] = {-9.710132, 9.871400, -9.604298, 10.071177}; // {x1Neg, y1Neg, x2Neg, y2Neg}
@@ -60,7 +52,6 @@ protected:
     double m_Beta[4] = {0.011341, 0.118089, 0.023689, 0.116461}; // {{x1, y1, x2, y2}
     double m_Theta[2] = {0.0, 0.0}; // {x, y} ? seemingly unused
 
-    int m_fd; // file descriptor to access the serial device
     std::string m_logFilename = "PSD-Cam.log"; // file to log into
     std::ofstream m_logOutputStream;
 
@@ -68,16 +59,51 @@ protected:
     bool m_On = false;
 };
 
-class DummyGASPSD : public virtual GASPSD {
+#ifndef SIMMODE
+#include "common/cbccode/cbc.hpp"
+
+class GASPSD : public GASPSDBase
+{
 public:
-    explicit DummyGASPSD(Device::Identity identity) : Device(std::move(identity)),
-                                                      GASPSD(std::move(identity)) {} // nothing to do -- everything is set in initialize()
+    explicit GASPSD(std::shared_ptr<CBC> pCBC, Device::Identity identity) : GASPSDBase(std::move(identity)), m_pCBC(std::move(pCBC)), m_fd(0) {} // nothing to do -- everything is set in initialize()
+    ~GASPSD();
+
+    bool initialize() override;
+
+    void setNominalValues(int offset, double value) override;
+
+    void update() override;
+
+    void turnOn() override;
+    void turnOff() override;
+
+protected:
+    int setInterfaceAttribs(int fd, int speed, int parity) override;
+
+    void setBlocking(int fd, int should_block) override;
+
+    void setCalibration() override;
+
+    static std::set<int> getACMDevices();
+
+    std::shared_ptr<CBC> m_pCBC;
+
+    int m_fd; // file descriptor to access the serial device
+    std::string m_logFilename = "PSD-Cam.log"; // file to log into
+    std::ofstream m_logOutputStream;
+
+};
+#endif
+
+class DummyGASPSD : public GASPSDBase {
+public:
+    explicit DummyGASPSD(Device::Identity identity) : GASPSDBase(std::move(identity)) {} // nothing to do -- everything is set in initialize()
     bool initialize() override;
 
     void update() override;
 
 private:
-    int setInterfaceAttribs(int fd, int spede, int parity) override;
+    int setInterfaceAttribs(int fd, int speed, int parity) override;
 
     void setBlocking(int fd, int should_block) override;
 

@@ -82,9 +82,9 @@ public:
 
     int getPSDCount() const { return m_PSD.size(); }
 
-    std::unique_ptr<GASPSD> &getPSD(int idx) { return m_PSD.at(idx); }
+    std::unique_ptr<GASPSDBase> &getPSD(int idx) { return m_PSD.at(idx); }
 
-    std::unique_ptr<GASPSD> &getPSDbyIdentity(const Device::Identity &identity) {
+    std::unique_ptr<GASPSDBase> &getPSDbyIdentity(const Device::Identity &identity) {
         return m_PSD.at(m_PSDIdentityMap.at(identity));
     }
 
@@ -173,7 +173,7 @@ protected:
     float m_CalibrationTemperature = 0.0;
 
     std::vector<std::unique_ptr<MPESBase>> m_MPES;
-    std::vector<std::unique_ptr<GASPSD>> m_PSD;
+    std::vector<std::unique_ptr<GASPSDBase>> m_PSD;
     std::vector<std::unique_ptr<GASLaser>> m_Laser;
     std::vector<std::unique_ptr<GASRangeFinder>> m_Rangefinder;
     std::array<std::unique_ptr<ActuatorBase>, NUM_ACTS_PER_PLATFORM> m_Actuators;
