@@ -42,8 +42,6 @@ public:
 
 
 protected:
-    Device::Identity m_Identity;
-
     virtual int setInterfaceAttribs(int fd, int spede, int parity);
 
     virtual void setBlocking(int fd, int should_block);
