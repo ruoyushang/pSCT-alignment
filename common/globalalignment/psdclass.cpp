@@ -1,9 +1,18 @@
 #include "common/globalalignment/psdclass.hpp"
 
-#include <unistd.h>
+#include <errno.h>
+#include <termios.h>
+#include <string.h>
 
+#include <unistd.h>
+#include <fcntl.h>
+#include <stdio.h>
+
+#include <sys/ioctl.h>
+#include <limits>
 #include <random>
 #include <chrono>
+#include <unistd.h>
 
 #include "common/utilities/spdlog/spdlog.h"
 #include "common/utilities/spdlog/fmt/ostr.h"

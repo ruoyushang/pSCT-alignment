@@ -5,6 +5,9 @@
 #include <string>
 #include <set>
 #include <dirent.h>
+#include <iostream>
+#include <fcntl.h>
+#include <sstream>
 
 #include "common/alignment/device.hpp"
 
