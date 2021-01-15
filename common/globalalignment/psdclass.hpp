@@ -88,6 +88,8 @@ protected:
 
     std::shared_ptr<CBC> m_pCBC;
 
+    int m_usb_port = -1;
+
     int m_fd; // file descriptor to access the serial device
     std::string m_logFilename = "PSD-Cam.log"; // file to log into
     std::ofstream m_logOutputStream;

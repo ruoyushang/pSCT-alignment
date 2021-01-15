@@ -370,3 +370,40 @@ const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean>> 
 const std::map<OpcUa_UInt32, std::pair<std::string, std::vector<std::tuple<std::string, UaNodeId, std::string>>>> PSDObject::METHODS = {
         {PAS_PSDType_Read, {"Read", {}}}
 };
+
+const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, OpcUa_Byte>> RangeFinderObject::VARIABLES = {
+        {PAS_RangefinderType_State, std::make_tuple("State", UaVariant(0), OpcUa_True, Ua_AccessLevel_CurrentRead)},
+        {PAS_RangefinderType_Temp,  std::make_tuple("Temperature", UaVariant(0.0), OpcUa_False,
+                                            Ua_AccessLevel_CurrentRead)},
+        {PAS_RangefinderType_ErrorState, std::make_tuple("ErrorState", UaVariant(0), OpcUa_False,
+                                                 Ua_AccessLevel_CurrentRead)}
+};
+
+const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean>> RangeFinderObject::ERRORS = {
+        {PAS_RangefinderType_Error0,  std::make_tuple("[0] [Operable].", UaVariant(false), OpcUa_False)},
+        {PAS_RangefinderType_Error1,  std::make_tuple("[0] [Fatal] .", UaVariant(false), OpcUa_False)},
+};
+
+const std::map<OpcUa_UInt32, std::pair<std::string, std::vector<std::tuple<std::string, UaNodeId, std::string>>>> RangeFinderObject::METHODS = {
+        {PAS_RangefinderType_TurnOn, {"TurnOn", {}}},
+        {PAS_RangefinderType_TurnOff, {"TurnOff", {}}},
+        {PAS_RangefinderType_Read, {"Read", {}}}
+};
+
+const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, OpcUa_Byte>> LaserObject::VARIABLES = {
+        {PAS_LaserType_State, std::make_tuple("State", UaVariant(0), OpcUa_True, Ua_AccessLevel_CurrentRead)},
+        {PAS_LaserType_Temp,  std::make_tuple("Temperature", UaVariant(0.0), OpcUa_False,
+                                            Ua_AccessLevel_CurrentRead)},
+        {PAS_LaserType_ErrorState, std::make_tuple("ErrorState", UaVariant(0), OpcUa_False,
+                                                 Ua_AccessLevel_CurrentRead)}
+};
+
+const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean>> LaserObject::ERRORS = {
+        {PAS_LaserType_Error0,  std::make_tuple("[0] [Operable].", UaVariant(false), OpcUa_False)},
+        {PAS_LaserType_Error1,  std::make_tuple("[0] [Fatal].", UaVariant(false), OpcUa_False)}
+};
+
+const std::map<OpcUa_UInt32, std::pair<std::string, std::vector<std::tuple<std::string, UaNodeId, std::string>>>> LaserObject::METHODS = {
+        {PAS_LaserType_TurnOn, {"TurnOn", {}}},
+        {PAS_LaserType_TurnOff, {"TurnOff", {}}}
+};

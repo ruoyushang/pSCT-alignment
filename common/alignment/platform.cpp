@@ -698,7 +698,7 @@ bool Platform::addLaser(const Device::Identity &identity) {
         return false;
     }
 
-    std::unique_ptr<GASLaser> newLaser = std::unique_ptr<GASLaser>(new GASLaser(identity));
+    std::unique_ptr<GASLaser> newLaser = std::unique_ptr<GASLaser>(new GASLaser(m_pCBC, identity));
     
     if (newLaser->initialize()) {
         m_Laser.push_back(std::move(newLaser));
@@ -722,7 +722,7 @@ bool Platform::addRangefinder(const Device::Identity &identity) {
         return false;
     }
 
-    std::unique_ptr<GASRangeFinder> newRangefinder = std::unique_ptr<GASRangeFinder>(new GASRangeFinder(identity));
+    std::unique_ptr<GASRangeFinder> newRangefinder = std::unique_ptr<GASRangeFinder>(new GASRangeFinder(m_pCBC, identity));
     
     if (newRangefinder->initialize()) {
         m_Rangefinder.push_back(std::move(newRangefinder));
@@ -1115,7 +1115,7 @@ bool DummyPlatform::addLaser(const Device::Identity &identity) {
         return false;
     }
 
-    std::unique_ptr<GASLaser> newLaser = std::unique_ptr<GASLaser>(new DummyGASLaser(identity));
+    std::unique_ptr<GASLaserBase> newLaser = std::unique_ptr<GASLaserBase>(new DummyGASLaser(identity));
 
     if (newLaser->initialize() == true) {
         m_Laser.push_back(std::move(newLaser));
@@ -1139,7 +1139,7 @@ bool DummyPlatform::addRangefinder(const Device::Identity &identity) {
         return false;
     }
 
-    std::unique_ptr<GASRangeFinder> newRangefinder = std::unique_ptr<DummyGASRangeFinder>(new DummyGASRangeFinder(identity));
+    std::unique_ptr<GASRangeFinderBase> newRangefinder = std::unique_ptr<GASRangeFinderBase>(new DummyGASRangeFinder(identity));
 
     if (newRangefinder->initialize() == true) {
         m_Rangefinder.push_back(std::move(newRangefinder));

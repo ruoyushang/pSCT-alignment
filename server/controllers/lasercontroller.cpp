@@ -1,0 +1,149 @@
+/**
+ * @file lasercontroller.cpp
+ * @brief Source file for position sensitive device controller class
+ */
+
+#include <chrono>
+
+#include <memory>
+
+#include "uabase/statuscode.h"
+#include "uabase/uabase.h"
+#include "uabase/uamutex.h"
+#include "uaserver/uaobjecttypes.h"
+
+#include "server/controllers/lasercontroller.hpp"
+#include "server/controllers/pascontroller.hpp"
+
+#include "server/controllers/pascontroller.hpp"
+
+#include "common/globalalignment/laserclass.h"
+#include "common/opcua/pascominterfacecommon.hpp"
+#include "common/opcua/pasobject.hpp"
+#include "common/opcua/passervertypeids.hpp"
+
+#include "common/alignment/device.hpp"
+#include "common/utilities/spdlog/spdlog.h"
+#include "common/utilities/spdlog/fmt/ostr.h"
+
+/// @details By default, sets the update interval to 500 ms. Creates a new GASLaser object,
+/// sets its port, and initializes. Sets its state to On.
+LaserController::LaserController(Device::Identity identity, std::shared_ptr<PlatformBase> pPlatform)
+        : PasController::PasController(std::move(identity),std::move(pPlatform), 500)
+{
+    spdlog::trace("{} : Creating Laser hardware interface... ", m_Identity);
+}
+
+/// @details Initialize this Laser.
+bool LaserController::initialize() {
+    spdlog::info("{} : Initializing Laser...", m_Identity);
+
+    return true;
+}
+
+/// @details Locks the shared mutex while retrieving the state.
+UaStatus LaserController::getState(Device::DeviceState &state) {
+//    UaMutexLocker lock(&m_Mutex);
+    state = _getDeviceState();
+    spdlog::trace("{} : Read device state => ({})", m_Identity, Device::deviceStateNames.at(state));
+    return OpcUa_Good;
+}
+
+/// @details Does not allow setting the state to error or setting the state to
+/// its current value. Locks the shared mutex while setting the state.
+UaStatus LaserController::setState(Device::DeviceState state) {
+    return OpcUa_BadNotWritable;
+}
+
+
+/// @details Calls GASLaser.getOutput() to read data. Locks the shared mutex to prevent concurrent actions while reading data.
+UaStatus LaserController::getData(OpcUa_UInt32 offset, UaVariant &value)
+{
+    //UaMutexLocker lock(&m_mutex);
+    UaStatus status;
+
+    if (LaserObject::VARIABLES.find(offset) != LaserObject::VARIABLES.end()) {
+        if (__expired()) { // if cached value expired, update it
+            status = read();
+        }
+        switch (offset) {
+            double tmp;
+            case PAS_LaserType_Temp:
+                spdlog::trace("{} : Read Temp value => ({})", m_Identity, tmp);
+//                value.setDouble(m_pPlatform->getLaserbyIdentity(m_Identity)->getOutput(8));
+                break;
+        }
+    }
+    else if (LaserObject::ERRORS.find(offset) != LaserObject::ERRORS.end()) {
+        return getError(offset,value);
+    } else {
+        return OpcUa_BadInvalidArgument;
+    }
+
+    return status;
+}
+
+UaStatus LaserController::getError(OpcUa_UInt32 offset, UaVariant &value) {
+    //UaMutexLocker lock(&m_mutex);
+    UaStatus status;
+    bool errorStatus;
+
+    OpcUa_UInt32 errorNum = offset - PAS_LaserType_Error0;
+    if (errorNum >= 0 && errorNum < LaserObject::ERRORS.size()) {
+        errorStatus = m_pPlatform->getLaserbyIdentity(m_Identity)->getError(int(errorNum));
+        value.setBool(errorStatus);
+        spdlog::trace("{} : Read error {} value => ({})", m_Identity, errorNum, errorStatus);
+    } else {
+        status = OpcUa_BadInvalidArgument;
+    }
+    return status;
+}
+
+/// @details Has no effect, as Lasers have no writable data variables.
+UaStatus LaserController::setData(OpcUa_UInt32 offset, UaVariant value)
+{
+    return OpcUa_BadNotWritable;
+}
+
+/// @details Locks the shared mutex to prevent concurrent actions while calling methods.
+UaStatus LaserController::operate(OpcUa_UInt32 offset, const UaVariantArray &args)
+{
+    //UaMutexLocker lock(&m_mutex);
+
+    UaStatus status;
+    if ( offset == PAS_LaserType_TurnOn) {
+        spdlog::trace("{} : LaserController calling turnOn()", m_Identity);
+        m_pPlatform->getLaserbyIdentity(m_Identity)->turnOn();
+        status = OpcUa_Good;
+    }
+    if ( offset == PAS_LaserType_TurnOff) {
+        spdlog::trace("{} : LaserController calling turnOff()", m_Identity);
+        m_pPlatform->getLaserbyIdentity(m_Identity)->turnOff();
+        status = OpcUa_Good;
+    }
+    else {
+        spdlog::error("{} : Invalid method call with offset {}", m_Identity, offset);
+        status = OpcUa_BadInvalidArgument;
+    }
+
+    return status;
+}
+
+/// @details Calls update on the GASLaser object and revises the last update time. Locks the shared mutex while reading.
+UaStatus LaserController::read()
+{
+    //UaMutexLocker lock(&m_mutex);
+    spdlog::debug("{}: errorState(): {}", m_Identity, int(_getErrorState()));
+
+    if (_getErrorState() == Device::ErrorState::Nominal || _getErrorState() == Device::ErrorState::OperableError)
+    {
+        spdlog::trace("{} : Updating Laser data and lastUpdateTime... ", m_Identity);
+        m_pPlatform->getLaserbyIdentity(m_Identity)->isOn();
+        m_LastUpdateTime = std::chrono::system_clock::now();
+        return OpcUa_Good;
+    }
+    else {
+        spdlog::error("{} : Device is in fatal error state, cannot read. ", m_Identity);
+        return OpcUa_BadInvalidState;
+    }
+}

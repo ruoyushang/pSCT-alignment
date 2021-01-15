@@ -219,4 +219,72 @@ public:
     static const std::map<OpcUa_UInt32, std::pair<std::string, std::vector<std::tuple<std::string, UaNodeId, std::string>>>> METHODS;
 };
 
+class LaserObject : public PasObject
+{
+    UA_DISABLE_COPY(LaserObject);
+public:
+    LaserObject(
+            const UaString& name,
+            const UaNodeId& newNodeId,
+            const UaString& defaultLocaleId,
+            PasNodeManagerCommon* pNodeManager,
+            Device::Identity identity,
+            PasComInterfaceCommon *pCommIf) : PasObject(name, newNodeId, defaultLocaleId, pNodeManager, std::move(identity),
+                                                        pCommIf) { initialize(); }
+
+    UaNodeId typeDefinitionId() const override { return UaNodeId(PAS_LaserType, browseName().namespaceIndex()); }
+
+    const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, OpcUa_Byte>>
+    getVariableDefs() override { return LaserObject::VARIABLES; }
+
+    const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean>>
+    getErrorDefs() override { return LaserObject::ERRORS; }
+
+    const std::map<OpcUa_UInt32, std::pair<std::string, std::vector<std::tuple<std::string, UaNodeId, std::string>>>>
+    getMethodDefs() override { return LaserObject::METHODS; }
+
+    /// @brief Map of OPC UA type ids for all child variables to their name, default value, is_state value, and access level.
+    static const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, OpcUa_Byte>> VARIABLES;
+
+    /// @brief Map of OPC UA type ids for all child error variables to their name, default value, and is_state value.
+    static const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean>> ERRORS;
+
+    /// @brief Map of OPC UA type ids for all child methods to their name and number of arguments.
+    static const std::map<OpcUa_UInt32, std::pair<std::string, std::vector<std::tuple<std::string, UaNodeId, std::string>>>> METHODS;
+};
+
+class RangeFinderObject : public PasObject
+{
+    UA_DISABLE_COPY(RangeFinderObject);
+public:
+    RangeFinderObject(
+            const UaString& name,
+            const UaNodeId& newNodeId,
+            const UaString& defaultLocaleId,
+            PasNodeManagerCommon* pNodeManager,
+            Device::Identity identity,
+            PasComInterfaceCommon *pCommIf) : PasObject(name, newNodeId, defaultLocaleId, pNodeManager, std::move(identity),
+                                                        pCommIf) { initialize(); }
+
+    UaNodeId typeDefinitionId() const override { return UaNodeId(PAS_RangefinderType, browseName().namespaceIndex()); }
+
+    const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, OpcUa_Byte>>
+    getVariableDefs() override { return RangeFinderObject::VARIABLES; }
+
+    const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean>>
+    getErrorDefs() override { return RangeFinderObject::ERRORS; }
+
+    const std::map<OpcUa_UInt32, std::pair<std::string, std::vector<std::tuple<std::string, UaNodeId, std::string>>>>
+    getMethodDefs() override { return RangeFinderObject::METHODS; }
+
+    /// @brief Map of OPC UA type ids for all child variables to their name, default value, is_state value, and access level.
+    static const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, OpcUa_Byte>> VARIABLES;
+
+    /// @brief Map of OPC UA type ids for all child error variables to their name, default value, and is_state value.
+    static const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean>> ERRORS;
+
+    /// @brief Map of OPC UA type ids for all child methods to their name and number of arguments.
+    static const std::map<OpcUa_UInt32, std::pair<std::string, std::vector<std::tuple<std::string, UaNodeId, std::string>>>> METHODS;
+};
+
 #endif //COMMON_PASOBJECT_HPP

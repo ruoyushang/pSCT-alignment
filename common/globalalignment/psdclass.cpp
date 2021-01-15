@@ -1,13 +1,7 @@
 #include "common/globalalignment/psdclass.hpp"
-#include <errno.h>
-#include <termios.h>
-#include <string.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <stdio.h>
 
-#include <sys/ioctl.h>
-#include <limits>
+#include <unistd.h>
+
 #include <random>
 #include <chrono>
 
@@ -16,15 +10,15 @@
 
 
 const std::vector<Device::ErrorDefinition> GASPSDBase::ERROR_DEFINITIONS = {
-        {"Error opening port.",Device::ErrorState::FatalError},//error 0
-        {"Error from tcgetattr.",Device::ErrorState::FatalError},//error 1
-        {"Error from tcsetattrr.",Device::ErrorState::FatalError},//error 2
-        {"Error from tggetattr.",Device::ErrorState::FatalError},//error 3
-        {"Error setting term attributes.",Device::ErrorState::FatalError}//error 4
+        {"Error opening port.",            Device::ErrorState::FatalError},//error 0
+        {"Error from tcgetattr.",          Device::ErrorState::FatalError},//error 1
+        {"Error from tcsetattrr.",         Device::ErrorState::FatalError},//error 2
+        {"Error from tggetattr.",          Device::ErrorState::FatalError},//error 3
+        {"Error setting term attributes.", Device::ErrorState::FatalError}//error 4
 };
 
 void GASPSDBase::turnOn() {
-    spdlog::info("{}: Turning on" ,m_Identity);
+    spdlog::info("{}: Turning on", m_Identity);
     m_On = true;
 }
 
@@ -64,7 +58,6 @@ bool GASPSD::initialize()
 
     m_Errors.assign(getNumErrors(), false);
 
-    int usb_port = -1;
     for (int test_usb_port = 1; test_usb_port < 7; ++test_usb_port) {
 
         m_pCBC->usb.disable(test_usb_port); // make sure our USB is off
@@ -81,21 +74,21 @@ bool GASPSD::initialize()
 
         if (toggledDevices.size() == 1) {
             newACMDeviceId = *toggledDevices.begin(); // get the only element in the set -- this is the new device ID
-            usb_port = test_usb_port;
+            m_usb_port = test_usb_port;
             break;
         }
     }
-    if (usb_port == -1){
+    if (m_usb_port == -1){
         spdlog::error("{} : GASPSD::initialize() : Found 0 ACM devices, should be exactly 1.", m_Identity);
         setError(0); // fatal
         return false;
     }
 
-    spdlog::debug("GASPSD::initialize(): Detected new ACM device {} in port {}.", newACMDeviceId, usb_port);
+    spdlog::debug("GASPSD::initialize(): Detected new ACM device {} in port {}.", newACMDeviceId, m_usb_port);
 
-    m_pCBC->usb.enable(usb_port);
+    m_pCBC->usb.enable(m_usb_port);
 
-    std::string ACM_port = "/dev/ACM";
+    std::string ACM_port = "/dev/ttyACM";
     ACM_port += std::to_string(newACMDeviceId);
 
 
@@ -161,7 +154,7 @@ void GASPSD::update() {
                 m_data[i] = (m_data[i]*m_AlphaPos[i]) - m_Beta[i];
                 m_data[i + 4] = m_data[i + 4]*m_AlphaPos[i];
             }
-	}
+    }
 
         // log locally
         for (int i = 0; i < 8; i++) {
@@ -263,7 +256,7 @@ std::set<int> GASPSD::getACMDevices() {
         while ((ent = readdir(dir)) != nullptr) {
             std::string currentEntry = ent->d_name;
             size_t pos;
-            std::string substringToFind = "ACM"; // Locate ACM devices (name including the string "ACM")
+            std::string substringToFind = "ttyACM"; // Locate ACM devices (name including the string "ttyACM")
             if ((pos = currentEntry.find(substringToFind)) != std::string::npos) { // Found ACM device
                 pos += substringToFind.length(); // go to immediately after the substring "ACM"
                 int deviceNumber = std::stoi(
@@ -282,11 +275,13 @@ std::set<int> GASPSD::getACMDevices() {
 
 void GASPSD::turnOn() {
     spdlog::info("{}: Turning on" ,m_Identity);
+    m_pCBC->usb.enable(m_usb_port);
     m_On = true;
 }
 
 void GASPSD::turnOff() {
     spdlog::info("{}: Turning off", m_Identity);
+    m_pCBC->usb.disable(m_usb_port);
     m_On = false;
 }
 

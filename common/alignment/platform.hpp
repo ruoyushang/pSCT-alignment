@@ -91,18 +91,18 @@ public:
     // Laser
     int getLaserCount() const { return m_Laser.size(); }
 
-    std::unique_ptr<GASLaser> &getLaser(int idx) { return m_Laser.at(idx); }
+    std::unique_ptr<GASLaserBase> &getLaser(int idx) { return m_Laser.at(idx); }
 
-    std::unique_ptr<GASLaser> &getLaserbyIdentity(const Device::Identity &identity) {
+    std::unique_ptr<GASLaserBase> &getLaserbyIdentity(const Device::Identity &identity) {
         return m_Laser.at(m_LaserIdentityMap.at(identity));
     }
 
     // Rangefinder DLS
     int getRangefinderCount() const { return m_Rangefinder.size(); }
 
-    std::unique_ptr<GASRangeFinder> &getRangefinder(int idx) { return m_Rangefinder.at(idx); }
+    std::unique_ptr<GASRangeFinderBase> &getRangefinder(int idx) { return m_Rangefinder.at(idx); }
 
-    std::unique_ptr<GASRangeFinder> &getRangefinderbyIdentity(const Device::Identity &identity) {
+    std::unique_ptr<GASRangeFinderBase> &getRangefinderbyIdentity(const Device::Identity &identity) {
         return m_Rangefinder.at(m_RangefinderIdentityMap.at(identity));
     }
     // Actuator-related methods
@@ -174,8 +174,8 @@ protected:
 
     std::vector<std::unique_ptr<MPESBase>> m_MPES;
     std::vector<std::unique_ptr<GASPSDBase>> m_PSD;
-    std::vector<std::unique_ptr<GASLaser>> m_Laser;
-    std::vector<std::unique_ptr<GASRangeFinder>> m_Rangefinder;
+    std::vector<std::unique_ptr<GASLaserBase>> m_Laser;
+    std::vector<std::unique_ptr<GASRangeFinderBase>> m_Rangefinder;
     std::array<std::unique_ptr<ActuatorBase>, NUM_ACTS_PER_PLATFORM> m_Actuators;
 
     std::map<Device::Identity, int> m_PSDIdentityMap;
