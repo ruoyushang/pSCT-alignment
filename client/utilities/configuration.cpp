@@ -261,6 +261,45 @@ UaStatus Configuration::loadDeviceConfiguration(const std::vector<std::string> &
                 psdId.eAddress = "0"; // need to find it out!!! This is the port number
                 psdId.name = std::string("PSD_") + std::to_string(psdId.serialNumber);
 
+                if (panelId.position==1001){
+                    Device::Identity LaserId;
+                    LaserId.serialNumber = panelId.position; // need to find it out!!!
+                    LaserId.position = 0;
+                    LaserId.eAddress = "0"; // need to find it out!!! This is the port number
+                    LaserId.name = std::string("Laser_") + std::to_string(LaserId.serialNumber);
+
+
+                    m_DeviceIdentities[PAS_LaserType].insert(LaserId);
+                    spdlog::info("Configuration::loadDeviceConfiguration(): added Laser {} to device list.", LaserId);
+
+                    m_DeviceSerialMap[PAS_LaserType][LaserId.serialNumber] = LaserId;
+                    m_DeviceNameMap[LaserId.name] = LaserId;
+
+                    // add the Laser and its panels to the parents map
+                    m_ChildMap[OptTableId][PAS_LaserType].insert(LaserId);
+                    m_ParentMap[LaserId][PAS_OptTableType].insert(OptTableId);
+                    spdlog::info("Configuration::loadDeviceConfiguration(): added Panel {} as parent of Laser {}.",
+                                 panelId, LaserId);
+                }
+                else if (panelId.position==2001){
+                    Device::Identity RangefinderId;
+                    RangefinderId.serialNumber = panelId.position; // need to find it out!!!
+                    RangefinderId.position = 0;
+                    RangefinderId.eAddress = "0"; // need to find it out!!! This is the port number
+                    RangefinderId.name = std::string("Rangefinder_") + std::to_string(RangefinderId.serialNumber);
+
+                    m_DeviceIdentities[PAS_RangefinderType].insert(RangefinderId);
+                    spdlog::info("Configuration::loadDeviceConfiguration(): added Rangefinder {} to device list.", RangefinderId);
+
+                    m_DeviceSerialMap[PAS_RangefinderType][RangefinderId.serialNumber] = RangefinderId;
+                    m_DeviceNameMap[RangefinderId.name] = RangefinderId;
+
+                    // add the Rangefinder and its panels to the parents map
+                    m_ChildMap[OptTableId][PAS_RangefinderType].insert(RangefinderId);
+                    m_ParentMap[RangefinderId][PAS_OptTableType].insert(OptTableId);
+                    spdlog::info("Configuration::loadDeviceConfiguration(): added Panel {} as parent of Rangefinder {}.",
+                                 panelId, RangefinderId);
+                }
                 // add to the list of devices
                 m_DeviceIdentities[PAS_PSDType].insert(psdId);
                 spdlog::info("Configuration::loadDeviceConfiguration(): added PSD {} to device list.", psdId);
@@ -569,21 +608,40 @@ bool Configuration::addMissingParents() {
                     try {
                         for (const auto &psdId : m_DeviceIdentities.at(PAS_PSDType)) {
                             spdlog::trace("Looping thru PSDs");
-                            m_ChildMap[GAId][PAS_CCDType].insert(ccdId);
-                            m_ChildMap[GAId][PAS_FocalPlaneType].insert(fpId);
-                            m_ChildMap[GAId][PAS_PSDType].insert(psdId);
-                            m_ChildMap[GAId][PAS_OpticalAlignmentType].insert(OAId);
-                            m_ParentMap[ccdId][PAS_GlobalAlignmentType].insert(GAId);
-                            m_ParentMap[fpId][PAS_GlobalAlignmentType].insert(GAId);
-                            m_ParentMap[psdId][PAS_GlobalAlignmentType].insert(GAId);
-                            m_ParentMap[OAId][PAS_GlobalAlignmentType].insert(GAId);
+                            try {
+                                for (const auto &laserId : m_DeviceIdentities.at(PAS_LaserType)) {
+                                    spdlog::trace("Looping thru Lasers");
+                                    try {
+                                        for (const auto &RangefinderId : m_DeviceIdentities.at(PAS_RangefinderType)) {
+                                                m_ChildMap[GAId][PAS_CCDType].insert(ccdId);
+                                                m_ChildMap[GAId][PAS_FocalPlaneType].insert(fpId);
+                                                m_ChildMap[GAId][PAS_PSDType].insert(psdId);
+                                                m_ChildMap[GAId][PAS_OpticalAlignmentType].insert(OAId);
+                                                m_ChildMap[GAId][PAS_LaserType].insert(laserId);
+                                                m_ChildMap[GAId][PAS_RangefinderType].insert(RangefinderId);
+                                                m_ParentMap[ccdId][PAS_GlobalAlignmentType].insert(GAId);
+                                                m_ParentMap[fpId][PAS_GlobalAlignmentType].insert(GAId);
+                                                m_ParentMap[psdId][PAS_GlobalAlignmentType].insert(GAId);
+                                                m_ParentMap[OAId][PAS_GlobalAlignmentType].insert(GAId);
+                                                m_ParentMap[laserId][PAS_GlobalAlignmentType].insert(GAId);
+                                                m_ParentMap[RangefinderId][PAS_GlobalAlignmentType].insert(GAId);
 
-                            m_ChildMap[OAId][PAS_CCDType].insert(ccdId);
-                            m_ChildMap[OAId][PAS_FocalPlaneType].insert(fpId);
-                            m_ChildMap[OAId][PAS_PSDType].insert(psdId);
-                            m_ParentMap[ccdId][PAS_OpticalAlignmentType].insert(OAId);
-                            m_ParentMap[fpId][PAS_OpticalAlignmentType].insert(OAId);
-                            m_ParentMap[psdId][PAS_OpticalAlignmentType].insert(OAId);
+                                                m_ChildMap[OAId][PAS_CCDType].insert(ccdId);
+                                                m_ChildMap[OAId][PAS_FocalPlaneType].insert(fpId);
+                                                m_ParentMap[ccdId][PAS_OpticalAlignmentType].insert(OAId);
+                                                m_ParentMap[fpId][PAS_OpticalAlignmentType].insert(OAId);
+                                            }
+                                    }
+                                    catch (const std::out_of_range &oor) {
+                                        spdlog::warn("Out of Range error: ({}), No rangefinder found on this selection.",
+                                                     oor.what());
+                                    }
+                                }
+                            }
+                            catch (const std::out_of_range &oor) {
+                                    spdlog::warn("Out of Range error: ({}), No Laser found on this selection.",
+                                                 oor.what());
+                            }
                         }
                     }
                     catch (const std::out_of_range& oor) {
@@ -619,6 +677,34 @@ bool Configuration::addMissingParents() {
                             m_ParentMap[psdId][PAS_OptTableType].insert(OptId);
                             m_ChildMap[OptId][PAS_PanelType].insert(panelId);
                             m_ParentMap[panelId][PAS_OptTableType].insert(OptId);
+                        }
+                        for (const auto &laserId : m_DeviceIdentities.at(PAS_LaserType)) {
+                            try {
+                                for (const auto &RangefinderId : m_DeviceIdentities.at(PAS_RangefinderType)) {
+                                    try {
+                                        if (panelId.position == 1001) {
+                                            m_ChildMap[OptId][PAS_LaserType].insert(psdId);
+                                            m_ParentMap[laserId][PAS_OptTableType].insert(OptId);
+                                            m_ChildMap[OptId][PAS_PanelType].insert(panelId);
+                                            m_ParentMap[panelId][PAS_OptTableType].insert(OptId);
+                                        }
+                                        else if (panelId.position == 2001) {
+                                            m_ChildMap[OptId][PAS_PSDType].insert(psdId);
+                                            m_ParentMap[psdId][PAS_OptTableType].insert(OptId);
+                                            m_ChildMap[OptId][PAS_PanelType].insert(panelId);
+                                            m_ParentMap[panelId][PAS_OptTableType].insert(OptId);
+                                        }
+                                    }
+                                    catch (const std::out_of_range &oor) {
+                                        spdlog::warn("Out of Range error: ({}), No rangefinder found on this selection.",
+                                                     oor.what());
+                                    }
+                                }
+                            }
+                            catch (const std::out_of_range &oor) {
+                                spdlog::warn("Out of Range error: ({}), No Laser found on this selection.",
+                                             oor.what());
+                            }
                         }
                     }
                 }
