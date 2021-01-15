@@ -18,12 +18,12 @@ const std::vector<Device::ErrorDefinition> GASPSDBase::ERROR_DEFINITIONS = {
 };
 
 void GASPSDBase::turnOn() {
-    spdlog::info("{}: Turning on", m_Identity);
+    spdlog::info("{}: Turning on - no effect", m_Identity);
     m_On = true;
 }
 
 void GASPSDBase::turnOff() {
-    spdlog::info("{}: Turning off", m_Identity);
+    spdlog::info("{}: Turning off - no effect", m_Identity);
     m_On = false;
 }
 

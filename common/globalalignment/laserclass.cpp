@@ -6,19 +6,19 @@ const std::vector<Device::ErrorDefinition> GASLaserBase::ERROR_DEFINITIONS{
 };
 
 void GASLaserBase::setState(bool state) {
-    spdlog::info("GASLaser::setPower() = {}", state);
+    spdlog::info("GASLaser::setPower() = {} - no effect", state);
 }
 
 void GASLaserBase::setPower(bool state) {
-    spdlog::info("GASLaser::setPower() = {}", state);
+    spdlog::info("GASLaser::setPower() = {} - no effect", state);
 }
 
 void GASLaserBase::turnOff() {
-    spdlog::info("GASLaser::turnOff()");
+    spdlog::info("GASLaser::turnOff() - no effect");
 }
 
 void GASLaserBase::turnOn() {
-    spdlog::info("GASLaser::turnOn()");
+    spdlog::info("GASLaser::turnOn() - no effect");
 }
 
 #ifndef SIMMODE
@@ -43,7 +43,7 @@ void GASLaser::setPower(bool state) {
 }
 
 bool GASLaser::initialize() {
-    spdlog::info("GASLaser::initialize() - currently no effect");
+    spdlog::info("GASLaser::initialize() - no effect");
     // TODO tie this to GASPSD so that init is not repeated
     return true;
 }
@@ -64,7 +64,7 @@ void GASLaser::turnOn() {
 #endif
 
 bool DummyGASLaser::initialize() {
-    spdlog::info("DummyGASLaser::initialize()");
+    spdlog::info("DummyGASLaser::initialize() - no effect");
     return true;
 }
 

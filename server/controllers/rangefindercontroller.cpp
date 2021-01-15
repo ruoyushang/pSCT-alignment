@@ -111,19 +111,30 @@ UaStatus RangefinderController::operate(OpcUa_UInt32 offset, const UaVariantArra
     //UaMutexLocker lock(&m_mutex);
 
     UaStatus status;
-    if ( offset == PAS_RangefinderType_TurnOn) {
-        spdlog::trace("{} : RangefinderController calling turnOn()", m_Identity);
-        m_pPlatform->getRangefinderbyIdentity(m_Identity)->turnOn();
-        status = OpcUa_Good;
+
+    if (_getDeviceState() == Device::DeviceState::Busy) {
+        spdlog::error("{} : Rangefinder is busy, operate call failed.", m_Identity);
+        return OpcUa_BadInvalidState;
     }
-    if ( offset == PAS_RangefinderType_TurnOff) {
-        spdlog::trace("{} : RangefinderController calling turnOff()", m_Identity);
-        m_pPlatform->getRangefinderbyIdentity(m_Identity)->turnOff();
-        status = OpcUa_Good;
-    }
-    else {
-        spdlog::error("{} : Invalid method call with offset {}", m_Identity, offset);
-        status = OpcUa_BadInvalidArgument;
+
+    switch (offset) {
+        case PAS_RangefinderType_TurnOn :
+            spdlog::trace("{} : RangefinderController calling turnOn()", m_Identity);
+            m_pPlatform->getRangefinderbyIdentity(m_Identity)->turnOn();
+            status = OpcUa_Good;
+            break;
+        case PAS_RangefinderType_TurnOff :
+            spdlog::trace("{} : RangefinderController calling turnOff()", m_Identity);
+            m_pPlatform->getRangefinderbyIdentity(m_Identity)->turnOff();
+            status = OpcUa_Good;
+            break;
+        case PAS_RangefinderType_Read :
+            spdlog::trace("{} : RangefinderController calling Read() - no effect", m_Identity);
+            status = OpcUa_Good;
+            break;
+        default :
+            spdlog::error("{} : Invalid method call with offset {}", m_Identity, offset);
+            status = OpcUa_BadInvalidArgument;
     }
 
     return status;

@@ -6,11 +6,11 @@ const std::vector<Device::ErrorDefinition> GASRangeFinderBase::ERROR_DEFINITIONS
 };
 
 void GASRangeFinderBase::turnOff() {
-    spdlog::info("GASRangeFinder::turnOff()");
+    spdlog::info("GASRangeFinder::turnOff() - no effect");
 }
 
 void GASRangeFinderBase::turnOn() {
-    spdlog::info("GASRangeFinder::turnOn()");
+    spdlog::info("GASRangeFinder::turnOn() - no effect");
 }
 
 #ifndef SIMMODE
@@ -85,15 +85,15 @@ std::set<int> GASRangeFinder::getUSBDevices() {
 }
 
 void GASRangeFinder::turnOff() {
-    spdlog::info("GASRangeFinder::turnOff()");
+    spdlog::info("GASRangeFinder::turnOff() - no effect");
 }
 
 void GASRangeFinder::turnOn() {
-    spdlog::info("GASRangeFinder::turnOn()");
+    spdlog::info("GASRangeFinder::turnOn() - no effect");
 }
 #endif
 
 bool DummyGASRangeFinder::initialize() {
-    spdlog::info("GASRangeFinder::initialize()");
+    spdlog::info("GASRangeFinder::initialize() - no effect");
     return true;
 }

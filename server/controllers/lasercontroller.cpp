@@ -111,19 +111,25 @@ UaStatus LaserController::operate(OpcUa_UInt32 offset, const UaVariantArray &arg
     //UaMutexLocker lock(&m_mutex);
 
     UaStatus status;
-    if ( offset == PAS_LaserType_TurnOn) {
-        spdlog::trace("{} : LaserController calling turnOn()", m_Identity);
-        m_pPlatform->getLaserbyIdentity(m_Identity)->turnOn();
-        status = OpcUa_Good;
+    if (_getDeviceState() == Device::DeviceState::Busy) {
+        spdlog::error("{} : Laser is busy, operate call failed.", m_Identity);
+        return OpcUa_BadInvalidState;
     }
-    if ( offset == PAS_LaserType_TurnOff) {
-        spdlog::trace("{} : LaserController calling turnOff()", m_Identity);
-        m_pPlatform->getLaserbyIdentity(m_Identity)->turnOff();
-        status = OpcUa_Good;
-    }
-    else {
-        spdlog::error("{} : Invalid method call with offset {}", m_Identity, offset);
-        status = OpcUa_BadInvalidArgument;
+
+    switch (offset) {
+        case PAS_LaserType_TurnOn:
+            spdlog::trace("{} : LaserController calling turnOn()", m_Identity);
+            m_pPlatform->getLaserbyIdentity(m_Identity)->turnOn();
+            status = OpcUa_Good;
+            break;
+        case PAS_LaserType_TurnOff :
+            spdlog::trace("{} : LaserController calling turnOff()", m_Identity);
+            m_pPlatform->getLaserbyIdentity(m_Identity)->turnOff();
+            status = OpcUa_Good;
+            break;
+        default:
+            spdlog::error("{} : Invalid method call with offset {}", m_Identity, offset);
+            status = OpcUa_BadInvalidArgument;
     }
 
     return status;
