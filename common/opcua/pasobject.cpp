@@ -368,7 +368,9 @@ const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean>> 
 };
 
 const std::map<OpcUa_UInt32, std::pair<std::string, std::vector<std::tuple<std::string, UaNodeId, std::string>>>> PSDObject::METHODS = {
-        {PAS_PSDType_Read, {"Read", {}}}
+        {PAS_PSDType_Read, {"Read", {}}},
+        {PAS_PSDType_TurnOn, {"TurnOn", {}}},
+        {PAS_PSDType_TurnOff, {"TurnOff", {}}}
 };
 
 const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean, OpcUa_Byte>> RangeFinderObject::VARIABLES = {

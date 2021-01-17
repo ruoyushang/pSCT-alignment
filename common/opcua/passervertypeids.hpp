@@ -246,6 +246,8 @@
 #define PAS_PSDType_Temp                            3210
 #define PAS_PSDType_ErrorState                      3211
 #define PAS_PSDType_Read                            3220
+#define PAS_PSDType_TurnOn                          3221
+#define PAS_PSDType_TurnOff                         3222
 #define PAS_PSDType_Error0                          3251
 #define PAS_PSDType_Error1                          3252
 #define PAS_PSDType_Error2                          3253

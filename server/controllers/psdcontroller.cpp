@@ -104,6 +104,8 @@ UaStatus PSDController::getData(OpcUa_UInt32 offset, UaVariant &value)
                 spdlog::trace("{} : Read Temp value => ({})", m_Identity, tmp);
                 value.setDouble(m_pPlatform->getPSDbyIdentity(m_Identity)->getOutput(8));
                 break;
+            default:
+                status = OpcUa_BadInvalidArgument;
         }
     }
     else if (PSDObject::ERRORS.find(offset) != PSDObject::ERRORS.end()) {
@@ -141,16 +143,31 @@ UaStatus PSDController::setData(OpcUa_UInt32 offset, UaVariant value)
 UaStatus PSDController::operate(OpcUa_UInt32 offset, const UaVariantArray &args)
 {
     //UaMutexLocker lock(&m_mutex);
+    if (_getDeviceState() == Device::DeviceState::Busy) {
+        spdlog::error("{} : PSD is busy, operate call failed.", m_Identity);
+        return OpcUa_BadInvalidState;
+    }
 
     UaStatus status;
-    if ( offset == PAS_PSDType_Read) {
-        spdlog::trace("{} : PSDController calling read()", m_Identity);
-        status = read();
+    switch (offset){
+        case PAS_PSDType_Read :
+            spdlog::trace("{} : PSDController calling read()", m_Identity);
+            status = read();
+            break;
+        case PAS_PSDType_TurnOn :
+            spdlog::trace("{} : PSDController calling turnOn()", m_Identity);
+            m_pPlatform->getPSDbyIdentity(m_Identity)->turnOn();
+            break;
+        case PAS_PSDType_TurnOff :
+            spdlog::trace("{} : PSDController calling TurnOff()", m_Identity);
+            m_pPlatform->getPSDbyIdentity(m_Identity)->turnOff();
+            break;
+        default :
+            spdlog::error("{} : Invalid method call with offset {}", m_Identity, offset);
+            status = OpcUa_BadInvalidArgument;
+            break;
     }
-    else {
-        spdlog::error("{} : Invalid method call with offset {}", m_Identity, offset);
-        status = OpcUa_BadInvalidArgument;
-    }
+
 
     return status;
 }
