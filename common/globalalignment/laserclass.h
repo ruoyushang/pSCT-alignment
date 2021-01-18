@@ -55,6 +55,7 @@ public:
 
 protected:
     std::shared_ptr<CBC> m_pCBC;
+    std::shared_ptr<Relay> m_relay;
 };
 
 #endif
