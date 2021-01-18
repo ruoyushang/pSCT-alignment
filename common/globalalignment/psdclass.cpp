@@ -132,6 +132,7 @@ void GASPSD::update() {
 
         int lines_read = 0 ;
         int max_lines_read_during_update = 2 * 1;
+        bool did_not_read = false;
 
         // skip lines that start with '#'
         do {
@@ -150,9 +151,13 @@ void GASPSD::update() {
             count = 0;
             lines_read++;
             if (lines_read > max_lines_read_during_update) {
+                did_not_read = true;
                 break;
             }
         } while (buf[0] == '#');
+        if (did_not_read){
+            return;
+        }
 
         new_bytes = sscanf(buf, "%lf %lf %lf %lf %lf %lf %lf %lf %lf",
                            &m_data[0], &m_data[1], &m_data[2], &m_data[3],
