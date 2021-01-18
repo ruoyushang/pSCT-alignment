@@ -56,7 +56,7 @@ void GASLaser::turnOn() {
     setPower(true);
     setState(true);
     spdlog::info("GASLaser::turnOn()  ");
-    spdlog::warn("TURN LASER OFF AFTER 5 MINUTES TO AVOID OVERHEATING");
+    spdlog::warn("TURN LASER OFF AFTER 4 HOURS TO AVOID OVERHEATING");
 }
 
 #endif

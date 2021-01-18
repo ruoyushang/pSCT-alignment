@@ -38,39 +38,44 @@ UaStatus PSDController::getData(OpcUa_UInt32 offset, UaVariant &value) {
 
     switch (offset) {
         case PAS_PSDType_x1:
+            status = m_pClient->read({m_pClient->getDeviceNodeId(m_Identity) + "." + "x1"}, &value);
             value.setDouble(m_data.x1);
             break;
         case PAS_PSDType_y1:
+            status = m_pClient->read({m_pClient->getDeviceNodeId(m_Identity) + "." + "y1"}, &value);
             value.setDouble(m_data.y1);
             break;
         case PAS_PSDType_x2:
+            status = m_pClient->read({m_pClient->getDeviceNodeId(m_Identity) + "." + "x2"}, &value);
             value.setDouble(m_data.x2);
             break;
         case PAS_PSDType_y2:
+            status = m_pClient->read({m_pClient->getDeviceNodeId(m_Identity) + "." + "y2"}, &value);
             value.setDouble(m_data.y2);
             break;
         case PAS_PSDType_dx1:
+            status = m_pClient->read({m_pClient->getDeviceNodeId(m_Identity) + "." + "dx1"}, &value);
             value.setDouble(m_data.dx1);
             break;
         case PAS_PSDType_dy1:
+            status = m_pClient->read({m_pClient->getDeviceNodeId(m_Identity) + "." + "dy1"}, &value);
             value.setDouble(m_data.dy1);
             break;
         case PAS_PSDType_dx2:
+            status = m_pClient->read({m_pClient->getDeviceNodeId(m_Identity) + "." + "dx2"}, &value);
             value.setDouble(m_data.dx2);
             break;
         case PAS_PSDType_dy2:
+            status = m_pClient->read({m_pClient->getDeviceNodeId(m_Identity) + "." + "dy2"}, &value);
             value.setDouble(m_data.dy2);
             break;
         case PAS_PSDType_Temp:
+            status = m_pClient->read({m_pClient->getDeviceNodeId(m_Identity) + "." + "Temperature"}, &value);
             value.setDouble(m_data.Temperature);
             break;
         default:
             return OpcUa_BadInvalidArgument;
     }
-
-    double temp;
-    value.toDouble(temp);
-    spdlog::trace("{} : Read data... offset=> {} value => ({})", m_Identity, offset, temp);
     return status;
 }
 
@@ -113,6 +118,12 @@ UaStatus PSDController::read() {
     if (!status.isGood()) {
         spdlog::error("{} : PSDController::read() : Call to read PSD failed.", m_Identity);
         return status;
+    }
+    else{
+        spdlog::info("{} Current readings ({} deg C):\n\tPSD0 ({},{}) +/- ({},{})\n\tPSD1 ({},{}) +/- ({},{})",
+                     m_Identity, getPSDposition().Temperature,
+                     getPSDposition().x1, getPSDposition().y1, getPSDposition().dx1, getPSDposition().dy1,
+                     getPSDposition().x2, getPSDposition().y2, getPSDposition().dx2, getPSDposition().dy2);
     }
 
     return status;
