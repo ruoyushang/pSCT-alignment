@@ -67,26 +67,23 @@ bool GASPSD::initialize()
 
     m_Errors.assign(getNumErrors(), false);
 
-    for (int test_usb_port = 1; test_usb_port < 7; ++test_usb_port) {
+    m_pCBC->usb.disableAll(); // make sure all USBs are off
+    std::set<int> oldACMDevices = getACMDevices(); // count ACM devices
 
-        m_pCBC->usb.disable(test_usb_port); // make sure our USB is off
-        std::set<int> oldACMDevices = getACMDevices(); // count ACM devices
+    m_pCBC->usb.enableAll(); // switch the usb back on and wait for the ACM device to show up
+    sleep(4);
 
-        m_pCBC->usb.enable(test_usb_port); // switch the usb back on and wait for the ACM device to show up
-        sleep(4);
+    std::set<int> newACMDevices = getACMDevices(); // check all ACM devices again
 
-        std::set<int> newACMDevices = getACMDevices(); // check all ACM devices again
+    std::set<int> toggledDevices;
+    std::set_difference(newACMDevices.begin(), newACMDevices.end(), oldACMDevices.begin(), oldACMDevices.end(),
+                    std::inserter(toggledDevices, toggledDevices.begin()));
 
-        std::set<int> toggledDevices;
-        std::set_difference(newACMDevices.begin(), newACMDevices.end(), oldACMDevices.begin(), oldACMDevices.end(),
-                            std::inserter(toggledDevices, toggledDevices.begin()));
-
-        if (toggledDevices.size() == 1) {
-            newACMDeviceId = *toggledDevices.begin(); // get the only element in the set -- this is the new device ID
-            m_usb_port = test_usb_port;
-            break;
-        }
+    if (toggledDevices.size() > 0) {
+        newACMDeviceId = *toggledDevices.begin(); // get the only element in the set -- this is the new device ID
+        m_usb_port = 1;
     }
+
     if (m_usb_port == -1){
         spdlog::error("{} : GASPSD::initialize() : Found 0 ACM devices, should be exactly 1.", m_Identity);
         setError(0); // fatal
@@ -95,11 +92,8 @@ bool GASPSD::initialize()
 
     spdlog::debug("GASPSD::initialize(): Detected new ACM device {} in port {}.", newACMDeviceId, m_usb_port);
 
-    m_pCBC->usb.enable(m_usb_port);
-
     std::string ACM_port = "/dev/ttyACM";
     ACM_port += std::to_string(newACMDeviceId);
-
 
     // set the calibration constants
     setCalibration();
