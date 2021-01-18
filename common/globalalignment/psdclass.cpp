@@ -83,6 +83,10 @@ bool GASPSD::initialize()
         newACMDeviceId = *toggledDevices.begin(); // get the only element in the set -- this is the new device ID
         m_usb_port = 1;
     }
+    else if (newACMDevices.size()==1) {
+        newACMDeviceId = *newACMDevices.begin(); // get the only element in the set -- this is the new device ID
+        m_usb_port = newACMDeviceId + 1;
+    }
 
     if (m_usb_port == -1){
         spdlog::error("{} : GASPSD::initialize() : Found 0 ACM devices, should be exactly 1.", m_Identity);
