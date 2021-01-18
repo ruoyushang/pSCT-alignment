@@ -278,13 +278,13 @@ std::set<int> GASPSD::getACMDevices() {
 
 void GASPSD::turnOn() {
     spdlog::info("{}: Turning on" ,m_Identity);
-    m_pCBC->usb.enable(m_usb_port);
+    m_pCBC->usb.enableAll();
     m_On = true;
 }
 
 void GASPSD::turnOff() {
     spdlog::info("{}: Turning off", m_Identity);
-    m_pCBC->usb.disable(m_usb_port);
+    m_pCBC->usb.disableAll();
     m_On = false;
 }
 
