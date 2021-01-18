@@ -55,7 +55,7 @@ protected:
     double m_Beta[4] = {0.011341, 0.118089, 0.023689, 0.116461}; // {{x1, y1, x2, y2}
     double m_Theta[2] = {0.0, 0.0}; // {x, y} ? seemingly unused
 
-    std::string m_logFilename = "PSD-Cam.log"; // file to log into
+    std::string m_logFilename = "PSD-measurements.log"; // file to log into
     std::ofstream m_logOutputStream;
 
     double m_data[9]; // x1, y1, x2, y2, dx1, dy1, dx2, dy2, temperature

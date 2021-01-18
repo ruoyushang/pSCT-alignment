@@ -121,32 +121,39 @@ void GASPSD::update() {
     if (m_fd >= 0) {
         char buf[110];
         char tmp = '\0';
-        int n = 0;
+        int new_bytes = 0;
 
         // align on opening
         int count = 0;
+
+        int lines_read = 0 ;
+        int max_lines_read_during_update = 2 * 3;
 
         // skip lines that start with '#'
         do {
             memset(buf, '\0', sizeof buf);
             // read one byte until hit newline
             do {
-                n = read(m_fd, &tmp, 1);
+                new_bytes = read(m_fd, &tmp, 1);
             } while (tmp != '\n');
 
             while (tmp != '\r') {
-                n = read(m_fd, &tmp, 1);
+                new_bytes = read(m_fd, &tmp, 1);
                 buf[count] = tmp;
-                count += n;
+                count += new_bytes;
             }
             spdlog::debug("{}\n", buf);
             count = 0;
+            lines_read++;
+            if (lines_read > max_lines_read_during_update) {
+                break;
+            }
         } while (buf[0] == '#');
 
-        n = sscanf(buf, "%lf %lf %lf %lf %lf %lf %lf %lf %lf",
-                &m_data[0], &m_data[1], &m_data[2], &m_data[3],
-                &m_data[4], &m_data[5], &m_data[6], &m_data[7],
-                &m_data[8]);
+        new_bytes = sscanf(buf, "%lf %lf %lf %lf %lf %lf %lf %lf %lf",
+                           &m_data[0], &m_data[1], &m_data[2], &m_data[3],
+                           &m_data[4], &m_data[5], &m_data[6], &m_data[7],
+                           &m_data[8]);
 
         for (int i = 0; i < 4; i++) {
             if (m_data[i] < 0) {
@@ -195,7 +202,7 @@ int GASPSD::setInterfaceAttribs(int fd, int speed, int parity) {
     // no canonical processing
     tty.c_oflag = 0;                // no remapping, no delays
     tty.c_cc[VMIN]  = 0;            // read doesn't block
-    tty.c_cc[VTIME] = 20;            // 0.5 seconds read timeout
+    tty.c_cc[VTIME] = 10;            // 1.0 seconds read timeout
 
     tty.c_iflag &= ~(IXON | IXOFF | IXANY); // shut off xon/xoff ctrl
 
