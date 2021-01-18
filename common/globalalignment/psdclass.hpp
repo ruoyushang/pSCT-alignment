@@ -94,7 +94,7 @@ protected:
     int m_usb_port = -1;
 
     int m_fd; // file descriptor to access the serial device
-    std::string m_logFilename = "PSD-Cam.log"; // file to log into
+    std::string m_logFilename = std::string(getenv("HOME")) + std::string("/logs/") + "PSD-measurements.log"; // file to log into
     std::ofstream m_logOutputStream;
 
 };
