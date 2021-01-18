@@ -127,7 +127,7 @@ void GASPSD::update() {
         int count = 0;
 
         int lines_read = 0 ;
-        int max_lines_read_during_update = 2 * 3;
+        int max_lines_read_during_update = 2 * 1;
 
         // skip lines that start with '#'
         do {
@@ -285,8 +285,15 @@ std::set<int> GASPSD::getACMDevices() {
 
 void GASPSD::turnOn() {
     spdlog::info("{}: Turning on" ,m_Identity);
-    m_pCBC->usb.enableAll();
     m_On = true;
+    if (initialize()){
+        spdlog::info("Initialized successfully.");
+    }
+    else{
+        spdlog::error("Failed to initialize.");
+        m_pCBC->usb.enableAll();
+        spdlog::warn("Enabled all USB anyways...");
+    }
 }
 
 void GASPSD::turnOff() {
