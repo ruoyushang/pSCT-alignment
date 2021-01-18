@@ -95,6 +95,17 @@ UaStatus PSDController::operate(OpcUa_UInt32 offset, const UaVariantArray &args)
     if (offset == PAS_PSDType_Read) {
         spdlog::trace("{} : PSDController calling read()", m_Identity);
         status = read();
+
+        if (status.isGood())
+        {
+            getPSDposition();
+            spdlog::info("{} Current readings ({} deg C):"
+                         "\n\tPSD0 ({},{}) +/- ({},{})"
+                         "\n\tPSD1 ({},{}) +/- ({},{})",
+                         m_Identity, m_data.Temperature,
+                         m_data.x1, m_data.y1, m_data.dx1, m_data.dy1,
+                         m_data.x2, m_data.y2, m_data.dx2, m_data.dy2);
+        }
     } else {
         spdlog::error("{} : Invalid method call with offset {}", m_Identity, offset);
         status = OpcUa_BadInvalidArgument;
@@ -117,14 +128,15 @@ UaStatus PSDController::read() {
 
     if (!status.isGood()) {
         spdlog::error("{} : PSDController::read() : Call to read PSD failed.", m_Identity);
-        return status;
     }
-    else{
-        spdlog::info("{} Current readings ({} deg C):\n\tPSD0 ({},{}) +/- ({},{})\n\tPSD1 ({},{}) +/- ({},{})",
-                     m_Identity, getPSDposition().Temperature,
-                     getPSDposition().x1, getPSDposition().y1, getPSDposition().dx1, getPSDposition().dy1,
-                     getPSDposition().x2, getPSDposition().y2, getPSDposition().dx2, getPSDposition().dy2);
-    }
+
+    return status;
+}
+
+UaStatus PSDController::readAsync() {
+    //UaMutexLocker lock(&m_mutex);
+    UaStatus status;
+    status = m_pClient->callMethodAsync(m_pClient->getDeviceNodeId(m_Identity), UaString("Read"), UaVariantArray());
 
     return status;
 }
@@ -135,4 +147,42 @@ Device::ErrorState PSDController::getErrorState() {
     getData(PAS_PSDType_ErrorState, var);
     var.toInt32(err);
     return static_cast<Device::ErrorState>(err);
+}
+
+PSDController::PSDData PSDController::getPSDposition() {
+    UaStatus status;
+
+    spdlog::trace("Trying to update position");
+    std::vector<std::string> varstoread{
+            "x1",
+            "y1",
+            "x2",
+            "y2",
+            "dx1",
+            "dy1",
+            "dx2",
+            "dy2",
+            "Temperature"
+    };
+    std::transform(varstoread.begin(), varstoread.end(), varstoread.begin(),
+                   [this](std::string &str) { return m_pClient->getDeviceNodeId(m_Identity) + "." + str; });
+    UaVariant valstoread[9];
+
+    status = m_pClient->read(varstoread, &valstoread[0]);
+
+    if (!status.isGood()) {
+        spdlog::error("{} : PSDController::getPosition() : OPC UA read failed.", m_Identity);
+        return m_data;
+    }
+    valstoread[0].toDouble(m_data.x1);
+    valstoread[1].toDouble(m_data.y1);
+    valstoread[2].toDouble(m_data.x2);
+    valstoread[3].toDouble(m_data.y2);
+    valstoread[4].toDouble(m_data.dx1);
+    valstoread[5].toDouble(m_data.dy1);
+    valstoread[6].toDouble(m_data.dx2);
+    valstoread[7].toDouble(m_data.dy2);
+    valstoread[8].toDouble(m_data.Temperature);
+
+    return m_data;
 }

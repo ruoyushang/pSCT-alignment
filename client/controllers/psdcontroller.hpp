@@ -40,7 +40,7 @@ public:
 
     UaStatus operate(OpcUa_UInt32 offset, const UaVariantArray &args) override;
 
-    PSDData getPSDposition() {return m_data;};
+    PSDData getPSDposition();
 
     Device::ErrorState getErrorState() override;
 
@@ -48,6 +48,8 @@ private:
     PSDData m_data;
 
     UaStatus read();
+
+    UaStatus readAsync();
 };
 
 #endif //ALIGNMENT_PSDCONTROLLER_HPP
