@@ -79,7 +79,7 @@ bool GASPSD::initialize()
     std::set_difference(newACMDevices.begin(), newACMDevices.end(), oldACMDevices.begin(), oldACMDevices.end(),
                     std::inserter(toggledDevices, toggledDevices.begin()));
 
-    if (toggledDevices.size() > 0) {
+    if (!toggledDevices.empty()) {
         newACMDeviceId = *toggledDevices.begin(); // get the only element in the set -- this is the new device ID
         m_usb_port = 1;
     }
