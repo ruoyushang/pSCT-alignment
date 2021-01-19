@@ -131,7 +131,7 @@ void GASPSD::update() {
         int count = 0;
 
         int lines_read = 0 ;
-        int max_lines_read_during_update = 2 * 1;
+        int max_lines_read_during_update = 1;
         bool did_not_read = false;
 
         // skip lines that start with '#'
@@ -150,7 +150,7 @@ void GASPSD::update() {
             spdlog::debug("{}\n", buf);
             count = 0;
             lines_read++;
-            if (lines_read > max_lines_read_during_update) {
+            if (lines_read == 2 * max_lines_read_during_update) {
                 did_not_read = true;
                 break;
             }
