@@ -279,11 +279,11 @@ std::string focalplane::saveImageCommand() {
     std::string filename = "The Imaging Source Europe GmbH-37514083-2592-1944-Mono8-" + time_stamp + ".png";
     set_image_file(m_pPicture_dir + filename);
 
-    command = "set_skycam && " + m_pModPath + m_pGet_focal_plane_image_PY
+    command = "source /home/ctauser/set_skycam && " + m_pModPath + m_pGet_focal_plane_image_PY
             + " -e " + std::to_string(m_captureParams.exposure)
             + " -g " + std::to_string(m_captureParams.gain)
             + " -f " + std::to_string(m_captureParams.frame_rate)
             + " --data_outdir " + m_pPicture_dir
-            + " --data_outfile " + filename ;
+            + " --data_outfile \'" + filename + "\'";
     return command;
 }
