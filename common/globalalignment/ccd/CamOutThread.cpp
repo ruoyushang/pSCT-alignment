@@ -82,6 +82,7 @@ bool CamOutThread::cycle(LEDoutputs *pLEDsout) {
     spdlog::trace("Made ImageStar object.");
     // find the stars
     StarDetect theDetector = StarDetect(theImage, theCentroids, pLEDsout);
+    theDetector.process();
     spdlog::trace("Made StarDetect object.");
     // save filtered image
     if (pfLEDsin->SAVEIMAGE)

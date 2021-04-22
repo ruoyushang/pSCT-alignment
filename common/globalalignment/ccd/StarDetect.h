@@ -12,11 +12,8 @@ class StarDetect {
 public:
     // Constructor
     StarDetect(Image &i, std::vector<ImageStar> &s, LEDoutputs *lo) : image(i), StarList(s), ledsin(lo->inleds),
-                                                                      ledsout(lo) {
-        find_threshold();
-        ed_filter();
-        detect_stars();
-    }
+                                                                      ledsout(lo) {};
+    void process();
 
     // Accessors
     std::vector<ImageStar> &DetectedStars() { return StarList; }
