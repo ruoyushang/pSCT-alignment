@@ -50,6 +50,10 @@ PasObject* PasObjectFactory::Create(
             return new EdgeObject(name, newNodeId, defaultLocaleId, pNodeManager, identity, pCommIf);
         case PAS_PSDType:
             return new PSDObject(name, newNodeId, defaultLocaleId, dynamic_cast<PasNodeManagerCommon *>(pNodeManager), identity, dynamic_cast<PasComInterfaceCommon *>(pCommIf));
+        case PAS_LaserType:
+            return new LaserObject(name, newNodeId, defaultLocaleId, dynamic_cast<PasNodeManagerCommon *>(pNodeManager), identity, dynamic_cast<PasComInterfaceCommon *>(pCommIf));
+        case PAS_RangefinderType:
+            return new RangeFinderObject(name, newNodeId, defaultLocaleId, dynamic_cast<PasNodeManagerCommon *>(pNodeManager), identity, dynamic_cast<PasComInterfaceCommon *>(pCommIf));
         case PAS_FocalPlaneType:
             return new FocalPlaneObject(name, newNodeId, defaultLocaleId, pNodeManager, identity, pCommIf);
         case PAS_CCDType:

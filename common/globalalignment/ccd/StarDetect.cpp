@@ -3,6 +3,12 @@
 
 using namespace std;
 
+void StarDetect::process() {
+    find_threshold();
+    ed_filter();
+    detect_stars();
+}
+
 void StarDetect::ed_filter() {
     // find sources in the image by finding isolated regions of pixels above
     // threshold via 'morphological opening', http://en.wikipedia.org/wiki/Opening_%28morphology%29
@@ -46,8 +52,8 @@ void StarDetect::ed_filter() {
     spdlog::trace("Finished dimg loop");
 
 //save just stars from the original image (set all non-saved pixels to 0)
-    for (int x = 0; x <= nxpix; x++) { // loop over x coordinate, including edges
-        for (int y = 0; y <= nypix; y++) { // loop over y coordinate, including edges
+    for (int x = 0; x < nxpix; x++) { // loop over x coordinate, including edges
+        for (int y = 0; y < nypix; y++) { // loop over y coordinate, including edges
             int i = x + y * nxpix; // location of element x, y of image
             if (dimg[i] == 0)
                 image.pixels()[i] = 0; // erase background pixels

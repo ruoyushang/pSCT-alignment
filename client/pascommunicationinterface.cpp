@@ -25,6 +25,8 @@
 #include "client/controllers/panelcontroller.hpp"
 #include "client/controllers/pascontroller.hpp"
 #include "client/controllers/psdcontroller.hpp"
+#include "client/controllers/lasercontroller.hpp"
+#include "client/controllers/rangefindercontroller.hpp"
 #include "client/controllers/opttablecontroller.hpp"
 #include "client/controllers/focalplanecontroller.hpp"
 #include "client/controllers/opticalalignmentcontroller.hpp"
@@ -52,6 +54,8 @@ std::map<OpcUa_UInt32, std::string> PasCommunicationInterface::deviceTypeNames{
     {PAS_ACTType, "ACT"},
     {PAS_CCDType, "CCD"},
     {PAS_PSDType, "PSD"},
+    {PAS_LaserType, "Laser"},
+    {PAS_RangefinderType, "Rangefinder"},
     {PAS_FocalPlaneType, "FocalPlane"},
     {PAS_OpticalAlignmentType, "OpticalAlignment"},
     {PAS_GlobalAlignmentType, "GlobalAlignment"},
@@ -156,6 +160,10 @@ PasCommunicationInterface::addDevice(Client *pClient, OpcUa_UInt32 deviceType,
             pController = std::make_shared<CCDController>(identity);
         else if (deviceType == PAS_PSDType)
             pController = std::make_shared<PSDController>(identity, pClient);
+        else if (deviceType == PAS_LaserType)
+            pController = std::make_shared<LaserController>(identity, pClient);
+        else if (deviceType == PAS_RangefinderType)
+            pController = std::make_shared<RangefinderController>(identity, pClient);
         else if (deviceType == PAS_FocalPlaneType)
             pController = std::make_shared<FocalPlaneController>(identity, pClient);
         else if (deviceType == PAS_GlobalAlignmentType)

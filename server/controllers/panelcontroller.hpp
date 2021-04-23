@@ -22,10 +22,16 @@
 #include "server/controllers/pascontroller.hpp"
 #include "server/controllers/mpescontroller.hpp"
 #include "server/controllers/psdcontroller.hpp"
+#include "server/controllers/lasercontroller.hpp"
+#include "server/controllers/rangefindercontroller.hpp"
 
 class ActController;
 
 class MPESController;
+
+class RangefinderController;
+
+class LaserController;
 
 class Platform;
 
@@ -76,10 +82,20 @@ public:
     void addActuator(const std::shared_ptr<ActController> &pActuator);
 
     /// @brief Add an MPES controller as a child of this panel controller.
-    /// @param pActuator A pointer to an MPES controller.
+    /// @param pMPES A pointer to an MPES controller.
     void addMPES(const std::shared_ptr<MPESController> &pMPES);
 
+    /// @brief Add an PSD controller as a child of this panel controller.
+    /// @param pPSD A pointer to an PSD controller.
     void addPSD(const std::shared_ptr<PSDController> &pPSD);
+
+    /// @brief Add an Laser controller as a child of this panel controller.
+    /// @param pLaser A pointer to an Laser controller.
+    void addLaser(const std::shared_ptr<LaserController> &pLaser);
+
+    /// @brief Add an Rangefinder controller as a child of this panel controller.
+    /// @param pRangefinder A pointer to an Rangefinder controller.
+    void addRangefinder(const std::shared_ptr<RangefinderController> &pRangefinder);
 
 private:
     Device::ErrorState _getErrorState() { return m_pPlatform->getErrorState(); }
@@ -92,7 +108,14 @@ private:
     /// @brief A vector of all MPES controllers belonging to this panel.
     std::vector<std::shared_ptr<MPESController>> m_pMPES;
 
+    /// @brief A vector of all PSD controllers belonging to this panel.
     std::vector<std::shared_ptr<PSDController>> m_pPSD;
+
+    /// @brief A vector of all Laser controllers belonging to this panel.
+    std::vector<std::shared_ptr<LaserController>> m_pLaser;
+
+    /// @brief A vector of all Rangefinder controllers belonging to this panel.
+    std::vector<std::shared_ptr<RangefinderController>> m_pRangefinder;
 };
 
 #endif //SERVER_PANELCONTROLLER_HPP

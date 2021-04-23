@@ -246,6 +246,8 @@
 #define PAS_PSDType_Temp                            3210
 #define PAS_PSDType_ErrorState                      3211
 #define PAS_PSDType_Read                            3220
+#define PAS_PSDType_TurnOn                          3221
+#define PAS_PSDType_TurnOff                         3222
 #define PAS_PSDType_Error0                          3251
 #define PAS_PSDType_Error1                          3252
 #define PAS_PSDType_Error2                          3253
@@ -315,6 +317,30 @@
 //----------------------------------------------------------//
 //
 
+//----------------------------------------------------------//
+// Laser Type
+#define PAS_LaserType                                 3600
+// Instance declaration
+#define PAS_LaserType_State                           3601
+#define PAS_LaserType_Temp                            3602
+#define PAS_LaserType_TurnOn                          3603
+#define PAS_LaserType_TurnOff                         3604
+#define PAS_LaserType_ErrorState                      3611
+#define PAS_LaserType_Error0                          3651
+#define PAS_LaserType_Error1                          3652
+
+//----------------------------------------------------------//
+// Rangefinder Type
+#define PAS_RangefinderType                                 3700
+// Instance declaration
+#define PAS_RangefinderType_State                           3701
+#define PAS_RangefinderType_Temp                            3702
+#define PAS_RangefinderType_TurnOn                          3703
+#define PAS_RangefinderType_TurnOff                         3704
+#define PAS_RangefinderType_ErrorState                      3705
+#define PAS_RangefinderType_Read                            3706
+#define PAS_RangefinderType_Error0                          3751
+#define PAS_RangefinderType_Error1                          3752
 
 /************************************************************
  MPESEventType and its event field properties
