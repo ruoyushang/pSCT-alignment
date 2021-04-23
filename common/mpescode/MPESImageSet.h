@@ -16,6 +16,8 @@ struct MPESSetData: MPESImageData
     float MJD;
     float Xcal;
     float Ycal;
+    float nSat;
+    std::string last_img;
 };
 
 class MPESImageSet

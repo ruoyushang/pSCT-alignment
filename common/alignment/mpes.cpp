@@ -278,6 +278,7 @@ int MPES::__updatePosition() {
     m_Position.timestamp = -3;
     m_Position.exposure = -3;
     m_Position.nSat = -3;
+    m_Position.last_img = "-";
 
     // read sensor
     if (int(m_pImageSet->Capture()) > 0) {
@@ -295,7 +296,7 @@ int MPES::__updatePosition() {
         m_Position.cleanedIntensity = m_pImageSet->SetData.CleanedIntensity;
         m_Position.nSat = m_pImageSet->SetData.nSat;
     }
-    m_Position.last_img = getLastImage();
+    m_Position.last_img = m_pImageSet->SetData.last_img;
     if (int(m_Position.cleanedIntensity) == -1 ){
         // Real image possible, but no pixels pass threshold
         setError(7);
