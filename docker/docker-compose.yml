@@ -22,7 +22,7 @@ services:
       context: .
       dockerfile: Dockerfile
     volumes:
-      - ~/Documents/InstalledTools.nosync/alignment/:/app
+      - ~/Documents/InstalledTools/alignment/:/app
     ports:
       - "3022:22"
       - "2221:2221"

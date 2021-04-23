@@ -13,7 +13,7 @@
 #include "common/alignment/device.hpp"
 #include "common/simulatestewart/stewartplatform.hpp"
 #include "client/controllers/pascontroller.hpp"
-#include "common/alignment/focalplane.hpp"
+#include "common/globalalignment/focalplane.hpp"
 
 #include "uathread.h"
 

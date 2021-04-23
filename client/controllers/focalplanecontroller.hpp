@@ -4,7 +4,7 @@
 #include <Eigen/Dense>
 
 #include "client/controllers/pascontroller.hpp"
-#include "common/alignment/focalplane.hpp"
+#include "common/globalalignment/focalplane.hpp"
 
 class FocalPlaneController : public PasController {
     UA_DISABLE_COPY(FocalPlaneController);

@@ -15,7 +15,7 @@
 #include "common/alignment/device.hpp"
 #include "common/simulatestewart/mathtools.hpp"
 #include "common/simulatestewart/mirrordefinitions.hpp" // definitions of the mirror surfaces
-#include "common/alignment/focalplane.hpp"
+#include "common/globalalignment/focalplane.hpp"
 
 #include "client/controllers/edgecontroller.hpp"
 #include "client/controllers/mpescontroller.hpp"
