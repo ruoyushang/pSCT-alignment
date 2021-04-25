@@ -2884,18 +2884,14 @@ UaStatus MirrorController::__calculateLoadMPESPositions(const std::string &loadF
     }
 
     // Print Mirror Info
-    std::map<Device::Identity, Eigen::VectorXd> sensorOffsets;
+    std::map<Device::Identity, Eigen::VectorXd> sensorNewTargets;
     while (getline(infile, line) && (line != SAVEFILE_DELIMITER)) {
         os << line << std::endl;
     }
     spdlog::info("{}: Mirror Info:\n Mirror Identity: {}\n{}", m_Identity, m_Identity, os.str());
 
-    //TOdo fix code here, using only the positions, not offsets.
-    Eigen::VectorXd X(m_pChildren.at(PAS_PanelType).size() * 6);
-    Eigen::VectorXd deltaActLengths(6);
+    Eigen::VectorXd alignmentNewTargets(2);
     Eigen::VectorXd alignmentOffset(2);
-    Eigen::VectorXd currentActLengths(6);
-    std::vector<std::shared_ptr<PanelController>> panelsToMove;
     unsigned j = 0;
 
     // Parse all sensor offsets
@@ -2912,11 +2908,11 @@ UaStatus MirrorController::__calculateLoadMPESPositions(const std::string &loadF
         spdlog::info(" SAVEFILE_DELIMITER is {}", SAVEFILE_DELIMITER);
         i = 0;
         while (getline(infile, line) && line != SAVEFILE_DELIMITER) {
-            alignmentOffset(i) = std::stod(line);
+            alignmentNewTargets(i) = std::stod(line);
             i++;
         }
-        sensorOffsets[sensorId] = alignmentOffset;
-        spdlog::info("{}: Found offset for MPES {}:\n{}\n", m_Identity, sensorId, alignmentOffset);
+        sensorNewTargets[sensorId] = alignmentNewTargets;
+        spdlog::info("{}: Found new target for MPES {}:\n{}\n", m_Identity, sensorId, alignmentNewTargets);
     }
 
     spdlog::info("saving aligned readings to vectors...");
@@ -2929,8 +2925,8 @@ UaStatus MirrorController::__calculateLoadMPESPositions(const std::string &loadF
     }
     for (int m = 0; m < (int) alignMPES.size(); m++) {
         sensorId = alignMPES.at(m)->getIdentity();
-        if (sensorOffsets.find(sensorId) != sensorOffsets.end()) {
-            alignMPES.at(m)->m_OpticsOffsets = sensorOffsets[sensorId];
+        if (sensorNewTargets.find(sensorId) != sensorNewTargets.end()) {
+            alignMPES.at(m)->m_OpticsOffsets = sensorNewTargets[sensorId] - alignMPES.at(m)->getAlignedReadings();
         }
     }
 
