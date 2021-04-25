@@ -46,6 +46,8 @@ public:
 
     unsigned char *pixels() { return pixel_array; }
 
+    void setImageDir(std::string dir) { fImageDir = dir; }
+
 private:
     unsigned char *pixel_array;
     int imgWidth, imgHeight;

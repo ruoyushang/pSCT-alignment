@@ -8,10 +8,9 @@
 // prebuilt Camera interface
 #include "common/globalalignment/ccd/AravisCamera.h"
 // the work horse class designed to be a single thread
-#include "common/globalalignment/ccd/CamOutThread.h"
+#include "common/globalalignment/AutoCollimator/ACCamOutThread.hpp"
 // the i/o structure (should mirror the database and inputs only written from the start)
-#include "common/globalalignment/ccd/LEDinputs.h"
-#include "common/globalalignment/ccd/LEDoutputs.h"
+#include "common/globalalignment/AutoCollimator/ACCamInputs.hpp"
 
 #include "common/alignment/device.hpp"
 
@@ -37,10 +36,10 @@ public:
         std::string last_img;
     };
 
-    GASAC(Device::Identity identity) :
-    pfCamThread(nullptr),
-    pfCamera(nullptr),
-    Device::Device(std::move(identity)) {}
+    explicit GASAC(Device::Identity identity) :
+            Device::Device(std::move(identity)),
+            pfCamThread(nullptr),
+            pfCamera(nullptr) {}
 
     ~GASAC() = default;
 
@@ -50,13 +49,15 @@ public:
         return GASAC::ERROR_DEFINITIONS.at(errorCode);
     }
 
-    int getNumErrors() override { return GASAC::ERROR_DEFINITIONS.size(); }
+    int getNumErrors() override { return (int) GASAC::ERROR_DEFINITIONS.size(); }
 
     bool initialize() override;
 
+    virtual void setConfig(string config);
+
     Position getPosition();
 
-    virtual int getSerial() const { return std::strtol(pfCamera->getID().c_str(), nullptr, 10); };
+    virtual int getSerial() const { return std::stoi(pfCamera->getID(), nullptr, 10); };
 
     std::string getAddress() const { return fAddress; };
 
@@ -72,11 +73,12 @@ public:
 
     Position m_pPosition = Position(); //GASAC values
 protected:
-    
-    std::unique_ptr<CamOutThread> pfCamThread;
+    ACCamInputs pfACin;
+    std::unique_ptr<ACCamOutThread> pfCamThread;
     std::unique_ptr<AravisCamera> pfCamera;
     std::string fAddress;
     bool m_On{};
+    std::string fConfigFile;
 
 };
 
