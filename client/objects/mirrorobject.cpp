@@ -179,7 +179,7 @@ const std::map<OpcUa_UInt32, std::pair<std::string, std::vector<std::tuple<std::
                                                                                              UaNodeId(OpcUaId_String),
                                                                                              "Command to run (calculate, setAlignFrac, execute)."),
                                                                      }}},
-    {PAS_MirrorType_LoadActuatorLengths, {"LoadPosition", {
+    {PAS_MirrorType_LoadActuatorLengths, {"LoadActuatorLengths", {
                                                                                std::make_tuple("Load File Name",
                                                                                                UaNodeId(OpcUaId_String),
                                                                                                "Absolute path to .mirrorPos file to load position from."),
