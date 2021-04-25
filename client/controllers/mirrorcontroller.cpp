@@ -415,9 +415,9 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
      * Move the whole mirror in the telescope reference frame *
      * ********************************************************/
     if (offset == PAS_MirrorType_MoveToCoords || offset == PAS_MirrorType_MoveDeltaCoords ||
-        offset == PAS_MirrorType_AlignSector || offset == PAS_MirrorType_LoadPosition ||
+        offset == PAS_MirrorType_AlignSector || offset == PAS_MirrorType_LoadActuatorLengths ||
         offset == PAS_MirrorType_AlignRing || offset == PAS_MirrorType_LoadDeltaCoords 
-        || offset == PAS_MirrorType_LoadAlignmentOffset) {
+        || offset == PAS_MirrorType_LoadMPESAlignmentOffset || offset == PAS_MirrorType_LoadMPESPositions) {
 
         std::string command;
 
@@ -434,7 +434,7 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
             spdlog::info("{} : MirrorController::operate() : Calling alignRing()...", m_Identity);
             command = UaString(args[2].Value.String).toUtf8();
         }
-        else if (offset == PAS_MirrorType_LoadPosition) {
+        else if (offset == PAS_MirrorType_LoadActuatorLengths) {
             spdlog::info("{} : MirrorController::operate() : Calling loadPosition()...", m_Identity);
             command = UaString(args[2].Value.String).toUtf8();
         }
@@ -442,8 +442,12 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
             spdlog::info("{} : MirrorController::operate() : Calling loadDeltaCoords()...", m_Identity);
             command = UaString(args[2].Value.String).toUtf8();
         }
-        else if (offset == PAS_MirrorType_LoadAlignmentOffset) {
-            spdlog::info("{} : MirrorController::operate() : Calling loadAlignmentOffset()...", m_Identity);
+        else if (offset == PAS_MirrorType_LoadMPESAlignmentOffset) {
+            spdlog::info("{} : MirrorController::operate() : Calling loadMPESAlignmentOffset()...", m_Identity);
+            command = UaString(args[2].Value.String).toUtf8();
+        }
+        else if (offset == PAS_MirrorType_LoadMPESPositions) {
+            spdlog::info("{} : MirrorController::operate() : Calling loadMPESPositions()...", m_Identity);
             command = UaString(args[2].Value.String).toUtf8();
         }
 
@@ -472,18 +476,23 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
             } else if (offset == PAS_MirrorType_AlignRing) {
                 unsigned fixPanel = args[0].Value.UInt32;
                 status = __calculateAlignRing(fixPanel);
-            } else if (offset == PAS_MirrorType_LoadPosition) {
+            } else if (offset == PAS_MirrorType_LoadActuatorLengths) {
                 std::string saveFilePath = UaString(args[0].Value.String).toUtf8();
-                status = __calculateLoadPosition(saveFilePath);
+                status = __calculateLoadActuatorLengths(saveFilePath);
             }
             else if (offset == PAS_MirrorType_LoadDeltaCoords) {
                 std::string saveFilePath = UaString(args[0].Value.String).toUtf8();
                 status = __calculateLoadDeltaCoords(saveFilePath);
             }
-            else if (offset == PAS_MirrorType_LoadAlignmentOffset) {
+            else if (offset == PAS_MirrorType_LoadMPESAlignmentOffset) {
                 std::string saveFilePath = UaString(args[0].Value.String).toUtf8();
-                spdlog::info("Calling calculateLoadAlignmentOffset...");
-                status = __calculateLoadAlignmentOffset(saveFilePath);
+                spdlog::info("Calling calculateLoadMPESAlignmentOffset...");
+                status = __calculateLoadMPESAlignmentOffset(saveFilePath);
+            }
+            else if (offset == PAS_MirrorType_LoadMPESPositions) {
+                std::string saveFilePath = UaString(args[0].Value.String).toUtf8();
+                spdlog::info("Calling calculateLoadMPESPositions...");
+                status = __calculateLoadMPESPositions(saveFilePath);
             }
 
             if (status.isBad()) {
@@ -519,13 +528,17 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
                 alignFrac = args[0].Value.Double;
             } else if (offset == PAS_MirrorType_AlignRing) {
                 alignFrac = args[1].Value.Double;
-            } else if (offset == PAS_MirrorType_LoadPosition) {
+            } else if (offset == PAS_MirrorType_LoadActuatorLengths) {
                 alignFrac = args[1].Value.Double;
             }
             else if (offset == PAS_MirrorType_LoadDeltaCoords) {
                 alignFrac = args[1].Value.Double;
             }
-            else if (offset == PAS_MirrorType_LoadAlignmentOffset) {
+            else if (offset == PAS_MirrorType_LoadMPESAlignmentOffset) {
+                alignFrac = args[1].Value.Double;
+                spdlog::info("Calling setAlignFrac...");
+            }
+            else if (offset == PAS_MirrorType_LoadMPESPositions) {
                 alignFrac = args[1].Value.Double;
                 spdlog::info("Calling setAlignFrac...");
             }
@@ -541,13 +554,16 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
                 alignFrac = args[0].Value.Double;
             } else if (offset == PAS_MirrorType_AlignRing) {
                 alignFrac = args[1].Value.Double;
-            } else if (offset == PAS_MirrorType_LoadPosition) {
+            } else if (offset == PAS_MirrorType_LoadActuatorLengths) {
                 alignFrac = args[1].Value.Double;
             }
             else if (offset == PAS_MirrorType_LoadDeltaCoords) {
                 alignFrac = args[1].Value.Double;
             }
-            else if (offset == PAS_MirrorType_LoadAlignmentOffset) {
+            else if (offset == PAS_MirrorType_LoadMPESAlignmentOffset) {
+                alignFrac = args[1].Value.Double;
+            }
+            else if (offset == PAS_MirrorType_LoadMPESPositions) {
                 alignFrac = args[1].Value.Double;
             }
             alignFrac = abs(alignFrac);
@@ -574,28 +590,39 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
         updateCoords(true);
         setState(Device::DeviceState::On);
     }
-    else if (offset == PAS_MirrorType_SavePosition) {
+    else if (offset == PAS_MirrorType_SaveActuatorLengths) {
         setState(Device::DeviceState::Busy);
         // read out all individual positions
         // and get global mirror coordinates
-        spdlog::info("{} : MirrorController::operate() : Calling savePosition()...", m_Identity);
+        spdlog::info("{} : MirrorController::operate() : Calling saveActuatorLengths()...", m_Identity);
         updateCoords(false);
-        std::string saveFilePath = UaString(args[0].Value.String).toUtf8();        
+        std::string saveFilePath = UaString(args[0].Value.String).toUtf8();
 
-        savePosition(saveFilePath);
+        saveActuatorLengths(saveFilePath);
         setState(Device::DeviceState::On);
     } 
-    else if (offset == PAS_MirrorType_SaveAlignmentOffset) {
+    else if (offset == PAS_MirrorType_SaveMPESAlignmentOffset) {
         setState(Device::DeviceState::Busy);
         // read out all individual positions
         // and get global mirror coordinates
-        spdlog::info("{} : MirrorController::operate() : Calling saveAlignmentOffset()...", m_Identity);
+        spdlog::info("{} : MirrorController::operate() : Calling saveMPESAlignmentOffset()...", m_Identity);
         updateCoords(false);
-        std::string saveFilePath = UaString(args[0].Value.String).toUtf8();        
+        std::string saveFilePath = UaString(args[0].Value.String).toUtf8();
 
-        saveAlignmentOffset(saveFilePath);
+        saveMPESAlignmentOffset(saveFilePath);
         setState(Device::DeviceState::On);
-    } 
+    }
+    else if (offset == PAS_MirrorType_SaveMPESPositions) {
+        setState(Device::DeviceState::Busy);
+        // read out all individual positions
+        // and get global mirror coordinates
+        spdlog::info("{} : MirrorController::operate() : Calling saveMPESPositions()...", m_Identity);
+        updateCoords(false);
+        std::string saveFilePath = UaString(args[0].Value.String).toUtf8();
+
+        saveMPESPositions(saveFilePath);
+        setState(Device::DeviceState::On);
+    }
     else if (offset == PAS_MirrorType_AlignSequentialRecursive) {
         // make sure the arguments make sense -- we are supposed
         // to get an edge position and a direction. The type has
@@ -2247,7 +2274,7 @@ UaStatus MirrorController::__calculateAlignRing(int fixPanel)
     return status;
 }
 
-UaStatus MirrorController::savePosition(const std::string &saveFilePath) {
+UaStatus MirrorController::saveActuatorLengths(const std::string &saveFilePath) {
     // Will save all panel positions, including OT, if it is a child of this mirror.
     spdlog::info("{}: Attempting to write Mirror position to file {}...", m_Identity, saveFilePath);
 
@@ -2259,6 +2286,21 @@ UaStatus MirrorController::savePosition(const std::string &saveFilePath) {
             m_Identity, saveFilePath);
         return OpcUa_Bad;
     }
+
+    UaVariant currentAz, currentEl;
+    float Az, El;
+    std::string varToRead;
+
+    varToRead = "current_position.az";
+    std::vector<std::string> vec_curread{"ns=2;s=Application.USERVARGLOBAL_OPCUA." + varToRead};
+    m_pClient->read(vec_curread, &currentAz);
+    currentAz.toFloat(Az);
+
+    varToRead = "current_position.el";
+    vec_curread.clear();
+    vec_curread.push_back({"ns=2;s=Application.USERVARGLOBAL_OPCUA." + varToRead});
+    m_pClient->read(vec_curread, &currentEl);
+    currentEl.toFloat(El);
 
     // Create output file stream
     std::ofstream f(saveFilePath);
@@ -2274,6 +2316,7 @@ UaStatus MirrorController::savePosition(const std::string &saveFilePath) {
     f << "Mirror: " << m_Identity << std::endl;
     std::time_t now = std::time(0);
     f << "Timestamp: " << std::ctime(&now) << std::endl;
+    f << "Az: " << Az << ", El: " << El << std::endl;
     f << "Global coordinates:\n " << m_curCoords << std::endl;
     f << SAVEFILE_DELIMITER << std::endl;
 
@@ -2290,13 +2333,27 @@ UaStatus MirrorController::savePosition(const std::string &saveFilePath) {
         f << actuatorLengths << std::endl;
         f << SAVEFILE_DELIMITER << std::endl;
     }
+
+    varToRead = "current_position.az";
+    vec_curread.clear();
+    vec_curread.push_back({"ns=2;s=Application.USERVARGLOBAL_OPCUA." + varToRead});
+    m_pClient->read(vec_curread, &currentAz);
+    currentAz.toFloat(Az);
+
+    varToRead = "current_position.el";
+    vec_curread.clear();
+    vec_curread.push_back({"ns=2;s=Application.USERVARGLOBAL_OPCUA." + varToRead});
+    m_pClient->read(vec_curread, &currentEl);
+    currentEl.toFloat(El);
+    f << "Az: " << Az << ", El: " << El << std::endl;
+
     f.close();
     spdlog::info("{}: Done writing Mirror position to file {}.", m_Identity, saveFilePath);
 
     return OpcUa_Good;
 }
 
-UaStatus MirrorController::saveAlignmentOffset(const std::string &saveFilePath) {
+UaStatus MirrorController::saveMPESAlignmentOffset(const std::string &saveFilePath) {
     spdlog::info("{}: Attempting to write alignment offset to file {}...", m_Identity, saveFilePath);
 
     //Check if file already exists
@@ -2307,6 +2364,21 @@ UaStatus MirrorController::saveAlignmentOffset(const std::string &saveFilePath) 
             m_Identity, saveFilePath);
         return OpcUa_Bad;
     }
+
+    UaVariant currentAz, currentEl;
+    float Az, El;
+    std::string varToRead;
+
+    varToRead = "current_position.az";
+    std::vector<std::string> vec_curread{"ns=2;s=Application.USERVARGLOBAL_OPCUA." + varToRead};
+    m_pClient->read(vec_curread, &currentAz);
+    currentAz.toFloat(Az);
+
+    varToRead = "current_position.el";
+    vec_curread.clear();
+    vec_curread.push_back({"ns=2;s=Application.USERVARGLOBAL_OPCUA." + varToRead});
+    m_pClient->read(vec_curread, &currentEl);
+    currentEl.toFloat(El);
 
     // Create output file stream
     std::ofstream f(saveFilePath);
@@ -2322,6 +2394,7 @@ UaStatus MirrorController::saveAlignmentOffset(const std::string &saveFilePath) 
     f << "Mirror: " << m_Identity << std::endl;
     std::time_t now = std::time(0);
     f << "Timestamp: " << std::ctime(&now) << std::endl;
+    f << "Az: " << Az << ", El: " << El << std::endl;
     f << SAVEFILE_DELIMITER << std::endl;
 
     std::vector<std::shared_ptr<MPESController>> alignMPES;
@@ -2347,13 +2420,112 @@ UaStatus MirrorController::saveAlignmentOffset(const std::string &saveFilePath) 
         f << curRead(m * 2 + 1)-targetRead(m * 2 + 1) << std::endl;
         f << SAVEFILE_DELIMITER << std::endl;
     }
+
+    varToRead = "current_position.az";
+    vec_curread.clear();
+    vec_curread.push_back({"ns=2;s=Application.USERVARGLOBAL_OPCUA." + varToRead});
+    m_pClient->read(vec_curread, &currentAz);
+    currentAz.toFloat(Az);
+
+    varToRead = "current_position.el";
+    vec_curread.clear();
+    vec_curread.push_back({"ns=2;s=Application.USERVARGLOBAL_OPCUA." + varToRead});
+    m_pClient->read(vec_curread, &currentEl);
+    currentEl.toFloat(El);
+    f << "Az: " << Az << ", El: " << El << std::endl;
+
     f.close();
     spdlog::info("{}: Done writing Mirror alignment to file {}.", m_Identity, saveFilePath);
 
     return OpcUa_Good;
 }
 
-UaStatus MirrorController::__calculateLoadPosition(const std::string &loadFilePath) {
+UaStatus MirrorController::saveMPESPositions(const std::string &saveFilePath) {
+    spdlog::info("{}: Attempting to write MPES Positions to file {}...", m_Identity, saveFilePath);
+
+    //Check if file already exists
+    struct stat buf{};
+    if (stat(saveFilePath.c_str(), &buf) != -1) {
+        spdlog::error(
+                "{}: File {} already exists. Please select a different path, or manually delete/move/rename the file in your system.",
+                m_Identity, saveFilePath);
+        return OpcUa_Bad;
+    }
+
+    UaVariant currentAz, currentEl;
+    float Az, El;
+    std::string varToRead;
+
+    varToRead = "current_position.az";
+    std::vector<std::string> vec_curread{"ns=2;s=Application.USERVARGLOBAL_OPCUA." + varToRead};
+    m_pClient->read(vec_curread, &currentAz);
+    currentAz.toFloat(Az);
+
+    varToRead = "current_position.el";
+    vec_curread.clear();
+    vec_curread.push_back({"ns=2;s=Application.USERVARGLOBAL_OPCUA." + varToRead});
+    m_pClient->read(vec_curread, &currentEl);
+    currentEl.toFloat(El);
+
+    // Create output file stream
+    std::ofstream f(saveFilePath);
+
+    if (f.bad()) {
+        spdlog::error("{}: Cannot write to file at {}. Aborting...", m_Identity, saveFilePath);
+        f.close();
+        return OpcUa_Bad;
+    }
+
+    // Place mirror name/Type and
+    // other information at top of file
+    f << "Mirror: " << m_Identity << std::endl;
+    std::time_t now = std::time(0);
+    f << "Timestamp: " << std::ctime(&now) << std::endl;
+    f << "Az: " << Az << ", El: " << El << std::endl;
+    f << SAVEFILE_DELIMITER << std::endl;
+
+    std::vector<std::shared_ptr<MPESController>> alignMPES;
+    for (int mpesSerial : m_selectedMPES) {
+        std::shared_ptr<MPESController> mpes = std::dynamic_pointer_cast<MPESController>(
+                m_ChildrenSerialMap.at(PAS_MPESType).at(mpesSerial));
+        //if (mpes->isVisible())
+        //    alignMPES.push_back(mpes);
+        alignMPES.push_back(mpes);
+    }
+    UaVariant vtmp;
+    Eigen::VectorXd curRead(2 * alignMPES.size());
+    Eigen::VectorXd targetRead(2 * alignMPES.size());
+    for (int m = 0; m < (int) alignMPES.size(); m++) {
+        alignMPES.at(m)->getData(PAS_MPESType_xCentroidAvg, vtmp);
+        vtmp.toDouble(curRead(m * 2));
+        alignMPES.at(m)->getData(PAS_MPESType_yCentroidAvg, vtmp);
+        vtmp.toDouble(curRead(m * 2 + 1));
+        f << "MPES: " << alignMPES.at(m)->getIdentity() << std::endl;
+        f << curRead(m * 2) << std::endl;
+        f << curRead(m * 2 + 1) << std::endl;
+        f << SAVEFILE_DELIMITER << std::endl;
+    }
+
+    varToRead = "current_position.az";
+    vec_curread.clear();
+    vec_curread.push_back({"ns=2;s=Application.USERVARGLOBAL_OPCUA." + varToRead});
+    m_pClient->read(vec_curread, &currentAz);
+    currentAz.toFloat(Az);
+
+    varToRead = "current_position.el";
+    vec_curread.clear();
+    vec_curread.push_back({"ns=2;s=Application.USERVARGLOBAL_OPCUA." + varToRead});
+    m_pClient->read(vec_curread, &currentEl);
+    currentEl.toFloat(El);
+    f << "Az: " << Az << ", El: " << El << std::endl;
+
+    f.close();
+    spdlog::info("{}: Done writing Mirror alignment to file {}.", m_Identity, saveFilePath);
+
+    return OpcUa_Good;
+}
+
+UaStatus MirrorController::__calculateLoadActuatorLengths(const std::string &loadFilePath) {
     UaStatus status;
 
     spdlog::info("{}: Attempting to load Mirror position from file {}...", m_Identity, loadFilePath);
@@ -2456,7 +2628,7 @@ UaStatus MirrorController::__calculateLoadPosition(const std::string &loadFilePa
 
     m_Xcalculated = X;
     m_panelsToMove = panelsToMove;
-    m_previousCalculatedMethod = PAS_MirrorType_LoadPosition;
+    m_previousCalculatedMethod = PAS_MirrorType_LoadActuatorLengths;
 
     return status;
 }
@@ -2582,7 +2754,7 @@ UaStatus MirrorController::__calculateLoadDeltaCoords(const std::string &loadFil
     return status;
 }
 
-UaStatus MirrorController::__calculateLoadAlignmentOffset(const std::string &loadFilePath) {
+UaStatus MirrorController::__calculateLoadMPESAlignmentOffset(const std::string &loadFilePath) {
     UaStatus status;
 
     spdlog::info("{}: Attempting to load Alignment offset from file {}...", m_Identity, loadFilePath);
@@ -2674,6 +2846,99 @@ UaStatus MirrorController::__calculateLoadAlignmentOffset(const std::string &loa
     return status;
 }
 
+
+UaStatus MirrorController::__calculateLoadMPESPositions(const std::string &loadFilePath) {
+    UaStatus status;
+
+    spdlog::info("{}: Attempting to load MPES Positions from file {}...", m_Identity, loadFilePath);
+
+    //Check if file already exists
+    struct stat buf{};
+    if (stat(loadFilePath.c_str(), &buf) == -1) {
+        spdlog::error("{}: File {} not found. Please make sure the selected file path is valid.", m_Identity,
+                      loadFilePath);
+        return OpcUa_Bad;
+    }
+
+    std::ostringstream os;
+
+    // Open file stream
+    std::ifstream infile(loadFilePath);
+    if (infile.bad()) {
+        spdlog::error("{}: File {} cannot be read. Please check it and try again.", m_Identity, loadFilePath);
+        return OpcUa_Bad;
+    }
+
+    // Check to make sure it matches this mirror
+    std::string line;
+    getline(infile, line);
+    unsigned s = line.find("(");
+    unsigned e = line.find(")");
+    Device::Identity mirrorId = Device::parseIdentity(line.substr(s, e - s + 2));
+
+    if (mirrorId != m_Identity) {
+        spdlog::error(
+                "{}: Mirror Identity indicated in file ({}) does not match the Identity of this mirror ({}). Cannot load alignment offset.",
+                m_Identity, mirrorId, m_Identity);
+        return OpcUa_Bad;
+    }
+
+    // Print Mirror Info
+    std::map<Device::Identity, Eigen::VectorXd> sensorOffsets;
+    while (getline(infile, line) && (line != SAVEFILE_DELIMITER)) {
+        os << line << std::endl;
+    }
+    spdlog::info("{}: Mirror Info:\n Mirror Identity: {}\n{}", m_Identity, m_Identity, os.str());
+
+    //TOdo fix code here, using only the positions, not offsets.
+    Eigen::VectorXd X(m_pChildren.at(PAS_PanelType).size() * 6);
+    Eigen::VectorXd deltaActLengths(6);
+    Eigen::VectorXd alignmentOffset(2);
+    Eigen::VectorXd currentActLengths(6);
+    std::vector<std::shared_ptr<PanelController>> panelsToMove;
+    unsigned j = 0;
+
+    // Parse all sensor offsets
+    Device::Identity sensorId;
+    int i = 0;
+
+    spdlog::info("Parsing sensor readings from the file...");
+    while (infile.peek() != EOF) {
+        getline(infile, line);
+        s = line.find("(");
+        e = line.find(")");
+        sensorId = Device::parseIdentity(line.substr(s , e - s + 2));
+        spdlog::info("Found MPES {}", sensorId);
+        spdlog::info(" SAVEFILE_DELIMITER is {}", SAVEFILE_DELIMITER);
+        i = 0;
+        while (getline(infile, line) && line != SAVEFILE_DELIMITER) {
+            alignmentOffset(i) = std::stod(line);
+            i++;
+        }
+        sensorOffsets[sensorId] = alignmentOffset;
+        spdlog::info("{}: Found offset for MPES {}:\n{}\n", m_Identity, sensorId, alignmentOffset);
+    }
+
+    spdlog::info("saving aligned readings to vectors...");
+    std::vector<std::shared_ptr<MPESController>> alignMPES;
+    for (int mpesSerial : m_selectedMPES) {
+        std::shared_ptr<MPESController> mpes = std::dynamic_pointer_cast<MPESController>(
+                m_ChildrenSerialMap.at(PAS_MPESType).at(mpesSerial));
+        if (mpes->isVisible())
+            alignMPES.push_back(mpes);
+    }
+    for (int m = 0; m < (int) alignMPES.size(); m++) {
+        sensorId = alignMPES.at(m)->getIdentity();
+        if (sensorOffsets.find(sensorId) != sensorOffsets.end()) {
+            alignMPES.at(m)->m_OpticsOffsets = sensorOffsets[sensorId];
+        }
+    }
+
+    spdlog::info("calling calculateAlignSector...");
+    status = __calculateAlignSector(1);
+
+    return status;
+}
 
 UaStatus MirrorController::__setAlignFrac(double alignFrac) {
     UaStatus status;

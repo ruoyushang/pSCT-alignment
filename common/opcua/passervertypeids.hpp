@@ -46,8 +46,8 @@
 #define PAS_MirrorType_Position                      126
 #define PAS_MirrorType_ErrorState                    127
 #define PAS_MirrorType_ReadPosition                  130
-#define PAS_MirrorType_SavePosition                  131
-#define PAS_MirrorType_LoadPosition                  132
+#define PAS_MirrorType_SaveActuatorLengths           131
+#define PAS_MirrorType_LoadActuatorLengths           132
 #define PAS_MirrorType_ReadSensors                   133
 #define PAS_MirrorType_ReadSensorsParallel           134
 #define PAS_MirrorType_MoveToCoords                  135
@@ -61,10 +61,12 @@
 #define PAS_MirrorType_CheckStatus                   143
 #define PAS_MirrorType_Stop                          144
 #define PAS_MirrorType_LoadDeltaCoords               145
-#define PAS_MirrorType_SaveAlignmentOffset           146
-#define PAS_MirrorType_LoadAlignmentOffset           147
+#define PAS_MirrorType_SaveMPESAlignmentOffset       146
+#define PAS_MirrorType_LoadMPESAlignmentOffset       147
 #define PAS_MirrorType_SelectedTzFixedPanels         148
 #define PAS_MirrorType_SelectedRxRyFixedPanels       149
+#define PAS_MirrorType_SaveMPESPositions             150
+#define PAS_MirrorType_LoadMPESPositions             151
 
 //----------------------------------------------------------//
 // Edge Type
