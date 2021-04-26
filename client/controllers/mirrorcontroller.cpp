@@ -42,9 +42,9 @@ MirrorController *MirrorControllerCompute::m_Mirror = nullptr;
 
 const std::string MirrorController::SAVEFILE_DELIMITER = "****************************************";
 
-MirrorController::MirrorController(Device::Identity identity, std::string mode)
+MirrorController::MirrorController(Device::Identity identity, Client *pClient, std::string mode)
     : PasCompositeController(
-    std::move(identity), nullptr,
+    std::move(identity), pClient,
     10000),
       m_Mode(mode), m_pSurface(nullptr) {
     // define possible children and initialize the selected children string
@@ -2353,7 +2353,6 @@ std::vector<float> MirrorController::getAzEl() {
     varToRead = "current_position.az";
     vec_curread.clear();
     vec_curread.push_back({"ns=2;s=Application.USERVARGLOBAL_OPCUA." + varToRead});
-    spdlog::trace(vec_curread);
     spdlog::trace("Attempting to query Positioner Az");
     status = m_pClient->read(vec_curread, &value);
     if (status.isGood()) {
@@ -2367,7 +2366,6 @@ std::vector<float> MirrorController::getAzEl() {
     varToRead = "current_position.el";
     vec_curread.clear();
     vec_curread.push_back({"ns=2;s=Application.USERVARGLOBAL_OPCUA." + varToRead});
-    spdlog::trace(vec_curread);
     spdlog::trace("Attempting to query Positioner El");
     status = m_pClient->read(vec_curread, &value);
     if (status.isGood()) {
@@ -2375,7 +2373,7 @@ std::vector<float> MirrorController::getAzEl() {
         spdlog::trace("Current Elevation: {} ", El);
     }
     else {
-        spdlog::trace("No luck");
+        spdlog::trace("No luck.");
     }
 
     std::vector<float> AzEl;

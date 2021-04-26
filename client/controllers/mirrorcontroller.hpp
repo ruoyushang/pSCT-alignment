@@ -57,7 +57,7 @@ public:
     friend class OptTableController;
     friend class OpticalAlignmentController;
     friend class GlobalAlignmentController;
-    explicit MirrorController(Device::Identity identity, std::string mode = "client");
+    explicit MirrorController(Device::Identity identity, Client *pClient, std::string mode = "client");
 
     // initialize and precompute everything
     bool initialize() override;
