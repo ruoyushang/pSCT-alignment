@@ -11,6 +11,8 @@
 #include "common/alignment/device.hpp"
 #include "common/simulatestewart/stewartplatform.hpp"
 
+#include "client/clienthelper.hpp"
+
 #include "client/controllers/pascontroller.hpp"
 #include "client/controllers/opttablecontroller.hpp"
 #include "client/controllers/opticalalignmentcontroller.hpp"
