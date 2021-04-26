@@ -2297,7 +2297,7 @@ UaStatus MirrorController::saveActuatorLengths(const std::string &saveFilePath) 
         return OpcUa_Bad;
     }
 
-    std::vector<float> AzEl;
+    std::vector<double> AzEl;
     AzEl = getAzEl();
 
     // Create output file stream
@@ -2341,9 +2341,9 @@ UaStatus MirrorController::saveActuatorLengths(const std::string &saveFilePath) 
     return OpcUa_Good;
 }
 
-std::vector<float> MirrorController::getAzEl() {
+std::vector<double> MirrorController::getAzEl() {
 
-    float Az, El;
+    double Az, El;
     UaVariant value;
     std::string varToRead;
     UaStatus status;
@@ -2353,7 +2353,7 @@ std::vector<float> MirrorController::getAzEl() {
     spdlog::trace("Attempting to query Positioner Az");
     status = m_pClient->read({"ns=2;s=Application.USERVARGLOBAL_OPCUA." + varToRead}, &value);
     if (status.isGood()) {
-        value.toFloat(Az);
+        value.toDouble(Az);
         spdlog::trace("Current Azimuth: {} ", Az);
     }
     else {
@@ -2364,14 +2364,14 @@ std::vector<float> MirrorController::getAzEl() {
     spdlog::trace("Attempting to query Positioner El");
     status = m_pClient->read({"ns=2;s=Application.USERVARGLOBAL_OPCUA." + varToRead}, &value);
     if (status.isGood()) {
-        value.toFloat(El);
+        value.toDouble(El);
         spdlog::trace("Current Elevation: {} ", El);
     }
     else {
         spdlog::trace("No luck.");
     }
 
-    std::vector<float> AzEl;
+    std::vector<double> AzEl;
     AzEl.push_back(Az);
     AzEl.push_back(El);
     return AzEl;
@@ -2391,7 +2391,7 @@ UaStatus MirrorController::savePanelTemperatures(const std::string &saveFilePath
         return OpcUa_Bad;
     }
 
-    std::vector<float> AzEl;
+    std::vector<double> AzEl;
     AzEl = getAzEl();
 
     // Create output file stream
@@ -2454,7 +2454,7 @@ UaStatus MirrorController::saveMPESAlignmentOffset(const std::string &saveFilePa
         return OpcUa_Bad;
     }
 
-    std::vector<float> AzEl;
+    std::vector<double> AzEl;
     AzEl = getAzEl();
 
     // Create output file stream
@@ -2519,7 +2519,7 @@ UaStatus MirrorController::saveMPESPositions(const std::string &saveFilePath) {
         return OpcUa_Bad;
     }
 
-    std::vector<float> AzEl;
+    std::vector<double> AzEl;
     AzEl = getAzEl();
 
     // Create output file stream
