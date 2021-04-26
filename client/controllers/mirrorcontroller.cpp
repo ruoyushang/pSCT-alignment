@@ -606,7 +606,6 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
         // read out all individual positions
         // and get global mirror coordinates
         spdlog::info("{} : MirrorController::operate() : Calling savePanelTemperatures()...", m_Identity);
-        updateCoords(false);
         std::string saveFilePath = UaString(args[0].Value.String).toUtf8();
 
         savePanelTemperatures(saveFilePath);
