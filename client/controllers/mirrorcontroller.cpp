@@ -2351,6 +2351,8 @@ std::vector<float> MirrorController::getAzEl() {
     UaStatus status;
     std::vector<std::string> vec_curread;
     varToRead = "current_position.az";
+    vec_curread.clear();
+    vec_curread.push_back({"ns=2;s=Application.USERVARGLOBAL_OPCUA." + varToRead});
     spdlog::trace("Attempting to query Positioner Az and El");
     status = m_pClient->read(vec_curread, &currentAz);
     if (status.isGood()) {
