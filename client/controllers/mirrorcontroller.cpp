@@ -2351,7 +2351,7 @@ std::vector<double> MirrorController::getAzEl() {
 
     varToRead = "current_position.az";
     spdlog::trace("Attempting to query Positioner Az");
-    status = m_pClient->read({"ns=2;s=Application.USERVARGLOBAL_OPCUA." + varToRead}, &value);
+    status = this->m_pClient->read({"ns=2;s=Application.USERVARGLOBAL_OPCUA." + varToRead}, &value);
     if (status.isGood()) {
         value.toDouble(Az);
         spdlog::trace("Current Azimuth: {} ", Az);
@@ -2362,7 +2362,7 @@ std::vector<double> MirrorController::getAzEl() {
 
     varToRead = "current_position.el";
     spdlog::trace("Attempting to query Positioner El");
-    status = m_pClient->read({"ns=2;s=Application.USERVARGLOBAL_OPCUA." + varToRead}, &value);
+    status = this->m_pClient->read({"ns=2;s=Application.USERVARGLOBAL_OPCUA." + varToRead}, &value);
     if (status.isGood()) {
         value.toDouble(El);
         spdlog::trace("Current Elevation: {} ", El);
