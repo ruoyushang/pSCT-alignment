@@ -21,6 +21,8 @@ class AGeoAsphericDisk;
 class MirrorController; // need this forward declaration for the friend class
 class PanelController;
 
+class Client;
+
 // This is an interface to be able to use ROOT's MINUIT, which requires a static ChiSq function.
 // ROOT Requires that objects inherit from its TObject. I don't want such multiple inheritance
 // for MirrorController, therefore creating this wrapper.
