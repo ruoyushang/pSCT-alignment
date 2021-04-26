@@ -2345,26 +2345,37 @@ UaStatus MirrorController::saveActuatorLengths(const std::string &saveFilePath) 
 std::vector<float> MirrorController::getAzEl() {
 
     float Az, El;
-    UaVariant currentAz;
-    UaVariant currentEl;
+    UaVariant value;
     std::string varToRead;
     UaStatus status;
     std::vector<std::string> vec_curread;
+
     varToRead = "current_position.az";
     vec_curread.clear();
     vec_curread.push_back({"ns=2;s=Application.USERVARGLOBAL_OPCUA." + varToRead});
-    spdlog::trace("Attempting to query Positioner Az and El");
-    status = m_pClient->read(vec_curread, &currentAz);
+    spdlog::trace(vec_curread);
+    spdlog::trace("Attempting to query Positioner Az");
+    status = m_pClient->read(vec_curread, &value);
     if (status.isGood()) {
-        currentAz.toFloat(Az);
+        value.toFloat(Az);
+        spdlog::trace("Current Azimuth: {} ", Az);
+    }
+    else {
+        spdlog::trace("No luck");
     }
 
     varToRead = "current_position.el";
     vec_curread.clear();
     vec_curread.push_back({"ns=2;s=Application.USERVARGLOBAL_OPCUA." + varToRead});
-    status = m_pClient->read(vec_curread, &currentEl);
+    spdlog::trace(vec_curread);
+    spdlog::trace("Attempting to query Positioner El");
+    status = m_pClient->read(vec_curread, &value);
     if (status.isGood()) {
-        currentEl.toFloat(El);
+        value.toFloat(El);
+        spdlog::trace("Current Elevation: {} ", El);
+    }
+    else {
+        spdlog::trace("No luck");
     }
 
     std::vector<float> AzEl;
