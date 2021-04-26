@@ -157,6 +157,11 @@ const std::map<OpcUa_UInt32, std::pair<std::string, std::vector<std::tuple<std::
                                                                                                  UaNodeId(OpcUaId_String),
                                                                                                  "Absolute path to .mirrorPos file to save alignment to.")
                                                                          }}},
+    {PAS_MirrorType_SavePanelTemperatures, {"SavePanelTemperatures", {
+                                                                     std::make_tuple("Save File Name",
+                                                                                     UaNodeId(OpcUaId_String),
+                                                                                     "Absolute path to .mirrorPos file to save temperatures to.")
+                                                             }}},
     {PAS_MirrorType_LoadMPESAlignmentOffset, {"LoadAlignmentOffset", {
                                                                                std::make_tuple("Load File Name",
                                                                                                UaNodeId(OpcUaId_String),

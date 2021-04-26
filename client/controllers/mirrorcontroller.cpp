@@ -600,7 +600,18 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
 
         saveActuatorLengths(saveFilePath);
         setState(Device::DeviceState::On);
-    } 
+    }
+    else if (offset == PAS_MirrorType_SavePanelTemperatures) {
+        setState(Device::DeviceState::Busy);
+        // read out all individual positions
+        // and get global mirror coordinates
+        spdlog::info("{} : MirrorController::operate() : Calling savePanelTemperatures()...", m_Identity);
+        updateCoords(false);
+        std::string saveFilePath = UaString(args[0].Value.String).toUtf8();
+
+        savePanelTemperatures(saveFilePath);
+        setState(Device::DeviceState::On);
+    }
     else if (offset == PAS_MirrorType_SaveMPESAlignmentOffset) {
         setState(Device::DeviceState::Busy);
         // read out all individual positions
@@ -2287,20 +2298,8 @@ UaStatus MirrorController::saveActuatorLengths(const std::string &saveFilePath) 
         return OpcUa_Bad;
     }
 
-    UaVariant currentAz, currentEl;
-    float Az, El;
-    std::string varToRead;
-
-    varToRead = "current_position.az";
-    std::vector<std::string> vec_curread{"ns=2;s=Application.USERVARGLOBAL_OPCUA." + varToRead};
-    m_pClient->read(vec_curread, &currentAz);
-    currentAz.toFloat(Az);
-
-    varToRead = "current_position.el";
-    vec_curread.clear();
-    vec_curread.push_back({"ns=2;s=Application.USERVARGLOBAL_OPCUA." + varToRead});
-    m_pClient->read(vec_curread, &currentEl);
-    currentEl.toFloat(El);
+    std::vector<float> AzEl;
+    AzEl = getAzEl();
 
     // Create output file stream
     std::ofstream f(saveFilePath);
@@ -2316,7 +2315,7 @@ UaStatus MirrorController::saveActuatorLengths(const std::string &saveFilePath) 
     f << "Mirror: " << m_Identity << std::endl;
     std::time_t now = std::time(0);
     f << "Timestamp: " << std::ctime(&now) << std::endl;
-    f << "Az: " << Az << ", El: " << El << std::endl;
+    f << "Az: " << AzEl[0] << ", El: " << AzEl[1] << std::endl;
     f << "Global coordinates:\n " << m_curCoords << std::endl;
     f << SAVEFILE_DELIMITER << std::endl;
 
@@ -2334,21 +2333,105 @@ UaStatus MirrorController::saveActuatorLengths(const std::string &saveFilePath) 
         f << SAVEFILE_DELIMITER << std::endl;
     }
 
+    AzEl = getAzEl();
+    f << "Az: " << AzEl[0] << ", El: " << AzEl[1] << std::endl;
+
+    f.close();
+    spdlog::info("{}: Done writing Mirror position to file {}.", m_Identity, saveFilePath);
+
+    return OpcUa_Good;
+}
+
+std::vector<float> MirrorController::getAzEl() {
+
+    float Az, El;
+    UaVariant currentAz;
+    UaVariant currentEl;
+    std::string varToRead;
+    UaStatus status;
+    std::vector<std::string> vec_curread;
     varToRead = "current_position.az";
-    vec_curread.clear();
-    vec_curread.push_back({"ns=2;s=Application.USERVARGLOBAL_OPCUA." + varToRead});
-    m_pClient->read(vec_curread, &currentAz);
-    currentAz.toFloat(Az);
+    spdlog::trace("Attempting to query Positioner Az and El");
+    status = m_pClient->read(vec_curread, &currentAz);
+    if (status.isGood()) {
+        currentAz.toFloat(Az);
+    }
 
     varToRead = "current_position.el";
     vec_curread.clear();
     vec_curread.push_back({"ns=2;s=Application.USERVARGLOBAL_OPCUA." + varToRead});
-    m_pClient->read(vec_curread, &currentEl);
-    currentEl.toFloat(El);
-    f << "Az: " << Az << ", El: " << El << std::endl;
+    status = m_pClient->read(vec_curread, &currentEl);
+    if (status.isGood()) {
+        currentEl.toFloat(El);
+    }
+
+    std::vector<float> AzEl;
+    AzEl.push_back(Az);
+    AzEl.push_back(El);
+    return AzEl;
+}
+
+
+UaStatus MirrorController::savePanelTemperatures(const std::string &saveFilePath) {
+    // Will save all panel temperatures, including OT, if it is a child of this mirror.
+    spdlog::info("{}: Attempting to write Panel Temperatures to file {}...", m_Identity, saveFilePath);
+
+    //Check if file already exists
+    struct stat buf{};
+    if (stat(saveFilePath.c_str(), &buf) != -1) {
+        spdlog::error(
+                "{}: File {} already exists. Please select a different path, or manually delete/move/rename the file in your system.",
+                m_Identity, saveFilePath);
+        return OpcUa_Bad;
+    }
+
+    std::vector<float> AzEl;
+    AzEl = getAzEl();
+
+    // Create output file stream
+    std::ofstream f(saveFilePath);
+
+    if (f.bad()) {
+        spdlog::error("{}: Cannot write to file at {}. Aborting...", m_Identity, saveFilePath);
+        f.close();
+        return OpcUa_Bad;
+    }
+
+    // Place mirror name/Type and
+    // other information at top of file
+    f << "Mirror: " << m_Identity << std::endl;
+    std::time_t now = std::time(0);
+    f << "Timestamp: " << std::ctime(&now) << std::endl;
+    f << "Az: " << AzEl[0] << ", El: " << AzEl[1] << std::endl;
+
+    f << SAVEFILE_DELIMITER << std::endl;
+
+    UaVariant intTemp, extTemp;
+    UaStatus status;
+    for (unsigned panelPos : m_selectedPanels) {
+        auto pPanel = std::dynamic_pointer_cast<PanelController>(
+                m_ChildrenPositionMap.at(PAS_PanelType).at(panelPos));
+        status = std::dynamic_pointer_cast<PanelController>(pPanel)->getData(PAS_PanelType_ExtTemperature, extTemp);
+        if (status.isBad()) {
+            spdlog::error("{}: Unable to write tempeture for Panel {}, failed to read temperature.", m_Identity, pPanel->getIdentity());
+            continue;
+        }
+        status = std::dynamic_pointer_cast<PanelController>(pPanel)->getData(PAS_PanelType_IntTemperature, intTemp);
+        if (status.isBad()) {
+            spdlog::error("{}: Unable to write temperature for Panel {}, failed to read temperature.", m_Identity, pPanel->getIdentity());
+            continue;
+        }
+        f << "Panel: " << pPanel->getIdentity() << std::endl;
+        f << intTemp << std::endl;
+        f << extTemp << std::endl;
+        f << SAVEFILE_DELIMITER << std::endl;
+    }
+
+    AzEl = getAzEl();
+    f << "Az: " << AzEl[0] << ", El: " << AzEl[1] << std::endl;
 
     f.close();
-    spdlog::info("{}: Done writing Mirror position to file {}.", m_Identity, saveFilePath);
+    spdlog::info("{}: Done writing Mirror temperature to file {}.", m_Identity, saveFilePath);
 
     return OpcUa_Good;
 }
@@ -2365,20 +2448,8 @@ UaStatus MirrorController::saveMPESAlignmentOffset(const std::string &saveFilePa
         return OpcUa_Bad;
     }
 
-    UaVariant currentAz, currentEl;
-    float Az, El;
-    std::string varToRead;
-
-    varToRead = "current_position.az";
-    std::vector<std::string> vec_curread{"ns=2;s=Application.USERVARGLOBAL_OPCUA." + varToRead};
-    m_pClient->read(vec_curread, &currentAz);
-    currentAz.toFloat(Az);
-
-    varToRead = "current_position.el";
-    vec_curread.clear();
-    vec_curread.push_back({"ns=2;s=Application.USERVARGLOBAL_OPCUA." + varToRead});
-    m_pClient->read(vec_curread, &currentEl);
-    currentEl.toFloat(El);
+    std::vector<float> AzEl;
+    AzEl = getAzEl();
 
     // Create output file stream
     std::ofstream f(saveFilePath);
@@ -2394,7 +2465,7 @@ UaStatus MirrorController::saveMPESAlignmentOffset(const std::string &saveFilePa
     f << "Mirror: " << m_Identity << std::endl;
     std::time_t now = std::time(0);
     f << "Timestamp: " << std::ctime(&now) << std::endl;
-    f << "Az: " << Az << ", El: " << El << std::endl;
+    f << "Az: " << AzEl[0] << ", El: " << AzEl[1] << std::endl;
     f << SAVEFILE_DELIMITER << std::endl;
 
     std::vector<std::shared_ptr<MPESController>> alignMPES;
@@ -2421,18 +2492,8 @@ UaStatus MirrorController::saveMPESAlignmentOffset(const std::string &saveFilePa
         f << SAVEFILE_DELIMITER << std::endl;
     }
 
-    varToRead = "current_position.az";
-    vec_curread.clear();
-    vec_curread.push_back({"ns=2;s=Application.USERVARGLOBAL_OPCUA." + varToRead});
-    m_pClient->read(vec_curread, &currentAz);
-    currentAz.toFloat(Az);
-
-    varToRead = "current_position.el";
-    vec_curread.clear();
-    vec_curread.push_back({"ns=2;s=Application.USERVARGLOBAL_OPCUA." + varToRead});
-    m_pClient->read(vec_curread, &currentEl);
-    currentEl.toFloat(El);
-    f << "Az: " << Az << ", El: " << El << std::endl;
+    AzEl = getAzEl();
+    f << "Az: " << AzEl[0] << ", El: " << AzEl[1] << std::endl;
 
     f.close();
     spdlog::info("{}: Done writing Mirror alignment to file {}.", m_Identity, saveFilePath);
@@ -2452,20 +2513,8 @@ UaStatus MirrorController::saveMPESPositions(const std::string &saveFilePath) {
         return OpcUa_Bad;
     }
 
-    UaVariant currentAz, currentEl;
-    float Az, El;
-    std::string varToRead;
-
-    varToRead = "current_position.az";
-    std::vector<std::string> vec_curread{"ns=2;s=Application.USERVARGLOBAL_OPCUA." + varToRead};
-    m_pClient->read(vec_curread, &currentAz);
-    currentAz.toFloat(Az);
-
-    varToRead = "current_position.el";
-    vec_curread.clear();
-    vec_curread.push_back({"ns=2;s=Application.USERVARGLOBAL_OPCUA." + varToRead});
-    m_pClient->read(vec_curread, &currentEl);
-    currentEl.toFloat(El);
+    std::vector<float> AzEl;
+    AzEl = getAzEl();
 
     // Create output file stream
     std::ofstream f(saveFilePath);
@@ -2481,7 +2530,7 @@ UaStatus MirrorController::saveMPESPositions(const std::string &saveFilePath) {
     f << "Mirror: " << m_Identity << std::endl;
     std::time_t now = std::time(0);
     f << "Timestamp: " << std::ctime(&now) << std::endl;
-    f << "Az: " << Az << ", El: " << El << std::endl;
+    f << "Az: " << AzEl[0] << ", El: " << AzEl[1] << std::endl;
     f << SAVEFILE_DELIMITER << std::endl;
 
     std::vector<std::shared_ptr<MPESController>> alignMPES;
@@ -2506,18 +2555,8 @@ UaStatus MirrorController::saveMPESPositions(const std::string &saveFilePath) {
         f << SAVEFILE_DELIMITER << std::endl;
     }
 
-    varToRead = "current_position.az";
-    vec_curread.clear();
-    vec_curread.push_back({"ns=2;s=Application.USERVARGLOBAL_OPCUA." + varToRead});
-    m_pClient->read(vec_curread, &currentAz);
-    currentAz.toFloat(Az);
-
-    varToRead = "current_position.el";
-    vec_curread.clear();
-    vec_curread.push_back({"ns=2;s=Application.USERVARGLOBAL_OPCUA." + varToRead});
-    m_pClient->read(vec_curread, &currentEl);
-    currentEl.toFloat(El);
-    f << "Az: " << Az << ", El: " << El << std::endl;
+    AzEl = getAzEl();
+    f << "Az: " << AzEl[0] << ", El: " << AzEl[1] << std::endl;
 
     f.close();
     spdlog::info("{}: Done writing Mirror alignment to file {}.", m_Identity, saveFilePath);

@@ -67,6 +67,7 @@
 #define PAS_MirrorType_SelectedRxRyFixedPanels       149
 #define PAS_MirrorType_SaveMPESPositions             150
 #define PAS_MirrorType_LoadMPESPositions             151
+#define PAS_MirrorType_SavePanelTemperatures         152
 
 //----------------------------------------------------------//
 // Edge Type
