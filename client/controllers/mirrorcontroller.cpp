@@ -2413,20 +2413,27 @@ UaStatus MirrorController::savePanelTemperatures(const std::string &saveFilePath
 
     f << SAVEFILE_DELIMITER << std::endl;
 
-    UaVariant intTemp, extTemp;
+    UaVariant vtmp;
+    double intTemp, extTemp;
     UaStatus status;
     for (unsigned panelPos : m_selectedPanels) {
         auto pPanel = std::dynamic_pointer_cast<PanelController>(
                 m_ChildrenPositionMap.at(PAS_PanelType).at(panelPos));
-        status = std::dynamic_pointer_cast<PanelController>(pPanel)->getData(PAS_PanelType_ExtTemperature, extTemp);
-        if (status.isBad()) {
-            spdlog::error("{}: Unable to write tempeture for Panel {}, failed to read temperature.", m_Identity, pPanel->getIdentity());
-            continue;
-        }
-        status = std::dynamic_pointer_cast<PanelController>(pPanel)->getData(PAS_PanelType_IntTemperature, intTemp);
+        status = std::dynamic_pointer_cast<PanelController>(pPanel)->getData(PAS_PanelType_ExtTemperature, vtmp);
         if (status.isBad()) {
             spdlog::error("{}: Unable to write temperature for Panel {}, failed to read temperature.", m_Identity, pPanel->getIdentity());
             continue;
+        }
+        else {
+            vtmp.toDouble(extTemp);
+        }
+        status = std::dynamic_pointer_cast<PanelController>(pPanel)->getData(PAS_PanelType_IntTemperature, vtmp);
+        if (status.isBad()) {
+            spdlog::error("{}: Unable to write temperature for Panel {}, failed to read temperature.", m_Identity, pPanel->getIdentity());
+            continue;
+        }
+        else {
+            vtmp.toDouble(intTemp);
         }
         f << "Panel: " << pPanel->getIdentity() << std::endl;
         f << intTemp << std::endl;
