@@ -42,9 +42,9 @@ MirrorController *MirrorControllerCompute::m_Mirror = nullptr;
 
 const std::string MirrorController::SAVEFILE_DELIMITER = "****************************************";
 
-MirrorController::MirrorController(Device::Identity identity, Client *pClient, std::string mode)
+MirrorController::MirrorController(Device::Identity identity, std::string mode)
     : PasCompositeController(
-    std::move(identity), pClient,
+    std::move(identity), nullptr,
     10000),
       m_Mode(mode), m_pSurface(nullptr) {
     // define possible children and initialize the selected children string
@@ -2344,14 +2344,15 @@ UaStatus MirrorController::saveActuatorLengths(const std::string &saveFilePath) 
 std::vector<double> MirrorController::getAzEl() {
 
     double Az, El;
-    UaVariant value;
+// The following is broken due to the m_pClient used.
+/*    UaVariant value;
     std::string varToRead;
     UaStatus status;
     std::vector<std::string> vec_curread;
 
     varToRead = "current_position.az";
     spdlog::trace("Attempting to query Positioner Az");
-    status = this->m_pClient->read({"ns=2;s=Application.USERVARGLOBAL_OPCUA." + varToRead}, &value);
+    status = m_pClient->read({"ns=2;s=Application.USERVARGLOBAL_OPCUA." + varToRead}, &value);
     if (status.isGood()) {
         value.toDouble(Az);
         spdlog::trace("Current Azimuth: {} ", Az);
@@ -2362,18 +2363,18 @@ std::vector<double> MirrorController::getAzEl() {
 
     varToRead = "current_position.el";
     spdlog::trace("Attempting to query Positioner El");
-    status = this->m_pClient->read({"ns=2;s=Application.USERVARGLOBAL_OPCUA." + varToRead}, &value);
+    status = m_pClient->read({"ns=2;s=Application.USERVARGLOBAL_OPCUA." + varToRead}, &value);
     if (status.isGood()) {
         value.toDouble(El);
         spdlog::trace("Current Elevation: {} ", El);
     }
     else {
         spdlog::trace("No luck.");
-    }
+    }*/
 
     std::vector<double> AzEl;
-    AzEl.push_back(Az);
-    AzEl.push_back(El);
+    AzEl.push_back(0);
+    AzEl.push_back(0);
     return AzEl;
 }
 

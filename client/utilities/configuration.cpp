@@ -76,7 +76,7 @@ UaStatus Configuration::loadConnectionConfiguration(const UaString& sConfigurati
     const char *local_ip = getenv("LOCALIP");
     value = pSettings->value("DiscoveryURL", UaString("opc.tcp://%s:48010").arg(local_ip));
 #else
-    value = pSettings->value("DiscoveryURL", UaString("opc.tcp://172.17.0.201:48010"));
+    value = pSettings->value("DiscoveryURL", UaString("opc.tcp://172.17.10.15:48010"));
 #endif
     m_discoveryUrl = value.toString();
     value = pSettings->value("PositionerURL", UaString("opc.tcp://172.17.3.3:4840"));

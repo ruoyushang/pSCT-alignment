@@ -11,8 +11,6 @@
 #include "common/alignment/device.hpp"
 #include "common/simulatestewart/stewartplatform.hpp"
 
-#include "client/clienthelper.hpp"
-
 #include "client/controllers/pascontroller.hpp"
 #include "client/controllers/opttablecontroller.hpp"
 #include "client/controllers/opticalalignmentcontroller.hpp"
@@ -23,7 +21,6 @@ class AGeoAsphericDisk;
 class MirrorController; // need this forward declaration for the friend class
 class PanelController;
 
-class Client;
 
 // This is an interface to be able to use ROOT's MINUIT, which requires a static ChiSq function.
 // ROOT Requires that objects inherit from its TObject. I don't want such multiple inheritance
@@ -61,8 +58,7 @@ public:
     friend class OptTableController;
     friend class OpticalAlignmentController;
     friend class GlobalAlignmentController;
-    friend class Client;
-    explicit MirrorController(Device::Identity identity, Client *pClient, std::string mode = "client");
+    explicit MirrorController(Device::Identity identity, std::string mode = "client");
 
     // initialize and precompute everything
     bool initialize() override;
