@@ -101,7 +101,7 @@ UaStatus PasCommunicationInterface::initializeCCDs()
 //    }
     spdlog::info("PasCommunicationInterface::Initialize(): setting up CCD connection.");
 
-    try {
+    if (!m_pConfiguration->getDevices(PAS_CCDType).empty())  {
         for (const auto &identity : m_pConfiguration->getDevices(PAS_CCDType)) {
             spdlog::info("{}",identity);
             try {
@@ -119,7 +119,7 @@ UaStatus PasCommunicationInterface::initializeCCDs()
             }
         }
     }
-    catch (std::out_of_range &e) {
+    else {
         spdlog::warn("PasCommunicationInterface::Initialize(): no CCD configurations found.");
     }
 
@@ -203,28 +203,27 @@ void PasCommunicationInterface::addEdgeControllers() {
         // Check if all panels in edge exist
         auto children = m_pConfiguration->getChildren(edgeId);
         if (children.find(PAS_PanelType) != children.end()) {
-            try {
-                for (const auto &panelChildId : m_pConfiguration->getChildren(edgeId).at(PAS_PanelType)) {
-                    if (m_pControllers.at(PAS_PanelType).find(panelChildId) ==
-                        m_pControllers.at(PAS_PanelType).end()) {
-                        // Child panel not found
-                        //std::debug("Could not find panel {} as child of Edge {} (likely server failed to connect). Edge controller not created...", panelChildId, edgeId);
-                        addEdge = false;
-                        break;
-                    }
+            for (const auto &panelChildId : children.at(PAS_PanelType)) {
+                if (m_pControllers.at(PAS_PanelType).find(panelChildId) ==
+                    m_pControllers.at(PAS_PanelType).end()) {
+                    // Child panel not found
+                    //std::debug("Could not find panel {} as child of Edge {} (likely server failed to connect). Edge controller not created...", panelChildId, edgeId);
+                    addEdge = false;
+                    break;
                 }
             }
-            catch (std::out_of_range oor){
-                spdlog::warn("No Panels found.");
-                addEdge = false;
-            }
-            if (addEdge) {
-                addDevice(nullptr, PAS_EdgeType, edgeId);
-            } else {
-                spdlog::warn(
-                        "Could not find any panel children of Edge {} (likely server failed to connect). Edge controllers not created...",
-                        edgeId);
-            }
+        }
+        else {
+            spdlog::warn("No Panels found.");
+            addEdge = false;
+        }
+        if (addEdge) {
+            addDevice(nullptr, PAS_EdgeType, edgeId);
+        }
+        else {
+            spdlog::warn(
+                    "Could not find any panel children of Edge {} (likely server failed to connect). Edge controllers not created...",
+                    edgeId);
         }
     }
 }
@@ -247,24 +246,9 @@ void PasCommunicationInterface::addOpticalTableController() {
 
 void PasCommunicationInterface::addGlobalAlignmentController() {
     for (const auto &gaID:  m_pConfiguration->getDevices(PAS_GlobalAlignmentType)){
-        bool addGA = false;
         spdlog::debug("Adding Global Alignment device...");
         spdlog::trace("Found ID: {}", gaID);
-        for (const auto &ccdId : m_pConfiguration->getChildren(gaID).at(PAS_CCDType)) {
-            if (m_pControllers.at(PAS_CCDType).find(ccdId) !=
-                m_pControllers.at(PAS_CCDType).end()) {
-                // Child panel found
-                addGA = true;
-                break;
-            }
-        }
-        if (addGA) {
-            addDevice(nullptr, PAS_GlobalAlignmentType, gaID);
-        } else {
-            spdlog::warn(
-                    "Could not find any CCD children of GA {} (likely server failed to connect). GA controller not created...",
-                    gaID);
-        }
+        addDevice(nullptr, PAS_GlobalAlignmentType, gaID);
     }
 }
 
@@ -280,8 +264,9 @@ void PasCommunicationInterface::addMirrorControllers() {
     for (const auto &mirrorId : m_pConfiguration->getDevices(PAS_MirrorType)) {
         bool addMirror = false;
         // Check if at least one panel in the mirror exists
-        try {
-            for (const auto &panelChildId : m_pConfiguration->getChildren(mirrorId).at(PAS_PanelType)) {
+        auto children = m_pConfiguration->getChildren(mirrorId);
+        if (children.find(PAS_PanelType) != children.end()) {
+            for (const auto &panelChildId : children.at(PAS_PanelType)) {
                 if (m_pControllers.at(PAS_PanelType).find(panelChildId) !=
                     m_pControllers.at(PAS_PanelType).end()) {
                     // Child panel found
@@ -290,7 +275,7 @@ void PasCommunicationInterface::addMirrorControllers() {
                 }
             }
         }
-        catch (std::out_of_range oor){
+        else {
             spdlog::warn("No Panels found.");
         }
 

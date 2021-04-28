@@ -51,7 +51,7 @@ GlobalAlignmentController::GlobalAlignmentController(Device::Identity identity, 
         m_kInitTime{std::chrono::system_clock::now()},
         m_logstream{"paslogic.log", std::ofstream::app}{
     // define possible children and initialize the selected children string
-    m_ChildrenTypes = {PAS_OpticalAlignmentType, PAS_CCDType, PAS_OptTableType, PAS_PSDType, PAS_PanelType, GLOB_PositionerType};
+    m_ChildrenTypes = {PAS_OpticalAlignmentType, PAS_CCDType, PAS_OptTableType, PAS_PSDType, PAS_PanelType, GLOB_PositionerType, PAS_RangefinderType, PAS_LaserType};
 
     // make sure things update on the first boot up
     // duration takes seconds -- hence the conversion with the 1/1000 ratio

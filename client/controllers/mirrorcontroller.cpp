@@ -48,7 +48,7 @@ MirrorController::MirrorController(Device::Identity identity, std::string mode)
     10000),
       m_Mode(mode), m_pSurface(nullptr) {
     // define possible children and initialize the selected children string
-    m_ChildrenTypes = {PAS_PanelType, PAS_EdgeType, PAS_MPESType, PAS_FocalPlaneType};
+    m_ChildrenTypes = {PAS_PanelType, PAS_EdgeType, PAS_MPESType, PAS_FocalPlaneType, GLOB_PositionerType};
 
     // define coordinate vectors -- these are of size 6
     m_curCoords = Eigen::VectorXd(6);
@@ -240,10 +240,12 @@ UaStatus MirrorController::getState(Device::DeviceState &state)
     Device::DeviceState s;
     std::vector<unsigned> deviceTypesToCheck = {PAS_MPESType};
     for (auto devType : deviceTypesToCheck) {
-        for (const auto &child : getChildren(devType)) {
-            child->getState(s);
-            if (s == Device::DeviceState::Busy) {
-                m_State = s;
+        if ( m_pChildren.find(devType) != m_pChildren.end()) {
+            for (const auto &child : getChildren(devType)) {
+                child->getState(s);
+                if (s == Device::DeviceState::Busy) {
+                    m_State = s;
+                }
             }
         }
     }
@@ -339,19 +341,21 @@ UaStatus MirrorController::getData(OpcUa_UInt32 offset, UaVariant &value)
     } else if (offset == PAS_MirrorType_ErrorState) {
         int errorState = 0;
         for (auto childType : m_ChildrenTypes) {
-            for (auto child : getChildren(childType)) {
-                UaVariant var;
-                if (childType == PAS_MPESType) {
-                    child->getData(PAS_MPESType_ErrorState, var);
-                } else if (childType == PAS_PanelType) {
-                    child->getData(PAS_PanelType_ErrorState, var);
-                } else if (childType == PAS_EdgeType) {
-                    child->getData(PAS_EdgeType_ErrorState, var);
-                }
-                int temp;
-                var.toInt32(temp);
-                if (temp > errorState) {
-                    errorState = temp;
+            if ( m_pChildren.find(childType) != m_pChildren.end()) {
+                for (auto child : getChildren(childType)) {
+                    UaVariant var;
+                    if (childType == PAS_MPESType) {
+                        child->getData(PAS_MPESType_ErrorState, var);
+                    } else if (childType == PAS_PanelType) {
+                        child->getData(PAS_PanelType_ErrorState, var);
+                    } else if (childType == PAS_EdgeType) {
+                        child->getData(PAS_EdgeType_ErrorState, var);
+                    }
+                    int temp;
+                    var.toInt32(temp);
+                    if (temp > errorState) {
+                        errorState = temp;
+                    }
                 }
             }
         }
@@ -657,28 +661,31 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
             spdlog::error("{} : MirrorController::operate() : No Edges selected. Nothing to do, method call aborted.",
                           m_Identity);
         } else {
-            for (const auto &edge : getChildren(PAS_EdgeType)) {
-                std::ostringstream os;
-                for (const auto &mpes : std::dynamic_pointer_cast<EdgeController>(edge)->getChildren(
-                    PAS_MPESType)) {
-                    os << mpes->getIdentity() << " : " << std::endl;
-                    if (m_selectedMPES.find(mpes->getIdentity().serialNumber) != m_selectedMPES.end()) {
-                        std::dynamic_pointer_cast<MPESController>(mpes)->read();
-                        MPESBase::Position position = std::dynamic_pointer_cast<MPESController>(mpes)->getPosition();
+            if ( m_pChildren.find(PAS_EdgeType) != m_pChildren.end()) {
+                for (const auto &edge : getChildren(PAS_EdgeType)) {
+                    std::ostringstream os;
+                    for (const auto &mpes : std::dynamic_pointer_cast<EdgeController>(edge)->getChildren(
+                            PAS_MPESType)) {
+                        os << mpes->getIdentity() << " : " << std::endl;
+                        if (m_selectedMPES.find(mpes->getIdentity().serialNumber) != m_selectedMPES.end()) {
+                            std::dynamic_pointer_cast<MPESController>(mpes)->read();
+                            MPESBase::Position position = std::dynamic_pointer_cast<MPESController>(
+                                    mpes)->getPosition();
 
-                        os << "    " << position.xCentroid << " +/- " << position.xSpotWidth << " ["
-                           << position.xNominal << "] ("
-                           << position.xCentroid - position.xNominal << ")" << std::endl;
-                        os << "    " << position.yCentroid << " +/- " << position.ySpotWidth << " ["
-                           << position.yNominal << "] ("
-                           << position.yCentroid - position.yNominal << ")" << std::endl;
+                            os << "    " << position.xCentroid << " +/- " << position.xSpotWidth << " ["
+                               << position.xNominal << "] ("
+                               << position.xCentroid - position.xNominal << ")" << std::endl;
+                            os << "    " << position.yCentroid << " +/- " << position.ySpotWidth << " ["
+                               << position.yNominal << "] ("
+                               << position.yCentroid - position.yNominal << ")" << std::endl;
+                        }
                     }
+                    spdlog::info(
+                            "{}: Readings for Edge {}:\nCurrent position +/- Spot width [Aligned position] (Misalignment)\n\n{}\n\n",
+                            m_Identity, edge->getIdentity(), os.str());
                 }
-                spdlog::info(
-                        "{}: Readings for Edge {}:\nCurrent position +/- Spot width [Aligned position] (Misalignment)\n\n{}\n\n",
-                        m_Identity, edge->getIdentity(), os.str());
+                spdlog::info("{}: Done reading sensors.", m_Identity);
             }
-            spdlog::info("{}: Done reading sensors.", m_Identity);
         }
         setState(Device::DeviceState::On);
     } else if (offset == PAS_MirrorType_ReadSensorsParallel) {
@@ -697,7 +704,7 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
         std::map<std::shared_ptr<PanelController>, std::vector<std::shared_ptr<MPESController>>> MPESordering;
         for (auto it = getChildren(PAS_PanelType).begin(); it < getChildren(PAS_PanelType).end(); it++) {
             MPESordering[std::dynamic_pointer_cast<PanelController>(*it)] = std::vector<std::shared_ptr<MPESController>>();
-            try {
+            if (std::dynamic_pointer_cast<PanelController>(*it)->m_pChildren.find(PAS_MPESType) != std::dynamic_pointer_cast<PanelController>(*it)->m_pChildren.end()) {
                 for (const auto &mpes : std::dynamic_pointer_cast<PanelController>(*it)->getChildren(
                         PAS_MPESType)) {
                     if (m_selectedMPES.find(mpes->getIdentity().serialNumber) != m_selectedMPES.end()) {
@@ -705,8 +712,8 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
                     }
                 }
             }
-            catch (const std::out_of_range& oor) {
-                spdlog::warn("{}: No MPES found on this panel: [Out of Range error: {}]", std::dynamic_pointer_cast<PanelController>(*it)->getIdentity().position, oor.what() );
+            else {
+                spdlog::warn("{}: No MPES found on this panel", std::dynamic_pointer_cast<PanelController>(*it)->getIdentity().position);
             }
         }
 
@@ -768,7 +775,7 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
         std::map<Device::Identity, MPESBase::Position> readings;
 
         for (auto it = getChildren(PAS_PanelType).begin(); it < getChildren(PAS_PanelType).end(); it++) {
-            try {
+            if (std::dynamic_pointer_cast<PanelController>(*it)->m_pChildren.find(PAS_MPESType) != std::dynamic_pointer_cast<PanelController>(*it)->m_pChildren.end()) {
                 for (const auto &mpes : std::dynamic_pointer_cast<PanelController>(*it)->getChildren(
                         PAS_MPESType)) {
                     if (m_selectedMPES.find(mpes->getIdentity().serialNumber) != m_selectedMPES.end()) {
@@ -778,41 +785,45 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
                     }
                 }
             }
-            catch (const std::out_of_range& oor) {
-                spdlog::warn("{}: No MPES found on this panel: [Out of Range error: {}]", std::dynamic_pointer_cast<PanelController>(*it)->getIdentity().position, oor.what() );
+            else {
+                spdlog::warn("{}: No MPES found on this panel", std::dynamic_pointer_cast<PanelController>(*it)->getIdentity().position);
             }
         }
 
-        for (const auto &edge : getChildren(PAS_EdgeType)) {
-            std::ostringstream os;
-            for (const auto &mpes : std::dynamic_pointer_cast<PasCompositeController>(edge)->getChildren(
-                PAS_MPESType)) {
-                os << mpes->getIdentity() << " : " << std::endl;
-                auto it = readings.find(mpes->getIdentity());
-                if (it != readings.end()) {
-                    os << "    " << it->second.xCentroid << " +/- " << it->second.xSpotWidth << " ["
-                        << it->second.xNominal << "] ("
-                        << it->second.xCentroid - it->second.xNominal << ")" << std::endl;
-                    os << "    " << it->second.yCentroid << " +/- " << it->second.ySpotWidth << " ["
-                        << it->second.yNominal << "] ("
-                        << it->second.yCentroid - it->second.yNominal << ")" << std::endl;
+        if ( m_pChildren.find(PAS_EdgeType) != m_pChildren.end()) {
+            for (const auto &edge : getChildren(PAS_EdgeType)) {
+                std::ostringstream os;
+                for (const auto &mpes : std::dynamic_pointer_cast<PasCompositeController>(edge)->getChildren(
+                        PAS_MPESType)) {
+                    os << mpes->getIdentity() << " : " << std::endl;
+                    auto it = readings.find(mpes->getIdentity());
+                    if (it != readings.end()) {
+                        os << "    " << it->second.xCentroid << " +/- " << it->second.xSpotWidth << " ["
+                           << it->second.xNominal << "] ("
+                           << it->second.xCentroid - it->second.xNominal << ")" << std::endl;
+                        os << "    " << it->second.yCentroid << " +/- " << it->second.ySpotWidth << " ["
+                           << it->second.yNominal << "] ("
+                           << it->second.yCentroid - it->second.yNominal << ")" << std::endl;
+                    }
                 }
+                spdlog::info(
+                        "{}: Readings for Edge {}:\nCurrent position +/- Spot width [Aligned position] (Misalignment)\n\n{}\n\n",
+                        m_Identity, edge->getIdentity(), os.str());
             }
-            spdlog::info(
-                "{}: Readings for Edge {}:\nCurrent position +/- Spot width [Aligned position] (Misalignment)\n\n{}\n\n",
-                m_Identity, edge->getIdentity(), os.str());
+            spdlog::info("{}: Done reading sensors.", m_Identity);
         }
-        spdlog::info("{}: Done reading sensors.", m_Identity);
 
         int N_bad_mpes = 0;
-        for (auto mpes : getChildren(PAS_MPESType)) {
-            if (m_selectedMPES.find(mpes->getIdentity().serialNumber) != m_selectedMPES.end()) {
-                if (mpes->getErrorState() == Device::ErrorState::FatalError) {
-                    N_bad_mpes += 1;
-                    spdlog::error("{}: Failed to read.", mpes->getIdentity());
+        if ( m_pChildren.find(PAS_MPESType) != m_pChildren.end()) {
+            for (auto mpes : getChildren(PAS_MPESType)) {
+                if (m_selectedMPES.find(mpes->getIdentity().serialNumber) != m_selectedMPES.end()) {
+                    if (mpes->getErrorState() == Device::ErrorState::FatalError) {
+                        N_bad_mpes += 1;
+                        spdlog::error("{}: Failed to read.", mpes->getIdentity());
+                    }
                 }
             }
-        };
+        }
         if (N_bad_mpes!=0)
         {
             spdlog::error("{}: Found {} failed sensors.", m_Identity, N_bad_mpes);
@@ -941,14 +952,14 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
         std::map<std::shared_ptr<PanelController>, std::vector<std::shared_ptr<MPESController>>> MPESordering;
         for (auto it = getChildren(PAS_PanelType).begin(); it < getChildren(PAS_PanelType).end(); it++) {
             MPESordering[std::dynamic_pointer_cast<PanelController>(*it)] = std::vector<std::shared_ptr<MPESController>>();
-            try {
+            if (std::dynamic_pointer_cast<PanelController>(*it)->m_pChildren.find(PAS_MPESType) != std::dynamic_pointer_cast<PanelController>(*it)->m_pChildren.end())  {
                 for (const auto &mpes : std::dynamic_pointer_cast<PanelController>(*it)->getChildren(
                         PAS_MPESType)) {
                     MPESordering[std::dynamic_pointer_cast<PanelController>(*it)].push_back(std::dynamic_pointer_cast<MPESController>(mpes));
                 }
             }
-            catch (const std::out_of_range& oor) {
-                spdlog::warn("{}: No MPES found for this panel: [Out of Range error: {}]", std::dynamic_pointer_cast<PanelController>(*it)->getIdentity().position, oor.what() );
+            else {
+                spdlog::warn("{}: No MPES found for this panel", std::dynamic_pointer_cast<PanelController>(*it)->getIdentity().position);
             }
         }
 
@@ -963,14 +974,14 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
             auto panelController = std::dynamic_pointer_cast<PanelController>(*it);
             auto panelId = panelController->getIdentity();
             std::map<Device::Identity, std::shared_ptr<MPESController>> mpesIdMap;
-            try {
+            if (panelController->m_pChildren.find(PAS_MPESType) != panelController->m_pChildren.end()) {
                 for (const auto &mpes : panelController->getChildren(
                         PAS_MPESType)) {
                     mpesIdMap[mpes->getIdentity()] = std::dynamic_pointer_cast<MPESController>(mpes);
                 }
                 }
-            catch (const std::out_of_range& oor) {
-                spdlog::warn("{}: No MPES found for this panel: [Out of Range error: {}]", std::dynamic_pointer_cast<PanelController>(*it)->getIdentity().position, oor.what() );
+            else {
+                spdlog::warn("{}: No MPES found for this panel", std::dynamic_pointer_cast<PanelController>(*it)->getIdentity().position);
             }
 
             for (auto mpesId : allMPES.at(panelId)) {
@@ -1038,7 +1049,7 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
                 }
             }
             // Get MPES errors
-            try {
+            if (panelController->m_pChildren.find(PAS_MPESType) != panelController->m_pChildren.end())  {
                 for (const auto &mpes : panelController->getChildren(PAS_MPESType)) {
                     spdlog::debug("Checking MPES...");
                     auto mpesController = std::dynamic_pointer_cast<MPESController>(mpes);
@@ -1059,8 +1070,8 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
                     }
                 }
             }
-            catch (const std::out_of_range& oor) {
-                spdlog::warn("Out of Range error: ({}), No MPES found on this panel.",oor.what());
+            else {
+                spdlog::warn("{}: No MPES found on this panel.", panelController->getIdentity().position);
             }
         }
 
@@ -1129,8 +1140,7 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
         for (const auto &panel : m_pChildren.at(PAS_PanelType)) {
             auto panelController = std::dynamic_pointer_cast<PanelController>(panel);
             auto panelId = panelController->getIdentity();
-            
-            try {
+            if (panelController->m_pChildren.find(PAS_MPESType) != panelController->m_pChildren.end())  {
                 for (const auto &mpes : panelController->getChildren(PAS_MPESType)) {
                     auto mpesController = std::dynamic_pointer_cast<MPESController>(mpes);
                     auto mpesId = mpesController->getIdentity();
@@ -1156,8 +1166,8 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
                     }
                 }
             }
-            catch (const std::out_of_range& oor) {
-                spdlog::warn("Out of Range error: ({}), No MPES found on this panel.",oor.what());
+            else {
+                spdlog::warn("{}: No MPES found on this panel.",panelController->getIdentity().position);
             }
         }
 
@@ -2343,38 +2353,26 @@ UaStatus MirrorController::saveActuatorLengths(const std::string &saveFilePath) 
 
 std::vector<double> MirrorController::getAzEl() {
 
-    double Az, El;
-// The following is broken due to the m_pClient used.
-/*    UaVariant value;
-    std::string varToRead;
+    double Az(-1), El(-1);
+    UaVariant value;
     UaStatus status;
-    std::vector<std::string> vec_curread;
-
-    varToRead = "current_position.az";
-    spdlog::trace("Attempting to query Positioner Az");
-    status = m_pClient->read({"ns=2;s=Application.USERVARGLOBAL_OPCUA." + varToRead}, &value);
-    if (status.isGood()) {
+    if (m_pChildren.find(GLOB_PositionerType) != m_pChildren.end()) {
+        auto pController = m_pChildren[GLOB_PositionerType].at(0);
+        status = pController->getData(GLOB_PositionerType_curAz, value);
+        UA_ASSERT(status.isGood());
         value.toDouble(Az);
-        spdlog::trace("Current Azimuth: {} ", Az);
-    }
-    else {
-        spdlog::trace("No luck");
-    }
-
-    varToRead = "current_position.el";
-    spdlog::trace("Attempting to query Positioner El");
-    status = m_pClient->read({"ns=2;s=Application.USERVARGLOBAL_OPCUA." + varToRead}, &value);
-    if (status.isGood()) {
+        status = pController->getData(GLOB_PositionerType_curEl, value);
+        UA_ASSERT(status.isGood());
         value.toDouble(El);
-        spdlog::trace("Current Elevation: {} ", El);
+        spdlog::trace("Found Az {}", Az);
     }
     else {
-        spdlog::trace("No luck.");
-    }*/
+        spdlog::error("Positioner controller not found.");
+    }
 
     std::vector<double> AzEl;
-    AzEl.push_back(0);
-    AzEl.push_back(0);
+    AzEl.push_back(Az);
+    AzEl.push_back(El);
     return AzEl;
 }
 

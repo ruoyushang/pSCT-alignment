@@ -137,6 +137,12 @@ UaStatus PasNodeManager::afterStartUp()
         spdlog::info("PasNodeManager::afterStartUp(): Adding focal plane controller...");
         dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->addFocalPlaneController();
 
+        Device::Identity rangefinderID = dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->getValidDeviceIdentities(PAS_RangefinderType).at(0);
+        dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->addDevice(nullptr, PAS_RangefinderType, rangefinderID);
+
+        Device::Identity LaserID = dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->getValidDeviceIdentities(PAS_LaserType).at(0);
+        dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->addDevice(nullptr, PAS_LaserType, LaserID);
+
         Device::Identity positionerID = dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->getValidDeviceIdentities(GLOB_PositionerType).at(0);
         Device::Identity gaID = dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->getValidDeviceIdentities(PAS_GlobalAlignmentType).at(0);
 
