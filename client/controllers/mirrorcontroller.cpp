@@ -2651,6 +2651,10 @@ UaStatus MirrorController::__calculateLoadActuatorLengths(const std::string &loa
             spdlog::error("{}: Unable to load position, failed to read actuator lengths.", m_Identity);
             return OpcUa_Bad;
         }
+        if (SCTMath::Ring(panelId.position) == 0){
+            spdlog::trace("Skipping optical table.");
+            continue;
+        }
         if (panelPositions.find(panelId) != panelPositions.end()) {
             status = std::dynamic_pointer_cast<PanelController>(pPanel)->__getActuatorLengths(currentActLengths);
             targetActLengths = panelPositions.at(panelId);
@@ -2758,6 +2762,10 @@ UaStatus MirrorController::__calculateLoadDeltaCoords(const std::string &loadFil
     for (const auto &pPanel : m_pChildren.at(PAS_PanelType)) {
         status = std::dynamic_pointer_cast<PanelController>(pPanel)->operate(PAS_PanelType_ReadPosition);
         panelId = std::dynamic_pointer_cast<PanelController>(pPanel)->getIdentity();
+        if (SCTMath::Ring(panelId.position) == 0){
+            spdlog::trace("Skipping optical table.");
+            continue;
+        }
         if (status.isBad()) {
             spdlog::error("{}: Unable to load position, failed to read actuator lengths.", m_Identity);
             return OpcUa_Bad;
