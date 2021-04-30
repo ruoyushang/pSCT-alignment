@@ -103,7 +103,28 @@ UaStatus Configuration::loadConnectionConfiguration(const UaString& sConfigurati
 
     delete pSettings;
 
+    setDatabaseConfig();
+
     return result;
+}
+
+void Configuration::setDatabaseConfig(){
+    DBConfig myConfig = DBConfig::getDefaultConfig();
+
+    m_databaseHost.resize(1);
+    m_databaseUser.resize(1);
+    m_databasePassword.resize(1);
+    m_databaseName.resize(1);
+
+    UaString testStr;
+    testStr = UaString("tcp://%1:%2").arg(myConfig.getHost().c_str()).arg(myConfig.getPort().c_str());
+    testStr.copyTo(&m_databaseHost[0]);
+    testStr = myConfig.getUser().c_str();
+    testStr.copyTo(&m_databaseUser[0]);
+    testStr = myConfig.getPassword().c_str();
+    testStr.copyTo(&m_databasePassword[0]);
+    testStr = myConfig.getDatabase().c_str();
+    testStr.copyTo(&m_databaseName[0]);
 }
 
 UaStatus Configuration::loadDeviceConfiguration(const std::vector<std::string> &positionList)

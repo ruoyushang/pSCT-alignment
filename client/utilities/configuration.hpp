@@ -54,6 +54,8 @@ public:
 
     std::vector<UaStringArray> getDatabaseEntries() const { return m_databaseEntries; }
 
+    void setDatabaseConfig();
+
     // get device mappings
     Device::Identity getDeviceBySerial(OpcUa_UInt32 deviceType, int serial) {
         return m_DeviceSerialMap.at(deviceType).at(serial);

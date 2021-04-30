@@ -47,49 +47,64 @@ void Database::connectAndPrepare()
     spdlog::info("Reading database config details...");
     OpcUa_UInt32 i, j;
     spdlog::info("Found {} databases.", m_pConfiguration->getDatabaseHost().length());
-    for ( i = 0; i < m_pConfiguration->getDatabaseHost().length(); i++ )
+    try
     {
-        m_pDriver.push_back(get_driver_instance());
+        for (i = 0; i < m_pConfiguration->getDatabaseHost().length(); i++) {
+            m_pDriver.push_back(get_driver_instance());
 
-        //m_pConnection.push_back(m_pDriver.back()->connect(UaString(m_pConfiguration->getDatabaseHost()[i]).toUtf8(),
-          //  UaString(m_pConfiguration->getDatabaseUser()[i]).toUtf8(),
-          // UaString(m_pConfiguration->getDatabasePassword()[i]).toUtf8()));
+            m_pConnection.push_back(m_pDriver.back()->connect(UaString(m_pConfiguration->getDatabaseHost()[i]).toUtf8(),
+                                                              UaString(m_pConfiguration->getDatabaseUser()[i]).toUtf8(),
+                                                              UaString(
+                                                                      m_pConfiguration->getDatabasePassword()[i]).toUtf8()));
 
-       // m_pConnection.back()->setSchema(UaString(m_pConfiguration->getDatabaseName()[i]).toUtf8());
+            m_pConnection.back()->setSchema(UaString(m_pConfiguration->getDatabaseName()[i]).toUtf8());
+            m_pStmt.push_back( m_pConnection.back()->createStatement());
 
-        OpcUa_UInt32 size;
-        size = m_pConfiguration->getDatabaseEntries().at(i).length();
-
-        std::cout << UaString(m_pConfiguration->getDatabaseHost()[i]).toUtf8() << std::endl;
-        std::cout << UaString(m_pConfiguration->getDatabaseUser()[i]).toUtf8() << std::endl;
-        std::cout << UaString(m_pConfiguration->getDatabaseName()[i]).toUtf8() << std::endl;
-        std::cout << UaString(m_pConfiguration->getDatabasePassword()[i]).toUtf8() << std::endl;
-        std::cout << "database " << i << " has " << size << " entries:" << std::endl;
-        for (j = 0; j < size; j++)
-        {
-            std::cout << "      ";
-            std::cout << UaString(m_pConfiguration->getDatabaseEntries().at(i)[j]).toUtf8() << std::endl;
+//            OpcUa_UInt32 size;
+//            size = m_pConfiguration->getDatabaseEntries().at(i).length();
+//
+            std::cout << UaString(m_pConfiguration->getDatabaseHost()[i]).toUtf8() << std::endl;
+            std::cout << UaString(m_pConfiguration->getDatabaseUser()[i]).toUtf8() << std::endl;
+            std::cout << UaString(m_pConfiguration->getDatabaseName()[i]).toUtf8() << std::endl;
+            std::cout << UaString(m_pConfiguration->getDatabasePassword()[i]).toUtf8() << std::endl;
+//            std::cout << "database " << i << " has " << size << " entries:" << std::endl;
+//            for (j = 0; j < size; j++) {
+//                std::cout << "      ";
+//                std::cout << UaString(m_pConfiguration->getDatabaseEntries().at(i)[j]).toUtf8() << std::endl;
+//            }
         }
-    }
-    // the values to read/write are in the format
-    // VarNameOnTheServer;ReadOrWrite;Type;VarNameInTheDatabase
+        // the values to read/write are in the format
+        // VarNameOnTheServer;ReadOrWrite;Type;VarNameInTheDatabase
 //    OpcUa_Int32 sPos=0, ePos=0;
 //    ePos = UaString(m_pConfiguration->getDatabaseEntries()[i]).find(';', sPos);
 
 //    nameOnTheServer = UaStringk
 
-    /* prepare the statement
-    std::string stmt = "INSERT INTO mpes(";
-    for ( i = 0; i < size - 1; i++ )
-        stmt += std::string(UaString(m_pConfiguration->getDatabaseEntries()[i]).toUtf8())
-             + std::string(", ");
-    stmt +=  std::string(UaString(m_pConfiguration->getDatabaseEntries()[size-1]).toUtf8())
-        + std::string(") VALUES (");
-    for ( i = 0; i < size - 1; i++ )
-        stmt += "?, ";
-    stmt += "?)";
+        // prepare the statement
+//    std::string stmt = "INSERT INTO mpes(";
+//    for ( i = 0; i < size - 1; i++ )
+//        stmt += std::string(UaString(m_pConfiguration->getDatabaseEntries()[i]).toUtf8())
+//             + std::string(", ");
+//    stmt +=  std::string(UaString(m_pConfiguration->getDatabaseEntries()[size-1]).toUtf8())
+//        + std::string(") VALUES (");
+//    for ( i = 0; i < size - 1; i++ )
+//        stmt += "?, ";
+//    stmt += "?)";
 
-    m_pStmt = m_pConnection->prepareStatement(stmt.c_str()); */
+        std::string position = "2212";
+        std::string stmt_str = "SELECT serial_number, mpcb_ip_address FROM Opt_MPMMapping WHERE end_date is NULL and position='" + position + "'";
+        for (i = 0; i < m_pConfiguration->getDatabaseHost().length(); i++) {
+            m_pStmt.at(i)->execute(stmt_str);
+            m_pRes.push_back(m_pStmt.at(i)->getResultSet());
+        }
+    }
+    catch (sql::SQLException &e) {
+        spdlog::error("# ERR: SQLException in {}"
+                      "({}) on line {}\n"
+                      "# ERR: {}"
+                      " (MySQL error code: {}"
+                      ", SQLState: {})", __FILE__, __FUNCTION__, __LINE__, e.what(), e.getErrorCode(), e.getSQLState());
+    }
 }
 
 /// @details Adds timestamped MPES reading to database.
@@ -106,4 +121,18 @@ void Database::write(const char *timestamp, double x, double y)
 
     if ( m_pStmt->executeUpdate() != 1) printf("failed to update DB;\n");
     */
+}
+
+
+std::string Database::readPanelIP(int panel) {
+    std::string position = std::to_string(panel);
+    std::string stmt_str = "SELECT mpcb_ip_address FROM Opt_MPMMapping WHERE end_date is NULL and position='" + position + "'";
+    std::cout << stmt_str << std::endl;
+    std::cout << "Executing" << std::endl;
+    m_pStmt.back()->execute(stmt_str);
+
+    m_pRes.back() = m_pStmt.back()->getResultSet();
+    std::cout << "while" << std::endl;
+    while (m_pRes.back()->next())
+        std::cout << "\t... MySQL counts: " << m_pRes.back()->getString(1) << std::endl;
 }

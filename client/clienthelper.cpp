@@ -28,7 +28,7 @@ Client::Client(PasNodeManager *pNodeManager, std::string mode) : m_mode(std::mov
                                                                  m_TransactionId(0) {
     m_pSession = std::unique_ptr<UaClientSdk::UaSession>(new UaClientSdk::UaSession());
     m_pSubscription = std::unique_ptr<Subscription>(new Subscription(m_pConfiguration));
-    m_pDatabase = std::unique_ptr<Database>(new Database());
+    m_pDatabase = std::make_shared<Database>();
 }
 
 void Client::connectionStatusChanged(

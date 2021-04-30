@@ -56,6 +56,8 @@ public:
 
     std::string getDeviceNodeId(const Device::Identity &identity) { return m_DeviceNodeIdMap.at(identity); }
 
+    std::shared_ptr<Database> getDatabase() {return m_pDatabase; };
+
 private:
     std::string m_mode;
 
@@ -73,7 +75,7 @@ private:
     std::unique_ptr<Subscription> m_pSubscription;
     std::shared_ptr<Configuration> m_pConfiguration;
     UaClientSdk::UaClient::ServerStatus m_serverStatus;
-    std::unique_ptr<Database> m_pDatabase;
+    std::shared_ptr<Database> m_pDatabase;
 
     // keep track of asynchronous calls
     OpcUa_UInt32 m_TransactionId;

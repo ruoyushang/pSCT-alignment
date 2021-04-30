@@ -7,8 +7,20 @@
 #define DATABASE_H
 
 #include "uabase.h"
+
+/*
+  Include directly the different
+  headers from cppconn/ and mysql_driver.h + mysql_util.h
+  (and mysql_connection.h). This will reduce your build time!
+*/
 #include "mysql_connection.h"
-#include "mysql_driver.h"
+
+#include <cppconn/driver.h>
+#include <cppconn/exception.h>
+#include <cppconn/resultset.h>
+#include <cppconn/statement.h>
+#include <cppconn/prepared_statement.h>
+
 #include <memory>
 #include <vector>
 
@@ -43,6 +55,8 @@ public:
 	/// @param y MPES laser y position.
     void write(const char *timestamp, double x, double y);
 
+    std::string readPanelIP(int panel);
+
 private:
 	/// @brief Pointer to Configuration object.
     std::shared_ptr<Configuration> m_pConfiguration;
@@ -51,10 +65,13 @@ private:
     std::vector<sql::Driver*> m_pDriver;
 	/// @brief Vector of MySQL Connection objects.
 	/// @warning Currently unused.
-    std::vector<std::unique_ptr<sql::Connection>> m_pConnection;
+    std::vector<sql::Connection*> m_pConnection;
 	/// @brief Vector of MySQL query statement objects.
 	/// @warning Currently unused.
-    std::vector<std::unique_ptr<sql::PreparedStatement>> m_pStmt;
+    std::vector<sql::Statement*> m_pStmt;
+    /// @brief Vector of MySQL result object.
+    /// @warning Currently unused.
+    std::vector<sql::ResultSet*> m_pRes;
 };
 
 #endif
