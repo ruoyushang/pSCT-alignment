@@ -204,12 +204,14 @@ void PasCommunicationInterface::addEdgeControllers() {
         auto children = m_pConfiguration->getChildren(edgeId);
         if (children.find(PAS_PanelType) != children.end()) {
             for (const auto &panelChildId : children.at(PAS_PanelType)) {
-                if (m_pControllers.at(PAS_PanelType).find(panelChildId) ==
-                    m_pControllers.at(PAS_PanelType).end()) {
-                    // Child panel not found
-                    //std::debug("Could not find panel {} as child of Edge {} (likely server failed to connect). Edge controller not created...", panelChildId, edgeId);
-                    addEdge = false;
-                    break;
+                if (m_pControllers.find(PAS_PanelType) != m_pControllers.end()) {
+                    if (m_pControllers.at(PAS_PanelType).find(panelChildId) ==
+                        m_pControllers.at(PAS_PanelType).end()) {
+                        // Child panel not found
+                        //std::debug("Could not find panel {} as child of Edge {} (likely server failed to connect). Edge controller not created...", panelChildId, edgeId);
+                        addEdge = false;
+                        break;
+                    }
                 }
             }
         }
@@ -267,11 +269,13 @@ void PasCommunicationInterface::addMirrorControllers() {
         auto children = m_pConfiguration->getChildren(mirrorId);
         if (children.find(PAS_PanelType) != children.end()) {
             for (const auto &panelChildId : children.at(PAS_PanelType)) {
-                if (m_pControllers.at(PAS_PanelType).find(panelChildId) !=
-                    m_pControllers.at(PAS_PanelType).end()) {
-                    // Child panel found
-                    addMirror = true;
-                    break;
+                if (m_pControllers.find(PAS_PanelType) != m_pControllers.end()) {
+                    if (m_pControllers.at(PAS_PanelType).find(panelChildId) !=
+                        m_pControllers.at(PAS_PanelType).end()) {
+                        // Child panel found
+                        addMirror = true;
+                        break;
+                    }
                 }
             }
         }
