@@ -110,6 +110,7 @@ private:
     UaStatus readPositionAll(bool print=true);
 
     UaStatus saveActuatorLengths(const std::string &saveFilePath);
+    UaStatus savePanelPhysicalCoords(const std::string &saveFilePath);
     UaStatus saveMPESAlignmentOffset(const std::string &saveFilePath);
     UaStatus saveMPESPositions(const std::string &saveFilePath);
     UaStatus savePanelTemperatures(const std::string &saveFilePath);

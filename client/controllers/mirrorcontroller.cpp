@@ -603,6 +603,11 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
         std::string saveFilePath = UaString(args[0].Value.String).toUtf8();
 
         saveActuatorLengths(saveFilePath);
+
+        std::string saveFilePath_physicalCoords = saveFilePath + "_physicalCoords";
+        spdlog::info("{}: now calling savePanelPhysicalCoordinates with modified path {}", m_Identity, saveFilePath_physicalCoords);
+        savePanelPhysicalCoords(saveFilePath_physicalCoords);
+
         setState(Device::DeviceState::On);
     }
     else if (offset == PAS_MirrorType_SavePanelTemperatures) {
@@ -2324,8 +2329,8 @@ UaStatus MirrorController::saveActuatorLengths(const std::string &saveFilePath) 
     f << "Mirror: " << m_Identity << std::endl;
     std::time_t now = std::time(0);
     f << "Timestamp: " << std::ctime(&now) << std::endl;
-    f << "Az: " << AzEl[0] << ", El: " << AzEl[1] << std::endl;
     f << "Global coordinates:\n " << m_curCoords << std::endl;
+    f << SAVEFILE_DELIMITER << "Az: " << AzEl[0] << ", El: " << AzEl[1] << std::endl;
     f << SAVEFILE_DELIMITER << std::endl;
 
     for (unsigned panelPos : m_selectedPanels) {
@@ -2343,7 +2348,74 @@ UaStatus MirrorController::saveActuatorLengths(const std::string &saveFilePath) 
     }
 
     AzEl = getAzEl();
-    f << "Az: " << AzEl[0] << ", El: " << AzEl[1] << std::endl;
+    f << SAVEFILE_DELIMITER << "Az: " << AzEl[0] << ", El: " << AzEl[1] << std::endl;
+
+    f.close();
+    spdlog::info("{}: Done writing Mirror position to file {}.", m_Identity, saveFilePath);
+
+    return OpcUa_Good;
+}
+
+UaStatus MirrorController::savePanelPhysicalCoords(const std::string &saveFilePath) {
+    // Will save all panel positions, including OT, if it is a child of this mirror.
+    spdlog::info("{}: Attempting to write Mirror position to file {}...", m_Identity, saveFilePath);
+
+    //Check if file already exists
+    struct stat buf{};
+    if (stat(saveFilePath.c_str(), &buf) != -1) {
+        spdlog::error(
+                "{}: File {} already exists. Please select a different path, or manually delete/move/rename the file in your system.",
+                m_Identity, saveFilePath);
+        return OpcUa_Bad;
+    }
+
+    std::vector<double> AzEl;
+    AzEl = getAzEl();
+
+    // Create output file stream
+    std::ofstream f(saveFilePath);
+
+    if (f.bad()) {
+        spdlog::error("{}: Cannot write to file at {}. Aborting...", m_Identity, saveFilePath);
+        f.close();
+        return OpcUa_Bad;
+    }
+
+    // Place mirror name/Type and
+    // other information at top of file
+    f << "Mirror: " << m_Identity << std::endl;
+    std::time_t now = std::time(0);
+    f << "Timestamp: " << std::ctime(&now) << std::endl;
+    f << "Global coordinates:\n " << m_curCoords << std::endl;
+    f << SAVEFILE_DELIMITER << "Az: " << AzEl[0] << ", El: " << AzEl[1] << std::endl;
+    f << SAVEFILE_DELIMITER << std::endl;
+
+    StewartPlatform SP;
+    for (unsigned panelPos : m_selectedPanels) {
+        auto pPanel = std::dynamic_pointer_cast<PanelController>(
+                m_ChildrenPositionMap.at(PAS_PanelType).at(panelPos));
+        Eigen::VectorXd actuatorLengths(6);
+        Eigen::VectorXd physicalCoords(6);
+        UaStatus status = std::dynamic_pointer_cast<PanelController>(pPanel)->__getActuatorLengths(actuatorLengths);
+        if (status.isBad()) {
+            spdlog::error("{}: Unable to write position for Panel {}, failed to read actuator lengths.", m_Identity, pPanel->getIdentity());
+            continue;
+        }
+
+        SP.SetPanelType(StewartPlatform::PanelType::OPT);
+        // update current coordinates
+        SP.ComputeStewart(actuatorLengths.data());
+        // panel coords
+        for (int i = 0; i < 6; i++)
+            physicalCoords[i] = SP.GetPanelCoords()[i];
+
+        f << "Panel: " << pPanel->getIdentity() << std::endl;
+        f << physicalCoords << std::endl;
+        f << SAVEFILE_DELIMITER << std::endl;
+    }
+
+    AzEl = getAzEl();
+    f << SAVEFILE_DELIMITER << "Az: " << AzEl[0] << ", El: " << AzEl[1] << std::endl;
 
     f.close();
     spdlog::info("{}: Done writing Mirror position to file {}.", m_Identity, saveFilePath);
@@ -2407,7 +2479,7 @@ UaStatus MirrorController::savePanelTemperatures(const std::string &saveFilePath
     f << "Mirror: " << m_Identity << std::endl;
     std::time_t now = std::time(0);
     f << "Timestamp: " << std::ctime(&now) << std::endl;
-    f << "Az: " << AzEl[0] << ", El: " << AzEl[1] << std::endl;
+    f << SAVEFILE_DELIMITER << "Az: " << AzEl[0] << ", El: " << AzEl[1] << std::endl;
 
     f << SAVEFILE_DELIMITER << std::endl;
 
@@ -2440,7 +2512,7 @@ UaStatus MirrorController::savePanelTemperatures(const std::string &saveFilePath
     }
 
     AzEl = getAzEl();
-    f << "Az: " << AzEl[0] << ", El: " << AzEl[1] << std::endl;
+    f << SAVEFILE_DELIMITER << "Az: " << AzEl[0] << ", El: " << AzEl[1] << std::endl;
 
     f.close();
     spdlog::info("{}: Done writing Mirror temperature to file {}.", m_Identity, saveFilePath);
@@ -2477,7 +2549,7 @@ UaStatus MirrorController::saveMPESAlignmentOffset(const std::string &saveFilePa
     f << "Mirror: " << m_Identity << std::endl;
     std::time_t now = std::time(0);
     f << "Timestamp: " << std::ctime(&now) << std::endl;
-    f << "Az: " << AzEl[0] << ", El: " << AzEl[1] << std::endl;
+    f << SAVEFILE_DELIMITER << "Az: " << AzEl[0] << ", El: " << AzEl[1] << std::endl;
     f << SAVEFILE_DELIMITER << std::endl;
 
     std::vector<std::shared_ptr<MPESController>> alignMPES;
@@ -2505,7 +2577,7 @@ UaStatus MirrorController::saveMPESAlignmentOffset(const std::string &saveFilePa
     }
 
     AzEl = getAzEl();
-    f << "Az: " << AzEl[0] << ", El: " << AzEl[1] << std::endl;
+    f << SAVEFILE_DELIMITER << "Az: " << AzEl[0] << ", El: " << AzEl[1] << std::endl;
 
     f.close();
     spdlog::info("{}: Done writing Mirror alignment to file {}.", m_Identity, saveFilePath);
@@ -2542,7 +2614,7 @@ UaStatus MirrorController::saveMPESPositions(const std::string &saveFilePath) {
     f << "Mirror: " << m_Identity << std::endl;
     std::time_t now = std::time(0);
     f << "Timestamp: " << std::ctime(&now) << std::endl;
-    f << "Az: " << AzEl[0] << ", El: " << AzEl[1] << std::endl;
+    f << SAVEFILE_DELIMITER << "Az: " << AzEl[0] << ", El: " << AzEl[1] << std::endl;
     f << SAVEFILE_DELIMITER << std::endl;
 
     std::vector<std::shared_ptr<MPESController>> alignMPES;
@@ -2568,7 +2640,7 @@ UaStatus MirrorController::saveMPESPositions(const std::string &saveFilePath) {
     }
 
     AzEl = getAzEl();
-    f << "Az: " << AzEl[0] << ", El: " << AzEl[1] << std::endl;
+    f << SAVEFILE_DELIMITER << "Az: " << AzEl[0] << ", El: " << AzEl[1] << std::endl;
 
     f.close();
     spdlog::info("{}: Done writing Mirror alignment to file {}.", m_Identity, saveFilePath);
@@ -3238,7 +3310,7 @@ UaStatus MirrorController::__moveSelectedPanels(unsigned methodTypeId, double al
                 } else {
                     spdlog::trace("{}: Panel {} is idle.", m_Identity, pair.first->getIdentity());
                 }
-                UaThread::sleep(1);
+                UaThread::sleep(2); // longer 2s sleep in case we are querying too much.
             }
         }
 
