@@ -2330,7 +2330,7 @@ UaStatus MirrorController::saveActuatorLengths(const std::string &saveFilePath) 
     std::time_t now = std::time(0);
     f << "Timestamp: " << std::ctime(&now) << std::endl;
     f << "Global coordinates:\n " << m_curCoords << std::endl;
-    f << SAVEFILE_DELIMITER << "Az: " << AzEl[0] << ", El: " << AzEl[1] << std::endl;
+    f << "Az: " << AzEl[0] << ", El: " << AzEl[1] << std::endl;
     f << SAVEFILE_DELIMITER << std::endl;
 
     for (unsigned panelPos : m_selectedPanels) {
@@ -2348,7 +2348,7 @@ UaStatus MirrorController::saveActuatorLengths(const std::string &saveFilePath) 
     }
 
     AzEl = getAzEl();
-    f << SAVEFILE_DELIMITER << "Az: " << AzEl[0] << ", El: " << AzEl[1] << std::endl;
+    f << "Az: " << AzEl[0] << ", El: " << AzEl[1] << std::endl;
 
     f.close();
     spdlog::info("{}: Done writing Mirror position to file {}.", m_Identity, saveFilePath);
@@ -2387,7 +2387,7 @@ UaStatus MirrorController::savePanelPhysicalCoords(const std::string &saveFilePa
     std::time_t now = std::time(0);
     f << "Timestamp: " << std::ctime(&now) << std::endl;
     f << "Global coordinates:\n " << m_curCoords << std::endl;
-    f << SAVEFILE_DELIMITER << "Az: " << AzEl[0] << ", El: " << AzEl[1] << std::endl;
+    f << "Az: " << AzEl[0] << ", El: " << AzEl[1] << std::endl;
     f << SAVEFILE_DELIMITER << std::endl;
 
     StewartPlatform SP;
@@ -2415,7 +2415,7 @@ UaStatus MirrorController::savePanelPhysicalCoords(const std::string &saveFilePa
     }
 
     AzEl = getAzEl();
-    f << SAVEFILE_DELIMITER << "Az: " << AzEl[0] << ", El: " << AzEl[1] << std::endl;
+    f << "Az: " << AzEl[0] << ", El: " << AzEl[1] << std::endl;
 
     f.close();
     spdlog::info("{}: Done writing Mirror position to file {}.", m_Identity, saveFilePath);
@@ -2479,7 +2479,7 @@ UaStatus MirrorController::savePanelTemperatures(const std::string &saveFilePath
     f << "Mirror: " << m_Identity << std::endl;
     std::time_t now = std::time(0);
     f << "Timestamp: " << std::ctime(&now) << std::endl;
-    f << SAVEFILE_DELIMITER << "Az: " << AzEl[0] << ", El: " << AzEl[1] << std::endl;
+    f << "Az: " << AzEl[0] << ", El: " << AzEl[1] << std::endl;
 
     f << SAVEFILE_DELIMITER << std::endl;
 
@@ -2512,7 +2512,7 @@ UaStatus MirrorController::savePanelTemperatures(const std::string &saveFilePath
     }
 
     AzEl = getAzEl();
-    f << SAVEFILE_DELIMITER << "Az: " << AzEl[0] << ", El: " << AzEl[1] << std::endl;
+    f << "Az: " << AzEl[0] << ", El: " << AzEl[1] << std::endl;
 
     f.close();
     spdlog::info("{}: Done writing Mirror temperature to file {}.", m_Identity, saveFilePath);
@@ -2549,7 +2549,7 @@ UaStatus MirrorController::saveMPESAlignmentOffset(const std::string &saveFilePa
     f << "Mirror: " << m_Identity << std::endl;
     std::time_t now = std::time(0);
     f << "Timestamp: " << std::ctime(&now) << std::endl;
-    f << SAVEFILE_DELIMITER << "Az: " << AzEl[0] << ", El: " << AzEl[1] << std::endl;
+    f << "Az: " << AzEl[0] << ", El: " << AzEl[1] << std::endl;
     f << SAVEFILE_DELIMITER << std::endl;
 
     std::vector<std::shared_ptr<MPESController>> alignMPES;
@@ -2577,7 +2577,7 @@ UaStatus MirrorController::saveMPESAlignmentOffset(const std::string &saveFilePa
     }
 
     AzEl = getAzEl();
-    f << SAVEFILE_DELIMITER << "Az: " << AzEl[0] << ", El: " << AzEl[1] << std::endl;
+    f << "Az: " << AzEl[0] << ", El: " << AzEl[1] << std::endl;
 
     f.close();
     spdlog::info("{}: Done writing Mirror alignment to file {}.", m_Identity, saveFilePath);
@@ -2614,7 +2614,7 @@ UaStatus MirrorController::saveMPESPositions(const std::string &saveFilePath) {
     f << "Mirror: " << m_Identity << std::endl;
     std::time_t now = std::time(0);
     f << "Timestamp: " << std::ctime(&now) << std::endl;
-    f << SAVEFILE_DELIMITER << "Az: " << AzEl[0] << ", El: " << AzEl[1] << std::endl;
+    f << "Az: " << AzEl[0] << ", El: " << AzEl[1] << std::endl;
     f << SAVEFILE_DELIMITER << std::endl;
 
     std::vector<std::shared_ptr<MPESController>> alignMPES;
@@ -2640,7 +2640,7 @@ UaStatus MirrorController::saveMPESPositions(const std::string &saveFilePath) {
     }
 
     AzEl = getAzEl();
-    f << SAVEFILE_DELIMITER << "Az: " << AzEl[0] << ", El: " << AzEl[1] << std::endl;
+    f << "Az: " << AzEl[0] << ", El: " << AzEl[1] << std::endl;
 
     f.close();
     spdlog::info("{}: Done writing Mirror alignment to file {}.", m_Identity, saveFilePath);
