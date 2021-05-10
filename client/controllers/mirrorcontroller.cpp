@@ -2704,6 +2704,11 @@ UaStatus MirrorController::__calculateLoadActuatorLengths(const std::string &loa
 
     while (infile.peek() != EOF) {
         getline(infile, line);
+        std::size_t found = line.find("Az:");
+        if (found!=std::string::npos)
+        {
+            continue;
+        }
         s = line.find("(");
         e = line.find(")");
         panelId = Device::parseIdentity(line.substr(s , e - s + 2));
@@ -2819,6 +2824,11 @@ UaStatus MirrorController::__calculateLoadDeltaCoords(const std::string &loadFil
 
     while (infile.peek() != EOF) {
         getline(infile, line);
+        std::size_t found = line.find("Az:");
+        if (found!=std::string::npos)
+        {
+            continue;
+        }
         s = line.find("(");
         e = line.find(")");
         panelId = Device::parseIdentity(line.substr(s , e - s + 2));
@@ -2942,6 +2952,11 @@ UaStatus MirrorController::__calculateLoadMPESAlignmentOffset(const std::string 
     spdlog::info("Parsing sensor readings from the file...");
     while (infile.peek() != EOF) {
         getline(infile, line);
+        std::size_t found = line.find("Az:");
+        if (found!=std::string::npos)
+        {
+            continue;
+        }
         s = line.find("(");
         e = line.find(")");
         sensorId = Device::parseIdentity(line.substr(s , e - s + 2));
@@ -3032,6 +3047,11 @@ UaStatus MirrorController::__calculateLoadMPESPositions(const std::string &loadF
     spdlog::info("Parsing sensor readings from the file...");
     while (infile.peek() != EOF) {
         getline(infile, line);
+        std::size_t found = line.find("Az:");
+        if (found!=std::string::npos)
+        {
+            continue;
+        }
         s = line.find("(");
         e = line.find(")");
         sensorId = Device::parseIdentity(line.substr(s , e - s + 2));
