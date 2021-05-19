@@ -76,7 +76,7 @@ UaStatus Configuration::loadConnectionConfiguration(const UaString& sConfigurati
     const char *local_ip = getenv("LOCALIP");
     value = pSettings->value("DiscoveryURL", UaString("opc.tcp://%s:48010").arg(local_ip));
 #else
-    value = pSettings->value("DiscoveryURL", UaString("opc.tcp://172.17.0.201:48010"));
+    value = pSettings->value("DiscoveryURL", UaString("opc.tcp://172.17.10.15:48010"));
 #endif
     m_discoveryUrl = value.toString();
     value = pSettings->value("PositionerURL", UaString("opc.tcp://172.17.3.3:4840"));
@@ -314,7 +314,7 @@ UaStatus Configuration::loadDeviceConfiguration(const std::vector<std::string> &
                              panelId, psdId);
             }
         }
-        try {
+        if (m_DeviceIdentities.find(PAS_MPESType) != m_DeviceIdentities.end()) {
             spdlog::debug("Found {} MPES", m_DeviceIdentities.at(PAS_MPESType).size());
             //Get laser-side panel for all MPES
             for (const auto &mpesId : m_DeviceIdentities.at(PAS_MPESType)) {
@@ -338,8 +338,8 @@ UaStatus Configuration::loadDeviceConfiguration(const std::vector<std::string> &
 
             }
         }
-        catch (const std::out_of_range& oor) {
-            spdlog::warn("No MPES found: [Out of Range error: {}]", oor.what() );
+        else {
+            spdlog::warn("No MPES found while searching for l-sides");
         }
 
 
@@ -385,7 +385,7 @@ UaStatus Configuration::loadDeviceConfiguration(const std::vector<std::string> &
 
         // Get Positioner ID
         Device::Identity positionerId = getPositionerId();
-        m_DeviceIdentities[GLOB_PositionerType].insert(GAId);
+        m_DeviceIdentities[GLOB_PositionerType].insert(positionerId);
         spdlog::info("Configuration::loadDeviceConfiguration(): added Positioner {} to device list.", positionerId);
 
         m_DeviceSerialMap[GLOB_PositionerType][positionerId.serialNumber] = positionerId;
@@ -602,16 +602,16 @@ bool Configuration::addMissingParents() {
         for (const auto &OAId : m_DeviceIdentities.at(PAS_OpticalAlignmentType)){
             spdlog::trace("Looping thru OpticalAlignment for GAS devices");
             for (const auto &ccdId : m_DeviceIdentities.at(PAS_CCDType)) {
-                spdlog::trace("Looping thru CCDs");
+                spdlog::trace("looping thru CCDs");
                 for (const auto &fpId : m_DeviceIdentities.at(PAS_FocalPlaneType)) {
                     spdlog::trace("Looping thru FocalPlane");
-                    try {
+                    if (m_DeviceIdentities.find(PAS_PSDType) != m_DeviceIdentities.end()) {
                         for (const auto &psdId : m_DeviceIdentities.at(PAS_PSDType)) {
                             spdlog::trace("Looping thru PSDs");
-                            try {
+                            if (m_DeviceIdentities.find(PAS_LaserType) != m_DeviceIdentities.end()) {
                                 for (const auto &laserId : m_DeviceIdentities.at(PAS_LaserType)) {
                                     spdlog::trace("Looping thru Lasers");
-                                    try {
+                                    if (m_DeviceIdentities.find(PAS_RangefinderType) != m_DeviceIdentities.end()) {
                                         for (const auto &RangefinderId : m_DeviceIdentities.at(PAS_RangefinderType)) {
                                                 m_ChildMap[GAId][PAS_CCDType].insert(ccdId);
                                                 m_ChildMap[GAId][PAS_FocalPlaneType].insert(fpId);
@@ -632,20 +632,18 @@ bool Configuration::addMissingParents() {
                                                 m_ParentMap[fpId][PAS_OpticalAlignmentType].insert(OAId);
                                             }
                                     }
-                                    catch (const std::out_of_range &oor) {
-                                        spdlog::warn("Out of Range error: ({}), No rangefinder found on this selection.",
-                                                     oor.what());
+                                    else {
+                                        spdlog::warn("No rangefinder found on this selection.");
                                     }
                                 }
                             }
-                            catch (const std::out_of_range &oor) {
-                                    spdlog::warn("Out of Range error: ({}), No Laser found on this selection.",
-                                                 oor.what());
+                            else {
+                                    spdlog::warn("No Laser found on this selection.");
                             }
                         }
                     }
-                    catch (const std::out_of_range& oor) {
-                        spdlog::warn("Out of Range error: ({}), No PSD found on this selection.",oor.what());
+                    else {
+                        spdlog::warn("No PSD found on this selection.");
                     }
                 }
             }
@@ -662,55 +660,63 @@ bool Configuration::addMissingParents() {
         }
         m_ChildMap[mirrorId][PAS_PanelType].insert(panelId);
         m_ParentMap[panelId][PAS_MirrorType].insert(mirrorId);
+
+        for (const auto &positionerId : m_DeviceIdentities.at(GLOB_PositionerType)){
+            m_ChildMap[mirrorId][GLOB_PositionerType].insert(positionerId);
+            m_ParentMap[positionerId][PAS_MirrorType].insert(mirrorId);
+        }
         for (const auto &GAId : m_DeviceIdentities.at(PAS_GlobalAlignmentType)) {
             spdlog::trace("Looping thru GlobalAlignment for panels");
             m_ChildMap[GAId][PAS_PanelType].insert(panelId);
             m_ParentMap[panelId][PAS_GlobalAlignmentType].insert(GAId);
         }
         if (panelId.position==1001 || panelId.position==2001){
-            try {
+            if (m_DeviceIdentities.find(PAS_PSDType) != m_DeviceIdentities.end()) {
                 for (const auto &psdId : m_DeviceIdentities.at(PAS_PSDType)) {
-                    for (const auto &OptId : m_DeviceIdentities.at(PAS_OptTableType)) {
-                        if ((psdId.serialNumber == panelId.position) && (psdId.serialNumber == OptId.position)) {
-                            spdlog::trace("Found that panel {}({}) associated with PSD {}({})", panelId.position, panelId, psdId.serialNumber, psdId);
-                            m_ChildMap[OptId][PAS_PSDType].insert(psdId);
-                            m_ParentMap[psdId][PAS_OptTableType].insert(OptId);
-                            m_ChildMap[OptId][PAS_PanelType].insert(panelId);
-                            m_ParentMap[panelId][PAS_OptTableType].insert(OptId);
-                        }
-                        for (const auto &laserId : m_DeviceIdentities.at(PAS_LaserType)) {
-                            try {
-                                for (const auto &RangefinderId : m_DeviceIdentities.at(PAS_RangefinderType)) {
-                                    try {
-                                        if (panelId.position == 1001) {
-                                            m_ChildMap[OptId][PAS_LaserType].insert(psdId);
-                                            m_ParentMap[laserId][PAS_OptTableType].insert(OptId);
-                                            m_ChildMap[OptId][PAS_PanelType].insert(panelId);
-                                            m_ParentMap[panelId][PAS_OptTableType].insert(OptId);
-                                        }
-                                        else if (panelId.position == 2001) {
-                                            m_ChildMap[OptId][PAS_PSDType].insert(psdId);
-                                            m_ParentMap[psdId][PAS_OptTableType].insert(OptId);
-                                            m_ChildMap[OptId][PAS_PanelType].insert(panelId);
-                                            m_ParentMap[panelId][PAS_OptTableType].insert(OptId);
+                    if (m_DeviceIdentities.find(PAS_OptTableType) != m_DeviceIdentities.end()) {
+                        for (const auto &OptId : m_DeviceIdentities.at(PAS_OptTableType)) {
+                            if ((psdId.serialNumber == panelId.position) && (psdId.serialNumber == OptId.position)) {
+                                spdlog::trace("Found that panel {}({}) associated with PSD {}({})", panelId.position,
+                                              panelId, psdId.serialNumber, psdId);
+                                m_ChildMap[OptId][PAS_PSDType].insert(psdId);
+                                m_ParentMap[psdId][PAS_OptTableType].insert(OptId);
+                                m_ChildMap[OptId][PAS_PanelType].insert(panelId);
+                                m_ParentMap[panelId][PAS_OptTableType].insert(OptId);
+                            }
+                            if (m_DeviceIdentities.find(PAS_LaserType) != m_DeviceIdentities.end()) {
+                                for (const auto &laserId : m_DeviceIdentities.at(PAS_LaserType)) {
+                                    if (m_DeviceIdentities.find(PAS_RangefinderType) != m_DeviceIdentities.end()) {
+                                        for (const auto &RangefinderId : m_DeviceIdentities.at(PAS_RangefinderType)) {
+                                            if (panelId.position == 1001) {
+                                                m_ChildMap[OptId][PAS_LaserType].insert(psdId);
+                                                m_ParentMap[laserId][PAS_OptTableType].insert(OptId);
+                                                m_ChildMap[OptId][PAS_PanelType].insert(panelId);
+                                                m_ParentMap[panelId][PAS_OptTableType].insert(OptId);
+                                            } else if (panelId.position == 2001) {
+                                                m_ChildMap[OptId][PAS_PSDType].insert(psdId);
+                                                m_ParentMap[psdId][PAS_OptTableType].insert(OptId);
+                                                m_ChildMap[OptId][PAS_PanelType].insert(panelId);
+                                                m_ParentMap[panelId][PAS_OptTableType].insert(OptId);
+                                            }
                                         }
                                     }
-                                    catch (const std::out_of_range &oor) {
-                                        spdlog::warn("Out of Range error: ({}), No rangefinder found on this selection.",
-                                                     oor.what());
+                                    else {
+                                        spdlog::warn("No Rangefinder found on this selection.");
                                     }
                                 }
                             }
-                            catch (const std::out_of_range &oor) {
-                                spdlog::warn("Out of Range error: ({}), No Laser found on this selection.",
-                                             oor.what());
+                            else {
+                                spdlog::warn("No Laser found on this selection.");
                             }
                         }
                     }
+                    else {
+                        spdlog::warn("No OptTable found while checking positions 1001 or 2001");
+                    }
                 }
             }
-            catch (const std::out_of_range& oor) {
-                spdlog::warn("No PSD or OpticalTable found while checking positions 1001 or 2001");
+            else {
+                spdlog::warn("No PSD found while checking positions 1001 or 2001");
             }
         }
         else{
@@ -722,26 +728,32 @@ bool Configuration::addMissingParents() {
         }
     }
     // Add optical table to Global alignment device child
-    try {
+    if (m_DeviceIdentities.find(PAS_GlobalAlignmentType) != m_DeviceIdentities.end()) {
         for (const auto &GA : m_DeviceIdentities.at(PAS_GlobalAlignmentType)) {
-            for (const auto &OptTableId : m_DeviceIdentities.at(PAS_OptTableType)) {
-                if (m_DeviceIdentities[PAS_OptTableType].find(OptTableId) ==
-                    m_DeviceIdentities[PAS_OptTableType].end()) {
-                    spdlog::info("Configuration::addMissingParents(): Added Optical Table {} to device list.",
+            if (m_DeviceIdentities.find(PAS_OptTableType) != m_DeviceIdentities.end()) {
+                for (const auto &OptTableId : m_DeviceIdentities.at(PAS_OptTableType)) {
+                    if (m_DeviceIdentities[PAS_OptTableType].find(OptTableId) ==
+                        m_DeviceIdentities[PAS_OptTableType].end()) {
+                        spdlog::info("Configuration::addMissingParents(): Added Optical Table {} to device list.",
+                                     OptTableId);
+                        m_DeviceIdentities[PAS_OptTableType].insert(OptTableId);
+                    }
+                    spdlog::info("Configuration::addMissingParents(): Added {} to device list and parent map.",
                                  OptTableId);
-                    m_DeviceIdentities[PAS_OptTableType].insert(OptTableId);
+                    m_ChildMap[GA][PAS_OptTableType].insert(OptTableId);
+                    m_ParentMap[OptTableId][PAS_GlobalAlignmentType].insert(GA);
                 }
-                spdlog::info("Configuration::addMissingParents(): Added {} to device list and parent map.", OptTableId);
-                m_ChildMap[GA][PAS_OptTableType].insert(OptTableId);
-                m_ParentMap[OptTableId][PAS_GlobalAlignmentType].insert(GA);
+            }
+            else {
+                spdlog::warn("No OpticalTable found on this panel.");
             }
         }
     }
-    catch (const std::out_of_range& oor) {
-        spdlog::warn("Out of Range error: ({}), No Optical Table found on this panel.",oor.what());
+    else {
+        spdlog::warn("No GlobalAlignment found on this panel.");
     }
     // Add MPES to edge and mirror device children based on position.
-    try {
+    if (m_DeviceIdentities.find(PAS_MPESType) != m_DeviceIdentities.end()) {
         for (const auto &mpesId : m_DeviceIdentities.at(PAS_MPESType)) {
             if (m_ParentMap.at(mpesId).at(PAS_PanelType).size() != 1) {
                 spdlog::error(
@@ -783,9 +795,9 @@ bool Configuration::addMissingParents() {
             m_ParentMap[mpesId][PAS_MirrorType].insert(mirrorId);
         }
     }
-    catch (const std::out_of_range& oor) {
-            spdlog::warn("Out of Range error: ({}), No MPES found on this panel.",oor.what());
-        }
+    else {
+            spdlog::warn("No MPES found on this panel.");
+    }
 
     // Add edge to mirror device children
     if (m_DeviceIdentities.find(PAS_EdgeType) != m_DeviceIdentities.end()) {
@@ -801,7 +813,7 @@ bool Configuration::addMissingParents() {
         }
     }
     // While looping thru MPES, add edge and panel parent/child of each other.
-    try {
+    if (m_DeviceIdentities.find(PAS_MPESType) != m_DeviceIdentities.end()) {
         for (const auto &mpesId : m_DeviceIdentities.at(PAS_MPESType)) {
             if (m_ParentMap.at(mpesId).find(PAS_EdgeType) != m_ParentMap.at(mpesId).end()) {
                 for (const auto &edgeParentId : m_ParentMap.at(mpesId).at(PAS_EdgeType)) {
@@ -816,8 +828,8 @@ bool Configuration::addMissingParents() {
             }
         }
     }
-    catch (const std::out_of_range& oor) {
-        spdlog::warn("Out of Range error: ({}), No MPES found on this panel.",oor.what());
+    else {
+        spdlog::warn("No MPES found on this panel.");
     }
 
 }
