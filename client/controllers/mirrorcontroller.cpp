@@ -48,7 +48,7 @@ MirrorController::MirrorController(Device::Identity identity, std::string mode)
     10000),
       m_Mode(mode), m_pSurface(nullptr) {
     // define possible children and initialize the selected children string
-    m_ChildrenTypes = {PAS_PanelType, PAS_EdgeType, PAS_MPESType, PAS_FocalPlaneType};
+    m_ChildrenTypes = {PAS_PanelType, PAS_EdgeType, PAS_MPESType, PAS_FocalPlaneType, GLOB_PositionerType};
 
     // define coordinate vectors -- these are of size 6
     m_curCoords = Eigen::VectorXd(6);
@@ -240,10 +240,12 @@ UaStatus MirrorController::getState(Device::DeviceState &state)
     Device::DeviceState s;
     std::vector<unsigned> deviceTypesToCheck = {PAS_MPESType};
     for (auto devType : deviceTypesToCheck) {
-        for (const auto &child : getChildren(devType)) {
-            child->getState(s);
-            if (s == Device::DeviceState::Busy) {
-                m_State = s;
+        if ( m_pChildren.find(devType) != m_pChildren.end()) {
+            for (const auto &child : getChildren(devType)) {
+                child->getState(s);
+                if (s == Device::DeviceState::Busy) {
+                    m_State = s;
+                }
             }
         }
     }
@@ -339,19 +341,21 @@ UaStatus MirrorController::getData(OpcUa_UInt32 offset, UaVariant &value)
     } else if (offset == PAS_MirrorType_ErrorState) {
         int errorState = 0;
         for (auto childType : m_ChildrenTypes) {
-            for (auto child : getChildren(childType)) {
-                UaVariant var;
-                if (childType == PAS_MPESType) {
-                    child->getData(PAS_MPESType_ErrorState, var);
-                } else if (childType == PAS_PanelType) {
-                    child->getData(PAS_PanelType_ErrorState, var);
-                } else if (childType == PAS_EdgeType) {
-                    child->getData(PAS_EdgeType_ErrorState, var);
-                }
-                int temp;
-                var.toInt32(temp);
-                if (temp > errorState) {
-                    errorState = temp;
+            if ( m_pChildren.find(childType) != m_pChildren.end()) {
+                for (auto child : getChildren(childType)) {
+                    UaVariant var;
+                    if (childType == PAS_MPESType) {
+                        child->getData(PAS_MPESType_ErrorState, var);
+                    } else if (childType == PAS_PanelType) {
+                        child->getData(PAS_PanelType_ErrorState, var);
+                    } else if (childType == PAS_EdgeType) {
+                        child->getData(PAS_EdgeType_ErrorState, var);
+                    }
+                    int temp;
+                    var.toInt32(temp);
+                    if (temp > errorState) {
+                        errorState = temp;
+                    }
                 }
             }
         }
@@ -415,9 +419,9 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
      * Move the whole mirror in the telescope reference frame *
      * ********************************************************/
     if (offset == PAS_MirrorType_MoveToCoords || offset == PAS_MirrorType_MoveDeltaCoords ||
-        offset == PAS_MirrorType_AlignSector || offset == PAS_MirrorType_LoadPosition ||
+        offset == PAS_MirrorType_AlignSector || offset == PAS_MirrorType_LoadActuatorLengths ||
         offset == PAS_MirrorType_AlignRing || offset == PAS_MirrorType_LoadDeltaCoords 
-        || offset == PAS_MirrorType_LoadAlignmentOffset) {
+        || offset == PAS_MirrorType_LoadMPESAlignmentOffset || offset == PAS_MirrorType_LoadMPESPositions) {
 
         std::string command;
 
@@ -434,7 +438,7 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
             spdlog::info("{} : MirrorController::operate() : Calling alignRing()...", m_Identity);
             command = UaString(args[2].Value.String).toUtf8();
         }
-        else if (offset == PAS_MirrorType_LoadPosition) {
+        else if (offset == PAS_MirrorType_LoadActuatorLengths) {
             spdlog::info("{} : MirrorController::operate() : Calling loadPosition()...", m_Identity);
             command = UaString(args[2].Value.String).toUtf8();
         }
@@ -442,8 +446,12 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
             spdlog::info("{} : MirrorController::operate() : Calling loadDeltaCoords()...", m_Identity);
             command = UaString(args[2].Value.String).toUtf8();
         }
-        else if (offset == PAS_MirrorType_LoadAlignmentOffset) {
-            spdlog::info("{} : MirrorController::operate() : Calling loadAlignmentOffset()...", m_Identity);
+        else if (offset == PAS_MirrorType_LoadMPESAlignmentOffset) {
+            spdlog::info("{} : MirrorController::operate() : Calling loadMPESAlignmentOffset()...", m_Identity);
+            command = UaString(args[2].Value.String).toUtf8();
+        }
+        else if (offset == PAS_MirrorType_LoadMPESPositions) {
+            spdlog::info("{} : MirrorController::operate() : Calling loadMPESPositions()...", m_Identity);
             command = UaString(args[2].Value.String).toUtf8();
         }
 
@@ -472,18 +480,23 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
             } else if (offset == PAS_MirrorType_AlignRing) {
                 unsigned fixPanel = args[0].Value.UInt32;
                 status = __calculateAlignRing(fixPanel);
-            } else if (offset == PAS_MirrorType_LoadPosition) {
+            } else if (offset == PAS_MirrorType_LoadActuatorLengths) {
                 std::string saveFilePath = UaString(args[0].Value.String).toUtf8();
-                status = __calculateLoadPosition(saveFilePath);
+                status = __calculateLoadActuatorLengths(saveFilePath);
             }
             else if (offset == PAS_MirrorType_LoadDeltaCoords) {
                 std::string saveFilePath = UaString(args[0].Value.String).toUtf8();
                 status = __calculateLoadDeltaCoords(saveFilePath);
             }
-            else if (offset == PAS_MirrorType_LoadAlignmentOffset) {
+            else if (offset == PAS_MirrorType_LoadMPESAlignmentOffset) {
                 std::string saveFilePath = UaString(args[0].Value.String).toUtf8();
-                spdlog::info("Calling calculateLoadAlignmentOffset...");
-                status = __calculateLoadAlignmentOffset(saveFilePath);
+                spdlog::info("Calling calculateLoadMPESAlignmentOffset...");
+                status = __calculateLoadMPESAlignmentOffset(saveFilePath);
+            }
+            else if (offset == PAS_MirrorType_LoadMPESPositions) {
+                std::string saveFilePath = UaString(args[0].Value.String).toUtf8();
+                spdlog::info("Calling calculateLoadMPESPositions...");
+                status = __calculateLoadMPESPositions(saveFilePath);
             }
 
             if (status.isBad()) {
@@ -519,13 +532,17 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
                 alignFrac = args[0].Value.Double;
             } else if (offset == PAS_MirrorType_AlignRing) {
                 alignFrac = args[1].Value.Double;
-            } else if (offset == PAS_MirrorType_LoadPosition) {
+            } else if (offset == PAS_MirrorType_LoadActuatorLengths) {
                 alignFrac = args[1].Value.Double;
             }
             else if (offset == PAS_MirrorType_LoadDeltaCoords) {
                 alignFrac = args[1].Value.Double;
             }
-            else if (offset == PAS_MirrorType_LoadAlignmentOffset) {
+            else if (offset == PAS_MirrorType_LoadMPESAlignmentOffset) {
+                alignFrac = args[1].Value.Double;
+                spdlog::info("Calling setAlignFrac...");
+            }
+            else if (offset == PAS_MirrorType_LoadMPESPositions) {
                 alignFrac = args[1].Value.Double;
                 spdlog::info("Calling setAlignFrac...");
             }
@@ -541,13 +558,16 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
                 alignFrac = args[0].Value.Double;
             } else if (offset == PAS_MirrorType_AlignRing) {
                 alignFrac = args[1].Value.Double;
-            } else if (offset == PAS_MirrorType_LoadPosition) {
+            } else if (offset == PAS_MirrorType_LoadActuatorLengths) {
                 alignFrac = args[1].Value.Double;
             }
             else if (offset == PAS_MirrorType_LoadDeltaCoords) {
                 alignFrac = args[1].Value.Double;
             }
-            else if (offset == PAS_MirrorType_LoadAlignmentOffset) {
+            else if (offset == PAS_MirrorType_LoadMPESAlignmentOffset) {
+                alignFrac = args[1].Value.Double;
+            }
+            else if (offset == PAS_MirrorType_LoadMPESPositions) {
                 alignFrac = args[1].Value.Double;
             }
             alignFrac = abs(alignFrac);
@@ -574,28 +594,54 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
         updateCoords(true);
         setState(Device::DeviceState::On);
     }
-    else if (offset == PAS_MirrorType_SavePosition) {
+    else if (offset == PAS_MirrorType_SaveActuatorLengths) {
         setState(Device::DeviceState::Busy);
         // read out all individual positions
         // and get global mirror coordinates
-        spdlog::info("{} : MirrorController::operate() : Calling savePosition()...", m_Identity);
+        spdlog::info("{} : MirrorController::operate() : Calling saveActuatorLengths()...", m_Identity);
         updateCoords(false);
-        std::string saveFilePath = UaString(args[0].Value.String).toUtf8();        
+        std::string saveFilePath = UaString(args[0].Value.String).toUtf8();
 
-        savePosition(saveFilePath);
+        saveActuatorLengths(saveFilePath);
+
+        std::string saveFilePath_physicalCoords = saveFilePath + "_physicalCoords";
+        spdlog::info("{}: now calling savePanelPhysicalCoordinates with modified path {}", m_Identity, saveFilePath_physicalCoords);
+        savePanelPhysicalCoords(saveFilePath_physicalCoords);
+
         setState(Device::DeviceState::On);
-    } 
-    else if (offset == PAS_MirrorType_SaveAlignmentOffset) {
+    }
+    else if (offset == PAS_MirrorType_SavePanelTemperatures) {
         setState(Device::DeviceState::Busy);
         // read out all individual positions
         // and get global mirror coordinates
-        spdlog::info("{} : MirrorController::operate() : Calling saveAlignmentOffset()...", m_Identity);
-        updateCoords(false);
-        std::string saveFilePath = UaString(args[0].Value.String).toUtf8();        
+        spdlog::info("{} : MirrorController::operate() : Calling savePanelTemperatures()...", m_Identity);
+        std::string saveFilePath = UaString(args[0].Value.String).toUtf8();
 
-        saveAlignmentOffset(saveFilePath);
+        savePanelTemperatures(saveFilePath);
         setState(Device::DeviceState::On);
-    } 
+    }
+    else if (offset == PAS_MirrorType_SaveMPESAlignmentOffset) {
+        setState(Device::DeviceState::Busy);
+        // read out all individual positions
+        // and get global mirror coordinates
+        spdlog::info("{} : MirrorController::operate() : Calling saveMPESAlignmentOffset()...", m_Identity);
+        updateCoords(false);
+        std::string saveFilePath = UaString(args[0].Value.String).toUtf8();
+
+        saveMPESAlignmentOffset(saveFilePath);
+        setState(Device::DeviceState::On);
+    }
+    else if (offset == PAS_MirrorType_SaveMPESPositions) {
+        setState(Device::DeviceState::Busy);
+        // read out all individual positions
+        // and get global mirror coordinates
+        spdlog::info("{} : MirrorController::operate() : Calling saveMPESPositions()...", m_Identity);
+        updateCoords(false);
+        std::string saveFilePath = UaString(args[0].Value.String).toUtf8();
+
+        saveMPESPositions(saveFilePath);
+        setState(Device::DeviceState::On);
+    }
     else if (offset == PAS_MirrorType_AlignSequentialRecursive) {
         // make sure the arguments make sense -- we are supposed
         // to get an edge position and a direction. The type has
@@ -620,28 +666,31 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
             spdlog::error("{} : MirrorController::operate() : No Edges selected. Nothing to do, method call aborted.",
                           m_Identity);
         } else {
-            for (const auto &edge : getChildren(PAS_EdgeType)) {
-                std::ostringstream os;
-                for (const auto &mpes : std::dynamic_pointer_cast<EdgeController>(edge)->getChildren(
-                    PAS_MPESType)) {
-                    os << mpes->getIdentity() << " : " << std::endl;
-                    if (m_selectedMPES.find(mpes->getIdentity().serialNumber) != m_selectedMPES.end()) {
-                        std::dynamic_pointer_cast<MPESController>(mpes)->read();
-                        MPESBase::Position position = std::dynamic_pointer_cast<MPESController>(mpes)->getPosition();
+            if ( m_pChildren.find(PAS_EdgeType) != m_pChildren.end()) {
+                for (const auto &edge : getChildren(PAS_EdgeType)) {
+                    std::ostringstream os;
+                    for (const auto &mpes : std::dynamic_pointer_cast<EdgeController>(edge)->getChildren(
+                            PAS_MPESType)) {
+                        os << mpes->getIdentity() << " : " << std::endl;
+                        if (m_selectedMPES.find(mpes->getIdentity().serialNumber) != m_selectedMPES.end()) {
+                            std::dynamic_pointer_cast<MPESController>(mpes)->read();
+                            MPESBase::Position position = std::dynamic_pointer_cast<MPESController>(
+                                    mpes)->getPosition();
 
-                        os << "    " << position.xCentroid << " +/- " << position.xSpotWidth << " ["
-                           << position.xNominal << "] ("
-                           << position.xCentroid - position.xNominal << ")" << std::endl;
-                        os << "    " << position.yCentroid << " +/- " << position.ySpotWidth << " ["
-                           << position.yNominal << "] ("
-                           << position.yCentroid - position.yNominal << ")" << std::endl;
+                            os << "    " << position.xCentroid << " +/- " << position.xSpotWidth << " ["
+                               << position.xNominal << "] ("
+                               << position.xCentroid - position.xNominal << ")" << std::endl;
+                            os << "    " << position.yCentroid << " +/- " << position.ySpotWidth << " ["
+                               << position.yNominal << "] ("
+                               << position.yCentroid - position.yNominal << ")" << std::endl;
+                        }
                     }
+                    spdlog::info(
+                            "{}: Readings for Edge {}:\nCurrent position +/- Spot width [Aligned position] (Misalignment)\n\n{}\n\n",
+                            m_Identity, edge->getIdentity(), os.str());
                 }
-                spdlog::info(
-                        "{}: Readings for Edge {}:\nCurrent position +/- Spot width [Aligned position] (Misalignment)\n\n{}\n\n",
-                        m_Identity, edge->getIdentity(), os.str());
+                spdlog::info("{}: Done reading sensors.", m_Identity);
             }
-            spdlog::info("{}: Done reading sensors.", m_Identity);
         }
         setState(Device::DeviceState::On);
     } else if (offset == PAS_MirrorType_ReadSensorsParallel) {
@@ -660,7 +709,7 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
         std::map<std::shared_ptr<PanelController>, std::vector<std::shared_ptr<MPESController>>> MPESordering;
         for (auto it = getChildren(PAS_PanelType).begin(); it < getChildren(PAS_PanelType).end(); it++) {
             MPESordering[std::dynamic_pointer_cast<PanelController>(*it)] = std::vector<std::shared_ptr<MPESController>>();
-            try {
+            if (std::dynamic_pointer_cast<PanelController>(*it)->m_pChildren.find(PAS_MPESType) != std::dynamic_pointer_cast<PanelController>(*it)->m_pChildren.end()) {
                 for (const auto &mpes : std::dynamic_pointer_cast<PanelController>(*it)->getChildren(
                         PAS_MPESType)) {
                     if (m_selectedMPES.find(mpes->getIdentity().serialNumber) != m_selectedMPES.end()) {
@@ -668,8 +717,8 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
                     }
                 }
             }
-            catch (const std::out_of_range& oor) {
-                spdlog::warn("{}: No MPES found on this panel: [Out of Range error: {}]", std::dynamic_pointer_cast<PanelController>(*it)->getIdentity().position, oor.what() );
+            else {
+                spdlog::warn("{}: No MPES found on this panel", std::dynamic_pointer_cast<PanelController>(*it)->getIdentity().position);
             }
         }
 
@@ -731,7 +780,7 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
         std::map<Device::Identity, MPESBase::Position> readings;
 
         for (auto it = getChildren(PAS_PanelType).begin(); it < getChildren(PAS_PanelType).end(); it++) {
-            try {
+            if (std::dynamic_pointer_cast<PanelController>(*it)->m_pChildren.find(PAS_MPESType) != std::dynamic_pointer_cast<PanelController>(*it)->m_pChildren.end()) {
                 for (const auto &mpes : std::dynamic_pointer_cast<PanelController>(*it)->getChildren(
                         PAS_MPESType)) {
                     if (m_selectedMPES.find(mpes->getIdentity().serialNumber) != m_selectedMPES.end()) {
@@ -741,41 +790,45 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
                     }
                 }
             }
-            catch (const std::out_of_range& oor) {
-                spdlog::warn("{}: No MPES found on this panel: [Out of Range error: {}]", std::dynamic_pointer_cast<PanelController>(*it)->getIdentity().position, oor.what() );
+            else {
+                spdlog::warn("{}: No MPES found on this panel", std::dynamic_pointer_cast<PanelController>(*it)->getIdentity().position);
             }
         }
 
-        for (const auto &edge : getChildren(PAS_EdgeType)) {
-            std::ostringstream os;
-            for (const auto &mpes : std::dynamic_pointer_cast<PasCompositeController>(edge)->getChildren(
-                PAS_MPESType)) {
-                os << mpes->getIdentity() << " : " << std::endl;
-                auto it = readings.find(mpes->getIdentity());
-                if (it != readings.end()) {
-                    os << "    " << it->second.xCentroid << " +/- " << it->second.xSpotWidth << " ["
-                        << it->second.xNominal << "] ("
-                        << it->second.xCentroid - it->second.xNominal << ")" << std::endl;
-                    os << "    " << it->second.yCentroid << " +/- " << it->second.ySpotWidth << " ["
-                        << it->second.yNominal << "] ("
-                        << it->second.yCentroid - it->second.yNominal << ")" << std::endl;
+        if ( m_pChildren.find(PAS_EdgeType) != m_pChildren.end()) {
+            for (const auto &edge : getChildren(PAS_EdgeType)) {
+                std::ostringstream os;
+                for (const auto &mpes : std::dynamic_pointer_cast<PasCompositeController>(edge)->getChildren(
+                        PAS_MPESType)) {
+                    os << mpes->getIdentity() << " : " << std::endl;
+                    auto it = readings.find(mpes->getIdentity());
+                    if (it != readings.end()) {
+                        os << "    " << it->second.xCentroid << " +/- " << it->second.xSpotWidth << " ["
+                           << it->second.xNominal << "] ("
+                           << it->second.xCentroid - it->second.xNominal << ")" << std::endl;
+                        os << "    " << it->second.yCentroid << " +/- " << it->second.ySpotWidth << " ["
+                           << it->second.yNominal << "] ("
+                           << it->second.yCentroid - it->second.yNominal << ")" << std::endl;
+                    }
                 }
+                spdlog::info(
+                        "{}: Readings for Edge {}:\nCurrent position +/- Spot width [Aligned position] (Misalignment)\n\n{}\n\n",
+                        m_Identity, edge->getIdentity(), os.str());
             }
-            spdlog::info(
-                "{}: Readings for Edge {}:\nCurrent position +/- Spot width [Aligned position] (Misalignment)\n\n{}\n\n",
-                m_Identity, edge->getIdentity(), os.str());
+            spdlog::info("{}: Done reading sensors.", m_Identity);
         }
-        spdlog::info("{}: Done reading sensors.", m_Identity);
 
         int N_bad_mpes = 0;
-        for (auto mpes : getChildren(PAS_MPESType)) {
-            if (m_selectedMPES.find(mpes->getIdentity().serialNumber) != m_selectedMPES.end()) {
-                if (mpes->getErrorState() == Device::ErrorState::FatalError) {
-                    N_bad_mpes += 1;
-                    spdlog::error("{}: Failed to read.", mpes->getIdentity());
+        if ( m_pChildren.find(PAS_MPESType) != m_pChildren.end()) {
+            for (auto mpes : getChildren(PAS_MPESType)) {
+                if (m_selectedMPES.find(mpes->getIdentity().serialNumber) != m_selectedMPES.end()) {
+                    if (mpes->getErrorState() == Device::ErrorState::FatalError) {
+                        N_bad_mpes += 1;
+                        spdlog::error("{}: Failed to read.", mpes->getIdentity());
+                    }
                 }
             }
-        };
+        }
         if (N_bad_mpes!=0)
         {
             spdlog::error("{}: Found {} failed sensors.", m_Identity, N_bad_mpes);
@@ -904,14 +957,14 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
         std::map<std::shared_ptr<PanelController>, std::vector<std::shared_ptr<MPESController>>> MPESordering;
         for (auto it = getChildren(PAS_PanelType).begin(); it < getChildren(PAS_PanelType).end(); it++) {
             MPESordering[std::dynamic_pointer_cast<PanelController>(*it)] = std::vector<std::shared_ptr<MPESController>>();
-            try {
+            if (std::dynamic_pointer_cast<PanelController>(*it)->m_pChildren.find(PAS_MPESType) != std::dynamic_pointer_cast<PanelController>(*it)->m_pChildren.end())  {
                 for (const auto &mpes : std::dynamic_pointer_cast<PanelController>(*it)->getChildren(
                         PAS_MPESType)) {
                     MPESordering[std::dynamic_pointer_cast<PanelController>(*it)].push_back(std::dynamic_pointer_cast<MPESController>(mpes));
                 }
             }
-            catch (const std::out_of_range& oor) {
-                spdlog::warn("{}: No MPES found for this panel: [Out of Range error: {}]", std::dynamic_pointer_cast<PanelController>(*it)->getIdentity().position, oor.what() );
+            else {
+                spdlog::warn("{}: No MPES found for this panel", std::dynamic_pointer_cast<PanelController>(*it)->getIdentity().position);
             }
         }
 
@@ -926,14 +979,14 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
             auto panelController = std::dynamic_pointer_cast<PanelController>(*it);
             auto panelId = panelController->getIdentity();
             std::map<Device::Identity, std::shared_ptr<MPESController>> mpesIdMap;
-            try {
+            if (panelController->m_pChildren.find(PAS_MPESType) != panelController->m_pChildren.end()) {
                 for (const auto &mpes : panelController->getChildren(
                         PAS_MPESType)) {
                     mpesIdMap[mpes->getIdentity()] = std::dynamic_pointer_cast<MPESController>(mpes);
                 }
                 }
-            catch (const std::out_of_range& oor) {
-                spdlog::warn("{}: No MPES found for this panel: [Out of Range error: {}]", std::dynamic_pointer_cast<PanelController>(*it)->getIdentity().position, oor.what() );
+            else {
+                spdlog::warn("{}: No MPES found for this panel", std::dynamic_pointer_cast<PanelController>(*it)->getIdentity().position);
             }
 
             for (auto mpesId : allMPES.at(panelId)) {
@@ -1001,7 +1054,7 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
                 }
             }
             // Get MPES errors
-            try {
+            if (panelController->m_pChildren.find(PAS_MPESType) != panelController->m_pChildren.end())  {
                 for (const auto &mpes : panelController->getChildren(PAS_MPESType)) {
                     spdlog::debug("Checking MPES...");
                     auto mpesController = std::dynamic_pointer_cast<MPESController>(mpes);
@@ -1022,8 +1075,8 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
                     }
                 }
             }
-            catch (const std::out_of_range& oor) {
-                spdlog::warn("Out of Range error: ({}), No MPES found on this panel.",oor.what());
+            else {
+                spdlog::warn("{}: No MPES found on this panel.", panelController->getIdentity().position);
             }
         }
 
@@ -1092,8 +1145,7 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
         for (const auto &panel : m_pChildren.at(PAS_PanelType)) {
             auto panelController = std::dynamic_pointer_cast<PanelController>(panel);
             auto panelId = panelController->getIdentity();
-            
-            try {
+            if (panelController->m_pChildren.find(PAS_MPESType) != panelController->m_pChildren.end())  {
                 for (const auto &mpes : panelController->getChildren(PAS_MPESType)) {
                     auto mpesController = std::dynamic_pointer_cast<MPESController>(mpes);
                     auto mpesId = mpesController->getIdentity();
@@ -1119,8 +1171,8 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
                     }
                 }
             }
-            catch (const std::out_of_range& oor) {
-                spdlog::warn("Out of Range error: ({}), No MPES found on this panel.",oor.what());
+            else {
+                spdlog::warn("{}: No MPES found on this panel.",panelController->getIdentity().position);
             }
         }
 
@@ -2247,7 +2299,7 @@ UaStatus MirrorController::__calculateAlignRing(int fixPanel)
     return status;
 }
 
-UaStatus MirrorController::savePosition(const std::string &saveFilePath) {
+UaStatus MirrorController::saveActuatorLengths(const std::string &saveFilePath) {
     // Will save all panel positions, including OT, if it is a child of this mirror.
     spdlog::info("{}: Attempting to write Mirror position to file {}...", m_Identity, saveFilePath);
 
@@ -2259,6 +2311,9 @@ UaStatus MirrorController::savePosition(const std::string &saveFilePath) {
             m_Identity, saveFilePath);
         return OpcUa_Bad;
     }
+
+    std::vector<double> AzEl;
+    AzEl = getAzEl();
 
     // Create output file stream
     std::ofstream f(saveFilePath);
@@ -2275,6 +2330,7 @@ UaStatus MirrorController::savePosition(const std::string &saveFilePath) {
     std::time_t now = std::time(0);
     f << "Timestamp: " << std::ctime(&now) << std::endl;
     f << "Global coordinates:\n " << m_curCoords << std::endl;
+    f << "Az: " << AzEl[0] << ", El: " << AzEl[1] << std::endl;
     f << SAVEFILE_DELIMITER << std::endl;
 
     for (unsigned panelPos : m_selectedPanels) {
@@ -2290,23 +2346,31 @@ UaStatus MirrorController::savePosition(const std::string &saveFilePath) {
         f << actuatorLengths << std::endl;
         f << SAVEFILE_DELIMITER << std::endl;
     }
+
+    AzEl = getAzEl();
+    f << "Az: " << AzEl[0] << ", El: " << AzEl[1] << std::endl;
+
     f.close();
     spdlog::info("{}: Done writing Mirror position to file {}.", m_Identity, saveFilePath);
 
     return OpcUa_Good;
 }
 
-UaStatus MirrorController::saveAlignmentOffset(const std::string &saveFilePath) {
-    spdlog::info("{}: Attempting to write alignment offset to file {}...", m_Identity, saveFilePath);
+UaStatus MirrorController::savePanelPhysicalCoords(const std::string &saveFilePath) {
+    // Will save all panel positions, including OT, if it is a child of this mirror.
+    spdlog::info("{}: Attempting to write Mirror position to file {}...", m_Identity, saveFilePath);
 
     //Check if file already exists
     struct stat buf{};
     if (stat(saveFilePath.c_str(), &buf) != -1) {
         spdlog::error(
-            "{}: File {} already exists. Please select a different path, or manually delete/move/rename the file in your system.",
-            m_Identity, saveFilePath);
+                "{}: File {} already exists. Please select a different path, or manually delete/move/rename the file in your system.",
+                m_Identity, saveFilePath);
         return OpcUa_Bad;
     }
+
+    std::vector<double> AzEl;
+    AzEl = getAzEl();
 
     // Create output file stream
     std::ofstream f(saveFilePath);
@@ -2322,6 +2386,170 @@ UaStatus MirrorController::saveAlignmentOffset(const std::string &saveFilePath) 
     f << "Mirror: " << m_Identity << std::endl;
     std::time_t now = std::time(0);
     f << "Timestamp: " << std::ctime(&now) << std::endl;
+    f << "Global coordinates:\n " << m_curCoords << std::endl;
+    f << "Az: " << AzEl[0] << ", El: " << AzEl[1] << std::endl;
+    f << SAVEFILE_DELIMITER << std::endl;
+
+    StewartPlatform SP;
+    for (unsigned panelPos : m_selectedPanels) {
+        auto pPanel = std::dynamic_pointer_cast<PanelController>(
+                m_ChildrenPositionMap.at(PAS_PanelType).at(panelPos));
+        Eigen::VectorXd actuatorLengths(6);
+        Eigen::VectorXd physicalCoords(6);
+        UaStatus status = std::dynamic_pointer_cast<PanelController>(pPanel)->__getActuatorLengths(actuatorLengths);
+        if (status.isBad()) {
+            spdlog::error("{}: Unable to write position for Panel {}, failed to read actuator lengths.", m_Identity, pPanel->getIdentity());
+            continue;
+        }
+
+        SP.SetPanelType(StewartPlatform::PanelType::OPT);
+        // update current coordinates
+        SP.ComputeStewart(actuatorLengths.data());
+        // panel coords
+        for (int i = 0; i < 6; i++)
+            physicalCoords[i] = SP.GetPanelCoords()[i];
+
+        f << "Panel: " << pPanel->getIdentity() << std::endl;
+        f << physicalCoords << std::endl;
+        f << SAVEFILE_DELIMITER << std::endl;
+    }
+
+    AzEl = getAzEl();
+    f << "Az: " << AzEl[0] << ", El: " << AzEl[1] << std::endl;
+
+    f.close();
+    spdlog::info("{}: Done writing Mirror position to file {}.", m_Identity, saveFilePath);
+
+    return OpcUa_Good;
+}
+
+std::vector<double> MirrorController::getAzEl() {
+
+    double Az(-1), El(-1);
+    UaVariant value;
+    UaStatus status;
+    if (m_pChildren.find(GLOB_PositionerType) != m_pChildren.end()) {
+        auto pController = m_pChildren[GLOB_PositionerType].at(0);
+        status = pController->getData(GLOB_PositionerType_curAz, value);
+        UA_ASSERT(status.isGood());
+        value.toDouble(Az);
+        status = pController->getData(GLOB_PositionerType_curEl, value);
+        UA_ASSERT(status.isGood());
+        value.toDouble(El);
+        spdlog::trace("Found Az {}", Az);
+    }
+    else {
+        spdlog::error("Positioner controller not found.");
+    }
+
+    std::vector<double> AzEl;
+    AzEl.push_back(Az);
+    AzEl.push_back(El);
+    return AzEl;
+}
+
+
+UaStatus MirrorController::savePanelTemperatures(const std::string &saveFilePath) {
+    // Will save all panel temperatures, including OT, if it is a child of this mirror.
+    spdlog::info("{}: Attempting to write Panel Temperatures to file {}...", m_Identity, saveFilePath);
+
+    //Check if file already exists
+    struct stat buf{};
+    if (stat(saveFilePath.c_str(), &buf) != -1) {
+        spdlog::error(
+                "{}: File {} already exists. Please select a different path, or manually delete/move/rename the file in your system.",
+                m_Identity, saveFilePath);
+        return OpcUa_Bad;
+    }
+
+    std::vector<double> AzEl;
+    AzEl = getAzEl();
+
+    // Create output file stream
+    std::ofstream f(saveFilePath);
+
+    if (f.bad()) {
+        spdlog::error("{}: Cannot write to file at {}. Aborting...", m_Identity, saveFilePath);
+        f.close();
+        return OpcUa_Bad;
+    }
+
+    // Place mirror name/Type and
+    // other information at top of file
+    f << "Mirror: " << m_Identity << std::endl;
+    std::time_t now = std::time(0);
+    f << "Timestamp: " << std::ctime(&now) << std::endl;
+    f << "Az: " << AzEl[0] << ", El: " << AzEl[1] << std::endl;
+
+    f << SAVEFILE_DELIMITER << std::endl;
+
+    UaVariant vtmp;
+    double intTemp, extTemp;
+    UaStatus status;
+    for (unsigned panelPos : m_selectedPanels) {
+        auto pPanel = std::dynamic_pointer_cast<PanelController>(
+                m_ChildrenPositionMap.at(PAS_PanelType).at(panelPos));
+        status = std::dynamic_pointer_cast<PanelController>(pPanel)->getData(PAS_PanelType_ExtTemperature, vtmp);
+        if (status.isBad()) {
+            spdlog::error("{}: Unable to write temperature for Panel {}, failed to read temperature.", m_Identity, pPanel->getIdentity());
+            continue;
+        }
+        else {
+            vtmp.toDouble(extTemp);
+        }
+        status = std::dynamic_pointer_cast<PanelController>(pPanel)->getData(PAS_PanelType_IntTemperature, vtmp);
+        if (status.isBad()) {
+            spdlog::error("{}: Unable to write temperature for Panel {}, failed to read temperature.", m_Identity, pPanel->getIdentity());
+            continue;
+        }
+        else {
+            vtmp.toDouble(intTemp);
+        }
+        f << "Panel: " << pPanel->getIdentity() << std::endl;
+        f << intTemp << std::endl;
+        f << extTemp << std::endl;
+        f << SAVEFILE_DELIMITER << std::endl;
+    }
+
+    AzEl = getAzEl();
+    f << "Az: " << AzEl[0] << ", El: " << AzEl[1] << std::endl;
+
+    f.close();
+    spdlog::info("{}: Done writing Mirror temperature to file {}.", m_Identity, saveFilePath);
+
+    return OpcUa_Good;
+}
+
+UaStatus MirrorController::saveMPESAlignmentOffset(const std::string &saveFilePath) {
+    spdlog::info("{}: Attempting to write alignment offset to file {}...", m_Identity, saveFilePath);
+
+    //Check if file already exists
+    struct stat buf{};
+    if (stat(saveFilePath.c_str(), &buf) != -1) {
+        spdlog::error(
+            "{}: File {} already exists. Please select a different path, or manually delete/move/rename the file in your system.",
+            m_Identity, saveFilePath);
+        return OpcUa_Bad;
+    }
+
+    std::vector<double> AzEl;
+    AzEl = getAzEl();
+
+    // Create output file stream
+    std::ofstream f(saveFilePath);
+
+    if (f.bad()) {
+        spdlog::error("{}: Cannot write to file at {}. Aborting...", m_Identity, saveFilePath);
+        f.close();
+        return OpcUa_Bad;
+    }
+
+    // Place mirror name/Type and
+    // other information at top of file
+    f << "Mirror: " << m_Identity << std::endl;
+    std::time_t now = std::time(0);
+    f << "Timestamp: " << std::ctime(&now) << std::endl;
+    f << "Az: " << AzEl[0] << ", El: " << AzEl[1] << std::endl;
     f << SAVEFILE_DELIMITER << std::endl;
 
     std::vector<std::shared_ptr<MPESController>> alignMPES;
@@ -2347,13 +2575,80 @@ UaStatus MirrorController::saveAlignmentOffset(const std::string &saveFilePath) 
         f << curRead(m * 2 + 1)-targetRead(m * 2 + 1) << std::endl;
         f << SAVEFILE_DELIMITER << std::endl;
     }
+
+    AzEl = getAzEl();
+    f << "Az: " << AzEl[0] << ", El: " << AzEl[1] << std::endl;
+
     f.close();
     spdlog::info("{}: Done writing Mirror alignment to file {}.", m_Identity, saveFilePath);
 
     return OpcUa_Good;
 }
 
-UaStatus MirrorController::__calculateLoadPosition(const std::string &loadFilePath) {
+UaStatus MirrorController::saveMPESPositions(const std::string &saveFilePath) {
+    spdlog::info("{}: Attempting to write MPES Positions to file {}...", m_Identity, saveFilePath);
+
+    //Check if file already exists
+    struct stat buf{};
+    if (stat(saveFilePath.c_str(), &buf) != -1) {
+        spdlog::error(
+                "{}: File {} already exists. Please select a different path, or manually delete/move/rename the file in your system.",
+                m_Identity, saveFilePath);
+        return OpcUa_Bad;
+    }
+
+    std::vector<double> AzEl;
+    AzEl = getAzEl();
+
+    // Create output file stream
+    std::ofstream f(saveFilePath);
+
+    if (f.bad()) {
+        spdlog::error("{}: Cannot write to file at {}. Aborting...", m_Identity, saveFilePath);
+        f.close();
+        return OpcUa_Bad;
+    }
+
+    // Place mirror name/Type and
+    // other information at top of file
+    f << "Mirror: " << m_Identity << std::endl;
+    std::time_t now = std::time(0);
+    f << "Timestamp: " << std::ctime(&now) << std::endl;
+    f << "Az: " << AzEl[0] << ", El: " << AzEl[1] << std::endl;
+    f << SAVEFILE_DELIMITER << std::endl;
+
+    std::vector<std::shared_ptr<MPESController>> alignMPES;
+    for (int mpesSerial : m_selectedMPES) {
+        std::shared_ptr<MPESController> mpes = std::dynamic_pointer_cast<MPESController>(
+                m_ChildrenSerialMap.at(PAS_MPESType).at(mpesSerial));
+        //if (mpes->isVisible())
+        //    alignMPES.push_back(mpes);
+        alignMPES.push_back(mpes);
+    }
+    UaVariant vtmp;
+    Eigen::VectorXd curRead(2 * alignMPES.size());
+    Eigen::VectorXd targetRead(2 * alignMPES.size());
+    for (int m = 0; m < (int) alignMPES.size(); m++) {
+        alignMPES.at(m)->getData(PAS_MPESType_xCentroidAvg, vtmp);
+        vtmp.toDouble(curRead(m * 2));
+        alignMPES.at(m)->getData(PAS_MPESType_yCentroidAvg, vtmp);
+        vtmp.toDouble(curRead(m * 2 + 1));
+        f << "MPES: " << alignMPES.at(m)->getIdentity() << std::endl;
+        f << curRead(m * 2) << std::endl;
+        f << curRead(m * 2 + 1) << std::endl;
+        f << SAVEFILE_DELIMITER << std::endl;
+    }
+
+    AzEl = getAzEl();
+    f << "Az: " << AzEl[0] << ", El: " << AzEl[1] << std::endl;
+
+    f.close();
+    spdlog::info("{}: Done writing Mirror alignment to file {}.", m_Identity, saveFilePath);
+
+    return OpcUa_Good;
+}
+
+UaStatus MirrorController::__calculateLoadActuatorLengths(const std::string &loadFilePath) {
     UaStatus status;
 
     spdlog::info("{}: Attempting to load Mirror position from file {}...", m_Identity, loadFilePath);
@@ -2409,6 +2704,11 @@ UaStatus MirrorController::__calculateLoadPosition(const std::string &loadFilePa
 
     while (infile.peek() != EOF) {
         getline(infile, line);
+        std::size_t found = line.find("Az:");
+        if (found!=std::string::npos)
+        {
+            continue;
+        }
         s = line.find("(");
         e = line.find(")");
         panelId = Device::parseIdentity(line.substr(s , e - s + 2));
@@ -2427,6 +2727,10 @@ UaStatus MirrorController::__calculateLoadPosition(const std::string &loadFilePa
         if (status.isBad()) {
             spdlog::error("{}: Unable to load position, failed to read actuator lengths.", m_Identity);
             return OpcUa_Bad;
+        }
+        if (SCTMath::Ring(panelId.position) == 0){
+            spdlog::trace("Skipping optical table.");
+            continue;
         }
         if (panelPositions.find(panelId) != panelPositions.end()) {
             status = std::dynamic_pointer_cast<PanelController>(pPanel)->__getActuatorLengths(currentActLengths);
@@ -2456,7 +2760,7 @@ UaStatus MirrorController::__calculateLoadPosition(const std::string &loadFilePa
 
     m_Xcalculated = X;
     m_panelsToMove = panelsToMove;
-    m_previousCalculatedMethod = PAS_MirrorType_LoadPosition;
+    m_previousCalculatedMethod = PAS_MirrorType_LoadActuatorLengths;
 
     return status;
 }
@@ -2520,6 +2824,11 @@ UaStatus MirrorController::__calculateLoadDeltaCoords(const std::string &loadFil
 
     while (infile.peek() != EOF) {
         getline(infile, line);
+        std::size_t found = line.find("Az:");
+        if (found!=std::string::npos)
+        {
+            continue;
+        }
         s = line.find("(");
         e = line.find(")");
         panelId = Device::parseIdentity(line.substr(s , e - s + 2));
@@ -2535,6 +2844,10 @@ UaStatus MirrorController::__calculateLoadDeltaCoords(const std::string &loadFil
     for (const auto &pPanel : m_pChildren.at(PAS_PanelType)) {
         status = std::dynamic_pointer_cast<PanelController>(pPanel)->operate(PAS_PanelType_ReadPosition);
         panelId = std::dynamic_pointer_cast<PanelController>(pPanel)->getIdentity();
+        if (SCTMath::Ring(panelId.position) == 0){
+            spdlog::trace("Skipping optical table.");
+            continue;
+        }
         if (status.isBad()) {
             spdlog::error("{}: Unable to load position, failed to read actuator lengths.", m_Identity);
             return OpcUa_Bad;
@@ -2582,7 +2895,7 @@ UaStatus MirrorController::__calculateLoadDeltaCoords(const std::string &loadFil
     return status;
 }
 
-UaStatus MirrorController::__calculateLoadAlignmentOffset(const std::string &loadFilePath) {
+UaStatus MirrorController::__calculateLoadMPESAlignmentOffset(const std::string &loadFilePath) {
     UaStatus status;
 
     spdlog::info("{}: Attempting to load Alignment offset from file {}...", m_Identity, loadFilePath);
@@ -2639,6 +2952,11 @@ UaStatus MirrorController::__calculateLoadAlignmentOffset(const std::string &loa
     spdlog::info("Parsing sensor readings from the file...");
     while (infile.peek() != EOF) {
         getline(infile, line);
+        std::size_t found = line.find("Az:");
+        if (found!=std::string::npos)
+        {
+            continue;
+        }
         s = line.find("(");
         e = line.find(")");
         sensorId = Device::parseIdentity(line.substr(s , e - s + 2));
@@ -2674,6 +2992,100 @@ UaStatus MirrorController::__calculateLoadAlignmentOffset(const std::string &loa
     return status;
 }
 
+
+UaStatus MirrorController::__calculateLoadMPESPositions(const std::string &loadFilePath) {
+    UaStatus status;
+
+    spdlog::info("{}: Attempting to load MPES Positions from file {}...", m_Identity, loadFilePath);
+
+    //Check if file already exists
+    struct stat buf{};
+    if (stat(loadFilePath.c_str(), &buf) == -1) {
+        spdlog::error("{}: File {} not found. Please make sure the selected file path is valid.", m_Identity,
+                      loadFilePath);
+        return OpcUa_Bad;
+    }
+
+    std::ostringstream os;
+
+    // Open file stream
+    std::ifstream infile(loadFilePath);
+    if (infile.bad()) {
+        spdlog::error("{}: File {} cannot be read. Please check it and try again.", m_Identity, loadFilePath);
+        return OpcUa_Bad;
+    }
+
+    // Check to make sure it matches this mirror
+    std::string line;
+    getline(infile, line);
+    unsigned s = line.find("(");
+    unsigned e = line.find(")");
+    Device::Identity mirrorId = Device::parseIdentity(line.substr(s, e - s + 2));
+
+    if (mirrorId != m_Identity) {
+        spdlog::error(
+                "{}: Mirror Identity indicated in file ({}) does not match the Identity of this mirror ({}). Cannot load alignment offset.",
+                m_Identity, mirrorId, m_Identity);
+        return OpcUa_Bad;
+    }
+
+    // Print Mirror Info
+    std::map<Device::Identity, Eigen::VectorXd> sensorNewTargets;
+    while (getline(infile, line) && (line != SAVEFILE_DELIMITER)) {
+        os << line << std::endl;
+    }
+    spdlog::info("{}: Mirror Info:\n Mirror Identity: {}\n{}", m_Identity, m_Identity, os.str());
+
+    Eigen::VectorXd alignmentNewTargets(2);
+    Eigen::VectorXd alignmentOffset(2);
+    unsigned j = 0;
+
+    // Parse all sensor offsets
+    Device::Identity sensorId;
+    int i = 0;
+
+    spdlog::info("Parsing sensor readings from the file...");
+    while (infile.peek() != EOF) {
+        getline(infile, line);
+        std::size_t found = line.find("Az:");
+        if (found!=std::string::npos)
+        {
+            continue;
+        }
+        s = line.find("(");
+        e = line.find(")");
+        sensorId = Device::parseIdentity(line.substr(s , e - s + 2));
+        spdlog::info("Found MPES {}", sensorId);
+        spdlog::info(" SAVEFILE_DELIMITER is {}", SAVEFILE_DELIMITER);
+        i = 0;
+        while (getline(infile, line) && line != SAVEFILE_DELIMITER) {
+            alignmentNewTargets(i) = std::stod(line);
+            i++;
+        }
+        sensorNewTargets[sensorId] = alignmentNewTargets;
+        spdlog::info("{}: Found new target for MPES {}:\n{}\n", m_Identity, sensorId, alignmentNewTargets);
+    }
+
+    spdlog::info("saving aligned readings to vectors...");
+    std::vector<std::shared_ptr<MPESController>> alignMPES;
+    for (int mpesSerial : m_selectedMPES) {
+        std::shared_ptr<MPESController> mpes = std::dynamic_pointer_cast<MPESController>(
+                m_ChildrenSerialMap.at(PAS_MPESType).at(mpesSerial));
+        if (mpes->isVisible())
+            alignMPES.push_back(mpes);
+    }
+    for (int m = 0; m < (int) alignMPES.size(); m++) {
+        sensorId = alignMPES.at(m)->getIdentity();
+        if (sensorNewTargets.find(sensorId) != sensorNewTargets.end()) {
+            alignMPES.at(m)->m_OpticsOffsets = sensorNewTargets[sensorId] - alignMPES.at(m)->getAlignedReadings();
+        }
+    }
+
+    spdlog::info("calling calculateAlignSector...");
+    status = __calculateAlignSector(1);
+
+    return status;
+}
 
 UaStatus MirrorController::__setAlignFrac(double alignFrac) {
     UaStatus status;
@@ -2918,7 +3330,7 @@ UaStatus MirrorController::__moveSelectedPanels(unsigned methodTypeId, double al
                 } else {
                     spdlog::trace("{}: Panel {} is idle.", m_Identity, pair.first->getIdentity());
                 }
-                UaThread::sleep(1);
+                UaThread::sleep(2); // longer 2s sleep in case we are querying too much.
             }
         }
 

@@ -93,6 +93,7 @@ UaStatus PasNodeManager::afterStartUp()
         ++client;
     }
 
+    PasCommunicationInterface *pPasCommunicationInterface = dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get());
     if (m_Mode == "client") {
         // connect to positioner
         spdlog::info("PasNodeManager::afterStartUp(): Attempting to create controller for positioner...");
@@ -104,48 +105,62 @@ UaStatus PasNodeManager::afterStartUp()
         ret = m_pPositioner->connect();
         if (ret.isGood()) {
             // add the positioner to the comm interface
-            dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->addDevice(m_pPositioner, GLOB_PositionerType,
+            pPasCommunicationInterface->addDevice(m_pPositioner, GLOB_PositionerType,
                                                                                   id);
             spdlog::info("PasNodeManager::afterStartUp(): Connected to positioner and added corresponding controller.");
         } else {
             // add the positioner to the comm interface
-            dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->addDevice(m_pPositioner, GLOB_PositionerType, id);
+            pPasCommunicationInterface->addDevice(m_pPositioner, GLOB_PositionerType, id);
             spdlog::warn("PasNodeManager::afterStartUp(): Failed to connect to positioner server at {}. Moving on...",
                          m_pConfiguration->getPositionerUrl().toUtf8());
         }
 
         // Create all relevant mirror controllers
         spdlog::info("PasNodeManager::afterStartUp(): Creating all required mirror controllers...");
-        dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->addMirrorControllers();
+        pPasCommunicationInterface->addMirrorControllers();
 
         // Create all relevant edge controllers
         spdlog::info("PasNodeManager::afterStartUp(): Creating all required edge controllers...");
-        dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->addEdgeControllers();
+        pPasCommunicationInterface->addEdgeControllers();
 
         // Adding GlobalAlignment controller
         spdlog::info("PasNodeManager::afterStartUp(): Adding global alignment controller...");
-        dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->addGlobalAlignmentController();
+        pPasCommunicationInterface->addGlobalAlignmentController();
 
         // Create all relevant OptTable controllers
         spdlog::info("PasNodeManager::afterStartUp(): Creating all required OptTable controllers...");
-        dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->addOpticalTableController();
+        pPasCommunicationInterface->addOpticalTableController();
 
         // Adding OpticalAlignment controller
         spdlog::info("PasNodeManager::afterStartUp(): Adding optical alignment controller...");
-        dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->addOpticalAlignmentController();
+        pPasCommunicationInterface->addOpticalAlignmentController();
 
         // Adding FocalPlane controller
         spdlog::info("PasNodeManager::afterStartUp(): Adding focal plane controller...");
-        dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->addFocalPlaneController();
+        pPasCommunicationInterface->addFocalPlaneController();
 
-        Device::Identity positionerID = dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->getValidDeviceIdentities(GLOB_PositionerType).at(0);
-        Device::Identity gaID = dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->getValidDeviceIdentities(PAS_GlobalAlignmentType).at(0);
+        if (!m_pConfiguration->getDevices(PAS_RangefinderType).empty())
+            for (const auto &RFID:  m_pConfiguration->getDevices(PAS_RangefinderType)){
+                spdlog::debug("Adding Rangefinder device...");
+                spdlog::trace("Found ID: {}", RFID);
+                pPasCommunicationInterface->addDevice(nullptr, PAS_RangefinderType, RFID);
+            }
+
+        if (!m_pConfiguration->getDevices(PAS_LaserType).empty())
+            for (const auto &LaserID:  m_pConfiguration->getDevices(PAS_LaserType)){
+                spdlog::debug("Adding Laser device...");
+                spdlog::trace("Found ID: {}", LaserID);
+                pPasCommunicationInterface->addDevice(nullptr, PAS_LaserType, LaserID);
+            }
+
+        Device::Identity positionerID = pPasCommunicationInterface->getValidDeviceIdentities(GLOB_PositionerType).at(0);
+        Device::Identity gaID = pPasCommunicationInterface->getValidDeviceIdentities(PAS_GlobalAlignmentType).at(0);
 
     }
 
     // Finish controller initialization by adding parent-child relationships for all controllers
     spdlog::info("PasNodeManager::afterStartUp(): Finalizing all controller parent-child relationships...");
-    dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->addParentChildRelations();
+    pPasCommunicationInterface->addParentChildRelations();
 
     spdlog::info("PasNodeManager::afterStartUp(): Now creating all OPC UA objects and folders...\n");
 
@@ -169,9 +184,9 @@ UaStatus PasNodeManager::afterStartUp()
     UA_ASSERT(ret.isGood());
 
     // Locate Positioner device
-    OpcUa_UInt32 posCount = dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->getDeviceCount(GLOB_PositionerType);
+    OpcUa_UInt32 posCount = pPasCommunicationInterface->getDeviceCount(GLOB_PositionerType);
     if (posCount == 1) {
-     Device::Device::Identity identity = dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->getValidDeviceIdentities(GLOB_PositionerType).at(0);
+     Device::Device::Identity identity = pPasCommunicationInterface->getValidDeviceIdentities(GLOB_PositionerType).at(0);
         sDeviceName = UaString(identity.name.c_str());
 
         spdlog::info("PasNodeManager::afterStartUp(): Creating positioner OPC UA object...");
@@ -179,7 +194,7 @@ UaStatus PasNodeManager::afterStartUp()
         PositionerObject *pPositioner = new PositionerObject(sDeviceName,
                                                              UaNodeId(sDeviceName, getNameSpaceIndex()),
                                                              m_defaultLocaleId, this, identity,
-                                                             dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get()));
+                                                             pPasCommunicationInterface);
         ret = addNodeAndReference(OpcUaId_ObjectsFolder, pPositioner, OpcUaId_Organizes);
         UA_ASSERT(ret.isGood());
         ret = addUaReference(pPositioner->nodeId(), pPositioner->typeDefinitionId(), OpcUaId_HasTypeDefinition);
@@ -199,10 +214,10 @@ UaStatus PasNodeManager::afterStartUp()
         deviceType = it->first;
 
         spdlog::info("PasNodeManager::afterStartUp(): Creating {} objects...\n", it->second);
-        for (const auto &deviceId : dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->getValidDeviceIdentities(
+        for (const auto &deviceId : pPasCommunicationInterface->getValidDeviceIdentities(
             deviceType)) {
             sDeviceName = UaString(deviceId.name.c_str());
-            pController = dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get())->getDeviceFromId(deviceType, deviceId);
+            pController = pPasCommunicationInterface->getDeviceFromId(deviceType, deviceId);
             //If folder doesn't already exist, create a folder for each object type and add the folder to the DevicesByType folder
             if ( pDeviceFolders.find(deviceType) == pDeviceFolders.end() ) {
                 deviceName = PasCommunicationInterface::deviceTypeNames[deviceType];
@@ -214,7 +229,7 @@ UaStatus PasNodeManager::afterStartUp()
             // Create object
             pObject = PasObjectFactory::Create(deviceType, sDeviceName, UaNodeId(sDeviceName, getNameSpaceIndex()),
                                                m_defaultLocaleId, this, deviceId,
-                                               dynamic_cast<PasCommunicationInterface *>(m_pCommIf.get()));
+                                               pPasCommunicationInterface);
 
             // Create node
             ret = addUaNode(pObject);

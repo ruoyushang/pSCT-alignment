@@ -67,19 +67,19 @@ public:
     // need to pass around the whole object!
     // can't return this by reference, since we're creating the objects in place.
     std::map<OpcUa_UInt32, std::set<Device::Identity>> getParents(const Device::Identity &id) {
-        try {
+        if (m_ParentMap.find(id) != m_ParentMap.end()) {
             return m_ParentMap.at(id);
         }
-        catch (std::out_of_range &e) {
+        else {
             return std::map<OpcUa_UInt32, std::set<Device::Identity>>();
         }
     }
 
     std::map<OpcUa_UInt32, std::set<Device::Identity>> getChildren(const Device::Identity &id) {
-        try {
+        if (m_ChildMap.find(id) != m_ChildMap.end()) {
             return m_ChildMap.at(id);
         }
-        catch (std::out_of_range &e) {
+        else {
             return std::map<OpcUa_UInt32, std::set<Device::Identity>>();
         }
     }
