@@ -272,6 +272,8 @@ int MPES::__updatePosition() {
     // initialize to something obvious in case of failure
     m_Position.xCentroid = -3.;
     m_Position.yCentroid = -3.;
+    m_Position.xCentroidErr = -3.;
+    m_Position.yCentroidErr = -3.;
     m_Position.xSpotWidth = -3.;
     m_Position.ySpotWidth = -3.;
     m_Position.cleanedIntensity = -3.;
@@ -290,6 +292,8 @@ int MPES::__updatePosition() {
 
         m_Position.xCentroid = m_pImageSet->SetData.xCentroid;
         m_Position.yCentroid = m_pImageSet->SetData.yCentroid;
+        m_Position.xCentroidErr = m_pImageSet->SetData.xCentroidSD;
+        m_Position.yCentroidErr = m_pImageSet->SetData.yCentroidSD;
         m_Position.xSpotWidth = m_pImageSet->SetData.xSpotSD;
         m_Position.ySpotWidth = m_pImageSet->SetData.ySpotSD;
         m_Position.cleanedIntensity = m_pImageSet->SetData.CleanedIntensity;
@@ -431,9 +435,13 @@ int DummyMPES::__updatePosition() {
 
     std::normal_distribution<float> xCentroidDistribution(m_Position.xNominal, 5.0);
     std::normal_distribution<float> yCentroidDistribution(m_Position.yNominal, 5.0);
+	std::normal_distribution<float> xCentroidErrDistribution(0.2, 0.15);
+	std::normal_distribution<float> yCentroidErrDistribution(0.2, 0.15);
 
     m_Position.xCentroid = xCentroidDistribution(generator);
     m_Position.yCentroid = yCentroidDistribution(generator);
+	m_Position.xCentroidErr = xCentroidErrDistribution(generator);
+	m_Position.yCentroidErr = yCentroidErrDistribution(generator);
     m_Position.xSpotWidth = MPESBase::NOMINAL_SPOT_WIDTH;
     m_Position.ySpotWidth = MPESBase::NOMINAL_SPOT_WIDTH;
     m_Position.cleanedIntensity = MPESBase::NOMINAL_INTENSITY;

@@ -140,6 +140,14 @@ UaStatus MPESController::getData(OpcUa_UInt32 offset, UaVariant &value) {
                 spdlog::trace("{} : Read yCentroid value => ({})", m_Identity, position.yCentroid);
                 value.setFloat(position.yCentroid);
                 break;
+	        case PAS_MPESType_xCentroidErr:
+		        spdlog::trace("{} : Read xCentroidErr value => ({})", m_Identity, position.xCentroidErr);
+		        value.setFloat(position.xCentroidErr);
+		        break;
+	        case PAS_MPESType_yCentroidErr:
+		        spdlog::trace("{} : Read yCentroidErr value => ({})", m_Identity, position.yCentroidErr);
+		        value.setFloat(position.yCentroidErr);
+		        break;
             case PAS_MPESType_xCentroidSpotWidth:
                 spdlog::trace("{} : Read xSpotWidth value => ({})", m_Identity, position.xSpotWidth);
                 value.setFloat(position.xSpotWidth);

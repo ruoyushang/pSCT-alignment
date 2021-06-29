@@ -22,11 +22,13 @@ class MPESBase : public Device
 {
 public:
     struct Position {
-        Position() : xCentroid(-1), yCentroid(-1), xSpotWidth(-1), ySpotWidth(-1), cleanedIntensity(0), xNominal(-1),
+        Position() : xCentroid(-1), yCentroid(-1), xCentroidErr(-1), yCentroidErr(-1), xSpotWidth(-1), ySpotWidth(-1), cleanedIntensity(0), xNominal(-1),
                      yNominal(-1), exposure(-1), nSat(-1), timestamp(-1), last_img("") {}
 
         float xCentroid;
         float yCentroid;
+        float xCentroidErr;
+	    float yCentroidErr;
         float xSpotWidth;
         float ySpotWidth;
         float cleanedIntensity;
