@@ -677,16 +677,16 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
                             MPESBase::Position position = std::dynamic_pointer_cast<MPESController>(
                                     mpes)->getPosition();
 
-                            os << "    " << position.xCentroid << " +/- " << position.xSpotWidth << " ["
+                            os << "    " << position.xCentroid << " (+/- " << position.xCentroidErr << ") +/- " << position.xSpotWidth << " ["
                                << position.xNominal << "] ("
                                << position.xCentroid - position.xNominal << ")" << std::endl;
-                            os << "    " << position.yCentroid << " +/- " << position.ySpotWidth << " ["
+                            os << "    " << position.yCentroid << " (+/- " << position.yCentroidErr << ") +/- " << position.ySpotWidth << " ["
                                << position.yNominal << "] ("
                                << position.yCentroid - position.yNominal << ")" << std::endl;
                         }
                     }
                     spdlog::info(
-                            "{}: Readings for Edge {}:\nCurrent position +/- Spot width [Aligned position] (Misalignment)\n\n{}\n\n",
+                            "{}: Readings for Edge {}:\nCurrent position (+/- centroid err) +/- Spot width [Aligned position] (Misalignment)\n\n{}\n\n",
                             m_Identity, edge->getIdentity(), os.str());
                 }
                 spdlog::info("{}: Done reading sensors.", m_Identity);
@@ -803,16 +803,16 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
                     os << mpes->getIdentity() << " : " << std::endl;
                     auto it = readings.find(mpes->getIdentity());
                     if (it != readings.end()) {
-                        os << "    " << it->second.xCentroid << " +/- " << it->second.xSpotWidth << " ["
+                        os << "    " << it->second.xCentroid << " (+/- " << it->second.xCentroidErr << ") +/- " << it->second.xSpotWidth << " ["
                            << it->second.xNominal << "] ("
                            << it->second.xCentroid - it->second.xNominal << ")" << std::endl;
-                        os << "    " << it->second.yCentroid << " +/- " << it->second.ySpotWidth << " ["
+                        os << "    " << it->second.yCentroid << " (+/- " << it->second.yCentroidErr << ") +/- " << it->second.ySpotWidth << " ["
                            << it->second.yNominal << "] ("
                            << it->second.yCentroid - it->second.yNominal << ")" << std::endl;
                     }
                 }
                 spdlog::info(
-                        "{}: Readings for Edge {}:\nCurrent position +/- Spot width [Aligned position] (Misalignment)\n\n{}\n\n",
+                        "{}: Readings for Edge {}:\nCurrent position (+/- centroid err) +/- Spot width [Aligned position] (Misalignment)\n\n{}\n\n",
                         m_Identity, edge->getIdentity(), os.str());
             }
             spdlog::info("{}: Done reading sensors.", m_Identity);
@@ -2988,6 +2988,7 @@ UaStatus MirrorController::__calculateLoadMPESAlignmentOffset(const std::string 
 
     spdlog::info("calling calculateAlignSector...");
     status = __calculateAlignSector(1);
+	m_previousCalculatedMethod = PAS_MirrorType_LoadMPESAlignmentOffset;
 
     return status;
 }
@@ -3083,6 +3084,7 @@ UaStatus MirrorController::__calculateLoadMPESPositions(const std::string &loadF
 
     spdlog::info("calling calculateAlignSector...");
     status = __calculateAlignSector(1);
+	m_previousCalculatedMethod = PAS_MirrorType_LoadMPESPositions;
 
     return status;
 }
