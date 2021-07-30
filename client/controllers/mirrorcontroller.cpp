@@ -2988,6 +2988,7 @@ UaStatus MirrorController::__calculateLoadMPESAlignmentOffset(const std::string 
 
     spdlog::info("calling calculateAlignSector...");
     status = __calculateAlignSector(1);
+	m_previousCalculatedMethod = PAS_MirrorType_LoadMPESAlignmentOffset;
 
     return status;
 }
@@ -3083,6 +3084,7 @@ UaStatus MirrorController::__calculateLoadMPESPositions(const std::string &loadF
 
     spdlog::info("calling calculateAlignSector...");
     status = __calculateAlignSector(1);
+	m_previousCalculatedMethod = PAS_MirrorType_LoadMPESPositions;
 
     return status;
 }
