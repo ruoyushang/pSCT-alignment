@@ -22,6 +22,7 @@ export MYSQL_ROOT_PASSWORD=write2db4pSCT
 export MYSQL_PASSWORD=write2db4pSCT
 export MYSQL_HOST=mysql
 export MYSQL_PORT=3306
+export MYSQL_SOCKET=0
 
 export PATH=$PATH:$HOME/bin:${ROOTSYS}/bin:${MYSQL_DIR}/bin:
 export LOCALIP=`hostname -I`
