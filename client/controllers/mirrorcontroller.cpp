@@ -1810,6 +1810,7 @@ UaStatus MirrorController::updateCoords(bool print)
     auto minuit = new TMinuit(6); // 6 parameters for 6 telescope coords
     minuit->SetPrintLevel(-1); // suppress all output
     spdlog::trace("Starting minimize chisq and get telescope coordinates");
+	MirrorControllerCompute::getInstance(this).resetMirror(this);
     minuit->SetFCN(MirrorControllerCompute::getInstance(this).chiSqFCN);
     // mnparm implements parameter definition:
     // void mnparm(I index, S "name", D start, D step, D LoLim, D HiLim, I& errflag)

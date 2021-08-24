@@ -42,6 +42,8 @@ public:
     MirrorControllerCompute(MirrorControllerCompute const &) = delete;
     void operator=(MirrorControllerCompute const &) = delete;
 
+    void resetMirror(MirrorController * mirror) { m_Mirror = mirror; };
+
     // MINUIT interface
     static void chiSqFCN(int &npar, double *gin, double &f, double *par, int iflag);
 
