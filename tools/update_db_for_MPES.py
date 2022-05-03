@@ -1,4 +1,5 @@
 #! /usr/bin/env python
+from __future__ import print_function
 import pymysql
 import argparse
 import os
@@ -225,7 +226,7 @@ def add_new_sensor(database, new_mpes_serial, old_mpes_serial, panel, l_panel, p
     for c in coords:
         calib_data = collect_calibration_data(database, old_mpes_serial, c)
         if len(calib_data) == 0:
-            logger.error(f"Calibration data for {old_mpes_serial} missing, value set to -1")
+            logger.error('Calibration data for {old_mpes_serial} missing, value set to -1'.format(old_mpes_serial=old_mpes_serial))
             calib_data = [-1] * len(calibration_params)
         query_add_config = query_add_new_sensor_to_config(calib_data, new_mpes_serial, c, targets)
         database.cur.execute(query_add_config)
@@ -238,8 +239,8 @@ def collect_calibration_data(database, old_sensor_serial, coord):
     if len(rows) > 1:
         logger.error("Too many possible candidates, something must be wrong with this data.")
     elif len(rows) == 0:
-        logger.error(f'No data found. Either sensor {old_sensor_serial} is missing from '
-                     f'Opt_MPESConfigurationAndCalibration table or end_date is expired.')
+        logger.error('No data found. Either sensor {old_sensor_serial} is missing from '
+                     'Opt_MPESConfigurationAndCalibration table or end_date is expired.'.format(old_sensor_serial=old_sensor_serial))
         # exit()
         return rows
     else:
@@ -253,38 +254,38 @@ def collect_sensor_targets(database, sensor_serial, coord):
     if len(rows) > 1:
         logger.error("Too many possible candidates, something must be wrong with this data.")
     elif len(rows) == 0:
-        logger.error(f'No data found. Either sensor {sensor_serial} is missing from '
-                     f'Opt_MPESConfigurationAndCalibration table or end_date is expired.')
+        logger.error('No data found. Either sensor {sensor_serial} is missing from '
+                     'Opt_MPESConfigurationAndCalibration table or end_date is expired.'.format(sensor_serial=sensor_serial))
         return rows
     else:
         return rows[0]
 
 
 def update_sensor_list(database, mpes_list_path):
-    logger.info(f"Updating sensor targest for list in {mpes_list_path}")
+    logger.info('Updating sensor targest for list in {mpes_list_path}'.format(mpes_list_path=mpes_list_path))
     mpes_list = read_mpes_file(mpes_list_path)
     for mpes, targets in mpes_list.items():
         update_sensor_target(database, mpes, targets)
 
 
 def update_sensor_target(database, sensor_serial, targets):
-    logger.info(f"Updating targets for {sensor_serial}")
-    logger.info(f"\tTarget values ({targets})")
+    logger.info('Updating targets for {sensor_serial}'.format(sensor_serial=sensor_serial))
+    logger.info('\tTarget values ({targets})'.format(targets=targets))
 
     coords = ["\"x\"", "\"y\""]
     old_targets = []
     for c in coords:
         old_targets.append(collect_sensor_targets(database, sensor_serial, c))
     if len(old_targets) == 0:
-        logger.error(f"Sensor targets for {sensor_serial} is missing, values set to -1")
+        logger.error('Sensor targets for {sensor_serial} is missing, values set to -1'.format(sensor_serial=sensor_serial))
         old_targets = [-1] * len(old_targets)
-    logger.debug(f"Old targets: {old_targets}")
+    logger.debug('Old targets: {old_targets}'.format(old_targets=old_targets))
 
     coords = ["\"x\"", "\"y\""]
     for c in coords:
         calib_data = collect_calibration_data(database, sensor_serial, c)
         if len(calib_data) == 0:
-            logger.error(f"Calibration data for {sensor_serial} is missing, value set to -1")
+            logger.error('Calibration data for {sensor_serial} is missing, value set to -1'.format(sensor_serial=sensor_serial))
             calib_data = [-1] * len(calibration_params)
         query_add_config = query_add_new_sensor_to_config(calib_data, sensor_serial, c, targets)
         database.cur.execute(query_add_config)
@@ -371,6 +372,7 @@ if __name__ == '__main__':
 
     setup_logging(args.log)
     fout = open(args.out, 'w')
+    fout.close()
 
     db = pSCTDB(args.host)
     db.connect()
@@ -383,7 +385,7 @@ if __name__ == '__main__':
         update_sensor_list(db, args.mpes_list_path)
 
     for sql in list_of_sql_commands:
-        print(sql, file=open('MPES_updates_commands.sql', 'a+'))
+        print(sql, file=open(args.out, 'a+'))
 
     isTrue = bool(int(input("Confirm to edit DB? 1 for yes, 0 for no: ")))
     db.close_connect(isTrue)
