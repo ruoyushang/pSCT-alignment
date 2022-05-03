@@ -7,8 +7,9 @@ import re
 from time import gmtime, strftime
 import logging
 import numpy as np
+import pandas as pd
 
-currenttime = strftime("%Y-%m-%d", gmtime())
+currenttime = strftime("%Y-%m-%d %H:%M:%S", gmtime())
 calibration_params = ["nominal_reading",
                       "l_response_actuator1", "w_response_actuator1",
                       "l_response_actuator2", "w_response_actuator2",
@@ -22,7 +23,7 @@ target_params = "nominal_reading"
 list_of_sql_commands = []
 
 
-def setup_logging(logfile='file.log'):
+def setup_logging(logfile='file.log', debug=False):
     global logger
     # Create a custom logger
     logger = logging.getLogger(__name__)
@@ -31,7 +32,10 @@ def setup_logging(logfile='file.log'):
     c_handler = logging.StreamHandler()
     f_handler = logging.FileHandler(logfile)
 
-    c_handler.setLevel(logging.INFO)
+    if debug:
+        c_handler.setLevel(logging.DEBUG)
+    else:
+        c_handler.setLevel(logging.INFO)
     f_handler.setLevel(logging.DEBUG)
 
     # Create formatters and add it to handlers
@@ -105,6 +109,15 @@ def query_get_sensor_targets(sensor_serial, coord):
     execute_part_str = "select {} from ".format(target_params)
     tablename = "Opt_MPESConfigurationAndCalibration "
     identifier = "where serial_number={} and coord={} and end_date is NULL ;".format(sensor_serial, coord)
+    query = execute_part_str + tablename + identifier
+
+    return query
+
+
+def query_get_all_sensor_targets(coord):
+    execute_part_str = "select serial_number, {} from ".format(target_params)
+    tablename = "Opt_MPESConfigurationAndCalibration "
+    identifier = "where coord={} and end_date is NULL ;".format(coord)
     query = execute_part_str + tablename + identifier
 
     return query
@@ -205,8 +218,8 @@ class pSCTDB:
             logger.error("Cannot connect to {}, consider changing this".format(self.DB_HOST))
             exit()
 
-    def close_connect(self, confirm):
-        if confirm:
+    def close_connect(self, doCommit):
+        if doCommit:
             self.conn.commit()
         self.cur.close()
         self.conn.close()
@@ -239,7 +252,7 @@ def collect_calibration_data(database, old_sensor_serial, coord):
     if len(rows) > 1:
         logger.error("Too many possible candidates, something must be wrong with this data.")
     elif len(rows) == 0:
-        logger.error('No data found. Either sensor {old_sensor_serial} is missing from '
+        logger.error('No data found for this sensor. Either sensor {old_sensor_serial} is missing from original '
                      'Opt_MPESConfigurationAndCalibration table or end_date is expired.'.format(old_sensor_serial=old_sensor_serial))
         # exit()
         return rows
@@ -261,16 +274,23 @@ def collect_sensor_targets(database, sensor_serial, coord):
         return rows[0]
 
 
+def collect_all_sensor_targets(database, coord):
+    query_targets = query_get_all_sensor_targets(coord)
+    database.cur.execute(query_targets)
+    rows = np.array(database.cur.fetchall())
+    return rows
+
+
 def update_sensor_list(database, mpes_list_path):
-    logger.info('Updating sensor targest for list in {mpes_list_path}'.format(mpes_list_path=mpes_list_path))
+    logger.info('Updating sensor targets with list in {mpes_list_path}'.format(mpes_list_path=mpes_list_path))
     mpes_list = read_mpes_file(mpes_list_path)
     for mpes, targets in mpes_list.items():
         update_sensor_target(database, mpes, targets)
 
 
 def update_sensor_target(database, sensor_serial, targets):
-    logger.info('Updating targets for {sensor_serial}'.format(sensor_serial=sensor_serial))
-    logger.info('\tTarget values ({targets})'.format(targets=targets))
+    logger.debug('Updating targets for {sensor_serial}'.format(sensor_serial=sensor_serial))
+    logger.debug('\tTarget values ({targets})'.format(targets=targets))
 
     coords = ["\"x\"", "\"y\""]
     old_targets = []
@@ -307,6 +327,30 @@ def replace_MPES():
     mpes_disable_calib_result = disable_old_sensor(db, args.oldMPES, tablename, comment)
 
     print_replace_summary(args.newMPES, args.oldMPES, args.w_panel, args.l_panel, args.position, args.port, args.target)
+
+
+def get_all_targets(database):
+    logger.info('Collecting all targets for all active sensors')
+
+    coords = ["x", "y"]
+    coords_dict = {}
+    for c in coords:
+        targets = collect_all_sensor_targets(database, "\""+c+"\"")
+        coords_dict["sensor_" + c] = targets[:, 0]
+        coords_dict[c] = targets[:, 1]
+
+    isAligned = np.array_equal(coords_dict['sensor_x'], coords_dict['sensor_y'])
+
+    if not isAligned:
+        logger.error("Sensor list is not equal so a sensor must be missing a target coordinate.")
+        df = pd.DataFrame.from_dict(coords_dict)
+        df.to_csv(args.csvfile, index=False)
+    else:
+        df = pd.DataFrame.from_dict(coords_dict)
+        df.pop("sensor_y")
+        df.rename(columns={"sensor_x": "sensor"}, inplace=True)
+        df.sensor = df.sensor.astype(int)
+        df.to_csv(args.csvfile, index=False)
 
 
 def print_replace_summary(newMPES, oldMPES, w_panel, l_panel, position, port, target):
@@ -355,8 +399,17 @@ def parsing():
                                                      help='Update calibration targets for a list of MPES')
     update_mpes_list_parser.add_argument('mpes_list_path', type=str,
                                          help='Path to MPES file generated by p2pas_client')
+    update_mpes_list_parser.add_argument("--csv", dest="csvfile", help="CSV file to save dump of all targets",
+                                         default="all_mpes_targets.csv")
+
+    ### Collect targets for all active sensors
+    dump_mpes_target_parser = sub_parsers.add_parser('dump',
+                                                     help='Print targets for all active MPES')
+    dump_mpes_target_parser.add_argument("--csv", dest="csvfile", help="CSV file to save dump of all targets",
+                                         default="all_mpes_targets.csv")
 
     ### General arguments
+    parser.add_argument('-v', dest="debug", action='store_true')
     parser.add_argument('-H', '--host', default=os.getenv('MYSQL_HOST'), help="Host for DB", type=str)
     parser.add_argument('-l', '--log', dest="log", default='MPES_db_update.log',
                         type=str, help='Path to logfile')
@@ -370,22 +423,29 @@ def parsing():
 if __name__ == '__main__':
     args = parsing()
 
-    setup_logging(args.log)
+    setup_logging(args.log, args.debug)
     fout = open(args.out, 'w')
     fout.close()
 
     db = pSCTDB(args.host)
     db.connect()
 
+    needConfirm = True
     if args.subparser_name == 'replace':
         replace_MPES()
     elif args.subparser_name == 'update_mpes_target':
         update_sensor_target(db, args.mpes, args.newTargets)
     elif args.subparser_name == 'update_list':
+        get_all_targets(db)
         update_sensor_list(db, args.mpes_list_path)
+    elif args.subparser_name == 'dump':
+        get_all_targets(db)
+        needConfirm = False
 
-    for sql in list_of_sql_commands:
-        print(sql, file=open(args.out, 'a+'))
-
-    isTrue = bool(int(input("Confirm to edit DB? 1 for yes, 0 for no: ")))
-    db.close_connect(isTrue)
+    if needConfirm:
+        for sql in list_of_sql_commands:
+            print(sql, file=open(args.out, 'a+'))
+        doCommit = bool(int(input("Confirm to edit DB? 1 for yes, 0 for no: ")))
+        db.close_connect(doCommit)
+    else:
+        db.close_connect(False)
