@@ -146,10 +146,9 @@ def query_disable_old_sensor(old_sensor, table, comment):
     execute_part_str = "UPDATE "
     end_date = currenttime
     set_part = " SET end_date = \"{}\" ".format(end_date)
-    if comment == None:
+    if comment is None:
         if table == "Opt_MPESMapping":
             set_part = " SET end_date = \"{}\"".format(end_date)
-        identifier = " WHERE serial_number={} and start_date != \"{}\";".format(old_sensor, end_date)
     else:
         if table == "Opt_MPESMapping":
             set_part = " SET end_date = \"{}\", comment = {} ".format(end_date, comment)
@@ -184,10 +183,10 @@ def query_add_new_sensor_to_config(calib_data, new_mpes_serial, coord, targets=N
     data_str = data_str + str(calib_data[-1])
 
     new_info = "VALUES (\"{start_date}\", {end_date}, {serial_number}, {coord}, {data}) ;".format(start_date=start_date,
-                                                                                                 end_date="NULL",
-                                                                                                 serial_number=new_mpes_serial,
-                                                                                                 data=data_str,
-                                                                                                 coord=coord)
+                                                                                                  end_date="NULL",
+                                                                                                  serial_number=new_mpes_serial,
+                                                                                                  data=data_str,
+                                                                                                  coord=coord)
 
     query = execute_part_str + " (" + id_params + ", ".join(calibration_params) + ") " + new_info
     global list_of_sql_commands
@@ -198,6 +197,8 @@ def query_add_new_sensor_to_config(calib_data, new_mpes_serial, coord, targets=N
 
 class pSCTDB:
     def __init__(self, host='romulus.ucsc.edu'):
+        self.cur = None
+        self.conn = None
         self.DB_HOST = host
         # print(self.DB_HOST)
         self.DB_USER = os.getenv('MYSQL_USER')
@@ -214,7 +215,8 @@ class pSCTDB:
                                         db=self.DB_ONLINE,
                                         port=self.DB_PORT)
             self.cur = self.conn.cursor()
-        except:
+        except (pymysql.Error, pymysql.Warning) as e:
+            logger.error(e)
             logger.error("Cannot connect to {}, consider changing this".format(self.DB_HOST))
             exit()
 
@@ -239,7 +241,8 @@ def add_new_sensor(database, new_mpes_serial, old_mpes_serial, panel, l_panel, p
     for c in coords:
         calib_data = collect_calibration_data(database, old_mpes_serial, c)
         if len(calib_data) == 0:
-            logger.error('Calibration data for {old_mpes_serial} missing, value set to -1'.format(old_mpes_serial=old_mpes_serial))
+            logger.error('Calibration data for {old_mpes_serial} missing, value set to -1'.format(
+                old_mpes_serial=old_mpes_serial))
             calib_data = [-1] * len(calibration_params)
         query_add_config = query_add_new_sensor_to_config(calib_data, new_mpes_serial, c, targets)
         database.cur.execute(query_add_config)
@@ -297,7 +300,8 @@ def update_sensor_target(database, sensor_serial, targets):
     for c in coords:
         old_targets.append(collect_sensor_targets(database, sensor_serial, c))
     if len(old_targets) == 0:
-        logger.error('Sensor targets for {sensor_serial} is missing, values set to -1'.format(sensor_serial=sensor_serial))
+        logger.error(
+            'Sensor targets for {sensor_serial} is missing, values set to -1'.format(sensor_serial=sensor_serial))
         old_targets = [-1] * len(old_targets)
     logger.debug('Old targets: {old_targets}'.format(old_targets=old_targets))
 
@@ -305,7 +309,8 @@ def update_sensor_target(database, sensor_serial, targets):
     for c in coords:
         calib_data = collect_calibration_data(database, sensor_serial, c)
         if len(calib_data) == 0:
-            logger.error('Calibration data for {sensor_serial} is missing, value set to -1'.format(sensor_serial=sensor_serial))
+            logger.error(
+                'Calibration data for {sensor_serial} is missing, value set to -1'.format(sensor_serial=sensor_serial))
             calib_data = [-1] * len(calibration_params)
         query_add_config = query_add_new_sensor_to_config(calib_data, sensor_serial, c, targets)
         database.cur.execute(query_add_config)
@@ -316,15 +321,15 @@ def update_sensor_target(database, sensor_serial, targets):
 
 
 def replace_MPES():
-    mpes_add_result = add_new_sensor(db, args.newMPES, args.oldMPES, args.w_panel, args.l_panel, args.position,
-                                     args.port, args.target)
+    add_new_sensor(db, args.newMPES, args.oldMPES, args.w_panel, args.l_panel, args.position,
+                   args.port, args.target)
     tablename = "Opt_MPESMapping"
     comment = "\'Replaced this sensor with {} \'".format(args.newMPES)
-    mpes_disable_mapping_result = disable_old_sensor(db, args.oldMPES, tablename, comment)
+    disable_old_sensor(db, args.oldMPES, tablename, comment)
 
     tablename = "Opt_MPESConfigurationAndCalibration"
     comment = ""
-    mpes_disable_calib_result = disable_old_sensor(db, args.oldMPES, tablename, comment)
+    disable_old_sensor(db, args.oldMPES, tablename, comment)
 
     print_replace_summary(args.newMPES, args.oldMPES, args.w_panel, args.l_panel, args.position, args.port, args.target)
 
@@ -335,13 +340,13 @@ def get_all_targets(database):
     coords = ["x", "y"]
     coords_dict = {}
     for c in coords:
-        targets = collect_all_sensor_targets(database, "\""+c+"\"")
+        targets = collect_all_sensor_targets(database, "\"" + c + "\"")
         coords_dict["sensor_" + c] = targets[:, 0]
         coords_dict[c] = targets[:, 1]
 
-    isAligned = np.array_equal(coords_dict['sensor_x'], coords_dict['sensor_y'])
+    is_aligned = np.array_equal(coords_dict['sensor_x'], coords_dict['sensor_y'])
 
-    if not isAligned:
+    if not is_aligned:
         logger.error("Sensor list is not equal so a sensor must be missing a target coordinate.")
         df = pd.DataFrame.from_dict(coords_dict)
         df.to_csv(args.csvfile, index=False)
@@ -360,11 +365,14 @@ def print_replace_summary(newMPES, oldMPES, w_panel, l_panel, position, port, ta
     logger.info("Target coords: {}".format(target))
     logger.info("\n")
     logger.info("Inserting {} into Opt_MPESMapping".format(newMPES))
-    logger.info("Inserting {} into Opt_MPESConfigurationAndCalibration, using {} calibration constants".format(newMPES, oldMPES))
+    logger.info("Inserting {} into Opt_MPESConfigurationAndCalibration, using {} calibration constants".format(newMPES,
+                                                                                                               oldMPES))
 
     logger.warning("##############################################################")
     logger.warning(
-        "!!! If the MPES was not replaced, DO NOT update the mapping table, \n\ti.e., only copy and paste line 2, 3, and 5 \n\twhich update Opt_MPESConfigurationAndCalibration!!!")
+        "!!! If the MPES was not replaced, DO NOT update the mapping table, "
+        "\n\ti.e., only copy and paste line 2, 3, and 5 "
+        "\n\twhich update Opt_MPESConfigurationAndCalibration!!!")
     logger.warning("##############################################################")
     logger.warning("")
 
@@ -376,7 +384,7 @@ def parsing():
 
     sub_parsers = parser.add_subparsers(dest='subparser_name')
 
-    ### Replace a single sensor
+    # Replace a single sensor
     replace_parser = sub_parsers.add_parser('replace', help='Replace MPES single calibration data')
     replace_parser.add_argument('newMPES', metavar="new", type=int, help='New MPES')
     replace_parser.add_argument('oldMPES', metavar="old", type=int, help='Old MPES')
@@ -387,14 +395,14 @@ def parsing():
     replace_parser.add_argument('-T', '--targetCentroid', dest="target", nargs=2, type=float,
                                 help="Target centroid values for newly calibrated sensors, done in situ.")
 
-    ### Update target for a single sensor
+    # Update target for a single sensor
     update_mpes_target_parser = sub_parsers.add_parser('update_mpes_target',
                                                        help='Update calibration targets for a single MPES')
     update_mpes_target_parser.add_argument('mpes', type=int, help='MPES serial number.')
     update_mpes_target_parser.add_argument('-T', '--targetCentroid', dest="newTargets", nargs=2, type=float,
                                            help="Target centroid values for newly calibrated sensors, done in situ.")
 
-    ### Update targets for a list of sensors
+    # Update targets for a list of sensors
     update_mpes_list_parser = sub_parsers.add_parser('update_list',
                                                      help='Update calibration targets for a list of MPES')
     update_mpes_list_parser.add_argument('mpes_list_path', type=str,
@@ -402,13 +410,13 @@ def parsing():
     update_mpes_list_parser.add_argument("--csv", dest="csvfile", help="CSV file to save dump of all targets",
                                          default="all_mpes_targets.csv")
 
-    ### Collect targets for all active sensors
+    # Collect targets for all active sensors
     dump_mpes_target_parser = sub_parsers.add_parser('dump',
                                                      help='Print targets for all active MPES')
     dump_mpes_target_parser.add_argument("--csv", dest="csvfile", help="CSV file to save dump of all targets",
                                          default="all_mpes_targets.csv")
 
-    ### General arguments
+    # General arguments
     parser.add_argument('-v', dest="debug", action='store_true')
     parser.add_argument('-H', '--host', default=os.getenv('MYSQL_HOST'), help="Host for DB", type=str)
     parser.add_argument('-l', '--log', dest="log", default='MPES_db_update.log',
