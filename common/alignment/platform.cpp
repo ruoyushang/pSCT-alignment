@@ -750,6 +750,7 @@ DummyPlatform::__step(std::array<int, PlatformBase::NUM_ACTS_PER_PLATFORM> input
     std::array<ActuatorBase::Position, PlatformBase::NUM_ACTS_PER_PLATFORM> FinalPosition{};
 
     for (int i = 0; i < PlatformBase::NUM_ACTS_PER_PLATFORM; i++) {
+        m_Actuators[i]->loadStatusFromASF();
         FinalPosition[i] = m_Actuators[i]->predictNewPosition(m_Actuators[i]->getCurrentPosition(),
                                                               -inputSteps[i]);//negative steps because positive step is extension of motor, negative steps increases counter since home is defined (0,0)
         StepsRemaining[i] = -(m_Actuators[i]->convertPositionToSteps(FinalPosition[i]) -

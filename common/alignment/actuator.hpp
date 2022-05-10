@@ -268,11 +268,11 @@ protected:
     bool m_On;
 
     // Do not write to DB when using simmode (to avoid risk of overwriting real data)
-    bool readStatusFromDB(ActuatorStatus &status) override { return readStatusFromASF(status); };
+    bool readStatusFromDB(ActuatorStatus &status) override;
 
-    void loadStatusFromDB() override { return loadStatusFromASF(); };
+    void loadStatusFromDB() override;
 
-    void saveStatusToDB() override { return saveStatusToASF(); };
+    void saveStatusToDB() override;
 
     float __readVoltage() override;
 
