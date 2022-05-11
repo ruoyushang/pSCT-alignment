@@ -98,7 +98,6 @@ bool ActuatorBase::loadConfigurationAndCalibration() {
                     m_Identity, resmeta->getColumnCount(), NUM_DB_CALIBRATION_COLUMNS);
                 setError(3);//fatal
                 saveStatusToASF();
-                saveStatusToDB();
                 return false;
             }
 
@@ -134,7 +133,6 @@ bool ActuatorBase::loadConfigurationAndCalibration() {
                     m_Identity);
                 setError(2);
                 saveStatusToASF();
-                saveStatusToDB();
 		return false;
 	    }
 	
@@ -155,7 +153,6 @@ bool ActuatorBase::loadConfigurationAndCalibration() {
 		        m_Identity, resmeta->getColumnCount(), NUM_DB_PROFILE_COLUMNS);
 		    setError(3);//fatal
 		    saveStatusToASF();
-            saveStatusToDB();
 		    return false;
 		}
 
@@ -168,7 +165,6 @@ bool ActuatorBase::loadConfigurationAndCalibration() {
                         m_Identity, i);
                     setError(2);
                     saveStatusToASF();
-                    saveStatusToDB();
 		    return false;
 	        }
             }
@@ -198,7 +194,6 @@ bool ActuatorBase::loadConfigurationAndCalibration() {
         return false;
     }
     saveStatusToASF();
-    saveStatusToDB();
     return true;
 }
 
@@ -434,7 +429,6 @@ ActuatorBase::recoverPosition()//consolidates current position and recovers posi
     if (std::abs(indexDeviation) < m_FlaggedRecoverySteps) {
         setCurrentPosition(predictNewPosition(m_CurrentPosition, indexDeviation));
         saveStatusToASF();
-        saveStatusToDB();
         return;
     } else if (std::abs(indexDeviation) <
                m_MaxRecoverySteps)//If the difference between where we are and where we think we are is high, set an OperableError.
@@ -445,7 +439,6 @@ ActuatorBase::recoverPosition()//consolidates current position and recovers posi
         setError(10);//operable
         setCurrentPosition(predictNewPosition(m_CurrentPosition, indexDeviation));
         saveStatusToASF();
-        saveStatusToDB();
         return;
     } else { //If the difference between where we are and where we think we are is extremely high, set a FatalError. position is lost. (Do we want to set fatal error?? maybe we just recover and set homeisset=false.
         spdlog::error(
@@ -459,7 +452,6 @@ ActuatorBase::recoverPosition()//consolidates current position and recovers posi
         setError(9);//fatal
         setError(0);
         saveStatusToASF();
-        saveStatusToDB();
         return;
     }
 }
@@ -581,7 +573,6 @@ void ActuatorBase::probeEndStop(int direction) {
 void ActuatorBase::clearErrors() {
     Device::clearErrors();
     saveStatusToASF();
-    saveStatusToDB();
 }
 
 bool ActuatorBase::forceRecover() {
@@ -593,7 +584,6 @@ bool ActuatorBase::forceRecover() {
     }
     setCurrentPosition(predictNewPosition(m_CurrentPosition, indexDeviation));
     saveStatusToASF();
-    saveStatusToDB();
     return true;
 }
 
@@ -669,7 +659,6 @@ bool Actuator::readStatusFromDB(ActuatorStatus &RecordedPosition) {
                     m_Identity, resmeta->getColumnCount(), NUM_DB_COLUMNS);
                 setError(3);//fatal
                 saveStatusToASF();
-                saveStatusToDB();
                 return false;
             }
 
@@ -702,7 +691,6 @@ bool Actuator::readStatusFromDB(ActuatorStatus &RecordedPosition) {
             //operable, If actuator status cannot be read, stil allow actuator to be moved. Local text file can still be used.
             setError(2);
             saveStatusToASF();
-            saveStatusToDB();
             return false;
         }
 
@@ -712,7 +700,6 @@ bool Actuator::readStatusFromDB(ActuatorStatus &RecordedPosition) {
         return false;
     }
     saveStatusToASF();
-    saveStatusToDB();
     return true;
 }
 
@@ -809,7 +796,6 @@ float Actuator::__readVoltage() {
             m_Identity, m_ADCdata.voltage, m_ADCdata.stddev, m_StdDevMax);
         setError(7);//fatal
         saveStatusToASF();
-        saveStatusToDB();
     }
     return m_ADCdata.voltage;
 }
@@ -833,7 +819,6 @@ void Actuator::probeHome()//method used to define home.
             m_Identity, MeasuredVoltage, ExtendStopVoltageMin, ExtendStopVoltageMax, StepsPerRevolution);
         setError(11);//operable
         saveStatusToASF();
-        saveStatusToDB();
     }
 
     float VoltageBefore;
@@ -871,7 +856,6 @@ void Actuator::probeHome()//method used to define home.
                 setError(0);
                 //setError(14);
                 saveStatusToASF();
-                saveStatusToDB();
                 return;
             }
         }
@@ -894,7 +878,6 @@ void Actuator::probeHome()//method used to define home.
     setCurrentPosition(HomePosition);
     unsetError(0);
     saveStatusToASF();
-    saveStatusToDB();
 }
 
 int Actuator::__step(int steps) {
@@ -948,7 +931,6 @@ int Actuator::__step(int steps) {
                     m_Identity);
             setError(6);//fatal
             saveStatusToASF();
-            saveStatusToDB();
             return StepsRemaining;//quit, don't record or register steps attempted to be taken.
 	}
         
@@ -959,12 +941,10 @@ int Actuator::__step(int steps) {
                           MissedSteps);
             setError(8);//fatal
             saveStatusToASF();
-            saveStatusToDB();
             return StepsRemaining;//quit, don't record or register steps attempted to be taken.
         }
 
         saveStatusToASF();
-        saveStatusToDB();
         StepsRemaining = -(convertPositionToSteps(FinalPosition) - convertPositionToSteps(m_CurrentPosition));
     }
 
@@ -995,11 +975,9 @@ void Actuator::__findHomeFromEndStop(int direction) {
             m_Identity, indexDeviation, StepsPerRevolution);
         setError(12);//operable, we still want to move the actuator.
         saveStatusToASF();
-        saveStatusToDB();
     } else {
         unsetError(0);
         saveStatusToASF();
-        saveStatusToDB();
         //Step here to check if we are stuck?
         int StepsRemaining = __step(-1 * direction * RecordingInterval);
         if (std::abs(StepsRemaining) > (RecordingInterval / 2))//If we miss more than half of the steps
@@ -1010,7 +988,6 @@ void Actuator::__findHomeFromEndStop(int direction) {
             setError(0);
             //setError(14);
             saveStatusToASF();
-            saveStatusToDB();
         } else {
             __step(1 * direction * RecordingInterval);
         }
@@ -1063,7 +1040,6 @@ void Actuator::turnOn() {
 void Actuator::turnOff() {
     spdlog::debug("{} : Actuator : Turning off power...", m_Identity);
     saveStatusToASF();
-    saveStatusToDB();
     m_pCBC->driver.disable(getPortNumber());    
 }
 
@@ -1123,7 +1099,6 @@ int DummyActuator::__step(int steps)
                           m_Identity);
             setError(6);//fatal
             saveStatusToASF();
-            saveStatusToDB();
             return StepsRemaining;//quit, don't record or register steps attempted to be taken.
         }
 
@@ -1134,12 +1109,10 @@ int DummyActuator::__step(int steps)
                           MissedSteps);
             setError(8);//fatal
             saveStatusToASF();
-            saveStatusToDB();
             return StepsRemaining;//quit, don't record or register steps attempted to be taken.
         }
 
         saveStatusToASF();
-        saveStatusToDB();
         StepsRemaining = -(convertPositionToSteps(FinalPosition) - convertPositionToSteps(m_CurrentPosition));
     }
 
@@ -1194,11 +1167,9 @@ void DummyActuator::__findHomeFromEndStop(int direction) {
             m_Identity, indexDeviation, StepsPerRevolution);
         setError(12);//operable, we still want to move the actuator.
         saveStatusToASF();
-        saveStatusToDB();
     } else {
         unsetError(0);
         saveStatusToASF();
-        saveStatusToDB();
         //Step here to check if we are stuck?
         int StepsRemaining = __step(-1 * direction * RecordingInterval);
         if (std::abs(StepsRemaining) > (RecordingInterval / 2))//If we miss more than half of the steps
@@ -1208,7 +1179,6 @@ void DummyActuator::__findHomeFromEndStop(int direction) {
             setError(0);
             //setError(14);
             saveStatusToASF();
-            saveStatusToDB();
         } else {
             __step(1 * direction * RecordingInterval);
         }
@@ -1229,7 +1199,6 @@ void DummyActuator::probeHome() {
             m_Identity, MeasuredVoltage, ExtendStopVoltageMin, ExtendStopVoltageMax, StepsPerRevolution);
         setError(11);//operable
         saveStatusToASF();
-        saveStatusToDB();
     }
 
     //Actuator::position
@@ -1239,7 +1208,6 @@ void DummyActuator::probeHome() {
     setCurrentPosition(HomePosition);
     unsetError(0);
     saveStatusToASF();
-    saveStatusToDB();
 }
 
 void DummyActuator::__probeEndStop(int direction) {
@@ -1408,7 +1376,6 @@ bool DummyActuator::readStatusFromDB(ActuatorBase::ActuatorStatus &status) {
                         m_Identity, resmeta->getColumnCount(), NUM_DB_COLUMNS);
                 setError(3);//fatal
                 saveStatusToASF();
-                saveStatusToDB();
                 return false;
             }
 
@@ -1441,7 +1408,6 @@ bool DummyActuator::readStatusFromDB(ActuatorBase::ActuatorStatus &status) {
             //operable, If actuator status cannot be read, stil allow actuator to be moved. Local text file can still be used.
             setError(2);
             saveStatusToASF();
-            saveStatusToDB();
             return false;
         }
 
@@ -1451,6 +1417,5 @@ bool DummyActuator::readStatusFromDB(ActuatorBase::ActuatorStatus &status) {
         return false;
     }
     saveStatusToASF();
-    saveStatusToDB();
     return true;
 }
