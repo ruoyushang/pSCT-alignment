@@ -808,17 +808,20 @@ DummyPlatform::__step(std::array<int, PlatformBase::NUM_ACTS_PER_PLATFORM> input
     }
 
     //Hysteresis Motion
-    for (int i = 0; i < PlatformBase::NUM_ACTS_PER_PLATFORM; i++) {
-        if (getDeviceState() == Device::DeviceState::Off || getErrorState() == Device::ErrorState::FatalError) {
-            spdlog::info("{} : DummyPlatform::step() : Successfully stopped motion.", m_Identity);
-            return StepsRemaining;
+    if (getErrorState() != Device::ErrorState::FatalError) {
+        spdlog::debug("{} : Platform::step() : Executing hysteresis motion...", m_Identity);
+        for (int i = 0; i < PlatformBase::NUM_ACTS_PER_PLATFORM; i++) {
+            if (getDeviceState() == Device::DeviceState::Off || getErrorState() == Device::ErrorState::FatalError) {
+                spdlog::warn("{} : DummyPlatform::step() : Successfully stopped motion.", m_Identity);
+                saveActuatorStatustoDB();
+                return StepsRemaining;
+            }
+            if (StepsRemaining[i] != 0) {
+                m_Actuators[i]->performHysteresisMotion(StepsRemaining[i]);
+                StepsRemaining[i] = -(m_Actuators[i]->convertPositionToSteps(FinalPosition[i]) -
+                                      m_Actuators[i]->convertPositionToSteps(m_Actuators[i]->getCurrentPosition()));
+            }
         }
-        if (StepsRemaining[i] != 0) {
-            m_Actuators[i]->performHysteresisMotion(StepsRemaining[i]);
-            StepsRemaining[i] = -(m_Actuators[i]->convertPositionToSteps(FinalPosition[i]) -
-                                  m_Actuators[i]->convertPositionToSteps(m_Actuators[i]->getCurrentPosition()));
-        }
-
     }
 
     return StepsRemaining;
