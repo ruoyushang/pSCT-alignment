@@ -1082,9 +1082,13 @@ int DummyActuator::__step(int steps)
         }
         PredictedPosition = predictNewPosition(m_CurrentPosition, -StepsToTake);
         spdlog::trace("{} : Stepping actuator {} steps...", m_Identity, StepsToTake);
-//        MissedSteps = checkAngleQuick(
-//                PredictedPosition);//negative*negative=positive sign because retraction is increasing internal counter and missed steps is negative by definition.
-        MissedSteps = 0;
+
+        std::random_device rd{};
+        std::mt19937 generator{rd()};
+        std::normal_distribution<double> missedStepsDistribution(0, 2);
+        MissedSteps = missedStepsDistribution(generator);
+        MissedSteps = MissedSteps < 0 ? 0 :MissedSteps;
+
         if (m_Errors[7] == true)//if voltage measurement has issues.
         {
             return StepsRemaining;
