@@ -110,6 +110,8 @@ public:
 
     void loadStatusFromASF();
 
+    bool readStatusFromASF(ActuatorStatus &status);
+
     virtual int stepDriver(int inputSteps) = 0;
 
     virtual void turnOn() override = 0;
@@ -180,7 +182,6 @@ protected:
     virtual void saveStatusToDB() = 0;
 
     void recoverStatusFromDB();
-    bool readStatusFromASF(ActuatorStatus &status);
     void saveStatusToASF();
 
     virtual int checkAngleQuick(Position expectedPosition);
