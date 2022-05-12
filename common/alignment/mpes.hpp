@@ -13,6 +13,13 @@
 #include <string>
 #include <math.h>
 
+#include <mysql_connection.h>
+#include <mysql_driver.h>
+#include <cppconn/driver.h>
+#include <cppconn/exception.h>
+#include <cppconn/resultset.h>
+#include <cppconn/statement.h>
+
 #include "common/alignment/device.hpp"
 #include "common/mpescode/MPESDevice.h"
 
@@ -23,7 +30,7 @@ class MPESBase : public Device
 public:
     struct Position {
         Position() : xCentroid(-1), yCentroid(-1), xCentroidErr(-1), yCentroidErr(-1), xSpotWidth(-1), ySpotWidth(-1), cleanedIntensity(0), xNominal(-1),
-                     yNominal(-1), exposure(-1), nSat(-1), timestamp(-1), last_img("") {}
+                     yNominal(-1), exposure(-1), nSat(-1), timestamp(std::time(nullptr)), last_img("") {}
 
         float xCentroid;
         float yCentroid;
@@ -48,8 +55,7 @@ public:
 
     int getNumErrors() override { return MPESBase::ERROR_DEFINITIONS.size(); }
 
-    explicit MPESBase(Device::Identity identity) : Device::Device(std::move(identity)),
-                                                   m_Calibrate(false) {}
+    explicit MPESBase(Device::Identity identity, Device::DBInfo DBInfo = Device::DBInfo());
 
     virtual ~MPESBase() = default;
 
@@ -98,6 +104,10 @@ protected:
     virtual int __updatePosition() = 0;
 
     virtual int __setExposure() = 0;
+
+    Device::DBInfo m_DBInfo;
+
+    void setDBInfo(DBInfo DBInfo);
 };
 
 #ifndef SIMMODE
@@ -108,9 +118,10 @@ protected:
 
 class MPES : public MPESBase {
 public:
-    explicit MPES(std::shared_ptr<CBC> pCBC, Device::Identity identity) : MPESBase::MPESBase(std::move(identity)),
-                                                                          m_pCBC(std::move(pCBC)), m_pImageSet(nullptr),
-                                                                          m_pDevice(nullptr) {}
+    explicit MPES(std::shared_ptr<CBC> pCBC, Device::Identity identity,
+                  Device::DBInfo DBInfo = Device::DBInfo()):
+                  MPESBase::MPESBase(std::move(identity), std::move(DBInfo)),
+                  m_pCBC(std::move(pCBC)), m_pImageSet(nullptr), m_pDevice(nullptr) {}
 
     ~MPES() override { turnOff(); };
 
@@ -139,7 +150,8 @@ protected:
 class DummyMPES : public MPESBase
 {
 public:
-    explicit DummyMPES(Device::Identity identity) : MPESBase(std::move(identity)) {};
+    explicit DummyMPES(Device::Identity identity, Device::DBInfo DBInfo = Device::DBInfo()) :
+        MPESBase(std::move(identity), std::move(DBInfo)) {};
 
     ~DummyMPES() override = default;
 

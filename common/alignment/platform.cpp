@@ -648,7 +648,7 @@ bool Platform::addMPES(const Device::Identity &identity)
         return false;
     }
 
-    std::unique_ptr<MPES> newMPES = std::unique_ptr<MPES>(new MPES(m_pCBC, identity));
+    std::unique_ptr<MPES> newMPES = std::unique_ptr<MPES>(new MPES(m_pCBC, identity, m_DBInfo));
 
     if (newMPES->initialize()) {
         m_MPES.push_back(std::move(newMPES));
@@ -968,7 +968,7 @@ bool DummyPlatform::addMPES(const Device::Identity &identity) {
         return false;
     }
 
-    std::unique_ptr<MPESBase> newMPES = std::unique_ptr<MPESBase>(new DummyMPES(identity));
+    std::unique_ptr<MPESBase> newMPES = std::unique_ptr<MPESBase>(new DummyMPES(identity, m_DBInfo));
 
     if (newMPES->initialize()) {
         m_MPES.push_back(std::move(newMPES));

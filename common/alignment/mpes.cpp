@@ -32,6 +32,19 @@ const std::vector<Device::ErrorDefinition> MPESBase::ERROR_DEFINITIONS = {
     {"Intensity of the image is zero, no pixels pass threshold value.",Device::ErrorState::FatalError}//error 7,
 };
 
+MPESBase::MPESBase(Device::Identity identity, Device::DBInfo DBInfo) : Device::Device(std::move(identity)),
+                                                                                          m_Calibrate(false){
+    if (!DBInfo.empty()) {
+        setDBInfo(DBInfo);
+    } else {
+        spdlog::warn("{} : MPES: No DB info provided.", m_Identity);
+    }
+}
+
+void MPESBase::setDBInfo(Device::DBInfo DBInfo) {
+    m_DBInfo = std::move(DBInfo);
+}
+
 bool MPESBase::initialize() {
     if (isBusy()) {
         spdlog::error("{} : MPES::initialize() : Busy, cannot initialize.", m_Identity);
@@ -451,6 +464,24 @@ int DummyMPES::__updatePosition() {
 
     m_Position.exposure = 500.0;
     m_Position.timestamp = std::time(0);
+
+    if (m_Position.cleanedIntensity > 5e5 && m_Position.cleanedIntensity < 1e6) {
+        setError(4);
+        spdlog::warn("{}: [4] [Operable] Intensity of the image is bright to perform calculations but the spot width is extensively large > 20px.", m_Identity.serialNumber);
+    }
+    else if (m_Position.cleanedIntensity > 1e6) {
+        setError(3);
+        spdlog::warn("{}: [3] [Fatal] Intensity of the image is too bright to process confidently. Likely cause: no tube or no lid.", m_Identity.serialNumber);
+    }
+
+    if (std::abs(m_Position.xSpotWidth / m_Position.ySpotWidth - 1) > 0.40) {
+        spdlog::warn("{}: [5] [Fatal] Image is severely uneven. Likely due to being in the reflection region, too close to webcam edges, or a bad laser. More than 40% deviation.", m_Identity.serialNumber);
+        setError(5);
+    }
+    else if (std::abs(m_Position.xSpotWidth / m_Position.ySpotWidth - 1) > 0.20) {
+        spdlog::error("{}: [6] [Operable] Image is mildly uneven. More than 20% but less than 40% deviation", m_Identity.serialNumber);
+        setError(6);
+    }
 
     return static_cast<int>(m_Position.cleanedIntensity);
 }
