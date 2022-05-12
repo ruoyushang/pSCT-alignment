@@ -320,25 +320,6 @@ UaStatus MPESController::operate(OpcUa_UInt32 offset, const UaVariantArray &args
             data.last_img,
             std::ctime(&data.timestamp));
 
-
-        if (m_Mode == "subclient") { // Record readings to database
-            struct tm tstruct{};
-            char buf[80];
-            tstruct = *localtime(&data.timestamp);
-            strftime(buf, sizeof(buf), "%Y-%m-%d %X", &tstruct);
-
-            spdlog::trace("Updating MPES_readings.sql");
-
-            UaString sql_stmt = UaString(
-                "INSERT INTO Opt_MPESReadings (date, serial_number, xcoord, ycoord, x_SpotWidth, y_SpotWidth, intensity) VALUES  ('%1', '%2', '%3', '%4', '%5', '%6', '%7' );\n").arg(
-                buf).arg(m_Identity.serialNumber).arg(data.xCentroid).arg(data.yCentroid).arg(
-                data.xSpotWidth).arg(data.ySpotWidth).arg(data.cleanedIntensity);
-            std::ofstream sql_file("MPES_readings.sql", std::ios_base::app);
-            sql_file << sql_stmt.toUtf8();
-
-            spdlog::trace("{} : Recorded MPES measurement SQL statement into MPES_readings.sql file: {} ", m_Identity,
-                          sql_stmt.toUtf8());
-        }
     } else if (offset == PAS_MPESType_SetExposure) {
         spdlog::info("{} : MPESController calling setExposure()", m_Identity);
         status = m_pClient->callMethod(m_pClient->getDeviceNodeId(m_Identity), UaString("SetExposure"), args);
