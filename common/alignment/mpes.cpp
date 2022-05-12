@@ -82,6 +82,7 @@ int MPESBase::updatePosition() {
     int intensity;
     intensity = __updatePosition();
     spdlog::info("{} : MPES::updatePosition() : Done.", m_Identity);
+    saveMPESStatustoDB();
     return intensity;
 }
 
@@ -96,6 +97,66 @@ void MPESBase::turnOn() {
     }
     else {
         spdlog::error("{} : MPES::turnOn() : Did not initialize after turnOn. Will not reset exposure.", m_Identity);
+    }
+}
+
+void MPESBase::saveMPESStatustoDB() {
+    try {
+        sql::Driver *driver;
+        sql::Connection *con;
+        sql::Statement *stmt;
+        sql::ResultSet *res;
+        driver = get_driver_instance();
+        std::string dbAddress = "tcp://" + m_DBInfo.host + ":" + m_DBInfo.port;
+        con = driver->connect(dbAddress, m_DBInfo.user, m_DBInfo.password);
+        con->setSchema(m_DBInfo.dbname);
+        stmt = con->createStatement();
+
+        struct tm tstruct{};
+        char buf[80];
+        tstruct = *localtime(&m_Position.timestamp);
+        strftime(buf, sizeof(buf), "%Y-%m-%d %X", &tstruct);
+
+        std::stringstream sql_stmt;
+        sql_stmt << "INSERT INTO Opt_MPESStatus (date, serial_number, x_coord, y_coord, "
+                    "x_err, y_err, x_width, y_width, intensity";
+        for (int e = 0; e < getNumErrors(); e++) {
+            sql_stmt << ", error" << e;
+        }
+        sql_stmt << ") ";
+
+        sql_stmt << "VALUES ("
+                 << "'" << buf << "', "
+                 << m_Identity.serialNumber << ", "
+                 << m_Position.xCentroid << ", "
+                 << m_Position.yCentroid << ", "
+                 << m_Position.xCentroidErr << ", "
+                 << m_Position.yCentroidErr << ", "
+                 << m_Position.xSpotWidth << ", "
+                 << m_Position.ySpotWidth << ", "
+                 << m_Position.cleanedIntensity ;
+        for (int e = 0; e < getNumErrors(); e++) {
+            sql_stmt << ", " << getError(e);
+        }
+        sql_stmt << ")";
+
+        spdlog::trace("{} : Recorded MPES measurement DB ", m_Identity);
+
+        spdlog::trace(sql_stmt.str());
+        stmt->execute(sql_stmt.str());
+
+        delete res;
+        delete stmt;
+        delete con;
+    }
+    catch (sql::SQLException &e) {
+        spdlog::error("# ERR: SQLException in {}"
+                      "({}) on line {}\n"
+                      "# ERR: {}\n"
+                      " (MySQL error code: {}"
+                      ", SQLState: {})", __FILE__, __FUNCTION__, __LINE__, e.what(), e.getErrorCode(), e.getSQLState());
+        spdlog::error("{} : Operable Error: SQL communication error.", m_Identity);
+        return;
     }
 }
 

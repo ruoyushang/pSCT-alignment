@@ -287,6 +287,7 @@ UaStatus MPESController::operate(OpcUa_UInt32 offset, const UaVariantArray &args
             if (_getDeviceState() == Device::DeviceState::On && _getErrorState() != Device::ErrorState::FatalError) {
                 status = read();
             } else {
+                m_pPlatform->getMPESbyIdentity(m_Identity)->saveMPESStatustoDB();
                 spdlog::error("{} : MPES is off/in fatal error state, unable to read.", m_Identity);
                 status = OpcUa_BadInvalidState;
             }

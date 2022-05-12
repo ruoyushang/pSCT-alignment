@@ -94,6 +94,7 @@ public:
     virtual void turnOff() override = 0;
     virtual bool isOn() override = 0;
 
+    void saveMPESStatustoDB();
 protected:
     bool m_Calibrate;
 
