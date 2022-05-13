@@ -53,6 +53,7 @@ MPESController::MPESController(Device::Identity identity, Client *pClient, std::
         for (const auto &panel : panelType)
             for (int act = 1; act <= 6; act++)
                 query += ", " + std::string(1, panel) + "_response_actuator" + to_string(act);
+        query += ", plate_scale ";
         query = "SELECT coord" + query +
                 " FROM Opt_MPESConfigurationAndCalibration WHERE end_date is NULL and serial_number=" +
                 to_string(m_Identity.serialNumber);
@@ -61,6 +62,7 @@ MPESController::MPESController(Device::Identity identity, Client *pClient, std::
 
         while (sql_results->next()) {
             char coord = sql_results->getString(1)[0];
+            m_PlateScaleMap[coord] =  sql_results->getDouble(14);
             for (int panel = 0; panel < 2; panel++) {
                 for (int act = 1; act <= 6; act++)
                     m_ResponseMatMap[panelType[panel]](int(coord - 'x'), act - 1) =
@@ -298,6 +300,8 @@ UaStatus MPESController::operate(OpcUa_UInt32 offset, const UaVariantArray &args
             return status;
         }
 
+        double x_offset_mm = (data.xCentroid - data.xNominal) * m_PlateScaleMap['x'];
+        double y_offset_mm = (data.yCentroid - data.yNominal) * m_PlateScaleMap['y'];
         spdlog::info(
             "Reading MPES {}:\n"
             "x (nominal): {}+/-{} ({})\n"
@@ -308,7 +312,8 @@ UaStatus MPESController::operate(OpcUa_UInt32 offset, const UaVariantArray &args
             "Exposure: {}\n"
             "nSat: {}\n"
             "ImagePath: {}\n"
-            "Timestamp: {}\n",
+            "Timestamp: {}\n\n"
+            "Physical distance = ({}, {}) mm,  {} mm total ",
             m_Identity,
             data.xCentroid, data.xCentroidErr, data.xNominal,
             data.yCentroid, data.yCentroidErr, data.yNominal,
@@ -318,7 +323,10 @@ UaStatus MPESController::operate(OpcUa_UInt32 offset, const UaVariantArray &args
             data.exposure,
             data.nSat,
             data.last_img,
-            std::ctime(&data.timestamp));
+            std::ctime(&data.timestamp),
+            x_offset_mm,
+            y_offset_mm,
+            std::sqrt(x_offset_mm*x_offset_mm + y_offset_mm*y_offset_mm));
 
     } else if (offset == PAS_MPESType_SetExposure) {
         spdlog::info("{} : MPESController calling setExposure()", m_Identity);
