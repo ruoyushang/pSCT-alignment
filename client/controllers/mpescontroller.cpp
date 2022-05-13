@@ -401,7 +401,8 @@ char MPESController::getPanelSide(unsigned panelpos) {
 bool MPESController::isVisible() {
     UaVariant temp;
     OpcUa_Boolean missingLaserError;
-    getError(PAS_MPESType_Error2, temp);
+    Device::ErrorState errState = getErrorState();
+    missingLaserError = errState > Device::ErrorState::OperableError;
     temp.toBool(missingLaserError);
 
     return !missingLaserError;
