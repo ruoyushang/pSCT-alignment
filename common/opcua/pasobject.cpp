@@ -262,7 +262,7 @@ const std::map<OpcUa_UInt32, std::tuple<std::string, UaVariant, OpcUa_Boolean>> 
     {PAS_MPESType_Error2, std::make_tuple("[2] [Fatal] Intensity of the image is insufficient to process confidently.", UaVariant(false), OpcUa_False)},
     {PAS_MPESType_Error3, std::make_tuple("[3] [Fatal] Intensity of the image is too bright to process confidently. Likely cause: no tube or no lid.",
                                           UaVariant(false), OpcUa_False)},
-    {PAS_MPESType_Error4, std::make_tuple("[4] [Operable] Intensity of the image is bright to perform calculations but the spot width is extensively large >20px.", UaVariant(false),
+    {PAS_MPESType_Error4, std::make_tuple("[4] [Operable] Intensity of the image is bright enough to perform calculations but the spot width is extensively large >20px.", UaVariant(false),
                                           OpcUa_False)},
     {PAS_MPESType_Error5, std::make_tuple("[5] [Fatal] Image is severely uneven. Likely due to being in the reflection region, too close to webcam edges, or a bad laser. More than 40% deviation.",
                                           UaVariant(false), OpcUa_False)},
