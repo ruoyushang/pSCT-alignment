@@ -26,7 +26,7 @@ const std::vector<Device::ErrorDefinition> MPESBase::ERROR_DEFINITIONS = {
     {"Failed to read data, possible select timeout.",                                          Device::ErrorState::FatalError},//error 1
     {"Intensity of the image is insufficient to process confidently.",                              Device::ErrorState::FatalError},//error 2
     {"Intensity of the image is too bright to produce reliable measurement. Likely cause: no tube or no lid.",             Device::ErrorState::FatalError},//error 3
-    {"Intensity of the image is bright to perform calculations but the spot width is extensively large > 20px.",      Device::ErrorState::OperableError},//error 4
+    {"Intensity of the image is bright enough to perform calculations but the spot width is extensively large > 20px.",      Device::ErrorState::OperableError},//error 4
     {"Image is severely uneven. Likely due to being in the reflection region, too close to webcam edges, or a bad laser. More than 30% deviation.",Device::ErrorState::FatalError},//error 5
     {"Image is mildly uneven. More than 20% but less than 30% deviation.",                                           Device::ErrorState::OperableError},//error 6
     {"Intensity of the image is zero, no pixels pass threshold value.",Device::ErrorState::FatalError}//error 7,
@@ -327,7 +327,7 @@ int MPES::__setExposure() {
         if (m_Position.cleanedIntensity >= (m_pDevice->GetTargetIntensity() * PRECISION)){
         spdlog::error("{} : MPES::setExposure() : Failed to set exposure, reached minimum limit of {}. Setting Error 3 (too bright)...",
                       m_Identity, std::to_string(MPESBase::MIN_EXPOSURE));
-        setError(4); //operable
+        setError(3); //fatal
         }
         m_pDevice->SetExposure(tempExposure);
     }

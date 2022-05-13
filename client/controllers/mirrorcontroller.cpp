@@ -678,7 +678,7 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
         setState(Device::DeviceState::On);
     }
     else if (offset == PAS_MirrorType_ReadSensors) {
-        spdlog::info("{} : MirrorController::operate() : Calling readSensors()...", m_Identity);
+        spdlog::info("{} : MirrorController::operate() : Calling readSensors()... \n MPES are read based on selectedEdges only", m_Identity);
         setState(Device::DeviceState::Busy);
         if (m_selectedEdges.empty()) {
             spdlog::error("{} : MirrorController::operate() : No Edges selected. Nothing to do, method call aborted.",
@@ -768,14 +768,14 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
                         UaThread::msleep(200);
                     }
 
-                        if (!busy) {
-                            totalMPES--;
-                            spdlog::info("{}: Reading MPES {} on Panel {} ({} remaining)...", m_Identity,
-                                         pair.second.back()->getIdentity(), pair.first->getIdentity(), totalMPES);
-                            pair.second.back()->readAsync();
-                            pair.second.pop_back();
-                        }
+                    if (!busy) {
+                        totalMPES--;
+                        spdlog::info("{}: Reading MPES {} on Panel {} ({} remaining)...", m_Identity,
+                                     pair.second.back()->getIdentity(), pair.first->getIdentity(), totalMPES);
+                        pair.second.back()->readAsync();
+                        pair.second.pop_back();
                     }
+                }
             }
         }
 
@@ -791,7 +791,7 @@ UaStatus MirrorController::operate(OpcUa_UInt32 offset, const UaVariantArray &ar
                     if (state == Device::DeviceState::Busy) {
                         stillReading = true;
                     }
-                    UaThread::sleep(0.1);
+                    UaThread::msleep(100);
                 }
             };
         }
