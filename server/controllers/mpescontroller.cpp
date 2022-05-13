@@ -56,7 +56,7 @@ MPESController::MPESController(Device::Identity identity, std::shared_ptr<Platfo
         sql::ResultSet *sql_results;
 
         std::string query =
-            "SELECT coord, nominal_reading FROM Opt_MPESConfigurationAndCalibration WHERE end_date is NULL and serial_number=" +
+            "SELECT coord, nominal_reading, plate_scale FROM Opt_MPESConfigurationAndCalibration WHERE end_date is NULL and serial_number=" +
             std::to_string(m_Identity.serialNumber);
         sql_stmt->execute(query);
         sql_results = sql_stmt->getResultSet();
@@ -65,8 +65,10 @@ MPESController::MPESController(Device::Identity identity, std::shared_ptr<Platfo
             char coord = sql_results->getString(1)[0];
             if (coord == 'x') {
                 m_pPlatform->getMPESbyIdentity(m_Identity)->setxNominalPosition((float) sql_results->getDouble(2));
+                m_pPlatform->getMPESbyIdentity(m_Identity)->setxPlateScale((float) sql_results->getDouble(3));
             } else if (coord == 'y') {
                 m_pPlatform->getMPESbyIdentity(m_Identity)->setyNominalPosition((float) sql_results->getDouble(2));
+                m_pPlatform->getMPESbyIdentity(m_Identity)->setyPlateScale((float) sql_results->getDouble(3));
             } else {
                 spdlog::error("Error: Invalid coord {} (should be x or y).", coord);
             }

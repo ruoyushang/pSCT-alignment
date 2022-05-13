@@ -29,8 +29,9 @@ class MPESBase : public Device
 {
 public:
     struct Position {
-        Position() : xCentroid(-3), yCentroid(-3), xCentroidErr(-3), yCentroidErr(-3), xSpotWidth(-3), ySpotWidth(-3), cleanedIntensity(-3), xNominal(-3),
-                     yNominal(-3), exposure(-3), nSat(-3), timestamp(std::time(nullptr)), last_img("") {}
+        Position() : xCentroid(-3), yCentroid(-3), xCentroidErr(-3), yCentroidErr(-3), xSpotWidth(-3), ySpotWidth(-3),
+        cleanedIntensity(-3), xNominal(-3), yNominal(-3), xScale(-3), yScale(-3),
+        exposure(-3), nSat(-3), timestamp(std::time(nullptr)), last_img("") {}
 
         float xCentroid;
         float yCentroid;
@@ -41,6 +42,8 @@ public:
         float cleanedIntensity;
         float xNominal;
         float yNominal;
+        float xScale;
+        float yScale;
         int exposure;
         int nSat;
         std::time_t timestamp;
@@ -69,6 +72,9 @@ public:
 
     void setxNominalPosition(float x) { m_Position.xNominal = x; }
     void setyNominalPosition(float y) { m_Position.yNominal = y; }
+
+    void setxPlateScale(float x) { m_Position.xScale = x; }
+    void setyPlateScale(float y) { m_Position.yScale = y; }
 
     int updatePosition();
 
