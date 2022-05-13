@@ -29,8 +29,8 @@ class MPESBase : public Device
 {
 public:
     struct Position {
-        Position() : xCentroid(-1), yCentroid(-1), xCentroidErr(-1), yCentroidErr(-1), xSpotWidth(-1), ySpotWidth(-1), cleanedIntensity(0), xNominal(-1),
-                     yNominal(-1), exposure(-1), nSat(-1), timestamp(std::time(nullptr)), last_img("") {}
+        Position() : xCentroid(-3), yCentroid(-3), xCentroidErr(-3), yCentroidErr(-3), xSpotWidth(-3), ySpotWidth(-3), cleanedIntensity(-3), xNominal(-3),
+                     yNominal(-3), exposure(-3), nSat(-3), timestamp(std::time(nullptr)), last_img("") {}
 
         float xCentroid;
         float yCentroid;

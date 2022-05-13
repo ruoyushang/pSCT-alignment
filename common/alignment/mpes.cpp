@@ -114,7 +114,13 @@ void MPESBase::saveMPESStatustoDB() {
 
         struct tm tstruct{};
         char buf[80];
-        tstruct = *localtime(&m_Position.timestamp);
+        if (m_Position.cleanedIntensity < -1){
+            time_t t = time(0);
+            tstruct = *localtime(&t);
+        }
+        else {
+            tstruct = *localtime(&m_Position.timestamp);
+        }
         strftime(buf, sizeof(buf), "%Y-%m-%d %X", &tstruct);
 
         std::stringstream sql_stmt;
@@ -125,20 +131,27 @@ void MPESBase::saveMPESStatustoDB() {
         }
         sql_stmt << ") ";
 
-        sql_stmt << "VALUES ("
-                 << "'" << buf << "', "
-                 << m_Identity.serialNumber << ", "
-                 << m_Position.xCentroid << ", "
-                 << m_Position.yCentroid << ", "
-                 << m_Position.xCentroidErr << ", "
-                 << m_Position.yCentroidErr << ", "
-                 << m_Position.xSpotWidth << ", "
-                 << m_Position.ySpotWidth << ", "
-                 << m_Position.cleanedIntensity ;
+        sql_stmt << " SELECT * from (SELECT ";
+
+        sql_stmt << "'" << buf << "' as `date`, "
+                 << m_Identity.serialNumber << " as serial_number, "
+                 << m_Position.xCentroid << " as x_coord, "
+                 << m_Position.yCentroid << " as y_coord, "
+                 << m_Position.xCentroidErr << " as x_err, "
+                 << m_Position.yCentroidErr << " as y_err, "
+                 << m_Position.xSpotWidth << " as x_width, "
+                 << m_Position.ySpotWidth << " as y_width, "
+                 << m_Position.cleanedIntensity << " as intensity";
         for (int e = 0; e < getNumErrors(); e++) {
-            sql_stmt << ", " << getError(e);
+            sql_stmt << ", " << getError(e) << " as error" << e;
         }
-        sql_stmt << ")";
+        sql_stmt << ") as temp";
+
+        sql_stmt << " WHERE NOT EXISTS( "
+                 << " SELECT * from Opt_MPESStatus WHERE (`date`='"
+                 << buf << "' AND serial_number="
+                 << m_Identity.serialNumber
+                 << ") ) LIMIT 1";
 
         spdlog::trace("{} : Recorded MPES measurement DB ", m_Identity);
 
