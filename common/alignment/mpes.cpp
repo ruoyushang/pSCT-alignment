@@ -125,7 +125,7 @@ void MPESBase::saveMPESStatustoDB() {
 
         std::stringstream sql_stmt;
         sql_stmt << "INSERT INTO Opt_MPESStatus (date, serial_number, x_coord, y_coord, "
-                    "x_err, y_err, x_width, y_width, intensity";
+                    "x_err, y_err, x_width, y_width, intensity, nSat, exposure";
         for (int e = 0; e < getNumErrors(); e++) {
             sql_stmt << ", error" << e;
         }
@@ -141,7 +141,9 @@ void MPESBase::saveMPESStatustoDB() {
                  << m_Position.yCentroidErr << " as y_err, "
                  << m_Position.xSpotWidth << " as x_width, "
                  << m_Position.ySpotWidth << " as y_width, "
-                 << m_Position.cleanedIntensity << " as intensity";
+                 << m_Position.cleanedIntensity << " as intensity, "
+                 << m_Position.nSat << " as nSat, "
+                 << m_Position.exposure << " as exposure";
         for (int e = 0; e < getNumErrors(); e++) {
             sql_stmt << ", " << getError(e) << " as error" << e;
         }
