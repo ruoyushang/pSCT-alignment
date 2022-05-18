@@ -15,7 +15,9 @@
 #include "common/alignment/device.hpp"
 #include "common/alignment/mpes.hpp"
 #include "common/alignment/actuator.hpp"
-#include "common/globalalignment/psdclass.h"
+#include "common/globalalignment/psdclass.hpp"
+#include "common/globalalignment/rangefinderclass.hpp"
+#include "common/globalalignment/laserclass.h"
 
 class PlatformBase : public Device
 {
@@ -80,12 +82,29 @@ public:
 
     int getPSDCount() const { return m_PSD.size(); }
 
-    std::unique_ptr<GASPSD> &getPSD(int idx) { return m_PSD.at(idx); }
+    std::unique_ptr<GASPSDBase> &getPSD(int idx) { return m_PSD.at(idx); }
 
-    std::unique_ptr<GASPSD> &getPSDbyIdentity(const Device::Identity &identity) {
+    std::unique_ptr<GASPSDBase> &getPSDbyIdentity(const Device::Identity &identity) {
         return m_PSD.at(m_PSDIdentityMap.at(identity));
     }
 
+    // Laser
+    int getLaserCount() const { return m_Laser.size(); }
+
+    std::unique_ptr<GASLaserBase> &getLaser(int idx) { return m_Laser.at(idx); }
+
+    std::unique_ptr<GASLaserBase> &getLaserbyIdentity(const Device::Identity &identity) {
+        return m_Laser.at(m_LaserIdentityMap.at(identity));
+    }
+
+    // Rangefinder DLS
+    int getRangefinderCount() const { return m_Rangefinder.size(); }
+
+    std::unique_ptr<GASRangeFinderBase> &getRangefinder(int idx) { return m_Rangefinder.at(idx); }
+
+    std::unique_ptr<GASRangeFinderBase> &getRangefinderbyIdentity(const Device::Identity &identity) {
+        return m_Rangefinder.at(m_RangefinderIdentityMap.at(identity));
+    }
     // Actuator-related methods
     void probeEndStopAll(int direction);
 
@@ -115,6 +134,10 @@ public:
     MPESBase::Position readMPES(int idx);
 
     virtual bool addPSD(const Device::Identity &identity) = 0;
+
+    virtual bool addLaser(const Device::Identity &identity) = 0;
+
+    virtual bool addRangefinder(const Device::Identity &identity) = 0;
 
     virtual void emergencyStop();
 
@@ -150,12 +173,16 @@ protected:
     float m_CalibrationTemperature = 0.0;
 
     std::vector<std::unique_ptr<MPESBase>> m_MPES;
-    std::vector<std::unique_ptr<GASPSD>> m_PSD;
+    std::vector<std::unique_ptr<GASPSDBase>> m_PSD;
+    std::vector<std::unique_ptr<GASLaserBase>> m_Laser;
+    std::vector<std::unique_ptr<GASRangeFinderBase>> m_Rangefinder;
     std::array<std::unique_ptr<ActuatorBase>, NUM_ACTS_PER_PLATFORM> m_Actuators;
 
     std::map<Device::Identity, int> m_PSDIdentityMap;
     std::map<Device::Identity, int> m_MPESIdentityMap;
     std::map<Device::Identity, int> m_ActuatorIdentityMap;
+    std::map<Device::Identity, int> m_LaserIdentityMap;
+    std::map<Device::Identity, int> m_RangefinderIdentityMap;
 
     float m_InternalTemperatureSlope = DEFAULT_INTERNAL_TEMPERATURE_SLOPE;
     float m_InternalTemperatureOffset = DEFAULT_INTERNAL_TEMPERATURE_OFFSET;
@@ -205,6 +232,10 @@ public:
     bool addMPES(const Device::Identity &identity) override;
 
     bool addPSD(const Device::Identity &identity) override;
+
+    bool addLaser(const Device::Identity &identity) override;
+
+    bool addRangefinder(const Device::Identity &identity) override;
 
     void turnOn() override;
 
@@ -260,6 +291,10 @@ public:
     bool addMPES(const Device::Identity &identity) override;
 
     bool addPSD(const Device::Identity &identity) override;
+
+    bool addLaser(const Device::Identity &identity) override;
+
+    bool addRangefinder(const Device::Identity &identity) override;
 
     void emergencyStop() override;
 

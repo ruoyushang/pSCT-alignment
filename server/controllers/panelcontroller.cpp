@@ -228,3 +228,15 @@ void PanelController::addPSD(const std::shared_ptr<PSDController> &pPSD) {
     spdlog::info("{} : Panel controller added PSD {} controller as PSD child {}...", m_Identity, pPSD->getIdentity(),
                  m_pPSD.size());
 }
+
+void PanelController::addLaser(const std::shared_ptr<LaserController> &pLaser) {
+    m_pLaser.push_back(pLaser);
+    spdlog::info("{} : Panel controller added Laser {} controller as Laser child {}...", m_Identity, pLaser->getIdentity(),
+                 m_pLaser.size());
+}
+
+void PanelController::addRangefinder(const std::shared_ptr<RangefinderController> &pRangefinder) {
+    m_pRangefinder.push_back(pRangefinder);
+    spdlog::info("{} : Panel controller added Rangefinder {} controller as Rangefinder child {}...", m_Identity, pRangefinder->getIdentity(),
+                 m_pRangefinder.size());
+}

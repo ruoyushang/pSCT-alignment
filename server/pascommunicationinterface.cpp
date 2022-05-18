@@ -24,6 +24,8 @@
 #include "server/controllers/mpescontroller.hpp"
 #include "server/controllers/psdcontroller.hpp"
 #include "server/controllers/panelcontroller.hpp"
+#include "server/controllers/lasercontroller.hpp"
+#include "server/controllers/rangefindercontroller.hpp"
 
 #include "uabase/uadatetime.h"
 
@@ -39,7 +41,9 @@ const std::map<OpcUa_UInt32, std::string> PasCommunicationInterface::deviceTypes
         {PAS_PanelType, "Panel"},
         {PAS_MPESType,  "MPES"},
         {PAS_ACTType,   "ACT"},
-        {PAS_PSDType,   "PSD"}
+        {PAS_PSDType,   "PSD"},
+        {PAS_LaserType, "Laser"},
+        {PAS_RangefinderType, "Rangefinder"}
 };
 
 PasCommunicationInterface::~PasCommunicationInterface() {
@@ -65,6 +69,8 @@ UaStatus PasCommunicationInterface::initialize() {
     std::array<Device::Identity, PlatformBase::NUM_ACTS_PER_PLATFORM> actuatorIdentities;
     std::vector <Device::Identity> mpesIdentities;
     std::vector <Device::Identity> psdIdentities;
+    std::vector <Device::Identity> LaserIdentities;
+    std::vector <Device::Identity> RangefinderIdentities;
 
     spdlog::trace("Connecting to DB {} at {} with user {}", DbInfo.dbname, dbAddress, DbInfo.user);
     try {
@@ -163,9 +169,46 @@ UaStatus PasCommunicationInterface::initialize() {
         m_platform->addMPES(mpesId);
     }
 
-    for (const auto &psdId : psdIdentities) {
-        spdlog::info("Adding PSD hardware interface with identity {} as child of Platform ...", psdId);
-        m_platform->addPSD(psdId);
+    if ((panelId.position==1001) || (panelId.position==2001)) {
+        Device::Identity psdId;
+        psdId.serialNumber = panelId.position; // need to find it out!!!
+        psdId.position = 0;
+        psdId.eAddress = "0"; // need to find it out!!! This is the port number
+        psdId.name = std::string("PSD_") + std::to_string(psdId.serialNumber);
+        psdIdentities.push_back(psdId);
+
+        if (panelId.position==1001){
+            Device::Identity LaserId;
+            LaserId.serialNumber = panelId.position; // need to find it out!!!
+            LaserId.position = 0;
+            LaserId.eAddress = "0"; // need to find it out!!! This is the port number
+            LaserId.name = std::string("Laser_") + std::to_string(LaserId.serialNumber);
+            LaserIdentities.push_back(LaserId);
+        }
+        else if (panelId.position==2001){
+            Device::Identity RangefinderId;
+            RangefinderId.serialNumber = panelId.position; // need to find it out!!!
+            RangefinderId.position = 0;
+            RangefinderId.eAddress = "0"; // need to find it out!!! This is the port number
+            RangefinderId.name = std::string("Rangefinder_") + std::to_string(RangefinderId.serialNumber);
+            RangefinderIdentities.push_back(RangefinderId);
+        }
+    }
+    try {
+        for (const auto &psdId : psdIdentities) {
+            spdlog::info("Adding PSD hardware interface with identity {} as child of Platform ...", psdId);
+            m_platform->addPSD(psdId);
+        }
+        for (const auto &laserId : LaserIdentities) {
+            spdlog::info("Adding Laser hardware interface with identity {} as child of Platform ...", laserId);
+            m_platform->addLaser(laserId);
+        }
+        for (const auto &RFId : RangefinderIdentities) {
+            spdlog::info("Adding Rangefinder hardware interface with identity {} as child of Platform ...", RFId);
+            m_platform->addRangefinder(RFId);
+        }
+    }
+        catch (...) {
     }
 
     // initialize expected devices
@@ -184,16 +227,17 @@ UaStatus PasCommunicationInterface::initialize() {
         allDevices[PAS_MPESType].push_back(m_platform->getMPES(i)->getIdentity());
     }
 
-    if (panelId.position==1001 || panelId.position==2001)
-    {
-        Device::Identity psdId;
-        psdId.serialNumber = panelId.position; // need to find it out!!!
-        psdId.position = 0;
-        psdId.eAddress = "10.0.1.100"; // need to find it out!!!
-        psdId.name = std::string("PSD_") + std::to_string(psdId.serialNumber);
-        psdIdentities.push_back(psdId);
-
-        allDevices[PAS_PSDType].push_back(psdId);
+    allDevices[PAS_PSDType] = {};
+    for (int i = 0; i < m_platform->getPSDCount(); i++) {
+        allDevices[PAS_PSDType].push_back(m_platform->getPSD(i)->getIdentity());
+    }
+    allDevices[PAS_LaserType] = {};
+    for (int i = 0; i < m_platform->getLaserCount(); i++) {
+        allDevices[PAS_LaserType].push_back(m_platform->getLaser(i)->getIdentity());
+    }
+    allDevices[PAS_RangefinderType] = {};
+    for (int i = 0; i < m_platform->getRangefinderCount(); i++) {
+        allDevices[PAS_RangefinderType].push_back(m_platform->getRangefinder(i)->getIdentity());
     }
 
     for (const auto &pair: allDevices) {
@@ -206,6 +250,10 @@ UaStatus PasCommunicationInterface::initialize() {
             expectedDevices = actuatorIdentities.size();
         } else if (pair.first == PAS_PSDType) {
             expectedDevices = psdIdentities.size();
+        } else if (pair.first == PAS_LaserType) {
+            expectedDevices = LaserIdentities.size();
+        } else if (pair.first == PAS_RangefinderType) {
+            expectedDevices = RangefinderIdentities.size();
         }
 
         spdlog::info("Expecting {} {} hardware interfaces...", expectedDevices, deviceTypes.at(pair.first));
@@ -229,16 +277,22 @@ UaStatus PasCommunicationInterface::initialize() {
                 pController = std::dynamic_pointer_cast<PasControllerCommon>(
                     std::make_shared<ActController>(identity, m_platform));
                 spdlog::info("Added Actuator controller with identity {}", identity);
-            }
-#if ( !defined(_AMD64) || defined(SIMMODE))
-            else if (pair.first == PAS_PSDType) {
+            } else if (pair.first == PAS_PSDType) {
                 pController = std::dynamic_pointer_cast<PasControllerCommon>(
                         std::make_shared<PSDController>(identity, m_platform));
                 spdlog::info("Added PSD controller with identity {}", identity);
+            } else if (pair.first == PAS_LaserType) {
+                pController = std::dynamic_pointer_cast<PasControllerCommon>(
+                        std::make_shared<LaserController>(identity, m_platform));
+                spdlog::info("Added Laser controller with identity {}", identity);
+            } else if (pair.first == PAS_RangefinderType) {
+                pController = std::dynamic_pointer_cast<PasControllerCommon>(
+                        std::make_shared<RangefinderController>(identity, m_platform));
+                spdlog::info("Added Rangefinder controller with identity {}", identity);
             }
-#endif
             else {
                 spdlog::error("Invalid device type {} found", pair.first);
+                continue;
             }
 
             if (pController->initialize()) {
@@ -281,6 +335,24 @@ UaStatus PasCommunicationInterface::initialize() {
             std::shared_ptr <PSDController> pPSD = std::dynamic_pointer_cast<PSDController>(
                     getDevice(PAS_PSDType, psdId));
             pPanel->addPSD(pPSD);
+        }
+        catch (...) {
+        }
+    }
+    for (const auto &RangefinderId : RangefinderIdentities) {
+        try {
+            std::shared_ptr <RangefinderController> pRangefinder = std::dynamic_pointer_cast<RangefinderController>(
+                    getDevice(PAS_RangefinderType, RangefinderId));
+            pPanel->addRangefinder(pRangefinder);
+        }
+        catch (...) {
+        }
+    }
+    for (const auto &LaserId : LaserIdentities) {
+        try {
+            std::shared_ptr <LaserController> pLaser = std::dynamic_pointer_cast<LaserController>(
+                    getDevice(PAS_LaserType, LaserId));
+            pPanel->addLaser(pLaser);
         }
         catch (...) {
         }

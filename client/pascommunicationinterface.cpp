@@ -25,6 +25,8 @@
 #include "client/controllers/panelcontroller.hpp"
 #include "client/controllers/pascontroller.hpp"
 #include "client/controllers/psdcontroller.hpp"
+#include "client/controllers/lasercontroller.hpp"
+#include "client/controllers/rangefindercontroller.hpp"
 #include "client/controllers/opttablecontroller.hpp"
 #include "client/controllers/focalplanecontroller.hpp"
 #include "client/controllers/opticalalignmentcontroller.hpp"
@@ -52,6 +54,8 @@ std::map<OpcUa_UInt32, std::string> PasCommunicationInterface::deviceTypeNames{
     {PAS_ACTType, "ACT"},
     {PAS_CCDType, "CCD"},
     {PAS_PSDType, "PSD"},
+    {PAS_LaserType, "Laser"},
+    {PAS_RangefinderType, "Rangefinder"},
     {PAS_FocalPlaneType, "FocalPlane"},
     {PAS_OpticalAlignmentType, "OpticalAlignment"},
     {PAS_GlobalAlignmentType, "GlobalAlignment"},
@@ -97,7 +101,7 @@ UaStatus PasCommunicationInterface::initializeCCDs()
 //    }
     spdlog::info("PasCommunicationInterface::Initialize(): setting up CCD connection.");
 
-    try {
+    if (!m_pConfiguration->getDevices(PAS_CCDType).empty())  {
         for (const auto &identity : m_pConfiguration->getDevices(PAS_CCDType)) {
             spdlog::info("{}",identity);
             try {
@@ -115,7 +119,7 @@ UaStatus PasCommunicationInterface::initializeCCDs()
             }
         }
     }
-    catch (std::out_of_range &e) {
+    else {
         spdlog::warn("PasCommunicationInterface::Initialize(): no CCD configurations found.");
     }
 
@@ -156,6 +160,10 @@ PasCommunicationInterface::addDevice(Client *pClient, OpcUa_UInt32 deviceType,
             pController = std::make_shared<CCDController>(identity);
         else if (deviceType == PAS_PSDType)
             pController = std::make_shared<PSDController>(identity, pClient);
+        else if (deviceType == PAS_LaserType)
+            pController = std::make_shared<LaserController>(identity, pClient);
+        else if (deviceType == PAS_RangefinderType)
+            pController = std::make_shared<RangefinderController>(identity, pClient);
         else if (deviceType == PAS_FocalPlaneType)
             pController = std::make_shared<FocalPlaneController>(identity, pClient);
         else if (deviceType == PAS_GlobalAlignmentType)
@@ -195,8 +203,8 @@ void PasCommunicationInterface::addEdgeControllers() {
         // Check if all panels in edge exist
         auto children = m_pConfiguration->getChildren(edgeId);
         if (children.find(PAS_PanelType) != children.end()) {
-            try {
-                for (const auto &panelChildId : m_pConfiguration->getChildren(edgeId).at(PAS_PanelType)) {
+            for (const auto &panelChildId : children.at(PAS_PanelType)) {
+                if (m_pControllers.find(PAS_PanelType) != m_pControllers.end()) {
                     if (m_pControllers.at(PAS_PanelType).find(panelChildId) ==
                         m_pControllers.at(PAS_PanelType).end()) {
                         // Child panel not found
@@ -206,17 +214,18 @@ void PasCommunicationInterface::addEdgeControllers() {
                     }
                 }
             }
-            catch (std::out_of_range oor){
-                spdlog::warn("No Panels found.");
-                addEdge = false;
-            }
-            if (addEdge) {
-                addDevice(nullptr, PAS_EdgeType, edgeId);
-            } else {
-                spdlog::warn(
-                        "Could not find any panel children of Edge {} (likely server failed to connect). Edge controllers not created...",
-                        edgeId);
-            }
+        }
+        else {
+            spdlog::warn("No Panels found.");
+            addEdge = false;
+        }
+        if (addEdge) {
+            addDevice(nullptr, PAS_EdgeType, edgeId);
+        }
+        else {
+            spdlog::warn(
+                    "Could not find any panel children of Edge {} (likely server failed to connect). Edge controllers not created...",
+                    edgeId);
         }
     }
 }
@@ -239,24 +248,9 @@ void PasCommunicationInterface::addOpticalTableController() {
 
 void PasCommunicationInterface::addGlobalAlignmentController() {
     for (const auto &gaID:  m_pConfiguration->getDevices(PAS_GlobalAlignmentType)){
-        bool addGA = false;
         spdlog::debug("Adding Global Alignment device...");
         spdlog::trace("Found ID: {}", gaID);
-        for (const auto &ccdId : m_pConfiguration->getChildren(gaID).at(PAS_CCDType)) {
-            if (m_pControllers.at(PAS_CCDType).find(ccdId) !=
-                m_pControllers.at(PAS_CCDType).end()) {
-                // Child panel found
-                addGA = true;
-                break;
-            }
-        }
-        if (addGA) {
-            addDevice(nullptr, PAS_GlobalAlignmentType, gaID);
-        } else {
-            spdlog::warn(
-                    "Could not find any CCD children of GA {} (likely server failed to connect). GA controller not created...",
-                    gaID);
-        }
+        addDevice(nullptr, PAS_GlobalAlignmentType, gaID);
     }
 }
 
@@ -272,17 +266,20 @@ void PasCommunicationInterface::addMirrorControllers() {
     for (const auto &mirrorId : m_pConfiguration->getDevices(PAS_MirrorType)) {
         bool addMirror = false;
         // Check if at least one panel in the mirror exists
-        try {
-            for (const auto &panelChildId : m_pConfiguration->getChildren(mirrorId).at(PAS_PanelType)) {
-                if (m_pControllers.at(PAS_PanelType).find(panelChildId) !=
-                    m_pControllers.at(PAS_PanelType).end()) {
-                    // Child panel found
-                    addMirror = true;
-                    break;
+        auto children = m_pConfiguration->getChildren(mirrorId);
+        if (children.find(PAS_PanelType) != children.end()) {
+            for (const auto &panelChildId : children.at(PAS_PanelType)) {
+                if (m_pControllers.find(PAS_PanelType) != m_pControllers.end()) {
+                    if (m_pControllers.at(PAS_PanelType).find(panelChildId) !=
+                        m_pControllers.at(PAS_PanelType).end()) {
+                        // Child panel found
+                        addMirror = true;
+                        break;
+                    }
                 }
             }
         }
-        catch (std::out_of_range oor){
+        else {
             spdlog::warn("No Panels found.");
         }
 

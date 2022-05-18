@@ -20,7 +20,7 @@ Image::Image(std::vector<unsigned char> frame) : imgWidth(2592), imgHeight(1944)
 }
 
 void Image::saveRawImage(const char strTime[16]) {
-    string fileName = strTime;
+    string fileName = fImageDir + strTime;
     fileName += ".raw";
 
     // just dump the pixel array into file
@@ -38,7 +38,7 @@ void Image::saveFITSImage() {
     struct tm *theTime = gmtime(&t);
     char strTime[16];
     strftime(strTime, 16, "%Y%m%d%H%M%S", theTime);
-    string fileName = strTime;
+    string fileName = fImageDir + strTime;
     fileName += ".fits";
     //save image for diagnostics
     // use auto-pointer for automatic garbage collection
@@ -75,7 +75,7 @@ void Image::saveFITSImage(const LEDinputs* li) {
     struct tm* theTime = gmtime(&t);
     char strTime[16];
     strftime(strTime,16,"%Y%m%d%H%M%S",theTime);
-    string fileName = strTime;
+    string fileName = fImageDir + strTime;
     fileName+="raw.fits";
     //save image for diagnostics
     // use auto-pointer for automatic garbage collection
@@ -114,8 +114,8 @@ void Image::saveFITSImage(const LEDinputs* li) {
 */
 void Image::saveFITSImage(const LEDinputs *li, const char strTime[16]) {
 
-    string fileName = strTime;
-    fileName += "raw.fits";
+    string fileName = fImageDir + strTime;
+    fileName += "_" + li->CCDNAME + "_raw.fits";
     //save image for diagnostics
     // use auto-pointer for automatic garbage collection
     unique_ptr<CCfits::FITS> pFits(nullptr);
@@ -158,8 +158,8 @@ void Image::savefilteredFITSImage() {
     struct tm *theTime = gmtime(&t);
     char strTime[16];
     strftime(strTime, 16, "%Y%m%d%H%M%S", theTime);
-    string fileName = strTime;
-    fileName += "filtered.fits";
+    string fileName = fImageDir + strTime;
+    fileName += "_filtered.fits";
     //save image for diagnostics
     // use auto-pointer for automatic garbage collection
     unique_ptr<CCfits::FITS> pFits(nullptr);
@@ -188,8 +188,8 @@ void Image::savefilteredFITSImage() {
 
 void Image::savefilteredFITSImage(const LEDoutputs *lo, const char strTime[16]) {
 
-    string fileName = strTime;
-    fileName += "filtered.fits";
+    string fileName = fImageDir + strTime;
+    fileName += "_" + lo->inleds->CCDNAME + "_filtered.fits";
     //save image for diagnostics
     // use auto-pointer for automatic garbage collection
     unique_ptr<CCfits::FITS> pFits(nullptr);

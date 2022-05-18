@@ -1,6 +1,6 @@
 #!/bin/bash
 
-screen_name=client
+screen_name=p2pas_client
 extension=".ini"
 
 # only need to do something if the screen session is up

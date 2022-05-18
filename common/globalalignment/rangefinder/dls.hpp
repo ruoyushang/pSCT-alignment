@@ -1,6 +1,9 @@
 #ifndef _LIBDLS_HPP_
 #define _LIBDLS_HPP_
 
+#include "common/utilities/spdlog/spdlog.h"
+#include "common/utilities/spdlog/fmt/ostr.h"
+
 class DLS {
 public:
     DLS();

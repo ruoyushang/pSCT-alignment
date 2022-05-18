@@ -442,6 +442,8 @@ void Client::addDevices(const OpcUa_ReferenceDescription& referenceDescription)
                                                         {PAS_PanelType, "Panel"},
                                                         {PAS_CCDType, "CCD"},
                                                         {PAS_FocalPlaneType, "FocalPlane"},
+                                                        {PAS_LaserType, "Laser"},
+                                                        {PAS_RangefinderType, "Rangefinder"},
                                                         {PAS_GlobalAlignmentType, "GlobalAlignment"},
                                                         {PAS_OpticalAlignmentType, "OpticalAlignment"},
                                                         {PAS_OptTableType, "OpticalTable"}

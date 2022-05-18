@@ -5,4 +5,4 @@ while read -r line || [[ -n $line ]]; do
     echo "========"
     echo "Looking for camera with serial $SERIAL"
     camera-ip-conf-cli -i -s $SERIAL
-done < ccd_map.dat
+done < IP_maps/ccd_map.dat

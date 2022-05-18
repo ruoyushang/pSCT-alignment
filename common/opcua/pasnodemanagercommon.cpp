@@ -199,6 +199,8 @@ UaStatus PasNodeManagerCommon::createTypeNodes()
     UaObjectTypeSimple *pMPESType = nullptr;
     UaObjectTypeSimple *pACTType = nullptr;
     UaObjectTypeSimple *pPSDType = nullptr;
+    UaObjectTypeSimple *pLaserType = nullptr;
+    UaObjectTypeSimple *pRangefinderType = nullptr;
     OpcUa::DataItemType*         pDataItem;
     // Method helpers
     OpcUa::BaseMethod *pMethod = nullptr;
@@ -442,7 +444,7 @@ UaStatus PasNodeManagerCommon::createTypeNodes()
     UA_ASSERT(addStatus.isGood());
 
     /***************************************************************
-     * Create the ACT Type Instance declaration
+     * Create the PSD Type Instance declaration
      ***************************************************************/
 
     // Register all variables
@@ -492,7 +494,137 @@ UaStatus PasNodeManagerCommon::createTypeNodes()
         addStatus = addNodeAndReference(pMethod, pPropertyArg, OpcUaId_HasProperty);
         UA_ASSERT(addStatus.isGood());
     }
+    
+/**************************************************************
+ * Create the Rangefinder Type
+ **************************************************************/
+    // Add ObjectType "RangefinderType"
+    pRangefinderType = new UaObjectTypeSimple(
+            "RangefinderType",    // Used as string in browse name and display name
+            UaNodeId(PAS_RangefinderType, getNameSpaceIndex()), // Numeric NodeId for types
+            m_defaultLocaleId,   // Defaul LocaleId for UaLocalizedText strings
+            OpcUa_True);         // Abstract object type -> can not be instantiated
+    // Add new node to address space by creating a reference from BaseObjectType to this new node
+    addStatus = addNodeAndReference(OpcUaId_BaseObjectType, pRangefinderType, OpcUaId_HasSubtype);
+    UA_ASSERT(addStatus.isGood());
 
+    /***************************************************************
+     * Create the Rangefinder Type Instance declaration
+     ***************************************************************/
+
+    // Register all variables
+    for (auto v : RangeFinderObject::VARIABLES) {
+        pDataItem = new OpcUa::DataItemType(UaNodeId(v.first, getNameSpaceIndex()),
+                                            std::get<0>(v.second).c_str(), getNameSpaceIndex(), std::get<1>(v.second),
+                                            std::get<3>(v.second), this);
+        pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
+        addStatus = addNodeAndReference(pRangefinderType, pDataItem, OpcUaId_HasComponent);
+        UA_ASSERT(addStatus.isGood());
+    }
+
+    // Register all error variables
+    for (auto v : RangeFinderObject::ERRORS) {
+        pDataItem = new OpcUa::DataItemType(UaNodeId(v.first, getNameSpaceIndex()),
+                                            std::get<0>(v.second).c_str(), getNameSpaceIndex(), std::get<1>(v.second),
+                                            Ua_AccessLevel_CurrentRead, this);
+        //pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Optional);
+        addStatus = addNodeAndReference(pRangefinderType, pDataItem, OpcUaId_HasComponent);
+        UA_ASSERT(addStatus.isGood());
+    }
+
+    // Register all methods
+    for (auto m : RangeFinderObject::METHODS) {
+        pMethod = new OpcUa::BaseMethod(UaNodeId(m.first, getNameSpaceIndex()), m.second.first.c_str(),
+                                        getNameSpaceIndex());
+        pMethod->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
+        addStatus = addNodeAndReference(pRangefinderType, pMethod, OpcUaId_HasComponent);
+        UA_ASSERT(addStatus.isGood());
+
+        // Add arguments
+        pPropertyArg = new UaPropertyMethodArgument(
+                UaNodeId((std::to_string(m.first) + "_" + m.second.first + "_args").c_str(),
+                         getNameSpaceIndex()), // NodeId of the property
+                Ua_AccessLevel_CurrentRead,             // Access level of the property
+                m.second.second.size(),                                      // Number of arguments
+                UaPropertyMethodArgument::INARGUMENTS); // IN arguments
+        for (size_t i = 0; i < m.second.second.size(); i++) {
+            pPropertyArg->setArgument(
+                    (OpcUa_UInt32) i,                       // Index of the argument
+                    std::get<0>(m.second.second[i]).c_str(),   // Name of the argument
+                    std::get<1>(m.second.second[i]),// Data type of the argument
+                    -1,                      // Array rank of the argument
+                    nullarray,               // Array dimensions of the argument
+                    UaLocalizedText("en", (std::get<2>(m.second.second[i])).c_str())); // Description
+        }
+        addStatus = addNodeAndReference(pMethod, pPropertyArg, OpcUaId_HasProperty);
+        UA_ASSERT(addStatus.isGood());
+    }
+
+    /**************************************************************
+     * Create the Laser Type
+     **************************************************************/
+    // Add ObjectType "LaserType"
+    pLaserType = new UaObjectTypeSimple(
+            "LaserType",    // Used as string in browse name and display name
+            UaNodeId(PAS_LaserType, getNameSpaceIndex()), // Numeric NodeId for types
+            m_defaultLocaleId,   // Defaul LocaleId for UaLocalizedText strings
+            OpcUa_True);         // Abstract object type -> can not be instantiated
+    // Add new node to address space by creating a reference from BaseObjectType to this new node
+    addStatus = addNodeAndReference(OpcUaId_BaseObjectType, pLaserType, OpcUaId_HasSubtype);
+    UA_ASSERT(addStatus.isGood());
+
+    /***************************************************************
+     * Create the Laser Type Instance declaration
+     ***************************************************************/
+
+    // Register all variables
+    for (auto v : LaserObject::VARIABLES) {
+        pDataItem = new OpcUa::DataItemType(UaNodeId(v.first, getNameSpaceIndex()),
+                                            std::get<0>(v.second).c_str(), getNameSpaceIndex(), std::get<1>(v.second),
+                                            std::get<3>(v.second), this);
+        pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
+        addStatus = addNodeAndReference(pLaserType, pDataItem, OpcUaId_HasComponent);
+        UA_ASSERT(addStatus.isGood());
+    }
+
+    // Register all error variables
+    for (auto v : LaserObject::ERRORS) {
+        pDataItem = new OpcUa::DataItemType(UaNodeId(v.first, getNameSpaceIndex()),
+                                            std::get<0>(v.second).c_str(), getNameSpaceIndex(), std::get<1>(v.second),
+                                            Ua_AccessLevel_CurrentRead, this);
+        //pDataItem->setModellingRuleId(OpcUaId_ModellingRule_Optional);
+        addStatus = addNodeAndReference(pLaserType, pDataItem, OpcUaId_HasComponent);
+        UA_ASSERT(addStatus.isGood());
+    }
+
+    // Register all methods
+    for (auto m : LaserObject::METHODS) {
+        pMethod = new OpcUa::BaseMethod(UaNodeId(m.first, getNameSpaceIndex()), m.second.first.c_str(),
+                                        getNameSpaceIndex());
+        pMethod->setModellingRuleId(OpcUaId_ModellingRule_Mandatory);
+        addStatus = addNodeAndReference(pLaserType, pMethod, OpcUaId_HasComponent);
+        UA_ASSERT(addStatus.isGood());
+
+        // Add arguments
+        pPropertyArg = new UaPropertyMethodArgument(
+                UaNodeId((std::to_string(m.first) + "_" + m.second.first + "_args").c_str(),
+                         getNameSpaceIndex()), // NodeId of the property
+                Ua_AccessLevel_CurrentRead,             // Access level of the property
+                m.second.second.size(),                                      // Number of arguments
+                UaPropertyMethodArgument::INARGUMENTS); // IN arguments
+        for (size_t i = 0; i < m.second.second.size(); i++) {
+            pPropertyArg->setArgument(
+                    (OpcUa_UInt32) i,                       // Index of the argument
+                    std::get<0>(m.second.second[i]).c_str(),   // Name of the argument
+                    std::get<1>(m.second.second[i]),// Data type of the argument
+                    -1,                      // Array rank of the argument
+                    nullarray,               // Array dimensions of the argument
+                    UaLocalizedText("en", (std::get<2>(m.second.second[i])).c_str())); // Description
+        }
+        addStatus = addNodeAndReference(pMethod, pPropertyArg, OpcUaId_HasProperty);
+        UA_ASSERT(addStatus.isGood());
+    }
+    
     return ret;
 }
 

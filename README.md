@@ -47,7 +47,8 @@ docker inspect -f '{{.Name}} - {{range .NetworkSettings.Networks}}{{.IPAddress}}
 This will yield IP address for main and mysql. Copy the value for main and export into main while using the server or client:
 
 ```bash
-export LOCALIP="value"
+export LOCALIP=`hostname -I`
+export LOCALIP="${LOCALIP%"${LOCALIP##*[![:space:]]}"}"
 ```
 Make sure this IP address is also in `sdk/bin/PasServerConfig.xml` line 137, following <UaServerConfig><UaEndpoint><URL>.
   
@@ -67,3 +68,4 @@ The generated html and LaTeX documentation will be located at:
 doxygen/html
 doxygen/latex
 ```
+To create graphs, you must have graphviz installed.

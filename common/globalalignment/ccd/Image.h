@@ -49,4 +49,5 @@ public:
 private:
     unsigned char *pixel_array;
     int imgWidth, imgHeight;
+    std::string fImageDir = "/home/ctauser/Pictures/GAS_CCD/";
 };

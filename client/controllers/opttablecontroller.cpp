@@ -230,7 +230,7 @@ UaStatus OptTableController::findSingleMatrix(unsigned int panelIdx, double step
 
     bool stop = false;
 
-    Eigen::MatrixXd responseMatrix(6, 6);
+    Eigen::MatrixXd responseMatrix(6, 4);
     responseMatrix.setZero();
     // convenience variable;
     // no need to check with a try/catch block anymore as this has already been done
@@ -239,8 +239,8 @@ UaStatus OptTableController::findSingleMatrix(unsigned int panelIdx, double step
             m_pChildren.at(PAS_PanelType).at(panelIdx));
     unsigned nACTs = pCurPanel->getActuatorCount();
 
-    Eigen::VectorXd vector0(6); // maximum possible size
-    Eigen::VectorXd vector1(6); // maximum possible size
+    Eigen::VectorXd vector0(4); // maximum possible size
+    Eigen::VectorXd vector1(4); // maximum possible size
 
     UaVariant minusdeltaL, deltaL, zeroDelta;
     deltaL.setFloat(stepSize);

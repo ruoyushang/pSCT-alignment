@@ -17,7 +17,7 @@
 #include "common/alignment/device.hpp"
 #include "common/alignment/mpes.hpp"
 #include "common/alignment/actuator.hpp"
-#include "common/globalalignment/psdclass.h"
+#include "common/globalalignment/psdclass.hpp"
 
 // Hardcoded
 const std::vector<Device::ErrorDefinition> PlatformBase::ERROR_DEFINITIONS = {
@@ -673,7 +673,7 @@ bool Platform::addPSD(const Device::Identity &identity)
         return false;
     }
 
-    std::unique_ptr<GASPSD> newPSD = std::unique_ptr<GASPSD>(new GASPSD(identity));
+    std::unique_ptr<GASPSD> newPSD = std::unique_ptr<GASPSD>(new GASPSD(m_pCBC, identity));
     
     if (newPSD->initialize()) {
         m_PSD.push_back(std::move(newPSD));
@@ -684,6 +684,55 @@ bool Platform::addPSD(const Device::Identity &identity)
         m_PSD.push_back(std::move(newPSD));
         m_PSDIdentityMap.insert(std::make_pair(identity, m_PSD.size() - 1));
         spdlog::warn("{} : Platform::addPSD() : Failed to initialize PSD {} at USB {}.", m_Identity, identity,
+                     identity.eAddress);
+        return false;
+    }
+}
+
+
+bool Platform::addLaser(const Device::Identity &identity) {
+    spdlog::info("{} : Platform::addLaser() : Adding Laser {} at USB {}.", m_Identity, identity, identity.eAddress);
+    if (identity.serialNumber < 0 || std::stoi(identity.eAddress) < 0) {
+        spdlog::error("{} : Platform::addLaser() : Failed to add Laser {}, invalid USB/serial number.", m_Identity,
+                      identity);
+        return false;
+    }
+
+    std::unique_ptr<GASLaser> newLaser = std::unique_ptr<GASLaser>(new GASLaser(m_pCBC, identity));
+    
+    if (newLaser->initialize()) {
+        m_Laser.push_back(std::move(newLaser));
+        m_LaserIdentityMap.insert(std::make_pair(identity, m_Laser.size() - 1));
+        return true;
+    }
+    else {
+        m_Laser.push_back(std::move(newLaser));
+        m_LaserIdentityMap.insert(std::make_pair(identity, m_Laser.size() - 1));
+        spdlog::warn("{} : Platform::addLaser() : Failed to initialize Laser {} at USB {}.", m_Identity, identity,
+                     identity.eAddress);
+        return false;
+    }
+}
+
+bool Platform::addRangefinder(const Device::Identity &identity) {
+    spdlog::info("{} : Platform::addRangefinder() : Adding Rangefinder {} at USB {}.", m_Identity, identity, identity.eAddress);
+    if (identity.serialNumber < 0 || std::stoi(identity.eAddress) < 0) {
+        spdlog::error("{} : Platform::addRangefinder() : Failed to add Rangefinder {}, invalid USB/serial number.", m_Identity,
+                      identity);
+        return false;
+    }
+
+    std::unique_ptr<GASRangeFinder> newRangefinder = std::unique_ptr<GASRangeFinder>(new GASRangeFinder(m_pCBC, identity));
+    
+    if (newRangefinder->initialize()) {
+        m_Rangefinder.push_back(std::move(newRangefinder));
+        m_RangefinderIdentityMap.insert(std::make_pair(identity, m_Rangefinder.size() - 1));
+        return true;
+    }
+    else {
+        m_Rangefinder.push_back(std::move(newRangefinder));
+        m_RangefinderIdentityMap.insert(std::make_pair(identity, m_Rangefinder.size() - 1));
+        spdlog::warn("{} : Platform::addRangefinder() : Failed to initialize Rangefinder {} at USB {}.", m_Identity, identity,
                      identity.eAddress);
         return false;
     }
@@ -943,9 +992,9 @@ bool DummyPlatform::addPSD(const Device::Identity &identity) {
         return false;
     }
 
-    std::unique_ptr<GASPSD> newPSD = std::unique_ptr<GASPSD>(new DummyGASPSD(identity));
+    std::unique_ptr<GASPSDBase> newPSD = std::unique_ptr<GASPSDBase>(new DummyGASPSD(identity));
 
-    if (newPSD->initialize() == 0) {
+    if (newPSD->initialize() == true) {
         m_PSD.push_back(std::move(newPSD));
         m_PSDIdentityMap.insert(std::make_pair(identity, m_PSD.size() - 1));
         return true;
@@ -1055,6 +1104,54 @@ bool DummyPlatform::loadCBCParameters() {
         disableSynchronousRectification();
     }
     return true;
+}
+
+bool DummyPlatform::addLaser(const Device::Identity &identity) {
+    spdlog::info("{} : DummyPlatform::addLaser() : Adding DummyGASLaser {} at USB {}.", m_Identity, identity,
+                 identity.eAddress);
+    if (identity.serialNumber < 0 || std::stoi(identity.eAddress) < 0) {
+        spdlog::error("{} : DummyPlatform::addLaser() : Failed to add DummyGASLaser {}, invalid USB/serial number.",
+                      m_Identity, identity);
+        return false;
+    }
+
+    std::unique_ptr<GASLaserBase> newLaser = std::unique_ptr<GASLaserBase>(new DummyGASLaser(identity));
+
+    if (newLaser->initialize() == true) {
+        m_Laser.push_back(std::move(newLaser));
+        m_LaserIdentityMap.insert(std::make_pair(identity, m_Laser.size() - 1));
+        return true;
+    } else {
+        m_Laser.push_back(std::move(newLaser));
+        m_LaserIdentityMap.insert(std::make_pair(identity, m_Laser.size() - 1));
+        spdlog::warn("{} : DummyPlatform::addLaser() : Failed to initialize DummyGASLaser {} at USB {}.", m_Identity,
+                     identity, identity.eAddress);
+        return false;
+    }
+}
+
+bool DummyPlatform::addRangefinder(const Device::Identity &identity) {
+    spdlog::info("{} : DummyPlatform::addRangefinder() : Adding DummyGASRangefinder {} at USB {}.", m_Identity, identity,
+                 identity.eAddress);
+    if (identity.serialNumber < 0 || std::stoi(identity.eAddress) < 0) {
+        spdlog::error("{} : DummyPlatform::addRangefinder() : Failed to add DummyGASRangefinder {}, invalid USB/serial number.",
+                      m_Identity, identity);
+        return false;
+    }
+
+    std::unique_ptr<GASRangeFinderBase> newRangefinder = std::unique_ptr<GASRangeFinderBase>(new DummyGASRangeFinder(identity));
+
+    if (newRangefinder->initialize() == true) {
+        m_Rangefinder.push_back(std::move(newRangefinder));
+        m_RangefinderIdentityMap.insert(std::make_pair(identity, m_Rangefinder.size() - 1));
+        return true;
+    } else {
+        m_Rangefinder.push_back(std::move(newRangefinder));
+        m_RangefinderIdentityMap.insert(std::make_pair(identity, m_Rangefinder.size() - 1));
+        spdlog::warn("{} : DummyPlatform::addRangefinder() : Failed to initialize DummyGASRangefinder {} at USB {}.", m_Identity,
+                     identity, identity.eAddress);
+        return false;
+    }
 }
 
 

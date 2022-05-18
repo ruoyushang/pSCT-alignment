@@ -89,6 +89,20 @@ UaStatus PasNodeManager::afterStartUp()
     UA_ASSERT(ret.isGood());
     registerEventNotifier(OpcUaId_Server, pAreaPSDFolder->nodeId()); // Register event notifier tree
 
+    //Create alarm area folders for the Laser objects and add them to the Server object
+    UaAreaFolder *pAreaLaserFolder = new UaAreaFolder(
+            "Area", UaNodeId("AreaLaserEvents", getNameSpaceIndex()), m_defaultLocaleId);
+    ret = addNodeAndReference(OpcUaId_Server, pAreaLaserFolder, OpcUaId_HasNotifier);
+    UA_ASSERT(ret.isGood());
+    registerEventNotifier(OpcUaId_Server, pAreaLaserFolder->nodeId()); // Register event notifier tree
+
+    //Create alarm area folders for the Rangefinder objects and add them to the Server object
+    UaAreaFolder *pAreaRangefinderFolder = new UaAreaFolder(
+            "Area", UaNodeId("AreaRangefinderEvents", getNameSpaceIndex()), m_defaultLocaleId);
+    ret = addNodeAndReference(OpcUaId_Server, pAreaRangefinderFolder, OpcUaId_HasNotifier);
+    UA_ASSERT(ret.isGood());
+    registerEventNotifier(OpcUaId_Server, pAreaRangefinderFolder->nodeId()); // Register event notifier tree
+
     // Add folder for devices by type
     spdlog::debug("Creating DevicesByType OPC UA folder object...");
     UaFolder *pDevicesByTypeFolder = new UaFolder("DevicesByType", UaNodeId("DevicesByType", getNameSpaceIndex()),
@@ -140,6 +154,16 @@ UaStatus PasNodeManager::afterStartUp()
                 spdlog::debug("Creating OPC UA PSD object with identity {}...", identity);
                 pObject = new PSDObject(deviceName, UaNodeId(deviceName, getNameSpaceIndex()), m_defaultLocaleId,
                                         dynamic_cast<PasNodeManagerCommon *>(this), identity, m_pCommIf.get());
+            } else if (deviceType == PAS_LaserType) {
+                deviceName = UaString((deviceTypeName + "_" + std::to_string(identity.serialNumber)).c_str());
+                spdlog::debug("Creating OPC UA Laser object with identity {}...", identity);
+                pObject = new LaserObject(deviceName, UaNodeId(deviceName, getNameSpaceIndex()), m_defaultLocaleId,
+                                        dynamic_cast<PasNodeManagerCommon *>(this), identity, m_pCommIf.get());
+            } else if (deviceType == PAS_RangefinderType) {
+                deviceName = UaString((deviceTypeName + "_" + std::to_string(identity.serialNumber)).c_str());
+                spdlog::debug("Creating OPC UA Rangefinder object with identity {}...", identity);
+                pObject = new RangeFinderObject(deviceName, UaNodeId(deviceName, getNameSpaceIndex()), m_defaultLocaleId,
+                                        dynamic_cast<PasNodeManagerCommon *>(this), identity, m_pCommIf.get());
             } else {
                 return OpcUa_Bad;
             }
@@ -178,6 +202,20 @@ UaStatus PasNodeManager::afterStartUp()
                                      OpcUaId_HasNotifier); // Add HasNotifier reference from alarm area to controller object
                 UA_ASSERT(ret.isGood());
                 registerEventNotifier(pAreaPSDFolder->nodeId(), pObject->nodeId());
+            }
+
+            if (deviceType == PAS_LaserType) {
+                ret = addUaReference(pAreaLaserFolder, pObject,
+                                     OpcUaId_HasNotifier); // Add HasNotifier reference from alarm area to controller object
+                UA_ASSERT(ret.isGood());
+                registerEventNotifier(pAreaLaserFolder->nodeId(), pObject->nodeId());
+            }
+            
+            if (deviceType == PAS_RangefinderType) {
+                ret = addUaReference(pAreaRangefinderFolder, pObject,
+                                     OpcUaId_HasNotifier); // Add HasNotifier reference from alarm area to controller object
+                UA_ASSERT(ret.isGood());
+                registerEventNotifier(pAreaRangefinderFolder->nodeId(), pObject->nodeId());
             }
         }
     }
