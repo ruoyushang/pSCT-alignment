@@ -1038,7 +1038,7 @@ void Actuator::turnOn() {
 }
 
 void Actuator::turnOff() {
-    spdlog::debug("{} : DummyActuator : Turning off power...", m_Identity);
+    spdlog::debug("{} : Actuator : Turning off power...", m_Identity);
     saveStatusToASF();
     m_pCBC->driver.disable(getPortNumber());    
 }
@@ -1047,48 +1047,80 @@ void Actuator::turnOff() {
 
 int DummyActuator::__step(int steps)
 {
-    spdlog::trace("{} : DummyActuator : Stepping actuator {} steps...", m_Identity, steps);
-    Position finalPosition = predictNewPosition(m_CurrentPosition, -steps);
+    spdlog::trace("{} : Stepping actuator {} total steps...", m_Identity, steps);
 
-    int direction;
+    if (getErrorState() == Device::ErrorState::FatalError) {
+        spdlog::trace("{}: Fatal error, disallowing motion.", m_Identity);
+    }
 
-    if (steps > 0) {
-        direction = 1;
+    loadStatusFromASF();
+    Position FinalPosition = predictNewPosition(m_CurrentPosition, -steps);
+    Position PredictedPosition{};
+    int MissedSteps;
+    int StepsTaken;
+    int Sign;
+    int StepsRemaining = -(convertPositionToSteps(FinalPosition) - convertPositionToSteps(
+            m_CurrentPosition));//negative because positive step is retraction, and (0,0) is defined as full extraction.
+
+    if (steps < 0) {
+        Sign = -1;
     } else {
-        direction = -1;
+        Sign = 1;
     }
 
     int numFullCycles = steps / 80;
     int remainingSteps = steps % 80;
 
-    for (int i = 0; i < numFullCycles; i++) {
-        sleep(1);
-        m_CurrentPosition.angle += 80 * direction;
-        if (m_CurrentPosition.angle > 200) {
-            m_CurrentPosition.revolution += 1;
-            m_CurrentPosition.angle -= 200;
-        } else if (m_CurrentPosition.angle < 0) {
-            m_CurrentPosition.revolution -= 1;
-            m_CurrentPosition.angle += 200;
+    int StepsToTake = Sign * RecordingInterval;
+    m_keepStepping = true;
+
+    while ((m_keepStepping) && (getErrorState() != Device::ErrorState::FatalError) &&
+           (getDeviceState() != Device::DeviceState::Off)) {
+        if (std::abs(StepsRemaining) <= RecordingInterval) {
+            StepsToTake = StepsRemaining;
+            m_keepStepping = false;
         }
+        PredictedPosition = predictNewPosition(m_CurrentPosition, -StepsToTake);
+        spdlog::trace("{} : Stepping actuator {} steps...", m_Identity, StepsToTake);
+
+        std::random_device rd{};
+        std::mt19937 generator{rd()};
+        std::normal_distribution<double> missedStepsDistribution(0, 2);
+        MissedSteps = missedStepsDistribution(generator);
+        MissedSteps = MissedSteps < 0 ? 0 :MissedSteps;
+
+        if (m_Errors[7] == true)//if voltage measurement has issues.
+        {
+            return StepsRemaining;
+        }
+
+        StepsTaken = StepsToTake - MissedSteps;
+        setCurrentPosition(predictNewPosition(m_CurrentPosition, -StepsTaken));
+
+        if (std::abs(StepsTaken)==0 && std::abs(StepsToTake)>m_MinimumMissedStepsToFlagError)
+        {
+            spdlog::error("{} : Fatal Error (6): Actuator does not appear to be stepping.",
+                          m_Identity);
+            setError(6);//fatal
+            saveStatusToASF();
+            return StepsRemaining;//quit, don't record or register steps attempted to be taken.
+        }
+
+            //if( (std::abs(MissedSteps)/float(std::abs(StepsToTake)))>TolerablePercentOfMissedSteps && std::abs(MissedSteps)>MinimumMissedStepsToFlagError)//if the actuator misses a certain percent of steps AND misses more than a threshold number of steps.
+        else if (std::abs(MissedSteps) >
+                 std::max(int(m_TolerablePercentOfMissedSteps * std::abs(StepsToTake)), m_MinimumMissedStepsToFlagError)) {
+            spdlog::error("{} : Fatal Error (8): Actuator has missed a large number of steps ({})", m_Identity,
+                          MissedSteps);
+            setError(8);//fatal
+            saveStatusToASF();
+            return StepsRemaining;//quit, don't record or register steps attempted to be taken.
+        }
+
+        saveStatusToASF();
+        StepsRemaining = -(convertPositionToSteps(FinalPosition) - convertPositionToSteps(m_CurrentPosition));
     }
 
-    //step remaining steps
-    sleep(1);
-    m_CurrentPosition.angle += remainingSteps;
-    if (m_CurrentPosition.angle > 200) {
-        m_CurrentPosition.revolution += 1;
-        m_CurrentPosition.angle -= 200;
-    } else if (m_CurrentPosition.angle < 0) {
-        m_CurrentPosition.revolution -= 1;
-        m_CurrentPosition.angle += 200;
-    }
-
-    remainingSteps = -(convertPositionToSteps(finalPosition) - convertPositionToSteps(
-            m_CurrentPosition));//negative because positive step is retraction, and (0,0) is defined as full extraction.
-
-    spdlog::trace("{}: DummyActuator::step() : New length => {} ", m_Identity, measureLength());
-    return remainingSteps;
+    return StepsRemaining;
 }
 
 int DummyActuator::stepDriver(int inputSteps) {
@@ -1226,4 +1258,168 @@ void DummyActuator::createDefaultASF()//hardcoded structure of the ASF file (yea
     ASFfile.close();
 
     copyFile(m_NewASFPath, m_ASFPath); // Copy the "new" ASF file to the current ASF file location to overwrite
+}
+
+void DummyActuator::saveStatusToDB()//record all error codes to DB. Adjust to new db table structure.
+{
+    spdlog::trace("{} : Recording Dummy actuator status to DB...", m_Identity);
+    ActuatorStatus statusToSave;
+    if (readStatusFromASF(statusToSave)) {
+        if (m_Errors[1] == false) {
+            try {
+                sql::Driver *driver;
+                sql::Connection *con;
+                sql::Statement *stmt;
+
+                driver = get_driver_instance();
+                std::string dbAddress = "tcp://" + m_DBInfo.host + ":" + m_DBInfo.port;
+                con = driver->connect(dbAddress, m_DBInfo.user, m_DBInfo.password);
+                con->setSchema(m_DBInfo.dbname);
+                stmt = con->createStatement();
+
+                std::stringstream stmtvar;
+
+                std::string datestring =
+                        std::to_string(statusToSave.date.year) + "-" + std::to_string(statusToSave.date.month) +
+                        "-" + std::to_string(statusToSave.date.day) + " " +
+                        std::to_string(statusToSave.date.hour) + ":" +
+                        std::to_string(statusToSave.date.minute) + ":" +
+                        std::to_string(statusToSave.date.second);
+
+//                serial_number must be PRIMARY_KEY for this REPLACE method to work.
+                stmtvar << "INSERT INTO Opt_ActuatorStatus VALUES (null, " << getSerialNumber() << ", '" << datestring
+                        << "', " << statusToSave.position.revolution << ", " << statusToSave.position.angle;
+                for (int i = 0; i < getNumErrors(); i++) {
+                    stmtvar << ", " << statusToSave.errorCodes[i];
+                }
+                stmtvar << ")";
+
+//                stmtvar << " ON DUPLICATE KEY UPDATE "
+//                stmtvar << "UPDATE Opt_ActuatorStatus SET "
+//                        << "start_date" << "='" << datestring << "', "
+//                        << "revolution=" << statusToSave.position.revolution << ", "
+//                        << "angle=" << statusToSave.position.angle;
+//                for (int i = 0; i < getNumErrors(); i++) {
+//                    stmtvar << ", " << "error"<< i << "=" << statusToSave.errorCodes[i] ;
+//                }
+//                stmtvar << " WHERE serial_number=" << getSerialNumber();
+
+                stmt->execute(stmtvar.str());
+                stmtvar.str(std::string());
+
+                delete stmt;
+                delete con;
+
+            }
+            catch (sql::SQLException &e) {
+                spdlog::error("# ERR: SQLException in {}"
+                              "({}) on line {}\n"
+                              "# ERR: {}"
+                              " (MySQL error code: {}"
+                              ", SQLState: {})", __FILE__, __FUNCTION__, __LINE__, e.what(), e.getErrorCode(),
+                              e.getSQLState());
+                spdlog::error("{} : Operable Error (2): SQL Exception, did not successfully communicate with database.",
+                              m_Identity);
+                setError(2);//operable, Local textfile can still be used.
+            }
+        } else {
+            spdlog::error("{} : Operable Error (1): DBFlag is not set. Cannot record status to DB.", m_Identity);
+            setError(1);//operable
+        }
+    }
+    saveStatusToASF();
+}
+
+void DummyActuator::loadStatusFromDB() {
+    ActuatorStatus recordedStatus;
+    if (readStatusFromDB(recordedStatus)) {
+        m_CurrentPosition.revolution = recordedStatus.position.revolution;
+        m_CurrentPosition.angle = recordedStatus.position.angle;
+        for (int i = 0; i < getNumErrors(); i++) {
+            if (recordedStatus.errorCodes[i]) {
+                setError(i);
+            }
+        }
+        if (m_Errors[0]) {
+            if (!recordedStatus.errorCodes[0]) {
+                unsetError(0);
+            }
+        }
+        saveStatusToASF();
+    }
+}
+
+//read all error codes from DB. Check size of error codes to make sure version is consistent. Adjust this function to the new database table structure.
+//check that the number of columns matches what is expected
+bool DummyActuator::readStatusFromDB(ActuatorBase::ActuatorStatus &status) {
+    spdlog::trace("{} : Reading actuator status from DB...", m_Identity);
+    if (!m_Errors[1]) {
+        try {
+            sql::Driver *driver;
+            sql::Connection *con;
+            sql::Statement *stmt;
+            sql::ResultSet *res;
+            sql::ResultSetMetaData *resmeta;
+
+            driver = get_driver_instance();
+            std::string dbAddress = "tcp://" + m_DBInfo.host + ":" + m_DBInfo.port;
+            con = driver->connect(dbAddress, m_DBInfo.user, m_DBInfo.password);
+            con->setSchema(m_DBInfo.dbname);
+            stmt = con->createStatement();
+
+            std::stringstream stmtvar;
+            stmtvar << "SELECT * FROM Opt_ActuatorStatus WHERE serial_number=" << getSerialNumber()
+                    << " ORDER BY id DESC LIMIT 1";
+            stmt->execute(stmtvar.str());
+            res = stmt->getResultSet();
+            resmeta = res->getMetaData();
+            //check if number of results match what is expected. if not, set error(3)
+            if (resmeta->getColumnCount() != NUM_DB_COLUMNS) {
+                spdlog::error(
+                        "{} : Fatal Error (3): Number of columns in DB table ({}) did not equal the number expected ({}). DB table appears to have an incorrect structure.",
+                        m_Identity, resmeta->getColumnCount(), NUM_DB_COLUMNS);
+                setError(3);//fatal
+                saveStatusToASF();
+                return false;
+            }
+
+            while (res->next()) {
+                std::string date = res->getString(3);
+                sscanf(date.c_str(), "%d-%d-%d %d:%d:%d", &status.date.year, &status.date.month,
+                       &status.date.day, &status.date.hour, &status.date.minute,
+                       &status.date.second);
+                status.position.revolution = res->getInt(4);
+                status.position.angle = res->getInt(5);
+                status.errorCodes.resize(getNumErrors());
+                for (int i = 0; i < getNumErrors(); i++) {
+                    status.errorCodes[i] = res->getInt(6 + i);
+                }
+            }
+            delete res;
+            delete stmt;
+            delete con;
+
+        }
+        catch (sql::SQLException &e) {
+            spdlog::error("# ERR: SQLException in {}"
+                          "({}) on line {}\n"
+                          "# ERR: {}"
+                          " (MySQL error code: {}"
+                          ", SQLState: {})", __FILE__, __FUNCTION__, __LINE__, e.what(), e.getErrorCode(),
+                          e.getSQLState());
+            spdlog::error("{} : Operable Error (2): SQL Exception, did not successfully communicate with database.",
+                          m_Identity);
+            //operable, If actuator status cannot be read, stil allow actuator to be moved. Local text file can still be used.
+            setError(2);
+            saveStatusToASF();
+            return false;
+        }
+
+    } else {
+        spdlog::error("{} : Operable Error (1): DBFlag is not set. Cannot read status from DB.", m_Identity);
+        setError(1);//operable
+        return false;
+    }
+    saveStatusToASF();
+    return true;
 }

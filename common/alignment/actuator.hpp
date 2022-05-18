@@ -110,6 +110,8 @@ public:
 
     void loadStatusFromASF();
 
+    bool readStatusFromASF(ActuatorStatus &status);
+
     virtual int stepDriver(int inputSteps) = 0;
 
     virtual void turnOn() override = 0;
@@ -180,7 +182,6 @@ protected:
     virtual void saveStatusToDB() = 0;
 
     void recoverStatusFromDB();
-    bool readStatusFromASF(ActuatorStatus &status);
     void saveStatusToASF();
 
     virtual int checkAngleQuick(Position expectedPosition);
@@ -268,11 +269,11 @@ protected:
     bool m_On;
 
     // Do not write to DB when using simmode (to avoid risk of overwriting real data)
-    bool readStatusFromDB(ActuatorStatus &status) override { return readStatusFromASF(status); };
+    bool readStatusFromDB(ActuatorStatus &status) override;
 
-    void loadStatusFromDB() override { return loadStatusFromASF(); };
+    void loadStatusFromDB() override;
 
-    void saveStatusToDB() override { return saveStatusToASF(); };
+    void saveStatusToDB() override;
 
     float __readVoltage() override;
 

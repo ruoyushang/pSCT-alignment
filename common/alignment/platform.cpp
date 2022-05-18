@@ -196,6 +196,111 @@ Device::ErrorState PlatformBase::getErrorState() {
     return state;
 }
 
+void PlatformBase::saveActuatorStatustoDB(){
+    ActuatorBase::ActuatorStatus recordedStatus;
+
+    if (m_Errors[13] == false) {
+        try {
+            sql::Driver *driver;
+            sql::Connection *con;
+            sql::Statement *stmt;
+
+            driver = get_driver_instance();
+            std::string dbAddress = "tcp://" + m_DBInfo.host + ":" + m_DBInfo.port;
+            con = driver->connect(dbAddress, m_DBInfo.user, m_DBInfo.password);
+            con->setSchema(m_DBInfo.dbname);
+            stmt = con->createStatement();
+
+            for (int i = 0; i < PlatformBase::NUM_ACTS_PER_PLATFORM; i++) {
+                checkActuatorStatus(i);
+                std::stringstream stmtvar;
+                if (m_Actuators.at(i)->readStatusFromASF(recordedStatus)){
+                    //Delete all but the most recent entries (n = NUM_DB_ACT_ENTRIES)
+                    stmtvar << "DELETE from Opt_ActuatorStatus WHERE (id in "
+                               "(SELECT id from "
+                               "(SELECT id FROM Opt_ActuatorStatus WHERE serial_number = "
+                            << m_Actuators.at(i)->getSerialNumber()
+                            << " ORDER BY id DESC LIMIT 1 OFFSET "
+                            << NUM_DB_ACT_ENTRIES-1
+                            << ") foo) AND serial_number = "
+                            << m_Actuators.at(i)->getSerialNumber()
+                            << ")";
+
+                    spdlog::trace(stmtvar.str());
+                    stmt->execute(stmtvar.str());
+                    stmtvar.str(std::string());
+
+                    // Insert a new entry
+                    std::string datestring =
+                            std::to_string(recordedStatus.date.year) + "-" + std::to_string(recordedStatus.date.month) +
+                            "-" + std::to_string(recordedStatus.date.day) + " " +
+                            std::to_string(recordedStatus.date.hour) + ":" +
+                            std::to_string(recordedStatus.date.minute) + ":" +
+                            std::to_string(recordedStatus.date.second);
+
+                    stmtvar << "SET "
+                            << "@serial_number=" << m_Actuators.at(i)->getSerialNumber() << ", "
+                            << "@datestr='" << datestring << "', "
+                            << "@revolution=" << recordedStatus.position.revolution << ", "
+                            << "@angle=" << recordedStatus.position.angle;
+                    for (int e = 0; e < m_Actuators.at(i)->getNumErrors(); e++) {
+                        stmtvar << ", @error"<< e << "=" << recordedStatus.errorCodes[e];
+                    }
+
+                    spdlog::trace(stmtvar.str());
+                    stmt->execute(stmtvar.str());
+                    stmtvar.str(std::string());
+
+                    stmtvar << "INSERT INTO Opt_ActuatorStatus (serial_number, start_date, revolution, angle";
+                    for (int e = 0; e < m_Actuators.at(i)->getNumErrors(); e++) {
+                        stmtvar << ", error" << e;
+                    }
+                    stmtvar << ")";
+
+                    stmtvar << "VALUES (@serial_number, @datestr, @revolution, @angle";
+                    for (int e = 0; e < m_Actuators.at(i)->getNumErrors(); e++) {
+                        stmtvar << ", @error" << e;
+                    }
+                    stmtvar << ")";
+
+                    stmtvar << "ON DUPLICATE KEY UPDATE "
+                            << "serial_number=@serial_number, "
+                            << "start_date=@datestr, "
+                            << "revolution=@revolution, "
+                            << "angle=@angle ";
+                    for (int e = 0; e < m_Actuators.at(i)->getNumErrors(); e++) {
+                        stmtvar << ", error" << e << "=@error" << e;
+                    }
+                    spdlog::trace(stmtvar.str());
+                    stmt->execute(stmtvar.str());
+                    stmtvar.str(std::string());
+                }
+                else{
+                    setError((2 * i) + 1);
+                }
+            }
+            delete stmt;
+            delete con;
+        }
+        catch (sql::SQLException &e) {
+            spdlog::error("# ERR: SQLException in {}"
+                          "({}) on line {}\n"
+                          "# ERR: {}"
+                          " (MySQL error code: {}"
+                          ", SQLState: {})", __FILE__, __FUNCTION__, __LINE__, e.what(), e.getErrorCode(),
+                          e.getSQLState());
+            spdlog::error("{} : Operable Error (2): SQL Exception, did not successfully communicate with database.",
+                          m_Identity);
+            setError(2);//operable, Local textfile can still be used.
+        }
+    }
+    else {
+        spdlog::error("{} : Operable Error (13): DBFlag is not set. Cannot record status to DB.", m_Identity);
+        setError(13);//operable
+    }
+}
+
+
 void PlatformBase::unsetError(int errorCode) {
     if (errorCode >= 0 && errorCode < 12) {
         spdlog::info("{} : Clearing corresponding errors for Actuator {}.", m_Identity, (errorCode / 2) + 1);
@@ -431,6 +536,7 @@ Platform::__step(std::array<int, PlatformBase::NUM_ACTS_PER_PLATFORM> inputSteps
     int Sign;
     int StepsMissed;
 
+    saveActuatorStatustoDB();
     m_pCBC->driver.enableAll();
     while (IterationsRemaining > 1) {
         spdlog::trace("{} : Platform::step() : Iterations remaining: {}",
@@ -439,6 +545,7 @@ Platform::__step(std::array<int, PlatformBase::NUM_ACTS_PER_PLATFORM> inputSteps
             if (ActuatorIterations[i] > 1) {
                 if (getDeviceState() == Device::DeviceState::Off || getErrorState() == Device::ErrorState::FatalError) {
                     m_pCBC->driver.disableAll();
+                    saveActuatorStatustoDB();
                     spdlog::warn("{} : Platform::step() : Successfully stopped motion.", m_Identity);
                     return StepsRemaining;
                 }
@@ -467,6 +574,7 @@ Platform::__step(std::array<int, PlatformBase::NUM_ACTS_PER_PLATFORM> inputSteps
             if (getDeviceState() == Device::DeviceState::Off || getErrorState() == Device::ErrorState::FatalError) {
                 m_pCBC->driver.disableAll();
                 spdlog::warn("{} : Platform::step() : Successfully stopped hysteresis motion.", m_Identity);
+                saveActuatorStatustoDB();
                 return StepsRemaining;
             }
             if (StepsRemaining[i] != 0) {
@@ -479,6 +587,8 @@ Platform::__step(std::array<int, PlatformBase::NUM_ACTS_PER_PLATFORM> inputSteps
     }
 
     m_pCBC->driver.disableAll();
+
+    saveActuatorStatustoDB();
 
     spdlog::debug("{} : Platform::step() : Finished stepping.", m_Identity);
 
@@ -750,6 +860,7 @@ DummyPlatform::__step(std::array<int, PlatformBase::NUM_ACTS_PER_PLATFORM> input
     std::array<ActuatorBase::Position, PlatformBase::NUM_ACTS_PER_PLATFORM> FinalPosition{};
 
     for (int i = 0; i < PlatformBase::NUM_ACTS_PER_PLATFORM; i++) {
+        m_Actuators[i]->loadStatusFromASF();
         FinalPosition[i] = m_Actuators[i]->predictNewPosition(m_Actuators[i]->getCurrentPosition(),
                                                               -inputSteps[i]);//negative steps because positive step is extension of motor, negative steps increases counter since home is defined (0,0)
         StepsRemaining[i] = -(m_Actuators[i]->convertPositionToSteps(FinalPosition[i]) -
@@ -783,11 +894,13 @@ DummyPlatform::__step(std::array<int, PlatformBase::NUM_ACTS_PER_PLATFORM> input
     int Sign;
     int StepsMissed;
 
+    saveActuatorStatustoDB();
     while (IterationsRemaining > 1) {
         for (int i = 0; i < PlatformBase::NUM_ACTS_PER_PLATFORM; i++) {
             if (ActuatorIterations[i] > 1) {
                 if (getDeviceState() == Device::DeviceState::Off || getErrorState() == Device::ErrorState::FatalError) {
                     spdlog::info("{} : DummyPlatform::step() : Successfully stopped motion.", m_Identity);
+                    saveActuatorStatustoDB();
                     return StepsRemaining;
                 }
                 StepsToTake[i] = StepsToTake[i] + StepsRemaining[i] / IterationsRemaining;
@@ -807,18 +920,24 @@ DummyPlatform::__step(std::array<int, PlatformBase::NUM_ACTS_PER_PLATFORM> input
     }
 
     //Hysteresis Motion
-    for (int i = 0; i < PlatformBase::NUM_ACTS_PER_PLATFORM; i++) {
-        if (getDeviceState() == Device::DeviceState::Off || getErrorState() == Device::ErrorState::FatalError) {
-            spdlog::info("{} : DummyPlatform::step() : Successfully stopped motion.", m_Identity);
-            return StepsRemaining;
+    if (getErrorState() != Device::ErrorState::FatalError) {
+        spdlog::debug("{} : Platform::step() : Executing hysteresis motion...", m_Identity);
+        for (int i = 0; i < PlatformBase::NUM_ACTS_PER_PLATFORM; i++) {
+            if (getDeviceState() == Device::DeviceState::Off || getErrorState() == Device::ErrorState::FatalError) {
+                spdlog::warn("{} : DummyPlatform::step() : Successfully stopped motion.", m_Identity);
+                saveActuatorStatustoDB();
+                return StepsRemaining;
+            }
+            if (StepsRemaining[i] != 0) {
+                m_Actuators[i]->performHysteresisMotion(StepsRemaining[i]);
+                StepsRemaining[i] = -(m_Actuators[i]->convertPositionToSteps(FinalPosition[i]) -
+                                      m_Actuators[i]->convertPositionToSteps(m_Actuators[i]->getCurrentPosition()));
+            }
         }
-        if (StepsRemaining[i] != 0) {
-            m_Actuators[i]->performHysteresisMotion(StepsRemaining[i]);
-            StepsRemaining[i] = -(m_Actuators[i]->convertPositionToSteps(FinalPosition[i]) -
-                                  m_Actuators[i]->convertPositionToSteps(m_Actuators[i]->getCurrentPosition()));
-        }
-
     }
+    saveActuatorStatustoDB();
+
+    spdlog::debug("{} : Platform::step() : Finished stepping.", m_Identity);
 
     return StepsRemaining;
 }

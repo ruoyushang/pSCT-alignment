@@ -124,6 +124,8 @@ public:
 
     Device::ErrorState getErrorState() override;
 
+    void saveActuatorStatustoDB();
+
     // MPES functionality
 
     /**
@@ -160,6 +162,7 @@ protected:
     void checkActuatorStatus(int actuatorIdx);
 
     const int NUM_DB_CB_COLUMNS = 36;
+    const int NUM_DB_ACT_ENTRIES = 2; //number of entries to save to DB per actuator
 
     virtual std::array<int, NUM_ACTS_PER_PLATFORM> __step(std::array<int, NUM_ACTS_PER_PLATFORM> inputSteps) = 0;
 
