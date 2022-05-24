@@ -156,7 +156,7 @@ Device::Identity Device::parseIdentity(std::string identityString) {
     id.serialNumber = std::stoi(tokens[0]);
     id.eAddress = tokens[1];
     id.name = tokens[2];
-    id.serialNumber = std::stoi(tokens[3]);
+    id.position = std::stoi(tokens[3]);
 
     return id;
 }

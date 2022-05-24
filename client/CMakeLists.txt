@@ -111,7 +111,10 @@ if (BUILD_SHARED_LIBS)
 endif (BUILD_SHARED_LIBS)
 
 FILE(GLOB P2PAS_SRC
-    "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/pascommunicationinterface.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/pasnodemanager.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/pasobjectfactory.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/clienthelper.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/controllers/*.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/objects/*.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/utilities/*.cpp"
@@ -225,7 +228,9 @@ ENDIF (vxWorks)
 
 ####################################### Create executable ###################################
 
-ADD_EXECUTABLE(${PROJECT_NAME} ${P2PAS_SRC})
+ADD_EXECUTABLE(${PROJECT_NAME} servermain.cpp ${P2PAS_SRC})
+ADD_EXECUTABLE(convertActToPhysical ${COMMON_CODE_DIR}/simulatestewart/ConvertActToPhysicalCoords.cpp ${P2PAS_SRC})
+ADD_EXECUTABLE(convertActToTelRF ${COMMON_CODE_DIR}/simulatestewart/ConvertActToTelRFCoords.cpp ${P2PAS_SRC})
 
 IF ( UASTACK_WITH_OPENSSL )
     IF ( NOT TARGET uastack )
@@ -253,6 +258,8 @@ ENDIF (USE_XMLCONFIG)
 
 SET_PROPERTY(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 11)
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11" )
+SET_PROPERTY(TARGET convertActToPhysical PROPERTY CXX_STANDARD 11)
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11" )
 
 IF ( NOT TARGET uastack )
     TARGET_LINK_LIBRARIES(${PROJECT_NAME} ${UAMODULE_LIBRARY}
@@ -263,9 +270,29 @@ ELSE ()
             ${ARAVIS_LIBRARIES} ${ROBAST_LIBRARIES} ${CCFITS_LIBRARIES} ${NLOPT_LIBRARIES} ${ROOT_LIBRARIES})
 ENDIF ()
 
+IF ( NOT TARGET uastack )
+    TARGET_LINK_LIBRARIES(convertActToPhysical ${UAMODULE_LIBRARY}
+            ${UAMODELS_LIBRARY} ${UACOREMODULE_LIBRARY} ${UACLIENT_LIBRARY} ${UABASE_LIBRARY} ${UASTACK_LIBRARY} ${PLATTFORM_LIBS} ${MYSQLCONNECTORCPP_LIBRARIES} ${ROOT_LIBRARIES}
+            ${ARAVIS_LIBRARIES} ${ROBAST_LIBRARIES} ${CCFITS_LIBRARIES} ${NLOPT_LIBRARIES})
+    TARGET_LINK_LIBRARIES(convertActToTelRF ${UAMODULE_LIBRARY}
+            ${UAMODELS_LIBRARY} ${UACOREMODULE_LIBRARY} ${UACLIENT_LIBRARY} ${UABASE_LIBRARY} ${UASTACK_LIBRARY} ${PLATTFORM_LIBS} ${MYSQLCONNECTORCPP_LIBRARIES} ${ROOT_LIBRARIES}
+            ${ARAVIS_LIBRARIES} ${ROBAST_LIBRARIES} ${CCFITS_LIBRARIES} ${NLOPT_LIBRARIES})
+ELSE ()
+    TARGET_LINK_LIBRARIES(convertActToPhysical uamodelue uamodels codemodule uaclient uabase uastack ${PLATTFORM_LIBS} ${MYSQLCONNECTORCPP_LIBRARIES}
+            ${ARAVIS_LIBRARIES} ${ROBAST_LIBRARIES} ${CCFITS_LIBRARIES} ${NLOPT_LIBRARIES} ${ROOT_LIBRARIES})
+    TARGET_LINK_LIBRARIES(convertActToTelRF uamodelue uamodels codemodule uaclient uabase uastack ${PLATTFORM_LIBS} ${MYSQLCONNECTORCPP_LIBRARIES}
+            ${ARAVIS_LIBRARIES} ${ROBAST_LIBRARIES} ${CCFITS_LIBRARIES} ${NLOPT_LIBRARIES} ${ROOT_LIBRARIES})
+ENDIF ()
+
 TARGET_LINK_LIBRARIES(${PROJECT_NAME} PRIVATE spdlog::spdlog)
 if(Boost_FOUND)
     target_link_libraries(${PROJECT_NAME} ${Boost_LIBRARIES})
+endif()
+TARGET_LINK_LIBRARIES(convertActToPhysical PRIVATE spdlog::spdlog)
+TARGET_LINK_LIBRARIES(convertActToTelRF PRIVATE spdlog::spdlog)
+if(Boost_FOUND)
+    target_link_libraries(convertActToPhysical ${Boost_LIBRARIES})
+    target_link_libraries(convertActToTelRF ${Boost_LIBRARIES})
 endif()
 
 ####################################### configure debug postfix #############################
