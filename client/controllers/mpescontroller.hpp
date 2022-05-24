@@ -75,6 +75,7 @@ private:
     Eigen::Vector2d m_OpticsOffsets;
     // which side the panel is on { panel position -> side ('w' or 'l')
     std::map<unsigned, char> m_PanelSideMap;
+    std::map<char, double> m_PlateScaleMap;
 };
 
 #endif //CLIENT_MPESCONTROLLER_HPP

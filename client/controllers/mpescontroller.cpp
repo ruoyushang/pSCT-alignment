@@ -53,6 +53,7 @@ MPESController::MPESController(Device::Identity identity, Client *pClient, std::
         for (const auto &panel : panelType)
             for (int act = 1; act <= 6; act++)
                 query += ", " + std::string(1, panel) + "_response_actuator" + to_string(act);
+        query += ", plate_scale ";
         query = "SELECT coord" + query +
                 " FROM Opt_MPESConfigurationAndCalibration WHERE end_date is NULL and serial_number=" +
                 to_string(m_Identity.serialNumber);
@@ -61,6 +62,7 @@ MPESController::MPESController(Device::Identity identity, Client *pClient, std::
 
         while (sql_results->next()) {
             char coord = sql_results->getString(1)[0];
+            m_PlateScaleMap[coord] =  sql_results->getDouble(14);
             for (int panel = 0; panel < 2; panel++) {
                 for (int act = 1; act <= 6; act++)
                     m_ResponseMatMap[panelType[panel]](int(coord - 'x'), act - 1) =
@@ -140,6 +142,18 @@ UaStatus MPESController::getData(OpcUa_UInt32 offset, UaVariant &value) {
                 value.toDouble(yCentroid);
                 spdlog::trace("{} : Read yCentroid value => ({})", m_Identity, yCentroid);
                 break;
+	        case PAS_MPESType_xCentroidErr:
+		        status = m_pClient->read({m_pClient->getDeviceNodeId(m_Identity) + "." + "xCentroidErr"}, &value);
+		        double xCentroidErr;
+		        value.toDouble(xCentroidErr);
+		        spdlog::trace("{} : Read xCentroidErr value => ({})", m_Identity, xCentroidErr);
+		        break;
+	        case PAS_MPESType_yCentroidErr:
+		        status = m_pClient->read({m_pClient->getDeviceNodeId(m_Identity) + "." + "yCentroidErr"}, &value);
+		        double yCentroidErr;
+		        value.toDouble(yCentroidErr);
+		        spdlog::trace("{} : Read yCentroidErr value => ({})", m_Identity, yCentroidErr);
+		        break;
             case PAS_MPESType_xCentroidSpotWidth:
                 status = m_pClient->read({m_pClient->getDeviceNodeId(m_Identity) + "." + "xCentroidSpotWidth"}, &value);
                 double xSpotWidth;
@@ -286,47 +300,34 @@ UaStatus MPESController::operate(OpcUa_UInt32 offset, const UaVariantArray &args
             return status;
         }
 
+        double x_offset_mm = (data.xCentroid - data.xNominal) * m_PlateScaleMap['x'];
+        double y_offset_mm = (data.yCentroid - data.yNominal) * m_PlateScaleMap['y'];
         spdlog::info(
             "Reading MPES {}:\n"
-            "x (nominal): {} ({})\n"
-            "y (nominal): {} ({})\n"
+            "x (nominal): {}+/-{} ({})\n"
+            "y (nominal): {}+/-{} ({})\n"
             "xSpotWidth (nominal): {} ({})\n"
             "ySpotWidth (nominal): {} ({})\n"
             "Cleaned Intensity (nominal): {} ({})\n"
             "Exposure: {}\n"
             "nSat: {}\n"
             "ImagePath: {}\n"
-            "Timestamp: {}\n",
+            "Timestamp: {}\n\n"
+            "Physical distance = ({}, {}) mm,  {} mm total ",
             m_Identity,
-            data.xCentroid, data.xNominal,
-            data.yCentroid, data.yNominal,
+            data.xCentroid, data.xCentroidErr, data.xNominal,
+            data.yCentroid, data.yCentroidErr, data.yNominal,
             data.xSpotWidth, std::to_string(MPESBase::NOMINAL_SPOT_WIDTH),
             data.ySpotWidth, std::to_string(MPESBase::NOMINAL_SPOT_WIDTH),
             data.cleanedIntensity, std::to_string(MPESBase::NOMINAL_INTENSITY),
             data.exposure,
             data.nSat,
             data.last_img,
-            std::ctime(&data.timestamp));
+            std::ctime(&data.timestamp),
+            x_offset_mm,
+            y_offset_mm,
+            std::sqrt(x_offset_mm*x_offset_mm + y_offset_mm*y_offset_mm));
 
-
-        if (m_Mode == "subclient") { // Record readings to database
-            struct tm tstruct{};
-            char buf[80];
-            tstruct = *localtime(&data.timestamp);
-            strftime(buf, sizeof(buf), "%Y-%m-%d %X", &tstruct);
-
-            spdlog::trace("Updating MPES_readings.sql");
-
-            UaString sql_stmt = UaString(
-                "INSERT INTO Opt_MPESReadings (date, serial_number, xcoord, ycoord, x_SpotWidth, y_SpotWidth, intensity) VALUES  ('%1', '%2', '%3', '%4', '%5', '%6', '%7' );\n").arg(
-                buf).arg(m_Identity.serialNumber).arg(data.xCentroid).arg(data.yCentroid).arg(
-                data.xSpotWidth).arg(data.ySpotWidth).arg(data.cleanedIntensity);
-            std::ofstream sql_file("MPES_readings.sql", std::ios_base::app);
-            sql_file << sql_stmt.toUtf8();
-
-            spdlog::trace("{} : Recorded MPES measurement SQL statement into MPES_readings.sql file: {} ", m_Identity,
-                          sql_stmt.toUtf8());
-        }
     } else if (offset == PAS_MPESType_SetExposure) {
         spdlog::info("{} : MPESController calling setExposure()", m_Identity);
         status = m_pClient->callMethod(m_pClient->getDeviceNodeId(m_Identity), UaString("SetExposure"), args);
@@ -400,7 +401,8 @@ char MPESController::getPanelSide(unsigned panelpos) {
 bool MPESController::isVisible() {
     UaVariant temp;
     OpcUa_Boolean missingLaserError;
-    getError(PAS_MPESType_Error2, temp);
+    Device::ErrorState errState = getErrorState();
+    missingLaserError = errState > Device::ErrorState::OperableError;
     temp.toBool(missingLaserError);
 
     return !missingLaserError;
@@ -437,6 +439,8 @@ MPESBase::Position MPESController::getPosition() {
     std::vector<std::string> varstoread{
         "xCentroidAvg",
         "yCentroidAvg",
+        "xCentroidErr",
+        "yCentroidErr",
         "xCentroidSpotWidth",
         "yCentroidSpotWidth",
         "CleanedIntensity",
@@ -449,7 +453,7 @@ MPESBase::Position MPESController::getPosition() {
     };
     std::transform(varstoread.begin(), varstoread.end(), varstoread.begin(),
                    [this](std::string &str) { return m_pClient->getDeviceNodeId(m_Identity) + "." + str; });
-    UaVariant valstoread[11];
+    UaVariant valstoread[13];
 
     status = m_pClient->read(varstoread, &valstoread[0]);
 
@@ -460,15 +464,17 @@ MPESBase::Position MPESController::getPosition() {
     }
     valstoread[0].toFloat(data.xCentroid);
     valstoread[1].toFloat(data.yCentroid);
-    valstoread[2].toFloat(data.xSpotWidth);
-    valstoread[3].toFloat(data.ySpotWidth);
-    valstoread[4].toFloat(data.cleanedIntensity);
-    valstoread[5].toFloat(data.xNominal);
-    valstoread[6].toFloat(data.yNominal);
-    valstoread[7].toInt32(data.exposure);
-    valstoread[8].toInt32(data.nSat);
-    valstoread[9].toInt64(data.timestamp);
-    data.last_img = valstoread[10].toString().toUtf8();
+	valstoread[2].toFloat(data.xCentroidErr);
+	valstoread[3].toFloat(data.yCentroidErr);
+    valstoread[4].toFloat(data.xSpotWidth);
+    valstoread[5].toFloat(data.ySpotWidth);
+    valstoread[6].toFloat(data.cleanedIntensity);
+    valstoread[7].toFloat(data.xNominal);
+    valstoread[8].toFloat(data.yNominal);
+    valstoread[9].toInt32(data.exposure);
+    valstoread[10].toInt32(data.nSat);
+    valstoread[11].toInt64(data.timestamp);
+    data.last_img = valstoread[12].toString().toUtf8();
 
     return data;
 }

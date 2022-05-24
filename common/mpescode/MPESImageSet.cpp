@@ -287,6 +287,7 @@ void MPESImageSet::simpleAverage()
 		double mjd = ((t)/86400.0)+40587.;
 		SetData.MJD = mjd;
 		//SetData.ID = device->ID ;
+		SetData.last_img = last_img;
 		printSetProperties(stderr);
 	}
 	else

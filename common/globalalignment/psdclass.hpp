@@ -50,10 +50,11 @@ protected:
     virtual void setCalibration();
 
     // calibration constants
-    double m_AlphaNeg[4] = {-9.710132, 9.871400, -9.604298, 10.071177}; // {x1Neg, y1Neg, x2Neg, y2Neg}
-    double m_AlphaPos[4] = {-9.618614, 9.658531, -9.382091, 9.934893}; // {x1Pos, y1Pos, x2Pos, y2Pos}
-    double m_Beta[4] = {0.011341, 0.118089, 0.023689, 0.116461}; // {{x1, y1, x2, y2}
-    double m_Theta[2] = {0.0, 0.0}; // {x, y} ? seemingly unused
+    std::string m_calibFilename = "/.PSD/.PSD.config";
+    double m_AlphaNeg[4] ; // {x1Neg, y1Neg, x2Neg, y2Neg}
+    double m_AlphaPos[4] ; // {x1Pos, y1Pos, x2Pos, y2Pos}
+    double m_Beta[4] ; // {{x1, y1, x2, y2}
+    double m_Theta[2] ; // {x, y} ? seemingly unused
 
     std::string m_logFilename = "PSD-measurements.log"; // file to log into
     std::ofstream m_logOutputStream;

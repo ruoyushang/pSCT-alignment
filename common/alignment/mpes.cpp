@@ -26,11 +26,24 @@ const std::vector<Device::ErrorDefinition> MPESBase::ERROR_DEFINITIONS = {
     {"Failed to read data, possible select timeout.",                                          Device::ErrorState::FatalError},//error 1
     {"Intensity of the image is insufficient to process confidently.",                              Device::ErrorState::FatalError},//error 2
     {"Intensity of the image is too bright to produce reliable measurement. Likely cause: no tube or no lid.",             Device::ErrorState::FatalError},//error 3
-    {"Intensity of the image is bright to perform calculations but the spot width is extensively large > 20px.",      Device::ErrorState::OperableError},//error 4
-    {"Image is severely uneven. Likely due to being in the reflection region, too close to webcam edges, or a bad laser. More than 30% deviation.",Device::ErrorState::FatalError},//error 5
+    {"Intensity of the image is bright enough to perform calculations but the spot width is extensively large > 20px.",      Device::ErrorState::OperableError},//error 4
+    {"Image is severely uneven. Likely due to being in the reflection region, too close to webcam edges, or a bad laser. More than 40% deviation.",Device::ErrorState::FatalError},//error 5
     {"Image is mildly uneven. More than 20% but less than 30% deviation.",                                           Device::ErrorState::OperableError},//error 6
     {"Intensity of the image is zero, no pixels pass threshold value.",Device::ErrorState::FatalError}//error 7,
 };
+
+MPESBase::MPESBase(Device::Identity identity, Device::DBInfo DBInfo) : Device::Device(std::move(identity)),
+                                                                                          m_Calibrate(false){
+    if (!DBInfo.empty()) {
+        setDBInfo(DBInfo);
+    } else {
+        spdlog::warn("{} : MPES: No DB info provided.", m_Identity);
+    }
+}
+
+void MPESBase::setDBInfo(Device::DBInfo DBInfo) {
+    m_DBInfo = std::move(DBInfo);
+}
 
 bool MPESBase::initialize() {
     if (isBusy()) {
@@ -69,6 +82,7 @@ int MPESBase::updatePosition() {
     int intensity;
     intensity = __updatePosition();
     spdlog::info("{} : MPES::updatePosition() : Done.", m_Identity);
+    saveMPESStatustoDB();
     return intensity;
 }
 
@@ -83,6 +97,81 @@ void MPESBase::turnOn() {
     }
     else {
         spdlog::error("{} : MPES::turnOn() : Did not initialize after turnOn. Will not reset exposure.", m_Identity);
+    }
+}
+
+void MPESBase::saveMPESStatustoDB() {
+    try {
+        sql::Driver *driver;
+        sql::Connection *con;
+        sql::Statement *stmt;
+        sql::ResultSet *res;
+        driver = get_driver_instance();
+        std::string dbAddress = "tcp://" + m_DBInfo.host + ":" + m_DBInfo.port;
+        con = driver->connect(dbAddress, m_DBInfo.user, m_DBInfo.password);
+        con->setSchema(m_DBInfo.dbname);
+        stmt = con->createStatement();
+
+        struct tm tstruct{};
+        char buf[80];
+        if (m_Position.cleanedIntensity < -1){
+            time_t t = time(0);
+            tstruct = *localtime(&t);
+        }
+        else {
+            tstruct = *localtime(&m_Position.timestamp);
+        }
+        strftime(buf, sizeof(buf), "%Y-%m-%d %X", &tstruct);
+
+        std::stringstream sql_stmt;
+        sql_stmt << "INSERT INTO Opt_MPESStatus (date, serial_number, x_coord, y_coord, "
+                    "x_err, y_err, x_width, y_width, intensity, nSat, exposure";
+        for (int e = 0; e < getNumErrors(); e++) {
+            sql_stmt << ", error" << e;
+        }
+        sql_stmt << ") ";
+
+        sql_stmt << " SELECT * from (SELECT ";
+
+        sql_stmt << "'" << buf << "' as `date`, "
+                 << m_Identity.serialNumber << " as serial_number, "
+                 << m_Position.xCentroid << " as x_coord, "
+                 << m_Position.yCentroid << " as y_coord, "
+                 << m_Position.xCentroidErr << " as x_err, "
+                 << m_Position.yCentroidErr << " as y_err, "
+                 << m_Position.xSpotWidth << " as x_width, "
+                 << m_Position.ySpotWidth << " as y_width, "
+                 << m_Position.cleanedIntensity << " as intensity, "
+                 << m_Position.nSat << " as nSat, "
+                 << m_Position.exposure << " as exposure";
+        for (int e = 0; e < getNumErrors(); e++) {
+            sql_stmt << ", " << getError(e) << " as error" << e;
+        }
+        sql_stmt << ") as temp";
+
+        sql_stmt << " WHERE NOT EXISTS( "
+                 << " SELECT * from Opt_MPESStatus WHERE (`date`='"
+                 << buf << "' AND serial_number="
+                 << m_Identity.serialNumber
+                 << ") ) LIMIT 1";
+
+        spdlog::trace("{} : Recorded MPES measurement DB ", m_Identity);
+
+        spdlog::trace(sql_stmt.str());
+        stmt->execute(sql_stmt.str());
+
+        delete res;
+        delete stmt;
+        delete con;
+    }
+    catch (sql::SQLException &e) {
+        spdlog::error("# ERR: SQLException in {}"
+                      "({}) on line {}\n"
+                      "# ERR: {}\n"
+                      " (MySQL error code: {}"
+                      ", SQLState: {})", __FILE__, __FUNCTION__, __LINE__, e.what(), e.getErrorCode(), e.getSQLState());
+        spdlog::error("{} : Operable Error: SQL communication error.", m_Identity);
+        return;
     }
 }
 
@@ -253,7 +342,7 @@ int MPES::__setExposure() {
         if (m_Position.cleanedIntensity >= (m_pDevice->GetTargetIntensity() * PRECISION)){
         spdlog::error("{} : MPES::setExposure() : Failed to set exposure, reached minimum limit of {}. Setting Error 3 (too bright)...",
                       m_Identity, std::to_string(MPESBase::MIN_EXPOSURE));
-        setError(4); //operable
+        setError(3); //fatal
         }
         m_pDevice->SetExposure(tempExposure);
     }
@@ -272,12 +361,15 @@ int MPES::__updatePosition() {
     // initialize to something obvious in case of failure
     m_Position.xCentroid = -3.;
     m_Position.yCentroid = -3.;
+    m_Position.xCentroidErr = -3.;
+    m_Position.yCentroidErr = -3.;
     m_Position.xSpotWidth = -3.;
     m_Position.ySpotWidth = -3.;
     m_Position.cleanedIntensity = -3.;
     m_Position.timestamp = -3;
     m_Position.exposure = -3;
     m_Position.nSat = -3;
+    m_Position.last_img = "-";
 
     // read sensor
     if (int(m_pImageSet->Capture()) > 0) {
@@ -290,12 +382,14 @@ int MPES::__updatePosition() {
 
         m_Position.xCentroid = m_pImageSet->SetData.xCentroid;
         m_Position.yCentroid = m_pImageSet->SetData.yCentroid;
+        m_Position.xCentroidErr = m_pImageSet->SetData.xCentroidSD;
+        m_Position.yCentroidErr = m_pImageSet->SetData.yCentroidSD;
         m_Position.xSpotWidth = m_pImageSet->SetData.xSpotSD;
         m_Position.ySpotWidth = m_pImageSet->SetData.ySpotSD;
         m_Position.cleanedIntensity = m_pImageSet->SetData.CleanedIntensity;
         m_Position.nSat = m_pImageSet->SetData.nSat;
     }
-    m_Position.last_img = getLastImage();
+    m_Position.last_img = m_pImageSet->SetData.last_img;
     if (int(m_Position.cleanedIntensity) == -1 ){
         // Real image possible, but no pixels pass threshold
         setError(7);
@@ -431,9 +525,13 @@ int DummyMPES::__updatePosition() {
 
     std::normal_distribution<float> xCentroidDistribution(m_Position.xNominal, 5.0);
     std::normal_distribution<float> yCentroidDistribution(m_Position.yNominal, 5.0);
+	std::normal_distribution<float> xCentroidErrDistribution(0.2, 0.15);
+	std::normal_distribution<float> yCentroidErrDistribution(0.2, 0.15);
 
     m_Position.xCentroid = xCentroidDistribution(generator);
     m_Position.yCentroid = yCentroidDistribution(generator);
+	m_Position.xCentroidErr = xCentroidErrDistribution(generator);
+	m_Position.yCentroidErr = yCentroidErrDistribution(generator);
     m_Position.xSpotWidth = MPESBase::NOMINAL_SPOT_WIDTH;
     m_Position.ySpotWidth = MPESBase::NOMINAL_SPOT_WIDTH;
     m_Position.cleanedIntensity = MPESBase::NOMINAL_INTENSITY;
@@ -442,6 +540,24 @@ int DummyMPES::__updatePosition() {
 
     m_Position.exposure = 500.0;
     m_Position.timestamp = std::time(0);
+
+    if (m_Position.cleanedIntensity > 5e5 && m_Position.cleanedIntensity < 1e6) {
+        setError(4);
+        spdlog::warn("{}: [4] [Operable] Intensity of the image is bright to perform calculations but the spot width is extensively large > 20px.", m_Identity.serialNumber);
+    }
+    else if (m_Position.cleanedIntensity > 1e6) {
+        setError(3);
+        spdlog::warn("{}: [3] [Fatal] Intensity of the image is too bright to process confidently. Likely cause: no tube or no lid.", m_Identity.serialNumber);
+    }
+
+    if (std::abs(m_Position.xSpotWidth / m_Position.ySpotWidth - 1) > 0.40) {
+        spdlog::warn("{}: [5] [Fatal] Image is severely uneven. Likely due to being in the reflection region, too close to webcam edges, or a bad laser. More than 40% deviation.", m_Identity.serialNumber);
+        setError(5);
+    }
+    else if (std::abs(m_Position.xSpotWidth / m_Position.ySpotWidth - 1) > 0.20) {
+        spdlog::error("{}: [6] [Operable] Image is mildly uneven. More than 20% but less than 40% deviation", m_Identity.serialNumber);
+        setError(6);
+    }
 
     return static_cast<int>(m_Position.cleanedIntensity);
 }

@@ -56,7 +56,7 @@ MPESController::MPESController(Device::Identity identity, std::shared_ptr<Platfo
         sql::ResultSet *sql_results;
 
         std::string query =
-            "SELECT coord, nominal_reading FROM Opt_MPESConfigurationAndCalibration WHERE end_date is NULL and serial_number=" +
+            "SELECT coord, nominal_reading, plate_scale FROM Opt_MPESConfigurationAndCalibration WHERE end_date is NULL and serial_number=" +
             std::to_string(m_Identity.serialNumber);
         sql_stmt->execute(query);
         sql_results = sql_stmt->getResultSet();
@@ -65,8 +65,10 @@ MPESController::MPESController(Device::Identity identity, std::shared_ptr<Platfo
             char coord = sql_results->getString(1)[0];
             if (coord == 'x') {
                 m_pPlatform->getMPESbyIdentity(m_Identity)->setxNominalPosition((float) sql_results->getDouble(2));
+                m_pPlatform->getMPESbyIdentity(m_Identity)->setxPlateScale((float) sql_results->getDouble(3));
             } else if (coord == 'y') {
                 m_pPlatform->getMPESbyIdentity(m_Identity)->setyNominalPosition((float) sql_results->getDouble(2));
+                m_pPlatform->getMPESbyIdentity(m_Identity)->setyPlateScale((float) sql_results->getDouble(3));
             } else {
                 spdlog::error("Error: Invalid coord {} (should be x or y).", coord);
             }
@@ -140,6 +142,14 @@ UaStatus MPESController::getData(OpcUa_UInt32 offset, UaVariant &value) {
                 spdlog::trace("{} : Read yCentroid value => ({})", m_Identity, position.yCentroid);
                 value.setFloat(position.yCentroid);
                 break;
+	        case PAS_MPESType_xCentroidErr:
+		        spdlog::trace("{} : Read xCentroidErr value => ({})", m_Identity, position.xCentroidErr);
+		        value.setFloat(position.xCentroidErr);
+		        break;
+	        case PAS_MPESType_yCentroidErr:
+		        spdlog::trace("{} : Read yCentroidErr value => ({})", m_Identity, position.yCentroidErr);
+		        value.setFloat(position.yCentroidErr);
+		        break;
             case PAS_MPESType_xCentroidSpotWidth:
                 spdlog::trace("{} : Read xSpotWidth value => ({})", m_Identity, position.xSpotWidth);
                 value.setFloat(position.xSpotWidth);
@@ -279,6 +289,7 @@ UaStatus MPESController::operate(OpcUa_UInt32 offset, const UaVariantArray &args
             if (_getDeviceState() == Device::DeviceState::On && _getErrorState() != Device::ErrorState::FatalError) {
                 status = read();
             } else {
+                m_pPlatform->getMPESbyIdentity(m_Identity)->saveMPESStatustoDB();
                 spdlog::error("{} : MPES is off/in fatal error state, unable to read.", m_Identity);
                 status = OpcUa_BadInvalidState;
             }

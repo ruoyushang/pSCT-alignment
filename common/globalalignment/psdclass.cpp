@@ -46,6 +46,16 @@ Device::ErrorDefinition GASPSDBase::getErrorCodeDefinition(int errorCode) {
 
 void GASPSDBase::setCalibration() {
     spdlog::trace("GASPSD Calibrating");
+
+    double AlphaNeg[4] = {-9.7110132, 9.871400, -9.604298, 10.071177}; // {x1Neg, y1Neg, x2Neg, y2Neg}
+    double AlphaPos[4] = {-9.618614, 9.658531, -9.382091, 9.934893}; // {x1Pos, y1Pos, x2Pos, y2Pos}
+    double Beta[4] = {0.011341, 0.118089, 0.023689, 0.116461}; // {{x1, y1, x2, y2}
+    double Theta[2] = {0.0, 0.0}; // {x, y} ? seemingly unused
+
+    std::copy(AlphaNeg, AlphaNeg+4, m_AlphaNeg);
+    std::copy(AlphaPos, AlphaPos+4, m_AlphaPos);
+    std::copy(Beta, Beta+4, m_Beta);
+    std::copy(Theta, Theta+2, m_Theta);
 }
 
 void GASPSDBase::setNominalValues(int offset, double value) {
@@ -114,6 +124,47 @@ bool GASPSD::initialize()
     write(m_fd, "d", 1); // debug
     // write(m_fd, "s", 1); // std dev output enabled by default
     write(m_fd, "m", 1); // psd readings
+
+    std::string StrBuff;
+    StrBuff.clear();
+    StrBuff += "Calibrations loaded: ";
+    spdlog::trace(StrBuff);
+
+    StrBuff.clear();
+    StrBuff += "Alpha Negative ";
+    spdlog::trace(StrBuff);
+    for (double i : m_AlphaNeg){
+        StrBuff += std::to_string(i) + ", ";
+    }
+    spdlog::trace(StrBuff);
+
+    StrBuff.clear();
+    StrBuff += "Alpha Positive ";
+    spdlog::trace(StrBuff);
+    StrBuff.clear();
+    for (double i : m_AlphaPos){
+        StrBuff += std::to_string(i) + ", ";
+    }
+    spdlog::trace(StrBuff);
+
+    StrBuff.clear();
+    StrBuff += "Beta ";
+    spdlog::trace(StrBuff);
+    StrBuff.clear();
+    for (double i : m_Beta){
+        StrBuff += std::to_string(i) + ", ";
+    }
+    spdlog::trace(StrBuff);
+
+    StrBuff.clear();
+    StrBuff += "Theta ";
+    spdlog::trace(StrBuff);
+    StrBuff.clear();
+    for (double i : m_Theta){
+        StrBuff += std::to_string(i) + ", ";
+    }
+    spdlog::trace(StrBuff);
+
 
     m_logOutputStream.open(m_logFilename);
 
@@ -260,7 +311,43 @@ void GASPSD::setBlocking(int fd, int should_block) {
 }
 
 void GASPSD::setCalibration() {
-    spdlog::trace("GASPSD Calibrating - no effect.");
+    spdlog::trace("GASPSD Calibrating from file {}", m_calibFilename);
+
+    std::ifstream fin(m_calibFilename.c_str());
+    spdlog::trace("From file: {}", m_calibFilename);
+    std::string line, coldata;
+    while (std::getline(fin, line)) {
+        if (line[0] != '#') {
+            // set sin to the value after the equality sign
+            std::istringstream sin(line.substr(line.find("=") + 1));
+            // check what exactly we're reading
+            if (line.find("AlphaNeg") != std::string::npos) {
+                int i = 0;
+                while (std::getline(sin, coldata, ',')) {
+                    m_AlphaNeg[i] = std::stod(coldata);
+                    i++;
+                }
+            } else if (line.find("AlphaPos") != std::string::npos) {
+                int i = 0;
+                while (std::getline(sin, coldata, ',')) {
+                    m_AlphaPos[i] = std::stod(coldata);
+                    i++;
+                }
+            } else if (line.find("Beta") != std::string::npos) {
+                int i = 0;
+                while (std::getline(sin, coldata, ',')) {
+                    m_Beta[i] = std::stod(coldata);
+                    i++;
+                }
+            } else if (line.find("Theta") != std::string::npos) {
+                int i = 0;
+                while (std::getline(sin, coldata, ',')) {
+                    m_Theta[i] = std::stod(coldata);
+                    i++;
+                }
+            }
+        }
+    }
 }
 
 
@@ -318,6 +405,46 @@ bool DummyGASPSD::initialize() {
     spdlog::debug("Initializing DummyGASPSD");
     // set the calibration constants
     setCalibration();
+
+    std::string StrBuff;
+    StrBuff.clear();
+    StrBuff += "Calibrations loaded: ";
+    spdlog::trace(StrBuff);
+
+    StrBuff.clear();
+    StrBuff += "Alpha Negative ";
+    spdlog::trace(StrBuff);
+    for (double i : m_AlphaNeg){
+        StrBuff += std::to_string(i) + ", ";
+    }
+    spdlog::trace(StrBuff);
+
+    StrBuff.clear();
+    StrBuff += "Alpha Positive ";
+    spdlog::trace(StrBuff);
+    StrBuff.clear();
+    for (double i : m_AlphaPos){
+        StrBuff += std::to_string(i) + ", ";
+    }
+    spdlog::trace(StrBuff);
+
+    StrBuff.clear();
+    StrBuff += "Beta ";
+    spdlog::trace(StrBuff);
+    StrBuff.clear();
+    for (double i : m_Beta){
+        StrBuff += std::to_string(i) + ", ";
+    }
+    spdlog::trace(StrBuff);
+
+    StrBuff.clear();
+    StrBuff += "Theta ";
+    spdlog::trace(StrBuff);
+    StrBuff.clear();
+    for (double i : m_Theta){
+        StrBuff += std::to_string(i) + ", ";
+    }
+    spdlog::trace(StrBuff);
 
     m_logOutputStream.open(m_logFilename);
 
